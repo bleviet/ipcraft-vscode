@@ -39,6 +39,19 @@ export interface MapRootInfo {
  */
 export class YamlPathResolver {
   /**
+   * Resolve a canonical path key to the spelling actually present in `obj`.
+   *
+   * Structural edits are addressed with canonical camelCase paths (e.g.
+   * `addressBlocks`), but a legacy file on disk may still use the snake_case
+   * spelling (`address_blocks`). Callers building a format-preserving edit path
+   * use this to target the key that really exists so they don't create a
+   * duplicate camelCase key alongside the legacy one.
+   */
+  static resolveKey(obj: Record<string | number, unknown>, key: string | number): string | number {
+    return resolveKey(obj, key);
+  }
+
+  /**
    * Set a value at a specific path in the YAML structure
    */
   static setAtPath(root: unknown, path: YamlPath, value: unknown): void {

@@ -79,9 +79,14 @@ describe('Architecture: no snake_case in the runtime memory-map model', () => {
       const content = fs.readFileSync(absolute, 'utf8');
       const offending: string[] = [];
       content.split('\n').forEach((line, idx) => {
-        const match = line.match(tokenRegex);
-        if (match) {
-          offending.push(`  line ${idx + 1}: ${line.trim()}`);
+        const trimmed = line.trim();
+        // Skip comment-only lines — the guard targets code (property access,
+        // object keys, `?? snake_case` fallbacks), not prose in comments.
+        if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) {
+          return;
+        }
+        if (tokenRegex.test(line)) {
+          offending.push(`  line ${idx + 1}: ${trimmed}`);
         }
       });
 

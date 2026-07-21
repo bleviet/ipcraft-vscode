@@ -27,6 +27,7 @@ import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine'
 import { YamlService } from './services/YamlService';
 import { YamlPathResolver } from './services/YamlPathResolver';
 import { serializeValue } from '../domain/serialize';
+import { normalizeMemoryMap } from '../domain/parse';
 import { calculateBlockSize } from './utils/blockSize';
 import type { YamlPath } from './types/editor';
 
@@ -155,10 +156,17 @@ const App = () => {
       return;
     }
     const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
-    const mapObj =
-      selectionRootPath.length > 0
-        ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
-        : (root as LayoutMemoryMap);
+    const rawMapObj = (
+      selectionRootPath.length > 0 ? YamlPathResolver.getAtPath(root, selectionRootPath) : root
+    ) as Record<string, unknown>;
+    // The mutation services operate on the canonical camelCase model, so route
+    // the raw parsed map through the boundary adapter first. This fixes
+    // structural edits on legacy snake_case files (which would otherwise report
+    // "Block not found").
+    const mapObj = normalizeMemoryMap(rawMapObj) as unknown as LayoutMemoryMap;
+    // Target the blocks key that actually exists on disk so the format-preserving
+    // write does not create a duplicate camelCase key next to a legacy one.
+    const blocksKey = YamlPathResolver.resolveKey(rawMapObj, 'addressBlocks');
 
     const targetIdx = regIndex ?? -1;
 
@@ -204,7 +212,7 @@ const App = () => {
         edits.push({
           path: [
             ...selectionRootPath,
-            'addressBlocks',
+            blocksKey,
             blockIndex,
             'registers',
             parentRegIndex,
@@ -217,7 +225,7 @@ const App = () => {
           edits.push({
             path: [
               ...selectionRootPath,
-              'addressBlocks',
+              blocksKey,
               blockIndex,
               'registers',
               parentRegIndex,
@@ -233,7 +241,7 @@ const App = () => {
         >[];
         const value = regs.map((r) => serializeValue(r, width) as Record<string, unknown>);
         edits.push({
-          path: [...selectionRootPath, 'addressBlocks', blockIndex, 'registers'],
+          path: [...selectionRootPath, blocksKey, blockIndex, 'registers'],
           value,
         });
       }
@@ -330,10 +338,14 @@ const App = () => {
       return;
     }
     const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
-    const mapObj =
-      selectionRootPath.length > 0
-        ? (YamlPathResolver.getAtPath(root, selectionRootPath) as LayoutMemoryMap)
-        : (root as LayoutMemoryMap);
+    const rawMapObj = (
+      selectionRootPath.length > 0 ? YamlPathResolver.getAtPath(root, selectionRootPath) : root
+    ) as Record<string, unknown>;
+    // Normalize legacy input through the boundary adapter before the
+    // camelCase-only mutation service (fixes structural edits on legacy files).
+    const mapObj = normalizeMemoryMap(rawMapObj) as unknown as LayoutMemoryMap;
+    // Write back to the blocks key that actually exists on disk.
+    const blocksKey = YamlPathResolver.resolveKey(rawMapObj, 'addressBlocks');
 
     let result;
     if (action === 'delete') {
@@ -354,7 +366,7 @@ const App = () => {
       const sanitized = blocks.map((b) => serializeValue(b) as Record<string, unknown>);
       const newText = YamlService.applyPathEdits(rawTextRef.current, [
         {
-          path: [...selectionRootPath, 'addressBlocks'],
+          path: [...selectionRootPath, blocksKey],
           value: sanitized,
         },
       ]);

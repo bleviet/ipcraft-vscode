@@ -1,6 +1,8 @@
-import { parseMemoryMap } from '../../../domain/parse';
+import { parseMemoryMap, normalizeMemoryMap } from '../../../domain/parse';
 import { serializeMemoryMap, serializeValue } from '../../../domain/serialize';
 import { insertElement, deleteElement } from '../../../webview/algorithms/MutationService';
+import { YamlService } from '../../../webview/services/YamlService';
+import { YamlPathResolver } from '../../../webview/services/YamlPathResolver';
 import type { LayoutMemoryMap } from '../../../webview/algorithms/LayoutEngine';
 
 /**
@@ -120,5 +122,60 @@ describe('legacy snake_case memory-map input', () => {
 
     const serializedForStyle = serializeMemoryMap(afterDelete, rootStyle);
     expectNoSnakeKeys(serializedForStyle);
+  });
+});
+
+/**
+ * Reproduces the webview's structural-edit handlers (handleRegisterAction /
+ * handleBlockAction in src/webview/index.tsx), which parse the raw document text
+ * and drive the camelCase-only mutation services. A legacy `address_blocks` file
+ * must (a) not report "Block not found" and (b) be written back in place without
+ * spawning a duplicate `addressBlocks` key that would hide the original blocks.
+ */
+describe('legacy raw-action structural edits (webview handler pipeline)', () => {
+  function insertRegisterAfter(text: string, blockIndex: number, regIndex: number): string {
+    const rootObj = YamlService.safeParse(text);
+    const { root, selectionRootPath } = YamlPathResolver.getMapRootInfo(rootObj);
+    const rawMapObj = (
+      selectionRootPath.length > 0 ? YamlPathResolver.getAtPath(root, selectionRootPath) : root
+    ) as Record<string, unknown>;
+    const mapObj = normalizeMemoryMap(rawMapObj) as unknown as LayoutMemoryMap;
+    const blocksKey = YamlPathResolver.resolveKey(rawMapObj, 'addressBlocks');
+
+    const result = insertElement(mapObj, 'register', 'after', regIndex, { blockIndex });
+    expect(result.errors).toEqual([]);
+
+    const blocks = (result.memoryMap.addressBlocks ?? []) as Array<Record<string, unknown>>;
+    const regs = (blocks[blockIndex].registers ?? []) as Array<Record<string, unknown>>;
+    const value = regs.map((r) => serializeValue(r, 32) as Record<string, unknown>);
+    return YamlService.applyPathEdits(text, [
+      { path: [...selectionRootPath, blocksKey, blockIndex, 'registers'], value },
+    ]);
+  }
+
+  it('inserts a register into a legacy address_blocks file without data loss', () => {
+    const newText = insertRegisterAfter(LEGACY_YAML, 0, 0);
+
+    // The on-disk legacy key is preserved; no duplicate canonical key appears.
+    expect(newText).toContain('address_blocks:');
+    expect(newText).not.toMatch(/^\s*addressBlocks:/m);
+
+    // Re-reading through the boundary yields the original registers plus the new one.
+    const { map } = parseMemoryMap(newText);
+    const regNames = map.addressBlocks[0].registers.map((r) => r.name);
+    expect(regNames).toContain('STATUS');
+    expect(regNames).toContain('DATA');
+    expect(regNames.length).toBe(3);
+    // Offsets are repacked contiguously across the whole block.
+    expect(map.addressBlocks[0].registers.map((r) => r.offset)).toEqual([0, 4, 8]);
+  });
+
+  it('is idempotent in shape: a second insert still targets the legacy key', () => {
+    const once = insertRegisterAfter(LEGACY_YAML, 0, 0);
+    const twice = insertRegisterAfter(once, 0, 0);
+    expect(twice).toContain('address_blocks:');
+    expect(twice).not.toMatch(/^\s*addressBlocks:/m);
+    const { map } = parseMemoryMap(twice);
+    expect(map.addressBlocks[0].registers.length).toBe(4);
   });
 });
