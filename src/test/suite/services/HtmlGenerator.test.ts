@@ -41,8 +41,9 @@ describe('HtmlGenerator', () => {
     expect(html).toContain('script-src vscode-resource:;');
     expect(html).toContain('wv:/ext/dist/webview.js');
     expect(html).toContain('wv:/ext/dist/webview.css');
-    expect(html).toContain('wv:/ext/node_modules/@vscode/codicons/dist/codicon.css');
-    expect(webview.asWebviewUri as jest.Mock).toHaveBeenCalledTimes(3);
+    // Codicons are bundled into webview.css; no separate node_modules link.
+    expect(html).not.toContain('node_modules');
+    expect(webview.asWebviewUri as jest.Mock).toHaveBeenCalledTimes(2);
   });
 
   it('generates IP core editor HTML with expected assets and root node', () => {
@@ -55,7 +56,8 @@ describe('HtmlGenerator', () => {
     expect(html).toContain('<div id="ipcore-root"></div>');
     expect(html).toContain('wv:/ext/dist/ipcore.js');
     expect(html).toContain('wv:/ext/dist/ipcore.css');
-    expect(html).toContain('wv:/ext/node_modules/@vscode/codicons/dist/codicon.css');
-    expect(webview.asWebviewUri as jest.Mock).toHaveBeenCalledTimes(3);
+    // Codicons are bundled into ipcore.css; no separate node_modules link.
+    expect(html).not.toContain('node_modules');
+    expect(webview.asWebviewUri as jest.Mock).toHaveBeenCalledTimes(2);
   });
 });

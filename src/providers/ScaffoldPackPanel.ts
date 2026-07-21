@@ -51,12 +51,9 @@ export class ScaffoldPackPanel {
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        // Scope resource loading to the bundle + codicons instead of defaulting
-        // to every workspace folder.
-        localResourceRoots: [
-          vscode.Uri.joinPath(context.extensionUri, 'dist'),
-          vscode.Uri.joinPath(context.extensionUri, 'node_modules', '@vscode', 'codicons'),
-        ],
+        // The preview HTML is fully inline (inline <style>/<script> with a nonce)
+        // and loads no local resources, so no resource roots are needed.
+        localResourceRoots: [],
       }
     );
 

@@ -57,13 +57,6 @@ export class HtmlGenerator {
   ): string {
     const scriptUri = this.getWebviewUri(webview, 'dist', options.scriptName);
     const stylesheetUri = this.getWebviewUri(webview, 'dist', options.styleName);
-    const codiconUri = this.getWebviewUri(
-      webview,
-      'node_modules',
-      '@vscode/codicons',
-      'dist',
-      'codicon.css'
-    );
 
     const csp = this.getContentSecurityPolicy(webview);
 
@@ -76,7 +69,7 @@ export class HtmlGenerator {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         ${csp}
-        ${this.getStylesheets(stylesheetUri, codiconUri)}
+        ${this.getStylesheets(stylesheetUri)}
         <title>${options.title}</title>
       </head>
       <body class="bg-gray-50 text-gray-900 font-sans h-screen flex flex-col overflow-hidden">
@@ -109,8 +102,9 @@ export class HtmlGenerator {
     `;
   }
 
-  private getStylesheets(stylesheetUri: vscode.Uri, codiconUri: vscode.Uri): string {
-    return `<link href="${stylesheetUri.toString()}" rel="stylesheet" />
-        <link href="${codiconUri.toString()}" rel="stylesheet" />`;
+  private getStylesheets(stylesheetUri: vscode.Uri): string {
+    // Codicon CSS and its font are bundled into the webview stylesheet by webpack;
+    // do not link node_modules, which is excluded from the packaged VSIX.
+    return `<link href="${stylesheetUri.toString()}" rel="stylesheet" />`;
   }
 }

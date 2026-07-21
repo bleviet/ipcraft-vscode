@@ -26,7 +26,12 @@ export class DataInspectorRecipeEditorProvider implements vscode.CustomTextEdito
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): void {
-    webviewPanel.webview.options = { enableScripts: true };
+    // Restrict resource loading to the bundle output only; codicons are bundled
+    // into the webview stylesheet, so no node_modules root is needed.
+    webviewPanel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'dist')],
+    };
     webviewPanel.webview.html = this.services.htmlGenerator.generateDataInspectorHtml(
       webviewPanel.webview
     );

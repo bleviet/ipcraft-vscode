@@ -120,12 +120,17 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
   ): void {
     const kind = detectKind(document.uri.fsPath);
     if (!kind) {
-      webviewPanel.webview.options = { enableScripts: false };
+      webviewPanel.webview.options = { enableScripts: false, localResourceRoots: [] };
       webviewPanel.webview.html = '<p>Unsupported file type for IPCraft preview.</p>';
       return;
     }
 
-    webviewPanel.webview.options = { enableScripts: true };
+    // Restrict resource loading to the bundle output only; codicons are bundled
+    // into the webview stylesheet, so no node_modules root is needed.
+    webviewPanel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.context.extensionUri, 'dist')],
+    };
     webviewPanel.webview.html = this.htmlGenerator.generateIpCoreHtml(webviewPanel.webview);
 
     this.showExperimentalPreviewNotice();
