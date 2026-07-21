@@ -1,6 +1,7 @@
 import { execSync } from 'child_process';
 import { detectVivadoVersion } from '../../../utils/detectVivadoVersion';
 
+jest.unmock('../../../utils/detectVivadoVersion');
 jest.mock('child_process');
 const mockExecSync = execSync as jest.MockedFunction<typeof execSync>;
 

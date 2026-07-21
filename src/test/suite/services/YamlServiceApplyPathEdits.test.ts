@@ -78,6 +78,12 @@ describe('YamlService.applyPathEdits', () => {
 
   it('returns original text when YAML is invalid', () => {
     const bad = 'a: [unclosed';
+    const warn = console.warn as jest.Mock;
     expect(YamlService.applyPathEdits(bad, [{ path: ['a'], value: 1 }])).toBe(bad);
+    expect(warn).toHaveBeenCalledWith(
+      'Cannot apply edit: YAML parse failed',
+      expect.stringContaining('Flow sequence')
+    );
+    warn.mockClear();
   });
 });

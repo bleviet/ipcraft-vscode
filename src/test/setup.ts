@@ -60,46 +60,66 @@ if (typeof (global as any).PointerEvent === 'undefined') {
   setState: jest.fn(),
 });
 
-// Suppress console errors in tests unless explicitly needed
-const originalError = console.error;
-beforeAll(() => {
-  console.error = (...args: any[]) => {
-    if (
-      typeof args[0] === 'string' &&
-      (args[0].includes('Warning: ReactDOM.render') ||
-        args[0].includes('Not implemented: HTMLFormElement.prototype.submit'))
-    ) {
-      return;
-    }
-    // Fail fast on render loops. "Maximum update depth exceeded" means a component
-    // is calling setState in an effect whose dependency changes every render
-    // (e.g. an unmemoised/`?? []` array fed into a reconcile effect). React merely
-    // warns and bails at 50 iterations, so without this guard a real infinite loop
-    // hides behind a green exit code.
-    if (typeof args[0] === 'string' && args[0].includes('Maximum update depth exceeded')) {
-      throw new Error(
-        'Render loop detected: "Maximum update depth exceeded". A component is ' +
-          'calling setState inside an effect whose dependency changes on every render.'
-      );
-    }
-    originalError.call(console, ...args);
-  };
+// Unit tests must explicitly assert diagnostics they intentionally trigger, then clear
+// the corresponding mock. Anything left behind fails the test instead of producing a
+// green run with warning noise that can hide a real regression.
+let consoleWarnSpy: jest.SpyInstance;
+let consoleErrorSpy: jest.SpyInstance;
+let emitWarningSpy: jest.SpyInstance;
+
+function formatCalls(calls: any[][]): string {
+  return calls
+    .map((args) => args.map((arg) => (arg instanceof Error ? arg.stack : String(arg))).join(' '))
+    .join('\n');
+}
+
+beforeEach(() => {
+  consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+  consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  emitWarningSpy = jest.spyOn(process, 'emitWarning').mockImplementation(() => undefined);
+
+  const versionDetector = require('../utils/detectVivadoVersion').detectVivadoVersion;
+  if (jest.isMockFunction(versionDetector)) {
+    versionDetector.mockReturnValue('2024.2');
+  }
 });
 
-afterAll(() => {
-  console.error = originalError;
+afterEach(() => {
+  const unexpected = [
+    ['console.warn', consoleWarnSpy.mock.calls],
+    ['console.error', consoleErrorSpy.mock.calls],
+    ['process warning', emitWarningSpy.mock.calls],
+  ].filter(([, calls]) => (calls as any[][]).length > 0) as Array<[string, any[][]]>;
+
+  consoleWarnSpy.mockRestore();
+  consoleErrorSpy.mockRestore();
+  emitWarningSpy.mockRestore();
+
+  if (unexpected.length > 0) {
+    throw new Error(
+      unexpected.map(([source, calls]) => `Unexpected ${source}:\n${formatCalls(calls)}`).join('\n')
+    );
+  }
 });
+
+// Component XML generation asks this boundary for host tool information. Unit tests use
+// deterministic version metadata; detectVivadoVersion.test.ts explicitly unmocks it.
+jest.mock('../utils/detectVivadoVersion', () => ({
+  detectVivadoVersion: jest.fn(() => '2024.2'),
+}));
 
 // Mock @vscode/webview-ui-toolkit/react
 jest.mock('@vscode/webview-ui-toolkit/react', () => {
   const React = require('react');
   return {
-    VSCodeTextField: ({ onInput, ...props }: any) =>
+    VSCodeTextField: React.forwardRef(({ onInput, ...props }: any, ref: any) =>
       React.createElement('input', {
+        ref,
         ...props,
         onInput: (e: any) => onInput?.(e),
         onChange: (e: any) => onInput?.(e),
-      }),
+      })
+    ),
     VSCodeTextArea: React.forwardRef(({ onInput, ...props }: any, ref: any) =>
       React.createElement('textarea', {
         ref,
@@ -119,15 +139,17 @@ jest.mock('@vscode/webview-ui-toolkit/react', () => {
         }),
         children,
       ]),
-    VSCodeDropdown: ({ onChange, children, ...props }: any) =>
+    VSCodeDropdown: React.forwardRef(({ onChange, children, ...props }: any, ref: any) =>
       React.createElement(
         'select',
         {
+          ref,
           onChange: (e: any) => onChange?.(e),
           ...props,
         },
         children
-      ),
+      )
+    ),
     VSCodeOption: ({ children, ...props }: any) => React.createElement('option', props, children),
   };
 });

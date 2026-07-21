@@ -220,8 +220,14 @@ blocks:
 name: foo
   bad indent: bar
 `;
+      const warn = console.warn as jest.Mock;
       const result = applyPathEdits(text, [{ path: ['name'], value: 'baz' }]);
       expect(result).toBe(text);
+      expect(warn).toHaveBeenCalledWith(
+        'Cannot apply edit: YAML parse failed',
+        expect.stringContaining('Nested mappings')
+      );
+      warn.mockClear();
     });
 
     it('handles edit to deeply nested path', () => {
@@ -324,8 +330,14 @@ registers:
 name: foo
   bad: indent
 `;
+      const warn = console.warn as jest.Mock;
       const result = applyPathDeletes(text, [['name']]);
       expect(result).toBe(text);
+      expect(warn).toHaveBeenCalledWith(
+        'Cannot apply delete: YAML parse failed',
+        expect.stringContaining('Nested mappings')
+      );
+      warn.mockClear();
     });
 
     it('deletes top-level key', () => {

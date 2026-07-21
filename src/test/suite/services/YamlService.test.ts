@@ -185,10 +185,13 @@ fields:
   describe('safeParse', () => {
     it('should return null for invalid YAML', () => {
       const invalidYaml = '{ invalid: yaml: syntax';
+      const warn = console.warn as jest.Mock;
 
       const result = YamlService.safeParse(invalidYaml);
 
       expect(result).toBeNull();
+      expect(warn).toHaveBeenCalledWith('YAML parse error:', expect.any(Error));
+      warn.mockClear();
     });
 
     it('should parse valid YAML', () => {

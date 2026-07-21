@@ -14,16 +14,6 @@ const mockShowErrorMessage = vscode.window.showErrorMessage as jest.Mock;
 const mockShowWarningMessage = vscode.window.showWarningMessage as jest.Mock;
 const mockShowInformationMessage = vscode.window.showInformationMessage as jest.Mock;
 
-// Silence console output during tests
-const originalConsoleError = console.error;
-beforeAll(() => {
-  console.error = jest.fn();
-});
-
-afterAll(() => {
-  console.error = originalConsoleError;
-});
-
 describe('ErrorHandler', () => {
   beforeEach(() => {
     jest.clearAllMocks();

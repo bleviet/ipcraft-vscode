@@ -227,14 +227,7 @@ describe('parseVivadoInterfaceFiles', () => {
   });
 
   it('gracefully skips malformed XML without throwing', () => {
-    expect(() =>
-      parseVivadoInterfaceFiles([
-        'not xml at all',
-        '<unclosed',
-        FIFO_WRITE_BUSDEF_XML,
-        FIFO_WRITE_RTL_XML,
-      ])
-    ).not.toThrow();
+    const error = console.error as jest.Mock;
     const result = parseVivadoInterfaceFiles([
       'not xml at all',
       '<unclosed',
@@ -242,6 +235,8 @@ describe('parseVivadoInterfaceFiles', () => {
       FIFO_WRITE_RTL_XML,
     ]);
     expect(result).toHaveLength(1);
+    expect(error.mock.calls.some(([message]) => String(message).includes('[xmldom'))).toBe(true);
+    error.mockClear();
   });
 
   it('omits width entirely for an unconstrained/parameterized port (e.g. data width)', () => {

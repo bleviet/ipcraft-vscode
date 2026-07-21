@@ -489,9 +489,12 @@ describe('crossCheckIpCoreAgainstVendor — component.xml (Xilinx/Vivado)', () =
   it('returns no findings for unparsable vendor content instead of throwing', async () => {
     const ipCore = baseIpCore({ ports: [{ name: 'led', direction: 'out', width: 1 }] });
     const reader = makeReader('not valid xml at all <<<');
+    const error = console.error as jest.Mock;
 
     const findings = await crossCheckIpCoreAgainstVendor(ipCore, '/proj', 'componentXml', reader);
 
     expect(findings).toEqual([]);
+    expect(error.mock.calls.some(([message]) => String(message).includes('[xmldom'))).toBe(true);
+    error.mockClear();
   });
 });
