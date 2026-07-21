@@ -160,27 +160,16 @@ addressBlocks:
     });
   });
 
-  test('closed access control shows the untruncated short token (no ellipsis)', async ({
-    page,
-  }) => {
+  test('closed access control shows the untruncated short token', async ({ page }) => {
     // ENABLE_ALL uses 'read-write-self-clearing' (24 chars, the longest enum
     // value) -- if the closed control were still showing the full enum name
     // instead of the RWSC token, this is where it would overflow/ellipsize.
-    const dropdown = page
-      .locator('td[data-col-key="access"] vscode-dropdown[data-edit-key="access"]')
-      .first();
-
-    const { scrollWidth, clientWidth } = await dropdown.evaluate((el) => {
-      const inner = (el.shadowRoot?.querySelector('.selected-value') as HTMLElement | null) ?? el;
-      return { scrollWidth: inner.scrollWidth, clientWidth: inner.clientWidth };
-    });
-
-    expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+    const select = page.locator('td[data-col-key="access"] select[data-edit-key="access"]').first();
+    await expect(select).toHaveValue('read-write-self-clearing');
+    await expect(select.locator('option:checked')).toHaveText('RWSC');
   });
 
-  test('a single click on a non-selected row opens the access listbox (3-clicks-to-1 regression)', async ({
-    page,
-  }) => {
+  test('a single click activates a select on a non-selected row', async ({ page }) => {
     // Previously: double-click the cell to enter edit mode (pointer-events
     // gating), then a separate click to open the listbox -- 3 clicks total.
     // Opening a listbox is non-destructive/cancellable (Esc, outside-click),
@@ -188,124 +177,35 @@ addressBlocks:
     // accepts pointer events and a single click opens it directly. Use
     // RESERVED_1 (third field, index 2) -- not the row selected by default
     // -- to make sure this holds for a row the user has not touched yet.
-    const dropdown = page
-      .locator('td[data-col-key="access"] vscode-dropdown[data-edit-key="access"]')
-      .nth(2);
-
-    await expect(dropdown).toHaveAttribute('aria-expanded', 'false');
-
-    await dropdown.click();
-
-    await expect(dropdown).toHaveAttribute('aria-expanded', 'true');
+    const select = page.locator('td[data-col-key="access"] select[data-edit-key="access"]').nth(2);
+    await select.click();
+    await expect(select).toBeFocused();
   });
 
-  test('opening the access dropdown yields a listbox fully inside the viewport and below the sticky header', async ({
-    page,
-  }) => {
-    // ENABLE_ALL is the first (topmost) row, immediately under the sticky
-    // header -- the case where an upward-opening popup used to be painted
-    // over by the header.
-    const accessCell = page.locator('td[data-col-key="access"]').first();
-    await accessCell.dblclick();
-
-    const dropdown = page
-      .locator('td[data-col-key="access"] vscode-dropdown[data-edit-key="access"]')
-      .first();
-    await dropdown.click();
-    // The toolkit reflects `open`/`aria-expanded` a tick after the click
-    // handler runs; wait for it before reading the listbox's geometry, or
-    // the rect below is read while it is still hidden (all zeros).
-    await expect(dropdown).toHaveAttribute('aria-expanded', 'true');
-
-    const listboxBox = await dropdown.evaluate((el) => {
-      const listbox = el.shadowRoot?.querySelector('.listbox') as HTMLElement | null;
-      if (!listbox) {
-        return null;
-      }
-      const r = listbox.getBoundingClientRect();
-      return { top: r.top, left: r.left, right: r.right, bottom: r.bottom };
+  test('supports keyboard selection without changing the message contract', async ({ page }) => {
+    const select = page.locator('td[data-col-key="access"] select[data-edit-key="access"]').nth(2);
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+      (window as any).__native_select_key_allowed = null;
+      document.addEventListener(
+        'keydown',
+        (event) => {
+          if (event.target instanceof HTMLSelectElement && event.key === 'ArrowDown') {
+            (window as any).__native_select_key_allowed = !event.defaultPrevented;
+          }
+        },
+        { once: true }
+      );
     });
-    expect(listboxBox).not.toBeNull();
+    await select.focus();
+    await select.press('ArrowDown');
+    expect(await page.evaluate(() => (window as any).__native_select_key_allowed)).toBe(true);
+    await select.selectOption('write-only');
+    await page.waitForFunction(() => (window as any).__last_message?.type === 'update');
 
-    const theadBottom = await page
-      .locator('thead')
-      .first()
-      .evaluate((el) => el.getBoundingClientRect().bottom);
-    const viewport = page.viewportSize();
-    expect(viewport).not.toBeNull();
-
-    // 1px tolerance: the native toolkit listbox is anchored to the host's
-    // left edge with no viewport-edge collision detection (the plan keeps
-    // the native VSCodeDropdown rather than a custom-positioned popup), so
-    // sub-pixel table-layout rounding can put its right edge a fraction of
-    // a pixel past the viewport boundary. That is not visually perceptible;
-    // this guards against a real (many-pixel) regression, not rounding.
-    const EPS = 1;
-    expect(listboxBox!.left).toBeGreaterThanOrEqual(-EPS);
-    expect(listboxBox!.top).toBeGreaterThanOrEqual(-EPS);
-    expect(listboxBox!.right).toBeLessThanOrEqual(viewport!.width + EPS);
-    expect(listboxBox!.bottom).toBeLessThanOrEqual(viewport!.height + EPS);
-    // Positioned below the control (position="below"), so it never sits
-    // under the sticky header.
-    expect(listboxBox!.top).toBeGreaterThanOrEqual(theadBottom - EPS);
-  });
-
-  test('the popup opens below even when the control sits in the lower half of the viewport', async ({
-    page,
-  }) => {
-    // Regression: fast-foundation auto-positioning flips the listbox upward
-    // whenever there is more room above the control than below it, and the
-    // upward popup is then clipped by the table's overflow-auto scroll
-    // container. `position="below"` alone does not prevent this -- the
-    // element latches `forcedPosition` at connect time, before the React
-    // wrapper assigns the property -- so CellInput forces it via a ref.
-    // The other popup test above renders the row near the top of a tall
-    // viewport, where auto-positioning coincidentally picks "below"; this
-    // one recreates the flip geometry.
-    const accessCell = page.locator('td[data-col-key="access"]').first();
-    const dropdown = page
-      .locator('td[data-col-key="access"] vscode-dropdown[data-edit-key="access"]')
-      .first();
-
-    // Shrink the viewport so only ~60px remain below the control, leaving
-    // more room above it -- the exact geometry that used to flip the popup.
-    const initialBox = await dropdown.boundingBox();
-    expect(initialBox).not.toBeNull();
-    await page.setViewportSize({
-      width: 900,
-      height: Math.ceil(initialBox!.y + initialBox!.height + 60),
-    });
-
-    const ctrl = await dropdown.boundingBox();
-    const viewport = page.viewportSize();
-    expect(ctrl).not.toBeNull();
-    expect(viewport).not.toBeNull();
-    // Precondition for the regression scenario: more space above the
-    // control than below it, otherwise this test degenerates into the
-    // near-the-top case already covered above.
-    expect(ctrl!.y).toBeGreaterThan(viewport!.height - (ctrl!.y + ctrl!.height));
-
-    await accessCell.dblclick();
-    await dropdown.click();
-    await expect(dropdown).toHaveAttribute('aria-expanded', 'true');
-
-    const geom = await dropdown.evaluate((el) => {
-      const listbox = el.shadowRoot?.querySelector('.listbox') as HTMLElement | null;
-      if (!listbox) {
-        return null;
-      }
-      const host = el.getBoundingClientRect();
-      const r = listbox.getBoundingClientRect();
-      return { listTop: r.top, listHeight: r.height, hostBottom: host.bottom };
-    });
-    expect(geom).not.toBeNull();
-
-    const EPS = 1;
-    // The forced position must hold: the listbox starts at or below the
-    // control's bottom edge (an auto-flipped popup would start above the
-    // control's top) and is actually rendered.
-    expect(geom!.listTop).toBeGreaterThanOrEqual(geom!.hostBottom - EPS);
-    expect(geom!.listHeight).toBeGreaterThan(0);
+    const message = await page.evaluate(() => (window as any).__last_message);
+    expect(message.type).toBe('update');
+    expect(message.text).toContain('access: write-only');
   });
 
   test('all body rows (including the W1C row) have equal height', async ({ page }) => {

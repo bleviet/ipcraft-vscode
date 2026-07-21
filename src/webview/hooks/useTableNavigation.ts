@@ -142,13 +142,12 @@ export function useTableNavigation<T extends ColumnKey>({
       }
 
       const target = e.target as HTMLElement | null;
-      const isInDropdown = !!target?.closest('vscode-dropdown');
-      const isTypingTarget = !!target?.closest(
-        'input, textarea, select, [contenteditable="true"], vscode-text-field, vscode-text-area'
-      );
+      const isInDropdown = target instanceof HTMLSelectElement;
+      const isTypingTarget = !!target?.closest('input, textarea, select, [contenteditable="true"]');
 
-      // Don't steal arrow keys while editing/typing
-      if (isTypingTarget) {
+      // Keep typing targets native, except selects retain the table's vim
+      // navigation while their raw arrow keys stay with the native control.
+      if (isTypingTarget && !isInDropdown) {
         return;
       }
       // In dropdown, allow vim keys but not raw arrow keys

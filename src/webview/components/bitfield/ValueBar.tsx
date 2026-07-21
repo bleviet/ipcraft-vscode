@@ -1,5 +1,4 @@
 import React from 'react';
-import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import type { RegisterValueParse } from './utils';
 
 interface ValueBarProps {
@@ -27,6 +26,7 @@ const ValueBar = ({
   validateRegisterValue,
   commitRegisterValueDraft,
 }: ValueBarProps) => {
+  const errorId = React.useId();
   return (
     <div
       className="flex items-center justify-start gap-2 p-2 rounded"
@@ -53,8 +53,12 @@ const ValueBar = ({
               0x
             </span>
           ) : null}
-          <VSCodeTextField
-            className="vscode-field-bare flex-1 min-w-0 font-mono"
+          <input
+            type="text"
+            aria-label={`Register value (${valueView})`}
+            aria-invalid={valueError ? true : undefined}
+            aria-describedby={valueError ? errorId : undefined}
+            className="vscode-control vscode-field-bare flex-1 min-w-0 font-mono"
             value={valueDraft}
             onFocus={(event) => {
               setValueEditing(true);
@@ -64,8 +68,8 @@ const ValueBar = ({
               setValueEditing(false);
               commitRegisterValueDraft();
             }}
-            onInput={(event) => {
-              const next = String((event.target as HTMLInputElement).value ?? '');
+            onChange={(event) => {
+              const next = event.target.value;
               setValueDraft(next);
               const parsed = parseRegisterValue(next, valueView);
               setValueError(validateRegisterValue(parsed));
@@ -82,7 +86,11 @@ const ValueBar = ({
             }}
           />
         </div>
-        {valueError ? <div className="text-xs vscode-error mt-1">{valueError}</div> : null}
+        {valueError ? (
+          <div id={errorId} className="text-xs vscode-error mt-1">
+            {valueError}
+          </div>
+        ) : null}
       </div>
       <button
         type="button"

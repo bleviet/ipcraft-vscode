@@ -134,9 +134,7 @@ export const MetadataEditor: React.FC<MetadataEditorProps> = ({ ipCore, onUpdate
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
-      const isTyping = target.closest(
-        'input, textarea, select, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown'
-      );
+      const isTyping = target.closest('input, textarea, select, [contenteditable="true"]');
 
       if (isTyping || editingKey !== null) {
         if (e.key === 'Escape') {

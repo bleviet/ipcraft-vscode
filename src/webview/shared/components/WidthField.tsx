@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { evalWidthExpr, normalizeFunctionNames } from '../utils/evalWidthExpr';
 import { WidthFunctionHelpMenu } from './WidthFunctionHelpMenu';
 
@@ -64,7 +63,7 @@ export const WidthField: React.FC<WidthFieldProps> = ({
     typeof value === 'string' ? 'expr' : 'number'
   );
 
-  // Ref for synchronous read on blur (VSCodeTextField shadow-DOM blur ordering)
+  // Refs provide synchronous reads for commit-on-blur and Enter handling.
   const numericRef = useRef<string>(
     typeof value === 'number' ? String(value) : String(defaultWidth)
   );
@@ -73,6 +72,7 @@ export const WidthField: React.FC<WidthFieldProps> = ({
   const [helpMenuOpen, setHelpMenuOpen] = useState(false);
   const [helpMenuPosition, setHelpMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const helpButtonRef = useRef<HTMLButtonElement>(null);
+  const controlId = React.useId();
 
   const commit = (v: number | string) => {
     if (onSaveWithValue) {
@@ -133,23 +133,29 @@ export const WidthField: React.FC<WidthFieldProps> = ({
 
   return (
     <div className={`flex flex-col gap-1 ${className ?? ''}`} onBlur={handleBlur}>
-      {label && <label className="text-sm font-semibold">{label}</label>}
+      {label && (
+        <label htmlFor={controlId} className="text-sm font-semibold">
+          {label}
+        </label>
+      )}
 
       <div className="flex items-center gap-1">
         {mode === 'expr' ? (
-          <VSCodeTextField
+          <input
+            id={controlId}
+            type="text"
+            aria-label={label?.trim().length ? label : 'Width expression'}
+            className="vscode-control"
             value={typeof value === 'string' ? value : exprRef.current}
             disabled={disabled}
             placeholder={numericParams[0]?.name ?? 'expression…'}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onInput={(e: any) => {
-              const raw: string = (e as React.ChangeEvent<HTMLInputElement>).target.value ?? '';
+            onChange={(event) => {
+              const raw = event.target.value;
               exprRef.current = raw;
               onChange(coerceExpr(raw));
             }}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onKeyDown={(e: any) => {
-              const key = (e as KeyboardEvent).key;
+            onKeyDown={(event) => {
+              const key = event.key;
               if (key === 'Enter') {
                 commit(coerceExpr(exprRef.current));
               } else if (key === 'Escape') {
@@ -159,22 +165,24 @@ export const WidthField: React.FC<WidthFieldProps> = ({
             style={{ flexGrow: 1 }}
           />
         ) : (
-          <VSCodeTextField
+          <input
+            id={controlId}
+            type="text"
+            inputMode="numeric"
+            aria-label={label?.trim().length ? label : 'Width'}
+            className="vscode-control"
             value={typeof value === 'number' ? String(value) : String(defaultWidth)}
             disabled={disabled}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onInput={(e: any) => {
-              const ev = e as React.ChangeEvent<HTMLInputElement>;
-              const raw = ev.target.value ?? '';
+            onChange={(event) => {
+              const raw = event.target.value;
               numericRef.current = raw;
               const num = parseInt(raw, 10);
               if (!isNaN(num) && num > 0) {
                 onChange(num);
               }
             }}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onKeyDown={(e: any) => {
-              const key = (e as KeyboardEvent).key;
+            onKeyDown={(event) => {
+              const key = event.key;
               if (key === 'Enter') {
                 const num = parseInt(numericRef.current, 10);
                 commit(!isNaN(num) && num > 0 ? num : defaultWidth);
@@ -192,8 +200,7 @@ export const WidthField: React.FC<WidthFieldProps> = ({
             mode === 'expr' ? 'Switch to literal number' : 'Use a parameter or expression as width'
           }
           onClick={toggleMode}
-          // Prevent shadow-DOM blur from firing with relatedTarget=null when
-          // clicking this button while the text field is focused.
+          // Keep focus in the input so the wrapper does not commit before the click.
           onMouseDown={(e) => e.preventDefault()}
           disabled={disabled}
           className="shrink-0 rounded px-1.5 py-0.5 text-xs font-mono transition-opacity"

@@ -174,9 +174,7 @@ export function RegisterTableRow({
         }
         // Let double-click select text inside editable fields rather than navigate.
         const target = e.target as HTMLElement | null;
-        const isEditable = !!target?.closest(
-          'input, textarea, [contenteditable="true"], vscode-text-field, vscode-text-area, vscode-dropdown'
-        );
+        const isEditable = !!target?.closest('input, textarea, select, [contenteditable="true"]');
         if (isEditable) {
           return;
         }

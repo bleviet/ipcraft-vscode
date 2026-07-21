@@ -48,6 +48,10 @@ function Harness({
   return (
     <div ref={containerRef} tabIndex={0} data-testid="container">
       <input data-testid="typing-input" />
+      <select data-testid="access-select" defaultValue="read-write">
+        <option value="read-only">RO</option>
+        <option value="read-write">RW</option>
+      </select>
       <table>
         <tbody>
           {rowIds.map((rowId, index) => (
@@ -169,6 +173,23 @@ describe('useTableNavigation', () => {
     input.focus();
     fireEvent.keyDown(input, { key: 'ArrowDown' });
 
+    expect(setActiveCell).not.toHaveBeenCalled();
+  });
+
+  it('keeps vim navigation active in selects while preserving native arrow keys', () => {
+    const setActiveCell = jest.fn();
+    const { getByTestId } = render(
+      <Harness activeCell={{ rowId: 'row-1', key: 'name' }} setActiveCell={setActiveCell} />
+    );
+
+    const select = getByTestId('access-select');
+    select.focus();
+
+    expect(fireEvent.keyDown(select, { key: 'k' })).toBe(false);
+    expect(setActiveCell).toHaveBeenCalledWith({ rowId: 'row-0', key: 'name' });
+
+    setActiveCell.mockClear();
+    expect(fireEvent.keyDown(select, { key: 'ArrowDown' })).toBe(true);
     expect(setActiveCell).not.toHaveBeenCalled();
   });
 

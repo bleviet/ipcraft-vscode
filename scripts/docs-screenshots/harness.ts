@@ -69,19 +69,8 @@ export async function openHarness(page: Page, opts: OpenOptions): Promise<void> 
   const harnessFsPath = path.join(BROWSER_TEST_DIR, HARNESS_FILE[harness]);
   const harnessPath = `file://${harnessFsPath}`;
 
-  // The @vscode/webview-ui-toolkit custom elements (<vscode-text-field> etc.)
-  // read --vscode-* custom properties into their own internal design tokens
-  // (e.g. --input-background) ONCE, when each component first connects --
-  // not as a live var() binding. By the time a post-navigation
-  // page.addStyleTag() call could run, the app has already mounted and every
-  // token has snapshotted the (still unset) variable, permanently falling
-  // back to the toolkit's own hardcoded dark default (--input-background:
-  // #3c3c3c) regardless of theme. Injecting via page.addInitScript() doesn't
-  // fix this either -- content appended to document.documentElement before
-  // navigation gets discarded once the real HTML parser starts writing
-  // <head>/<body> for the navigated document. Routing the request and
-  // inlining the theme <style> directly into the served HTML is the only
-  // ordering that lands before the bundle's own <script> tag runs.
+  // Inline the theme before the bundle runs so the first rendered frame uses
+  // the intended VS Code token values and screenshot capture stays stable.
   const themeCss = fs.readFileSync(path.join(THEME_DIR, `${THEME_FILE[theme]}.css`), 'utf-8');
   await page.route(harnessPath, async (route) => {
     const html = fs.readFileSync(harnessFsPath, 'utf-8');

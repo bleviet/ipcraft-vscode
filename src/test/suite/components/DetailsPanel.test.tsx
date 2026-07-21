@@ -3,7 +3,7 @@
  *
  * Verifies that DetailsPanel mounts the correct sub-component based on
  * selectedType, without exercising the sub-component internals.
- * Sub-components are mocked to avoid pulling in heavy DOM / toolkit deps.
+ * Sub-components are mocked to keep this test focused on panel behavior.
  */
 import React from 'react';
 import { render, screen } from '@testing-library/react';

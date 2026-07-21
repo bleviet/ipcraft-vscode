@@ -1,5 +1,4 @@
 import React from 'react';
-import { VSCodeDropdown, VSCodeOption } from '@vscode/webview-ui-toolkit/react';
 
 export interface SelectFieldProps {
   label: string;
@@ -19,7 +18,7 @@ export interface SelectFieldProps {
 
 /**
  * Dropdown select field
- * Uses VSCode Web UI Toolkit for native VS Code look and feel
+ * Uses a semantic native select styled with VS Code theme tokens.
  */
 export const SelectField: React.FC<SelectFieldProps> = ({
   label,
@@ -34,9 +33,9 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   onSave,
   onCancel,
 }) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleKeyDown = (e: any) => {
-    const event = e as unknown as KeyboardEvent;
+  const controlId = React.useId();
+  const errorId = `${controlId}-error`;
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLSelectElement>) => {
     if (event.key === 'Enter') {
       onSave?.();
     } else if (event.key === 'Escape') {
@@ -47,38 +46,33 @@ export const SelectField: React.FC<SelectFieldProps> = ({
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label className="text-sm font-semibold flex items-center gap-1">
+        <label htmlFor={controlId} className="text-sm font-semibold flex items-center gap-1">
           {label}
           {required && <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>}
         </label>
       )}
-      <VSCodeDropdown
+      <select
+        id={controlId}
         data-edit-key={dataEditKey}
-        className={className}
+        className={`vscode-control vscode-select ${className ?? ''}`}
         value={value}
         disabled={disabled}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onChange={(e: any) => {
-          const event = e as unknown as React.ChangeEvent<HTMLSelectElement>;
-          onChange(event.target.value);
-        }}
+        required={required}
+        aria-label={label || dataEditKey}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
+        onChange={(event) => onChange(event.target.value)}
         onKeyDown={handleKeyDown}
-        style={
-          {
-            '--dropdown-border': error
-              ? '1px solid var(--vscode-inputValidation-errorBorder)'
-              : undefined,
-          } as React.CSSProperties
-        }
+        data-validation={error ? 'error' : undefined}
       >
         {options.map((option) => (
-          <VSCodeOption key={option.value} value={option.value}>
+          <option key={option.value} value={option.value}>
             {option.label}
-          </VSCodeOption>
+          </option>
         ))}
-      </VSCodeDropdown>
+      </select>
       {error && (
-        <span className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
+        <span id={errorId} className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
           {error}
         </span>
       )}

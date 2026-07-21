@@ -1,5 +1,4 @@
 import React from 'react';
-import { VSCodeTextField } from '@vscode/webview-ui-toolkit/react';
 import { useEditableDraft } from '../hooks/useEditableDraft';
 
 export interface FormFieldProps {
@@ -23,7 +22,7 @@ export interface FormFieldProps {
 
 /**
  * Text input form field with validation
- * Uses VSCode Web UI Toolkit for native VS Code look and feel
+ * Uses a semantic native input styled with VS Code theme tokens.
  */
 export const FormField: React.FC<FormFieldProps> = ({
   label,
@@ -41,6 +40,8 @@ export const FormField: React.FC<FormFieldProps> = ({
   onCancel,
 }) => {
   const [localError, setLocalError] = React.useState<string | null>(null);
+  const controlId = React.useId();
+  const errorId = `${controlId}-error`;
   const { draft, setDraft, markFocused, markBlurred } = useEditableDraft(value);
 
   const handleBlur = () => {
@@ -52,12 +53,7 @@ export const FormField: React.FC<FormFieldProps> = ({
     onBlur?.();
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleKeyDown = (e: any) => {
-    const event = e as unknown as KeyboardEvent;
-    // VSCodeTextField uses CustomEvent-like synthetic events but we can access original event
-    // Note: The VS Code Webview UI Toolkit components wrap native inputs.
-
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       // For text fields, Enter usually means save.
       onSave?.();
@@ -71,22 +67,26 @@ export const FormField: React.FC<FormFieldProps> = ({
   return (
     <div className="flex flex-col gap-1">
       {label && (
-        <label className="text-sm font-semibold flex items-center gap-1">
+        <label htmlFor={controlId} className="text-sm font-semibold flex items-center gap-1">
           {label}
           {required && <span style={{ color: 'var(--vscode-errorForeground)' }}>*</span>}
         </label>
       )}
-      <VSCodeTextField
+      <input
+        id={controlId}
+        type="text"
         data-edit-key={dataEditKey}
-        className={className}
+        className={`vscode-control ${className ?? ''}`}
         value={draft}
         placeholder={placeholder}
         disabled={disabled}
+        required={required}
+        aria-label={label || dataEditKey}
+        aria-invalid={displayError ? true : undefined}
+        aria-describedby={displayError ? errorId : undefined}
         onFocus={markFocused}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onInput={(e: any) => {
-          const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
-          const newValue = event.target.value ?? '';
+        onChange={(event) => {
+          const newValue = event.target.value;
           setDraft(newValue);
           onChange(newValue);
           if (localError && validator) {
@@ -96,16 +96,10 @@ export const FormField: React.FC<FormFieldProps> = ({
         }}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        style={
-          {
-            '--input-border-color': displayError
-              ? 'var(--vscode-inputValidation-errorBorder)'
-              : undefined,
-          } as React.CSSProperties
-        }
+        data-validation={displayError ? 'error' : undefined}
       />
       {displayError && (
-        <span className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
+        <span id={errorId} className="text-xs" style={{ color: 'var(--vscode-errorForeground)' }}>
           {displayError}
         </span>
       )}

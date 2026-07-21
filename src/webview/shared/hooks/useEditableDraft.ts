@@ -4,11 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * Keeps a local draft of a controlled input value so the caret is not snapped
  * to the end of the text on every keystroke.
  *
- * The vscode-webview-ui-toolkit React wrapper re-applies the `value` property on
- * every render. When an edit round-trips (parse -> serialize -> re-parse) and
- * the value fed back differs from what the user just typed, the inner control's
- * value is rewritten and the caret jumps to the end. The returned `draft` keeps
- * the caret stable for the user's own typing.
+ * Controlled inputs re-apply the `value` property on every render. When an edit
+ * round-trips (parse -> serialize -> re-parse) and the value fed back differs
+ * from what the user just typed, the control's value is rewritten and the caret
+ * jumps to the end. The returned `draft` keeps the caret stable for typing.
  *
  * A focused field must still reflect `value` changes that did NOT come from the
  * user's current keystroke — undo, redo, external file edits, programmatic

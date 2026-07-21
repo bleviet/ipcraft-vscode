@@ -12,8 +12,7 @@ export const BASIC_ACCESS_OPTIONS = ['read-write', 'read-only', 'write-only'] as
 
 /**
  * Short SVD/IP-XACT-style tokens shown in the closed access dropdown control.
- * The full enum name is shown only in the open listbox (see
- * `vscode-option[data-option-detail]::after` in index.css); YAML always keeps
+ * The full enum name remains available as option metadata; YAML always keeps
  * the full enum string.
  */
 export const ACCESS_ABBREVIATIONS: Record<(typeof ACCESS_OPTIONS)[number], string> = {

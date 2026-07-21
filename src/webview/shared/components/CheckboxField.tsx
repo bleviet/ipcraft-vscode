@@ -1,5 +1,4 @@
 import React from 'react';
-import { VSCodeCheckbox } from '@vscode/webview-ui-toolkit/react';
 
 export interface CheckboxFieldProps {
   label: string;
@@ -12,7 +11,7 @@ export interface CheckboxFieldProps {
 
 /**
  * Checkbox field for boolean values
- * Uses VSCode Web UI Toolkit for native VS Code look and feel
+ * Uses a semantic native checkbox styled with VS Code theme tokens.
  */
 export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   label,
@@ -22,17 +21,16 @@ export const CheckboxField: React.FC<CheckboxFieldProps> = ({
   'data-edit-key': dataEditKey,
 }) => {
   return (
-    <VSCodeCheckbox
-      data-edit-key={dataEditKey}
-      checked={checked}
-      disabled={disabled}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      onChange={(e: any) => {
-        const event = e as unknown as React.ChangeEvent<HTMLInputElement>;
-        onChange(event.target.checked);
-      }}
-    >
-      {label}
-    </VSCodeCheckbox>
+    <label className="vscode-checkbox-label">
+      <input
+        type="checkbox"
+        className="vscode-checkbox"
+        data-edit-key={dataEditKey}
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span>{label}</span>
+    </label>
   );
 };
