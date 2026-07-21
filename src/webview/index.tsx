@@ -32,7 +32,7 @@ import type { YamlPath } from './types/editor';
 
 /** Effective register width (bits) of a block-like object. */
 function blockRegWidth(block: Record<string, unknown> | undefined): number {
-  const raw = block?.defaultRegWidth ?? block?.default_reg_width;
+  const raw = block?.defaultRegWidth;
   return typeof raw === 'number' && raw > 0 ? raw : 32;
 }
 import '@vscode/codicons/dist/codicon.css';
@@ -182,9 +182,7 @@ const App = () => {
     if (result.errors.length === 0) {
       // Write only the affected registers array so the rest of the
       // document keeps its formatting and comments.
-      const blocks = (result.memoryMap.addressBlocks ??
-        result.memoryMap.address_blocks ??
-        []) as Record<string, unknown>[];
+      const blocks = (result.memoryMap.addressBlocks ?? []) as Record<string, unknown>[];
       const block = blocks[blockIndex];
       if (!block) {
         return;
@@ -247,7 +245,7 @@ const App = () => {
       }
 
       if (action !== 'delete' && result.newIndex !== -1) {
-        const blocks = result.memoryMap.addressBlocks ?? result.memoryMap.address_blocks ?? [];
+        const blocks = result.memoryMap.addressBlocks ?? [];
         const block = blocks[blockIndex];
         const mapName = result.memoryMap.name ?? 'Memory Map';
 
@@ -352,9 +350,7 @@ const App = () => {
     }
 
     if (result.errors.length === 0) {
-      const blocks = (result.memoryMap.addressBlocks ??
-        result.memoryMap.address_blocks ??
-        []) as Record<string, unknown>[];
+      const blocks = (result.memoryMap.addressBlocks ?? []) as Record<string, unknown>[];
       const sanitized = blocks.map((b) => serializeValue(b) as Record<string, unknown>);
       const newText = YamlService.applyPathEdits(rawTextRef.current, [
         {
@@ -368,7 +364,7 @@ const App = () => {
       }
 
       if (action !== 'delete' && result.newIndex !== -1) {
-        const blocks = result.memoryMap.addressBlocks ?? result.memoryMap.address_blocks ?? [];
+        const blocks = result.memoryMap.addressBlocks ?? [];
         const newBlock = blocks[result.newIndex];
         if (newBlock) {
           const mapName = result.memoryMap.name ?? 'Memory Map';

@@ -1,3 +1,18 @@
+/**
+ * domain/parse.ts is the ONE supported compatibility boundary for reading
+ * `.ip.yml` / `.mm.yml` input. Legacy snake_case spellings (e.g. `address_offset`,
+ * `base_address`, `default_reg_width`, `reset_value`, `address_blocks`) are
+ * tolerated and normalized to their canonical camelCase form HERE and only here.
+ *
+ * Every consumer downstream of this module — domain serialization, the layout
+ * engine, webview components — operates on canonical camelCase properties only
+ * and must NOT re-introduce `camelCase ?? snake_case` fallbacks. The generated
+ * Nunjucks template context (src/generator/**) is the only other place where
+ * snake_case is intentional, because HDL templates require it.
+ *
+ * A guard test (src/test/suite/architecture/noSnakeCaseRuntime.test.ts) enforces
+ * that no new snake_case fallbacks appear in the runtime memory-map model.
+ */
 import jsyaml from 'js-yaml';
 import type { IpCore } from './ipcore.types';
 import type {

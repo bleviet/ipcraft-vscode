@@ -102,7 +102,7 @@ export function RegisterTableRow({
   const isArrayLike = isNestedArray || isFlatArray;
   const swatchColor = FIELD_COLORS[color] || color;
 
-  const offset = reg.offset ?? reg.address_offset ?? 0;
+  const offset = reg.offset ?? 0;
   const absStart = baseAddress + Number(offset);
   const absEnd =
     isArrayLike && reg.count && reg.stride

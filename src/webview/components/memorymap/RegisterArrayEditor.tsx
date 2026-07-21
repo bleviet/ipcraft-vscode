@@ -46,7 +46,7 @@ function RegisterInlineHeader({
   const [editingKey, setEditingKey] = useState<InlineEditKey | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const offset = Number(reg.address_offset ?? reg.offset ?? 0);
+  const offset = Number(reg.offset ?? 0);
 
   const { cancelEditRef, captureEditSnapshot } = useCellEditGuard<RegisterModel>({
     rows: registers,

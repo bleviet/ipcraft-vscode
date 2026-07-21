@@ -51,18 +51,14 @@ function cloneMap(map: LayoutMemoryMap): LayoutMemoryMap {
   return JSON.parse(JSON.stringify(map)) as LayoutMemoryMap;
 }
 
-/** Get blocks array from a memory map (handles both key variants). */
+/** Get blocks array from a memory map. */
 function getBlocks(map: LayoutMemoryMap): LayoutBlock[] {
-  return map.addressBlocks ?? map.address_blocks ?? [];
+  return map.addressBlocks ?? [];
 }
 
 /** Set blocks array on a memory map clone. */
 function setBlocks(map: LayoutMemoryMap, blocks: LayoutBlock[]): void {
-  if (map.addressBlocks) {
-    map.addressBlocks = blocks;
-  } else {
-    map.address_blocks = blocks;
-  }
+  map.addressBlocks = blocks;
 }
 
 import { generateUniqueName } from '../utils/naming';
@@ -91,7 +87,6 @@ function defaultRegister(name: string): LayoutRegister {
   return {
     name,
     offset: 0,
-    address_offset: 0,
     access: 'read-write',
     description: '',
   };
@@ -102,7 +97,6 @@ function defaultFlatArray(name: string): LayoutRegister {
   return {
     name,
     offset: 0,
-    address_offset: 0,
     count: 2,
     stride: 4,
     description: '',
@@ -114,7 +108,6 @@ function defaultNestedArray(name: string): LayoutRegister {
   return {
     name,
     offset: 0,
-    address_offset: 0,
     count: 2,
     stride: 4,
     description: '',
@@ -122,7 +115,6 @@ function defaultNestedArray(name: string): LayoutRegister {
       {
         name: 'reg0',
         offset: 0,
-        address_offset: 0,
         description: '',
         fields: [{ name: 'data', bits: '[31:0]', access: 'read-write', description: '' }],
       },
@@ -134,7 +126,7 @@ function defaultNestedArray(name: string): LayoutRegister {
 function defaultBlock(name: string): LayoutBlock {
   return {
     name,
-    base_address: 0,
+    baseAddress: 0,
     usage: 'register',
     description: '',
     registers: [defaultRegister('reg0')],
@@ -145,12 +137,10 @@ function defaultBlock(name: string): LayoutBlock {
 function defaultRamBlock(name: string): LayoutBlock {
   return {
     name,
-    base_address: 0,
     baseAddress: 0,
     usage: 'memory',
     range: 1024,
     defaultRegWidth: 32,
-    default_reg_width: 32,
     access: 'read-write',
     description: '',
   };

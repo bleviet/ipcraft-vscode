@@ -15,12 +15,11 @@ function makeMap(overrides?: Partial<LayoutMemoryMap>): LayoutMemoryMap {
     addressBlocks: [
       {
         name: 'BLOCK0',
-        base_address: 0,
+        baseAddress: 0,
         registers: [
           {
             name: 'REG0',
             offset: 0,
-            address_offset: 0,
             fields: [
               { name: 'field0', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
               { name: 'field1', bits: '[15:8]', bit_offset: 8, bit_width: 8 },
@@ -29,21 +28,19 @@ function makeMap(overrides?: Partial<LayoutMemoryMap>): LayoutMemoryMap {
           {
             name: 'REG1',
             offset: 4,
-            address_offset: 4,
           },
           {
             name: 'REG2',
             offset: 8,
-            address_offset: 8,
           },
         ],
       },
       {
         name: 'BLOCK1',
-        base_address: 12,
+        baseAddress: 12,
         registers: [
-          { name: 'REG0', offset: 0, address_offset: 0 },
-          { name: 'REG1', offset: 4, address_offset: 4 },
+          { name: 'REG0', offset: 0 },
+          { name: 'REG1', offset: 4 },
         ],
       },
     ],
@@ -52,7 +49,7 @@ function makeMap(overrides?: Partial<LayoutMemoryMap>): LayoutMemoryMap {
 }
 
 function getBlocks(map: LayoutMemoryMap) {
-  return map.addressBlocks ?? map.address_blocks ?? [];
+  return map.addressBlocks ?? [];
 }
 
 // ---------------------------------------------------------------------------
@@ -101,9 +98,9 @@ describe('MutationService.insertElement', () => {
       // BLOCK0: 3 regs = 12 bytes -> base 0
       // new block: 1 reg = 4 bytes -> base 12
       // BLOCK1: 2 regs = 8 bytes -> base 16
-      expect(blocks[0].base_address).toBe(0);
-      expect(blocks[1].base_address).toBe(12);
-      expect(blocks[2].base_address).toBe(16);
+      expect(blocks[0].baseAddress).toBe(0);
+      expect(blocks[1].baseAddress).toBe(12);
+      expect(blocks[2].baseAddress).toBe(16);
     });
 
     it('should insert a RAM block when kind is ram', () => {
@@ -148,10 +145,10 @@ describe('MutationService.insertElement', () => {
       const result = insertElement(map, 'register', 'after', 0, { blockIndex: 0 });
 
       const regs = getBlocks(result.memoryMap)[0].registers!;
-      expect(regs[0].address_offset).toBe(0);
-      expect(regs[1].address_offset).toBe(4);
-      expect(regs[2].address_offset).toBe(8);
-      expect(regs[3].address_offset).toBe(12);
+      expect(regs[0].offset).toBe(0);
+      expect(regs[1].offset).toBe(4);
+      expect(regs[2].offset).toBe(8);
+      expect(regs[3].offset).toBe(12);
     });
 
     it('should cascade to downstream block base addresses', () => {
@@ -160,8 +157,8 @@ describe('MutationService.insertElement', () => {
 
       const blocks = getBlocks(result.memoryMap);
       // BLOCK0 now has 4 regs = 16 bytes
-      expect(blocks[0].base_address).toBe(0);
-      expect(blocks[1].base_address).toBe(16);
+      expect(blocks[0].baseAddress).toBe(0);
+      expect(blocks[1].baseAddress).toBe(16);
     });
 
     it('should insert a flat array register when flat-array is specified', () => {
@@ -196,7 +193,7 @@ describe('MutationService.insertElement', () => {
         addressBlocks: [
           {
             name: 'BLOCK0',
-            base_address: 0,
+            baseAddress: 0,
             registers: [
               {
                 name: 'ARR0',
@@ -234,7 +231,7 @@ describe('MutationService.insertElement', () => {
         addressBlocks: [
           {
             name: 'BLOCK0',
-            base_address: 512,
+            baseAddress: 512,
             registers: [
               {
                 name: 'DMA',
@@ -300,7 +297,7 @@ describe('MutationService.deleteElement', () => {
       const blocks = getBlocks(result.memoryMap);
       expect(blocks).toHaveLength(1);
       expect(blocks[0].name).toBe('BLOCK1');
-      expect(blocks[0].base_address).toBe(0);
+      expect(blocks[0].baseAddress).toBe(0);
     });
 
     it('should return error for invalid index', () => {
@@ -321,7 +318,7 @@ describe('MutationService.deleteElement', () => {
       expect(regs).toHaveLength(2);
       expect(regs[0].name).toBe('REG0');
       expect(regs[1].name).toBe('REG2');
-      expect(regs[1].address_offset).toBe(4); // repacked
+      expect(regs[1].offset).toBe(4); // repacked
     });
 
     it('should cascade to downstream block base addresses', () => {
@@ -330,7 +327,7 @@ describe('MutationService.deleteElement', () => {
 
       const blocks = getBlocks(result.memoryMap);
       // BLOCK0 now has 2 regs = 8 bytes
-      expect(blocks[1].base_address).toBe(8);
+      expect(blocks[1].baseAddress).toBe(8);
     });
 
     it('should delete a register inside a register array', () => {
@@ -338,7 +335,7 @@ describe('MutationService.deleteElement', () => {
         addressBlocks: [
           {
             name: 'BLOCK0',
-            base_address: 0,
+            baseAddress: 0,
             registers: [
               {
                 name: 'ARR0',
@@ -398,8 +395,8 @@ describe('MutationService.relocateElement', () => {
       // BLOCK1 (2 regs = 8 bytes) is now first, BLOCK0 (3 regs = 12 bytes) is second
       expect(blocks[0].name).toBe('BLOCK1');
       expect(blocks[1].name).toBe('BLOCK0');
-      expect(blocks[0].base_address).toBe(0);
-      expect(blocks[1].base_address).toBe(8);
+      expect(blocks[0].baseAddress).toBe(0);
+      expect(blocks[1].baseAddress).toBe(8);
     });
   });
 
@@ -413,9 +410,9 @@ describe('MutationService.relocateElement', () => {
       expect(regs[0].name).toBe('REG2');
       expect(regs[1].name).toBe('REG0');
       expect(regs[2].name).toBe('REG1');
-      expect(regs[0].address_offset).toBe(0);
-      expect(regs[1].address_offset).toBe(4);
-      expect(regs[2].address_offset).toBe(8);
+      expect(regs[0].offset).toBe(0);
+      expect(regs[1].offset).toBe(4);
+      expect(regs[2].offset).toBe(8);
     });
   });
 
@@ -429,18 +426,18 @@ describe('MutationService.relocateElement', () => {
       // BLOCK0 now has 2 regs
       expect(blocks[0].registers).toHaveLength(2);
       expect(blocks[0].registers![0].name).toBe('REG1');
-      expect(blocks[0].registers![0].address_offset).toBe(0);
+      expect(blocks[0].registers![0].offset).toBe(0);
       expect(blocks[0].registers![1].name).toBe('REG2');
-      expect(blocks[0].registers![1].address_offset).toBe(4);
+      expect(blocks[0].registers![1].offset).toBe(4);
 
       // BLOCK1 now has 3 regs
       expect(blocks[1].registers).toHaveLength(3);
       expect(blocks[1].registers![0].name).toBe('REG0');
-      expect(blocks[1].registers![0].address_offset).toBe(0);
+      expect(blocks[1].registers![0].offset).toBe(0);
 
       // Block base addresses recomputed
-      expect(blocks[0].base_address).toBe(0);
-      expect(blocks[1].base_address).toBe(8); // BLOCK0 has 2 regs = 8 bytes
+      expect(blocks[0].baseAddress).toBe(0);
+      expect(blocks[1].baseAddress).toBe(8); // BLOCK0 has 2 regs = 8 bytes
     });
   });
 

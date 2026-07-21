@@ -10,8 +10,7 @@ import { RegisterEditor } from '../register/RegisterEditor';
 
 export interface AddressBlockModel {
   name?: string;
-  base_address?: number | string;
-  offset?: number | string;
+  baseAddress?: number | string;
   description?: string;
   usage?: string;
   registers?: RegisterModel[];
@@ -19,7 +18,7 @@ export interface AddressBlockModel {
 }
 
 export interface BlockEditorProps {
-  /** The address block object (has name, base_address, registers, etc.). */
+  /** The address block object (has name, baseAddress, registers, etc.). */
   block: AddressBlockModel;
   /** Bit-field detail layout for the selected register (pro vs. stacked). */
   registerLayout: 'stacked' | 'side-by-side';
@@ -66,7 +65,7 @@ function RegisterInlineHeader({
   const [editingKey, setEditingKey] = useState<InlineEditKey | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const offset = Number(reg.address_offset ?? reg.offset ?? 0);
+  const offset = Number(reg.offset ?? 0);
 
   const { cancelEditRef, captureEditSnapshot } = useCellEditGuard<RegisterModel>({
     rows: registers,
@@ -207,12 +206,7 @@ export function BlockEditor({
   onNavigateToRegister,
 }: BlockEditorProps) {
   const registers = block?.registers ?? [];
-  const baseAddress = Number(
-    block?.base_address ??
-      (block as Record<string, unknown> | undefined)?.baseAddress ??
-      block?.offset ??
-      0
-  );
+  const baseAddress = Number(block?.baseAddress ?? 0);
 
   // The active register is driven entirely by the Outline's selection; there
   // is no local list state to reconcile (insert/delete/reorder all happen in
