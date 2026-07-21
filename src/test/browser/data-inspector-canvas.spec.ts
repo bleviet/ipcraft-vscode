@@ -178,7 +178,9 @@ test.describe('Data Inspector transform canvas', () => {
     await deleteButton.click();
     await expect(page.locator('.di-flow-source')).toHaveCount(2);
 
-    await page.locator('.react-flow__node[data-id="inverted"]').click();
+    const inverted = page.locator('.react-flow__node[data-id="inverted"]');
+    await expect(inverted).toBeVisible();
+    await inverted.click();
     await deleteButton.click();
     await expect(page.locator('.di-flow-step')).toHaveCount(2);
   });

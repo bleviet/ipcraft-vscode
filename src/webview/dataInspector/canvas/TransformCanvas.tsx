@@ -245,7 +245,13 @@ function TransformCanvasInner({
         });
       }
     }
-    setNodes(nextNodes);
+    setNodes((current) => {
+      const measuredById = new Map(current.map((node) => [node.id, node.measured]));
+      return nextNodes.map((node) => {
+        const measured = measuredById.get(node.id);
+        return measured ? { ...node, measured } : node;
+      });
+    });
     setEdges(nextEdges);
   }, [drafts, errors, evaluation, valueRepresentation, workingRecipe]);
 
