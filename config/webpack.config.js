@@ -50,6 +50,10 @@ const webviewModuleRules = {
       test: /\.(woff2?|ttf|eot|otf)$/,
       type: "asset/resource",
     },
+    {
+      test: /\.svg$/,
+      type: "asset/source",
+    },
   ],
 };
 

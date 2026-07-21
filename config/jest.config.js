@@ -11,6 +11,7 @@ module.exports = {
     moduleNameMapper: {
         // Mock CSS imports
         '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+        '\\.svg$': '<rootDir>/src/test/svgMock.ts',
         '^vscode$': '<rootDir>/__mocks__/vscode.ts',
         // Path aliases
         '^@/(.*)$': '<rootDir>/src/$1',

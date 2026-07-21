@@ -1,6 +1,10 @@
 import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutPort, PortSide } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
+import levelHighIcon from '../../assets/interrupt-sensitivity/level-high.svg';
+import levelLowIcon from '../../assets/interrupt-sensitivity/level-low.svg';
+import edgeRisingIcon from '../../assets/interrupt-sensitivity/edge-rising.svg';
+import edgeFallingIcon from '../../assets/interrupt-sensitivity/edge-falling.svg';
 
 import { ValidationAnnotation } from '../../hooks/useCanvasValidation';
 
@@ -24,6 +28,23 @@ interface CanvasPortProps {
 const RENAME_INPUT_W = 100;
 const RENAME_INPUT_H = 14;
 const POLARITY_BADGE_OFFSET = 13;
+const INTERRUPT_SENSITIVITY_ICON_OFFSET = 14;
+
+type InterruptSensitivity = NonNullable<LayoutPort['sensitivity']>;
+
+const INTERRUPT_SENSITIVITY_ICONS: Record<InterruptSensitivity, { markup: string; label: string }> =
+  {
+    LEVEL_HIGH: { markup: levelHighIcon, label: 'Level-high' },
+    LEVEL_LOW: { markup: levelLowIcon, label: 'Level-low' },
+    EDGE_RISING: {
+      markup: edgeRisingIcon,
+      label: 'Rising-edge',
+    },
+    EDGE_FALLING: {
+      markup: edgeFallingIcon,
+      label: 'Falling-edge',
+    },
+  };
 
 /**
  * Renders a single port stub on the IP block edge.
@@ -51,6 +72,12 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   const resetPolarity = port.kind === 'reset' ? (port.polarity ?? 'activeHigh') : undefined;
   const isActiveLowReset = resetPolarity === 'activeLow';
   const resetDescription = isActiveLowReset ? 'Active-low reset' : 'Active-high reset';
+  const interruptSensitivity =
+    port.kind === 'interrupt' ? (port.sensitivity ?? 'LEVEL_HIGH') : undefined;
+  const interruptDescription = interruptSensitivity
+    ? `${INTERRUPT_SENSITIVITY_ICONS[interruptSensitivity].label} interrupt`
+    : undefined;
+  const portDescription = resetPolarity ? resetDescription : interruptDescription;
 
   const hasError = annotations?.some((a) => a.severity === 'error');
   const tooltipText = annotations
@@ -170,7 +197,8 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
       }}
       data-port-id={port.id}
       data-reset-polarity={resetPolarity}
-      aria-label={resetPolarity ? `${port.label}: ${resetDescription.toLowerCase()}` : undefined}
+      data-interrupt-sensitivity={interruptSensitivity}
+      aria-label={portDescription ? `${port.label}: ${portDescription.toLowerCase()}` : undefined}
       style={{ cursor: isRenaming ? 'default' : 'pointer', opacity: isDragging ? 0.4 : undefined }}
       onContextMenu={handleContextMenu}
       onPointerDown={(e) => {
@@ -184,7 +212,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
         }
       }}
     >
-      {resetPolarity && <title>{`${port.label}: ${resetDescription}`}</title>}
+      {portDescription && <title>{`${port.label}: ${portDescription}`}</title>}
 
       {/* Hit area (invisible, wider for easier clicking) */}
       <line
@@ -246,6 +274,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
           y={isBottom ? port.y - 14 : port.y}
           color={domainColor}
           polarity={resetPolarity}
+          sensitivity={interruptSensitivity}
           side={port.side}
         />
       )}
@@ -332,8 +361,9 @@ const PortKindIcon: React.FC<{
   y: number;
   color?: string;
   polarity?: 'activeHigh' | 'activeLow';
+  sensitivity?: InterruptSensitivity;
   side: PortSide;
-}> = ({ kind, x, y, color, polarity, side }) => {
+}> = ({ kind, x, y, color, polarity, sensitivity, side }) => {
   const s = color ? { stroke: color } : undefined;
   const f = color ? { fill: color } : undefined;
 
@@ -372,6 +402,10 @@ const PortKindIcon: React.FC<{
   }
 
   if (kind === 'interrupt') {
+    const resolvedSensitivity = sensitivity ?? 'LEVEL_HIGH';
+    const icon = INTERRUPT_SENSITIVITY_ICONS[resolvedSensitivity];
+    const iconX =
+      side === 'right' ? -INTERRUPT_SENSITIVITY_ICON_OFFSET : INTERRUPT_SENSITIVITY_ICON_OFFSET;
     return (
       <g
         transform={`translate(${x}, ${y})`}
@@ -379,6 +413,16 @@ const PortKindIcon: React.FC<{
       >
         {/* Lightning bolt */}
         <polygon points="1,-5 -2,0 1,0 -1,5 2,0 -1,0" style={f} />
+        <g
+          transform={`translate(${iconX}, 0)`}
+          className={`canvas-port__interrupt-sensitivity canvas-port__interrupt-sensitivity--${resolvedSensitivity.toLowerCase().replace('_', '-')}`}
+        >
+          <g
+            className="canvas-port__interrupt-sensitivity-glyph"
+            aria-hidden="true"
+            dangerouslySetInnerHTML={{ __html: icon.markup }}
+          />
+        </g>
       </g>
     );
   }

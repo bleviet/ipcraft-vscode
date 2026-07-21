@@ -66,6 +66,8 @@ export interface LayoutPort {
   direction?: 'in' | 'out' | 'inout';
   /** Reset assertion level; only present when kind is reset. */
   polarity?: 'activeHigh' | 'activeLow';
+  /** Interrupt assertion/edge sensitivity; only present when kind is interrupt. */
+  sensitivity?: 'LEVEL_HIGH' | 'LEVEL_LOW' | 'EDGE_RISING' | 'EDGE_FALLING';
   /** Original data reference */
   data: unknown;
   /** Index into ipCore.clocks for this port's clock domain, or -1 */
@@ -526,6 +528,7 @@ export function computeLayout(
       let memoryMapRef: string | undefined;
       let direction: 'in' | 'out' | 'inout' | undefined;
       let polarity: 'activeHigh' | 'activeLow' | undefined;
+      let sensitivity: 'LEVEL_HIGH' | 'LEVEL_LOW' | 'EDGE_RISING' | 'EDGE_FALLING' | undefined;
       let domainIdx = -1;
 
       const d = item.data as Record<string, unknown>;
@@ -552,6 +555,12 @@ export function computeLayout(
           label = String(d.name ?? '');
           widthLabel = formatWidth(d.width as number | string | undefined);
           direction = (d.direction as 'in' | 'out' | 'inout' | undefined) ?? 'out';
+          sensitivity =
+            d.sensitivity === 'LEVEL_LOW' ||
+            d.sensitivity === 'EDGE_RISING' ||
+            d.sensitivity === 'EDGE_FALLING'
+              ? d.sensitivity
+              : 'LEVEL_HIGH';
           break;
         case 'bus': {
           protocol = busProtocolShortName(String(d.type ?? ''));
@@ -589,6 +598,7 @@ export function computeLayout(
         memoryMapRef,
         direction,
         polarity,
+        sensitivity,
         data: item.data,
         clockDomainIdx: domainIdx,
       });

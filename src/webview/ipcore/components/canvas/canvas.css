@@ -543,6 +543,14 @@
   fill: var(--vscode-charts-yellow, #e5c07b);
 }
 
+.canvas-port__interrupt-sensitivity-glyph {
+  color: var(--vscode-charts-yellow, #e5c07b);
+}
+
+.canvas-port__interrupt-sensitivity-glyph > svg {
+  overflow: visible;
+}
+
 
 /* Hover state */
 .canvas-element--hovered .canvas-port__stub {
