@@ -820,9 +820,12 @@
 }
 
 .library-palette__category-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   width: 100%;
   text-align: left;
-  background: transparent;
+  background: var(--vscode-sideBarSectionHeader-background, var(--vscode-sideBar-background));
   border: none;
   padding: 6px 10px;
   display: flex;
