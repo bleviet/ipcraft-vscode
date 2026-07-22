@@ -2360,6 +2360,7 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
           options={BUS_ENDIANNESS_OPTS}
           onSave={(v) => onUpdate(['ports', index, 'endianness'], v)}
           disabled={
+            (canonicalDirection(port.direction, 'in') === 'inout' && port.endianness !== 'big') ||
             !(typeof currentWidth === 'number' && currentWidth > 1 && currentWidth % 8 === 0)
           }
         />

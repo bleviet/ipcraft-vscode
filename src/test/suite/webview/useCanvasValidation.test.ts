@@ -39,6 +39,21 @@ describe('useCanvasValidation', () => {
     expect(annotations['port:1'][0].message).toContain('Duplicate port name');
   });
 
+  it('warns when big endianness is set on an inout port', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      ports: [{ name: 'data_io', direction: 'inout', width: 32, endianness: 'big' }],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['port:0']).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        message: 'Endianness "big" has no effect on an inout port',
+      }),
+    ]);
+  });
+
   it('should detect duplicate bus interface names', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },

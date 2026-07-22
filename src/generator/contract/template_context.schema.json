@@ -381,7 +381,7 @@
     },
     "EndianSwapPort": {
       "type": "object",
-      "required": ["name", "type", "sv_type", "direction", "width"],
+      "required": ["name", "type", "sv_type", "direction", "width", "is_parameterized"],
       "additionalProperties": false,
       "description": "A big-endian vector port or bus data port that needs an intermediate `_be` signal and swap_bytes() call at the top level.",
       "properties": {
@@ -389,7 +389,8 @@
         "type": { "type": "string" },
         "sv_type": { "type": "string" },
         "direction": { "type": "string" },
-        "width": { "type": "number" }
+        "width": { "type": "number" },
+        "is_parameterized": { "type": "boolean" }
       }
     },
     "InterruptPort": {

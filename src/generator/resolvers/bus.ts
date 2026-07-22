@@ -335,10 +335,15 @@ export const busResolver: ContextResolver = {
         sv_type: port.sv_type,
         direction: port.direction,
         width: port.width,
+        is_parameterized: port.is_parameterized,
       }));
-    const endianSwapWidths = [...new Set(endianSwapPorts.map((port) => port.width as number))].sort(
-      (a, b) => a - b
-    );
+    const endianSwapWidths = [
+      ...new Set(
+        endianSwapPorts
+          .filter((port) => port.is_parameterized !== true)
+          .map((port) => port.width as number)
+      ),
+    ].sort((a, b) => a - b);
 
     return {
       bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',

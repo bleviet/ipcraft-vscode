@@ -33,6 +33,10 @@ vlnv:
   version: 1.0.0
 description: Synthetic fixture for endianness (issue #138)
 scaffold_pack: builtin-ipcraft
+parameters:
+- name: BUS_DATA_WIDTH
+  dataType: integer
+  value: 32
 clocks:
 - name: clk
   direction: in
@@ -56,6 +60,15 @@ busInterfaces:
     WDATA: 32
     RDATA: 32
     WSTRB: 4
+- name: m_axis
+  type: ipcraft:busif:axi_stream:1.0
+  mode: master
+  physicalPrefix: m_axis_
+  associatedClock: clk
+  associatedReset: reset_n
+  endianness: big
+  portWidthOverrides:
+    TDATA: BUS_DATA_WIDTH
 ports:
 - name: data_in
   direction: in
@@ -112,6 +125,8 @@ describe('Endianness code generation (issue #138)', () => {
     expect(topContent).toContain('s_axil_rdata_be');
     expect(topContent).toContain('data_in_be');
     expect(topContent).toContain('swap_bytes_32(');
+    expect(topContent).toContain('gen_swap_m_axis_tdata');
+    expect(topContent).toContain("m_axis_tdata'length / 8");
 
     const pkgContent = fs.readFileSync(path.join(rtlDir, `${ENTITY_NAME}_pkg.vhd`), 'utf8');
     expect(pkgContent).toContain('function swap_bytes_32');
@@ -133,6 +148,8 @@ describe('Endianness code generation (issue #138)', () => {
     expect(topContent).toContain('s_axil_rdata_be');
     expect(topContent).toContain('data_in_be');
     expect(topContent).toContain('swap_bytes_32(');
+    expect(topContent).toContain('gen_swap_m_axis_tdata');
+    expect(topContent).toContain('$bits(m_axis_tdata) / 8');
 
     const pkgContent = fs.readFileSync(path.join(rtlDir, `${ENTITY_NAME}_pkg.sv`), 'utf8');
     expect(pkgContent).toContain('function automatic logic [31:0] swap_bytes_32');

@@ -64,6 +64,34 @@ describe('busResolver endianness', () => {
     const wvalid = busPorts.find((p) => p.logical_name === 'WVALID');
     expect(wvalid?.needs_swap).toBeFalsy();
   });
+
+  it('keeps parameterized big-endian data ports out of the fixed-width helper list', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          parameters: [{ name: 'DATA_WIDTH', value: 32 }],
+          busInterfaces: [
+            {
+              name: 's_axi',
+              type: 'AXI4L',
+              mode: 'slave',
+              endianness: 'big',
+              portWidthOverrides: { WDATA: 'DATA_WIDTH', RDATA: 'DATA_WIDTH' },
+            },
+          ],
+        },
+        AXI4_LITE_DEF
+      )
+    );
+
+    const swapPorts = result.endian_swap_ports as Array<{
+      name: string;
+      is_parameterized: boolean;
+    }>;
+    expect(swapPorts.map((port) => port.name).sort()).toEqual(['s_axi_rdata', 's_axi_wdata']);
+    expect(swapPorts.every((port) => port.is_parameterized)).toBe(true);
+    expect(result.endian_swap_widths).toEqual([]);
+  });
 });
 
 describe('buildUserPorts endianness', () => {

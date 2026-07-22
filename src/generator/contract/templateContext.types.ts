@@ -347,4 +347,5 @@ export interface EndianSwapPort {
   sv_type: string;
   direction: string;
   width: number;
+  is_parameterized: boolean;
 }

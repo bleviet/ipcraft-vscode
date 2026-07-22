@@ -66,7 +66,7 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 
   // Big-endian intermediate signals (byte-swapped view for internal logic)
 {% for port in endian_swap_ports %}
-  logic [{{ port.width - 1 }}:0] {{ port.name }}_be;
+  {{ port.sv_type }} {{ port.name }}_be;
 {% endfor %}
 {% endif %}
 {% if has_memory_mapped_slave %}
@@ -74,10 +74,20 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 
   // Endianness: swap big-endian ports/bus data ports to/from their internal view
 {% for port in endian_swap_ports %}
+{% if port.is_parameterized %}
+  for (genvar byte_idx = 0; byte_idx < $bits({{ port.name }}) / 8; byte_idx++) begin : gen_swap_{{ port.name }}
+{% if port.direction == 'in' %}
+    assign {{ port.name }}_be[byte_idx * 8 +: 8] = {{ port.name }}[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];
+{% else %}
+    assign {{ port.name }}[byte_idx * 8 +: 8] = {{ port.name }}_be[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];
+{% endif %}
+  end
+{% else %}
 {% if port.direction == 'in' %}
   assign {{ port.name }}_be = swap_bytes_{{ port.width }}({{ port.name }});
 {% else %}
   assign {{ port.name }} = swap_bytes_{{ port.width }}({{ port.name }}_be);
+{% endif %}
 {% endif %}
 {% endfor %}
 {% endif %}

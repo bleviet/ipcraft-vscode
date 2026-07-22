@@ -53,9 +53,10 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
       }
     }
 
-    // Endianness only has an effect on a whole number of bytes; a hand-edited
-    // YAML file could set endianness: big on a width the UI would otherwise disable.
-    if (
+    // A hand-edited YAML file can bypass the UI restrictions.
+    if (port.endianness === 'big' && port.direction === 'inout') {
+      addAnnotation(id, 'warning', 'Endianness "big" has no effect on an inout port');
+    } else if (
       port.endianness === 'big' &&
       !(typeof port.width === 'number' && port.width > 1 && port.width % 8 === 0)
     ) {
