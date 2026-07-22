@@ -436,6 +436,9 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       ...(bus.endianness === 'big' || bus.endianness === 'little'
         ? { endianness: bus.endianness }
         : {}),
+      ...(typeof bus.firstSymbolInHighOrderBits === 'boolean'
+        ? { firstSymbolInHighOrderBits: bus.firstSymbolInHighOrderBits }
+        : {}),
       ...(array
         ? {
             array: {

@@ -61,6 +61,27 @@ describe('Domain Model Parse/Serialize Round-trips', () => {
     (f) => !f.includes('invalid-syntax') && !f.endsWith('.ipci.yml')
   );
 
+  it('preserves Avalon-ST symbol ordering configuration', () => {
+    const parsed = parseIpCore(`
+vlnv:
+  vendor: test
+  library: ip
+  name: stream_core
+  version: 1.0.0
+busInterfaces:
+  - name: stream_out
+    type: ipcraft:busif:avalon_st:1.0
+    mode: source
+    firstSymbolInHighOrderBits: true
+`);
+
+    const serialized = serializeIpCore(parsed) as {
+      busInterfaces: Array<Record<string, unknown>>;
+    };
+    expect(serialized.busInterfaces[0].firstSymbolInHighOrderBits).toBe(true);
+    expect(validateIpCore(serialized)).toBe(true);
+  });
+
   for (const filePath of testFiles) {
     const relativePath = path.relative(REPO_ROOT, filePath);
 

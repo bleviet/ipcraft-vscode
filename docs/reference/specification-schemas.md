@@ -81,6 +81,7 @@ busInterfaces:
 | `useOptionalPorts` | Optional protocol signals to include |
 | `absentPorts` | Required protocol signals intentionally missing from imported HDL |
 | `portWidthOverrides` | Signal-specific width changes |
+| `firstSymbolInHighOrderBits` | Avalon-ST symbol order; `true` places the first symbol in the most-significant data bits |
 | `conduitPorts` | Inline signals for a custom interface |
 
 ## Minimal memory map

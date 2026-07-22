@@ -170,6 +170,11 @@ export function isConduitType(busType: string): boolean {
   return busType.toLowerCase().includes('conduit');
 }
 
+/** Returns true when a bus type resolves to the built-in Avalon-ST definition. */
+export function isAvalonStreamingType(busType: string): boolean {
+  return lookupBusDef(busType) === AVALON_ST;
+}
+
 /** All built-in standard bus types in display order, mirroring the Library Palette.
  *  Custom Interface (conduit) is intentionally excluded — switching to it is a
  *  destructive mode change that should be done deliberately via the Library Palette. */

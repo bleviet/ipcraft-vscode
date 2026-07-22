@@ -433,6 +433,11 @@ export function parseHwTclContent(
       entry.associatedReset = resetPort;
     }
 
+    const firstSymbolInHighOrderBits = bi.properties.get('firstSymbolInHighOrderBits');
+    if (bi.type === 'avalon_streaming' && firstSymbolInHighOrderBits !== undefined) {
+      entry.firstSymbolInHighOrderBits = /^(?:1|true)$/i.test(firstSymbolInHighOrderBits);
+    }
+
     // Detect optional ports and portWidthOverrides from bus definition
     const busDef = lookupBusDef(BUS_TYPE_MAP[bi.type]);
     if (busDef) {
