@@ -250,8 +250,13 @@ export const busResolver: ContextResolver = {
           (iface.mode ?? '').toLowerCase() === 'slave' &&
           registry.isMemoryMapped(normalizeBusType(getString(iface.type)).templateType)
       );
-      const primaryIndex = mmIdx >= 0 ? mmIdx : 0;
-      busPrefix = normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
+      // The "primary" interface is the memory-mapped slave wired to the generated bus
+      // wrapper. With no memory-mapped slave there is no wrapper, so every interface is
+      // secondary (wired straight to the core) — primaryIndex = -1 matches nothing below.
+      const primaryIndex = mmIdx;
+      if (primaryIndex >= 0) {
+        busPrefix = normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
+      }
 
       expandedBusInterfaces.forEach((iface, index) => {
         const busTypeInfo = normalizeBusType(getString(iface.type));

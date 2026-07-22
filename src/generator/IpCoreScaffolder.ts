@@ -136,7 +136,17 @@ export class IpCoreScaffolder {
       // ── RTL files — data-driven from scaffold pack ─────────────────────────
       // Minimal packs (fullGeneration: false) suppress bus/register context so the
       // top-level template renders an empty architecture regardless of bus detection.
-      const rtlCtx = pack.fullGeneration ? context : { ...context, has_memory_mapped_slave: false };
+      // Endianness reflow is suppressed too: it needs a generated core to wire through,
+      // which a minimal pack never produces.
+      const rtlCtx = pack.fullGeneration
+        ? context
+        : {
+            ...context,
+            has_memory_mapped_slave: false,
+            has_endian_swap: false,
+            endian_swap_ports: [],
+            endian_swap_widths: [],
+          };
 
       if (includeVhdl) {
         for (const rule of pack.files) {

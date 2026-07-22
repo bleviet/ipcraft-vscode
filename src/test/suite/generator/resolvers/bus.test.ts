@@ -18,6 +18,18 @@ const AXI4_LITE_DEF: BusDefinitions = {
   },
 };
 
+const AXI_STREAM_DEF: BusDefinitions = {
+  AXI_STREAM: {
+    busType: { vendor: 'ipcraft', library: 'busif', name: 'axi_stream', version: '1.0' },
+    ports: [
+      { name: 'ACLK', presence: 'required' },
+      { name: 'ARESETn', presence: 'required' },
+      { name: 'TDATA', width: 32, direction: 'out', presence: 'required', role: 'data' },
+      { name: 'TVALID', direction: 'out', presence: 'required' },
+    ],
+  },
+};
+
 function makeInput(
   raw: Record<string, unknown>,
   busDefinitions: BusDefinitions = {}
@@ -75,6 +87,33 @@ describe('busResolver endianness', () => {
     );
     const busPorts = result.bus_ports as Array<{ logical_name: string; needs_swap?: boolean }>;
     expect(busPorts.find((p) => p.logical_name === 'WSTRB')?.needs_swap).toBeFalsy();
+  });
+
+  it('routes all interfaces to the core (no primary wrapper) when there is no memory-mapped slave', () => {
+    // A big-endian AXI-Stream master, no memory-mapped slave (issue #138 M4): the data port
+    // still needs a swap, and with no wrapper it must be wired to the core (secondary).
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          busInterfaces: [
+            {
+              name: 'm_axis',
+              type: 'AXIS',
+              mode: 'master',
+              physicalPrefix: 'm_axis_',
+              endianness: 'big',
+            },
+          ],
+        },
+        AXI_STREAM_DEF
+      )
+    );
+    expect(result.bus_ports).toEqual([]);
+    const secondary = result.secondary_bus_interfaces as Array<{ name: string }>;
+    expect(secondary.map((s) => s.name)).toEqual(['m_axis']);
+    expect(result.has_endian_swap).toBe(true);
+    const swapNames = (result.endian_swap_ports as Array<{ name: string }>).map((p) => p.name);
+    expect(swapNames).toEqual(['m_axis_tdata']);
   });
 
   it('keeps parameterized big-endian data ports out of the fixed-width helper list', () => {

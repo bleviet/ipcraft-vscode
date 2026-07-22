@@ -85,10 +85,43 @@ const logger = {
   debug: () => {},
 } as unknown as Logger;
 
-async function generate(hdlLanguage: 'vhdl' | 'systemverilog') {
+// A big-endian AXI-Stream master with no memory-mapped slave: the swap has no bus
+// wrapper to anchor to, so the top must still instantiate a core to reflow through it
+// (issue #138 M4).
+const STREAM_ONLY_YAML = `
+vlnv:
+  vendor: ipcraft
+  library: test
+  name: stream_only_be
+  version: 1.0.0
+scaffold_pack: builtin-ipcraft
+clocks:
+- name: clk
+  direction: in
+  associatedReset: reset_n
+resets:
+- name: reset_n
+  direction: in
+  polarity: activeLow
+  associatedClock: clk
+busInterfaces:
+- name: m_axis
+  type: ipcraft:busif:axi_stream:1.0
+  mode: master
+  physicalPrefix: m_axis_
+  associatedClock: clk
+  associatedReset: reset_n
+  endianness: big
+  useOptionalPorts:
+    - TKEEP
+  portWidthOverrides:
+    TDATA: 32
+`;
+
+async function generate(hdlLanguage: 'vhdl' | 'systemverilog', yaml: string = IP_YAML) {
   const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-endian-'));
   const yamlPath = path.join(outputDir, 'src.ip.yml');
-  fs.writeFileSync(yamlPath, IP_YAML);
+  fs.writeFileSync(yamlPath, yaml);
 
   const loader = new TemplateLoader(logger, GENERATOR_TEMPLATES);
   const resourceRoots = devResourceRoots(REPO_ROOT);
@@ -228,4 +261,61 @@ describe('Endianness code generation (issue #138)', () => {
       output: result.stderr || result.stdout,
     });
   }, 60_000);
+});
+
+describe('Endianness on a stream-only IP with no memory-mapped slave (issue #138 M4)', () => {
+  it('VHDL: instantiates a core and reflows the swap through it (no bus wrapper)', async () => {
+    const { rtlDir } = await generate('vhdl', STREAM_ONLY_YAML);
+
+    // A core and package are generated even though there is no memory-mapped slave...
+    expect(fs.existsSync(path.join(rtlDir, 'stream_only_be_core.vhd'))).toBe(true);
+    expect(fs.existsSync(path.join(rtlDir, 'stream_only_be_pkg.vhd'))).toBe(true);
+    // ...and no bus wrapper is emitted.
+    expect(fs.existsSync(path.join(rtlDir, 'stream_only_be_axil.vhd'))).toBe(false);
+
+    const top = fs.readFileSync(path.join(rtlDir, 'stream_only_be.vhd'), 'utf8');
+    expect(top).toContain('u_core : entity work.stream_only_be_core');
+    expect(top).not.toContain('Bus Wrapper Instance');
+    expect(top).toContain('m_axis_tdata <= swap_bytes_32(m_axis_tdata_be)');
+    expect(top).toContain('gen_swap_m_axis_tkeep');
+    expect(top).toContain('m_axis_tdata   => m_axis_tdata_be');
+  });
+
+  it('GHDL + iverilog: the generated RTL compiles', async () => {
+    if (!guardTier1('ghdl', () => toolOnPath('ghdl'))) {
+      const { rootDir, rtlOrder } = await generate('vhdl', STREAM_ONLY_YAML);
+      const ordered = rtlOrder.filter((f) => f.endsWith('.vhd'));
+      const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-ghdl-so-'));
+      try {
+        for (const args of [
+          ['-a', '--std=08', `--workdir=${workdir}`, ...ordered],
+          ['-e', '--std=08', `--workdir=${workdir}`, 'stream_only_be'],
+        ]) {
+          const r = spawnSync('ghdl', args, { cwd: rootDir, encoding: 'utf8', timeout: 120_000 });
+          expect({ status: r.status, out: r.stderr || r.stdout }).toEqual({
+            status: 0,
+            out: r.stderr || r.stdout,
+          });
+        }
+      } finally {
+        fs.rmSync(workdir, { recursive: true, force: true });
+      }
+    }
+
+    if (!guardTier1('iverilog', () => toolOnPath('iverilog'))) {
+      const { rootDir, rtlOrder } = await generate('systemverilog', STREAM_ONLY_YAML);
+      const ordered = rtlOrder.filter((f) => f.endsWith('.sv'));
+      const out = path.join(os.tmpdir(), `ipcraft-iverilog-so-${process.pid}.vvp`);
+      const r = spawnSync('iverilog', ['-g2012', '-o', out, ...ordered], {
+        cwd: rootDir,
+        encoding: 'utf8',
+        timeout: 120_000,
+      });
+      fs.rmSync(out, { force: true });
+      expect({ status: r.status, out: r.stderr || r.stdout }).toEqual({
+        status: 0,
+        out: r.stderr || r.stdout,
+      });
+    }
+  }, 90_000);
 });

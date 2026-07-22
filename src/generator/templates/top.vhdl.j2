@@ -15,7 +15,7 @@ use ieee.numeric_std.all;
 {% if uses_math_real %}
 use ieee.math_real.all;
 {% endif %}
-{% if has_memory_mapped_slave %}
+{% if has_memory_mapped_slave or has_endian_swap %}
 use work.{{ entity_name }}_pkg.all;
 {% endif %}
 
@@ -66,6 +66,14 @@ end entity {{ entity_name }};
 
 architecture rtl of {{ entity_name }} is
 {% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{# When no register file exists but user ports do, route them through the bus wrapper.
+   This covers IPs like AXI-Lite slaves that expose a direct register-bank interface
+   (rb_addr/rb_wr/…) rather than a generated register file. #}
+{% set pass_user_via_bus = has_memory_mapped_slave and user_ports | length > 0 and sw_registers | length == 0 and not has_regs_in %}
+{# Instantiate the bus-agnostic core when it carries logic: for a memory-mapped IP unless
+   its user ports are passed straight through the wrapper, or — for an IP with no memory-
+   mapped slave — when a big-endian swap needs a core to reflow through. #}
+{% set instantiate_core = (not pass_user_via_bus) if has_memory_mapped_slave else has_endian_swap %}
 {% if has_memory_mapped_slave and (sw_registers | length > 0 or has_regs_in) %}
 
     -- Internal register signals
@@ -76,7 +84,7 @@ architecture rtl of {{ entity_name }} is
   signal regs_hw2sw : t_regs_hw2sw;
 {% endif %}
 {% endif %}
-{% if has_memory_mapped_slave and has_endian_swap %}
+{% if has_endian_swap %}
 
     -- Big-endian intermediate signals (byte-swapped view for internal logic)
 {% for port in endian_swap_ports %}
@@ -85,7 +93,7 @@ architecture rtl of {{ entity_name }} is
 {% endif %}
 
 begin
-{% if has_memory_mapped_slave and has_endian_swap %}
+{% if has_endian_swap %}
 
     -- Endianness: reflow big-endian data ports (byte reversal) and their byte-qualifier
     -- masks (bit reversal) between the external ports and the internal `_be` view.
@@ -125,10 +133,6 @@ begin
 {% endfor %}
 {% endif %}
 {% if has_memory_mapped_slave %}
-{# When no register file exists but user ports do, route them through the bus wrapper.
-   This covers IPs like AXI-Lite slaves that expose a direct register-bank interface
-   (rb_addr/rb_wr/…) rather than a generated register file. #}
-{% set pass_user_via_bus = user_ports | length > 0 and sw_registers | length == 0 and not has_regs_in %}
 
     ----------------------------------------------------------------------------
     -- Bus Wrapper Instance
@@ -163,8 +167,9 @@ begin
 {% endfor %}
 {% endif %}
     );
+{% endif %}
+{% if instantiate_core %}
 
-{% if not pass_user_via_bus %}
     ----------------------------------------------------------------------------
     -- Core Logic Instance
     ----------------------------------------------------------------------------
@@ -201,6 +206,5 @@ begin
 {% endif %}
     );
 
-{% endif %}
 {% endif %}
 end architecture rtl;

@@ -12,7 +12,7 @@
 
 {# Header import, not compilation-unit scope: iverilog 12 cannot resolve
    functions imported into $unit, only types and parameters. #}
-module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }}_pkg::*;{% endif %}{% if generics | length %} #(
+module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} import {{ entity_name }}_pkg::*;{% endif %}{% if generics | length %} #(
 {% for generic in generics %}
   parameter {{ generic.sv_type ~ " " if generic.sv_type }}{{ generic.name }} = {{ generic.sv_default }}{{ "," if not loop.last else "" }}
 {% endfor %}
@@ -52,6 +52,10 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 {% endif %}
 );
 {% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{# Instantiate the bus-agnostic core whenever it carries logic: any memory-mapped IP, or —
+   for an IP with no memory-mapped slave — when a big-endian swap needs a core to reflow
+   through. #}
+{% set instantiate_core = has_memory_mapped_slave or has_endian_swap %}
 {% if has_memory_mapped_slave and (sw_registers | length > 0 or has_regs_in) %}
 
   // Internal register signals
@@ -62,14 +66,13 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
   regs_hw2sw_t regs_hw2sw;
 {% endif %}
 {% endif %}
-{% if has_memory_mapped_slave and has_endian_swap %}
+{% if has_endian_swap %}
 
   // Big-endian intermediate signals (byte-swapped view for internal logic)
 {% for port in endian_swap_ports %}
   {{ port.sv_type }} {{ port.name }}_be;
 {% endfor %}
 {% endif %}
-{% if has_memory_mapped_slave %}
 {% if has_endian_swap %}
 
   // Endianness: reflow big-endian data ports (byte reversal) and their byte-qualifier
@@ -100,6 +103,7 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 {% endif %}
 {% endfor %}
 {% endif %}
+{% if has_memory_mapped_slave %}
 
   ////////////////////////////////////////////////////////////////////////////
   // Bus Wrapper Instance
@@ -118,6 +122,8 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
     .regs_in  (regs_hw2sw)
 {% endif %}
   );
+{% endif %}
+{% if instantiate_core %}
 
   ////////////////////////////////////////////////////////////////////////////
   // Core Logic Instance
