@@ -67,6 +67,8 @@ busInterfaces:
   associatedClock: clk
   associatedReset: reset_n
   endianness: big
+  useOptionalPorts:
+    - TKEEP
   portWidthOverrides:
     TDATA: BUS_DATA_WIDTH
 ports:
@@ -127,6 +129,14 @@ describe('Endianness code generation (issue #138)', () => {
     expect(topContent).toContain('swap_bytes_32(');
     expect(topContent).toContain('gen_swap_m_axis_tdata');
     expect(topContent).toContain("m_axis_tdata'length / 8");
+    // The WSTRB / TKEEP byte-qualifiers are bit-reversed in lockstep with the data,
+    // and wired to the wrapper/core through their `_be` view (issue #138 H1/H2).
+    expect(topContent).toContain('s_axil_wstrb_be');
+    expect(topContent).toContain('=> s_axil_wstrb_be');
+    expect(topContent).toContain('gen_swap_s_axil_wstrb');
+    expect(topContent).toContain('gen_swap_m_axis_tkeep');
+    // Parameterized byte swaps guard against a non-byte-multiple elaboration (M3).
+    expect(topContent).toContain('mod 8) = 0');
 
     const pkgContent = fs.readFileSync(path.join(rtlDir, `${ENTITY_NAME}_pkg.vhd`), 'utf8');
     expect(pkgContent).toContain('function swap_bytes_32');
@@ -150,6 +160,11 @@ describe('Endianness code generation (issue #138)', () => {
     expect(topContent).toContain('swap_bytes_32(');
     expect(topContent).toContain('gen_swap_m_axis_tdata');
     expect(topContent).toContain('$bits(m_axis_tdata) / 8');
+    // Byte-qualifiers bit-reversed in lockstep and wired through `_be` (issue #138 H1/H2).
+    expect(topContent).toContain('s_axil_wstrb_be');
+    expect(topContent).toContain('(s_axil_wstrb_be)');
+    expect(topContent).toContain('gen_swap_s_axil_wstrb');
+    expect(topContent).toContain('gen_swap_m_axis_tkeep');
 
     const pkgContent = fs.readFileSync(path.join(rtlDir, `${ENTITY_NAME}_pkg.sv`), 'utf8');
     expect(pkgContent).toContain('function automatic logic [31:0] swap_bytes_32');

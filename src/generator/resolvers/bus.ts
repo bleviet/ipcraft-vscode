@@ -78,9 +78,12 @@ interface TemplatePort extends Record<string, unknown> {
   logical_name?: string;
   role?: string;
   needs_swap?: boolean;
+  /** 'byte' reverses byte lanes (data payload); 'bit' reverses individual bits, one per
+   *  byte lane (WSTRB/TKEEP/byteenable), so the mask stays aligned with the swapped bytes. */
+  swap_kind?: 'byte' | 'bit';
 }
 
-/** Endianness only makes sense for a fixed-width vector that is a whole number of bytes. */
+/** A data payload is byte-swappable only when it is a fixed vector of whole bytes. */
 function needsByteSwap(
   endianness: string | undefined,
   width: number | string | null,
@@ -91,6 +94,21 @@ function needsByteSwap(
     typeof width === 'number' &&
     width > 1 &&
     width % 8 === 0 &&
+    (direction === 'in' || direction === 'out')
+  );
+}
+
+/** A per-byte qualifier (one bit per data byte lane) is reversed whenever its data is
+ *  swapped. Any multi-bit vector is reversible; a 1-bit mask reversal is a no-op, so skip it. */
+function needsBitReverse(
+  endianness: string | undefined,
+  width: number | string | null,
+  direction: string
+): boolean {
+  return (
+    endianness === 'big' &&
+    typeof width === 'number' &&
+    width > 1 &&
     (direction === 'in' || direction === 'out')
   );
 }
@@ -157,9 +175,11 @@ export function buildUserPorts(
         is_parameterized: true,
         default_width: numericDefault - 1,
         tcl_width: toTclWidth(numericDefault, resolved.expr, paramNames),
-        // A parameterized width isn't known concretely until elaboration; skip swap.
         endianness,
-        needs_swap: false,
+        // The concrete width is unknown until elaboration, so gate on the default and
+        // let the top level emit a width-generic byte-reversal generate loop.
+        needs_swap: needsByteSwap(endianness, numericDefault, direction),
+        swap_kind: 'byte' as const,
       };
     }
 
@@ -177,6 +197,7 @@ export function buildUserPorts(
       tcl_width: toTclWidth(width, null, paramNames),
       endianness,
       needs_swap: needsByteSwap(endianness, width, direction),
+      swap_kind: 'byte' as const,
     };
   });
 }
@@ -263,8 +284,16 @@ export const busResolver: ContextResolver = {
         activePorts.forEach((port) => {
           port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
           if (port.role === 'data') {
+            // Data payload: reverse whole byte lanes.
             port.endianness = ifaceEndianness;
             port.needs_swap = needsByteSwap(ifaceEndianness, port.width, port.direction);
+            port.swap_kind = 'byte';
+          } else if (port.role === 'byteQualifier') {
+            // Per-byte mask (WSTRB/TKEEP/byteenable): reverse bits so each mask bit stays
+            // aligned with the byte lane it gates after the data byte swap.
+            port.endianness = ifaceEndianness;
+            port.needs_swap = needsBitReverse(ifaceEndianness, port.width, port.direction);
+            port.swap_kind = 'bit';
           }
         });
         (iface as BusInterfaceDef & Record<string, unknown>).ports = activePorts;
@@ -322,11 +351,11 @@ export const busResolver: ContextResolver = {
         widthExprUsesMathReal(port.width_expr)
     );
 
-    // Big-endian ports/data-ports need an intermediate `_be` signal at the top level,
-    // swapped through the package's per-width swap_bytes_<width>() function (see
-    // package.vhdl.j2/pkg.sv.j2) — one function per distinct width, not a single
-    // unconstrained/parameterized function, to keep generated HDL simple and
-    // toolchain-portable (GHDL/iverilog).
+    // Big-endian ports need an intermediate `_be` signal at the top level. Fixed-width
+    // data payloads go through the package's per-width swap_bytes_<width>() function (one
+    // per distinct width, not a single unconstrained function, to keep generated HDL simple
+    // and toolchain-portable); parameterized data and all byte-qualifier masks use a
+    // width-generic reflow loop at the top level (see package.vhdl.j2/pkg.sv.j2, top.*.j2).
     const endianSwapPorts = [...busPorts, ...secondaryBusPorts, ...userPorts]
       .filter((port) => port.needs_swap === true)
       .map((port) => ({
@@ -336,11 +365,14 @@ export const busResolver: ContextResolver = {
         direction: port.direction,
         width: port.width,
         is_parameterized: port.is_parameterized,
+        swap_kind: port.swap_kind ?? 'byte',
       }));
+    // Only fixed-width byte swaps use a swap_bytes_<width>() function; bit reversals and
+    // parameterized byte swaps are emitted inline as generate loops.
     const endianSwapWidths = [
       ...new Set(
         endianSwapPorts
-          .filter((port) => port.is_parameterized !== true)
+          .filter((port) => port.swap_kind === 'byte' && port.is_parameterized !== true)
           .map((port) => port.width as number)
       ),
     ].sort((a, b) => a - b);

@@ -57,15 +57,15 @@ export interface TemplateContext {
    */
   uses_math_real?: boolean;
   /**
-   * Big-endian vector ports / bus data ports needing an intermediate `_be` signal and swap_bytes() call at the top level.
+   * Big-endian data ports (byte reversal) and their byte-qualifier masks (bit reversal), each reflowed through an intermediate `_be` signal at the top level.
    */
   endian_swap_ports?: EndianSwapPort[];
   /**
-   * Distinct widths across endian_swap_ports, deduplicated and sorted ascending — one swap_bytes_<width>() function is generated per entry.
+   * Distinct fixed widths of byte-swapped data ports, deduplicated and sorted ascending — one swap_bytes_<width>() function is generated per entry. Bit reversals and parameterized byte swaps are emitted inline and do not appear here.
    */
   endian_swap_widths?: number[];
   /**
-   * True when endian_swap_ports is non-empty; gates package import/generation and swap_bytes() emission at the top level.
+   * True when endian_swap_ports is non-empty; gates package import and the top-level `_be` reflow wiring.
    */
   has_endian_swap?: boolean;
   vendor?: string;
@@ -201,6 +201,10 @@ export interface UserPort {
    * True when this port is big-endian and byte-swapped via an intermediate `_be` signal at the top level.
    */
   needs_swap?: boolean;
+  /**
+   * Reflow kind for a big-endian port: 'byte' reverses byte lanes, 'bit' reverses individual bits.
+   */
+  swap_kind?: 'byte' | 'bit';
 }
 export interface InterruptPort {
   name: string;
@@ -222,9 +226,13 @@ export interface BusPort {
   role?: string;
   endianness?: 'little' | 'big';
   /**
-   * True when this port is this interface's big-endian data port, byte-swapped via an intermediate `_be` signal at the top level.
+   * True when this port is this interface's big-endian data port or its byte qualifier, reflowed via an intermediate `_be` signal at the top level.
    */
   needs_swap?: boolean;
+  /**
+   * 'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (WSTRB/TKEEP/byteenable).
+   */
+  swap_kind?: 'byte' | 'bit';
 }
 export interface SecondaryBusInterface {
   name: string;
@@ -339,7 +347,7 @@ export interface SecondaryReset {
   associated_clock?: string | null;
 }
 /**
- * A big-endian vector port or bus data port that needs an intermediate `_be` signal and swap_bytes() call at the top level.
+ * A big-endian vector port, bus data port, or bus byte-qualifier that needs an intermediate `_be` signal reflowed at the top level.
  */
 export interface EndianSwapPort {
   name: string;
@@ -348,4 +356,8 @@ export interface EndianSwapPort {
   direction: string;
   width: number;
   is_parameterized: boolean;
+  /**
+   * 'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (byte-qualifier masks).
+   */
+  swap_kind: 'byte' | 'bit';
 }

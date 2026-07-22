@@ -105,9 +105,11 @@ export type BusPortDefinition = {
   width?: number | string;
   direction?: string;
   presence?: string;
-  /** Marks the port(s) that carry this interface's data payload (e.g. WDATA/RDATA),
-   *  eligible for the BusInterface.endianness byte-swap. */
-  role?: 'data';
+  /** Endianness role of the port:
+   *  - 'data': carries the data payload (e.g. WDATA/RDATA/TDATA); byte-reversed on big-endian.
+   *  - 'byteQualifier': per-byte-lane mask (e.g. WSTRB/TKEEP/byteenable); bit-reversed in
+   *    lockstep with the data so the lane mask stays aligned with the reversed bytes. */
+  role?: 'data' | 'byteQualifier';
 };
 
 export type BusDefinition = {

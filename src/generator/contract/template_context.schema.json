@@ -126,16 +126,16 @@
     "endian_swap_ports": {
       "type": "array",
       "items": { "$ref": "#/definitions/EndianSwapPort" },
-      "description": "Big-endian vector ports / bus data ports needing an intermediate `_be` signal and swap_bytes() call at the top level."
+      "description": "Big-endian data ports (byte reversal) and their byte-qualifier masks (bit reversal), each reflowed through an intermediate `_be` signal at the top level."
     },
     "endian_swap_widths": {
       "type": "array",
       "items": { "type": "integer" },
-      "description": "Distinct widths across endian_swap_ports, deduplicated and sorted ascending — one swap_bytes_<width>() function is generated per entry."
+      "description": "Distinct fixed widths of byte-swapped data ports, deduplicated and sorted ascending — one swap_bytes_<width>() function is generated per entry. Bit reversals and parameterized byte swaps are emitted inline and do not appear here."
     },
     "has_endian_swap": {
       "type": "boolean",
-      "description": "True when endian_swap_ports is non-empty; gates package import/generation and swap_bytes() emission at the top level."
+      "description": "True when endian_swap_ports is non-empty; gates package import and the top-level `_be` reflow wiring."
     },
 
     "vendor": { "type": "string" },
@@ -148,7 +148,15 @@
   "definitions": {
     "Field": {
       "type": "object",
-      "required": ["name", "offset", "width", "access", "reset_value", "description", "monitorChangeOf"],
+      "required": [
+        "name",
+        "offset",
+        "width",
+        "access",
+        "reset_value",
+        "description",
+        "monitorChangeOf"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -175,7 +183,16 @@
     },
     "AnnotatedRegister": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "reset_value", "fields", "has_cos_fields", "has_mixed_fields"],
+      "required": [
+        "name",
+        "offset",
+        "access",
+        "description",
+        "reset_value",
+        "fields",
+        "has_cos_fields",
+        "has_mixed_fields"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -193,7 +210,16 @@
     },
     "W1cField": {
       "type": "object",
-      "required": ["name", "offset", "width", "access", "reset_value", "description", "monitorChangeOf", "is_cos"],
+      "required": [
+        "name",
+        "offset",
+        "width",
+        "access",
+        "reset_value",
+        "description",
+        "monitorChangeOf",
+        "is_cos"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -221,7 +247,16 @@
     },
     "CosField": {
       "type": "object",
-      "required": ["name", "offset", "width", "access", "reset_value", "description", "monitorChangeOf", "monitored_field"],
+      "required": [
+        "name",
+        "offset",
+        "width",
+        "access",
+        "reset_value",
+        "description",
+        "monitorChangeOf",
+        "monitored_field"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -236,7 +271,16 @@
     },
     "CosRegister": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "reset_value", "fields", "cos_fields", "val_fields"],
+      "required": [
+        "name",
+        "offset",
+        "access",
+        "description",
+        "reset_value",
+        "fields",
+        "cos_fields",
+        "val_fields"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -251,7 +295,15 @@
     },
     "MixedRegister": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "reset_value", "fields", "val_fields"],
+      "required": [
+        "name",
+        "offset",
+        "access",
+        "description",
+        "reset_value",
+        "fields",
+        "val_fields"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -269,7 +321,19 @@
     },
     "Generic": {
       "type": "object",
-      "required": ["name", "type", "sv_type", "default_value", "sv_default", "description", "min", "max", "allowed_values", "ui_page", "ui_group"],
+      "required": [
+        "name",
+        "type",
+        "sv_type",
+        "default_value",
+        "sv_default",
+        "description",
+        "min",
+        "max",
+        "allowed_values",
+        "ui_page",
+        "ui_group"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -335,7 +399,17 @@
     },
     "UserPort": {
       "type": "object",
-      "required": ["name", "direction", "sv_direction", "type", "sv_type", "width", "width_expr", "is_parameterized", "default_width"],
+      "required": [
+        "name",
+        "direction",
+        "sv_direction",
+        "type",
+        "sv_type",
+        "width",
+        "width_expr",
+        "is_parameterized",
+        "default_width"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -352,12 +426,28 @@
         "needs_swap": {
           "type": "boolean",
           "description": "True when this port is big-endian and byte-swapped via an intermediate `_be` signal at the top level."
+        },
+        "swap_kind": {
+          "type": "string",
+          "enum": ["byte", "bit"],
+          "description": "Reflow kind for a big-endian port: 'byte' reverses byte lanes, 'bit' reverses individual bits."
         }
       }
     },
     "BusPort": {
       "type": "object",
-      "required": ["logical_name", "name", "direction", "sv_direction", "width", "width_expr", "is_parameterized", "default_width", "type", "sv_type"],
+      "required": [
+        "logical_name",
+        "name",
+        "direction",
+        "sv_direction",
+        "width",
+        "width_expr",
+        "is_parameterized",
+        "default_width",
+        "type",
+        "sv_type"
+      ],
       "additionalProperties": false,
       "properties": {
         "logical_name": { "type": "string" },
@@ -375,22 +465,40 @@
         "endianness": { "type": "string", "enum": ["little", "big"] },
         "needs_swap": {
           "type": "boolean",
-          "description": "True when this port is this interface's big-endian data port, byte-swapped via an intermediate `_be` signal at the top level."
+          "description": "True when this port is this interface's big-endian data port or its byte qualifier, reflowed via an intermediate `_be` signal at the top level."
+        },
+        "swap_kind": {
+          "type": "string",
+          "enum": ["byte", "bit"],
+          "description": "'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (WSTRB/TKEEP/byteenable)."
         }
       }
     },
     "EndianSwapPort": {
       "type": "object",
-      "required": ["name", "type", "sv_type", "direction", "width", "is_parameterized"],
+      "required": [
+        "name",
+        "type",
+        "sv_type",
+        "direction",
+        "width",
+        "is_parameterized",
+        "swap_kind"
+      ],
       "additionalProperties": false,
-      "description": "A big-endian vector port or bus data port that needs an intermediate `_be` signal and swap_bytes() call at the top level.",
+      "description": "A big-endian vector port, bus data port, or bus byte-qualifier that needs an intermediate `_be` signal reflowed at the top level.",
       "properties": {
         "name": { "type": "string" },
         "type": { "type": "string" },
         "sv_type": { "type": "string" },
         "direction": { "type": "string" },
         "width": { "type": "number" },
-        "is_parameterized": { "type": "boolean" }
+        "is_parameterized": { "type": "boolean" },
+        "swap_kind": {
+          "type": "string",
+          "enum": ["byte", "bit"],
+          "description": "'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (byte-qualifier masks)."
+        }
       }
     },
     "InterruptPort": {

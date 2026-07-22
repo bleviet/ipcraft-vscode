@@ -53,12 +53,15 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
       }
     }
 
-    // A hand-edited YAML file can bypass the UI restrictions.
+    // A hand-edited YAML file can bypass the UI restrictions. A parameterized (string)
+    // width is left unflagged — it may resolve to a byte multiple at elaboration, and the
+    // generated HDL guards that with a runtime assertion.
     if (port.endianness === 'big' && port.direction === 'inout') {
       addAnnotation(id, 'warning', 'Endianness "big" has no effect on an inout port');
     } else if (
       port.endianness === 'big' &&
-      !(typeof port.width === 'number' && port.width > 1 && port.width % 8 === 0)
+      typeof port.width === 'number' &&
+      !(port.width > 1 && port.width % 8 === 0)
     ) {
       addAnnotation(
         id,

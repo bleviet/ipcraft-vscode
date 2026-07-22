@@ -5,6 +5,7 @@ import type { WidthParameter } from '../../../shared/components';
 import { displayDirection } from '../../../shared/utils/formatters';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
 import { useTableEditing } from '../../../hooks/useTableEditing';
+import { portEndiannessApplies } from '../../utils/portEndianness';
 
 interface Port {
   name: string;
@@ -24,12 +25,6 @@ const createEmptyPort = (): Port => ({
   direction: 'input',
   width: 1,
 });
-
-/** Endianness only makes sense for a vector port whose width is a whole number of bytes. */
-const supportsEndianness = (
-  width: number | string | undefined,
-  direction: string | undefined
-): boolean => direction !== 'inout' && typeof width === 'number' && width > 1 && width % 8 === 0;
 
 const normalizePort = (port: Port): Port => {
   const normalizedDirection = displayDirection(port.direction, 'input');
@@ -117,7 +112,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({
             setDraft({
               ...draft,
               direction: v,
-              endianness: supportsEndianness(draft.width, v) ? draft.endianness : 'little',
+              endianness: portEndiannessApplies(draft.width, v) ? draft.endianness : 'little',
             })
           }
           data-edit-key="direction"
@@ -132,7 +127,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({
             setDraft({
               ...draft,
               width: v,
-              endianness: supportsEndianness(v, draft.direction) ? draft.endianness : 'little',
+              endianness: portEndiannessApplies(v, draft.direction) ? draft.endianness : 'little',
             })
           }
           parameters={parameters}
@@ -145,7 +140,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({
         <SelectField
           label=""
           value={draft.endianness ?? 'little'}
-          disabled={!supportsEndianness(draft.width, draft.direction)}
+          disabled={!portEndiannessApplies(draft.width, draft.direction)}
           options={[
             { value: 'little', label: 'little' },
             { value: 'big', label: 'big' },
@@ -277,7 +272,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm" {...getCellProps(index, 'endianness')}>
-                    {supportsEndianness(port.width, port.direction)
+                    {portEndiannessApplies(port.width, port.direction)
                       ? (port.endianness ?? 'little')
                       : '—'}
                   </td>

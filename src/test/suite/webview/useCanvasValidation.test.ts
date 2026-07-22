@@ -54,6 +54,31 @@ describe('useCanvasValidation', () => {
     ]);
   });
 
+  it('warns when big endianness is set on a non-byte-multiple width', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      ports: [{ name: 'odd', direction: 'in', width: 12, endianness: 'big' }],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['port:0']).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        message: 'Endianness "big" has no effect: width must be a multiple of 8 bits',
+      }),
+    ]);
+  });
+
+  it('does not warn for a big-endian parameterized-width port', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      ports: [{ name: 'stream', direction: 'in', width: 'DATA_WIDTH', endianness: 'big' }],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['port:0']).toBeUndefined();
+  });
+
   it('should detect duplicate bus interface names', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },

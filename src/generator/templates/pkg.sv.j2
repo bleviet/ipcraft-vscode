@@ -16,7 +16,7 @@ package {{ entity_name }}_pkg;
   localparam int C_ADDR_WIDTH = {{ addr_width | default(8) }};
   localparam int C_REG_WIDTH  = {{ reg_width | default(4) }};  // Bytes per register
 
-{% if has_endian_swap %}
+{% if endian_swap_widths | length %}
   ////////////////////////////////////////////////////////////////////////////
   // Endianness (big-endian ports are byte-swapped at the top level)
   ////////////////////////////////////////////////////////////////////////////

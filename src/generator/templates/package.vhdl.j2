@@ -18,7 +18,7 @@ package {{ entity_name }}_pkg is
   constant C_ADDR_WIDTH : natural := {{ addr_width | default(8) }};
   constant C_REG_WIDTH  : natural := {{ reg_width | default(4) }};  -- Bytes per register
 
-{% if has_endian_swap %}
+{% if endian_swap_widths | length %}
   ----------------------------------------------------------------------------
   -- Endianness (big-endian ports are byte-swapped at the top level)
   ----------------------------------------------------------------------------
@@ -263,7 +263,7 @@ end package {{ entity_name }}_pkg;
 
 package body {{ entity_name }}_pkg is
 
-{% if has_endian_swap %}
+{% if endian_swap_widths | length %}
   ----------------------------------------------------------------------------
   -- Endianness
   ----------------------------------------------------------------------------

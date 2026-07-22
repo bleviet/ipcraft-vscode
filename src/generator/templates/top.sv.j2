@@ -72,9 +72,18 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 {% if has_memory_mapped_slave %}
 {% if has_endian_swap %}
 
-  // Endianness: swap big-endian ports/bus data ports to/from their internal view
+  // Endianness: reflow big-endian data ports (byte reversal) and their byte-qualifier
+  // masks (bit reversal) between the external ports and the internal `_be` view.
 {% for port in endian_swap_ports %}
-{% if port.is_parameterized %}
+{% if port.swap_kind == 'bit' %}
+  for (genvar bit_idx = 0; bit_idx < $bits({{ port.name }}); bit_idx++) begin : gen_swap_{{ port.name }}
+{% if port.direction == 'in' %}
+    assign {{ port.name }}_be[bit_idx] = {{ port.name }}[$bits({{ port.name }}) - 1 - bit_idx];
+{% else %}
+    assign {{ port.name }}[bit_idx] = {{ port.name }}_be[$bits({{ port.name }}) - 1 - bit_idx];
+{% endif %}
+  end
+{% elif port.is_parameterized %}
   for (genvar byte_idx = 0; byte_idx < $bits({{ port.name }}) / 8; byte_idx++) begin : gen_swap_{{ port.name }}
 {% if port.direction == 'in' %}
     assign {{ port.name }}_be[byte_idx * 8 +: 8] = {{ port.name }}[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];

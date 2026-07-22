@@ -33,6 +33,7 @@ import { BUS_VLNV, busSupportsMemoryMap } from '../../../../shared/busVlnv';
 import { isValidVlnv } from '../../../../utils/vlnv';
 import { MapConduitToBusDialog, type MapConduitToBusResult } from './MapConduitToBusDialog';
 import { applyMapConduitToKnownBus, type BatchUpdate } from '../../hooks/useGroupPorts';
+import { portEndiannessApplies } from '../../utils/portEndianness';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -2359,10 +2360,7 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
           value={port.endianness === 'big' ? 'big' : 'little'}
           options={BUS_ENDIANNESS_OPTS}
           onSave={(v) => onUpdate(['ports', index, 'endianness'], v)}
-          disabled={
-            (canonicalDirection(port.direction, 'in') === 'inout' && port.endianness !== 'big') ||
-            !(typeof currentWidth === 'number' && currentWidth > 1 && currentWidth % 8 === 0)
-          }
+          disabled={!portEndiannessApplies(currentWidth, canonicalDirection(port.direction, 'in'))}
         />
       </Section>
     </>
