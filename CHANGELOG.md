@@ -4,12 +4,27 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-07-22
+
+### Added
+
+- **Reset polarity and interrupt sensitivity on the IP canvas**: reset ports now distinguish active-high and active-low signals with polarity badges and inversion bubbles, while interrupt ports show compact level/edge sensitivity markers with accessible labels and tooltips. ([#135](https://github.com/bleviet/ipcraft-vscode/issues/135))
+
 ### Changed
 
 - Production VSIX packages now exclude nested source maps and are checked in CI against an explicit runtime-content allowlist and size budget. The checked artifact is installed for extension-host smoke testing. ([#123](https://github.com/bleviet/ipcraft-vscode/issues/123))
+- **Native, accessible webview controls**: replaced the deprecated VS Code Webview UI Toolkit with shared React controls backed by native form elements, preserving Vim table navigation and restoring inspector empty-state contrast. ([#124](https://github.com/bleviet/ipcraft-vscode/issues/124))
+- **Documentation refresh**: consolidated overlapping architecture and concept material, added task-focused guides for creating, importing, generating, and checking IP cores, and added reproducible screenshot-backed documentation with automated link validation.
 
 ### Fixed
+
 - **CLI distribution contract**: removed the unavailable `npx ipcraft` claim from Marketplace-facing documentation and separated the `ipcraft` npm artifact from the VSIX. The CLI can now be packed and smoke-tested from a clean temporary installation without publishing; npm publication remains an explicit manual release after the matching extension release. ([#116](https://github.com/bleviet/ipcraft-vscode/issues/116))
+- **Legacy memory-map editing and serialization**: legacy snake-case input is now normalized only at the document boundary while the runtime model remains canonical camelCase. Structural and scalar edits resolve the original on-disk keys without creating duplicate sections, and opaque enum/custom-metadata maps survive normalization and serialization unchanged. ([#119](https://github.com/bleviet/ipcraft-vscode/issues/119))
+- **Workspace and webview security boundaries**: generation, build, vendor-tool, template, and external-process actions are disabled in untrusted workspaces; scaffold output paths are contained within their target directory; and every webview now declares the minimum local resource roots it needs. ([#121](https://github.com/bleviet/ipcraft-vscode/issues/121))
+- **IP canvas layout stability**: preserved measured node dimensions across layout updates so selections and refreshes no longer collapse nodes back to default sizes.
+- **Bus-library navigation**: section headers remain visible while scrolling through long IP Core library groups. ([#137](https://github.com/bleviet/ipcraft-vscode/issues/137))
+- **Avalon-ST signal ordering**: the IP canvas now recognizes Avalon Streaming symbol order so data, channel, error, and empty signals are presented in their defined order. ([#136](https://github.com/bleviet/ipcraft-vscode/issues/136))
+- **VS Code 1.80 compatibility**: pinned extension API types to the declared minimum engine version and added automated compatibility checks to prevent newer API usage from entering supported builds.
 
 ## [0.9.2] - 2026-07-19
 
