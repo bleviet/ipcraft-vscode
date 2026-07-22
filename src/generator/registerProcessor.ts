@@ -225,6 +225,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           associatedClock: iface.associatedClock,
           associatedReset: iface.associatedReset,
           memoryMapRef: iface.memoryMapRef,
+          endianness: iface.endianness,
         });
       }
       continue;
@@ -245,6 +246,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       associatedClock: iface.associatedClock,
       associatedReset: iface.associatedReset,
       memoryMapRef: iface.memoryMapRef,
+      endianness: iface.endianness,
     });
   }
 
@@ -266,7 +268,13 @@ export function getSvPortType(width: number, _logicalName: string): string {
 }
 
 export function getActiveBusPortsFromDefinition(
-  ports: Array<{ name: string; width?: number | string; direction?: string; presence?: string }>,
+  ports: Array<{
+    name: string;
+    width?: number | string;
+    direction?: string;
+    presence?: string;
+    role?: string;
+  }>,
   useOptionalPorts: string[],
   physicalPrefix: string,
   mode: string,
@@ -371,6 +379,7 @@ export function getActiveBusPortsFromDefinition(
       default_width: widthExpr !== null ? numWidth - 1 : null,
       type: vhdlType,
       sv_type: svType,
+      role: port.role,
     });
   });
 

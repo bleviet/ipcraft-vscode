@@ -548,6 +548,11 @@ export interface Port {
   width?: Width3;
   type?: Type2;
   description?: Description4;
+  /**
+   * Byte order for this port. Little-endian is the default; only relevant when
+   * width is a multiple of 8 bits.
+   */
+  endianness?: 'little' | 'big';
 }
 /**
  * Bus interface definition for an IP core.
@@ -580,6 +585,12 @@ export interface BusInterface {
   array?: ArrayConfig | null;
   description?: Description5;
   conduitPorts?: ConduitPorts;
+  /**
+   * Byte order applied to this interface's data port(s) (e.g. WDATA/RDATA).
+   * Little-endian is the default; only relevant when the data width is a
+   * multiple of 8 bits.
+   */
+  endianness?: 'little' | 'big';
 }
 /**
  * Port width overrides {port_name: width_or_parameter_name}

@@ -52,6 +52,19 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
         portNames.add(key);
       }
     }
+
+    // Endianness only has an effect on a whole number of bytes; a hand-edited
+    // YAML file could set endianness: big on a width the UI would otherwise disable.
+    if (
+      port.endianness === 'big' &&
+      !(typeof port.width === 'number' && port.width > 1 && port.width % 8 === 0)
+    ) {
+      addAnnotation(
+        id,
+        'warning',
+        'Endianness "big" has no effect: width must be a multiple of 8 bits'
+      );
+    }
   });
 
   // Detect bus interfaces whose reconstructed physical port names actually collide —

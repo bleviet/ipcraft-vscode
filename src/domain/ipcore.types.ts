@@ -153,6 +153,10 @@ export type Type2 = string;
  */
 export type Description4 = string;
 /**
+ * Byte order for this port. Little-endian is the default; only relevant when width is a multiple of 8 bits.
+ */
+export type Endianness = 'little' | 'big';
+/**
  * Data/control ports
  */
 export type Ports = Port[];
@@ -236,6 +240,10 @@ export type Description6 = string | null;
  * Whether the port is required or optional in the generated interface
  */
 export type Presence = ('required' | 'optional') | null;
+/**
+ * Byte order applied to this interface's data port(s) (e.g. WDATA/RDATA). Little-endian is the default; only relevant when the data width is a multiple of 8 bits.
+ */
+export type Endianness1 = 'little' | 'big';
 /**
  * Bus interface definitions
  */
@@ -632,6 +640,7 @@ export interface Port {
   width?: Width3;
   type?: Type2;
   description?: Description4;
+  endianness?: Endianness;
   [k: string]: unknown;
 }
 /**
@@ -657,6 +666,7 @@ export interface BusInterface {
   array?: ArrayConfig | null;
   description?: Description5;
   conduitPorts?: ConduitPorts;
+  endianness?: Endianness1;
   [k: string]: unknown;
 }
 /**

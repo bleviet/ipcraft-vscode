@@ -76,8 +76,26 @@ architecture rtl of {{ entity_name }} is
   signal regs_hw2sw : t_regs_hw2sw;
 {% endif %}
 {% endif %}
+{% if has_memory_mapped_slave and has_endian_swap %}
+
+    -- Big-endian intermediate signals (byte-swapped view for internal logic)
+{% for port in endian_swap_ports %}
+  signal {{ port.name }}_be : {{ port.type }};
+{% endfor %}
+{% endif %}
 
 begin
+{% if has_memory_mapped_slave and has_endian_swap %}
+
+    -- Endianness: swap big-endian ports/bus data ports to/from their internal view
+{% for port in endian_swap_ports %}
+{% if port.direction == 'in' %}
+    {{ port.name }}_be <= swap_bytes_{{ port.width }}({{ port.name }});
+{% else %}
+    {{ port.name }} <= swap_bytes_{{ port.width }}({{ port.name }}_be);
+{% endif %}
+{% endfor %}
+{% endif %}
 {% if has_memory_mapped_slave %}
 {# When no register file exists but user ports do, route them through the bus wrapper.
    This covers IPs like AXI-Lite slaves that expose a direct register-bank interface
@@ -102,7 +120,7 @@ begin
 {% set has_regs_ports = sw_registers | length > 0 or has_regs_in %}
 {% if bus_ports %}
 {% for port in bus_ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or has_regs_ports or pass_user_via_bus else "" }}
+      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "_be" if port.needs_swap else "" }}{{ "," if not loop.last or has_regs_ports or pass_user_via_bus else "" }}
 {% endfor %}
 {% endif %}
 {% if sw_registers | length > 0 %}
@@ -113,7 +131,7 @@ begin
 {% endif %}
 {% if pass_user_via_bus %}
 {% for port in user_ports %}
-      {{ port.name }} => {{ port.name }}{{ "," if not loop.last else "" }}
+      {{ port.name }} => {{ port.name }}{{ "_be" if port.needs_swap else "" }}{{ "," if not loop.last else "" }}
 {% endfor %}
 {% endif %}
     );
@@ -144,13 +162,13 @@ begin
 
       -- {{ iface.name }}
 {% for port in iface.ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length else "" }}
+      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "_be" if port.needs_swap else "" }}{{ "," if not loop.last or not iface_loop.last or user_ports | length else "" }}
 {% endfor %}
 {% endfor %}
 {% endif %}
 {% if user_ports | length %}
 {% for port in user_ports %}
-      {{ port.name }} => {{ port.name }}{{ "," if not loop.last else "" }}
+      {{ port.name }} => {{ port.name }}{{ "_be" if port.needs_swap else "" }}{{ "," if not loop.last else "" }}
 {% endfor %}
 {% endif %}
     );

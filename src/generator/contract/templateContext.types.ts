@@ -56,6 +56,18 @@ export interface TemplateContext {
    * True when any parameterized port width uses a VHDL math_real function (clog2/log2/ceil/floor), so the entity context clause must add `use ieee.math_real.all;`.
    */
   uses_math_real?: boolean;
+  /**
+   * Big-endian vector ports / bus data ports needing an intermediate `_be` signal and swap_bytes() call at the top level.
+   */
+  endian_swap_ports?: EndianSwapPort[];
+  /**
+   * Distinct widths across endian_swap_ports, deduplicated and sorted ascending — one swap_bytes_<width>() function is generated per entry.
+   */
+  endian_swap_widths?: number[];
+  /**
+   * True when endian_swap_ports is non-empty; gates package import/generation and swap_bytes() emission at the top level.
+   */
+  has_endian_swap?: boolean;
   vendor?: string;
   library?: string;
   version?: string;
@@ -184,6 +196,11 @@ export interface UserPort {
   is_parameterized: boolean;
   default_width: number | null;
   tcl_width?: string;
+  endianness?: 'little' | 'big';
+  /**
+   * True when this port is big-endian and byte-swapped via an intermediate `_be` signal at the top level.
+   */
+  needs_swap?: boolean;
 }
 export interface InterruptPort {
   name: string;
@@ -202,6 +219,12 @@ export interface BusPort {
   type: string;
   sv_type: string;
   tcl_width?: string;
+  role?: string;
+  endianness?: 'little' | 'big';
+  /**
+   * True when this port is this interface's big-endian data port, byte-swapped via an intermediate `_be` signal at the top level.
+   */
+  needs_swap?: boolean;
 }
 export interface SecondaryBusInterface {
   name: string;
@@ -314,4 +337,14 @@ export interface SecondaryReset {
   name: string;
   active_high: boolean;
   associated_clock?: string | null;
+}
+/**
+ * A big-endian vector port or bus data port that needs an intermediate `_be` signal and swap_bytes() call at the top level.
+ */
+export interface EndianSwapPort {
+  name: string;
+  type: string;
+  sv_type: string;
+  direction: string;
+  width: number;
 }

@@ -432,6 +432,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       conduitPorts,
       associatedClock: String(bus.associatedClock ?? bus.associated_clock ?? ''),
       associatedReset: String(bus.associatedReset ?? bus.associated_reset ?? ''),
+      endianness: bus.endianness === 'big' ? 'big' : 'little',
       ...(array
         ? {
             array: {
@@ -478,6 +479,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
         direction: String(port.direction ?? ''),
         width: port.width ?? 1,
         presence: String(port.presence ?? ''),
+        endianness: port.endianness === 'big' ? 'big' : 'little',
       };
     }),
     busInterfaces: normalizedBusInterfaces,

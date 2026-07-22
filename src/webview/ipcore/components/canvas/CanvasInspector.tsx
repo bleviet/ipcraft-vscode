@@ -2354,6 +2354,15 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
           paramValues={paramValues}
           onSave={(v) => onUpdate(['ports', index, 'width'], v)}
         />
+        <PropSelect
+          label="Endianness"
+          value={port.endianness === 'big' ? 'big' : 'little'}
+          options={BUS_ENDIANNESS_OPTS}
+          onSave={(v) => onUpdate(['ports', index, 'endianness'], v)}
+          disabled={
+            !(typeof currentWidth === 'number' && currentWidth > 1 && currentWidth % 8 === 0)
+          }
+        />
       </Section>
     </>
   );
@@ -2620,6 +2629,12 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
           value={normalizeBusMode(bus.mode)}
           options={BUS_MODE_OPTS}
           onSave={(v) => onUpdate(['busInterfaces', index, 'mode'], v)}
+        />
+        <PropSelect
+          label="Endianness"
+          value={bus.endianness === 'big' ? 'big' : 'little'}
+          options={BUS_ENDIANNESS_OPTS}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'endianness'], v)}
         />
         {!hasPrefixPattern && (
           <PropField
@@ -4404,9 +4419,17 @@ interface PropSelectProps {
   options: { value: string; label: string }[];
   onSave: (v: string) => void;
   emptyOption?: string;
+  disabled?: boolean;
 }
 
-const PropSelect: React.FC<PropSelectProps> = ({ label, value, options, onSave, emptyOption }) => {
+const PropSelect: React.FC<PropSelectProps> = ({
+  label,
+  value,
+  options,
+  onSave,
+  emptyOption,
+  disabled,
+}) => {
   const controlId = React.useId();
   return (
     <div className="ci-field">
@@ -4417,6 +4440,7 @@ const PropSelect: React.FC<PropSelectProps> = ({ label, value, options, onSave, 
         id={controlId}
         className="ci-field__select"
         value={value}
+        disabled={disabled}
         onChange={(e) => onSave(e.target.value)}
       >
         {emptyOption !== undefined && <option value="">{emptyOption}</option>}
@@ -4602,6 +4626,11 @@ const POLARITY_OPTS = [
 const BUS_MODE_OPTS = [
   { value: 'slave', label: 'slave' },
   { value: 'master', label: 'master' },
+];
+
+const BUS_ENDIANNESS_OPTS = [
+  { value: 'little', label: 'little' },
+  { value: 'big', label: 'big' },
 ];
 
 const CONDUIT_MODE_OPTS = [

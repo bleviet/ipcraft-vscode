@@ -76,6 +76,23 @@ interface TemplatePort extends Record<string, unknown> {
   is_parameterized: boolean;
   tcl_width?: string;
   logical_name?: string;
+  role?: string;
+  needs_swap?: boolean;
+}
+
+/** Endianness only makes sense for a fixed-width vector that is a whole number of bytes. */
+function needsByteSwap(
+  endianness: string | undefined,
+  width: number | string | null,
+  direction: string
+): boolean {
+  return (
+    endianness === 'big' &&
+    typeof width === 'number' &&
+    width > 1 &&
+    width % 8 === 0 &&
+    (direction === 'in' || direction === 'out')
+  );
 }
 
 function resolvePortsForInterface(
@@ -117,6 +134,7 @@ export function buildUserPorts(
     const direction = getString(port.direction).toLowerCase();
     const svDirection = direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout';
     const widthValue = port.width ?? 1;
+    const endianness = port.endianness === 'big' ? 'big' : 'little';
 
     // A string width may be a parameter reference, an arithmetic expression, or
     // a predefined function call. A constant expression folds to a literal.
@@ -139,6 +157,9 @@ export function buildUserPorts(
         is_parameterized: true,
         default_width: numericDefault - 1,
         tcl_width: toTclWidth(numericDefault, resolved.expr, paramNames),
+        // A parameterized width isn't known concretely until elaboration; skip swap.
+        endianness,
+        needs_swap: false,
       };
     }
 
@@ -154,6 +175,8 @@ export function buildUserPorts(
       is_parameterized: false,
       default_width: null,
       tcl_width: toTclWidth(width, null, paramNames),
+      endianness,
+      needs_swap: needsByteSwap(endianness, width, direction),
     };
   });
 }
@@ -236,8 +259,13 @@ export const busResolver: ContextResolver = {
           iface.absentPorts
         ) as unknown as (TemplatePort & Record<string, unknown>)[];
 
+        const ifaceEndianness = iface.endianness === 'big' ? 'big' : 'little';
         activePorts.forEach((port) => {
           port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
+          if (port.role === 'data') {
+            port.endianness = ifaceEndianness;
+            port.needs_swap = needsByteSwap(ifaceEndianness, port.width, port.direction);
+          }
         });
         (iface as BusInterfaceDef & Record<string, unknown>).ports = activePorts;
 
@@ -294,6 +322,24 @@ export const busResolver: ContextResolver = {
         widthExprUsesMathReal(port.width_expr)
     );
 
+    // Big-endian ports/data-ports need an intermediate `_be` signal at the top level,
+    // swapped through the package's per-width swap_bytes_<width>() function (see
+    // package.vhdl.j2/pkg.sv.j2) — one function per distinct width, not a single
+    // unconstrained/parameterized function, to keep generated HDL simple and
+    // toolchain-portable (GHDL/iverilog).
+    const endianSwapPorts = [...busPorts, ...secondaryBusPorts, ...userPorts]
+      .filter((port) => port.needs_swap === true)
+      .map((port) => ({
+        name: port.name,
+        type: port.type,
+        sv_type: port.sv_type,
+        direction: port.direction,
+        width: port.width,
+      }));
+    const endianSwapWidths = [...new Set(endianSwapPorts.map((port) => port.width as number))].sort(
+      (a, b) => a - b
+    );
+
     return {
       bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',
       bus_ports: busPorts,
@@ -304,6 +350,9 @@ export const busResolver: ContextResolver = {
       user_ports: userPorts,
       interrupt_ports: buildInterruptPorts(ipCore),
       uses_math_real: usesMathReal,
+      endian_swap_ports: endianSwapPorts,
+      endian_swap_widths: endianSwapWidths,
+      has_endian_swap: endianSwapPorts.length > 0,
     };
   },
 };

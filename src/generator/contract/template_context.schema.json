@@ -123,6 +123,21 @@
       "description": "True when any parameterized port width uses a VHDL math_real function (clog2/log2/ceil/floor), so the entity context clause must add `use ieee.math_real.all;`."
     },
 
+    "endian_swap_ports": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/EndianSwapPort" },
+      "description": "Big-endian vector ports / bus data ports needing an intermediate `_be` signal and swap_bytes() call at the top level."
+    },
+    "endian_swap_widths": {
+      "type": "array",
+      "items": { "type": "integer" },
+      "description": "Distinct widths across endian_swap_ports, deduplicated and sorted ascending — one swap_bytes_<width>() function is generated per entry."
+    },
+    "has_endian_swap": {
+      "type": "boolean",
+      "description": "True when endian_swap_ports is non-empty; gates package import/generation and swap_bytes() emission at the top level."
+    },
+
     "vendor": { "type": "string" },
     "library": { "type": "string" },
     "version": { "type": "string" },
@@ -332,7 +347,12 @@
         "width_expr": { "type": ["string", "null"] },
         "is_parameterized": { "type": "boolean" },
         "default_width": { "type": ["number", "null"] },
-        "tcl_width": { "type": "string" }
+        "tcl_width": { "type": "string" },
+        "endianness": { "type": "string", "enum": ["little", "big"] },
+        "needs_swap": {
+          "type": "boolean",
+          "description": "True when this port is big-endian and byte-swapped via an intermediate `_be` signal at the top level."
+        }
       }
     },
     "BusPort": {
@@ -350,7 +370,26 @@
         "default_width": { "type": ["number", "null"] },
         "type": { "type": "string" },
         "sv_type": { "type": "string" },
-        "tcl_width": { "type": "string" }
+        "tcl_width": { "type": "string" },
+        "role": { "type": "string" },
+        "endianness": { "type": "string", "enum": ["little", "big"] },
+        "needs_swap": {
+          "type": "boolean",
+          "description": "True when this port is this interface's big-endian data port, byte-swapped via an intermediate `_be` signal at the top level."
+        }
+      }
+    },
+    "EndianSwapPort": {
+      "type": "object",
+      "required": ["name", "type", "sv_type", "direction", "width"],
+      "additionalProperties": false,
+      "description": "A big-endian vector port or bus data port that needs an intermediate `_be` signal and swap_bytes() call at the top level.",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "sv_type": { "type": "string" },
+        "direction": { "type": "string" },
+        "width": { "type": "number" }
       }
     },
     "InterruptPort": {
