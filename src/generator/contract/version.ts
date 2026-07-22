@@ -1,6 +1,6 @@
 import type { ScaffoldPack } from '../types';
 
-export const CONTRACT_VERSION = '1.0.0' as const;
+export const CONTRACT_VERSION = '1.1.0' as const;
 
 /**
  * Minimal semver range check for ^ and ~ prefix ranges (e.g. "^1.0", "~1.2.3").

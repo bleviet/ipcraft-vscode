@@ -87,14 +87,13 @@ interface TemplatePort extends Record<string, unknown> {
 function needsByteSwap(
   endianness: string | undefined,
   width: number | string | null,
-  direction: string
+  direction: string,
+  isParameterized = false
 ): boolean {
   return (
     endianness === 'big' &&
-    typeof width === 'number' &&
-    width > 1 &&
-    width % 8 === 0 &&
-    (direction === 'in' || direction === 'out')
+    (direction === 'in' || direction === 'out') &&
+    (isParameterized || (typeof width === 'number' && width > 1 && width % 8 === 0))
   );
 }
 
@@ -176,9 +175,9 @@ export function buildUserPorts(
         default_width: numericDefault - 1,
         tcl_width: toTclWidth(numericDefault, resolved.expr, paramNames),
         endianness,
-        // The concrete width is unknown until elaboration, so gate on the default and
-        // let the top level emit a width-generic byte-reversal generate loop.
-        needs_swap: needsByteSwap(endianness, numericDefault, direction),
+        // The concrete width is unknown until elaboration. Always emit the generic
+        // reflow for a directional big-endian port; the HDL asserts byte alignment.
+        needs_swap: needsByteSwap(endianness, numericDefault, direction, true),
         swap_kind: 'byte' as const,
       };
     }
@@ -250,13 +249,11 @@ export const busResolver: ContextResolver = {
           (iface.mode ?? '').toLowerCase() === 'slave' &&
           registry.isMemoryMapped(normalizeBusType(getString(iface.type)).templateType)
       );
-      // The "primary" interface is the memory-mapped slave wired to the generated bus
-      // wrapper. With no memory-mapped slave there is no wrapper, so every interface is
-      // secondary (wired straight to the core) — primaryIndex = -1 matches nothing below.
-      const primaryIndex = mmIdx;
-      if (primaryIndex >= 0) {
-        busPrefix = normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
-      }
+      // Preserve the public template-context convention: the memory-mapped slave is
+      // primary when present, otherwise the first interface is primary. Top/core
+      // templates decide whether that primary interface goes through a bus wrapper.
+      const primaryIndex = mmIdx >= 0 ? mmIdx : 0;
+      busPrefix = normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
 
       expandedBusInterfaces.forEach((iface, index) => {
         const busTypeInfo = normalizeBusType(getString(iface.type));
@@ -291,7 +288,12 @@ export const busResolver: ContextResolver = {
           if (port.role === 'data') {
             // Data payload: reverse whole byte lanes.
             port.endianness = ifaceEndianness;
-            port.needs_swap = needsByteSwap(ifaceEndianness, port.width, port.direction);
+            port.needs_swap = needsByteSwap(
+              ifaceEndianness,
+              port.width,
+              port.direction,
+              port.is_parameterized
+            );
             port.swap_kind = 'byte';
           } else if (port.role === 'byteQualifier') {
             // Per-byte mask (WSTRB/TKEEP/byteenable): reverse bits so each mask bit stays
@@ -361,17 +363,43 @@ export const busResolver: ContextResolver = {
     // per distinct width, not a single unconstrained function, to keep generated HDL simple
     // and toolchain-portable); parameterized data and all byte-qualifier masks use a
     // width-generic reflow loop at the top level (see package.vhdl.j2/pkg.sv.j2, top.*.j2).
-    const endianSwapPorts = [...busPorts, ...secondaryBusPorts, ...userPorts]
+    const interruptPorts = buildInterruptPorts(ipCore);
+    const allTemplatePorts = [...busPorts, ...secondaryBusPorts, ...userPorts];
+    const reservedNames = new Set(
+      [
+        ...allTemplatePorts.map((port) => port.name),
+        ...interruptPorts.map((port) => port.name),
+        ...(ipCore.clocks ?? []).map((clock) => clock.name ?? ''),
+        ...(ipCore.resets ?? []).map((reset) => reset.name ?? ''),
+        (ipCore.clocks ?? []).length === 0 ? 'clk' : '',
+        (ipCore.resets ?? []).length === 0 ? 'rst' : '',
+      ]
+        .filter(Boolean)
+        .map((name) => String(name).toLowerCase())
+    );
+    const endianSwapPorts = allTemplatePorts
       .filter((port) => port.needs_swap === true)
-      .map((port) => ({
-        name: port.name,
-        type: port.type,
-        sv_type: port.sv_type,
-        direction: port.direction,
-        width: port.width,
-        is_parameterized: port.is_parameterized,
-        swap_kind: port.swap_kind ?? 'byte',
-      }));
+      .map((port) => {
+        const baseName = `${port.name}_be`;
+        let internalName = baseName;
+        let suffix = 2;
+        while (reservedNames.has(internalName.toLowerCase())) {
+          internalName = `${baseName}_${suffix}`;
+          suffix += 1;
+        }
+        reservedNames.add(internalName.toLowerCase());
+        port.internal_name = internalName;
+        return {
+          name: port.name,
+          internal_name: internalName,
+          type: port.type,
+          sv_type: port.sv_type,
+          direction: port.direction,
+          width: port.width,
+          is_parameterized: port.is_parameterized,
+          swap_kind: port.swap_kind ?? 'byte',
+        };
+      });
     // Only fixed-width byte swaps use a swap_bytes_<width>() function; bit reversals and
     // parameterized byte swaps are emitted inline as generate loops.
     const endianSwapWidths = [
@@ -390,7 +418,7 @@ export const busResolver: ContextResolver = {
       expanded_bus_interfaces: expandedBusInterfaces,
       elaborate_port_widths: elaboratePortWidths,
       user_ports: userPorts,
-      interrupt_ports: buildInterruptPorts(ipCore),
+      interrupt_ports: interruptPorts,
       uses_math_real: usesMathReal,
       endian_swap_ports: endianSwapPorts,
       endian_swap_widths: endianSwapWidths,

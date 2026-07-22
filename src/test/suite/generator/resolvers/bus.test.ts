@@ -89,9 +89,9 @@ describe('busResolver endianness', () => {
     expect(busPorts.find((p) => p.logical_name === 'WSTRB')?.needs_swap).toBeFalsy();
   });
 
-  it('routes all interfaces to the core (no primary wrapper) when there is no memory-mapped slave', () => {
-    // A big-endian AXI-Stream master, no memory-mapped slave (issue #138 M4): the data port
-    // still needs a swap, and with no wrapper it must be wired to the core (secondary).
+  it('preserves the first interface as the public primary context when there is no memory-mapped slave', () => {
+    // The templates route this primary stream interface directly to the core when there is
+    // no memory-mapped wrapper. Keeping it in bus_ports preserves the 1.x context contract.
     const result = busResolver.resolve(
       makeInput(
         {
@@ -108,9 +108,10 @@ describe('busResolver endianness', () => {
         AXI_STREAM_DEF
       )
     );
-    expect(result.bus_ports).toEqual([]);
+    expect((result.bus_ports as unknown[]).length).toBeGreaterThan(0);
+    expect(result.bus_prefix).toBe('m_axis');
     const secondary = result.secondary_bus_interfaces as Array<{ name: string }>;
-    expect(secondary.map((s) => s.name)).toEqual(['m_axis']);
+    expect(secondary).toEqual([]);
     expect(result.has_endian_swap).toBe(true);
     const swapNames = (result.endian_swap_ports as Array<{ name: string }>).map((p) => p.name);
     expect(swapNames).toEqual(['m_axis_tdata']);
@@ -149,6 +150,28 @@ describe('busResolver endianness', () => {
     // WSTRB (byteQualifier) is a fixed 4-bit mask, reversed as bits — never a swap_bytes helper.
     expect(byName['s_axi_wstrb'].swap_kind).toBe('bit');
     expect(result.endian_swap_widths).toEqual([]);
+  });
+
+  it('allocates a collision-free internal swap signal name', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        ports: [
+          { name: 'data', direction: 'in', width: 32, endianness: 'big' },
+          { name: 'data_be', direction: 'in', width: 32 },
+        ],
+      })
+    );
+
+    const swapPorts = result.endian_swap_ports as Array<{
+      name: string;
+      internal_name: string;
+    }>;
+    expect(swapPorts).toEqual([
+      expect.objectContaining({ name: 'data', internal_name: 'data_be_2' }),
+    ]);
+    expect((result.user_ports as Array<Record<string, unknown>>)[0].internal_name).toBe(
+      'data_be_2'
+    );
   });
 });
 
@@ -204,5 +227,18 @@ describe('buildUserPorts endianness', () => {
     expect(ports[0].is_parameterized).toBe(true);
     expect(ports[0].needs_swap).toBe(true);
     expect(ports[0].swap_kind).toBe('byte');
+  });
+
+  it('does not gate a parameterized swap on the parameter default width', () => {
+    const ports = buildUserPorts(
+      normalizeIpCoreData({
+        parameters: [{ name: 'DATA_WIDTH', value: 12 }],
+        ports: [{ name: 'stream', direction: 'in', width: 'DATA_WIDTH', endianness: 'big' }],
+      }),
+      ['DATA_WIDTH']
+    );
+    expect(ports[0].width).toBe(12);
+    expect(ports[0].is_parameterized).toBe(true);
+    expect(ports[0].needs_swap).toBe(true);
   });
 });

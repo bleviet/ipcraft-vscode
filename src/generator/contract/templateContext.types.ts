@@ -11,7 +11,7 @@ export interface TemplateContext {
   /**
    * Semantic version of the template context contract.
    */
-  contract_version: '1.0.0';
+  contract_version: '1.1.0';
   name: string;
   entity_name: string;
   has_memory_mapped_slave: boolean;
@@ -202,6 +202,10 @@ export interface UserPort {
    */
   needs_swap?: boolean;
   /**
+   * Collision-free internal signal name used when needs_swap is true.
+   */
+  internal_name?: string;
+  /**
    * Reflow kind for a big-endian port: 'byte' reverses byte lanes, 'bit' reverses individual bits.
    */
   swap_kind?: 'byte' | 'bit';
@@ -229,6 +233,10 @@ export interface BusPort {
    * True when this port is this interface's big-endian data port or its byte qualifier, reflowed via an intermediate `_be` signal at the top level.
    */
   needs_swap?: boolean;
+  /**
+   * Collision-free internal signal name used when needs_swap is true.
+   */
+  internal_name?: string;
   /**
    * 'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (WSTRB/TKEEP/byteenable).
    */
@@ -351,6 +359,10 @@ export interface SecondaryReset {
  */
 export interface EndianSwapPort {
   name: string;
+  /**
+   * Collision-free top-level intermediate signal name.
+   */
+  internal_name: string;
   type: string;
   sv_type: string;
   direction: string;

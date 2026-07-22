@@ -193,6 +193,7 @@ describe('Endianness code generation (issue #138)', () => {
     expect(topContent).toContain('swap_bytes_32(');
     expect(topContent).toContain('gen_swap_m_axis_tdata');
     expect(topContent).toContain('$bits(m_axis_tdata) / 8');
+    expect(topContent).toContain('($bits(m_axis_tdata) % 8) == 0');
     // Byte-qualifiers bit-reversed in lockstep and wired through `_be` (issue #138 H1/H2).
     expect(topContent).toContain('s_axil_wstrb_be');
     expect(topContent).toContain('(s_axil_wstrb_be)');

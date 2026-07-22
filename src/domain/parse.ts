@@ -432,9 +432,10 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       conduitPorts,
       associatedClock: String(bus.associatedClock ?? bus.associated_clock ?? ''),
       associatedReset: String(bus.associatedReset ?? bus.associated_reset ?? ''),
-      // Only carry endianness when non-default, so little-endian files stay untouched
-      // on re-serialization (little is the implicit default everywhere it is read).
-      ...(bus.endianness === 'big' ? { endianness: 'big' as const } : {}),
+      // Preserve an explicitly authored value while leaving an absent default absent.
+      ...(bus.endianness === 'big' || bus.endianness === 'little'
+        ? { endianness: bus.endianness }
+        : {}),
       ...(array
         ? {
             array: {
@@ -481,8 +482,10 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
         direction: String(port.direction ?? ''),
         width: port.width ?? 1,
         presence: String(port.presence ?? ''),
-        // Only carry endianness when non-default (see bus interface note above).
-        ...(port.endianness === 'big' ? { endianness: 'big' as const } : {}),
+        // Preserve an explicitly authored value while leaving an absent default absent.
+        ...(port.endianness === 'big' || port.endianness === 'little'
+          ? { endianness: port.endianness }
+          : {}),
       };
     }),
     busInterfaces: normalizedBusInterfaces,

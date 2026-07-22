@@ -28,7 +28,7 @@ const createEmptyPort = (): Port => ({
 
 const normalizePort = (port: Port): Port => {
   const normalizedDirection = displayDirection(port.direction, 'input');
-  return {
+  const normalized = {
     ...port,
     direction:
       normalizedDirection === 'input' ||
@@ -37,6 +37,9 @@ const normalizePort = (port: Port): Port => {
         ? normalizedDirection
         : 'input',
   };
+  return portEndiannessApplies(normalized.width, normalized.direction)
+    ? normalized
+    : { ...normalized, endianness: 'little' };
 };
 
 const COLUMN_KEYS = ['name', 'direction', 'width', 'endianness'];

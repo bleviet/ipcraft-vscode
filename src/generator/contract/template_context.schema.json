@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://ipcraft.dev/schemas/template_context/1.0.0",
+  "$id": "https://ipcraft.dev/schemas/template_context/1.1.0",
   "title": "TemplateContext",
   "description": "Versioned template context passed to all Nunjucks/Jinja2 templates during IP core generation. This is the public API for third-party scaffold packs.",
   "type": "object",
@@ -46,7 +46,7 @@
   "properties": {
     "contract_version": {
       "type": "string",
-      "const": "1.0.0",
+      "const": "1.1.0",
       "description": "Semantic version of the template context contract."
     },
     "name": { "type": "string" },
@@ -427,6 +427,10 @@
           "type": "boolean",
           "description": "True when this port is big-endian and byte-swapped via an intermediate `_be` signal at the top level."
         },
+        "internal_name": {
+          "type": "string",
+          "description": "Collision-free internal signal name used when needs_swap is true."
+        },
         "swap_kind": {
           "type": "string",
           "enum": ["byte", "bit"],
@@ -467,6 +471,10 @@
           "type": "boolean",
           "description": "True when this port is this interface's big-endian data port or its byte qualifier, reflowed via an intermediate `_be` signal at the top level."
         },
+        "internal_name": {
+          "type": "string",
+          "description": "Collision-free internal signal name used when needs_swap is true."
+        },
         "swap_kind": {
           "type": "string",
           "enum": ["byte", "bit"],
@@ -483,12 +491,17 @@
         "direction",
         "width",
         "is_parameterized",
-        "swap_kind"
+        "swap_kind",
+        "internal_name"
       ],
       "additionalProperties": false,
       "description": "A big-endian vector port, bus data port, or bus byte-qualifier that needs an intermediate `_be` signal reflowed at the top level.",
       "properties": {
         "name": { "type": "string" },
+        "internal_name": {
+          "type": "string",
+          "description": "Collision-free top-level intermediate signal name."
+        },
         "type": { "type": "string" },
         "sv_type": { "type": "string" },
         "direction": { "type": "string" },

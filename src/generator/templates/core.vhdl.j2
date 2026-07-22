@@ -27,22 +27,29 @@ entity {{ entity_name }}_core is
   );
 {% endif %}
   port (
+{% if has_memory_mapped_slave %}
+{% set core_bus_interfaces = secondary_bus_interfaces %}
+{% set core_bus_ports = secondary_bus_ports %}
+{% else %}
+{% set core_bus_interfaces = expanded_bus_interfaces %}
+{% set core_bus_ports = bus_ports %}
+{% endif %}
     -- Clock and reset
     clk : in std_logic;
 {% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
-    rst : in std_logic{{ ";" if sw_registers | length > 0 or has_regs_in or secondary_bus_interfaces | length or user_ports | length else "" }}
+    rst : in std_logic{{ ";" if sw_registers | length > 0 or has_regs_in or core_bus_interfaces | length or user_ports | length else "" }}
 
 {% if sw_registers | length > 0 or has_regs_in %}
     -- Register interface (record-based)
 {% if sw_registers | length > 0 %}
-    regs_in : in t_regs_sw2hw{{ ";" if has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- SW-writable registers (from bus wrapper)
+    regs_in : in t_regs_sw2hw{{ ";" if has_regs_in or core_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- SW-writable registers (from bus wrapper)
 {% endif %}
 {% if has_regs_in %}
-    regs_out : out t_regs_hw2sw{{ ";" if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- HW-status / W1C pulses / CoS values (to bus wrapper)
+    regs_out : out t_regs_hw2sw{{ ";" if core_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- HW-status / W1C pulses / CoS values (to bus wrapper)
 {% endif %}
 {% endif %}
-{% if secondary_bus_interfaces | length %}
-{% for iface in secondary_bus_interfaces %}{% set iface_loop = loop %}
+{% if core_bus_interfaces | length %}
+{% for iface in core_bus_interfaces %}{% set iface_loop = loop %}
 
     -- {{ iface.name }} ({{ iface.mode | upper }})
 {% for port in iface.ports %}
