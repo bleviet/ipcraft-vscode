@@ -90,6 +90,18 @@ it('hw.tcl content matches snapshot for every Altera fixture', () => {
   expect(tclMap).toMatchSnapshot();
 });
 
+it('emits Avalon-ST symbol ordering in Quartus hw.tcl', () => {
+  const fixture = alteraFixtures(allFixtures).find(
+    (candidate) => candidate.name === 'examples/comprehensive_avalon_vhdl'
+  );
+  expect(fixture).toBeDefined();
+
+  const tclPath = hwTclFiles(fixture!)[0];
+  const tcl = fs.readFileSync(tclPath, 'utf8');
+  expect(tcl).toContain('set_interface_property SRC_ST firstSymbolInHighOrderBits true');
+  expect(tcl).toContain('set_interface_property SNK_ST firstSymbolInHighOrderBits false');
+});
+
 // ---------------------------------------------------------------------------
 // VHDL package files
 // ---------------------------------------------------------------------------

@@ -1,4 +1,12 @@
-import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  useId,
+} from 'react';
 import type {
   IpCore,
   Clock,
@@ -20,6 +28,7 @@ import {
   lookupBusDef,
   lookupBusDefFromLibrary,
   isConduitType,
+  isAvalonStreamingType,
   BUILTIN_BUS_TYPES,
   listLibraryBusTypes,
   type BusPortDef,
@@ -790,18 +799,21 @@ interface PropCheckboxProps {
 }
 
 const PropCheckbox: React.FC<PropCheckboxProps> = ({ label, checked, onChange }) => {
+  const id = useId();
   return (
     <div
       className="ci-field"
       style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}
     >
       <input
+        id={id}
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         style={{ cursor: 'pointer', margin: 0 }}
       />
       <label
+        htmlFor={id}
         className="ci-field__label"
         style={{ marginBottom: 0, cursor: 'pointer', userSelect: 'none' }}
       >
@@ -2634,6 +2646,13 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
                   : undefined
             }
             mono
+          />
+        )}
+        {isAvalonStreamingType(bus.type) && (
+          <PropCheckbox
+            label="First Symbol in High-Order Bits"
+            checked={bus.firstSymbolInHighOrderBits ?? false}
+            onChange={(v) => onUpdate(['busInterfaces', index, 'firstSymbolInHighOrderBits'], v)}
           />
         )}
         {hasDuplicatePrefix && !hasPrefixPattern && (
