@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import type { IpCore, Clock, Reset, Port, BusInterface, Interrupt } from '../../types/ipCore';
-import { DRAG_MIME, type LibraryDragPayload } from '../components/canvas/LibraryPalette';
+import { DRAG_MIME, type LibraryDragPayload } from '../components/canvas/canvasDragTypes';
 import { BLOCK_WIDTH } from '../components/canvas/canvasLayout';
 
 /**

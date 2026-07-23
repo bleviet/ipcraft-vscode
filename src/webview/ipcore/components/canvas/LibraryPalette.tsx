@@ -1,33 +1,8 @@
 import React, { useState, useRef, useCallback, useMemo, type DragEvent } from 'react';
 import { BUS_VLNV } from '../../../../shared/busVlnv';
+import { DRAG_MIME, setActiveDragPayload, type LibraryDragPayload } from './canvasDragTypes';
 
-/** Payload attached to drag events from the library palette */
-export interface LibraryDragPayload {
-  kind: 'bus' | 'clock' | 'reset' | 'port' | 'parameter' | 'interrupt';
-  /** Bus type VLNV (only for kind=bus) */
-  type?: string;
-  /** Bus mode: slave/master (only for kind=bus) */
-  mode?: string;
-  /** Port/interrupt direction (only for kind=port or kind=interrupt) */
-  direction?: 'in' | 'out' | 'inout';
-  /** Generic data type (only for kind=parameter) */
-  dataType?: string;
-  /** Default name hint */
-  nameHint: string;
-  /** Display label in the palette */
-  label: string;
-  /** VLNV vendor segment (only for kind=bus); rendered as a badge. */
-  vendor?: string;
-}
-
-const DRAG_MIME = 'application/x-ipcraft-palette';
-
-/** Module-level reference to the payload currently being dragged from the palette.
- *  Set on dragstart, cleared on dragend. Readable during dragover across the same page. */
-let _activeDragPayload: LibraryDragPayload | null = null;
-export function getActiveDragPayload(): LibraryDragPayload | null {
-  return _activeDragPayload;
-}
+export { DRAG_MIME, getActiveDragPayload, type LibraryDragPayload } from './canvasDragTypes';
 
 interface PaletteCategory {
   title: string;
@@ -340,13 +315,13 @@ export const LibraryPalette: React.FC<LibraryPaletteProps> = ({ onCollapse, busL
   }, []);
 
   const handleDragStart = useCallback((e: DragEvent, item: LibraryDragPayload) => {
-    _activeDragPayload = item;
+    setActiveDragPayload(item);
     e.dataTransfer.setData(DRAG_MIME, JSON.stringify(item));
     e.dataTransfer.effectAllowed = 'copy';
   }, []);
 
   const handleDragEnd = useCallback(() => {
-    _activeDragPayload = null;
+    setActiveDragPayload(null);
   }, []);
 
   const userItems = useMemo(() => (busLibrary ? buildUserBusItems(busLibrary) : []), [busLibrary]);
@@ -504,5 +479,3 @@ function kindBadge(item: LibraryDragPayload): string {
   }
   return '';
 }
-
-export { DRAG_MIME };
