@@ -37,9 +37,10 @@ const normalizePort = (port: Port): Port => {
         ? normalizedDirection
         : 'input',
   };
-  return portEndiannessApplies(normalized.width, normalized.direction)
-    ? normalized
-    : { ...normalized, endianness: 'little' };
+  return normalized.endianness === 'big' &&
+    !portEndiannessApplies(normalized.width, normalized.direction)
+    ? { ...normalized, endianness: 'little' }
+    : normalized;
 };
 
 const COLUMN_KEYS = ['name', 'direction', 'width', 'endianness'];
@@ -115,7 +116,9 @@ export const PortsTable: React.FC<PortsTableProps> = ({
             setDraft({
               ...draft,
               direction: v,
-              endianness: portEndiannessApplies(draft.width, v) ? draft.endianness : 'little',
+              ...(draft.endianness === 'big' && !portEndiannessApplies(draft.width, v)
+                ? { endianness: 'little' }
+                : {}),
             })
           }
           data-edit-key="direction"
@@ -130,7 +133,9 @@ export const PortsTable: React.FC<PortsTableProps> = ({
             setDraft({
               ...draft,
               width: v,
-              endianness: portEndiannessApplies(v, draft.direction) ? draft.endianness : 'little',
+              ...(draft.endianness === 'big' && !portEndiannessApplies(v, draft.direction)
+                ? { endianness: 'little' }
+                : {}),
             })
           }
           parameters={parameters}

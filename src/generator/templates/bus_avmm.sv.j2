@@ -17,8 +17,16 @@
 
 {# Header import, not compilation-unit scope: iverilog 12 cannot resolve
    functions imported into $unit, only types and parameters. #}
+{% set has_parameterized_bus_ports = bus_ports | selectattr('is_parameterized', 'equalto', true) | list | length > 0 %}
 module {{ entity_name }}_avmm
   import {{ entity_name }}_pkg::*;
+{% if has_parameterized_bus_ports and generics | length %}
+#(
+{% for generic in generics %}
+  parameter {{ generic.sv_type ~ " " if generic.sv_type }}{{ generic.name }} = {{ generic.sv_default }}{{ "," if not loop.last else "" }}
+{% endfor %}
+)
+{% endif %}
 (
   // Clock and reset
   input  logic clk,

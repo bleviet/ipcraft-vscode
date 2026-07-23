@@ -152,6 +152,43 @@ describe('busResolver endianness', () => {
     expect(result.endian_swap_widths).toEqual([]);
   });
 
+  it('reverses a parameterized byte qualifier even when its default width is one bit', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          parameters: [{ name: 'DATA_WIDTH', value: 8 }],
+          busInterfaces: [
+            {
+              name: 's_axi',
+              type: 'AXI4L',
+              mode: 'slave',
+              endianness: 'big',
+              portWidthOverrides: { WDATA: 'DATA_WIDTH', WSTRB: 'DATA_WIDTH' },
+            },
+          ],
+        },
+        AXI4_LITE_DEF
+      )
+    );
+
+    const swapPorts = result.endian_swap_ports as Array<{
+      name: string;
+      width: number;
+      is_parameterized: boolean;
+      swap_kind: string;
+    }>;
+    expect(swapPorts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 's_axi_wstrb',
+          width: 1,
+          is_parameterized: true,
+          swap_kind: 'bit',
+        }),
+      ])
+    );
+  });
+
   it('allocates a collision-free internal swap signal name', () => {
     const result = busResolver.resolve(
       makeInput({

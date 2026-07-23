@@ -79,6 +79,53 @@ describe('useCanvasValidation', () => {
     expect(annotations['port:0']).toBeUndefined();
   });
 
+  it('warns when a big-endian bus data width is not a byte multiple', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      busInterfaces: [
+        {
+          name: 's_axi',
+          type: 'ipcraft:busif:axi4_lite:1.0',
+          mode: 'slave',
+          physicalPrefix: 's_axi_',
+          endianness: 'big',
+          portWidthOverrides: { WDATA: 12 },
+        },
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0']).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        message: 'Endianness "big" has no effect on WDATA: width must be a multiple of 8 bits',
+      }),
+    ]);
+  });
+
+  it('warns when a big-endian built-in interface has no enabled data port', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      busInterfaces: [
+        {
+          name: 'avalon',
+          type: 'ipcraft:busif:avalon_mm:1.0',
+          mode: 'slave',
+          physicalPrefix: 'avs_',
+          endianness: 'big',
+        },
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    expect(annotations['bus:0']).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        message: 'Endianness "big" has no effect: interface has no enabled data port',
+      }),
+    ]);
+  });
+
   it('should detect duplicate bus interface names', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },

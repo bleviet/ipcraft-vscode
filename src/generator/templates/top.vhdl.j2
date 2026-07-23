@@ -145,7 +145,8 @@ begin
     -- Bus Wrapper Instance
     ----------------------------------------------------------------------------
     u_{{ bus_type }} : entity work.{{ entity_name }}_{{ bus_type }}
-{% if pass_user_via_bus and generics | length %}
+{% set has_parameterized_bus_ports = bus_ports | selectattr('is_parameterized', 'equalto', true) | list | length > 0 %}
+{% if (pass_user_via_bus or has_parameterized_bus_ports) and generics | length %}
     generic map (
 {% for generic in generics %}
       {{ generic.name }} => {{ generic.name }}{{ "," if not loop.last else "" }}

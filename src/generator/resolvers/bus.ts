@@ -102,13 +102,13 @@ function needsByteSwap(
 function needsBitReverse(
   endianness: string | undefined,
   width: number | string | null,
-  direction: string
+  direction: string,
+  isParameterized = false
 ): boolean {
   return (
     endianness === 'big' &&
-    typeof width === 'number' &&
-    width > 1 &&
-    (direction === 'in' || direction === 'out')
+    (direction === 'in' || direction === 'out') &&
+    (isParameterized || (typeof width === 'number' && width > 1))
   );
 }
 
@@ -299,7 +299,12 @@ export const busResolver: ContextResolver = {
             // Per-byte mask (WSTRB/TKEEP/byteenable): reverse bits so each mask bit stays
             // aligned with the byte lane it gates after the data byte swap.
             port.endianness = ifaceEndianness;
-            port.needs_swap = needsBitReverse(ifaceEndianness, port.width, port.direction);
+            port.needs_swap = needsBitReverse(
+              ifaceEndianness,
+              port.width,
+              port.direction,
+              port.is_parameterized
+            );
             port.swap_kind = 'bit';
           }
         });

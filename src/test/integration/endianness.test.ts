@@ -36,7 +36,7 @@ scaffold_pack: builtin-ipcraft
 parameters:
 - name: BUS_DATA_WIDTH
   dataType: integer
-  value: 32
+  value: 8
 clocks:
 - name: clk
   direction: in
@@ -57,9 +57,9 @@ busInterfaces:
   portWidthOverrides:
     AWADDR: 8
     ARADDR: 8
-    WDATA: 32
+    WDATA: BUS_DATA_WIDTH
     RDATA: 32
-    WSTRB: 4
+    WSTRB: BUS_DATA_WIDTH
 - name: m_axis
   type: ipcraft:busif:axi_stream:1.0
   mode: master
@@ -168,6 +168,7 @@ describe('Endianness code generation (issue #138)', () => {
     expect(topContent).toContain('=> s_axil_wstrb_be');
     expect(topContent).toContain('gen_swap_s_axil_wstrb');
     expect(topContent).toContain('gen_swap_m_axis_tkeep');
+    expect(topContent).toContain('generic map (');
     // Parameterized byte swaps guard against a non-byte-multiple elaboration (M3).
     expect(topContent).toContain('mod 8) = 0');
 
@@ -199,6 +200,7 @@ describe('Endianness code generation (issue #138)', () => {
     expect(topContent).toContain('(s_axil_wstrb_be)');
     expect(topContent).toContain('gen_swap_s_axil_wstrb');
     expect(topContent).toContain('gen_swap_m_axis_tkeep');
+    expect(topContent).toContain('endian_test_ip_axil #(');
 
     const pkgContent = fs.readFileSync(path.join(rtlDir, `${ENTITY_NAME}_pkg.sv`), 'utf8');
     expect(pkgContent).toContain('function automatic logic [31:0] swap_bytes_32');

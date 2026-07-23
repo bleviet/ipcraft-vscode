@@ -33,6 +33,7 @@ describe('CanvasInspector ConduitPanel — clock/reset associations', () => {
     expect(screen.queryByText('Associations')).not.toBeInTheDocument();
     expect(screen.queryByText('Clock')).not.toBeInTheDocument();
     expect(screen.queryByText('Reset')).not.toBeInTheDocument();
+    expect(screen.queryByText('Endianness')).not.toBeInTheDocument();
   });
 
   it('treats a missing mode as conduit (matches the Mode field default)', () => {
