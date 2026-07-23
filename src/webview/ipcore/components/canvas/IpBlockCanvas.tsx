@@ -9,13 +9,18 @@ import { useCanvasValidation, type CanvasAnnotations } from '../../hooks/useCanv
 import { lookupBusDef, lookupBusDefFromLibrary, isConduitType } from '../../data/busDefinitions';
 import type { BusPortDef } from '../../data/busDefinitions';
 import type { YamlUpdateHandler } from '../../../types/editor';
-import { DRAG_MIME, getActiveDragPayload, type LibraryDragPayload } from './LibraryPalette';
+import { getActiveDragPayload, type LibraryDragPayload } from './canvasDragTypes';
 import { vscode } from '../../../vscode';
 import { CanvasSelectionActions } from './CanvasSelectionActions';
 import { GroupingMappingStep } from './GroupingMappingStep';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import { useGroupPorts } from '../../hooks/useGroupPorts';
 import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
+import { useCanvasViewport } from '../../hooks/useCanvasViewport';
+import { useCanvasMarqueeSelection } from '../../hooks/useCanvasMarqueeSelection';
+import { usePortConnectionDrag } from '../../hooks/usePortConnectionDrag';
+import { useCanvasDropTarget } from '../../hooks/useCanvasDropTarget';
+import { useCanvasKeyboardCommands } from '../../hooks/useCanvasKeyboardCommands';
 import './canvas.css';
 
 /** Distinct colours for clock domains when multiple clocks are defined */
@@ -131,343 +136,36 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [blockHovered, setBlockHovered] = useState(false);
-  const [dragActive, setDragActive] = useState(false);
-  const [dragOutActive, setDragOutActive] = useState(false);
-  const [dragHoverSide, setDragHoverSide] = useState<'left' | 'right' | null>(null);
 
-  const [zoom, setZoom] = useState(1.0);
-  const [showZoomIndicator, setShowZoomIndicator] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const zoomTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  /** Always reflects the latest pan values — readable in non-React event listeners */
-  const currentPanRef = useRef({ x: 0, y: 0 });
-  /** Active pointer-drag state; null when no drag is in progress */
-  const dragRef = useRef<{
-    startMouseX: number;
-    startMouseY: number;
-    startPanX: number;
-    startPanY: number;
-    hasMoved: boolean;
-  } | null>(null);
-  /** True when the last mousedown turned into a drag; prevents onClick from deselecting */
-  const hasDraggedRef = useRef(false);
+  const {
+    zoom,
+    pan,
+    isPanning,
+    spaceDown,
+    spaceDownRef,
+    showZoomIndicator,
+    hasDraggedRef,
+    resetView,
+  } = useCanvasViewport(containerRef);
 
-  /** True while Space is held — enables pan-by-drag mode */
-  const spaceDownRef = useRef(false);
-  const [spaceDown, setSpaceDown] = useState(false);
-
-  /** Active marquee drag state; null when no marquee is in progress */
-  const marqueeRef = useRef<{
-    startX: number;
-    startY: number;
-    endX: number;
-    endY: number;
-    active: boolean;
-  } | null>(null);
-  const [marqueeRect, setMarqueeRect] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
-
-  // ── Port pointer-drag state ──────────────────────────────────────────────
-  // HTML5 DnD on SVG <g> elements is unreliable in VS Code webviews, so
-  // port-to-bus movement uses pointer events instead.
-  const portDragRef = useRef<{
-    portIndex: number;
-    startX: number;
-    startY: number;
-    moved: boolean;
-  } | null>(null);
-  const [portDragActive, setPortDragActive] = useState(false);
-  const [portDragActivePIdx, setPortDragActivePIdx] = useState<number | null>(null);
-
-  const portDragHoveredBusRef = useRef<number | null>(null);
-  const [portDragHoveredBus, setPortDragHoveredBus] = useState<number | null>(null);
-  // Keep a stable ref so the effect closure can call the latest handler.
-  const portDropHandlerRef = useRef<(portIndex: number, busIndex: number) => void>(() => {});
-
-  const triggerZoomIndicator = useCallback(() => {
-    setShowZoomIndicator(true);
-    if (zoomTimerRef.current) {
-      clearTimeout(zoomTimerRef.current);
-    }
-    zoomTimerRef.current = setTimeout(() => setShowZoomIndicator(false), 1500);
-  }, []);
-
-  // Ctrl+Wheel → zoom; plain wheel → pan
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (e.ctrlKey) {
-        const factor = e.deltaY > 0 ? 0.9 : 1.1;
-        setZoom((prev) => {
-          const next = Math.min(4, Math.max(0.1, prev * factor));
-          return Math.round(next * 100) / 100;
-        });
-        triggerZoomIndicator();
-      } else {
-        const newX = currentPanRef.current.x - e.deltaX;
-        const newY = currentPanRef.current.y - e.deltaY;
-        currentPanRef.current = { x: newX, y: newY };
-        setPan({ x: newX, y: newY });
-      }
-    };
-    container.addEventListener('wheel', handleWheel, { passive: false });
-    return () => container.removeEventListener('wheel', handleWheel);
-  }, [triggerZoomIndicator]);
-
-  // Space key → pan-by-drag mode; suppress Space scroll in canvas
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-      if (e.code === 'Space' && !e.repeat) {
-        spaceDownRef.current = true;
-        setSpaceDown(true);
-        e.preventDefault();
-      }
-    };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') {
-        spaceDownRef.current = false;
-        setSpaceDown(false);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-    };
-  }, []);
-
-  // Middle-mouse-button drag + Space+left-drag on canvas background → pan
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-
-    const onMouseDown = (e: MouseEvent) => {
-      const isMiddle = e.button === 1;
-      const isSpaceLeftBackground =
-        e.button === 0 && spaceDownRef.current && isCanvasBackground(e.target);
-      if (!isMiddle && !isSpaceLeftBackground) {
-        return;
-      }
-      if (isMiddle) {
-        e.preventDefault(); // suppress browser auto-scroll cursor
-      }
-      hasDraggedRef.current = false;
-      dragRef.current = {
-        startMouseX: e.clientX,
-        startMouseY: e.clientY,
-        startPanX: currentPanRef.current.x,
-        startPanY: currentPanRef.current.y,
-        hasMoved: false,
-      };
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!dragRef.current) {
-        return;
-      }
-      const dx = e.clientX - dragRef.current.startMouseX;
-      const dy = e.clientY - dragRef.current.startMouseY;
-      if (!dragRef.current.hasMoved && Math.abs(dx) + Math.abs(dy) > 4) {
-        dragRef.current.hasMoved = true;
-        hasDraggedRef.current = true;
-        setIsPanning(true);
-      }
-      if (dragRef.current.hasMoved) {
-        const newX = dragRef.current.startPanX + dx;
-        const newY = dragRef.current.startPanY + dy;
-        currentPanRef.current = { x: newX, y: newY };
-        setPan({ x: newX, y: newY });
-      }
-    };
-
-    const onMouseUp = () => {
-      if (dragRef.current) {
-        dragRef.current = null;
-        setIsPanning(false);
-      }
-    };
-
-    container.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    return () => {
-      container.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-    };
-  }, []);
-
-  // Left-drag on canvas background (no Space) → marquee selection
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
-    const MARQUEE_THRESHOLD = 4;
-
-    const onMouseDown = (e: MouseEvent) => {
-      if (e.button !== 0 || !isCanvasBackground(e.target) || spaceDownRef.current) {
-        return;
-      }
-      marqueeRef.current = {
-        startX: e.clientX,
-        startY: e.clientY,
-        endX: e.clientX,
-        endY: e.clientY,
-        active: false,
-      };
-    };
-
-    const onMouseMove = (e: MouseEvent) => {
-      if (!marqueeRef.current) {
-        return;
-      }
-      marqueeRef.current.endX = e.clientX;
-      marqueeRef.current.endY = e.clientY;
-      const dx = marqueeRef.current.endX - marqueeRef.current.startX;
-      const dy = marqueeRef.current.endY - marqueeRef.current.startY;
-      if (!marqueeRef.current.active && Math.abs(dx) + Math.abs(dy) > MARQUEE_THRESHOLD) {
-        marqueeRef.current.active = true;
-        hasDraggedRef.current = true;
-      }
-      if (marqueeRef.current.active) {
-        const containerRect = container.getBoundingClientRect();
-        setMarqueeRect({
-          left: Math.min(marqueeRef.current.startX, marqueeRef.current.endX) - containerRect.left,
-          top: Math.min(marqueeRef.current.startY, marqueeRef.current.endY) - containerRect.top,
-          width: Math.abs(dx),
-          height: Math.abs(dy),
-        });
-      }
-    };
-
-    const onMouseUp = () => {
-      const m = marqueeRef.current;
-      if (!m?.active) {
-        marqueeRef.current = null;
-        setMarqueeRect(null);
-        return;
-      }
-      const minX = Math.min(m.startX, m.endX);
-      const maxX = Math.max(m.startX, m.endX);
-      const minY = Math.min(m.startY, m.endY);
-      const maxY = Math.max(m.startY, m.endY);
-      const portEls = container.querySelectorAll(
-        '[data-port-id^="port:"], [data-port-id^="interrupt:"]'
-      );
-      portEls.forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.left < maxX && rect.right > minX && rect.top < maxY && rect.bottom > minY) {
-          const portId = el.getAttribute('data-port-id');
-          if (portId) {
-            onShiftSelect?.(portId);
-          }
-        }
-      });
-      marqueeRef.current = null;
-      setMarqueeRect(null);
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && marqueeRef.current) {
-        marqueeRef.current = null;
-        setMarqueeRect(null);
-      }
-    };
-
-    container.addEventListener('mousedown', onMouseDown);
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      container.removeEventListener('mousedown', onMouseDown);
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [onShiftSelect]);
-
-  // ── Pointer-event drag: port → bus bundle ───────────────────────────────
-  const handlePortPointerDragStart = useCallback(
-    (portIndex: number, clientX: number, clientY: number) => {
-      portDragRef.current = { portIndex, startX: clientX, startY: clientY, moved: false };
-      setPortDragActivePIdx(portIndex);
-    },
-    []
+  const { marqueeRect } = useCanvasMarqueeSelection(
+    containerRef,
+    spaceDownRef,
+    hasDraggedRef,
+    onShiftSelect
   );
 
-  useEffect(() => {
-    const DRAG_THRESHOLD = 5;
-
-    const onPointerMove = (e: PointerEvent) => {
-      const drag = portDragRef.current;
-      if (!drag) {
-        return;
-      }
-
-      const dx = e.clientX - drag.startX;
-      const dy = e.clientY - drag.startY;
-      if (!drag.moved && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
-        drag.moved = true;
-        setPortDragActive(true);
-      }
-
-      if (drag.moved) {
-        const el = document.elementFromPoint(e.clientX, e.clientY);
-        const bundleEl = el?.closest('[data-port-id^="bus:"]');
-        const busIndex = bundleEl
-          ? parseInt(bundleEl.getAttribute('data-port-id')?.split(':')[1] ?? '-1', 10)
-          : -1;
-        const next = busIndex >= 0 ? busIndex : null;
-        if (next !== portDragHoveredBusRef.current) {
-          portDragHoveredBusRef.current = next;
-          setPortDragHoveredBus(next);
-        }
-      }
-    };
-
-    const onPointerUp = (_e: PointerEvent) => {
-      const drag = portDragRef.current;
-      if (!drag) {
-        return;
-      }
-      portDragRef.current = null;
-      setPortDragActive(false);
-      setPortDragActivePIdx(null);
-
-      const busIndex = portDragHoveredBusRef.current;
-      portDragHoveredBusRef.current = null;
-      setPortDragHoveredBus(null);
-
-      if (drag.moved && busIndex !== null) {
-        portDropHandlerRef.current(drag.portIndex, busIndex);
-      }
-    };
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-    };
-  }, []);
+  const {
+    dragActive,
+    dragOutActive,
+    dragHoverSide,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleDragEnd,
+  } = useCanvasDropTarget({ onDragOver, onDrop, onRemove });
 
   const validationAnnotations = useCanvasValidation(ipCore);
   const annotations = useMemo<CanvasAnnotations>(() => {
@@ -516,8 +214,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     [batchUpdate, groupPorts, ipCore]
   );
 
-  // Keep the stable ref up to date so the pointer-event effect can call it.
-  portDropHandlerRef.current = handlePortDropOnBus;
+  const { portDragActive, portDragActivePIdx, portDragHoveredBus, handlePortPointerDragStart } =
+    usePortConnectionDrag(handlePortDropOnBus);
 
   const handleBackgroundClick = useCallback(
     (e: React.MouseEvent) => {
@@ -537,11 +235,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   );
 
   const handleBackgroundDoubleClick = useCallback(() => {
-    setZoom(1.0);
-    setPan({ x: 0, y: 0 });
-    currentPanRef.current = { x: 0, y: 0 };
-    triggerZoomIndicator();
-  }, [triggerZoomIndicator]);
+    resetView();
+  }, [resetView]);
 
   const exitSelectMode = useCallback(() => {
     onSelect(null);
@@ -717,116 +412,19 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     [ipCore, onUpdate]
   );
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd+F: open port search (allow even when an input is focused)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        e.preventDefault();
-        setShowSearch(true);
-        return;
-      }
-
-      // Don't trigger other shortcuts if user is typing in an input or textarea
-      const activeTag = document.activeElement?.tagName.toLowerCase();
-      if (activeTag === 'input' || activeTag === 'textarea') {
-        if (e.key === 'Escape') {
-          // Close search bar when Escape is pressed inside the search input
-          setShowSearch(false);
-          setSearchQuery('');
-          (document.activeElement as HTMLElement).blur();
-        }
-        return;
-      }
-
-      if (e.key === 'Escape') {
-        if (showSearch) {
-          setShowSearch(false);
-          setSearchQuery('');
-        } else {
-          exitSelectMode();
-        }
-      } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
-        e.preventDefault();
-        setZoom(1.0);
-        setPan({ x: 0, y: 0 });
-        currentPanRef.current = { x: 0, y: 0 };
-        triggerZoomIndicator();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    selectedId,
-    onSelect,
-    onRemove,
-    onDismissSelection,
-    triggerZoomIndicator,
-    exitSelectMode,
-    showSearch,
-  ]);
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      // When dragging a port-to-bus (PORT_MOVE_MIME present), don't show the
-      // RemoveZone — the user is targeting a bus bundle, not deleting the port.
-      if (e.dataTransfer.types.includes('application/x-ipcraft-remove')) {
-        if (!e.dataTransfer.types.includes('application/x-ipcraft-port-move')) {
-          e.preventDefault();
-          setDragOutActive(true);
-        }
-        return;
-      }
-
-      setDragActive(true);
-
-      if (e.dataTransfer.types.includes(DRAG_MIME)) {
-        const svgEl = e.currentTarget as Element;
-        const rect = svgEl.getBoundingClientRect();
-        setDragHoverSide((e.clientX - rect.left) / rect.width < 0.5 ? 'left' : 'right');
-      }
-
-      onDragOver?.(e);
-    },
-    [onDragOver]
-  );
-
-  const handleDragLeave = useCallback(() => {
-    setDragActive(false);
-    setDragOutActive(false);
-    setDragHoverSide(null);
+  const openSearch = useCallback(() => setShowSearch(true), []);
+  const closeSearch = useCallback(() => {
+    setShowSearch(false);
+    setSearchQuery('');
   }, []);
 
-  const handleDrop = useCallback(
-    (e: React.DragEvent) => {
-      setDragActive(false);
-      setDragOutActive(false);
-      setDragHoverSide(null);
-
-      if (e.dataTransfer.types.includes('application/x-ipcraft-remove')) {
-        try {
-          const payloadStr = e.dataTransfer.getData('application/x-ipcraft-remove');
-          if (payloadStr) {
-            const payload = JSON.parse(payloadStr) as {
-              action?: string;
-              kind?: string;
-              id?: string;
-            };
-            if (payload.action === 'remove' && payload.kind && payload.id) {
-              onRemove?.(payload.kind, payload.id);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to parse remove drop payload', err);
-        }
-        return;
-      }
-
-      onDrop?.(e);
-    },
-    [onDrop, onRemove]
-  );
+  useCanvasKeyboardCommands({
+    showSearch,
+    openSearch,
+    closeSearch,
+    exitSelectMode,
+    resetView,
+  });
 
   const {
     blockRect,
@@ -941,7 +539,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       ]
         .filter(Boolean)
         .join(' ')}
-      onDragEnd={() => setDragOutActive(false)}
+      onDragEnd={handleDragEnd}
       onDoubleClick={(e) => {
         // When the SVG has been panned off-screen the event target is the
         // container div itself (nothing else to click). Center the view.
@@ -1769,16 +1367,6 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 };
 
 // --- Module helpers ---
-
-/** Returns true when the event target is the inert SVG background (not a port or UI element). */
-function isCanvasBackground(target: EventTarget | null): boolean {
-  if (!target || !(target instanceof Element)) {
-    return false;
-  }
-  return (
-    target.classList.contains('ip-canvas-background') || target.tagName.toLowerCase() === 'svg'
-  );
-}
 
 // --- Helper sub-components ---
 
