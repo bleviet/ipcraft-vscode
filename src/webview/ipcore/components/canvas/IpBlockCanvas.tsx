@@ -1,18 +1,11 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import type { IpCore } from '../../../types/ipCore';
-import { computeLayout, resolveMemoryMapImportPath } from './canvasLayout';
-import { CanvasPort } from './CanvasPort';
-import { CanvasBusBundle } from './CanvasBusBundle';
-import { CanvasBusSubPort } from './CanvasBusSubPort';
+import { computeLayout } from './canvasLayout';
 import { RemoveZone } from './RemoveZone';
 import { useCanvasValidation, type CanvasAnnotations } from '../../hooks/useCanvasValidation';
 import { lookupBusDef, lookupBusDefFromLibrary, isConduitType } from '../../data/busDefinitions';
 import type { BusPortDef } from '../../data/busDefinitions';
 import type { YamlUpdateHandler } from '../../../types/editor';
-import { getActiveDragPayload, type LibraryDragPayload } from './canvasDragTypes';
-import { vscode } from '../../../vscode';
-import { CanvasSelectionActions } from './CanvasSelectionActions';
-import { GroupingMappingStep } from './GroupingMappingStep';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import { useGroupPorts } from '../../hooks/useGroupPorts';
 import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
@@ -21,6 +14,9 @@ import { useCanvasMarqueeSelection } from '../../hooks/useCanvasMarqueeSelection
 import { usePortConnectionDrag } from '../../hooks/usePortConnectionDrag';
 import { useCanvasDropTarget } from '../../hooks/useCanvasDropTarget';
 import { useCanvasKeyboardCommands } from '../../hooks/useCanvasKeyboardCommands';
+import { IpBlockDiagram, type CanvasSearchMatches } from './IpBlockDiagram';
+import { CanvasHud } from './CanvasHud';
+import { PortMappingOverlay, type PendingPortDrop } from './PortMappingOverlay';
 import './canvas.css';
 
 /** Distinct colours for clock domains when multiple clocks are defined */
@@ -72,6 +68,10 @@ interface IpBlockCanvasProps {
  * The block body sits at center with ports arranged along left, right, and bottom edges.
  * Bus interfaces render as wide "bundle" connectors; clocks/resets/ports as thin stubs.
  * Bus bundles can be expanded to show individual port signals.
+ *
+ * This component owns interaction state (viewport, selection, drag, search) and composes
+ * it via hooks; actual SVG/HUD/overlay rendering is delegated to `IpBlockDiagram`,
+ * `CanvasHud`, and `PortMappingOverlay`.
  */
 export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   ipCore,
@@ -93,10 +93,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   consistencyAnnotations,
 }) => {
   // Pending port-drop onto a standard (protocol-defined) bus interface
-  const [pendingPortDrop, setPendingPortDrop] = useState<{
-    portIndex: number;
-    busIndex: number;
-  } | null>(null);
+  const [pendingPortDrop, setPendingPortDrop] = useState<PendingPortDrop | null>(null);
   const [expandedBusIds, setExpandedBusIds] = useState<Set<string>>(new Set());
   const [showHelp, setShowHelp] = useState(false);
 
@@ -121,6 +118,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     () => computeLayout(ipCore, expandedBusIds, busDefs, ipCore.description ?? undefined),
     [ipCore, expandedBusIds, busDefs]
   );
+  const { ports, subPorts } = layout;
 
   // Assign distinct colours per clock domain when multiple clocks are defined
   const multiDomain = (ipCore.clocks?.length ?? 0) > 1;
@@ -426,24 +424,6 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     resetView,
   });
 
-  const {
-    blockRect,
-    ports,
-    subPorts,
-    viewBox,
-    coreName,
-    vendorLabel,
-    libraryLabel,
-    authorLabel,
-    parameters,
-    paramSeparatorY,
-    portSeparatorY,
-    descLines,
-    descSeparatorY,
-    subcoreDeps,
-    depSeparatorY,
-  } = layout;
-
   // Auto-focus the search input when the bar opens
   useEffect(() => {
     if (showSearch) {
@@ -452,7 +432,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   }, [showSearch]);
 
   // Compute which ports/sub-ports match the current search query
-  const matchedIds = useMemo(() => {
+  const matchedIds = useMemo<CanvasSearchMatches | null>(() => {
     if (!showSearch || !searchQuery.trim()) {
       return null;
     }
@@ -549,942 +529,85 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       }}
     >
       <RemoveZone visible={dragOutActive} />
-      <svg
-        className="ip-canvas-svg"
-        viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
-        preserveAspectRatio="xMidYMid meet"
-        overflow="visible"
-        style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          transformOrigin: 'center center',
-        }}
-        onClick={handleBackgroundClick}
-        onDoubleClick={handleBackgroundDoubleClick}
-        onMouseLeave={() => setHoveredId(null)}
+      <IpBlockDiagram
+        layout={layout}
+        ipCore={ipCore}
+        pan={pan}
+        zoom={zoom}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        selectedSubPortId={selectedSubPortId}
+        onSelectSubPort={onSelectSubPort}
+        hoveredId={hoveredId}
+        setHoveredId={setHoveredId}
+        blockHovered={blockHovered}
+        setBlockHovered={setBlockHovered}
+        multiSelectedIds={multiSelectedIds}
+        onShiftSelect={onShiftSelect}
+        annotations={annotations}
+        matchedIds={matchedIds}
+        expandedBusIds={expandedBusIds}
+        toggleBusExpand={toggleBusExpand}
+        busDefs={busDefs}
+        getDomainColor={getDomainColor}
+        dragActive={dragActive}
+        dragHoverSide={dragHoverSide}
+        portDragActive={portDragActive}
+        portDragActivePIdx={portDragActivePIdx}
+        portDragHoveredBus={portDragHoveredBus}
+        canDropPorts={!!batchUpdate}
+        onPortDropOnBus={handlePortDropOnBus}
+        onPortPointerDragStart={handlePortPointerDragStart}
+        onSubPortActivate={handleSubPortActivate}
+        onSubPortDeactivate={handleSubPortDeactivate}
+        onSubPortRename={handleSubPortRename}
+        onElementRename={handleElementRename}
+        onBackgroundClick={handleBackgroundClick}
+        onBackgroundDoubleClick={handleBackgroundDoubleClick}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-      >
-        {/* Grid background pattern */}
-        <defs>
-          <pattern id="canvas-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <circle cx="1" cy="1" r="0.5" className="ip-canvas-grid-dot" />
-          </pattern>
-        </defs>
-        <rect
-          className="ip-canvas-background"
-          width="100%"
-          height="100%"
-          fill="url(#canvas-grid)"
-        />
+      />
 
-        {/* Block body — clickable to open VLNV inspector */}
-        <rect
-          x={blockRect.x}
-          y={blockRect.y}
-          width={blockRect.width}
-          height={blockRect.height}
-          className={`ip-block-body${selectedId === 'body' ? ' ip-block-body--selected' : ''}${blockHovered ? ' ip-block-body--hovered' : ''}`}
-          rx={6}
-          ry={6}
-          style={{ cursor: 'pointer' }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onSelect('body');
-          }}
-          onMouseEnter={() => setBlockHovered(true)}
-          onMouseLeave={() => setBlockHovered(false)}
-        />
+      <CanvasHud
+        ipCore={ipCore}
+        ports={ports}
+        marqueeRect={marqueeRect}
+        hoveredId={hoveredId}
+        showZoomIndicator={showZoomIndicator}
+        zoom={zoom}
+        multiSelectedIds={multiSelectedIds}
+        batchUpdate={batchUpdate}
+        onDismissSelection={onDismissSelection}
+        onExitSelectMode={exitSelectMode}
+        suggestionChips={suggestionChips}
+        onDismissSuggestion={onDismissSuggestion}
+        showSearch={showSearch}
+        searchQuery={searchQuery}
+        onSearchQueryChange={setSearchQuery}
+        onCloseSearch={closeSearch}
+        matchedIds={matchedIds}
+        searchInputRef={searchInputRef}
+        showHelp={showHelp}
+        onToggleHelp={() => setShowHelp((v) => !v)}
+      />
 
-        {/* Block header stripe */}
-        <rect
-          x={blockRect.x}
-          y={blockRect.y}
-          width={blockRect.width}
-          height={28}
-          className="ip-block-header"
-          rx={6}
-          ry={6}
-          style={{ pointerEvents: 'none' }}
-        />
-        {/* Square off bottom corners of header */}
-        <rect
-          x={blockRect.x}
-          y={blockRect.y + 14}
-          width={blockRect.width}
-          height={14}
-          className="ip-block-header"
-          style={{ pointerEvents: 'none' }}
-        />
-
-        {/* Core name */}
-        <text
-          x={blockRect.x + blockRect.width / 2}
-          y={blockRect.y + 15}
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="ip-block-name"
-          style={{ pointerEvents: 'none' }}
-        >
-          {coreName}
-        </text>
-
-        {/* Vendor subtitle */}
-        <text
-          x={blockRect.x + 24}
-          y={blockRect.y + 42}
-          dominantBaseline="central"
-          className="ip-block-param-name"
-          style={{ pointerEvents: 'none' }}
-        >
-          vendor
-        </text>
-        <text
-          x={blockRect.x + blockRect.width - 24}
-          y={blockRect.y + 42}
-          textAnchor="end"
-          dominantBaseline="central"
-          className="ip-block-param-value"
-          style={{ pointerEvents: 'none' }}
-        >
-          {vendorLabel}
-        </text>
-
-        {/* Library subtitle */}
-        <text
-          x={blockRect.x + 24}
-          y={blockRect.y + 62}
-          dominantBaseline="central"
-          className="ip-block-param-name"
-          style={{ pointerEvents: 'none' }}
-        >
-          library
-        </text>
-        <text
-          x={blockRect.x + blockRect.width - 24}
-          y={blockRect.y + 62}
-          textAnchor="end"
-          dominantBaseline="central"
-          className="ip-block-param-value"
-          style={{ pointerEvents: 'none' }}
-        >
-          {libraryLabel}
-        </text>
-
-        {/* Author subtitle — only rendered when set */}
-        {authorLabel && (
-          <>
-            <text
-              x={blockRect.x + 24}
-              y={blockRect.y + 82}
-              dominantBaseline="central"
-              className="ip-block-param-name"
-              style={{ pointerEvents: 'none' }}
-            >
-              author
-            </text>
-            <text
-              x={blockRect.x + blockRect.width - 24}
-              y={blockRect.y + 82}
-              textAnchor="end"
-              dominantBaseline="central"
-              className="ip-block-param-value"
-              style={{ pointerEvents: 'none' }}
-            >
-              {authorLabel}
-            </text>
-          </>
-        )}
-
-        {/* Edit hint — visible when block is hovered or body is selected */}
-        {(blockHovered || selectedId === 'body') && (
-          <text
-            x={blockRect.x + blockRect.width - 8}
-            y={blockRect.y + 15}
-            textAnchor="end"
-            dominantBaseline="central"
-            className="ip-block-edit-hint"
-            style={{ pointerEvents: 'none' }}
-          >
-            ✎
-          </text>
-        )}
-
-        {/* ── Dependencies (subcores) section inside block ── */}
-        {subcoreDeps.length > 0 && (
-          <g style={{ pointerEvents: 'none' }}>
-            {/* Separator line above the section */}
-            <line
-              x1={blockRect.x + 8}
-              y1={depSeparatorY}
-              x2={blockRect.x + blockRect.width - 8}
-              y2={depSeparatorY}
-              className="ip-block-dep-separator"
-            />
-            {/* "Dependencies" header */}
-            <text
-              x={blockRect.x + blockRect.width / 2}
-              y={depSeparatorY + 11}
-              textAnchor="middle"
-              dominantBaseline="central"
-              className="ip-block-dep-header"
-            >
-              Dependencies
-            </text>
-          </g>
-        )}
-        {subcoreDeps.map((dep) => {
-          const isDepSelected = selectedId === `subcore:${dep.index}`;
-          return (
-            <g
-              key={dep.index}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(`subcore:${dep.index}`);
-              }}
-              style={{ cursor: 'pointer' }}
-            >
-              {/* Hit + selection highlight */}
-              <rect
-                x={blockRect.x + 4}
-                y={dep.y - 8}
-                width={blockRect.width - 8}
-                height={16}
-                rx={3}
-                className={`ip-block-dep-row-bg${isDepSelected ? ' ip-block-dep-row-bg--selected' : ''}`}
-              />
-              {/* Chain-link icon */}
-              <text
-                x={blockRect.x + 14}
-                y={dep.y}
-                textAnchor="middle"
-                dominantBaseline="central"
-                className="ip-block-dep-icon"
-                style={{ pointerEvents: 'none' }}
-              >
-                ⛓
-              </text>
-              {/* Short name */}
-              <text
-                x={blockRect.x + 24}
-                y={dep.y}
-                dominantBaseline="central"
-                className="ip-block-dep-name"
-                style={{ pointerEvents: 'none' }}
-              >
-                {dep.shortName}
-              </text>
-            </g>
-          );
-        })}
-
-        {/* ── Generic / parameter section inside block ── */}
-        {parameters.length > 0 && (
-          <g
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect('generics');
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            {/* Separator */}
-            <line
-              x1={blockRect.x + 8}
-              y1={paramSeparatorY}
-              x2={blockRect.x + blockRect.width - 8}
-              y2={paramSeparatorY}
-              className="ip-block-param-separator"
-              style={{ pointerEvents: 'none' }}
-            />
-            {/* Hit + selection highlight */}
-            <rect
-              x={blockRect.x + 4}
-              y={paramSeparatorY + 3}
-              width={blockRect.width - 8}
-              height={16}
-              rx={3}
-              className={`ip-block-param-row-bg${selectedId === 'generics' ? ' ip-block-param-row-bg--selected' : ''}`}
-            />
-            {/* Section header */}
-            <text
-              x={blockRect.x + blockRect.width / 2}
-              y={paramSeparatorY + 11}
-              textAnchor="middle"
-              dominantBaseline="central"
-              className="ip-block-param-header"
-              style={{ pointerEvents: 'none' }}
-            >
-              Generics
-            </text>
-          </g>
-        )}
-        {parameters.map((param) => {
-          const rowY = paramSeparatorY + 26 + param.index * 18;
-          const isParamSelected = selectedId === `parameter:${param.index}`;
-          return (
-            <g
-              key={param.index}
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(`parameter:${param.index}`);
-              }}
-              style={{ cursor: 'pointer' }}
-            >
-              {/* Hit + selection highlight */}
-              <rect
-                x={blockRect.x + 4}
-                y={rowY - 8}
-                width={blockRect.width - 8}
-                height={16}
-                rx={3}
-                className={`ip-block-param-row-bg${isParamSelected ? ' ip-block-param-row-bg--selected' : ''}`}
-              />
-              {/* Generic icon */}
-              <text
-                x={blockRect.x + 14}
-                y={rowY}
-                textAnchor="middle"
-                dominantBaseline="central"
-                className="ip-block-param-icon"
-                style={{ pointerEvents: 'none' }}
-              >
-                ⊳
-              </text>
-              {/* Name */}
-              <text
-                x={blockRect.x + 24}
-                y={rowY}
-                dominantBaseline="central"
-                className="ip-block-param-name"
-                style={{ pointerEvents: 'none' }}
-              >
-                {param.name}
-              </text>
-              {/* Default value */}
-              {param.value !== '' && (
-                <text
-                  x={blockRect.x + blockRect.width - 8}
-                  y={rowY}
-                  textAnchor="end"
-                  dominantBaseline="central"
-                  className="ip-block-param-value"
-                  style={{ pointerEvents: 'none' }}
-                >
-                  = {param.value}
-                </text>
-              )}
-            </g>
-          );
-        })}
-
-        {/* Ports header — below generics/deps, clickable to open the Bus Interface clock/reset matrix */}
-        {ports.length > 0 && (
-          <g
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect('busInterfaceMatrix');
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            {/* Separator */}
-            <line
-              x1={blockRect.x + 8}
-              y1={portSeparatorY}
-              x2={blockRect.x + blockRect.width - 8}
-              y2={portSeparatorY}
-              className="ip-block-param-separator"
-              style={{ pointerEvents: 'none' }}
-            />
-            {/* Hit + selection highlight */}
-            <rect
-              x={blockRect.x + 4}
-              y={portSeparatorY + 3}
-              width={blockRect.width - 8}
-              height={16}
-              rx={3}
-              className={`ip-block-ports-row-bg${selectedId === 'busInterfaceMatrix' ? ' ip-block-ports-row-bg--selected' : ''}`}
-            />
-            {/* Section header */}
-            <text
-              x={blockRect.x + blockRect.width / 2}
-              y={portSeparatorY + 11}
-              textAnchor="middle"
-              dominantBaseline="central"
-              className="ip-block-ports-header"
-              style={{ pointerEvents: 'none' }}
-            >
-              Ports
-            </text>
-          </g>
-        )}
-
-        {/* Description section — separator + word-wrapped text below the last port */}
-        {descLines.length > 0 && (
-          <>
-            <line
-              x1={blockRect.x + 12}
-              y1={descSeparatorY}
-              x2={blockRect.x + blockRect.width - 12}
-              y2={descSeparatorY}
-              className="ip-block-param-separator"
-            />
-            <text
-              textAnchor="middle"
-              className="ip-block-description"
-              style={{ pointerEvents: 'none' }}
-            >
-              {descLines.map((line, i) => (
-                <tspan
-                  key={i}
-                  x={blockRect.x + blockRect.width / 2}
-                  y={descSeparatorY + 10 + (i + 0.5) * 13}
-                >
-                  {line}
-                </tspan>
-              ))}
-            </text>
-          </>
-        )}
-
-        {/* Half-zone drop hint — clipped to block rect, rendered before ports so ports stay on top */}
-        {dragActive &&
-          (() => {
-            const labels = getDragHintLabels(getActiveDragPayload());
-            if (!labels) {
-              return null;
-            }
-            const halfW = blockRect.width / 2;
-            const midY = blockRect.y + blockRect.height / 2;
-            return (
-              <g style={{ pointerEvents: 'none' }}>
-                <defs>
-                  <clipPath id="ip-canvas-block-clip">
-                    <rect
-                      x={blockRect.x}
-                      y={blockRect.y}
-                      width={blockRect.width}
-                      height={blockRect.height}
-                      rx={6}
-                      ry={6}
-                    />
-                  </clipPath>
-                </defs>
-                <g clipPath="url(#ip-canvas-block-clip)">
-                  <rect
-                    x={blockRect.x}
-                    y={blockRect.y}
-                    width={halfW}
-                    height={blockRect.height}
-                    className={`ip-canvas-drop-half${dragHoverSide === 'left' ? ' ip-canvas-drop-half--active' : ''}`}
-                  />
-                  <rect
-                    x={blockRect.x + halfW}
-                    y={blockRect.y}
-                    width={halfW}
-                    height={blockRect.height}
-                    className={`ip-canvas-drop-half${dragHoverSide === 'right' ? ' ip-canvas-drop-half--active' : ''}`}
-                  />
-                </g>
-                <line
-                  x1={blockRect.x + halfW}
-                  y1={blockRect.y + 8}
-                  x2={blockRect.x + halfW}
-                  y2={blockRect.y + blockRect.height - 8}
-                  className="ip-canvas-drop-divider"
-                />
-                <text
-                  x={blockRect.x + halfW / 2}
-                  y={midY}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  className={`ip-canvas-drop-label${dragHoverSide === 'left' ? ' ip-canvas-drop-label--active' : ''}`}
-                >
-                  {labels.left}
-                </text>
-                <text
-                  x={blockRect.x + halfW * 1.5}
-                  y={midY}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  className={`ip-canvas-drop-label${dragHoverSide === 'right' ? ' ip-canvas-drop-label--active' : ''}`}
-                >
-                  {labels.right}
-                </text>
-              </g>
-            );
-          })()}
-
-        {/* Port stubs */}
-        {(() => {
-          const memoryMaps = ipCore.memoryMaps as unknown;
-          return ports.map((p) => {
-            const isSelected = selectedId === p.id;
-            const isHovered = hoveredId === p.id;
-            const busExpanded = p.kind === 'bus' && expandedBusIds.has(p.id);
-            const busType = (p.data as { type?: string; conduitPorts?: unknown[] }).type ?? '';
-            const hasConduitPorts = Array.isArray(
-              (p.data as { conduitPorts?: unknown[] }).conduitPorts
-            );
-            const hasBusDef = p.kind === 'bus' && (hasConduitPorts || busDefs(busType) !== null);
-
-            if (p.kind === 'bus') {
-              const mmClickPath = resolveMemoryMapImportPath(memoryMaps, p.memoryMapRef);
-              return (
-                <g
-                  key={p.id}
-                  onMouseEnter={() => setHoveredId(p.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className={isHovered ? 'canvas-element--hovered' : ''}
-                >
-                  <CanvasBusBundle
-                    port={p}
-                    selected={isSelected}
-                    annotations={annotations[p.id]}
-                    onPortDrop={
-                      batchUpdate
-                        ? (portIndex) =>
-                            handlePortDropOnBus(portIndex, parseInt(p.id.split(':')[1] ?? '0', 10))
-                        : undefined
-                    }
-                    isPortDropTarget={
-                      portDragActive &&
-                      portDragHoveredBus === parseInt(p.id.split(':')[1] ?? '-1', 10)
-                    }
-                    onSelect={onSelect}
-                    isExpanded={busExpanded}
-                    onToggleExpand={hasBusDef ? () => toggleBusExpand(p.id) : undefined}
-                    domainColor={getDomainColor(p.clockDomainIdx)}
-                    dimmed={matchedIds !== null && !matchedIds.portIds.has(p.id)}
-                    onMemoryMapClick={
-                      mmClickPath
-                        ? () =>
-                            vscode?.postMessage({
-                              type: 'openFile',
-                              path: mmClickPath,
-                            })
-                        : undefined
-                    }
-                    onRename={handleElementRename}
-                  />
-                </g>
-              );
-            }
-
-            return (
-              <g
-                key={p.id}
-                onMouseEnter={() => setHoveredId(p.id)}
-                onMouseLeave={() => setHoveredId(null)}
-                className={isHovered ? 'canvas-element--hovered' : ''}
-              >
-                <CanvasPort
-                  port={p}
-                  selected={isSelected}
-                  inMultiSelection={multiSelectedIds?.has(p.id) ?? false}
-                  annotations={annotations[p.id]}
-                  onSelect={onSelect}
-                  onShiftSelect={onShiftSelect}
-                  domainColor={getDomainColor(p.clockDomainIdx)}
-                  onPortDragStart={batchUpdate ? handlePortPointerDragStart : undefined}
-                  isDragging={
-                    portDragActivePIdx !== null &&
-                    portDragActivePIdx === parseInt(p.id.split(':')[1] ?? '-1', 10)
-                  }
-                  onRename={handleElementRename}
-                  dimmed={matchedIds !== null && !matchedIds.portIds.has(p.id)}
-                />
-              </g>
-            );
-          });
-        })()}
-
-        {/* Sub-ports for expanded bus interfaces */}
-        {subPorts.map((sp) => (
-          <CanvasBusSubPort
-            key={sp.id}
-            subPort={sp}
-            onActivate={handleSubPortActivate}
-            onDeactivate={handleSubPortDeactivate}
-            onSelect={onSelect}
-            onSelectSignal={onSelectSubPort}
-            isSelected={sp.id === selectedSubPortId}
-            domainColor={getDomainColor(sp.clockDomainIdx)}
-            onRename={handleSubPortRename}
-            annotations={annotations[sp.id]}
-            dimmed={
-              matchedIds !== null &&
-              !matchedIds.subPortIds.has(sp.id) &&
-              !matchedIds.portIds.has(sp.parentBusId)
-            }
-            highlighted={matchedIds?.subPortIds.has(sp.id) ?? false}
-          />
-        ))}
-
-        {/* Port count badges on block edges */}
-        {renderEdgeBadge(ports, 'left', blockRect)}
-        {renderEdgeBadge(ports, 'right', blockRect)}
-
-        {/* Drop zone overlay (visible during drag) */}
-        {dragActive && (
-          <rect
-            x={blockRect.x - 8}
-            y={blockRect.y - 8}
-            width={blockRect.width + 16}
-            height={blockRect.height + 16}
-            rx={10}
-            ry={10}
-            className="ip-canvas-drop-zone"
-          />
-        )}
-      </svg>
-
-      {/* Marquee selection rectangle */}
-      {marqueeRect && (
-        <div
-          className="ip-canvas-marquee"
-          style={{
-            left: marqueeRect.left,
-            top: marqueeRect.top,
-            width: marqueeRect.width,
-            height: marqueeRect.height,
-          }}
-        />
-      )}
-
-      {/* Hover tooltip */}
-      {hoveredId && <PortTooltip portId={hoveredId} ports={ports} />}
-
-      {/* Zoom level indicator — fades after 1.5 s */}
-      {showZoomIndicator && (
-        <div className="ip-canvas-zoom-indicator">{Math.round(zoom * 100)}%</div>
-      )}
-
-      {/* HUD layer — sits outside the SVG transform, pinned to container viewport */}
-      <div className="ip-canvas-hud">
-        {/* Multi-select toolbar */}
-        {multiSelectedIds && multiSelectedIds.size >= 1 && batchUpdate && onDismissSelection && (
-          <CanvasSelectionActions
-            multiSelection={{ all: buildMultiSelectionMap(multiSelectedIds), isMulti: true }}
+      {pendingPortDrop && (
+        <div className="ip-canvas-hud">
+          <PortMappingOverlay
             ipCore={ipCore}
-            batchUpdate={batchUpdate}
-            onDismiss={exitSelectMode}
+            pendingPortDrop={pendingPortDrop}
+            busDefs={busDefs}
+            onConfirm={(opts, busIndex) => {
+              groupPorts.mergePortsIntoStandardBus(opts, busIndex);
+              const busId = `bus:${busIndex}`;
+              setExpandedBusIds((prev) => new Set([...prev, busId]));
+              setPendingPortDrop(null);
+            }}
+            onCancel={() => setPendingPortDrop(null)}
           />
-        )}
-
-        {/* Protocol suggestion chips */}
-        {suggestionChips && suggestionChips.length > 0 && (
-          <div className="ip-canvas-suggestion-chips">
-            {suggestionChips.map((chip) => (
-              <div key={chip.id} className="ip-canvas-suggestion-chip">
-                <span>
-                  {chip.label} detected ({Math.round(chip.score * 100)}%)
-                </span>
-                <button
-                  className="ip-canvas-suggestion-chip__group-btn"
-                  onClick={() => {
-                    if (!batchUpdate || !onDismissSuggestion) {
-                      return;
-                    }
-                    // Accept suggestion — dismisses chip; user can also use multi-select
-                    onDismissSuggestion(chip.id);
-                  }}
-                >
-                  Group ▸
-                </button>
-                <button
-                  className="ip-canvas-suggestion-chip__dismiss-btn"
-                  onClick={() => onDismissSuggestion?.(chip.id)}
-                  aria-label={`Dismiss ${chip.label} suggestion`}
-                  title="Dismiss"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Port search bar */}
-        {showSearch && (
-          <div className="ip-canvas-search">
-            <span className="ip-canvas-search__icon">⌕</span>
-            <input
-              ref={searchInputRef}
-              className="ip-canvas-search__input"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search ports..."
-            />
-            {matchedIds !== null && (
-              <span className="ip-canvas-search__count">
-                {matchedIds.portIds.size} match{matchedIds.portIds.size !== 1 ? 'es' : ''}
-              </span>
-            )}
-            <button
-              className="ip-canvas-search__close"
-              onClick={() => {
-                setShowSearch(false);
-                setSearchQuery('');
-              }}
-              aria-label="Close port search"
-              title="Close search (Escape)"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
-        {/* Help button + shortcut popover */}
-        <div className="ip-canvas-help">
-          <button
-            className="ip-canvas-help__btn"
-            onClick={() => setShowHelp((v) => !v)}
-            title="Keyboard shortcuts & tips"
-          >
-            ?
-          </button>
-          {showHelp && (
-            <div className="ip-canvas-help__popover">
-              <div className="ip-canvas-help__title">Canvas shortcuts</div>
-              <table className="ip-canvas-help__table">
-                <tbody>
-                  <tr>
-                    <td className="ip-canvas-help__key">Shift + Click port</td>
-                    <td>Add port to multi-selection</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Shift + Click again</td>
-                    <td>Remove port from selection</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Escape</td>
-                    <td>Clear selection</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Ctrl + Wheel</td>
-                    <td>Zoom in / out</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Wheel</td>
-                    <td>Pan view</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Middle drag</td>
-                    <td>Pan view</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Space + drag</td>
-                    <td>Pan view</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Drag on background</td>
-                    <td>Select ports in region</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Ctrl + 0</td>
-                    <td>Reset zoom &amp; position</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Double-click canvas</td>
-                    <td>Reset zoom &amp; position</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Right-click port / bus</td>
-                    <td>Rename</td>
-                  </tr>
-                  <tr>
-                    <td className="ip-canvas-help__key">Ctrl + F</td>
-                    <td>Search ports</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          )}
         </div>
-
-        {/* Port-to-standard-bus: reuse the GroupingMappingStep panel */}
-        {pendingPortDrop &&
-          (() => {
-            const pendingBus = ipCore.busInterfaces?.[pendingPortDrop.busIndex];
-            if (!pendingBus) {
-              return null;
-            }
-            const busType = (pendingBus as { type?: string }).type ?? '';
-            const busLabel = (pendingBus as { name?: string }).name ?? busType;
-            const existingPrefix = (pendingBus as { physicalPrefix?: string }).physicalPrefix;
-            const existingMode =
-              (pendingBus as { mode?: string }).mode === 'master' ||
-              (pendingBus as { mode?: string }).mode === 'source'
-                ? ('master' as const)
-                : ('slave' as const);
-
-            // Reconstruct signal → physicalName for every signal the bus already owns,
-            // so GroupingMappingStep can show those rows as locked (read-only).
-            const rawSignals = busDefs(busType) ?? [];
-            const existingNameOverrides =
-              (pendingBus as { portNameOverrides?: Record<string, string> }).portNameOverrides ??
-              {};
-            const useOptional = new Set(
-              ((pendingBus as { useOptionalPorts?: string[] }).useOptionalPorts ?? []).map((s) =>
-                s.toUpperCase()
-              )
-            );
-            const existingPortAssignments: Record<string, string> = {};
-            for (const sig of rawSignals) {
-              if (sig.role) {
-                continue;
-              }
-              if (sig.presence === 'optional' && !useOptional.has(sig.name.toUpperCase())) {
-                continue;
-              }
-              const suffix = existingNameOverrides[sig.name] ?? sig.name.toLowerCase();
-              existingPortAssignments[sig.name] = `${existingPrefix ?? ''}${suffix}`;
-            }
-
-            return (
-              <GroupingMappingStep
-                ipCore={ipCore}
-                busType={busType}
-                busLabel={busLabel}
-                selectedPortIndices={[pendingPortDrop.portIndex]}
-                initialPrefix={existingPrefix}
-                initialMode={existingMode}
-                existingPortAssignments={existingPortAssignments}
-                onConfirm={(opts) => {
-                  groupPorts.mergePortsIntoStandardBus(opts, pendingPortDrop.busIndex);
-                  const busId = `bus:${pendingPortDrop.busIndex}`;
-                  setExpandedBusIds((prev) => new Set([...prev, busId]));
-                  setPendingPortDrop(null);
-                }}
-                onCancel={() => setPendingPortDrop(null)}
-              />
-            );
-          })()}
-      </div>
-    </div>
-  );
-};
-
-// --- Module helpers ---
-
-// --- Helper sub-components ---
-
-function getDragHintLabels(
-  payload: LibraryDragPayload | null
-): { left: string; right: string } | null {
-  if (!payload) {
-    return null;
-  }
-  switch (payload.kind) {
-    case 'port':
-      return { left: '▶  IN', right: 'OUT  ▶' };
-    case 'interrupt':
-      return { left: '▶  IRQ IN', right: 'IRQ OUT  ▶' };
-    case 'bus': {
-      return { left: 'SLAVE', right: 'MASTER' };
-    }
-    default:
-      return null;
-  }
-}
-
-function buildMultiSelectionMap(
-  ids: Set<string>
-): Map<string, { kind: 'port' | 'interrupt'; index: number; id: string }> {
-  const map = new Map<string, { kind: 'port' | 'interrupt'; index: number; id: string }>();
-  for (const id of ids) {
-    const parts = id.split(':');
-    if (parts.length !== 2) {
-      continue;
-    }
-    const [kindRaw, indexStr] = parts;
-    const index = parseInt(indexStr, 10);
-    if (isNaN(index)) {
-      continue;
-    }
-    if (kindRaw === 'port' || kindRaw === 'interrupt') {
-      map.set(id, { kind: kindRaw, index, id });
-    }
-  }
-  return map;
-}
-
-function renderEdgeBadge(
-  ports: ReturnType<typeof computeLayout>['ports'],
-  side: 'left' | 'right',
-  blockRect: { x: number; y: number; width: number; height: number }
-) {
-  const count = ports.filter((p) => p.side === side).length;
-  if (count === 0) {
-    return null;
-  }
-
-  const x = side === 'left' ? blockRect.x + 12 : blockRect.x + blockRect.width - 12;
-  const y = blockRect.y + blockRect.height - 8;
-
-  return (
-    <text x={x} y={y} textAnchor="middle" className="ip-block-edge-count">
-      {count}
-    </text>
-  );
-}
-
-interface PortTooltipProps {
-  portId: string;
-  ports: ReturnType<typeof computeLayout>['ports'];
-}
-
-const PortTooltip: React.FC<PortTooltipProps> = ({ portId, ports }) => {
-  const port = ports.find((p) => p.id === portId);
-  if (!port) {
-    return null;
-  }
-
-  const details: string[] = [port.label];
-  if (port.kind === 'bus' && port.protocol) {
-    details.push(`Protocol: ${port.protocol}`);
-    if (port.mode) {
-      details.push(`Mode: ${port.mode}`);
-    }
-    const bus = port.data as { associatedClock?: string | null; associatedReset?: string | null };
-    if (bus.associatedClock) {
-      details.push(`Clock: ${bus.associatedClock}`);
-    }
-    if (bus.associatedReset) {
-      details.push(`Reset: ${bus.associatedReset}`);
-    }
-  }
-  if (port.widthLabel) {
-    details.push(`Width: ${port.widthLabel}`);
-  }
-  if (port.kind === 'clock') {
-    const clk = port.data as { frequency?: string | null };
-    if (clk.frequency) {
-      details.push(`Freq: ${clk.frequency}`);
-    }
-  }
-  if (port.kind === 'reset') {
-    const rst = port.data as { polarity?: string };
-    if (rst.polarity) {
-      details.push(`Polarity: ${rst.polarity}`);
-    }
-  }
-  if (port.kind === 'interrupt') {
-    const irq = port.data as { sensitivity?: string; direction?: string };
-    details.push(`Direction: ${irq.direction ?? 'out'}`);
-    if (irq.sensitivity) {
-      details.push(`Sensitivity: ${irq.sensitivity}`);
-    }
-  }
-
-  return (
-    <div className="ip-canvas-tooltip">
-      {details.map((line, i) => (
-        <div key={i} className={i === 0 ? 'ip-canvas-tooltip__title' : 'ip-canvas-tooltip__detail'}>
-          {line}
-        </div>
-      ))}
+      )}
     </div>
   );
 };
