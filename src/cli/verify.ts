@@ -54,6 +54,12 @@ async function listFilesRecursive(dir: string, relPrefix = ''): Promise<string[]
  * managed:false files are exempt: IPCraft never (re)generates them, so they can't go stale
  * relative to a fresh generation by definition.
  *
+ * File mode is out of scope by design (issue #153): staleness is judged purely on content, so a
+ * file whose bytes match but whose executable bit was stripped (or set) by something outside
+ * IPCraft is not reported stale. `executable: true` in a scaffold pack's manifest is applied at
+ * write time only, on every path that writes generated content to disk (IpCoreScaffolder's own
+ * writer and the VS Code staging UI writer) — `verify` never runs stat, only content comparison.
+ *
  * Beyond the forward diff (generated -> disk), also reverse-scans every top-level directory
  * IPCraft could generate into (e.g. rtl/, tb/, altera/, xilinx/) for files no longer part of
  * a fresh generation — e.g. after switching scaffold_pack or dropping a --target — so those

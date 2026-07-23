@@ -143,6 +143,7 @@ export class ScaffoldPackLoader {
         target: String(f.target ?? ''),
         condition: f.condition !== undefined ? String(f.condition) : undefined,
         managed: f.managed !== undefined ? Boolean(f.managed) : true,
+        executable: f.executable !== undefined ? Boolean(f.executable) : undefined,
       })
     );
 

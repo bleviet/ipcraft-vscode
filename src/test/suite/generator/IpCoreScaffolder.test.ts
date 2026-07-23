@@ -456,6 +456,91 @@ describe('IpCoreScaffolder', () => {
     expect(generatedPaths).toContain('.vscode/settings.json');
   });
 
+  it('reports the executable: true target in executablePaths without affecting other rules (issue #153)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-executable-'));
+    const packDir = path.join(tmp, 'exec-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "exec-pack"',
+        'fullGeneration: true',
+        'files:',
+        '  - source: top.vhdl.j2',
+        '    target: "rtl/{{ name }}.vhd"',
+        '    condition: "not is_systemverilog"',
+        '  - source: top.sv.j2',
+        '    target: "rtl/{{ name }}.sv"',
+        '    condition: "is_systemverilog"',
+        '  - source: helper_sh.j2',
+        '    target: "scripts/{{ name }}_gen.sh"',
+        '    executable: true',
+      ].join('\n')
+    );
+    fs2.writeFileSync(path.join(packDir, 'helper_sh.j2'), '#!/bin/sh\necho {{ name }}\n');
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: false,
+        targets: [],
+        scaffoldPack: packDir,
+        hdlLanguage: 'vhdl',
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.executablePaths).toEqual(['scripts/sample_core_gen.sh']);
+      expect(Object.keys(result.generatedContents ?? {})).toContain('rtl/sample_core.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('sets the executable bit on disk for a scaffold rule with executable: true (issue #153)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-executable-write-'));
+    const packDir = path.join(tmp, 'exec-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "exec-pack"',
+        'fullGeneration: true',
+        'files:',
+        '  - source: helper_sh.j2',
+        '    target: "scripts/{{ name }}_gen.sh"',
+        '    executable: true',
+      ].join('\n')
+    );
+    fs2.writeFileSync(path.join(packDir, 'helper_sh.j2'), '#!/bin/sh\necho {{ name }}\n');
+
+    const actualFsPromises = jest.requireActual('fs/promises');
+    (fs.mkdir as unknown as jest.Mock).mockImplementation((...args: unknown[]) =>
+      actualFsPromises.mkdir(...args)
+    );
+    (fs.writeFile as unknown as jest.Mock).mockImplementation((...args: unknown[]) =>
+      actualFsPromises.writeFile(...args)
+    );
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const outputDir = path.join(tmp, 'output');
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeTestbench: false,
+        targets: [],
+        scaffoldPack: packDir,
+        hdlLanguage: 'vhdl',
+      });
+
+      expect(result.success).toBe(true);
+      const scriptPath = path.join(outputDir, 'scripts', 'sample_core_gen.sh');
+      const mode = fs2.statSync(scriptPath).mode;
+      expect(mode & 0o111).toBe(0o111);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('rejects an AXI4-Lite IP core against an Avalon-MM-only pack requirements block (issue #152)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pack-requirements-'));
     const packDir = path.join(tmp, 'avalon-only-pack');

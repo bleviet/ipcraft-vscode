@@ -17,6 +17,14 @@ export interface ScaffoldFileRule {
    * Defaults to true (managed by IPCraft, always regenerated).
    */
   managed?: boolean;
+  /**
+   * When true, IPCraft sets the POSIX executable bit (owner/group/other +x) on this file
+   * after writing it — for pack-owned helper scripts meant to be run directly, e.g.
+   * `./qsys_<name>_tb_gen.sh` (issue #153). Existing permission bits are preserved; only the
+   * execute bits are added. No-op on filesystems that don't support POSIX permission bits.
+   * Defaults to false.
+   */
+  executable?: boolean;
 }
 
 /**
@@ -122,6 +130,12 @@ export interface GenerateResult {
   generatedContents?: Record<string, string>;
   /** Relative paths of managed:false files that already exist on disk (skip on write). */
   protectedPaths?: string[];
+  /**
+   * Relative paths (within generatedContents) whose scaffold rule declared `executable: true`
+   * (issue #153). Callers that write files outside IpCoreScaffolder's own write path (e.g. the
+   * VS Code staging UI) must apply the executable bit to these paths themselves after writing.
+   */
+  executablePaths?: string[];
   /**
    * Every path declared managed: false in the .ip.yml's fileSets, regardless of whether it
    * collides with a scaffold-pack target — a superset of protectedPaths (dry-run only).

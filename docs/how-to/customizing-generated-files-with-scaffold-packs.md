@@ -128,6 +128,7 @@ Then select `my-pack` from **Scaffold Template** and generate the project.
 | `files[].target` | Yes | Output path, relative to the generated project |
 | `files[].condition` | No | Generate only when the expression is true |
 | `files[].managed` | No | Replace on later runs unless set to `false` |
+| `files[].executable` | No | Set the POSIX executable bit after writing the file |
 
 Use `managed: false` for files that users are expected to edit. IPCraft creates
 the file on the first run and does not replace an existing copy later.
@@ -136,6 +137,20 @@ the file on the first run and does not replace an existing copy later.
 - source: "core.vhdl.j2"
   target: "rtl/{{ name }}_core.vhd"
   managed: false
+```
+
+Use `executable: true` for pack-owned helper scripts that must be runnable
+directly (`./script.sh`) instead of only via `bash script.sh`. IPCraft sets
+the owner/group/other execute bits after writing the file, without touching
+any other permission bit already present. This has no effect on filesystems
+that don't support POSIX permission bits (e.g. some Windows/exFAT mounts) —
+`ipcraft verify` compares file content only and never reports a mode-only
+difference as stale.
+
+```yaml
+- source: "qsys_tb_gen_sh.j2"
+  target: "qsys/qsys_{{ name }}_tb_gen.sh"
+  executable: true
 ```
 
 ## Declare input requirements

@@ -10,7 +10,7 @@ import * as YAML from 'yaml';
 import { mkdir, writeFile, readFile } from 'fs/promises';
 import { Logger } from '../utils/Logger';
 import { TemplateLoader } from '../generator/TemplateLoader';
-import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
+import { IpCoreScaffolder, applyExecutableMode } from '../generator/IpCoreScaffolder';
 import { ResourceRoots } from '../services/ResourceRoots';
 import { parseVhdlFile } from '../parser/VhdlParser';
 import { parseHwTclFile } from '../parser/HwTclParser';
@@ -824,6 +824,7 @@ async function runGenerator(
   // there is real disk work to do — avoiding a misleading "Generating…" flash
   // otherwise.
   const protectedExisting = new Set(dryResult.protectedPaths ?? []);
+  const executablePaths = new Set(dryResult.executablePaths ?? []);
   const filesToWrite = staged.filter(
     (f) =>
       f.status !== 'unchanged' &&
@@ -843,6 +844,9 @@ async function runGenerator(
               await mkdir(path.dirname(f.diskPath), { recursive: true });
               await writeFile(f.diskPath, f.content, 'utf8');
               writtenRelPaths.push(f.relativePath);
+              if (executablePaths.has(f.relativePath)) {
+                await applyExecutableMode(f.diskPath, logger);
+              }
             })
           );
         } catch (err) {

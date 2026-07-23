@@ -115,6 +115,51 @@ describe('ScaffoldPackLoader.resolve', () => {
     const pack = loader.resolve('bad-mms-pack');
     expect(pack.requirements?.memoryMappedSlave).toBeUndefined();
   });
+
+  it('parses files[].executable: true from the manifest (issue #153)', () => {
+    const packDir = path.join(builtinDir, 'executable-pack');
+    fs.mkdirSync(packDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "executable-pack"',
+        'files:',
+        '  - source: script.sh.j2',
+        '    target: script.sh',
+        '    executable: true',
+        '',
+      ].join('\n')
+    );
+    const loader = new ScaffoldPackLoader(builtinDir);
+    const pack = loader.resolve('executable-pack');
+    expect(pack.files).toEqual([
+      {
+        source: 'script.sh.j2',
+        target: 'script.sh',
+        condition: undefined,
+        managed: true,
+        executable: true,
+      },
+    ]);
+  });
+
+  it('defaults files[].executable to undefined when the manifest omits it', () => {
+    const packDir = path.join(builtinDir, 'non-executable-pack');
+    fs.mkdirSync(packDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "non-executable-pack"',
+        'files:',
+        '  - source: top.vhd.j2',
+        '    target: rtl/top.vhd',
+        '',
+      ].join('\n')
+    );
+    const loader = new ScaffoldPackLoader(builtinDir);
+    const pack = loader.resolve('non-executable-pack');
+    expect(pack.files[0].executable).toBeUndefined();
+  });
 });
 
 describe.each([

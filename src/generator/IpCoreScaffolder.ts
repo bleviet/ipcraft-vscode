@@ -43,6 +43,24 @@ import type {
   IpCoreData,
 } from './types';
 
+/**
+ * Add the POSIX executable bits (owner/group/other +x) to a freshly written file, preserving
+ * every other permission bit (issue #153). Filesystems that don't support POSIX permission bits
+ * (e.g. some Windows/exFAT mounts) reject or ignore chmod; that's treated as a no-op rather than
+ * a generation failure so the same manifest stays portable across platforms.
+ */
+export async function applyExecutableMode(fullPath: string, logger: Logger): Promise<void> {
+  try {
+    const stat = await fs.stat(fullPath);
+    const modeWithExecute = stat.mode | 0o111;
+    if (modeWithExecute !== stat.mode) {
+      await fs.chmod(fullPath, modeWithExecute);
+    }
+  } catch (error) {
+    logger.warn(`Could not set executable bit on ${fullPath}`, error as Error);
+  }
+}
+
 export class IpCoreScaffolder {
   private readonly logger: Logger;
   private readonly templates: TemplateLoader;
@@ -134,6 +152,7 @@ export class IpCoreScaffolder {
 
       const files: Record<string, string> = {};
       const packManagedFalse = new Set<string>();
+      const executableTargets = new Set<string>();
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
 
       // User-declared managed:false paths (fileSets in the .ip.yml) that collide with a
@@ -175,6 +194,9 @@ export class IpCoreScaffolder {
           files[relativePath] = packLoader.render(sourceName, rtlCtx);
           if (rule.managed === false) {
             packManagedFalse.add(relativePath);
+          }
+          if (rule.executable === true) {
+            executableTargets.add(relativePath);
           }
         }
       }
@@ -323,6 +345,7 @@ export class IpCoreScaffolder {
           generatedContents: { ...files },
           protectedPaths: protectedOnDisk,
           userManagedPaths: [...userManagedPaths],
+          executablePaths: [...executableTargets].filter((p) => p in files),
           resolvedPackName,
           count: Object.keys(files).length,
           busType,
@@ -345,6 +368,9 @@ export class IpCoreScaffolder {
           await fs.mkdir(path.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, content, 'utf8');
           written[relativePath] = fullPath;
+          if (executableTargets.has(relativePath)) {
+            await applyExecutableMode(fullPath, this.logger);
+          }
         })
       );
 
@@ -359,6 +385,7 @@ export class IpCoreScaffolder {
         success: true,
         files: written,
         generatedContents: { ...files },
+        executablePaths: [...executableTargets].filter((p) => p in written),
         resolvedPackName,
         count: Object.keys(written).length,
         busType,

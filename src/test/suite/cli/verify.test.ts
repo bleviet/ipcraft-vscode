@@ -135,6 +135,61 @@ describe('runCliVerify', () => {
     }
   });
 
+  it('sets executable: true files +x on generation and never flags a stripped bit as stale (issue #153)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-executable-'));
+    try {
+      const packDir = path.join(tmp, 'exec-pack');
+      fs2.mkdirSync(packDir, { recursive: true });
+      fs2.writeFileSync(
+        path.join(packDir, 'scaffold.yml'),
+        [
+          'name: "exec-pack"',
+          'fullGeneration: true',
+          'files:',
+          '  - source: helper_sh.j2',
+          '    target: "scripts/{{ name }}_gen.sh"',
+          '    executable: true',
+        ].join('\n')
+      );
+      fs2.writeFileSync(path.join(packDir, 'helper_sh.j2'), '#!/bin/sh\necho {{ name }}\n');
+
+      const inputPath = writeBlinkerIpYaml(tmp, '50MHz');
+      const genResult = await runCliGenerate(
+        {
+          ipYamlPath: inputPath,
+          outDir: tmp,
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+        },
+        resourceRoots
+      );
+      expect(genResult.success).toBe(true);
+
+      const scriptPath = path.join(tmp, 'scripts', 'led_blink_gen.sh');
+      expect(fs2.statSync(scriptPath).mode & 0o111).toBe(0o111);
+
+      // Stripping the executable bit outside IPCraft must not be reported as drift: `verify`
+      // diffs content only (documented policy, see src/cli/verify.ts).
+      fs2.chmodSync(scriptPath, 0o644);
+
+      const verifyResult = await runCliVerify(
+        {
+          ipYamlPath: inputPath,
+          generatedDir: tmp,
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+        },
+        resourceRoots
+      );
+      expect(verifyResult.success).toBe(true);
+      expect(verifyResult.staleFiles).toEqual([]);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('reports a missing generated file as stale', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-missing-'));
     try {
