@@ -2,6 +2,15 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as nunjucks from 'nunjucks';
 import { Logger } from '../utils/Logger';
+import {
+  snakecase,
+  constcase,
+  camelcase,
+  pascalcase,
+  log2,
+  ljust,
+  latexescape,
+} from './templateFilters';
 
 export class TemplateLoader {
   private readonly logger: Logger;
@@ -110,6 +119,16 @@ export class TemplateLoader {
       const n = Math.max(0, Math.trunc(Number(count ?? 0)));
       return c.repeat(n);
     });
+
+    this.env.addFilter('snakecase', (value: unknown) => snakecase(value));
+    this.env.addFilter('constcase', (value: unknown) => constcase(value));
+    this.env.addFilter('camelcase', (value: unknown) => camelcase(value));
+    this.env.addFilter('pascalcase', (value: unknown) => pascalcase(value));
+    this.env.addFilter('log2', (value: unknown) => log2(value));
+    this.env.addFilter('ljust', (value: unknown, width: unknown, fillChar?: unknown) =>
+      ljust(value, width, fillChar)
+    );
+    this.env.addFilter('latexescape', (value: unknown) => latexescape(value));
 
     this.logger.info(`Template loader using ${this.templatesPath}`);
   }
