@@ -67,6 +67,34 @@ The IP Core app uses a block-diagram canvas:
 changes to the extension host. Canvas hooks handle drop, selection, undo, and
 keyboard actions.
 
+### IP Core dependency and ownership boundaries
+
+Keep the IP Core import direction one-way:
+
+```text
+types and pure canvas utilities
+  -> editor/message controllers and interaction hooks
+  -> feature components
+  -> IpBlockCanvas and IpCoreApp composition roots
+```
+
+`IpCoreApp` owns top-level composition and lifecycle. It must delegate document
+edits, revision-aware messaging, selection commands, session state, and overlay
+routing to typed boundaries rather than accumulating raw listeners, YAML path
+calculations, or feature state machines.
+
+`IpBlockCanvas` owns canvas composition and rendering coordination. Geometry,
+selection transitions, drag and keyboard lifecycles, and model-changing commands
+belong in focused pure utilities, hooks, or controllers. Renderer callbacks
+request typed actions; they do not independently recreate mutations or
+cross-process messages.
+
+Hooks may depend on neutral types and pure utilities, but not on React
+components. Move shared types or constants to a dependency-neutral module
+instead of importing them from a component. Cross-process messages must pass
+through the typed message boundary; do not add isolated `postMessage` calls or
+parallel `message` listeners inside feature components.
+
 ### Canvas inspector ownership
 
 `CanvasInspector.tsx` owns only the resizable shell, header, footer, and feature
@@ -80,6 +108,10 @@ Keep one inspector feature per production module. Aim for no more than roughly
 transformations, or a cohesive subfeature. A larger module should retain one
 clear responsibility and document why splitting it would make ownership less
 clear.
+
+Apply the same size review to other production modules. Line count is evidence
+to inspect ownership, not a reason to split cohesive logic into arbitrary
+fragments. Generated files, declarative data, and templates are excluded.
 
 ## Updates and drafts
 
@@ -118,10 +150,16 @@ system assumptions to webview code.
 
 When changing a webview feature:
 
+- identify the owning layer and keep imports flowing toward the composition root;
+- extract a focused seam when a change would add another responsibility to a
+  root or renderer;
+- keep dependencies explicit and avoid hidden module state or broad contexts;
+- use one tested implementation for behavior shared by multiple surfaces;
 - update both sides of a changed message;
 - keep editor-only fields out of serialized YAML;
 - use the shared table pattern in all parallel editors;
 - put layout calculations in pure algorithm modules;
+- preserve one gesture's update and undo boundary during refactors;
 - test focus and keyboard behavior in a browser;
 - verify narrow and wide editor widths;
 - verify light, dark, and high-contrast themes.

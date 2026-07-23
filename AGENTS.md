@@ -8,8 +8,9 @@ agent would otherwise miss or get wrong.
 
 1. `.agents/rules/*.md` — project rules, treat as binding (no emojis in
    documentation, no auto add/commit/push, planning docs go in `docs/`, prove
-   root cause with evidence before fixing, must pass `npm run lint` before
-   commit). Meaningful emoji usage in UI code is allowed.
+   root cause with evidence before fixing, preserve architectural dependency
+   direction, keep modules cohesive, and pass `npm run lint` before commit).
+   Meaningful emoji usage in UI code is allowed.
 2. `CLAUDE.md` — architecture map and key conventions. Already loaded into the
    session via system prompt.
 3. `docs/architecture/*.md` — deeper design notes; `bit-field-handling.md` is
@@ -76,10 +77,11 @@ via `src/test/integration/setup.ts`), and there is no Jest for browser tests
   work. Same for `src/generator/packs/` -> `dist/packs/` and
   `ipcraft-spec/bus_definitions` and `ipcraft-spec/schemas/` ->
   `dist/resources/`.
-- **`src/webview/types/ipCore.d.ts` and `memoryMap.d.ts` are auto-generated**
-  from `ipcraft-spec/schemas/*.schema.json` by `npm run generate-types`. Do
-  not hand-edit; `editor.d.ts`, `registerModel.ts`, `selection.d.ts` are
-  hand-written.
+- **`src/webview/types/ipCore.d.ts` and `memoryMap.d.ts` are legacy,
+  hand-maintained types.** `npm run generate-types` writes `src/domain/*.types.ts`
+  and `src/generator/contract/templateContext.types.ts`; it does not update
+  these two older webview files. Schema changes may therefore require a
+  deliberate update to both the generated domain types and these legacy types.
 
 ## Test/mock conventions worth knowing
 
@@ -111,6 +113,26 @@ The Memory Map webview has **three parallel table editors** that must be kept in
 - Mouse (hover-bar, context menu): use `pendingInsertFocusRef` — `useEffect` calls `editor.selectRow` AND `editor.focusCellEditor` so the user can type the new name immediately.
 
 Both refs are resolved in the same `useEffect([wrappedRows, editor])`.
+
+## Design guardrails
+
+- Preserve the dependency direction
+  `types/pure utilities -> services/controllers/hooks -> components -> app roots`.
+  Hooks and utilities must not depend on components, and cycles are forbidden.
+- Keep roots such as `IpCoreApp` and renderer shells such as `IpBlockCanvas`
+  focused on composition. Put domain edits, geometry, validation, and typed
+  message construction behind focused functions, hooks, or controllers.
+- Dependencies must be visible in narrow typed props or function parameters.
+  Avoid broad context objects and hidden mutable module state.
+- Reuse behavior through one canonical mechanism when multiple surfaces need
+  it, but keep an abstraction feature-local until a second concrete consumer
+  or a stable boundary exists.
+- Aim for production modules below roughly 400 lines. Crossing 500 lines
+  triggers a responsibility review, not an automatic split; cohesive
+  exceptions need a short architectural justification.
+- Refactors must preserve update atomicity, undo granularity, protocol payloads,
+  focus, keyboard, selection, and validation behavior. Characterize risky
+  behavior before moving it.
 
 ## Style / convention hard rules (project-specific)
 

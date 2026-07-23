@@ -40,6 +40,39 @@ Two webpack bundles run in **completely separate JS environments** and communica
 
 `src/providers/` register `vscode.CustomTextEditorProvider`s for `.ip.yml` and `.mm.yml`; the React webview is the editor UI. Source uses **relative imports** — the `@/`, `@webview/` etc. aliases exist only in jest's `moduleNameMapper` and are not used by source or webpack.
 
+### Design and modularity guardrails
+
+Apply these boundaries to all new work:
+
+- Preserve the dependency direction
+  **types and pure utilities -> services/controllers/hooks -> components ->
+  application roots**. Lower layers never import components or roots; do not
+  introduce cycles or reverse-layer imports.
+- Application roots and major renderers are composition boundaries. They wire
+  focused modules together and translate user intent into typed actions; pure
+  transformations, geometry, validation rules, message builders, and
+  feature-specific state machines belong outside them.
+- Expose dependencies through narrow typed props and function contracts. Avoid
+  hidden mutable module state and broad contexts that make every consumer
+  depend on the entire application.
+- Use one canonical implementation for behavior shared by parallel surfaces.
+  Extract the algorithm, reducer, command builder, or interaction hook instead
+  of copying a fix. Keep it feature-local until a second concrete consumer or a
+  stable architectural boundary justifies wider reuse.
+- Before adding to an existing module, state its current responsibility. If the
+  change introduces another reason to change, extract a cohesive feature module
+  first. Aim for production modules below roughly 400 lines; 500 lines is a
+  responsibility-review trigger, not an automatic split. Larger cohesive
+  exceptions must be justified in an architecture note or module comment.
+- Refactoring must preserve observable contracts: protocol payloads and
+  listener order, YAML paths and mutation order, update atomicity and undo
+  granularity, validation timing, DOM/CSS behavior, focus, keyboard, selection,
+  and drag behavior. Add characterization tests before moving risky behavior,
+  then direct unit tests for extracted pure logic.
+
+The binding version of these rules is `.agents/rules/architecture.md`. The
+webview-specific ownership map is in `docs/architecture/webview.md`.
+
 ### The data round-trip (the part that requires reading multiple files)
 
 1. **`src/domain/`** is the canonical normalized type layer shared across the process boundary. `parse.ts` converts raw YAML objects into `Normalized*` domain types (adding `rowId`); `serialize.ts` converts them back to schema-valid YAML objects, stripping computed properties.
