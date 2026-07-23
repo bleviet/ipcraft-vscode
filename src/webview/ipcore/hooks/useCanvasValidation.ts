@@ -1,5 +1,6 @@
 import { IpCore, Clock, Reset, Port, BusInterface } from '../../types/ipCore';
 import { reconstructBusPortNameSet } from '../../../shared/busPortNameSet';
+import { lookupBusDef } from '../data/busDefinitions';
 
 export type ValidationSeverity = 'warning' | 'error';
 
@@ -52,6 +53,23 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
         portNames.add(key);
       }
     }
+
+    // A hand-edited YAML file can bypass the UI restrictions. A parameterized (string)
+    // width is left unflagged — it may resolve to a byte multiple at elaboration, and the
+    // generated HDL guards that with a runtime assertion.
+    if (port.endianness === 'big' && port.direction === 'inout') {
+      addAnnotation(id, 'warning', 'Endianness "big" has no effect on an inout port');
+    } else if (
+      port.endianness === 'big' &&
+      typeof port.width === 'number' &&
+      !(port.width > 1 && port.width % 8 === 0)
+    ) {
+      addAnnotation(
+        id,
+        'warning',
+        'Endianness "big" has no effect: width must be a multiple of 8 bits'
+      );
+    }
   });
 
   // Detect bus interfaces whose reconstructed physical port names actually collide —
@@ -97,6 +115,40 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
 
     if (!bus.type) {
       addAnnotation(id, 'error', 'Bus interface must have a type');
+    }
+
+    if (bus.endianness === 'big') {
+      const portDefs = lookupBusDef(bus.type);
+      if (portDefs && portDefs.length > 0) {
+        const selectedOptionalPorts = new Set(bus.useOptionalPorts ?? []);
+        const absentPorts = new Set((bus.absentPorts ?? []).map((name) => name.toUpperCase()));
+        const activeDataPorts = portDefs.filter(
+          (port) =>
+            port.endianRole === 'data' &&
+            !absentPorts.has(port.name.toUpperCase()) &&
+            (port.presence === 'required' || selectedOptionalPorts.has(port.name))
+        );
+
+        if (activeDataPorts.length === 0) {
+          addAnnotation(
+            id,
+            'warning',
+            'Endianness "big" has no effect: interface has no enabled data port'
+          );
+        } else {
+          const invalidDataPort = activeDataPorts.find((port) => {
+            const width = bus.portWidthOverrides?.[port.name] ?? port.width ?? 1;
+            return typeof width === 'number' && !(width > 1 && width % 8 === 0);
+          });
+          if (invalidDataPort) {
+            addAnnotation(
+              id,
+              'warning',
+              `Endianness "big" has no effect on ${invalidDataPort.name}: width must be a multiple of 8 bits`
+            );
+          }
+        }
+      }
     }
 
     // A conduit is a signal group with no clock domain of its own, so it must not

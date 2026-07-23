@@ -18,6 +18,15 @@ package {{ entity_name }}_pkg is
   constant C_ADDR_WIDTH : natural := {{ addr_width | default(8) }};
   constant C_REG_WIDTH  : natural := {{ reg_width | default(4) }};  -- Bytes per register
 
+{% if endian_swap_widths | length %}
+  ----------------------------------------------------------------------------
+  -- Endianness (big-endian ports are byte-swapped at the top level)
+  ----------------------------------------------------------------------------
+{% for width in endian_swap_widths %}
+  function swap_bytes_{{ width }}(x : std_logic_vector({{ width - 1 }} downto 0)) return std_logic_vector;
+{% endfor %}
+
+{% endif %}
 {% if registers | length %}
   ----------------------------------------------------------------------------
   -- Register Address Map (byte offset, matches the resolved memory map and
@@ -254,6 +263,23 @@ end package {{ entity_name }}_pkg;
 
 package body {{ entity_name }}_pkg is
 
+{% if endian_swap_widths | length %}
+  ----------------------------------------------------------------------------
+  -- Endianness
+  ----------------------------------------------------------------------------
+{% for width in endian_swap_widths %}
+  -- Reverses byte order of a {{ width }}-bit vector.
+  function swap_bytes_{{ width }}(x : std_logic_vector({{ width - 1 }} downto 0)) return std_logic_vector is
+    variable result : std_logic_vector({{ width - 1 }} downto 0);
+  begin
+{% for byte_idx in range((width // 8)) %}
+    result({{ (byte_idx + 1) * 8 - 1 }} downto {{ byte_idx * 8 }}) := x({{ width - byte_idx * 8 - 1 }} downto {{ width - (byte_idx + 1) * 8 }});
+{% endfor %}
+    return result;
+  end function;
+
+{% endfor %}
+{% endif %}
   ----------------------------------------------------------------------------
   -- Conversion Functions
   ----------------------------------------------------------------------------

@@ -15,7 +15,7 @@ use ieee.numeric_std.all;
 {% if uses_math_real %}
 use ieee.math_real.all;
 {% endif %}
-{% if has_memory_mapped_slave %}
+{% if has_memory_mapped_slave or has_endian_swap %}
 use work.{{ entity_name }}_pkg.all;
 {% endif %}
 
@@ -66,6 +66,21 @@ end entity {{ entity_name }};
 
 architecture rtl of {{ entity_name }} is
 {% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% if has_memory_mapped_slave %}
+{% set core_bus_interfaces = secondary_bus_interfaces %}
+{% set core_bus_ports = secondary_bus_ports %}
+{% else %}
+{% set core_bus_interfaces = expanded_bus_interfaces %}
+{% set core_bus_ports = bus_ports %}
+{% endif %}
+{# When no register file exists but user ports do, route them through the bus wrapper.
+   This covers IPs like AXI-Lite slaves that expose a direct register-bank interface
+   (rb_addr/rb_wr/…) rather than a generated register file. #}
+{% set pass_user_via_bus = has_memory_mapped_slave and user_ports | length > 0 and sw_registers | length == 0 and not has_regs_in %}
+{# Instantiate the bus-agnostic core when it carries logic: for a memory-mapped IP unless
+   its user ports are passed straight through the wrapper, or — for an IP with no memory-
+   mapped slave — when a big-endian swap needs a core to reflow through. #}
+{% set instantiate_core = (not pass_user_via_bus) if has_memory_mapped_slave else has_endian_swap %}
 {% if has_memory_mapped_slave and (sw_registers | length > 0 or has_regs_in) %}
 
     -- Internal register signals
@@ -76,19 +91,62 @@ architecture rtl of {{ entity_name }} is
   signal regs_hw2sw : t_regs_hw2sw;
 {% endif %}
 {% endif %}
+{% if has_endian_swap %}
+
+    -- Big-endian intermediate signals (byte-swapped view for internal logic)
+{% for port in endian_swap_ports %}
+  signal {{ port.internal_name }} : {{ port.type }};
+{% endfor %}
+{% endif %}
 
 begin
+{% if has_endian_swap %}
+
+    -- Endianness: reflow big-endian data ports (byte reversal) and their byte-qualifier
+    -- masks (bit reversal) between the external ports and the internal `_be` view.
+{% for port in endian_swap_ports %}
+{% if port.swap_kind == 'bit' %}
+{% if port.direction == 'in' %}
+    gen_swap_{{ port.name }} : for bit_idx in 0 to {{ port.name }}'length - 1 generate
+      {{ port.internal_name }}(bit_idx) <= {{ port.name }}({{ port.name }}'length - 1 - bit_idx);
+    end generate;
+{% else %}
+    gen_swap_{{ port.name }} : for bit_idx in 0 to {{ port.name }}'length - 1 generate
+      {{ port.name }}(bit_idx) <= {{ port.internal_name }}({{ port.name }}'length - 1 - bit_idx);
+    end generate;
+{% endif %}
+{% elif port.is_parameterized %}
+    assert ({{ port.name }}'length mod 8) = 0
+      report "{{ port.name }}: big-endian byte swap requires a width that is a multiple of 8 bits"
+      severity failure;
+{% if port.direction == 'in' %}
+    gen_swap_{{ port.name }} : for byte_idx in 0 to ({{ port.name }}'length / 8) - 1 generate
+      {{ port.internal_name }}((byte_idx + 1) * 8 - 1 downto byte_idx * 8) <=
+        {{ port.name }}({{ port.name }}'length - byte_idx * 8 - 1 downto {{ port.name }}'length - (byte_idx + 1) * 8);
+    end generate;
+{% else %}
+    gen_swap_{{ port.name }} : for byte_idx in 0 to ({{ port.name }}'length / 8) - 1 generate
+      {{ port.name }}((byte_idx + 1) * 8 - 1 downto byte_idx * 8) <=
+        {{ port.internal_name }}({{ port.name }}'length - byte_idx * 8 - 1 downto {{ port.name }}'length - (byte_idx + 1) * 8);
+    end generate;
+{% endif %}
+{% else %}
+{% if port.direction == 'in' %}
+    {{ port.internal_name }} <= swap_bytes_{{ port.width }}({{ port.name }});
+{% else %}
+    {{ port.name }} <= swap_bytes_{{ port.width }}({{ port.internal_name }});
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
 {% if has_memory_mapped_slave %}
-{# When no register file exists but user ports do, route them through the bus wrapper.
-   This covers IPs like AXI-Lite slaves that expose a direct register-bank interface
-   (rb_addr/rb_wr/…) rather than a generated register file. #}
-{% set pass_user_via_bus = user_ports | length > 0 and sw_registers | length == 0 and not has_regs_in %}
 
     ----------------------------------------------------------------------------
     -- Bus Wrapper Instance
     ----------------------------------------------------------------------------
     u_{{ bus_type }} : entity work.{{ entity_name }}_{{ bus_type }}
-{% if pass_user_via_bus and generics | length %}
+{% set has_parameterized_bus_ports = bus_ports | selectattr('is_parameterized', 'equalto', true) | list | length > 0 %}
+{% if (pass_user_via_bus or has_parameterized_bus_ports) and generics | length %}
     generic map (
 {% for generic in generics %}
       {{ generic.name }} => {{ generic.name }}{{ "," if not loop.last else "" }}
@@ -102,7 +160,7 @@ begin
 {% set has_regs_ports = sw_registers | length > 0 or has_regs_in %}
 {% if bus_ports %}
 {% for port in bus_ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or has_regs_ports or pass_user_via_bus else "" }}
+      {{ "%-14s"|format(port.name) }} => {{ port.internal_name if port.needs_swap else port.name }}{{ "," if not loop.last or has_regs_ports or pass_user_via_bus else "" }}
 {% endfor %}
 {% endif %}
 {% if sw_registers | length > 0 %}
@@ -113,12 +171,13 @@ begin
 {% endif %}
 {% if pass_user_via_bus %}
 {% for port in user_ports %}
-      {{ port.name }} => {{ port.name }}{{ "," if not loop.last else "" }}
+      {{ port.name }} => {{ port.internal_name if port.needs_swap else port.name }}{{ "," if not loop.last else "" }}
 {% endfor %}
 {% endif %}
     );
+{% endif %}
+{% if instantiate_core %}
 
-{% if not pass_user_via_bus %}
     ----------------------------------------------------------------------------
     -- Core Logic Instance
     ----------------------------------------------------------------------------
@@ -134,27 +193,26 @@ begin
       clk => {{ clock_port }},
       rst => {% if reset_active_high %}{{ reset_port }}{% else %}not {{ reset_port }}{% endif %},
 {% if sw_registers | length > 0 %}
-      regs_in  => regs_sw2hw{{ "," if has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+      regs_in  => regs_sw2hw{{ "," if has_regs_in or core_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% endif %}
 {% if has_regs_in %}
-      regs_out => regs_hw2sw{{ "," if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+      regs_out => regs_hw2sw{{ "," if core_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% endif %}
-{% if secondary_bus_interfaces | length %}
-{% for iface in secondary_bus_interfaces %}{% set iface_loop = loop %}
+{% if core_bus_interfaces | length %}
+{% for iface in core_bus_interfaces %}{% set iface_loop = loop %}
 
       -- {{ iface.name }}
 {% for port in iface.ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length else "" }}
+      {{ "%-14s"|format(port.name) }} => {{ port.internal_name if port.needs_swap else port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length else "" }}
 {% endfor %}
 {% endfor %}
 {% endif %}
 {% if user_ports | length %}
 {% for port in user_ports %}
-      {{ port.name }} => {{ port.name }}{{ "," if not loop.last else "" }}
+      {{ port.name }} => {{ port.internal_name if port.needs_swap else port.name }}{{ "," if not loop.last else "" }}
 {% endfor %}
 {% endif %}
     );
 
-{% endif %}
 {% endif %}
 end architecture rtl;

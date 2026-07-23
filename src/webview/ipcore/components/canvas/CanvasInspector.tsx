@@ -42,6 +42,7 @@ import { BUS_VLNV, busSupportsMemoryMap } from '../../../../shared/busVlnv';
 import { isValidVlnv } from '../../../../utils/vlnv';
 import { MapConduitToBusDialog, type MapConduitToBusResult } from './MapConduitToBusDialog';
 import { applyMapConduitToKnownBus, type BatchUpdate } from '../../hooks/useGroupPorts';
+import { portEndiannessApplies } from '../../utils/portEndianness';
 
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
@@ -248,7 +249,15 @@ function renderPanel(
       if (!port) {
         return <EmptyState label="Port not found" />;
       }
-      return <PortPanel port={port} index={element.index} ipCore={ipCore} onUpdate={onUpdate} />;
+      return (
+        <PortPanel
+          port={port}
+          index={element.index}
+          ipCore={ipCore}
+          onUpdate={onUpdate}
+          batchUpdate={batchUpdate}
+        />
+      );
     }
     case 'busInterface': {
       const bus = (ipCore.busInterfaces ?? [])[element.index] as BusInterface | undefined;
@@ -2306,9 +2315,10 @@ interface PortPanelProps {
   index: number;
   ipCore: IpCore;
   onUpdate: YamlUpdateHandler;
+  batchUpdate?: BatchUpdate;
 }
 
-const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) => {
+const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate, batchUpdate }) => {
   const ports = (ipCore.ports ?? []) as Port[];
   const existingNames = ports.map((p) => p.name).filter((_, i) => i !== index);
   const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
@@ -2317,6 +2327,28 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
 
   const currentWidth: number | string =
     port.width === undefined || port.width === null ? 1 : (port.width as number | string);
+
+  const saveDirection = (direction: string) => {
+    const mutations: Mutation[] = [[['ports', index, 'direction'], direction]];
+    if (
+      port.endianness === 'big' &&
+      !portEndiannessApplies(currentWidth, canonicalDirection(direction, 'in'))
+    ) {
+      mutations.push([['ports', index, 'endianness'], 'little']);
+    }
+    applyBulkUpdate(mutations, onUpdate, batchUpdate);
+  };
+
+  const saveWidth = (width: number | string) => {
+    const mutations: Mutation[] = [[['ports', index, 'width'], width]];
+    if (
+      port.endianness === 'big' &&
+      !portEndiannessApplies(width, canonicalDirection(port.direction, 'in'))
+    ) {
+      mutations.push([['ports', index, 'endianness'], 'little']);
+    }
+    applyBulkUpdate(mutations, onUpdate, batchUpdate);
+  };
 
   // Build param name→value lookup for expression evaluation.
   // Parameters may use either "defaultValue" (standard schema / hand-authored files)
@@ -2357,14 +2389,24 @@ const PortPanel: React.FC<PortPanelProps> = ({ port, index, ipCore, onUpdate }) 
           label="Direction"
           value={canonicalDirection(port.direction, 'in')}
           options={DIR_3WAY}
-          onSave={(v) => onUpdate(['ports', index, 'direction'], v)}
+          onSave={saveDirection}
         />
         <PropWidthField
           label="Width (bits)"
           value={currentWidth}
           paramNames={paramNames}
           paramValues={paramValues}
-          onSave={(v) => onUpdate(['ports', index, 'width'], v)}
+          onSave={saveWidth}
+        />
+        <PropSelect
+          label="Endianness"
+          value={port.endianness === 'big' ? 'big' : 'little'}
+          options={BUS_ENDIANNESS_OPTS}
+          onSave={(v) => onUpdate(['ports', index, 'endianness'], v)}
+          disabled={
+            !portEndiannessApplies(currentWidth, canonicalDirection(port.direction, 'in')) &&
+            port.endianness !== 'big'
+          }
         />
       </Section>
     </>
@@ -2632,6 +2674,12 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
           value={normalizeBusMode(bus.mode)}
           options={BUS_MODE_OPTS}
           onSave={(v) => onUpdate(['busInterfaces', index, 'mode'], v)}
+        />
+        <PropSelect
+          label="Endianness"
+          value={bus.endianness === 'big' ? 'big' : 'little'}
+          options={BUS_ENDIANNESS_OPTS}
+          onSave={(v) => onUpdate(['busInterfaces', index, 'endianness'], v)}
         />
         {!hasPrefixPattern && (
           <PropField
@@ -4423,9 +4471,17 @@ interface PropSelectProps {
   options: { value: string; label: string }[];
   onSave: (v: string) => void;
   emptyOption?: string;
+  disabled?: boolean;
 }
 
-const PropSelect: React.FC<PropSelectProps> = ({ label, value, options, onSave, emptyOption }) => {
+const PropSelect: React.FC<PropSelectProps> = ({
+  label,
+  value,
+  options,
+  onSave,
+  emptyOption,
+  disabled,
+}) => {
   const controlId = React.useId();
   return (
     <div className="ci-field">
@@ -4436,6 +4492,7 @@ const PropSelect: React.FC<PropSelectProps> = ({ label, value, options, onSave, 
         id={controlId}
         className="ci-field__select"
         value={value}
+        disabled={disabled}
         onChange={(e) => onSave(e.target.value)}
       >
         {emptyOption !== undefined && <option value="">{emptyOption}</option>}
@@ -4621,6 +4678,11 @@ const POLARITY_OPTS = [
 const BUS_MODE_OPTS = [
   { value: 'slave', label: 'slave' },
   { value: 'master', label: 'master' },
+];
+
+const BUS_ENDIANNESS_OPTS = [
+  { value: 'little', label: 'little' },
+  { value: 'big', label: 'big' },
 ];
 
 const CONDUIT_MODE_OPTS = [

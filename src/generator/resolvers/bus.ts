@@ -76,6 +76,40 @@ interface TemplatePort extends Record<string, unknown> {
   is_parameterized: boolean;
   tcl_width?: string;
   logical_name?: string;
+  role?: string;
+  needs_swap?: boolean;
+  /** 'byte' reverses byte lanes (data payload); 'bit' reverses individual bits, one per
+   *  byte lane (WSTRB/TKEEP/byteenable), so the mask stays aligned with the swapped bytes. */
+  swap_kind?: 'byte' | 'bit';
+}
+
+/** A data payload is byte-swappable only when it is a fixed vector of whole bytes. */
+function needsByteSwap(
+  endianness: string | undefined,
+  width: number | string | null,
+  direction: string,
+  isParameterized = false
+): boolean {
+  return (
+    endianness === 'big' &&
+    (direction === 'in' || direction === 'out') &&
+    (isParameterized || (typeof width === 'number' && width > 1 && width % 8 === 0))
+  );
+}
+
+/** A per-byte qualifier (one bit per data byte lane) is reversed whenever its data is
+ *  swapped. Any multi-bit vector is reversible; a 1-bit mask reversal is a no-op, so skip it. */
+function needsBitReverse(
+  endianness: string | undefined,
+  width: number | string | null,
+  direction: string,
+  isParameterized = false
+): boolean {
+  return (
+    endianness === 'big' &&
+    (direction === 'in' || direction === 'out') &&
+    (isParameterized || (typeof width === 'number' && width > 1))
+  );
 }
 
 function resolvePortsForInterface(
@@ -117,6 +151,7 @@ export function buildUserPorts(
     const direction = getString(port.direction).toLowerCase();
     const svDirection = direction === 'in' ? 'input' : direction === 'out' ? 'output' : 'inout';
     const widthValue = port.width ?? 1;
+    const endianness = port.endianness === 'big' ? 'big' : 'little';
 
     // A string width may be a parameter reference, an arithmetic expression, or
     // a predefined function call. A constant expression folds to a literal.
@@ -139,6 +174,11 @@ export function buildUserPorts(
         is_parameterized: true,
         default_width: numericDefault - 1,
         tcl_width: toTclWidth(numericDefault, resolved.expr, paramNames),
+        endianness,
+        // The concrete width is unknown until elaboration. Always emit the generic
+        // reflow for a directional big-endian port; the HDL asserts byte alignment.
+        needs_swap: needsByteSwap(endianness, numericDefault, direction, true),
+        swap_kind: 'byte' as const,
       };
     }
 
@@ -154,6 +194,9 @@ export function buildUserPorts(
       is_parameterized: false,
       default_width: null,
       tcl_width: toTclWidth(width, null, paramNames),
+      endianness,
+      needs_swap: needsByteSwap(endianness, width, direction),
+      swap_kind: 'byte' as const,
     };
   });
 }
@@ -206,6 +249,9 @@ export const busResolver: ContextResolver = {
           (iface.mode ?? '').toLowerCase() === 'slave' &&
           registry.isMemoryMapped(normalizeBusType(getString(iface.type)).templateType)
       );
+      // Preserve the public template-context convention: the memory-mapped slave is
+      // primary when present, otherwise the first interface is primary. Top/core
+      // templates decide whether that primary interface goes through a bus wrapper.
       const primaryIndex = mmIdx >= 0 ? mmIdx : 0;
       busPrefix = normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
 
@@ -236,8 +282,31 @@ export const busResolver: ContextResolver = {
           iface.absentPorts
         ) as unknown as (TemplatePort & Record<string, unknown>)[];
 
+        const ifaceEndianness = iface.endianness === 'big' ? 'big' : 'little';
         activePorts.forEach((port) => {
           port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
+          if (port.role === 'data') {
+            // Data payload: reverse whole byte lanes.
+            port.endianness = ifaceEndianness;
+            port.needs_swap = needsByteSwap(
+              ifaceEndianness,
+              port.width,
+              port.direction,
+              port.is_parameterized
+            );
+            port.swap_kind = 'byte';
+          } else if (port.role === 'byteQualifier') {
+            // Per-byte mask (WSTRB/TKEEP/byteenable): reverse bits so each mask bit stays
+            // aligned with the byte lane it gates after the data byte swap.
+            port.endianness = ifaceEndianness;
+            port.needs_swap = needsBitReverse(
+              ifaceEndianness,
+              port.width,
+              port.direction,
+              port.is_parameterized
+            );
+            port.swap_kind = 'bit';
+          }
         });
         (iface as BusInterfaceDef & Record<string, unknown>).ports = activePorts;
 
@@ -294,6 +363,58 @@ export const busResolver: ContextResolver = {
         widthExprUsesMathReal(port.width_expr)
     );
 
+    // Big-endian ports need an intermediate `_be` signal at the top level. Fixed-width
+    // data payloads go through the package's per-width swap_bytes_<width>() function (one
+    // per distinct width, not a single unconstrained function, to keep generated HDL simple
+    // and toolchain-portable); parameterized data and all byte-qualifier masks use a
+    // width-generic reflow loop at the top level (see package.vhdl.j2/pkg.sv.j2, top.*.j2).
+    const interruptPorts = buildInterruptPorts(ipCore);
+    const allTemplatePorts = [...busPorts, ...secondaryBusPorts, ...userPorts];
+    const reservedNames = new Set(
+      [
+        ...allTemplatePorts.map((port) => port.name),
+        ...interruptPorts.map((port) => port.name),
+        ...(ipCore.clocks ?? []).map((clock) => clock.name ?? ''),
+        ...(ipCore.resets ?? []).map((reset) => reset.name ?? ''),
+        (ipCore.clocks ?? []).length === 0 ? 'clk' : '',
+        (ipCore.resets ?? []).length === 0 ? 'rst' : '',
+      ]
+        .filter(Boolean)
+        .map((name) => String(name).toLowerCase())
+    );
+    const endianSwapPorts = allTemplatePorts
+      .filter((port) => port.needs_swap === true)
+      .map((port) => {
+        const baseName = `${port.name}_be`;
+        let internalName = baseName;
+        let suffix = 2;
+        while (reservedNames.has(internalName.toLowerCase())) {
+          internalName = `${baseName}_${suffix}`;
+          suffix += 1;
+        }
+        reservedNames.add(internalName.toLowerCase());
+        port.internal_name = internalName;
+        return {
+          name: port.name,
+          internal_name: internalName,
+          type: port.type,
+          sv_type: port.sv_type,
+          direction: port.direction,
+          width: port.width,
+          is_parameterized: port.is_parameterized,
+          swap_kind: port.swap_kind ?? 'byte',
+        };
+      });
+    // Only fixed-width byte swaps use a swap_bytes_<width>() function; bit reversals and
+    // parameterized byte swaps are emitted inline as generate loops.
+    const endianSwapWidths = [
+      ...new Set(
+        endianSwapPorts
+          .filter((port) => port.swap_kind === 'byte' && port.is_parameterized !== true)
+          .map((port) => port.width as number)
+      ),
+    ].sort((a, b) => a - b);
+
     return {
       bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',
       bus_ports: busPorts,
@@ -302,8 +423,11 @@ export const busResolver: ContextResolver = {
       expanded_bus_interfaces: expandedBusInterfaces,
       elaborate_port_widths: elaboratePortWidths,
       user_ports: userPorts,
-      interrupt_ports: buildInterruptPorts(ipCore),
+      interrupt_ports: interruptPorts,
       uses_math_real: usesMathReal,
+      endian_swap_ports: endianSwapPorts,
+      endian_swap_widths: endianSwapWidths,
+      has_endian_swap: endianSwapPorts.length > 0,
     };
   },
 };

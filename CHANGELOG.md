@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Configurable port and bus endianness**: standalone vector ports and built-in bus data paths can be marked big-endian. Generated VHDL and SystemVerilog reflow data bytes and their qualifier masks together, including parameterized widths and stream-only designs.
+
+### Changed
+
+- The public generator template-context contract is now version 1.1.0 with additive endian-swap metadata. Packs using a `~1.0` API range must update to `~1.1` (or a compatible caret range) after validating the new context.
+
 ## [0.9.3] - 2026-07-22
 
 ### Added

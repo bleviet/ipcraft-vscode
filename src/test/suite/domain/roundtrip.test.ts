@@ -246,3 +246,47 @@ parameters:
     expect(parsed.parameters?.[0]?.displayName).toBeUndefined();
   });
 });
+
+describe('parseIpCore endianness handling', () => {
+  it('round-trips explicitly authored little-endian values', () => {
+    const parsed = parseIpCore(`
+vlnv: foo:bar:baz:1.0
+ports:
+  - name: data
+    direction: in
+    width: 32
+    endianness: little
+busInterfaces:
+  - name: stream
+    type: ipcraft:busif:axis:1.0
+    mode: slave
+    endianness: little
+`);
+
+    const serialized = serializeIpCore(parsed) as Record<string, unknown>;
+    expect((serialized.ports as Array<Record<string, unknown>>)[0].endianness).toBe('little');
+    expect((serialized.busInterfaces as Array<Record<string, unknown>>)[0].endianness).toBe(
+      'little'
+    );
+  });
+
+  it('leaves implicit endianness absent', () => {
+    const parsed = parseIpCore(`
+vlnv: foo:bar:baz:1.0
+ports:
+  - name: data
+    direction: in
+    width: 32
+busInterfaces:
+  - name: stream
+    type: ipcraft:busif:axis:1.0
+    mode: slave
+`);
+
+    const serialized = serializeIpCore(parsed) as Record<string, unknown>;
+    expect((serialized.ports as Array<Record<string, unknown>>)[0].endianness).toBeUndefined();
+    expect(
+      (serialized.busInterfaces as Array<Record<string, unknown>>)[0].endianness
+    ).toBeUndefined();
+  });
+});

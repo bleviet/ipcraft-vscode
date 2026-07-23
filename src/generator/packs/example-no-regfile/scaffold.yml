@@ -45,11 +45,11 @@ files:
 
   - source: "package.vhdl.j2"
     target: "rtl/{{ name }}_pkg.vhd"
-    condition: "not is_systemverilog and has_memory_mapped_slave"
+    condition: "not is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
 
   - source: "core.vhdl.j2"
     target: "rtl/{{ name }}_core.vhd"
-    condition: "not is_systemverilog and has_memory_mapped_slave"
+    condition: "not is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
     managed: false  # ← user writes their own register decode inside this file
 
   - source: "bus_{{ bus_type }}.vhdl.j2"
@@ -64,11 +64,11 @@ files:
 
   - source: "pkg.sv.j2"
     target: "rtl/{{ name }}_pkg.sv"
-    condition: "is_systemverilog and has_memory_mapped_slave"
+    condition: "is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
 
   - source: "core.sv.j2"
     target: "rtl/{{ name }}_core.sv"
-    condition: "is_systemverilog and has_memory_mapped_slave"
+    condition: "is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
     managed: false
 
   - source: "bus_{{ bus_type }}.sv.j2"

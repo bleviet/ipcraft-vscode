@@ -16,6 +16,20 @@ package {{ entity_name }}_pkg;
   localparam int C_ADDR_WIDTH = {{ addr_width | default(8) }};
   localparam int C_REG_WIDTH  = {{ reg_width | default(4) }};  // Bytes per register
 
+{% if endian_swap_widths | length %}
+  ////////////////////////////////////////////////////////////////////////////
+  // Endianness (big-endian ports are byte-swapped at the top level)
+  ////////////////////////////////////////////////////////////////////////////
+{% for width in endian_swap_widths %}
+  // Reverses byte order of a {{ width }}-bit vector.
+  function automatic logic [{{ width - 1 }}:0] swap_bytes_{{ width }}(input logic [{{ width - 1 }}:0] x);
+{% for byte_idx in range((width // 8)) %}
+    swap_bytes_{{ width }}[{{ (byte_idx + 1) * 8 - 1 }}:{{ byte_idx * 8 }}] = x[{{ width - byte_idx * 8 - 1 }}:{{ width - (byte_idx + 1) * 8 }}];
+{% endfor %}
+  endfunction
+
+{% endfor %}
+{% endif %}
 {% if registers | length %}
   ////////////////////////////////////////////////////////////////////////////
   // Register Address Map (byte offset, matches the resolved memory map and

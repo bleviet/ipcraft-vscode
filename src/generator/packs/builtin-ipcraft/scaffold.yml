@@ -8,14 +8,16 @@ fullGeneration: true
 
 files:
   # ── VHDL package (shared types) ────────────────────────────────────────────
+  # Also generated when a big-endian swap is present but there is no memory-mapped
+  # slave: the top and core still need the package for its swap_bytes_<N>() helpers.
   - source: "package.vhdl.j2"
     target: "rtl/{{ name }}_pkg.vhd"
-    condition: "not is_systemverilog and has_memory_mapped_slave"
+    condition: "not is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
 
   # ── SV package ─────────────────────────────────────────────────────────────
   - source: "pkg.sv.j2"
     target: "rtl/{{ name }}_pkg.sv"
-    condition: "is_systemverilog and has_memory_mapped_slave"
+    condition: "is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
 
   # ── Register file ───────────────────────────────────────────────────────────
   - source: "register_file.vhdl.j2"
@@ -27,13 +29,15 @@ files:
     condition: "is_systemverilog and includeRegs and has_memory_mapped_slave"
 
   # ── Core logic stub (user-owned after first write) ──────────────────────────
+  # A big-endian IP with no memory-mapped slave still needs a core for the top to
+  # reflow the byte-swapped ports through.
   - source: "core.vhdl.j2"
     target: "rtl/{{ name }}_core.vhd"
-    condition: "not is_systemverilog and has_memory_mapped_slave"
+    condition: "not is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
 
   - source: "core.sv.j2"
     target: "rtl/{{ name }}_core.sv"
-    condition: "is_systemverilog and has_memory_mapped_slave"
+    condition: "is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
 
   # ── Bus wrapper ─────────────────────────────────────────────────────────────
   - source: "bus_{{ bus_type }}.vhdl.j2"

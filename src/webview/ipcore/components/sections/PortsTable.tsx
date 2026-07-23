@@ -5,11 +5,13 @@ import type { WidthParameter } from '../../../shared/components';
 import { displayDirection } from '../../../shared/utils/formatters';
 import { validateVhdlIdentifier, validateUniqueName } from '../../../shared/utils/validation';
 import { useTableEditing } from '../../../hooks/useTableEditing';
+import { portEndiannessApplies } from '../../utils/portEndianness';
 
 interface Port {
   name: string;
   direction: string;
   width?: number | string;
+  endianness?: string;
 }
 
 interface PortsTableProps {
@@ -26,7 +28,7 @@ const createEmptyPort = (): Port => ({
 
 const normalizePort = (port: Port): Port => {
   const normalizedDirection = displayDirection(port.direction, 'input');
-  return {
+  const normalized = {
     ...port,
     direction:
       normalizedDirection === 'input' ||
@@ -35,9 +37,13 @@ const normalizePort = (port: Port): Port => {
         ? normalizedDirection
         : 'input',
   };
+  return normalized.endianness === 'big' &&
+    !portEndiannessApplies(normalized.width, normalized.direction)
+    ? { ...normalized, endianness: 'little' }
+    : normalized;
 };
 
-const COLUMN_KEYS = ['name', 'direction', 'width'];
+const COLUMN_KEYS = ['name', 'direction', 'width', 'endianness'];
 
 /**
  * Editable table for IP Core ports
@@ -106,7 +112,15 @@ export const PortsTable: React.FC<PortsTableProps> = ({
             { value: 'output', label: 'output' },
             { value: 'inout', label: 'inout' },
           ]}
-          onChange={(v: string) => setDraft({ ...draft, direction: v })}
+          onChange={(v: string) =>
+            setDraft({
+              ...draft,
+              direction: v,
+              ...(draft.endianness === 'big' && !portEndiannessApplies(draft.width, v)
+                ? { endianness: 'little' }
+                : {}),
+            })
+          }
           data-edit-key="direction"
           onSave={canSave ? handleSave : undefined}
           onCancel={handleCancel}
@@ -115,9 +129,32 @@ export const PortsTable: React.FC<PortsTableProps> = ({
       <td className="px-4 py-3">
         <WidthField
           value={draft.width ?? 1}
-          onChange={(v: number | string) => setDraft({ ...draft, width: v })}
+          onChange={(v: number | string) =>
+            setDraft({
+              ...draft,
+              width: v,
+              ...(draft.endianness === 'big' && !portEndiannessApplies(v, draft.direction)
+                ? { endianness: 'little' }
+                : {}),
+            })
+          }
           parameters={parameters}
           defaultWidth={1}
+          onSave={canSave ? handleSave : undefined}
+          onCancel={handleCancel}
+        />
+      </td>
+      <td className="px-4 py-3">
+        <SelectField
+          label=""
+          value={draft.endianness ?? 'little'}
+          disabled={!portEndiannessApplies(draft.width, draft.direction)}
+          options={[
+            { value: 'little', label: 'little' },
+            { value: 'big', label: 'big' },
+          ]}
+          onChange={(v: string) => setDraft({ ...draft, endianness: v })}
+          data-edit-key="endianness"
           onSave={canSave ? handleSave : undefined}
           onCancel={handleCancel}
         />
@@ -201,6 +238,9 @@ export const PortsTable: React.FC<PortsTableProps> = ({
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase opacity-70">
                 Width
               </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold uppercase opacity-70">
+                Endianness
+              </th>
               <th className="px-4 py-3 text-right text-xs font-semibold uppercase opacity-70">
                 Actions
               </th>
@@ -239,6 +279,11 @@ export const PortsTable: React.FC<PortsTableProps> = ({
                       (port.width ?? 1)
                     )}
                   </td>
+                  <td className="px-4 py-3 text-sm" {...getCellProps(index, 'endianness')}>
+                    {portEndiannessApplies(port.width, port.direction)
+                      ? (port.endianness ?? 'little')
+                      : '—'}
+                  </td>
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={(e) => {
@@ -270,7 +315,7 @@ export const PortsTable: React.FC<PortsTableProps> = ({
             {isAdding && renderEditRow(true)}
             {ports.length === 0 && !isAdding && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-sm" style={{ opacity: 0.6 }}>
+                <td colSpan={5} className="px-4 py-8 text-center text-sm" style={{ opacity: 0.6 }}>
                   No ports defined. Press 'o' or click "Add Port".
                 </td>
               </tr>

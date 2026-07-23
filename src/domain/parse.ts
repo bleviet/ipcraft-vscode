@@ -432,6 +432,10 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       conduitPorts,
       associatedClock: String(bus.associatedClock ?? bus.associated_clock ?? ''),
       associatedReset: String(bus.associatedReset ?? bus.associated_reset ?? ''),
+      // Preserve an explicitly authored value while leaving an absent default absent.
+      ...(bus.endianness === 'big' || bus.endianness === 'little'
+        ? { endianness: bus.endianness }
+        : {}),
       ...(typeof bus.firstSymbolInHighOrderBits === 'boolean'
         ? { firstSymbolInHighOrderBits: bus.firstSymbolInHighOrderBits }
         : {}),
@@ -481,6 +485,10 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
         direction: String(port.direction ?? ''),
         width: port.width ?? 1,
         presence: String(port.presence ?? ''),
+        // Preserve an explicitly authored value while leaving an absent default absent.
+        ...(port.endianness === 'big' || port.endianness === 'little'
+          ? { endianness: port.endianness }
+          : {}),
       };
     }),
     busInterfaces: normalizedBusInterfaces,

@@ -105,6 +105,11 @@ export type BusPortDefinition = {
   width?: number | string;
   direction?: string;
   presence?: string;
+  /** Endianness role of the port:
+   *  - 'data': carries the data payload (e.g. WDATA/RDATA/TDATA); byte-reversed on big-endian.
+   *  - 'byteQualifier': per-byte-lane mask (e.g. WSTRB/TKEEP/byteenable); bit-reversed in
+   *    lockstep with the data so the lane mask stays aligned with the reversed bytes. */
+  role?: 'data' | 'byteQualifier';
 };
 
 export type BusDefinition = {
@@ -163,6 +168,8 @@ export interface BusInterfaceDef {
   firstSymbolInHighOrderBits?: boolean;
   /** Name of the memory map this (slave) interface exposes — matches a map's `name`. */
   memoryMapRef?: string;
+  /** Byte order for this interface's data port(s). Little-endian is the default. */
+  endianness?: 'little' | 'big';
   array?: BusInterfaceArrayDef;
   /** User-defined signals for conduit (custom) interfaces. */
   conduitPorts?: Array<Record<string, unknown>>;
@@ -188,6 +195,8 @@ export interface PortDef {
   direction?: string;
   width?: number | string;
   presence?: string;
+  /** Byte order for this port. Little-endian is the default. */
+  endianness?: 'little' | 'big';
 }
 
 export interface ClockDef {

@@ -12,7 +12,7 @@
 
 {# Header import, not compilation-unit scope: iverilog 12 cannot resolve
    functions imported into $unit, only types and parameters. #}
-module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }}_pkg::*;{% endif %}{% if generics | length %} #(
+module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} import {{ entity_name }}_pkg::*;{% endif %}{% if generics | length %} #(
 {% for generic in generics %}
   parameter {{ generic.sv_type ~ " " if generic.sv_type }}{{ generic.name }} = {{ generic.sv_default }}{{ "," if not loop.last else "" }}
 {% endfor %}
@@ -52,6 +52,17 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 {% endif %}
 );
 {% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% if has_memory_mapped_slave %}
+{% set core_bus_interfaces = secondary_bus_interfaces %}
+{% set core_bus_ports = secondary_bus_ports %}
+{% else %}
+{% set core_bus_interfaces = expanded_bus_interfaces %}
+{% set core_bus_ports = bus_ports %}
+{% endif %}
+{# Instantiate the bus-agnostic core whenever it carries logic: any memory-mapped IP, or —
+   for an IP with no memory-mapped slave — when a big-endian swap needs a core to reflow
+   through. #}
+{% set instantiate_core = has_memory_mapped_slave or has_endian_swap %}
 {% if has_memory_mapped_slave and (sw_registers | length > 0 or has_regs_in) %}
 
   // Internal register signals
@@ -62,17 +73,63 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
   regs_hw2sw_t regs_hw2sw;
 {% endif %}
 {% endif %}
+{% if has_endian_swap %}
+
+  // Big-endian intermediate signals (byte-swapped view for internal logic)
+{% for port in endian_swap_ports %}
+  {{ port.sv_type }} {{ port.internal_name }};
+{% endfor %}
+{% endif %}
+{% if has_endian_swap %}
+
+  // Endianness: reflow big-endian data ports (byte reversal) and their byte-qualifier
+  // masks (bit reversal) between the external ports and the internal `_be` view.
+{% for port in endian_swap_ports %}
+{% if port.swap_kind == 'bit' %}
+  for (genvar bit_idx = 0; bit_idx < $bits({{ port.name }}); bit_idx++) begin : gen_swap_{{ port.name }}
+{% if port.direction == 'in' %}
+    assign {{ port.internal_name }}[bit_idx] = {{ port.name }}[$bits({{ port.name }}) - 1 - bit_idx];
+{% else %}
+    assign {{ port.name }}[bit_idx] = {{ port.internal_name }}[$bits({{ port.name }}) - 1 - bit_idx];
+{% endif %}
+  end
+{% elif port.is_parameterized %}
+  initial begin : check_swap_{{ port.name }}_width
+    assert (($bits({{ port.name }}) % 8) == 0)
+      else $fatal(1, "{{ port.name }}: big-endian byte swap requires a width that is a multiple of 8 bits");
+  end
+  for (genvar byte_idx = 0; byte_idx < $bits({{ port.name }}) / 8; byte_idx++) begin : gen_swap_{{ port.name }}
+{% if port.direction == 'in' %}
+    assign {{ port.internal_name }}[byte_idx * 8 +: 8] = {{ port.name }}[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];
+{% else %}
+    assign {{ port.name }}[byte_idx * 8 +: 8] = {{ port.internal_name }}[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];
+{% endif %}
+  end
+{% else %}
+{% if port.direction == 'in' %}
+  assign {{ port.internal_name }} = swap_bytes_{{ port.width }}({{ port.name }});
+{% else %}
+  assign {{ port.name }} = swap_bytes_{{ port.width }}({{ port.internal_name }});
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
 {% if has_memory_mapped_slave %}
 
   ////////////////////////////////////////////////////////////////////////////
   // Bus Wrapper Instance
   ////////////////////////////////////////////////////////////////////////////
-  {{ entity_name }}_{{ bus_type }} u_{{ bus_type }} (
+{% set has_parameterized_bus_ports = bus_ports | selectattr('is_parameterized', 'equalto', true) | list | length > 0 %}
+  {{ entity_name }}_{{ bus_type }}{% if has_parameterized_bus_ports and generics | length %} #(
+{% for generic in generics %}
+    .{{ generic.name }}({{ generic.name }}){{ "," if not loop.last else "" }}
+{% endfor %}
+  ){% endif %} u_{{ bus_type }} (
     .clk ({{ clock_port }}),
     .rst ({% if reset_active_high %}{{ reset_port }}{% else %}~{{ reset_port }}{% endif %}){% if bus_ports | length or sw_registers | length > 0 or has_regs_in %},{% endif %}
 
 {% for port in bus_ports %}
-    .{{ "%-14s"|format(port.name) }}({{ port.name }}){{ "," if not loop.last or sw_registers | length > 0 or has_regs_in else "" }}
+    .{{ "%-14s"|format(port.name) }}({{ port.internal_name if port.needs_swap else port.name }}){{ "," if not loop.last or sw_registers | length > 0 or has_regs_in else "" }}
 {% endfor %}
 {% if sw_registers | length > 0 %}
     .regs_out (regs_sw2hw){{ "," if has_regs_in else "" }}
@@ -81,6 +138,8 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
     .regs_in  (regs_hw2sw)
 {% endif %}
   );
+{% endif %}
+{% if instantiate_core %}
 
   ////////////////////////////////////////////////////////////////////////////
   // Core Logic Instance
@@ -91,25 +150,25 @@ module {{ entity_name }}{% if has_memory_mapped_slave %} import {{ entity_name }
 {% endfor %}
   ){% endif %} u_core (
     .clk ({{ clock_port }}),
-    .rst ({% if reset_active_high %}{{ reset_port }}{% else %}~{{ reset_port }}{% endif %}){{ "," if sw_registers | length > 0 or has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+    .rst ({% if reset_active_high %}{{ reset_port }}{% else %}~{{ reset_port }}{% endif %}){{ "," if sw_registers | length > 0 or has_regs_in or core_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% if sw_registers | length > 0 %}
-    .regs_in  (regs_sw2hw){{ "," if has_regs_in or secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+    .regs_in  (regs_sw2hw){{ "," if has_regs_in or core_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% endif %}
 {% if has_regs_in %}
-    .regs_out (regs_hw2sw){{ "," if secondary_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+    .regs_out (regs_hw2sw){{ "," if core_bus_ports | length > 0 or user_ports | length > 0 else "" }}
 {% endif %}
-{% if secondary_bus_interfaces | length %}
-{% for iface in secondary_bus_interfaces %}{% set iface_loop = loop %}
+{% if core_bus_interfaces | length %}
+{% for iface in core_bus_interfaces %}{% set iface_loop = loop %}
 
     // {{ iface.name }}
 {% for port in iface.ports %}
-    .{{ "%-14s"|format(port.name) }}({{ port.name }}){{ "," if not loop.last or not iface_loop.last or user_ports | length > 0 else "" }}
+    .{{ "%-14s"|format(port.name) }}({{ port.internal_name if port.needs_swap else port.name }}){{ "," if not loop.last or not iface_loop.last or user_ports | length > 0 else "" }}
 {% endfor %}
 {% endfor %}
 {% endif %}
 {% if user_ports | length %}
 {% for port in user_ports %}
-    .{{ port.name }}({{ port.name }}){{ "," if not loop.last else "" }}
+    .{{ port.name }}({{ port.internal_name if port.needs_swap else port.name }}){{ "," if not loop.last else "" }}
 {% endfor %}
 {% endif %}
   );

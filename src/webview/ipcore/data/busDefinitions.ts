@@ -3,8 +3,10 @@ export interface BusPortDef {
   width?: number;
   direction?: 'in' | 'out';
   presence: 'required' | 'optional';
-  /** Marks signals that map to a shared clock or reset — hidden when the bus has an association */
+  /** Marks signals that map to a shared clock or reset — hidden when the bus has an association. */
   role?: 'clock' | 'reset';
+  /** Marks payload and per-byte qualifier signals for endianness validation. */
+  endianRole?: 'data' | 'byteQualifier';
 }
 
 import { BUS_VLNV } from '../../../shared/busVlnv';
@@ -16,8 +18,14 @@ const AXI4_LITE: BusPortDef[] = [
   { name: 'AWVALID', direction: 'out', presence: 'required' },
   { name: 'AWREADY', direction: 'in', presence: 'required' },
   { name: 'AWPROT', width: 3, direction: 'out', presence: 'required' },
-  { name: 'WDATA', width: 32, direction: 'out', presence: 'required' },
-  { name: 'WSTRB', width: 4, direction: 'out', presence: 'required' },
+  { name: 'WDATA', width: 32, direction: 'out', presence: 'required', endianRole: 'data' },
+  {
+    name: 'WSTRB',
+    width: 4,
+    direction: 'out',
+    presence: 'required',
+    endianRole: 'byteQualifier',
+  },
   { name: 'WVALID', direction: 'out', presence: 'required' },
   { name: 'WREADY', direction: 'in', presence: 'required' },
   { name: 'BRESP', width: 2, direction: 'in', presence: 'required' },
@@ -27,7 +35,7 @@ const AXI4_LITE: BusPortDef[] = [
   { name: 'ARVALID', direction: 'out', presence: 'required' },
   { name: 'ARREADY', direction: 'in', presence: 'required' },
   { name: 'ARPROT', width: 3, direction: 'out', presence: 'required' },
-  { name: 'RDATA', width: 32, direction: 'in', presence: 'required' },
+  { name: 'RDATA', width: 32, direction: 'in', presence: 'required', endianRole: 'data' },
   { name: 'RRESP', width: 2, direction: 'in', presence: 'required' },
   { name: 'RVALID', direction: 'in', presence: 'required' },
   { name: 'RREADY', direction: 'out', presence: 'required' },
@@ -46,8 +54,14 @@ const AXI4_FULL: BusPortDef[] = [
   { name: 'AWBURST', width: 2, direction: 'out', presence: 'optional' },
   { name: 'AWLOCK', width: 1, direction: 'out', presence: 'optional' },
   { name: 'AWCACHE', width: 4, direction: 'out', presence: 'optional' },
-  { name: 'WDATA', width: 32, direction: 'out', presence: 'required' },
-  { name: 'WSTRB', width: 4, direction: 'out', presence: 'required' },
+  { name: 'WDATA', width: 32, direction: 'out', presence: 'required', endianRole: 'data' },
+  {
+    name: 'WSTRB',
+    width: 4,
+    direction: 'out',
+    presence: 'required',
+    endianRole: 'byteQualifier',
+  },
   { name: 'WLAST', direction: 'out', presence: 'optional' },
   { name: 'WVALID', direction: 'out', presence: 'required' },
   { name: 'WREADY', direction: 'in', presence: 'required' },
@@ -66,7 +80,7 @@ const AXI4_FULL: BusPortDef[] = [
   { name: 'ARLOCK', width: 1, direction: 'out', presence: 'optional' },
   { name: 'ARCACHE', width: 4, direction: 'out', presence: 'optional' },
   { name: 'RID', width: 4, direction: 'in', presence: 'optional' },
-  { name: 'RDATA', width: 32, direction: 'in', presence: 'required' },
+  { name: 'RDATA', width: 32, direction: 'in', presence: 'required', endianRole: 'data' },
   { name: 'RRESP', width: 2, direction: 'in', presence: 'required' },
   { name: 'RLAST', direction: 'in', presence: 'optional' },
   { name: 'RVALID', direction: 'in', presence: 'required' },
@@ -76,11 +90,23 @@ const AXI4_FULL: BusPortDef[] = [
 const AXI_STREAM: BusPortDef[] = [
   { name: 'ACLK', presence: 'required', role: 'clock' },
   { name: 'ARESETn', presence: 'required', role: 'reset' },
-  { name: 'TDATA', width: 32, direction: 'out', presence: 'required' },
+  { name: 'TDATA', width: 32, direction: 'out', presence: 'required', endianRole: 'data' },
   { name: 'TVALID', direction: 'out', presence: 'required' },
   { name: 'TREADY', direction: 'in', presence: 'required' },
-  { name: 'TSTRB', width: 4, direction: 'out', presence: 'optional' },
-  { name: 'TKEEP', width: 4, direction: 'out', presence: 'optional' },
+  {
+    name: 'TSTRB',
+    width: 4,
+    direction: 'out',
+    presence: 'optional',
+    endianRole: 'byteQualifier',
+  },
+  {
+    name: 'TKEEP',
+    width: 4,
+    direction: 'out',
+    presence: 'optional',
+    endianRole: 'byteQualifier',
+  },
   { name: 'TLAST', direction: 'out', presence: 'optional' },
   { name: 'TID', width: 8, direction: 'out', presence: 'optional' },
   { name: 'TDEST', width: 4, direction: 'out', presence: 'optional' },
@@ -93,10 +119,28 @@ const AVALON_MM: BusPortDef[] = [
   { name: 'address', width: 32, direction: 'out', presence: 'optional' },
   { name: 'read', direction: 'out', presence: 'optional' },
   { name: 'write', direction: 'out', presence: 'optional' },
-  { name: 'byteenable', width: 4, direction: 'out', presence: 'optional' },
+  {
+    name: 'byteenable',
+    width: 4,
+    direction: 'out',
+    presence: 'optional',
+    endianRole: 'byteQualifier',
+  },
   { name: 'chipselect', direction: 'out', presence: 'optional' },
-  { name: 'writedata', width: 32, direction: 'out', presence: 'optional' },
-  { name: 'readdata', width: 32, direction: 'in', presence: 'optional' },
+  {
+    name: 'writedata',
+    width: 32,
+    direction: 'out',
+    presence: 'optional',
+    endianRole: 'data',
+  },
+  {
+    name: 'readdata',
+    width: 32,
+    direction: 'in',
+    presence: 'optional',
+    endianRole: 'data',
+  },
   { name: 'readdatavalid', direction: 'in', presence: 'optional' },
   { name: 'waitrequest', direction: 'in', presence: 'optional' },
   { name: 'burstcount', width: 8, direction: 'out', presence: 'optional' },
@@ -107,7 +151,7 @@ const AVALON_MM: BusPortDef[] = [
 const AVALON_ST: BusPortDef[] = [
   { name: 'clk', presence: 'required', role: 'clock' },
   { name: 'reset', presence: 'required', role: 'reset' },
-  { name: 'data', width: 32, direction: 'out', presence: 'required' },
+  { name: 'data', width: 32, direction: 'out', presence: 'required', endianRole: 'data' },
   { name: 'valid', direction: 'out', presence: 'required' },
   { name: 'ready', direction: 'in', presence: 'optional' },
   { name: 'startofpacket', direction: 'out', presence: 'optional' },
