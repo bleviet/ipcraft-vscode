@@ -28,7 +28,7 @@ export interface ScaffoldFileRule {
 }
 
 /**
- * Input compatibility a scaffold pack declares in its manifest (issue #152). Checked once,
+ * Input compatibility a scaffold pack declares in its manifest (issues #152, #154). Checked once,
  * before any file is rendered or written, so an incompatible pack/IP-core pairing fails fast
  * with an actionable reason instead of silently producing a partial or invalid file tree.
  * Absent fields impose no constraint; a pack that omits `requirements` entirely accepts any
@@ -50,7 +50,7 @@ export interface ScaffoldPackRequirements {
    * interface — e.g. Avalon-MM's optional ports all default to disabled, so an interface with
    * no `useOptionalPorts` renders with zero signals unless a pack requires some here.
    */
-  minimumBusPorts?: string[];
+  logicalPorts?: string[];
 }
 
 /**

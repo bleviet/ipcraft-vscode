@@ -11,7 +11,7 @@ export interface PackRequirementsInput {
 
 /**
  * Validates an IP core / generate options pairing against a scaffold pack's declared
- * `requirements` (issue #152) before any file is rendered or written. Throws a single Error
+ * `requirements` (issues #152, #154) before any file is rendered or written. Throws a single Error
  * listing every unmet requirement so `generate`/`verify` fail fast with an actionable message
  * instead of silently producing a partial or invalid file tree.
  *
@@ -46,13 +46,13 @@ export function checkPackRequirements(pack: ScaffoldPack, input: PackRequirement
     reasons.push('requires no memory-mapped slave interface, but the IP core has one');
   }
 
-  if (requirements.minimumBusPorts && requirements.minimumBusPorts.length > 0) {
-    const missing = requirements.minimumBusPorts.filter(
+  if (requirements.logicalPorts && requirements.logicalPorts.length > 0) {
+    const missing = requirements.logicalPorts.filter(
       (port) => !activeLower.has(port.toLowerCase())
     );
     if (missing.length > 0) {
       reasons.push(
-        `requires bus ports ${formatList(requirements.minimumBusPorts)}, but the primary bus interface is missing: ${missing.join(', ')}`
+        `requires logical ports ${formatList(requirements.logicalPorts)}, but the primary bus interface is missing: ${missing.join(', ')}`
       );
     }
   }

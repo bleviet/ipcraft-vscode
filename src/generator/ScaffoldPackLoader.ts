@@ -71,7 +71,7 @@ function parseRequirements(raw: unknown): ScaffoldPackRequirements | undefined {
     hdlLanguages: toStringArray(r.hdlLanguages) as ScaffoldPackRequirements['hdlLanguages'],
     busTypes: toStringArray(r.busTypes),
     memoryMappedSlave,
-    minimumBusPorts: toStringArray(r.minimumBusPorts),
+    logicalPorts: toStringArray(r.logicalPorts),
   };
   return requirements;
 }

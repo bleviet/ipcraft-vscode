@@ -167,7 +167,7 @@ requirements:
   busTypes:
     - avmm
   memoryMappedSlave: required
-  minimumBusPorts:
+  logicalPorts:
     - address
     - read
     - write
@@ -180,7 +180,7 @@ requirements:
 | `hdlLanguages` | HDL languages this pack supports (`vhdl`, `systemverilog`) |
 | `busTypes` | Bus type ids this pack supports (`axil`, `axi4`, `avmm`, `axis`, `avst`) |
 | `memoryMappedSlave` | `required` or `forbidden` — whether the IP core must (not) have a memory-mapped slave interface |
-| `minimumBusPorts` | Logical port names (case-insensitive) that must be active on the primary bus interface — useful for buses such as Avalon-MM where every port is optional, so an interface with no enabled ports would otherwise render with no signals |
+| `logicalPorts` | Logical port names (case-insensitive) that must be active on the primary bus interface — useful for buses such as Avalon-MM where every port is optional, so an interface with no enabled ports would otherwise render with no signals |
 
 Omitting `requirements` entirely (or any field within it) imposes no
 constraint on that dimension — existing manifests keep working unchanged.

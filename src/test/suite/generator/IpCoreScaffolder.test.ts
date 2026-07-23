@@ -553,7 +553,7 @@ describe('IpCoreScaffolder', () => {
         'requirements:',
         '  busTypes:',
         '    - avmm',
-        '  minimumBusPorts:',
+        '  logicalPorts:',
         '    - address',
         '    - read',
         '    - write',
@@ -585,7 +585,7 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
-  it('rejects an Avalon-MM core with no active optional ports against a minimumBusPorts requirement (issue #152)', async () => {
+  it('rejects an Avalon-MM core with no active optional ports against a logicalPorts requirement (issue #152)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pack-requirements-avmm-'));
     const packDir = path.join(tmp, 'avmm-regfile-pack');
     fs2.mkdirSync(packDir, { recursive: true });
@@ -595,7 +595,7 @@ describe('IpCoreScaffolder', () => {
         'name: "avmm-regfile-pack"',
         'fullGeneration: true',
         'requirements:',
-        '  minimumBusPorts:',
+        '  logicalPorts:',
         '    - address',
         '    - read',
         '    - write',
@@ -615,7 +615,7 @@ describe('IpCoreScaffolder', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toContain(
-        'requires bus ports [address, read, write], but the primary bus interface is missing: address, read, write'
+        'requires logical ports [address, read, write], but the primary bus interface is missing: address, read, write'
       );
     } finally {
       fs2.rmSync(tmp, { recursive: true, force: true });

@@ -90,7 +90,7 @@ describe('ScaffoldPackLoader.resolve', () => {
         '  busTypes:',
         '    - avmm',
         '  memoryMappedSlave: required',
-        '  minimumBusPorts:',
+        '  logicalPorts:',
         '    - address',
         '    - read',
         '    - write',
@@ -105,7 +105,7 @@ describe('ScaffoldPackLoader.resolve', () => {
       hdlLanguages: ['vhdl'],
       busTypes: ['avmm'],
       memoryMappedSlave: 'required',
-      minimumBusPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
+      logicalPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
     });
   });
 

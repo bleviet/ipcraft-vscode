@@ -22,7 +22,7 @@ describe('checkPackRequirements', () => {
       hdlLanguages: ['vhdl'],
       busTypes: ['avmm'],
       memoryMappedSlave: 'required',
-      minimumBusPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
+      logicalPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
     });
     expect(() => checkPackRequirements(pack, compatibleInput)).not.toThrow();
   });
@@ -60,17 +60,17 @@ describe('checkPackRequirements', () => {
     // useOptionalPorts renders with zero signals — a register-file template has nothing through
     // which software can access the registers.
     const pack = makePack({
-      minimumBusPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
+      logicalPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
     });
     expect(() =>
       checkPackRequirements(pack, { ...compatibleInput, activeBusPortNames: [] })
     ).toThrow(
-      /requires bus ports \[address, read, write, writedata, readdata\], but the primary bus interface is missing: address, read, write, writedata, readdata/
+      /requires logical ports \[address, read, write, writedata, readdata\], but the primary bus interface is missing: address, read, write, writedata, readdata/
     );
   });
 
   it('matches bus port names case-insensitively', () => {
-    const pack = makePack({ minimumBusPorts: ['ADDRESS'] });
+    const pack = makePack({ logicalPorts: ['ADDRESS'] });
     expect(() =>
       checkPackRequirements(pack, { ...compatibleInput, activeBusPortNames: ['address'] })
     ).not.toThrow();
