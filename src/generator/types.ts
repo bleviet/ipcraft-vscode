@@ -20,6 +20,32 @@ export interface ScaffoldFileRule {
 }
 
 /**
+ * Input compatibility a scaffold pack declares in its manifest (issue #152). Checked once,
+ * before any file is rendered or written, so an incompatible pack/IP-core pairing fails fast
+ * with an actionable reason instead of silently producing a partial or invalid file tree.
+ * Absent fields impose no constraint; a pack that omits `requirements` entirely accepts any
+ * input, matching pre-existing manifests.
+ */
+export interface ScaffoldPackRequirements {
+  /** HDL languages this pack can render. Checked against the `--hdl-language` generate option. */
+  hdlLanguages?: HdlLanguage[];
+  /**
+   * Bus type ids this pack supports (e.g. "avmm", "axil" — the same short ids used by
+   * `BUS_REGISTRY`/`getBusTypeForTemplate`). Checked against the IP core's primary slave
+   * interface type.
+   */
+  busTypes?: string[];
+  /** Whether the IP core must ("required") or must not ("forbidden") have a memory-mapped slave. */
+  memoryMappedSlave?: 'required' | 'forbidden';
+  /**
+   * Logical port names (case-insensitive) that must be active on the IP core's primary bus
+   * interface — e.g. Avalon-MM's optional ports all default to disabled, so an interface with
+   * no `useOptionalPorts` renders with zero signals unless a pack requires some here.
+   */
+  minimumBusPorts?: string[];
+}
+
+/**
  * A resolved scaffold pack — the in-memory representation of a scaffold.yml manifest.
  * Built-in packs live in dist/packs/; user packs live in .vscode/ipcraft/packs/<name>/.
  */
@@ -53,6 +79,8 @@ export interface ScaffoldPack {
    * Absent means no version constraint (unversioned packs skip the check).
    */
   apiVersion?: string;
+  /** Input compatibility declarations, validated before any file is rendered (issue #152). */
+  requirements?: ScaffoldPackRequirements;
 }
 
 export interface GenerateOptions {

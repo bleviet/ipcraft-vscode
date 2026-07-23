@@ -141,6 +141,46 @@ describe('runCliGenerate', () => {
     }
   });
 
+  it('exits with a non-zero result and an actionable error for a pack requirements mismatch (issue #152)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-cli-requirements-'));
+    const packDir = path.join(tmp, 'avalon-only-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "avalon-only-pack"',
+        'fullGeneration: true',
+        'requirements:',
+        '  busTypes:',
+        '    - avmm',
+        'files: []',
+      ].join('\n')
+    );
+
+    try {
+      // sample-ipcore.yml declares an AXI4L slave — incompatible with an Avalon-MM-only pack.
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await runCliGenerate(
+        {
+          ipYamlPath: inputPath,
+          outDir: path.join(tmp, 'output'),
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+        },
+        resourceRoots
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Scaffold pack 'avalon-only-pack' is incompatible");
+      expect(result.error).toContain(
+        "requires bus type [avmm], but the IP core's primary slave interface is 'axil'"
+      );
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('defaults the output directory to alongside the .ip.yml when --out is omitted', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-cli-outdir-'));
     try {

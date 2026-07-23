@@ -19,7 +19,12 @@ import { loadIpCoreData } from './loadIpCore';
 import { sortByCompilationOrder, hdlLanguageFromPath } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
-import { assertValidContext, CONTRACT_VERSION, checkPackApiVersion } from './contract';
+import {
+  assertValidContext,
+  CONTRACT_VERSION,
+  checkPackApiVersion,
+  checkPackRequirements,
+} from './contract';
 import type { TemplateContext } from './contract';
 import { BUS_REGISTRY } from './buses/builtin';
 import { clockResetResolver } from './resolvers/clockReset';
@@ -113,6 +118,12 @@ export class IpCoreScaffolder {
         ? scaffoldPackLoader.resolve(packName, workspacePackDirs)
         : scaffoldPackLoader.resolveDefault();
       checkPackApiVersion(pack);
+      checkPackRequirements(pack, {
+        hdlLanguage,
+        busType,
+        hasMemoryMappedSlave: hasMmSlave,
+        activeBusPortNames: extractActiveBusPortNames(context),
+      });
       const resolvedPackName = path.basename(pack.packDir);
 
       // Pack-level template loader: searches pack dir first (user overrides), then built-in templates.
@@ -489,6 +500,24 @@ export class IpCoreScaffolder {
         .replace(/\b\w/g, (letter) => letter.toUpperCase()),
     };
   }
+}
+
+/**
+ * Logical port names active on the IP core's primary bus interface, read off the template
+ * context's `bus_ports` (built once in buildTemplateContext, independent of the resolved
+ * scaffold pack) for the requirements check in checkPackRequirements (issue #152).
+ */
+function extractActiveBusPortNames(context: Record<string, unknown>): string[] {
+  const busPorts = context.bus_ports;
+  if (!Array.isArray(busPorts)) {
+    return [];
+  }
+  return busPorts
+    .map((port) => {
+      const p = port as Record<string, unknown>;
+      return String(p.logical_name ?? p.name ?? '');
+    })
+    .filter((name) => name.length > 0);
 }
 
 /**

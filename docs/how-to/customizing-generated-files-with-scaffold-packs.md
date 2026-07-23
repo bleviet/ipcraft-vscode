@@ -122,6 +122,7 @@ Then select `my-pack` from **Scaffold Template** and generate the project.
 | `description` | No | Short explanation shown in the preview |
 | `fullGeneration` | No | Gives generated tests the complete register and bus data when `true` |
 | `generateFrameworkTestbench` | No | Set to `false` to suppress IPCraft's `tb/*` and `.vscode/settings.json` framework testbench output — use when the pack's own `files` already provide a complete simulation environment. Defaults to `true` |
+| `requirements` | No | Input compatibility this pack needs — see below |
 | `files` | Yes | Output rules |
 | `files[].source` | Yes | Template to render |
 | `files[].target` | Yes | Output path, relative to the generated project |
@@ -136,6 +137,38 @@ the file on the first run and does not replace an existing copy later.
   target: "rtl/{{ name }}_core.vhd"
   managed: false
 ```
+
+## Declare input requirements
+
+A pack that only makes sense for certain IP cores can declare `requirements` in
+`scaffold.yml`. IPCraft checks these before rendering any file — an
+incompatible IP core fails generation with a clear reason instead of
+producing a partial or invalid file tree.
+
+```yaml
+requirements:
+  hdlLanguages:
+    - vhdl
+  busTypes:
+    - avmm
+  memoryMappedSlave: required
+  minimumBusPorts:
+    - address
+    - read
+    - write
+    - writedata
+    - readdata
+```
+
+| Field | Meaning |
+|---|---|
+| `hdlLanguages` | HDL languages this pack supports (`vhdl`, `systemverilog`) |
+| `busTypes` | Bus type ids this pack supports (`axil`, `axi4`, `avmm`, `axis`, `avst`) |
+| `memoryMappedSlave` | `required` or `forbidden` — whether the IP core must (not) have a memory-mapped slave interface |
+| `minimumBusPorts` | Logical port names (case-insensitive) that must be active on the primary bus interface — useful for buses such as Avalon-MM where every port is optional, so an interface with no enabled ports would otherwise render with no signals |
+
+Omitting `requirements` entirely (or any field within it) imposes no
+constraint on that dimension — existing manifests keep working unchanged.
 
 ## How templates are found
 

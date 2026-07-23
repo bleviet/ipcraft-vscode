@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import type { ScaffoldPack, ScaffoldFileRule } from './types';
+import type { ScaffoldPack, ScaffoldFileRule, ScaffoldPackRequirements } from './types';
 
 /**
  * Resolve a rendered scaffold target beneath the selected output directory.
@@ -52,6 +52,28 @@ export function resolveScaffoldOutputPath(
   }
 
   return resolvedTarget;
+}
+
+/** Parses the optional `requirements` manifest block (issue #152). Absent = no constraint. */
+function parseRequirements(raw: unknown): ScaffoldPackRequirements | undefined {
+  if (raw === undefined || raw === null || typeof raw !== 'object') {
+    return undefined;
+  }
+  const r = raw as Record<string, unknown>;
+  const toStringArray = (v: unknown): string[] | undefined =>
+    Array.isArray(v) ? v.map((x) => String(x)) : undefined;
+  const memoryMappedSlave =
+    r.memoryMappedSlave === 'required' || r.memoryMappedSlave === 'forbidden'
+      ? r.memoryMappedSlave
+      : undefined;
+
+  const requirements: ScaffoldPackRequirements = {
+    hdlLanguages: toStringArray(r.hdlLanguages) as ScaffoldPackRequirements['hdlLanguages'],
+    busTypes: toStringArray(r.busTypes),
+    memoryMappedSlave,
+    minimumBusPorts: toStringArray(r.minimumBusPorts),
+  };
+  return requirements;
 }
 
 export class ScaffoldPackLoader {
@@ -133,6 +155,7 @@ export class ScaffoldPackLoader {
       fullGeneration: Boolean(parsed.fullGeneration ?? false),
       generateFrameworkTestbench: Boolean(parsed.generateFrameworkTestbench ?? true),
       apiVersion: parsed.apiVersion !== undefined ? String(parsed.apiVersion) : undefined,
+      requirements: parseRequirements(parsed.requirements),
     };
   }
 

@@ -72,6 +72,49 @@ describe('ScaffoldPackLoader.resolve', () => {
     const pack = loader.resolve('no-framework-tb');
     expect(pack.generateFrameworkTestbench).toBe(false);
   });
+
+  it('leaves requirements undefined when the manifest omits it', () => {
+    const loader = new ScaffoldPackLoader(builtinDir);
+    const pack = loader.resolve('builtin-minimal');
+    expect(pack.requirements).toBeUndefined();
+  });
+
+  it('parses a requirements block from the manifest (issue #152)', () => {
+    writePack(
+      builtinDir,
+      'avalon-only-pack',
+      [
+        'requirements:',
+        '  hdlLanguages:',
+        '    - vhdl',
+        '  busTypes:',
+        '    - avmm',
+        '  memoryMappedSlave: required',
+        '  minimumBusPorts:',
+        '    - address',
+        '    - read',
+        '    - write',
+        '    - writedata',
+        '    - readdata',
+        '',
+      ].join('\n')
+    );
+    const loader = new ScaffoldPackLoader(builtinDir);
+    const pack = loader.resolve('avalon-only-pack');
+    expect(pack.requirements).toEqual({
+      hdlLanguages: ['vhdl'],
+      busTypes: ['avmm'],
+      memoryMappedSlave: 'required',
+      minimumBusPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
+    });
+  });
+
+  it('ignores an unrecognized memoryMappedSlave value', () => {
+    writePack(builtinDir, 'bad-mms-pack', 'requirements:\n  memoryMappedSlave: sometimes\n');
+    const loader = new ScaffoldPackLoader(builtinDir);
+    const pack = loader.resolve('bad-mms-pack');
+    expect(pack.requirements?.memoryMappedSlave).toBeUndefined();
+  });
 });
 
 describe.each([

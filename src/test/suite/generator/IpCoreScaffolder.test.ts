@@ -456,6 +456,121 @@ describe('IpCoreScaffolder', () => {
     expect(generatedPaths).toContain('.vscode/settings.json');
   });
 
+  it('rejects an AXI4-Lite IP core against an Avalon-MM-only pack requirements block (issue #152)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pack-requirements-'));
+    const packDir = path.join(tmp, 'avalon-only-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "avalon-only-pack"',
+        'fullGeneration: true',
+        'requirements:',
+        '  busTypes:',
+        '    - avmm',
+        '  minimumBusPorts:',
+        '    - address',
+        '    - read',
+        '    - write',
+        '    - writedata',
+        '    - readdata',
+        'files: []',
+      ].join('\n')
+    );
+
+    try {
+      // sample-ipcore.yml declares an AXI4L slave — incompatible with an Avalon-MM-only pack.
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: false,
+        targets: [],
+        scaffoldPack: packDir,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Scaffold pack 'avalon-only-pack' is incompatible");
+      expect(result.error).toContain(
+        "requires bus type [avmm], but the IP core's primary slave interface is 'axil'"
+      );
+      // No partial/misleading output: the check runs before any file is rendered or written.
+      expect(fs.mkdir).not.toHaveBeenCalled();
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects an Avalon-MM core with no active optional ports against a minimumBusPorts requirement (issue #152)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pack-requirements-avmm-'));
+    const packDir = path.join(tmp, 'avmm-regfile-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "avmm-regfile-pack"',
+        'fullGeneration: true',
+        'requirements:',
+        '  minimumBusPorts:',
+        '    - address',
+        '    - read',
+        '    - write',
+        'files: []',
+      ].join('\n')
+    );
+
+    try {
+      // Every avalon_mm port is presence:optional, so with no useOptionalPorts declared this
+      // interface renders with zero active bus signals (see the fixture's own doc comment).
+      const inputPath = path.resolve(__dirname, '../../fixtures/avmm-no-optional-ports.ip.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: false,
+        targets: [],
+        scaffoldPack: packDir,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
+        'requires bus ports [address, read, write], but the primary bus interface is missing: address, read, write'
+      );
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('accepts an AXI4-Lite IP core matching an AXI4-Lite pack requirements block', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pack-requirements-ok-'));
+    const packDir = path.join(tmp, 'axil-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "axil-pack"',
+        'fullGeneration: true',
+        'requirements:',
+        '  hdlLanguages:',
+        '    - vhdl',
+        '  busTypes:',
+        '    - axil',
+        '  memoryMappedSlave: required',
+        'files: []',
+      ].join('\n')
+    );
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: false,
+        targets: [],
+        scaffoldPack: packDir,
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('rejects a rendered traversal target before writing any scaffold file', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pack-traversal-'));
     const packDir = path.join(tmp, 'unsafe-pack');

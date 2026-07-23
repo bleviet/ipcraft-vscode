@@ -260,6 +260,45 @@ describe('runCliVerify', () => {
     }
   });
 
+  it('returns a readable error instead of a stale-file list when the scaffold pack requirements are unmet (issue #152)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-requirements-'));
+    const packDir = path.join(tmp, 'avalon-only-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "avalon-only-pack"',
+        'fullGeneration: true',
+        'requirements:',
+        '  busTypes:',
+        '    - avmm',
+        'files: []',
+      ].join('\n')
+    );
+
+    try {
+      // sample-ipcore.yml declares an AXI4L slave — incompatible with an Avalon-MM-only pack.
+      // ipcraft verify shares generateAll/buildGenerateOptions with generate, so the same
+      // requirements check applies here too.
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await runCliVerify(
+        {
+          ipYamlPath: inputPath,
+          generatedDir: tmp,
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+        },
+        resourceRoots
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("Scaffold pack 'avalon-only-pack' is incompatible");
+      expect(result.staleFiles).toBeUndefined();
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('returns a readable error for a schema-invalid .ip.yml instead of a stale-file list', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-invalid-'));
     try {
