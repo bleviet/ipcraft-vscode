@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-07-23
+
 ### Added
 
 - **Configurable port and bus endianness**: standalone vector ports and built-in bus data paths can be marked big-endian. Generated VHDL and SystemVerilog reflow data bytes and their qualifier masks together, including parameterized widths and stream-only designs.
