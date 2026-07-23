@@ -40,6 +40,13 @@ export interface ScaffoldPack {
    */
   fullGeneration?: boolean;
   /**
+   * When false, IPCraft's framework testbench generation (tb/*, .vscode/settings.json) is
+   * suppressed entirely, regardless of the `includeTestbench` generate option — the pack owns
+   * the complete simulation environment itself (issue #151). Defaults to true so existing packs
+   * keep their current output.
+   */
+  generateFrameworkTestbench?: boolean;
+  /**
    * SemVer range declaring which template context contract version this pack targets.
    * E.g. "^1.0" means compatible with any 1.x contract >= 1.0.
    * IPCraft rejects a pack whose apiVersion is not satisfied by the running CONTRACT_VERSION.

@@ -173,7 +173,7 @@ export class IpCoreScaffolder {
       // so the TB doesn't import a package that wasn't generated.
       const tbCtx = pack.fullGeneration ? context : { ...context, has_memory_mapped_slave: false };
 
-      if (includeTestbench) {
+      if (includeTestbench && pack.generateFrameworkTestbench !== false) {
         const tbFiles = generateTestbenchFiles(framework, engine, {
           name,
           templateContext: tbCtx,

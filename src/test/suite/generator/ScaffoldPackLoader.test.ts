@@ -59,6 +59,19 @@ describe('ScaffoldPackLoader.resolve', () => {
     const loader = new ScaffoldPackLoader(builtinDir);
     expect(() => loader.resolve('does-not-exist')).toThrow(/does-not-exist/);
   });
+
+  it('defaults generateFrameworkTestbench to true when the manifest omits it', () => {
+    const loader = new ScaffoldPackLoader(builtinDir);
+    const pack = loader.resolve('builtin-minimal');
+    expect(pack.generateFrameworkTestbench).toBe(true);
+  });
+
+  it('honors an explicit generateFrameworkTestbench: false in the manifest', () => {
+    writePack(builtinDir, 'no-framework-tb', 'generateFrameworkTestbench: false\n');
+    const loader = new ScaffoldPackLoader(builtinDir);
+    const pack = loader.resolve('no-framework-tb');
+    expect(pack.generateFrameworkTestbench).toBe(false);
+  });
 });
 
 describe.each([

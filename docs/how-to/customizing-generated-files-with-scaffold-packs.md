@@ -121,6 +121,7 @@ Then select `my-pack` from **Scaffold Template** and generate the project.
 | `name` | Yes | Pack name shown by IPCraft |
 | `description` | No | Short explanation shown in the preview |
 | `fullGeneration` | No | Gives generated tests the complete register and bus data when `true` |
+| `generateFrameworkTestbench` | No | Set to `false` to suppress IPCraft's `tb/*` and `.vscode/settings.json` framework testbench output — use when the pack's own `files` already provide a complete simulation environment. Defaults to `true` |
 | `files` | Yes | Output rules |
 | `files[].source` | Yes | Template to render |
 | `files[].target` | Yes | Output path, relative to the generated project |

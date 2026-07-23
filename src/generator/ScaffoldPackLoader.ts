@@ -131,6 +131,7 @@ export class ScaffoldPackLoader {
       packDir,
       files,
       fullGeneration: Boolean(parsed.fullGeneration ?? false),
+      generateFrameworkTestbench: Boolean(parsed.generateFrameworkTestbench ?? true),
       apiVersion: parsed.apiVersion !== undefined ? String(parsed.apiVersion) : undefined,
     };
   }

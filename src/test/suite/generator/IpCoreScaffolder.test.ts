@@ -405,6 +405,57 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('suppresses framework testbench files when the pack sets generateFrameworkTestbench: false (issue #151)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-notb-'));
+    const packDir = path.join(tmp, 'full-gen-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "full-gen-pack"',
+        'fullGeneration: true',
+        'generateFrameworkTestbench: false',
+        'files:',
+        '  - source: custom_tb.vhd.j2',
+        '    target: sim/custom_tb.vhd',
+      ].join('\n')
+    );
+    fs2.writeFileSync(path.join(packDir, 'custom_tb.vhd.j2'), '-- custom testbench\n');
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: true,
+        targets: [],
+        scaffoldPack: packDir,
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      const generatedPaths = Object.keys(result.generatedContents ?? {});
+      expect(generatedPaths).toContain('sim/custom_tb.vhd');
+      expect(generatedPaths.some((p) => p.startsWith('tb/'))).toBe(false);
+      expect(generatedPaths).not.toContain('.vscode/settings.json');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('still emits framework testbench files by default when a pack omits generateFrameworkTestbench', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const result = await scaffolder.generateAll(inputPath, '/tmp/test-default-tb-output', {
+      includeTestbench: true,
+      targets: [],
+      scaffoldPack: 'builtin-ipcraft',
+      dryRun: true,
+    });
+
+    expect(result.success).toBe(true);
+    const generatedPaths = Object.keys(result.generatedContents ?? {});
+    expect(generatedPaths.some((p) => p.startsWith('tb/'))).toBe(true);
+    expect(generatedPaths).toContain('.vscode/settings.json');
+  });
+
   it('rejects a rendered traversal target before writing any scaffold file', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-pack-traversal-'));
     const packDir = path.join(tmp, 'unsafe-pack');
