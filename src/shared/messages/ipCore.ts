@@ -37,3 +37,19 @@ export type IpCoreWebviewMessage =
   | { type: 'stagingAction'; action: 'viewDiff' | 'viewPreview' | 'merge'; relativePath: string }
   | { type: 'saveAsIpYml' }
   | { type: 'checkConsistency' };
+
+export type IpCoreHostMessage =
+  | {
+      type: 'filesSelected';
+      files: string[];
+      memoryMapNames?: Record<string, string>;
+    }
+  | { type: 'filesExistResult'; results: Record<string, boolean> }
+  | { type: 'subcoreAdded'; vlnv: string }
+  | {
+      type: 'customBusDefinitionSaved';
+      typeName: string;
+      filePath: string;
+      customBusLibraryDir: string;
+      portWidthOverrides?: Record<string, unknown>;
+    };
