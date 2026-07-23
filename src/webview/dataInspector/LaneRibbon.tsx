@@ -9,6 +9,7 @@ import {
 import type { InspectorField, ProjectedInspectorField } from '../../dataInspector/fieldLayout';
 
 const LANE_HEIGHT = 74;
+const COMPACT_LANE_HEIGHT = 54;
 
 interface LaneRibbonProps {
   vector: BitVector;
@@ -50,9 +51,12 @@ export function LaneRibbon({
   const [jumpMessage, setJumpMessage] = useState('');
   const [jumpError, setJumpError] = useState(false);
   const laneCount = Math.ceil(vector.width / laneWidth);
+  const hasInsertedBits = provenance?.some((bit) => bit === null) ?? false;
+  const showFieldOverlay = fields.length > 0 || hasInsertedBits;
+  const laneHeight = showFieldOverlay ? LANE_HEIGHT : COMPACT_LANE_HEIGHT;
   const overscan = 2;
-  const start = Math.max(0, Math.floor(scrollTop / LANE_HEIGHT) - overscan);
-  const end = Math.min(laneCount, Math.ceil((scrollTop + viewportHeight) / LANE_HEIGHT) + overscan);
+  const start = Math.max(0, Math.floor(scrollTop / laneHeight) - overscan);
+  const end = Math.min(laneCount, Math.ceil((scrollTop + viewportHeight) / laneHeight) + overscan);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -67,7 +71,7 @@ export function LaneRibbon({
   const focusLane = (laneIndex: number) => {
     const next = Math.max(0, Math.min(laneCount - 1, laneIndex));
     setFocusedLane(next);
-    viewportRef.current?.scrollTo({ top: next * LANE_HEIGHT, behavior: 'smooth' });
+    viewportRef.current?.scrollTo({ top: next * laneHeight, behavior: 'smooth' });
     window.setTimeout(() => {
       viewportRef.current?.querySelector<HTMLElement>(`[data-lane="${next}"]`)?.focus();
     }, 0);
@@ -96,7 +100,7 @@ export function LaneRibbon({
         aria-current={
           targetBit !== null && targetBit <= range.laneMsb && targetBit >= range.laneLsb
         }
-        className={`di-lane ${
+        className={`di-lane ${showFieldOverlay ? '' : 'is-compact'} ${
           targetBit !== null && targetBit <= range.laneMsb && targetBit >= range.laneLsb
             ? 'is-target'
             : ''
@@ -132,29 +136,33 @@ export function LaneRibbon({
             style={zoom === 'bit' ? { minWidth: `${laneBits.length * 24}px` } : undefined}
           >
             <div className="di-source-band">
-              {provenance
-                ? sourceSegments.map((segment) => (
-                    <span
-                      className={segment.sourceId === null ? 'is-inserted' : ''}
-                      key={`${segment.sourceId ?? 'inserted'}-${segment.msb}`}
-                      style={{
-                        width: `${
-                          ((segment.msb - segment.lsb + 1) / (range.laneMsb - range.laneLsb + 1)) *
-                          100
-                        }%`,
-                      }}
-                      title={
-                        segment.sourceId === null
-                          ? `Transform-inserted ${vector.slice(segment.msb, segment.lsb).toBinary()} [${segment.msb}:${segment.lsb}]`
-                          : `${segment.sourceId} [${segment.msb}:${segment.lsb}]`
-                      }
-                    >
-                      {segment.sourceId === null
-                        ? `+${vector.slice(segment.msb, segment.lsb).toBinary()}`
+              {provenance ? (
+                sourceSegments.map((segment) => (
+                  <span
+                    className={segment.sourceId === null ? 'is-inserted' : ''}
+                    key={`${segment.sourceId ?? 'inserted'}-${segment.msb}`}
+                    style={{
+                      width: `${
+                        ((segment.msb - segment.lsb + 1) / (range.laneMsb - range.laneLsb + 1)) *
+                        100
+                      }%`,
+                    }}
+                    title={
+                      segment.sourceId === null
+                        ? `Transform-inserted ${vector.slice(segment.msb, segment.lsb).toBinary()} [${segment.msb}:${segment.lsb}]`
+                        : `${segment.sourceId} [${segment.msb}:${segment.lsb}]`
+                    }
+                  >
+                    {segment.sourceId === null
+                      ? `+${vector.slice(segment.msb, segment.lsb).toBinary()}`
+                      : sourceSegments.length === 1
+                        ? segment.sourceId
                         : `${segment.sourceId} [${segment.msb}:${segment.lsb}]`}
-                    </span>
-                  ))
-                : `INPUT · bits [${range.laneMsb}:${range.laneLsb}]`}
+                  </span>
+                ))
+              ) : (
+                <span className="di-source-band__fallback">input</span>
+              )}
             </div>
             <div className={`di-bits is-${zoom}`} aria-hidden="true">
               {zoom === 'overview'
@@ -177,58 +185,60 @@ export function LaneRibbon({
                     );
                   })}
             </div>
-            <div className="di-field-overlay">
-              {sourceSegments
-                .filter((segment) => segment.sourceId === null)
-                .map((segment) => {
-                  const fractions = rangeToLaneFractions(
-                    range.laneMsb,
-                    range.laneLsb,
-                    segment.msb,
-                    segment.lsb
-                  );
-                  const insertedBits = vector.slice(segment.msb, segment.lsb).toBinary();
-                  return (
-                    <span
-                      aria-label={`Transform-inserted ${insertedBits}, bits ${segment.msb} through ${segment.lsb}`}
-                      className="di-inserted-segment"
-                      key={`inserted-${segment.msb}`}
-                      style={{
-                        left: `${fractions.startFraction * 100}%`,
-                        width: `${fractions.widthFraction * 100}%`,
-                      }}
-                      title={`Transform-inserted ${insertedBits} [${segment.msb}:${segment.lsb}]`}
-                    >
-                      +{insertedBits}
-                    </span>
-                  );
-                })}
-              {fields.flatMap((field) =>
-                segmentFieldAcrossLanes(vector.width, laneWidth, field.msb, field.lsb)
-                  .filter((segment) => segment.laneIndex === laneIndex)
-                  .map((segment) => (
-                    <button
-                      className={`di-field-segment ${
-                        selectedFieldId ===
-                        ('sourceFieldId' in field ? field.sourceFieldId : field.id)
-                          ? 'is-selected'
-                          : ''
-                      }`}
-                      key={field.id}
-                      style={{
-                        left: `${segment.startFraction * 100}%`,
-                        width: `${segment.widthFraction * 100}%`,
-                      }}
-                      title={`${field.name} [${field.msb}:${field.lsb}]`}
-                      onClick={() =>
-                        onSelectField('sourceFieldId' in field ? field.sourceFieldId : field.id)
-                      }
-                    >
-                      {field.name}
-                    </button>
-                  ))
-              )}
-            </div>
+            {showFieldOverlay && (
+              <div className="di-field-overlay">
+                {sourceSegments
+                  .filter((segment) => segment.sourceId === null)
+                  .map((segment) => {
+                    const fractions = rangeToLaneFractions(
+                      range.laneMsb,
+                      range.laneLsb,
+                      segment.msb,
+                      segment.lsb
+                    );
+                    const insertedBits = vector.slice(segment.msb, segment.lsb).toBinary();
+                    return (
+                      <span
+                        aria-label={`Transform-inserted ${insertedBits}, bits ${segment.msb} through ${segment.lsb}`}
+                        className="di-inserted-segment"
+                        key={`inserted-${segment.msb}`}
+                        style={{
+                          left: `${fractions.startFraction * 100}%`,
+                          width: `${fractions.widthFraction * 100}%`,
+                        }}
+                        title={`Transform-inserted ${insertedBits} [${segment.msb}:${segment.lsb}]`}
+                      >
+                        +{insertedBits}
+                      </span>
+                    );
+                  })}
+                {fields.flatMap((field) =>
+                  segmentFieldAcrossLanes(vector.width, laneWidth, field.msb, field.lsb)
+                    .filter((segment) => segment.laneIndex === laneIndex)
+                    .map((segment) => (
+                      <button
+                        className={`di-field-segment ${
+                          selectedFieldId ===
+                          ('sourceFieldId' in field ? field.sourceFieldId : field.id)
+                            ? 'is-selected'
+                            : ''
+                        }`}
+                        key={field.id}
+                        style={{
+                          left: `${segment.startFraction * 100}%`,
+                          width: `${segment.widthFraction * 100}%`,
+                        }}
+                        title={`${field.name} [${field.msb}:${field.lsb}]`}
+                        onClick={() =>
+                          onSelectField('sourceFieldId' in field ? field.sourceFieldId : field.id)
+                        }
+                      >
+                        {field.name}
+                      </button>
+                    ))
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -355,8 +365,8 @@ export function LaneRibbon({
         aria-rowcount={laneCount}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       >
-        <div style={{ height: laneCount * LANE_HEIGHT, position: 'relative' }}>
-          <div style={{ position: 'absolute', insetInline: 0, top: start * LANE_HEIGHT }}>
+        <div style={{ height: laneCount * laneHeight, position: 'relative' }}>
+          <div style={{ position: 'absolute', insetInline: 0, top: start * laneHeight }}>
             {lanes}
           </div>
         </div>

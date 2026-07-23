@@ -834,6 +834,9 @@ label {
   height: 74px;
   border-bottom: 1px solid var(--di-line);
 }
+.di-lane.is-compact {
+  height: 54px;
+}
 .di-lane.is-target {
   box-shadow: inset 3px 0 var(--di-accent);
   background: color-mix(in srgb, var(--di-accent) 5%, transparent);
@@ -863,21 +866,24 @@ label {
 }
 .di-source-band {
   display: flex;
-  height: 14px;
-  border-left: 2px solid var(--di-accent);
+  height: 16px;
+  border-left: 1px solid color-mix(in srgb, var(--di-muted) 55%, transparent);
   color: var(--di-muted);
-  background: color-mix(in srgb, var(--di-accent) 9%, transparent);
-  font-size: 8px;
-  line-height: 14px;
-  letter-spacing: 0.08em;
+  background: color-mix(in srgb, var(--di-muted) 5%, transparent);
+  font-size: 10px;
+  line-height: 16px;
+  letter-spacing: 0.04em;
 }
 .di-source-band span {
   min-width: 0;
   overflow: hidden;
   padding-inline: 4px;
-  border-right: 1px dashed var(--di-accent);
+  border-right: 1px dashed color-mix(in srgb, var(--di-muted) 45%, transparent);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.di-source-band__fallback {
+  flex: 1;
 }
 .di-source-band span.is-inserted {
   border-inline: 1px dashed var(--di-warning);
@@ -906,7 +912,7 @@ label {
   margin-left: 0.32em;
 }
 .di-bits span.is-zero {
-  color: color-mix(in srgb, var(--di-text) 48%, transparent);
+  color: color-mix(in srgb, var(--di-text) 62%, transparent);
 }
 .di-bits span.is-one {
   color: var(--di-accent);
@@ -941,11 +947,21 @@ label {
   display: grid;
   min-width: 0;
   flex: 1 1 0;
+  border-left: 1px solid color-mix(in srgb, var(--di-line) 45%, transparent);
   place-items: center;
+}
+.di-bits.is-field span:first-child {
+  border-left: 0;
 }
 .di-bits.is-field span.is-nibble,
 .di-bits.is-field span.is-byte {
   margin-left: 0;
+}
+.di-bits.is-field span.is-nibble:not(:first-child) {
+  border-left-color: color-mix(in srgb, var(--di-muted) 42%, transparent);
+}
+.di-bits.is-field span.is-byte:not(:first-child) {
+  border-left-color: color-mix(in srgb, var(--di-accent) 38%, transparent);
 }
 .di-bits.is-bit {
   display: flex;

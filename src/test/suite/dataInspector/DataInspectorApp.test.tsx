@@ -278,6 +278,43 @@ describe('LaneRibbon', () => {
     expect(second).toHaveAttribute('tabindex', '0');
   });
 
+  it('uses compact lanes and concise provenance when no field overlay is present', () => {
+    const provenance = Array.from({ length: 8 }, (_, sourceBit) => ({
+      sourceId: 'input',
+      sourceBit,
+    }));
+    const { container } = render(
+      <LaneRibbon
+        vector={parseLiteral("8'b00000000").vector}
+        fields={[]}
+        laneWidth={8}
+        selectedFieldId={null}
+        onSelectField={() => undefined}
+        provenance={provenance}
+      />
+    );
+
+    expect(container.querySelector('.di-lane')).toHaveClass('is-compact');
+    expect(container.querySelector('.di-source-band')).toHaveTextContent('input');
+    expect(container.querySelector('.di-source-band')).not.toHaveTextContent('[7:0]');
+    expect(container.querySelector('.di-field-overlay')).not.toBeInTheDocument();
+  });
+
+  it('keeps full-height lanes when fields need an overlay', () => {
+    const { container } = render(
+      <LaneRibbon
+        vector={parseLiteral("8'b00000000").vector}
+        fields={[{ id: 'status', name: 'STATUS', msb: 7, lsb: 0, groupId: 'default' }]}
+        laneWidth={8}
+        selectedFieldId={null}
+        onSelectField={() => undefined}
+      />
+    );
+
+    expect(container.querySelector('.di-lane')).not.toHaveClass('is-compact');
+    expect(container.querySelector('.di-field-overlay')).toBeInTheDocument();
+  });
+
   it('distinguishes active, inactive, and unknown bit states without striking masked bits', () => {
     const { container } = render(
       <LaneRibbon
