@@ -262,7 +262,7 @@ export interface ExpandedBusInterface {
   absentPorts?: string[];
   associatedClock?: string;
   associatedReset?: string;
-  firstSymbolInHighOrderBits?: boolean;
+  endianness?: 'little' | 'big';
   conduitPorts?: ConduitPort[];
   busTypeVlnv?: VlnvDef;
   rawPortMaps?: RawPortMap[];

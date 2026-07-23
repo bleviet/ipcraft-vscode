@@ -586,7 +586,7 @@
         "absentPorts": { "type": "array", "items": { "type": "string" } },
         "associatedClock": { "type": "string" },
         "associatedReset": { "type": "string" },
-        "firstSymbolInHighOrderBits": { "type": "boolean" },
+        "endianness": { "type": "string", "enum": ["little", "big"] },
         "conduitPorts": { "type": "array", "items": { "$ref": "#/definitions/ConduitPort" } },
         "busTypeVlnv": { "$ref": "#/definitions/VlnvDef" },
         "rawPortMaps": { "type": "array", "items": { "$ref": "#/definitions/RawPortMap" } },

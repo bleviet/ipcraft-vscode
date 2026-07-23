@@ -567,7 +567,6 @@ export interface BusInterface {
   physicalPrefix: Physicalprefix;
   associatedClock?: Associatedclock;
   associatedReset?: Associatedreset;
-  firstSymbolInHighOrderBits?: boolean;
   memoryMapRef?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;

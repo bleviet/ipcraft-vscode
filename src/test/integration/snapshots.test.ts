@@ -90,7 +90,7 @@ it('hw.tcl content matches snapshot for every Altera fixture', () => {
   expect(tclMap).toMatchSnapshot();
 });
 
-it('emits Avalon-ST symbol ordering in Quartus hw.tcl', () => {
+it('derives Avalon-ST symbol ordering from endianness in Quartus hw.tcl', () => {
   const fixture = alteraFixtures(allFixtures).find(
     (candidate) => candidate.name === 'examples/comprehensive_avalon_vhdl'
   );

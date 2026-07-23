@@ -185,10 +185,6 @@ export type Associatedclock1 = string | null;
  */
 export type Associatedreset1 = string | null;
 /**
- * For Avalon-ST interfaces, place the first symbol in the most-significant bits of the data bus
- */
-export type FirstSymbolInHighOrderBits = boolean;
-/**
  * Memory map name for register access
  */
 export type Memorymapref = string | null;
@@ -660,7 +656,6 @@ export interface BusInterface {
   physicalPrefix?: Physicalprefix;
   associatedClock?: Associatedclock1;
   associatedReset?: Associatedreset1;
-  firstSymbolInHighOrderBits?: FirstSymbolInHighOrderBits;
   memoryMapRef?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;

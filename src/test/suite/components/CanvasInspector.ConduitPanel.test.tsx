@@ -117,13 +117,13 @@ describe('CanvasInspector ConduitPanel — clock/reset associations', () => {
 });
 
 describe('CanvasInspector BusPanel — Avalon-ST configuration', () => {
-  it('edits firstSymbolInHighOrderBits for Avalon-ST interfaces', () => {
+  it('uses endianness as the only Avalon-ST ordering control', () => {
     const onUpdate = jest.fn();
     const ipCore = baseIpCore({
       name: 'stream_out',
       type: 'ipcraft:busif:avalon_st:1.0',
       mode: 'source',
-      firstSymbolInHighOrderBits: true,
+      endianness: 'big',
     });
     render(
       <CanvasInspector
@@ -134,34 +134,12 @@ describe('CanvasInspector BusPanel — Avalon-ST configuration', () => {
       />
     );
 
-    const checkbox = screen.getByRole('checkbox', {
-      name: 'First Symbol in High-Order Bits',
-    });
-    expect(checkbox).toBeChecked();
-    fireEvent.click(checkbox);
-    expect(onUpdate).toHaveBeenCalledWith(
-      ['busInterfaces', 0, 'firstSymbolInHighOrderBits'],
-      false
-    );
-  });
-
-  it('does not show Avalon-ST configuration for other bus protocols', () => {
-    const ipCore = baseIpCore({
-      name: 'stream_out',
-      type: 'ipcraft:busif:axi_stream:1.0',
-      mode: 'master',
-    });
-    render(
-      <CanvasInspector
-        selected={BUS_SELECTION}
-        ipCore={ipCore}
-        onUpdate={jest.fn()}
-        onClose={jest.fn()}
-      />
-    );
-
     expect(
       screen.queryByRole('checkbox', { name: 'First Symbol in High-Order Bits' })
     ).not.toBeInTheDocument();
+    const endianness = screen.getByRole('combobox', { name: 'Endianness' });
+    expect(endianness).toHaveValue('big');
+    fireEvent.change(endianness, { target: { value: 'little' } });
+    expect(onUpdate).toHaveBeenCalledWith(['busInterfaces', 0, 'endianness'], 'little');
   });
 });
