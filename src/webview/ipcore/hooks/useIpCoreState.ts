@@ -131,8 +131,43 @@ export function useIpCoreState() {
   }, []);
 
   /**
-   * Get validation errors for cross-references
+   * Apply several path edits/deletes as a single state transition.
+   *
+   * Applied in the same sequence as calling `updateIpCore` once per mutation,
+   * but inside one `setState` updater instead of N separate calls, so it's
+   * guaranteed to be one state transition (and therefore one undo checkpoint
+   * and one debounced outbound YAML message) regardless of whether the
+   * caller runs inside a React event handler.
    */
+  const updateIpCoreBatch = useCallback((mutations: Array<[Array<string | number>, unknown]>) => {
+    setState((prev) => {
+      if (!prev.ipCore) {
+        return prev;
+      }
+
+      try {
+        let currentYaml = prev.rawYaml;
+        for (const [path, value] of mutations) {
+          currentYaml =
+            value === undefined
+              ? applyPathDeletes(currentYaml, [path])
+              : applyPathEdits(currentYaml, [{ path, value }]);
+        }
+
+        const newIpCore = aliasBusInterfaces(yaml.parse(currentYaml) as Record<string, unknown>);
+
+        return {
+          ...prev,
+          ipCore: newIpCore,
+          rawYaml: currentYaml,
+        };
+      } catch (error) {
+        console.error('Failed to apply batch YAML update:', error);
+        return prev;
+      }
+    });
+  }, []);
+
   /**
    * Get validation errors for cross-references
    */
@@ -228,6 +263,7 @@ export function useIpCoreState() {
     ...state,
     updateFromYaml,
     updateIpCore,
+    updateIpCoreBatch,
     getValidationErrors,
   };
 }

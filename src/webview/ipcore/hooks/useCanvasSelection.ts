@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useReducer } from 'react';
 
 export type CanvasElementKind =
   | 'clock'
@@ -74,6 +74,57 @@ export function parseCanvasId(id: string): CanvasElement | null {
   return { kind, index, id };
 }
 
+interface SelectionState {
+  selected: CanvasElement | null;
+  multiMap: Map<string, CanvasElement>;
+}
+
+type SelectionAction =
+  | { type: 'SELECT'; id: string | null }
+  | { type: 'SHIFT_SELECT'; id: string }
+  | { type: 'DESELECT' };
+
+const initialSelectionState: SelectionState = { selected: null, multiMap: new Map() };
+
+function selectionReducer(state: SelectionState, action: SelectionAction): SelectionState {
+  switch (action.type) {
+    case 'SELECT': {
+      if (!action.id) {
+        return initialSelectionState;
+      }
+      const element = parseCanvasId(action.id);
+      return { selected: element, multiMap: new Map() };
+    }
+    case 'SHIFT_SELECT': {
+      const element = parseCanvasId(action.id);
+      if (!element || !GROUPABLE_KINDS.has(element.kind)) {
+        return state;
+      }
+
+      const nextMap = new Map(state.multiMap);
+      // On the first Shift+Click after a plain click, auto-include the
+      // anchor so it doesn't need to be Shift+Clicked separately.
+      if (nextMap.size === 0 && state.selected && GROUPABLE_KINDS.has(state.selected.kind)) {
+        nextMap.set(state.selected.id, state.selected);
+      }
+      if (nextMap.has(action.id)) {
+        nextMap.delete(action.id);
+      } else {
+        nextMap.set(action.id, element);
+      }
+
+      // Ensure the primary single selection is also in the multi-set.
+      const nextSelected = state.selected ?? element;
+
+      return { selected: nextSelected, multiMap: nextMap };
+    }
+    case 'DESELECT':
+      return initialSelectionState;
+    default:
+      return state;
+  }
+}
+
 /**
  * Hook managing canvas selection state.
  *
@@ -81,60 +132,15 @@ export function parseCanvasId(id: string): CanvasElement | null {
  * Multi-select is restricted to 'port' and 'interrupt' kinds to enable grouping.
  */
 export function useCanvasSelection() {
-  const [selected, setSelected] = useState<CanvasElement | null>(null);
-  const [multiMap, setMultiMap] = useState<Map<string, CanvasElement>>(new Map());
+  const [{ selected, multiMap }, dispatch] = useReducer(selectionReducer, initialSelectionState);
 
-  const select = useCallback((id: string | null) => {
-    if (!id) {
-      setSelected(null);
-      setMultiMap(new Map());
-      return;
-    }
-
-    const element = parseCanvasId(id);
-    setSelected(element);
-    setMultiMap(new Map());
-  }, []);
+  const select = useCallback((id: string | null) => dispatch({ type: 'SELECT', id }), []);
 
   /** Toggle membership of an element in the multi-selection.
    *  Only port/interrupt kinds are accepted; others are silently ignored. */
-  const shiftSelect = useCallback(
-    (id: string) => {
-      const element = parseCanvasId(id);
-      if (!element || !GROUPABLE_KINDS.has(element.kind)) {
-        return;
-      }
+  const shiftSelect = useCallback((id: string) => dispatch({ type: 'SHIFT_SELECT', id }), []);
 
-      setMultiMap((prev) => {
-        const next = new Map(prev);
-        // On the first Shift+Click after a plain click, auto-include the
-        // anchor so it doesn't need to be Shift+Clicked separately.
-        if (next.size === 0 && selected && GROUPABLE_KINDS.has(selected.kind)) {
-          next.set(selected.id, selected);
-        }
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.set(id, element);
-        }
-        return next;
-      });
-
-      // Ensure the primary single selection is also in the multi-set.
-      setSelected((prev) => {
-        if (!prev && element) {
-          return element;
-        }
-        return prev;
-      });
-    },
-    [selected]
-  );
-
-  const deselect = useCallback(() => {
-    setSelected(null);
-    setMultiMap(new Map());
-  }, []);
+  const deselect = useCallback(() => dispatch({ type: 'DESELECT' }), []);
 
   const multiSelection: CanvasMultiSelection = {
     all: multiMap,
