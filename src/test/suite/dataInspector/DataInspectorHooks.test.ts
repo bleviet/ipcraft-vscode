@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { BitVector } from '../../../dataInspector/BitVector';
 import { createEmptyRecipe } from '../../../dataInspector/recipe';
@@ -5,6 +6,9 @@ import { createRevisionState } from '../../../webview/sync/revisionFilter';
 import { useCaptureImport } from '../../../webview/dataInspector/hooks/useCaptureImport';
 import { useFieldPanel } from '../../../webview/dataInspector/hooks/useFieldPanel';
 import { useRecipeAutosave } from '../../../webview/dataInspector/hooks/useRecipeAutosave';
+import { useRecipeGraphEditor } from '../../../webview/dataInspector/hooks/useRecipeGraphEditor';
+import { useRecipeModel } from '../../../webview/dataInspector/hooks/useRecipeModel';
+import { usePanelLayout } from '../../../webview/dataInspector/hooks/usePanelLayout';
 import { useValueInput } from '../../../webview/dataInspector/hooks/useValueInput';
 
 describe('Data Inspector hooks', () => {
@@ -124,5 +128,140 @@ describe('Data Inspector hooks', () => {
       editId: 1,
     });
     jest.useRealTimers();
+  });
+
+  it('derives recipe execution and reconciles source samples in one model', () => {
+    const recipe = createEmptyRecipe('model');
+    recipe.sources.push({ id: 'operand', name: 'OPERAND', width: 8 });
+    const { result } = renderHook(() => {
+      const valueInput = useValueInput('input');
+      const fieldPanel = useFieldPanel();
+      const panelLayout = usePanelLayout(valueInput.vector);
+      const recipeModel = useRecipeModel({
+        recipeBase: recipe,
+        fieldPanel,
+        panelLayout,
+        valueInput,
+      });
+      return { recipeModel, valueInput };
+    });
+
+    expect(result.current.valueInput.sourceDrafts.operand).toBe('0');
+    expect(result.current.valueInput.samples.operand.width).toBe(8);
+    expect(result.current.recipeModel.currentRecipe.sources).toHaveLength(2);
+    expect(result.current.recipeModel.evaluation.values.get('operand')?.value.width).toBe(8);
+    expect(result.current.recipeModel.recipeSemanticProblems).toEqual([]);
+  });
+
+  it('owns graph edits and their dependent state cleanup', () => {
+    const initialRecipe = createEmptyRecipe('graph');
+    initialRecipe.sources.push({ id: 'operand', name: 'OPERAND', width: 32 });
+    initialRecipe.steps.push({ id: 'invert', type: 'not', inputId: 'input' });
+    const { result } = renderHook(() => {
+      const [recipeBase, setRecipeBase] = useState<typeof initialRecipe | null>(initialRecipe);
+      const valueInput = useValueInput('input');
+      const fieldPanel = useFieldPanel();
+      const panelLayout = usePanelLayout(valueInput.vector);
+      const recipeModel = useRecipeModel({
+        recipeBase,
+        fieldPanel,
+        panelLayout,
+        valueInput,
+      });
+      const graphEditor = useRecipeGraphEditor({
+        fieldPanel,
+        panelLayout,
+        recipeModel,
+        setRecipeBase,
+        valueInput,
+      });
+      return { graphEditor, panelLayout, recipeModel, valueInput };
+    });
+
+    act(() => result.current.panelLayout.setSelectedNodeId('operand'));
+    expect(result.current.graphEditor.selectedSource?.id).toBe('operand');
+
+    act(() => result.current.graphEditor.updateSelectedSource({ name: 'MASK' }));
+    expect(result.current.recipeModel.currentRecipe.sources[1].name).toBe('MASK');
+
+    act(() => result.current.graphEditor.connectStepDependency('invert', 'input', 'invert'));
+    expect(result.current.valueInput.error).toBe('This connection would create a cycle');
+
+    act(() => {
+      result.current.valueInput.setSourceDrafts((current) => ({
+        ...current,
+        operand: 'not-a-literal',
+      }));
+    });
+    act(() => result.current.graphEditor.applySelectedSourceDraft());
+    expect(result.current.valueInput.error).not.toBe('');
+
+    act(() => result.current.graphEditor.updateStep(0, { inputId: 'operand' }));
+    expect(result.current.recipeModel.currentRecipe.steps[0].inputId).toBe('operand');
+
+    act(() => result.current.graphEditor.removeStep(0));
+    expect(result.current.recipeModel.currentRecipe.steps).toEqual([]);
+
+    act(() => result.current.graphEditor.removeSelectedSource());
+    expect(result.current.recipeModel.currentRecipe.sources.map((source) => source.id)).toEqual([
+      'input',
+    ]);
+    expect(result.current.panelLayout.selectedNodeId).toBe('input');
+
+    let deleteError: string | undefined;
+    act(() => {
+      deleteError = result.current.graphEditor.deleteCanvasNodes(['input']);
+    });
+    expect(deleteError).toBe('A recipe must keep at least one input');
+  });
+
+  it('keeps panel navigation and queued canvas commands together', () => {
+    const { result, rerender } = renderHook(
+      ({ vector }: { vector: BitVector | null }) => usePanelLayout(vector),
+      { initialProps: { vector: null as BitVector | null } }
+    );
+
+    expect(result.current.mobileTab).toBe('value');
+    rerender({ vector: BitVector.fromBigInt(BigInt(0), 8) });
+    expect(result.current.mobileTab).toBe('bits');
+
+    act(() => {
+      result.current.queueCanvasAdd('operation', 'slice');
+      result.current.queueCanvasAdd('source', 'source');
+    });
+    expect(result.current.canvasAddCommand).toEqual({ id: 2, kind: 'source', value: 'source' });
+    expect(result.current.mobileTab).toBe('transform');
+  });
+
+  it('clamps pointer-driven panel and center resizing to their supported bounds', () => {
+    const { result } = renderHook(() => usePanelLayout(BitVector.fromBigInt(BigInt(0), 8)));
+    (result.current.centerRef as { current: HTMLDivElement | null }).current = {
+      getBoundingClientRect: () => ({ top: 100, height: 100 }),
+    } as HTMLDivElement;
+
+    act(() => {
+      result.current.beginCenterResize({
+        currentTarget: { setPointerCapture: jest.fn() },
+        pointerId: 1,
+      } as unknown as Parameters<typeof result.current.beginCenterResize>[0]);
+      window.dispatchEvent(new MouseEvent('pointermove', { clientY: 1000 }));
+      window.dispatchEvent(new MouseEvent('pointerup'));
+    });
+    expect(result.current.bitsPercent).toBe(72);
+
+    act(() => {
+      result.current.beginPanelResize(
+        {
+          clientX: 0,
+          currentTarget: { setPointerCapture: jest.fn() },
+          pointerId: 2,
+          preventDefault: jest.fn(),
+        } as unknown as Parameters<typeof result.current.beginPanelResize>[0],
+        'library'
+      );
+      window.dispatchEvent(new MouseEvent('pointermove', { clientX: 1000 }));
+      window.dispatchEvent(new MouseEvent('pointerup'));
+    });
+    expect(result.current.libraryPanelWidth).toBe(420);
   });
 });
