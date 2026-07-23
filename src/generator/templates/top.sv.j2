@@ -86,6 +86,7 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
   // masks (bit reversal) between the external ports and the internal `_be` view.
 {% for port in endian_swap_ports %}
 {% if port.swap_kind == 'bit' %}
+  generate
   for (genvar bit_idx = 0; bit_idx < $bits({{ port.name }}); bit_idx++) begin : gen_swap_{{ port.name }}
 {% if port.direction == 'in' %}
     assign {{ port.internal_name }}[bit_idx] = {{ port.name }}[$bits({{ port.name }}) - 1 - bit_idx];
@@ -93,11 +94,13 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
     assign {{ port.name }}[bit_idx] = {{ port.internal_name }}[$bits({{ port.name }}) - 1 - bit_idx];
 {% endif %}
   end
+  endgenerate
 {% elif port.is_parameterized %}
   initial begin : check_swap_{{ port.name }}_width
     assert (($bits({{ port.name }}) % 8) == 0)
       else $fatal(1, "{{ port.name }}: big-endian byte swap requires a width that is a multiple of 8 bits");
   end
+  generate
   for (genvar byte_idx = 0; byte_idx < $bits({{ port.name }}) / 8; byte_idx++) begin : gen_swap_{{ port.name }}
 {% if port.direction == 'in' %}
     assign {{ port.internal_name }}[byte_idx * 8 +: 8] = {{ port.name }}[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];
@@ -105,6 +108,7 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
     assign {{ port.name }}[byte_idx * 8 +: 8] = {{ port.internal_name }}[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];
 {% endif %}
   end
+  endgenerate
 {% else %}
 {% if port.direction == 'in' %}
   assign {{ port.internal_name }} = swap_bytes_{{ port.width }}({{ port.name }});
