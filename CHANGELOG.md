@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- Avalon-ST Platform Designer symbol-order metadata is now derived from interface endianness, replacing the separate `firstSymbolInHighOrderBits` schema field and Inspector checkbox. ([#145](https://github.com/bleviet/ipcraft-vscode/issues/145))
+
 ## [0.9.4] - 2026-07-23
 
 ### Added

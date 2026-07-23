@@ -141,17 +141,20 @@ describe('HwTclParser', () => {
       expect(doc.busInterfaces[0].type).toBe('ipcraft:busif:avalon_mm:1.0');
     });
 
-    it('preserves Avalon-ST first-symbol ordering', () => {
+    it.each([
+      ['true', 'big'],
+      ['false', 'little'],
+    ])('maps Avalon-ST firstSymbolInHighOrderBits %s to %s endianness', (value, expected) => {
       const tcl = `
         add_interface stream_out avalon_streaming start
-        set_interface_property stream_out firstSymbolInHighOrderBits true
+        set_interface_property stream_out firstSymbolInHighOrderBits ${value}
         add_interface_port stream_out data data Output 32
       `;
       const doc = parseYaml(parse(tcl).yamlText) as {
         busInterfaces: Array<Record<string, unknown>>;
       };
 
-      expect(doc.busInterfaces[0].firstSymbolInHighOrderBits).toBe(true);
+      expect(doc.busInterfaces[0].endianness).toBe(expected);
     });
 
     it('emits portNameOverrides for two Avalon-ST sinks sharing one physicalPrefix (multi-instance)', () => {

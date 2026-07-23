@@ -28,7 +28,6 @@ import {
   lookupBusDef,
   lookupBusDefFromLibrary,
   isConduitType,
-  isAvalonStreamingType,
   BUILTIN_BUS_TYPES,
   listLibraryBusTypes,
   type BusPortDef,
@@ -2694,13 +2693,6 @@ const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpda
                   : undefined
             }
             mono
-          />
-        )}
-        {isAvalonStreamingType(bus.type) && (
-          <PropCheckbox
-            label="First Symbol in High-Order Bits"
-            checked={bus.firstSymbolInHighOrderBits ?? false}
-            onChange={(v) => onUpdate(['busInterfaces', index, 'firstSymbolInHighOrderBits'], v)}
           />
         )}
         {hasDuplicatePrefix && !hasPrefixPattern && (

@@ -118,7 +118,50 @@ busInterfaces:
     TDATA: 32
 `;
 
-async function generate(hdlLanguage: 'vhdl' | 'systemverilog', yaml: string = IP_YAML) {
+const AVALON_ST_ENDIAN_YAML = `
+vlnv:
+  vendor: ipcraft
+  library: test
+  name: avalon_st_endian
+  version: 1.0.0
+scaffold_pack: builtin-ipcraft
+clocks:
+- name: clk
+  direction: in
+  associatedReset: reset_n
+resets:
+- name: reset_n
+  direction: in
+  polarity: activeLow
+  associatedClock: clk
+busInterfaces:
+- name: stream_big
+  type: ipcraft:busif:avalon_st:1.0
+  mode: source
+  physicalPrefix: big_
+  associatedClock: clk
+  associatedReset: reset_n
+  endianness: big
+- name: stream_little
+  type: ipcraft:busif:avalon_st:1.0
+  mode: source
+  physicalPrefix: little_
+  associatedClock: clk
+  associatedReset: reset_n
+  endianness: little
+- name: stream_default
+  type: ipcraft:busif:avalon_st:1.0
+  mode: source
+  physicalPrefix: default_
+  associatedClock: clk
+  associatedReset: reset_n
+`;
+
+async function generate(
+  hdlLanguage: 'vhdl' | 'systemverilog',
+  yaml: string = IP_YAML,
+  targets: Array<'quartus'> = []
+) {
   const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-endian-'));
   const yamlPath = path.join(outputDir, 'src.ip.yml');
   fs.writeFileSync(yamlPath, yaml);
@@ -128,7 +171,7 @@ async function generate(hdlLanguage: 'vhdl' | 'systemverilog', yaml: string = IP
   const scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
   const result = await scaffolder.generateAll(yamlPath, outputDir, {
-    targets: [],
+    targets,
     includeRegs: true,
     hdlLanguage,
   });
@@ -264,6 +307,17 @@ describe('Endianness code generation (issue #138)', () => {
       output: result.stderr || result.stdout,
     });
   }, 60_000);
+});
+
+describe('Avalon-ST Platform Designer endianness metadata (issue #145)', () => {
+  it('derives firstSymbolInHighOrderBits for big, little, and omitted endianness', async () => {
+    const { rootDir } = await generate('vhdl', AVALON_ST_ENDIAN_YAML, ['quartus']);
+    const tcl = fs.readFileSync(path.join(rootDir, 'altera', 'avalon_st_endian_hw.tcl'), 'utf8');
+
+    expect(tcl).toContain('set_interface_property stream_big firstSymbolInHighOrderBits true');
+    expect(tcl).toContain('set_interface_property stream_little firstSymbolInHighOrderBits false');
+    expect(tcl).toContain('set_interface_property stream_default firstSymbolInHighOrderBits false');
+  });
 });
 
 describe('Endianness on a stream-only IP with no memory-mapped slave (issue #138 M4)', () => {

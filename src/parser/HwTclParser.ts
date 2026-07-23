@@ -435,7 +435,7 @@ export function parseHwTclContent(
 
     const firstSymbolInHighOrderBits = bi.properties.get('firstSymbolInHighOrderBits');
     if (bi.type === 'avalon_streaming' && firstSymbolInHighOrderBits !== undefined) {
-      entry.firstSymbolInHighOrderBits = /^(?:1|true)$/i.test(firstSymbolInHighOrderBits);
+      entry.endianness = /^(?:1|true)$/i.test(firstSymbolInHighOrderBits) ? 'big' : 'little';
     }
 
     // Detect optional ports and portWidthOverrides from bus definition
