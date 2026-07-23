@@ -4,10 +4,10 @@ IPCraft has two React applications running in VS Code webviews. A webview is an
 embedded browser: it can render the editor interface, but it cannot read project
 files or start external tools directly.
 
-| Editor | Entry point | Root element |
-|---|---|---|
-| Memory Map | `src/webview/index.tsx` | `#root` |
-| IP Core | `src/webview/ipcore/IpCoreApp.tsx` | `#ipcore-root` |
+| Editor     | Entry point                        | Root element   |
+| ---------- | ---------------------------------- | -------------- |
+| Memory Map | `src/webview/index.tsx`            | `#root`        |
+| IP Core    | `src/webview/ipcore/IpCoreApp.tsx` | `#ipcore-root` |
 
 ## Shared boundary
 
@@ -66,6 +66,20 @@ The IP Core app uses a block-diagram canvas:
 `useIpCoreState` owns parsed data and validation. `useIpCoreSync` sends serialized
 changes to the extension host. Canvas hooks handle drop, selection, undo, and
 keyboard actions.
+
+### Canvas inspector ownership
+
+`CanvasInspector.tsx` owns only the resizable shell, header, footer, and feature
+router composition. Selection-specific panels, reusable inspector controls,
+message builders, and domain transformations live under
+`components/canvas/inspector/`. Panels receive explicit typed props rather than
+reading shared mutable module state.
+
+Keep one inspector feature per production module. Aim for no more than roughly
+400 lines; 500 lines is the review trigger for extracting controls,
+transformations, or a cohesive subfeature. A larger module should retain one
+clear responsibility and document why splitting it would make ownership less
+clear.
 
 ## Updates and drafts
 
