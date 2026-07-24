@@ -1,0 +1,3712 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/reference/commands/">
+      
+      
+        <link rel="prev" href="../../architecture/vsix-packaging/">
+      
+      
+        <link rel="next" href="../keyboard-shortcuts/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Commands & Settings - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#commands-settings-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Commands & Settings
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/development/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../how-to/create-your-first-ip-core/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/yaml-data-flow/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="./" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/de10-nano-case-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DE10-Nano Case Study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/create-your-first-ip-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Your First IP Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/defining-a-custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Defining a Custom Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/importing-an-existing-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing an Existing Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/customizing-generated-files-with-scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customizing Generated Files with Scaffold Packs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/check-consistency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking Consistency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/use-data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/using-arithmetic-functions-in-port-widths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Arithmetic Functions in Port Widths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/run-cocotb-simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a Cocotb Simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/run-eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/vivado-interface-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vivado Interface Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Template Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/bit-field-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/vsix-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSIX Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#common-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspace-trust-and-restricted-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspace Trust and Restricted Mode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#all-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="All commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaffold-generate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaffold &amp; Generate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaffold-packs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaffold Packs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vivado-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vivado Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#browse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walkthroughs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Walkthroughs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#editor-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Editor Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#migrate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migrate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#help-and-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Help and settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vivado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vivado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quartus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quartus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gui-x11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GUI / X11
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testbench" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testbench
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toolbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Toolbar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ipcraft-build-sidebar-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPCraft Build Sidebar Panel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-bar-item" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Bar Item
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Developer Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/docs-screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Docs Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../images/codicons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codicon Attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#common-tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workspace-trust-and-restricted-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspace Trust and Restricted Mode
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#all-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        All commands
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="All commands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaffold-generate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaffold &amp; Generate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaffold-packs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaffold Packs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vivado-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vivado Integration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#browse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#walkthroughs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Walkthroughs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#editor-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Editor Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#migrate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Migrate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#help-and-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Help and settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Settings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vivado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vivado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quartus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quartus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#build_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gui-x11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GUI / X11
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#testbench" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Testbench
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#toolbar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Toolbar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#import_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Import
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#paths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Paths
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ipcraft-build-sidebar-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IPCraft Build Sidebar Panel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#status-bar-item" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Bar Item
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/reference/commands.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="commands-settings-reference">Commands &amp; Settings Reference<a class="headerlink" href="#commands-settings-reference" title="Permanent link">&para;</a></h1>
+<p>Use this page to look up every IPCraft command and setting. Start with the
+common tasks below; the later tables are the complete reference.</p>
+<h2 id="common-tasks">Common tasks<a class="headerlink" href="#common-tasks" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Goal</th>
+<th>Command</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create a core and linked register map</td>
+<td><strong>IPCraft: New IP Core + Register Map</strong></td>
+</tr>
+<tr>
+<td>Generate the complete project</td>
+<td><strong>IPCraft: Scaffold Project</strong></td>
+</tr>
+<tr>
+<td>Check generated files against the specification</td>
+<td><strong>IPCraft: Check Consistency</strong></td>
+</tr>
+<tr>
+<td>Import an existing VHDL entity</td>
+<td><strong>IPCraft: Import from VHDL (Experimental)</strong></td>
+</tr>
+<tr>
+<td>Run the available vendor build</td>
+<td><strong>IPCraft: Build</strong></td>
+</tr>
+<tr>
+<td>Switch from the visual editor to YAML</td>
+<td><strong>IPCraft: Open as Text Editor</strong></td>
+</tr>
+</tbody>
+</table>
+<p>All commands are in the Command Palette (<code>Ctrl+Shift+P</code> or <code>Cmd+Shift+P</code>). A
+blank cell in the location tables means the command is not available there.</p>
+<h2 id="workspace-trust-and-restricted-mode">Workspace Trust and Restricted Mode<a class="headerlink" href="#workspace-trust-and-restricted-mode" title="Permanent link">&para;</a></h2>
+<p>IPCraft has limited support for untrusted workspaces. In Restricted Mode, the
+visual IP Core, Memory Map, and Data Inspector editors remain available for
+local authoring. The following inspection features also remain available and
+do not execute workspace content:</p>
+<ul>
+<li>view built-in bus definitions and scan workspace bus-definition files;</li>
+<li>run HDL and full consistency checks, which only parse project files;</li>
+<li>copy a component instance, switch between text and visual editors, and view
+  existing build output;</li>
+<li>create or migrate IPCraft YAML files and open IPCraft help and settings.</li>
+</ul>
+<p>Commands that render templates, generate output, invoke Git during import,
+scan an installed vendor catalog, build a project, or launch Vivado, Quartus,
+or Platform Designer are disabled until the workspace is trusted. Calls from
+the Command Palette, extension API, and IPCraft webviews use the same trust
+check. If a command is invoked programmatically in Restricted Mode, IPCraft
+shows an error with an option to open VS Code's Workspace Trust management.</p>
+<p>Workspace values for scaffold-pack selection and paths, vendor runners,
+installation directories, and Docker images are ignored in Restricted Mode.
+Trust the workspace only when you are comfortable allowing its templates,
+generated scripts, and tool configuration to run on your machine.</p>
+<h2 id="all-commands">All commands<a class="headerlink" href="#all-commands" title="Permanent link">&para;</a></h2>
+<p>All commands are available in the Command Palette (<code>Ctrl+Shift+P</code>) under the <strong>IPCraft</strong> category. Many commands are also reachable from the <strong>IPCraft</strong> top-level application menu bar entry or from the editor title bar icon.</p>
+<h3 id="create">Create<a class="headerlink" href="#create" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">IPCraft Menu</th>
+<th style="text-align: center;">Editor Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: New IP Core</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: New Register Map</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: New IP Core + Register Map</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>New IP Core</strong> — Creates a new <code>.ip.yml</code> file with a minimal VLNV skeleton and opens it in the IP Core visual editor.</p>
+<p><strong>New Register Map</strong> — Creates a new <code>.mm.yml</code> file with an empty address block and opens it in the Memory Map visual editor.</p>
+<p><strong>New IP Core + Register Map</strong> — Creates both files at once and links them via a <code>memoryMapRef</code> bus interface.</p>
+<hr />
+<h3 id="scaffold-generate">Scaffold &amp; Generate<a class="headerlink" href="#scaffold-generate" title="Permanent link">&para;</a></h3>
+<p>These commands are available on <code>.ip.yml</code> files.</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">IPCraft Menu</th>
+<th style="text-align: center;">Editor Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Scaffold Project</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate Top-Level HDL</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate CocoTB Testbench</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate Vivado Project</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate Quartus Project</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate Altera Platform Designer Component (_hw.tcl)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate Xilinx Vivado Component (component.xml)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate &amp; Build (Vivado OOC)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate &amp; Build (Quartus)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Generate Documentation</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Scaffold Project</strong> — The all-in-one command. Generates RTL files (VHDL or SystemVerilog, controlled by <code>ipcraft.generate.hdlLanguage</code>), a testbench, and vendor project files in a single step. Part number and device are read from settings (<code>ipcraft.vivado.defaultPart</code>, <code>ipcraft.quartus.defaultDevice</code>). The output is written next to the <code>.ip.yml</code> file.</p>
+<p><strong>Generate Top-Level HDL</strong> — Generates RTL source files only (package, top entity, core skeleton, bus wrapper, register file). Prompts for an output directory. Respects <code>ipcraft.generate.hdlLanguage</code>.</p>
+<p><strong>Generate CocoTB Testbench</strong> — Generates the testbench scaffold in the <code>tb/</code> directory. The framework and simulator engine are controlled by <code>ipcraft.testbench.framework</code> and <code>ipcraft.testbench.engine</code>. See <a href="../../how-to/run-cocotb-simulation/">Run cocotb Simulations</a> for details.</p>
+<p><strong>Generate Vivado Project</strong> — Prompts for an FPGA part number, then generates <code>xilinx/&lt;ip_name&gt;_project.tcl</code> (OOC project creator), <code>xilinx/&lt;ip_name&gt;_run_ooc.tcl</code> (OOC synthesis runner), <code>xilinx/&lt;ip_name&gt;_run_xpr.tcl</code> (full implementation runner), and <code>xilinx/&lt;ip_name&gt;_ooc.xdc</code> (timing constraints).</p>
+<p><strong>Generate Quartus Project</strong> — Prompts for a device part number, then generates <code>altera/&lt;ip_name&gt;_project.tcl</code> and <code>altera/&lt;ip_name&gt;.sdc</code>.</p>
+<p><strong>Generate Altera Platform Designer Component</strong> — Exports <code>altera/&lt;ip_name&gt;_hw.tcl</code> for use in Quartus Platform Designer.</p>
+<p><strong>Generate Xilinx Vivado Component</strong> — Exports <code>xilinx/component.xml</code> and <code>xilinx/xgui/&lt;ip_name&gt;_v*.tcl</code> for use in the Vivado IP catalog.</p>
+<p><strong>Generate Documentation</strong> — Renders <code>docs/&lt;ip_name&gt;_datasheet.md</code>, a Markdown datasheet covering ports, generics, bus interfaces, and (if present) the linked register map. Same command run by scaffolding when <code>ipcraft.generate.includeDocs</code> is enabled.</p>
+<hr />
+<h3 id="scaffold-packs">Scaffold Packs<a class="headerlink" href="#scaffold-packs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">Editor Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Preview Template Output</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>.j2</code> files)</td>
+</tr>
+<tr>
+<td><code>IPCraft: Pin Preview IP Core</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr>
+<td><code>IPCraft: Export Built-in Scaffold Pack</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Preview Template Output</strong> — Opens a read-only, live-refreshing preview of a <code>.j2</code> template's rendered output next to the editor, evaluated against a pinned or auto-detected <code>.ip.yml</code> file. See <a href="../../how-to/customizing-generated-files-with-scaffold-packs/">Scaffold Packs</a>.</p>
+<p><strong>Pin Preview IP Core</strong> — Chooses the <code>.ip.yml</code> file that supplies data for
+template previews until another file is pinned.</p>
+<p><strong>Export Built-in Scaffold Pack</strong> — Copies a built-in or example scaffold pack (and all its templates) into <code>.vscode/ipcraft/packs/&lt;name&gt;/</code> in the workspace as a starting point for customization.</p>
+<hr />
+<h3 id="validate">Validate<a class="headerlink" href="#validate" title="Permanent link">&para;</a></h3>
+<p>These commands are available on <code>.ip.yml</code> files.</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">IPCraft Menu</th>
+<th style="text-align: center;">Editor Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Check Consistency</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Check HDL Consistency (managed:false)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Check Consistency</strong> — Cross-references the spec's declared ports, clocks, resets, generics, bus interfaces, and registers against the generated top-level HDL entity/module and, when scaffolded, the Platform Designer (<code>_hw.tcl</code>) and Vivado (<code>component.xml</code>) vendor artifacts. Reports drift in both directions: implementation-only items (extra port/parameter — a plausible adopt) and spec-only items (missing port/parameter — declared but gone from the implementation), plus property mismatches (direction/width/default) on items both sides declare.</p>
+<p><strong>Check HDL Consistency (managed:false)</strong> — The same cross-check restricted to the top-level HDL entity/module, regardless of the file's <code>managed:</code> flag.</p>
+<hr />
+<h3 id="build">Build<a class="headerlink" href="#build" title="Permanent link">&para;</a></h3>
+<p>These commands are available on <code>.ip.yml</code> files and require vendor tools installed and reachable (see Settings below).</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">IPCraft Menu</th>
+<th style="text-align: center;">Editor Title</th>
+<th style="text-align: center;">Status Bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Build</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: Build: Vivado OOC Synthesis</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: Build: Quartus Compile</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: Show Build Output</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">Yes (click)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Build</strong> — Detects available build targets by checking for <code>xilinx/&lt;ip_name&gt;_run_ooc.tcl</code>, <code>xilinx/&lt;ip_name&gt;_run_xpr.tcl</code>, and <code>altera/&lt;ip_name&gt;_project.tcl</code>. When multiple targets exist, a QuickPick is shown. The selected tool runs in batch mode; output streams live to the <em>IPCraft Build</em> Output Channel. On completion, the <em>IPCraft Build</em> sidebar panel updates with parsed timing and utilization metrics.</p>
+<p><strong>Build: Vivado OOC Synthesis</strong> — Directly runs the Vivado OOC synthesis target without a QuickPick prompt.</p>
+<p><strong>Build: Quartus Compile</strong> — Directly runs the Quartus compile target without a QuickPick prompt.</p>
+<p>Available build targets:</p>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Tool</th>
+<th>Reports written to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vivado OOC Synthesis</td>
+<td><code>vivado -mode batch</code></td>
+<td><code>xilinx/build/ooc/</code></td>
+</tr>
+<tr>
+<td>Vivado Full Implementation (XPR)</td>
+<td><code>vivado -mode batch</code></td>
+<td><code>xilinx/build/xpr/</code></td>
+</tr>
+<tr>
+<td>Quartus Compile</td>
+<td><code>quartus_sh --flow compile</code></td>
+<td><code>altera/build/output_files/</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Show Build Output</strong> — Opens the <em>IPCraft Build</em> Output Channel. The status bar item also triggers this command on click.</p>
+<hr />
+<h3 id="import">Import<a class="headerlink" href="#import" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">IPCraft Menu</th>
+<th style="text-align: center;">Editor Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Import from VHDL (Experimental)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>.vhd</code>, <code>.vhdl</code>)</td>
+</tr>
+<tr>
+<td><code>IPCraft: Import from Altera Platform Designer (Experimental)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>_hw.tcl</code>)</td>
+</tr>
+<tr>
+<td><code>IPCraft: Import from Xilinx Component XML (Experimental)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>component.xml</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Import from VHDL</strong> — Parses a <code>.vhd</code> or <code>.vhdl</code> file and extracts entity name, generics, clock/reset/port signals, and bus interfaces (AXI4-Full, AXI4-Lite, AXI-Stream, Avalon-MM, Avalon-ST). Creates <code>&lt;entity_name&gt;.ip.yml</code> in the same directory.</p>
+<p><strong>Import from Altera Platform Designer</strong> — Parses a <code>_hw.tcl</code> file (Altera IP specification language) and creates an <code>.ip.yml</code> spec.</p>
+<p><strong>Import from Xilinx Component XML</strong> — Parses a Vivado IP-XACT <code>component.xml</code> and creates <code>.ip.yml</code>. If register data is present (memory maps), a <code>.mm.yml</code> is also created.</p>
+<blockquote>
+<p><strong>Note:</strong> Import commands are experimental. Complex or non-standard files may not parse correctly.</p>
+</blockquote>
+<hr />
+<h3 id="vivado-integration">Vivado Integration<a class="headerlink" href="#vivado-integration" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">IPCraft Menu</th>
+<th style="text-align: center;">Editor Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Edit in IP Packager</code></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>component.xml</code>)</td>
+</tr>
+<tr>
+<td><code>IPCraft: Open in Platform Designer</code></td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>_hw.tcl</code>)</td>
+</tr>
+<tr>
+<td><code>IPCraft: Scan Vivado IP Catalog</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: Scan Vivado Interface Catalog</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: Open in Vivado</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>.ip.yml</code>)</td>
+</tr>
+<tr>
+<td><code>IPCraft: Open in Quartus</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>.ip.yml</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Edit in IP Packager</strong> — Launches Vivado in GUI mode with the selected <code>component.xml</code>, opening it directly in the IP Packager. Requires Vivado to be configured (see <code>ipcraft.vivado.runner</code> and <code>ipcraft.vivado.installDir</code>).</p>
+<p><strong>Open in Platform Designer</strong> — Launches Quartus Platform Designer (qsys-edit) with the selected <code>_hw.tcl</code> component. Requires Quartus to be configured (see <code>ipcraft.quartus.runner</code> and <code>ipcraft.quartus.installDir</code>).</p>
+<p><strong>Scan Vivado IP Catalog</strong> — Invokes Vivado in batch mode to enumerate the installed IP catalog and caches the result in the IPCraft config directory. Used for bus-library suggestions.</p>
+<p><strong>Scan Vivado Interface Catalog</strong> — Invokes Vivado in batch mode to enumerate the installed bus/abstraction interface definitions and caches the result, so the canvas can suggest Vivado-native interface types.</p>
+<p><strong>Open in Vivado</strong> — Generates the Vivado project if it does not yet exist, then launches Vivado GUI pointing at the project. Prompts for a board/part if no default is configured.</p>
+<p><strong>Open in Quartus</strong> — Generates the Quartus project if it does not yet exist, then launches Quartus GUI pointing at the project. Prompts for a device if no default is configured.</p>
+<hr />
+<h3 id="browse">Browse<a class="headerlink" href="#browse" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">Editor Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: View Bus Definitions</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: Scan Workspace Bus Definitions</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr>
+<td><code>IPCraft: Copy Component Instance</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>.vhd</code>, <code>.vhdl</code>, <code>.v</code>, <code>.sv</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>View Bus Definitions</strong> — Shows a QuickPick of the built-in bus definition YAML files (AXI4-Lite, AXI4, AXI-Stream, Avalon-MM, Avalon-ST, and custom definitions). Selecting one opens the file in a read-only editor.</p>
+<p><strong>Scan Workspace Bus Definitions</strong> — Re-scans the workspace for standalone bus/abstraction definition files (YAML files with a top-level <code>ports</code> array, or IP-XACT busDefinition/abstractionDefinition XML pairs) and refreshes the set of known interfaces available in the canvas Inspector.</p>
+<p><strong>Copy Component Instance</strong> — Copies a VHDL/Verilog instantiation template for the selected source file's entity/module to the clipboard.</p>
+<hr />
+<h3 id="walkthroughs">Walkthroughs<a class="headerlink" href="#walkthroughs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Open Walkthrough...</code></td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Get Started with Scaffold Packs</code></td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Design Your First IP Core</code></td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: IP Core with a Register Map</code></td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Bring Your VHDL into IPCraft</code></td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Import from Xilinx or Intel Tools</code></td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Synthesize and Check Timing</code></td>
+<td style="text-align: center;">Yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Open Walkthrough...</strong> — Shows a QuickPick of all IPCraft walkthroughs. The other commands each jump directly to one.</p>
+<hr />
+<h3 id="editor-mode">Editor Mode<a class="headerlink" href="#editor-mode" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">Editor Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Open as Text Editor</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>.ip.yml</code>, <code>.mm.yml</code>)</td>
+</tr>
+<tr>
+<td><code>IPCraft: Open as Visual Editor</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes (<code>.ip.yml</code>, <code>.mm.yml</code>)</td>
+</tr>
+<tr>
+<td><code>IPCraft: Preview in IPCraft (Experimental)</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Open as Text Editor</strong> — Reopens the current <code>.ip.yml</code> or <code>.mm.yml</code> file in the default VS Code text editor.</p>
+<p><strong>Open as Visual Editor</strong> — Reopens the current file in the IPCraft visual editor. Useful after opening a file with the text editor.</p>
+<p><strong>Preview in IPCraft</strong> — Opens a read-only IPCraft preview panel for any YAML file. Experimental.</p>
+<hr />
+<h3 id="migrate">Migrate<a class="headerlink" href="#migrate" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Migrate Legacy IP Cores (vendor: → targets:)</code></td>
+<td style="text-align: center;">Yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Migrate Legacy IP Cores</strong> — Scans the workspace for <code>.ip.yml</code> files that use the old <code>vendor:</code> field and rewrites them to the new <code>targets:</code> array format used by <code>ipcraft.generate.targets</code>.</p>
+<hr />
+<h3 id="help-and-settings">Help and settings<a class="headerlink" href="#help-and-settings" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th style="text-align: center;">Palette</th>
+<th style="text-align: center;">Toolbar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPCraft: Open Extension Settings</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr>
+<td><code>IPCraft: Report Issue / Send Feedback</code></td>
+<td style="text-align: center;">Yes</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Open Extension Settings</strong> filters VS Code Settings to IPCraft options.</p>
+<p><strong>Report Issue / Send Feedback</strong> opens the project's issue and feedback page.</p>
+<hr />
+<h2 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h2>
+<p>Configure via <strong>File → Preferences → Settings</strong> and search for <code>IPCraft</code>, or edit <code>settings.json</code> directly.</p>
+<h3 id="vivado">Vivado<a class="headerlink" href="#vivado" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.vivado.runner</code></td>
+<td><code>"local"</code> | <code>"docker"</code></td>
+<td><code>"local"</code></td>
+<td>How IPCraft executes Vivado. <code>local</code> uses a native install; <code>docker</code> runs every command in a container.</td>
+</tr>
+<tr>
+<td><code>ipcraft.vivado.installDir</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td><em>(local)</em> Path to your Vivado installation directory (e.g. <code>/tools/Xilinx/Vivado/2024.2</code>). Leave empty to rely on <code>vivado</code> being in <code>PATH</code>.</td>
+</tr>
+<tr>
+<td><code>ipcraft.vivado.dockerImage</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td><em>(docker)</em> Docker image used to run Vivado (e.g. <code>cvsoc/vivado:2024.2</code>).</td>
+</tr>
+<tr>
+<td><code>ipcraft.vivado.defaultPart</code></td>
+<td>string</td>
+<td><code>"xc7z020clg484-1"</code></td>
+<td>Fallback FPGA part when no board has been selected.</td>
+</tr>
+<tr>
+<td><code>ipcraft.customBoards.vivado</code></td>
+<td>object[]</td>
+<td><code>[]</code></td>
+<td>Custom Vivado boards shown under <strong>My Boards</strong> in the board picker. Each entry requires <code>label</code> (string) and <code>part</code> (Xilinx part number).</td>
+</tr>
+<tr>
+<td><code>ipcraft.vivado.pinnedPart</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Part chosen and pinned for the current workspace via the board picker; takes precedence over <code>defaultPart</code> when set. Written by the board picker, not usually edited by hand.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quartus">Quartus<a class="headerlink" href="#quartus" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.quartus.runner</code></td>
+<td><code>"local"</code> | <code>"docker"</code></td>
+<td><code>"local"</code></td>
+<td>How IPCraft executes Quartus. <code>local</code> uses a native install; <code>docker</code> runs every command in a container.</td>
+</tr>
+<tr>
+<td><code>ipcraft.quartus.installDir</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td><em>(local)</em> Top-level Quartus installation directory (e.g. <code>/opt/intelFPGA_pro/23.1</code>). IPCraft automatically locates <code>quartus_sh</code> and <code>qsys-edit</code> inside it.</td>
+</tr>
+<tr>
+<td><code>ipcraft.quartus.dockerImage</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td><em>(docker)</em> Docker image used to run Quartus (e.g. <code>cvsoc/quartus:23.1</code>).</td>
+</tr>
+<tr>
+<td><code>ipcraft.quartus.defaultDevice</code></td>
+<td>string</td>
+<td><code>"5CSEBA6U23I7"</code></td>
+<td>Fallback device part when no board has been selected.</td>
+</tr>
+<tr>
+<td><code>ipcraft.customBoards.quartus</code></td>
+<td>object[]</td>
+<td><code>[]</code></td>
+<td>Custom Quartus boards shown under <strong>My Boards</strong> in the board picker. Each entry requires <code>label</code> (string) and <code>device</code> (Intel/Altera part number).</td>
+</tr>
+<tr>
+<td><code>ipcraft.quartus.pinnedDevice</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Device chosen and pinned for the current workspace via the board picker; takes precedence over <code>defaultDevice</code> when set. Written by the board picker, not usually edited by hand.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="build_1">Build<a class="headerlink" href="#build_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.build.jobs</code></td>
+<td>number</td>
+<td><code>4</code></td>
+<td>Number of parallel jobs passed to Vivado <code>launch_runs</code> and Quartus compilation.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="gui-x11">GUI / X11<a class="headerlink" href="#gui-x11" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.gui.display</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td><code>DISPLAY</code> environment variable to use for GUI tools (Vivado, Quartus, Platform Designer). Falls back to the process <code>DISPLAY</code> when unset. Useful for Remote SSH / X11 forwarding.</td>
+</tr>
+<tr>
+<td><code>ipcraft.gui.xauthority</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td><code>XAUTHORITY</code> environment variable to use for GUI tools, for X11 forwarding setups that need an explicit auth file.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generation">Generation<a class="headerlink" href="#generation" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.generate.targets</code></td>
+<td>string[]</td>
+<td><code>[]</code></td>
+<td>Synthesis vendor targets to include when scaffolding (e.g. <code>["vivado"]</code>, <code>["vivado","quartus"]</code>). Empty array generates HDL and testbench only.</td>
+</tr>
+<tr>
+<td><code>ipcraft.generate.hdlLanguage</code></td>
+<td><code>"vhdl"</code> | <code>"systemverilog"</code></td>
+<td><code>"vhdl"</code></td>
+<td>HDL language for RTL file generation.</td>
+</tr>
+<tr>
+<td><code>ipcraft.generate.includeTestbench</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Include a testbench when scaffolding a project.</td>
+</tr>
+<tr>
+<td><code>ipcraft.generate.includeDocs</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Generate a Markdown IP datasheet (<code>docs/&lt;ip_name&gt;_datasheet.md</code>) when scaffolding a project.</td>
+</tr>
+<tr>
+<td><code>ipcraft.generate.scaffoldPack</code></td>
+<td>string</td>
+<td><code>""</code></td>
+<td>Scaffold pack used for RTL/testbench generation. See <a href="../../how-to/customizing-generated-files-with-scaffold-packs/">Scaffold Packs</a>.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="testbench">Testbench<a class="headerlink" href="#testbench" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.testbench.framework</code></td>
+<td><code>"cocotb"</code> | <code>"vunit"</code></td>
+<td><code>"cocotb"</code></td>
+<td>Testbench framework. <code>cocotb</code> generates a Python/pytest test + Makefile; <code>vunit</code> generates a <code>run.py</code> + VHDL testbench entity.</td>
+</tr>
+<tr>
+<td><code>ipcraft.testbench.engine</code></td>
+<td><code>"ghdl"</code> | <code>"icarus"</code> | <code>"verilator"</code> | <code>"questa"</code></td>
+<td><code>"ghdl"</code></td>
+<td>Simulation engine used by the generated testbench.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="toolbar">Toolbar<a class="headerlink" href="#toolbar" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.toolbar.targets</code></td>
+<td>string[]</td>
+<td><code>["vivado","quartus"]</code></td>
+<td>Which vendor toolchain sections to display in the IP Core editor toolbar.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="import_1">Import<a class="headerlink" href="#import_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.import.vendor</code></td>
+<td>string</td>
+<td><code>"user"</code></td>
+<td>Vendor name to assign when importing IP cores. <code>"user"</code> auto-detects from the git <code>user.email</code> domain.</td>
+</tr>
+<tr>
+<td><code>ipcraft.import.library</code></td>
+<td>string</td>
+<td><code>"ip"</code></td>
+<td>Default library name assigned when importing.</td>
+</tr>
+<tr>
+<td><code>ipcraft.import.version</code></td>
+<td>string</td>
+<td><code>"1.0.0"</code></td>
+<td>Default version string assigned when importing.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="paths">Paths<a class="headerlink" href="#paths" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft.busLibraryPaths</code></td>
+<td>string[]</td>
+<td><code>[]</code></td>
+<td>Additional directories to search recursively for custom bus definition YAML files (<code>.yml</code>/<code>.yaml</code>).</td>
+</tr>
+<tr>
+<td><code>ipcraft.ipRepositoryPaths</code></td>
+<td>string[]</td>
+<td><code>[]</code></td>
+<td>Additional directories to scan for IP cores (directories containing <code>.ip.yml</code> or <code>component.xml</code> files).</td>
+</tr>
+<tr>
+<td><code>ipcraft.scaffoldPackPaths</code></td>
+<td>string[]</td>
+<td><code>[]</code></td>
+<td>Additional directories to scan recursively for custom Scaffold Packs. See <a href="../../how-to/customizing-generated-files-with-scaffold-packs/">Scaffold Packs</a>.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="ipcraft-build-sidebar-panel">IPCraft Build Sidebar Panel<a class="headerlink" href="#ipcraft-build-sidebar-panel" title="Permanent link">&para;</a></h2>
+<p>The <strong>IPCraft Build</strong> panel in the Explorer sidebar shows the result of the last <code>IPCraft: Build</code> invocation. It has four states:</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Display</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Idle</td>
+<td><em>No build yet — run IPCraft: Build</em></td>
+</tr>
+<tr>
+<td>Running</td>
+<td>Spinner with <em>Building…</em></td>
+</tr>
+<tr>
+<td>Failed</td>
+<td>Error icon with <em>Build failed — check Output Channel</em></td>
+</tr>
+<tr>
+<td>Success</td>
+<td>Expandable tree of timing and utilization results</td>
+</tr>
+</tbody>
+</table>
+<p>When a build succeeds, the tree shows:</p>
+<div class="highlight"><pre><span></span><code>Vivado — OOC          PASS
+├── Timing            PASS
+│   ├── WNS +1.234 ns PASS
+│   ├── WHS +0.456 ns PASS
+│   └── Failing paths: 0
+└── Utilization
+    ├── LUT: 1,234 / 53,200 (2.3%)
+    ├── FF:  2,891 / 106,400 (2.7%)
+    └── BRAM: 4 / 140 (2.9%)
+</code></pre></div>
+<p>Clicking <strong>Timing</strong> or a CDC node opens the corresponding report file in the editor.</p>
+<hr />
+<h2 id="status-bar-item">Status Bar Item<a class="headerlink" href="#status-bar-item" title="Permanent link">&para;</a></h2>
+<p>The <code>$(circuit-board) IPCraft</code> item appears in the left status bar throughout the session.</p>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Display</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Idle</td>
+<td><code>$(circuit-board) IPCraft</code></td>
+</tr>
+<tr>
+<td>Building</td>
+<td><code>$(loading~spin) Building…</code></td>
+</tr>
+<tr>
+<td>Passed (Vivado)</td>
+<td><code>$(pass) WNS +1.23ns</code></td>
+</tr>
+<tr>
+<td>Passed (Quartus)</td>
+<td><code>$(pass) Fmax 156 MHz</code></td>
+</tr>
+<tr>
+<td>Failed</td>
+<td><code>$(error) Build failed</code> (red background)</td>
+</tr>
+</tbody>
+</table>
+<p>Clicking the item opens the <em>IPCraft Build</em> Output Channel.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
