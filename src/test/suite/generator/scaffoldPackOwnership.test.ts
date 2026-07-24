@@ -1,7 +1,7 @@
 import {
-  packOwnsSimulationEnvironment,
+  packOwnsGeneratedTree,
   shouldGenerateFrameworkTestbench,
-} from '../../../generator/scaffoldPackTestbench';
+} from '../../../generator/scaffoldPackOwnership';
 import type { ScaffoldPack } from '../../../generator/types';
 
 function pack(overrides: Partial<ScaffoldPack> = {}): ScaffoldPack {
@@ -23,7 +23,7 @@ describe('scaffold pack testbench ownership', () => {
       ],
     });
 
-    expect(packOwnsSimulationEnvironment(subject)).toBe(true);
+    expect(packOwnsGeneratedTree(subject)).toBe(true);
     expect(shouldGenerateFrameworkTestbench(subject)).toBe(false);
   });
 
@@ -32,7 +32,7 @@ describe('scaffold pack testbench ownership', () => {
       files: [{ source: 'wave.gtkw', target: 'sim/wave.gtkw' }],
     });
 
-    expect(packOwnsSimulationEnvironment(subject)).toBe(false);
+    expect(packOwnsGeneratedTree(subject)).toBe(false);
     expect(shouldGenerateFrameworkTestbench(subject)).toBe(true);
   });
 

@@ -442,7 +442,7 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
-  it('infers simulation ownership for a full-generation pack with a testbench and runner (issue #156)', async () => {
+  it('limits an inferred full-generation owner to its pack-declared tree (issue #156)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-owned-sim-'));
     const packDir = path.join(tmp, 'owned-sim-pack');
     fs2.mkdirSync(packDir, { recursive: true });
@@ -456,24 +456,35 @@ describe('IpCoreScaffolder', () => {
         '    target: sim/custom_tb.vhd',
         '  - source: Makefile.j2',
         '    target: sim/Makefile',
+        '  - source: readme.md.j2',
+        '    target: doc/readme.md',
+        '  - source: project.tcl.j2',
+        '    target: syn/project.tcl',
       ].join('\n')
     );
     fs2.writeFileSync(path.join(packDir, 'custom_tb.vhd.j2'), '-- custom testbench\n');
     fs2.writeFileSync(path.join(packDir, 'Makefile.j2'), 'run:\n\t@echo custom\n');
+    fs2.writeFileSync(path.join(packDir, 'readme.md.j2'), '# Custom documentation\n');
+    fs2.writeFileSync(path.join(packDir, 'project.tcl.j2'), '# Custom synthesis project\n');
 
     try {
       const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
       const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
         includeTestbench: true,
-        targets: [],
+        includeDocs: true,
+        includeVivadoProject: true,
+        includeQuartusProject: true,
+        targets: ['vivado', 'quartus'],
         scaffoldPack: packDir,
         dryRun: true,
       });
 
       expect(result.success).toBe(true);
       expect(Object.keys(result.generatedContents ?? {}).sort()).toEqual([
+        'doc/readme.md',
         'sim/Makefile',
         'sim/custom_tb.vhd',
+        'syn/project.tcl',
       ]);
       expect(result.frameworkTestbenchPaths).toEqual([]);
     } finally {

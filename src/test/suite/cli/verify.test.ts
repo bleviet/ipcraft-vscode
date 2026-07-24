@@ -131,7 +131,7 @@ describe('runCliVerify', () => {
       const inputPath = writeBlinkerIpYaml(tmp, '50MHz');
       const args = {
         ipYamlPath: inputPath,
-        targets: [],
+        targets: ['quartus'],
         hdlLanguage: 'vhdl' as const,
         scaffoldPack: packDir,
       };
@@ -142,9 +142,10 @@ describe('runCliVerify', () => {
       expect(generateResult.files).toEqual(['sim/Makefile', 'sim/custom_tb.vhd']);
       expect(fs2.existsSync(path.join(outputDir, 'tb'))).toBe(false);
       expect(fs2.existsSync(path.join(outputDir, '.vscode', 'settings.json'))).toBe(false);
+      expect(fs2.existsSync(path.join(outputDir, 'altera'))).toBe(false);
 
       const verifyResult = await runCliVerify({ ...args, generatedDir: outputDir }, resourceRoots);
-      expect(verifyResult).toEqual({ success: true, staleFiles: [] });
+      expect(verifyResult).toEqual({ success: true, staleFiles: [], warnings: [] });
     } finally {
       fs2.rmSync(tmp, { recursive: true, force: true });
     }

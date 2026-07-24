@@ -42,10 +42,7 @@ import type {
   HdlLanguage,
   IpCoreData,
 } from './types';
-import {
-  packOwnsSimulationEnvironment,
-  shouldGenerateFrameworkTestbench,
-} from './scaffoldPackTestbench';
+import { packOwnsGeneratedTree, shouldGenerateFrameworkTestbench } from './scaffoldPackOwnership';
 
 /**
  * Add the POSIX executable bits (owner/group/other +x) to a freshly written file, preserving
@@ -157,7 +154,7 @@ export class IpCoreScaffolder {
         activeBusPortNames: extractActiveBusPortNames(context),
       });
       const resolvedPackName = path.basename(pack.packDir);
-      const packOwnsOutput = packOwnsSimulationEnvironment(pack);
+      const packOwnsOutput = packOwnsGeneratedTree(pack);
 
       // Pack-level template loader: searches pack dir first (user overrides), then built-in templates.
       const packLoader = new TemplateLoader(this.logger, [

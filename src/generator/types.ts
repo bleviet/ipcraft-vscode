@@ -71,6 +71,8 @@ export interface ScaffoldPack {
   /**
    * When true, testbench generation gets the full register/bus context (IPCraft-style).
    * When false, testbench sees a minimal stub without register signals.
+   * A full-generation pack that declares both its own testbench and runner is also inferred
+   * to own the complete generated tree, suppressing IPCraft framework, docs, and vendor files.
    */
   fullGeneration?: boolean;
   /**

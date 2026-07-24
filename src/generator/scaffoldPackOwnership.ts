@@ -10,12 +10,12 @@ function normalizedTargets(files: ScaffoldFileRule[]): string[] {
 }
 
 /**
- * A full-generation pack owns its simulation environment when its manifest
- * declares both testbench-like output and a build/run entry point. Requiring
- * both signals avoids changing existing packs that merely add a simulation
- * helper while still relying on IPCraft's framework testbench.
+ * A full-generation pack owns its generated tree when its manifest declares
+ * both testbench-like output and a build/run entry point. Requiring both
+ * signals avoids changing existing packs that merely add a simulation helper
+ * while still relying on IPCraft-owned framework, docs, and vendor output.
  */
-export function packOwnsSimulationEnvironment(pack: ScaffoldPack): boolean {
+export function packOwnsGeneratedTree(pack: ScaffoldPack): boolean {
   if (pack.fullGeneration !== true) {
     return false;
   }
@@ -28,11 +28,11 @@ export function packOwnsSimulationEnvironment(pack: ScaffoldPack): boolean {
 /**
  * Explicit manifest choices always win. When the setting is omitted, preserve
  * the historical default except for full-generation packs that demonstrably
- * provide their own complete simulation environment.
+ * provide their own complete generated tree.
  */
 export function shouldGenerateFrameworkTestbench(pack: ScaffoldPack): boolean {
   if (pack.generateFrameworkTestbenchDeclared) {
     return pack.generateFrameworkTestbench !== false;
   }
-  return !packOwnsSimulationEnvironment(pack);
+  return !packOwnsGeneratedTree(pack);
 }
