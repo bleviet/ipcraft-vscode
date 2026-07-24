@@ -125,6 +125,103 @@ describe('IpCoreScaffolder', () => {
     );
   });
 
+  describe('pack indentation defaults (issue #160)', () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    // Same template + entity_name the pack's rule renders inside generateAll (rtlCtx sets
+    // entity_name from the IP core's vlnv.name; architecture_name is never set, so it's blank).
+    const baselineContent = loader.render('architecture.vhdl.j2', { entity_name: 'sample_core' });
+    const packDirs: string[] = [];
+
+    function writeIndentPack(extra = ''): string {
+      const packDir = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-indent-pack-'));
+      fs2.writeFileSync(
+        path.join(packDir, 'scaffold.yml'),
+        [
+          'name: "indent-test-pack"',
+          'files:',
+          '  - source: "architecture.vhdl.j2"',
+          '    target: "rtl/example.vhd"',
+          extra,
+        ].join('\n')
+      );
+      packDirs.push(packDir);
+      return packDir;
+    }
+
+    afterEach(() => {
+      while (packDirs.length > 0) {
+        fs2.rmSync(packDirs.pop() as string, { recursive: true, force: true });
+      }
+    });
+
+    it('applies the pack default when nothing else sets indentation', async () => {
+      const packDir = writeIndentPack('generation:\n  indentation:\n    style: tab\n');
+      const result = await scaffolder.generateAll(inputPath, '/tmp/pack-indent-only', {
+        scaffoldPack: packDir,
+        dryRun: true,
+        targets: [],
+        includeTestbench: false,
+        includeDocs: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.generatedContents['rtl/example.vhd']).toBe(
+        reindentSource(baselineContent, '\t')
+      );
+    });
+
+    it('lets an explicit run override beat the pack default', async () => {
+      const packDir = writeIndentPack('generation:\n  indentation:\n    style: tab\n');
+      const result = await scaffolder.generateAll(inputPath, '/tmp/pack-indent-explicit', {
+        scaffoldPack: packDir,
+        dryRun: true,
+        targets: [],
+        includeTestbench: false,
+        includeDocs: false,
+        indentStyle: 'spaces',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.generatedContents['rtl/example.vhd']).toBe(baselineContent);
+    });
+
+    it('combines a workspace-sourced style with a pack-sourced size (independent per-field resolution)', async () => {
+      // Pack declares only `size`; workspace declares only `style`. Neither source fully
+      // determines the resolved indentation on its own — each field must be resolved from
+      // whichever tier declares it (issue #160 acceptance criteria).
+      const packDir = writeIndentPack('generation:\n  indentation:\n    size: 4\n');
+      const result = await scaffolder.generateAll(inputPath, '/tmp/pack-indent-cross-tier', {
+        scaffoldPack: packDir,
+        dryRun: true,
+        targets: [],
+        includeTestbench: false,
+        includeDocs: false,
+        workspaceIndentation: { style: 'spaces' },
+      });
+
+      expect(result.success).toBe(true);
+      // Style 'spaces' comes from workspace (pack doesn't declare it); size 4 comes from the
+      // pack (workspace doesn't declare it).
+      expect(result.generatedContents['rtl/example.vhd']).toBe(
+        reindentSource(baselineContent, '    ')
+      );
+    });
+
+    it('produces byte-for-byte unchanged output when the pack omits generation entirely', async () => {
+      const packDir = writeIndentPack();
+      const result = await scaffolder.generateAll(inputPath, '/tmp/pack-indent-none', {
+        scaffoldPack: packDir,
+        dryRun: true,
+        targets: [],
+        includeTestbench: false,
+        includeDocs: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.generatedContents['rtl/example.vhd']).toBe(baselineContent);
+    });
+  });
+
   it('generates a full project structure (builtin-ipcraft)', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
     const outputDir = '/tmp/test-output';

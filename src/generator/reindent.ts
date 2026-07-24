@@ -25,6 +25,33 @@ const REINDENTED_EXTENSIONS = new Set([
   '.sdc',
 ]);
 
+/**
+ * Indentation style/size defaults from a single precedence tier (VS Code workspace/user
+ * settings, or a scaffold pack's `generation.indentation` manifest block — issue #160). Both
+ * fields are independently optional so a source can override only one of them.
+ */
+export interface IndentationDefaults {
+  style?: IndentStyle;
+  size?: number;
+}
+
+/**
+ * Resolve effective indentation style/size independently per field, in precedence order:
+ * explicit run override (CLI flag or explicit `GenerateOptions` value) > the selected scaffold
+ * pack's `generation.indentation` > VS Code workspace/user defaults > built-in fallback
+ * (issue #160).
+ */
+export function resolveIndentationDefaults(
+  explicit: IndentationDefaults,
+  packDefault: IndentationDefaults | undefined,
+  workspaceDefault: IndentationDefaults | undefined
+): { style: IndentStyle; size: number } {
+  return {
+    style: explicit.style ?? packDefault?.style ?? workspaceDefault?.style ?? DEFAULT_INDENT_STYLE,
+    size: explicit.size ?? packDefault?.size ?? workspaceDefault?.size ?? DEFAULT_INDENT_SIZE,
+  };
+}
+
 export function createIndentUnit(style: IndentStyle, size: number): string {
   if (style === 'tab') {
     return '\t';

@@ -1,7 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import type { ScaffoldPack, ScaffoldFileRule, ScaffoldPackRequirements } from './types';
+import type {
+  ScaffoldPack,
+  ScaffoldFileRule,
+  ScaffoldPackRequirements,
+  ScaffoldPackGeneration,
+} from './types';
+import type { IndentationDefaults } from './reindent';
 
 /**
  * Resolve a rendered scaffold target beneath the selected output directory.
@@ -76,6 +82,73 @@ function parseRequirements(raw: unknown): ScaffoldPackRequirements | undefined {
   return requirements;
 }
 
+/**
+ * Parses the optional `generation.indentation` manifest block (issue #160). Unlike
+ * `parseRequirements`, invalid values throw actionable errors naming the pack and the bad
+ * field instead of being silently coerced or discarded — a pack author who mistypes
+ * `style: sideways` should see a clear failure at load time, not silently get `spaces`.
+ */
+function parseIndentation(raw: unknown, packName: string): IndentationDefaults | undefined {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error(
+      `Scaffold pack '${packName}' declares an invalid generation.indentation ${JSON.stringify(raw)}: expected an object with optional 'style' and 'size' fields.`
+    );
+  }
+  const r = raw as Record<string, unknown>;
+
+  let style: IndentationDefaults['style'];
+  if (r.style !== undefined) {
+    if (r.style !== 'spaces' && r.style !== 'tab') {
+      throw new Error(
+        `Scaffold pack '${packName}' declares an invalid generation.indentation.style ${JSON.stringify(r.style)}: expected 'spaces' or 'tab'.`
+      );
+    }
+    style = r.style;
+  }
+
+  let size: number | undefined;
+  if (r.size !== undefined) {
+    // Validated unconditionally, even when style is 'tab' — matches how argv.ts validates
+    // --indent-size independently of --indent-style.
+    if (typeof r.size !== 'number' || !Number.isInteger(r.size) || r.size < 1) {
+      throw new Error(
+        `Scaffold pack '${packName}' declares an invalid generation.indentation.size ${JSON.stringify(r.size)}: expected a positive integer.`
+      );
+    }
+    size = r.size;
+  }
+
+  const result: IndentationDefaults = {};
+  if (style !== undefined) {
+    result.style = style;
+  }
+  if (size !== undefined) {
+    result.size = size;
+  }
+  return result;
+}
+
+/** Parses the optional `generation` manifest block (issue #160). Absent = no pack default. */
+function parseGeneration(raw: unknown, packName: string): ScaffoldPackGeneration | undefined {
+  if (raw === undefined || raw === null) {
+    return undefined;
+  }
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    throw new Error(
+      `Scaffold pack '${packName}' declares an invalid generation block ${JSON.stringify(raw)}: expected an object.`
+    );
+  }
+  const r = raw as Record<string, unknown>;
+  const indentation = parseIndentation(r.indentation, packName);
+  if (indentation === undefined) {
+    return undefined;
+  }
+  return { indentation };
+}
+
 export class ScaffoldPackLoader {
   private readonly builtinPacksDir: string;
 
@@ -137,6 +210,8 @@ export class ScaffoldPackLoader {
     const raw = fs.readFileSync(manifestPath, 'utf8');
     const parsed = yaml.load(raw) as Record<string, unknown>;
 
+    const name = String(parsed.name ?? path.basename(packDir));
+
     const files: ScaffoldFileRule[] = ((parsed.files as Array<Record<string, unknown>>) ?? []).map(
       (f) => ({
         source: String(f.source ?? ''),
@@ -148,7 +223,7 @@ export class ScaffoldPackLoader {
     );
 
     return {
-      name: String(parsed.name ?? path.basename(packDir)),
+      name,
       description: parsed.description !== undefined ? String(parsed.description) : undefined,
       category: parsed.category !== undefined ? String(parsed.category) : undefined,
       packDir,
@@ -158,6 +233,7 @@ export class ScaffoldPackLoader {
       generateFrameworkTestbenchDeclared: parsed.generateFrameworkTestbench !== undefined,
       apiVersion: parsed.apiVersion !== undefined ? String(parsed.apiVersion) : undefined,
       requirements: parseRequirements(parsed.requirements),
+      generation: parseGeneration(parsed.generation, name),
     };
   }
 

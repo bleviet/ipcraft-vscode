@@ -88,7 +88,9 @@ export async function handleGenerateRequest({
     resourceRoots
   );
   const result = await generator.generateAll(document.uri.fsPath, outputBaseDir, {
-    ...readGenerationIndentation(vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE)),
+    workspaceIndentation: readGenerationIndentation(
+      vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE)
+    ),
     targets: legacyVendorToTargets(message.options?.vendorFiles ?? 'none'),
     includeTestbench: message.options?.includeTestbench !== false,
     includeRegs: message.options?.includeRegfile !== false,

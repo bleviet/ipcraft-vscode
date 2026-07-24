@@ -98,6 +98,19 @@ export interface ScaffoldPack {
   apiVersion?: string;
   /** Input compatibility declarations, validated before any file is rendered (issue #152). */
   requirements?: ScaffoldPackRequirements;
+  /** Generation defaults this pack prefers — currently indentation only (issue #160). */
+  generation?: ScaffoldPackGeneration;
+}
+
+/**
+ * Generation defaults a scaffold pack declares in its manifest (issue #160), applied when the
+ * corresponding value isn't set by an explicit CLI/run override. Absent fields impose no
+ * constraint; a pack that omits `generation` entirely produces byte-for-byte unchanged output.
+ */
+export interface ScaffoldPackGeneration {
+  /** Indentation style/size this pack prefers, applied between explicit overrides and VS Code
+   * workspace/user settings in the resolution order (see `resolveIndentationDefaults`). */
+  indentation?: import('./reindent').IndentationDefaults;
 }
 
 export interface GenerateOptions {
@@ -122,6 +135,15 @@ export interface GenerateOptions {
   indentStyle?: import('./reindent').IndentStyle;
   /** Spaces per canonical indentation level. Ignored when indentStyle is 'tab'. */
   indentSize?: number;
+  /**
+   * VS Code workspace/user setting defaults for indentation (issue #160). Populated only by
+   * VS Code call sites via readGenerationIndentation(); distinct from indentStyle/indentSize,
+   * which represent an explicit run override (CLI flag or an explicit caller-supplied value).
+   * The CLI never sets this field. Resolution order (independently per field), applied in
+   * IpCoreScaffolder.generateAll: indentStyle/indentSize (explicit) > the selected pack's
+   * generation.indentation > workspaceIndentation > built-in default (spaces/2).
+   */
+  workspaceIndentation?: import('./reindent').IndentationDefaults;
   /** Testbench framework: 'cocotb' (default) or 'vunit'. */
   framework?: string;
   /** Simulation engine: 'ghdl' (default), 'icarus', 'verilator', 'questa'. */

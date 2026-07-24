@@ -175,6 +175,72 @@ describe('ScaffoldPackLoader.resolve', () => {
     const pack = loader.resolve('non-executable-pack');
     expect(pack.files[0].executable).toBeUndefined();
   });
+
+  describe('generation.indentation (issue #160)', () => {
+    it('leaves generation undefined when the manifest omits the block', () => {
+      const loader = new ScaffoldPackLoader(builtinDir);
+      const pack = loader.resolve('builtin-minimal');
+      expect(pack.generation).toBeUndefined();
+    });
+
+    it('parses a style-only indentation block', () => {
+      writePack(builtinDir, 'tab-pack', 'generation:\n  indentation:\n    style: tab\n');
+      const loader = new ScaffoldPackLoader(builtinDir);
+      const pack = loader.resolve('tab-pack');
+      expect(pack.generation?.indentation).toEqual({ style: 'tab' });
+      expect(pack.generation?.indentation).not.toHaveProperty('size');
+    });
+
+    it('parses a size-only indentation block', () => {
+      writePack(builtinDir, 'size-only-pack', 'generation:\n  indentation:\n    size: 4\n');
+      const loader = new ScaffoldPackLoader(builtinDir);
+      const pack = loader.resolve('size-only-pack');
+      expect(pack.generation?.indentation).toEqual({ size: 4 });
+    });
+
+    it('parses both style and size when present', () => {
+      writePack(
+        builtinDir,
+        'both-pack',
+        'generation:\n  indentation:\n    style: spaces\n    size: 4\n'
+      );
+      const loader = new ScaffoldPackLoader(builtinDir);
+      const pack = loader.resolve('both-pack');
+      expect(pack.generation?.indentation).toEqual({ style: 'spaces', size: 4 });
+    });
+
+    it('throws an actionable error naming the pack and value for an invalid style', () => {
+      writePack(builtinDir, 'bad-style-pack', 'generation:\n  indentation:\n    style: sideways\n');
+      const loader = new ScaffoldPackLoader(builtinDir);
+      expect(() => loader.resolve('bad-style-pack')).toThrow(/bad-style-pack/);
+      expect(() => loader.resolve('bad-style-pack')).toThrow(/sideways/);
+    });
+
+    it.each([
+      ['0', '0'],
+      ['-1', '-1'],
+      ['1.5', '1.5'],
+      ['"abc"', 'abc'],
+    ])('throws an actionable error naming the pack for an invalid size %s', (yamlValue) => {
+      writePack(
+        builtinDir,
+        'bad-size-pack',
+        `generation:\n  indentation:\n    size: ${yamlValue}\n`
+      );
+      const loader = new ScaffoldPackLoader(builtinDir);
+      expect(() => loader.resolve('bad-size-pack')).toThrow(/bad-size-pack/);
+    });
+
+    it('validates size even when style is tab (size is still checked independently)', () => {
+      writePack(
+        builtinDir,
+        'tab-bad-size-pack',
+        'generation:\n  indentation:\n    style: tab\n    size: 0\n'
+      );
+      const loader = new ScaffoldPackLoader(builtinDir);
+      expect(() => loader.resolve('tab-bad-size-pack')).toThrow(/tab-bad-size-pack/);
+    });
+  });
 });
 
 describe.each([

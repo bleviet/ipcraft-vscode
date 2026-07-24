@@ -774,7 +774,7 @@ async function runGenerator(
   options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
   progressTitle: string
 ): Promise<boolean> {
-  const indentation = readGenerationIndentation(
+  const workspaceIndentation = readGenerationIndentation(
     vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE)
   );
 
@@ -792,7 +792,7 @@ async function runGenerator(
         globalResourceRoots
       );
       dryResult = await generator.generateAll(ipCoreUri.fsPath, outputDir, {
-        ...indentation,
+        workspaceIndentation,
         ...options,
         dryRun: true,
       });

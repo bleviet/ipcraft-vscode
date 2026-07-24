@@ -134,6 +134,92 @@ describe('runCliGenerate', () => {
     expect(entityVhd).not.toMatch(/^ +/m);
   });
 
+  it('applies a pack-declared indentation default when no CLI flags are passed (issue #160)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-cli-pack-indent-'));
+    const packDir = path.join(tmp, 'tab-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "tab-pack"',
+        'files:',
+        '  - source: architecture.vhdl.j2',
+        '    target: rtl/example.vhd',
+        'generation:',
+        '  indentation:',
+        '    style: tab',
+        '',
+      ].join('\n')
+    );
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await runCliGenerate(
+        {
+          ipYamlPath: inputPath,
+          outDir: path.join(tmp, 'output'),
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+        },
+        resourceRoots
+      );
+
+      expect(result.success).toBe(true);
+      const exampleVhd = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('rtl/example.vhd')
+      )?.[1] as string | undefined;
+      expect(exampleVhd).toBeDefined();
+      expect(exampleVhd).toContain('\t\t-- Your architecture code goes here');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('lets an explicit --indent-style flag override the pack default (issue #160)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-cli-pack-indent-override-'));
+    const packDir = path.join(tmp, 'tab-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "tab-pack"',
+        'files:',
+        '  - source: architecture.vhdl.j2',
+        '    target: rtl/example.vhd',
+        'generation:',
+        '  indentation:',
+        '    style: tab',
+        '',
+      ].join('\n')
+    );
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await runCliGenerate(
+        {
+          ipYamlPath: inputPath,
+          outDir: path.join(tmp, 'output'),
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+          indentStyle: 'spaces',
+        },
+        resourceRoots
+      );
+
+      expect(result.success).toBe(true);
+      const exampleVhd = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('rtl/example.vhd')
+      )?.[1] as string | undefined;
+      expect(exampleVhd).toBeDefined();
+      expect(exampleVhd).not.toMatch(/^\t/m);
+      expect(exampleVhd).toContain('    -- Your architecture code goes here');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('exits with a readable, non-generic error for a schema-invalid .ip.yml (issue #72 AC2)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-cli-invalid-'));
     try {
