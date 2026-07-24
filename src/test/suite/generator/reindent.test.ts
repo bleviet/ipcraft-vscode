@@ -4,6 +4,7 @@ import {
   createIndentUnit,
   reindentGeneratedSources,
   reindentSource,
+  resolveIndentationDefaults,
 } from '../../../generator/reindent';
 import { Logger } from '../../../utils/Logger';
 
@@ -97,5 +98,67 @@ end architecture rtl;
 
   it('rejects a non-positive space indentation size', () => {
     expect(() => createIndentUnit('spaces', 0)).toThrow('Indent size must be a positive integer');
+  });
+});
+
+describe('resolveIndentationDefaults (issue #160)', () => {
+  it('explicit wins over pack and workspace for both fields', () => {
+    expect(
+      resolveIndentationDefaults(
+        { style: 'tab', size: 8 },
+        { style: 'spaces', size: 4 },
+        { style: 'spaces', size: 2 }
+      )
+    ).toEqual({ style: 'tab', size: 8 });
+  });
+
+  it('pack wins over workspace when explicit is absent', () => {
+    expect(
+      resolveIndentationDefaults({}, { style: 'tab', size: 4 }, { style: 'spaces', size: 2 })
+    ).toEqual({
+      style: 'tab',
+      size: 4,
+    });
+  });
+
+  it('workspace wins when explicit and pack are absent', () => {
+    expect(resolveIndentationDefaults({}, undefined, { style: 'tab', size: 3 })).toEqual({
+      style: 'tab',
+      size: 3,
+    });
+  });
+
+  it('falls back to the built-in default when all tiers are absent', () => {
+    expect(resolveIndentationDefaults({}, undefined, undefined)).toEqual({
+      style: 'spaces',
+      size: 2,
+    });
+  });
+
+  it('combines explicit style with pack size when each source declares only one field', () => {
+    expect(
+      resolveIndentationDefaults({ style: 'tab' }, { size: 4 }, { style: 'spaces', size: 8 })
+    ).toEqual({ style: 'tab', size: 4 });
+  });
+
+  it('combines pack style with workspace size when pack omits size', () => {
+    expect(resolveIndentationDefaults({}, { style: 'tab' }, { size: 6 })).toEqual({
+      style: 'tab',
+      size: 6,
+    });
+  });
+
+  it('combines explicit size with workspace style when explicit omits style and pack is absent', () => {
+    expect(resolveIndentationDefaults({ size: 5 }, undefined, { style: 'tab' })).toEqual({
+      style: 'tab',
+      size: 5,
+    });
+  });
+
+  it('combines pack size with built-in default style when neither explicit nor workspace declare style', () => {
+    expect(resolveIndentationDefaults({}, { size: 4 }, undefined)).toEqual({
+      style: 'spaces',
+      size: 4,
+    });
   });
 });

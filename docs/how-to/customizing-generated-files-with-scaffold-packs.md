@@ -123,6 +123,7 @@ Then select `my-pack` from **Scaffold Template** and generate the project.
 | `fullGeneration` | No | Gives generated tests the complete register and bus data when `true`. A full-generation pack that declares testbench-like output and its own build/run entry point owns the complete output tree, so IPCraft does not append framework, `docs/`, `altera/`, or `xilinx/` files |
 | `generateFrameworkTestbench` | No | Explicitly enables or suppresses IPCraft's `tb/*` and `.vscode/settings.json` framework testbench output. When omitted, it remains enabled for compatibility unless the pack owns the complete output tree |
 | `requirements` | No | Input compatibility this pack needs — see below |
+| `generation` | No | Generation defaults this pack prefers — currently indentation — see below |
 | `files` | Yes | Output rules |
 | `files[].source` | Yes | Template to render |
 | `files[].target` | Yes | Output path, relative to the generated project |
@@ -184,6 +185,49 @@ requirements:
 
 Omitting `requirements` entirely (or any field within it) imposes no
 constraint on that dimension — existing manifests keep working unchanged.
+
+## Declare an indentation default
+
+A pack can declare its own preferred indentation for generated HDL and
+synthesis-tool source files, so a workspace with several packs for different
+consumers (for example, an internal RTL pack that wants four spaces and a
+vendor-delivery pack that wants tabs) doesn't need the user to change
+workspace settings or remember pack-specific CLI flags between runs.
+
+```yaml
+generation:
+  indentation:
+    style: tab
+```
+
+```yaml
+generation:
+  indentation:
+    style: spaces
+    size: 4
+```
+
+| Field | Meaning |
+|---|---|
+| `style` | `spaces` or `tab` |
+| `size` | Spaces per indentation level. Ignored when `style` is `tab` |
+
+Indentation is resolved independently per field, in this precedence order:
+
+1. An explicit CLI flag or programmatic run option (`--indent-style`,
+   `--indent-size`, or the equivalent explicit `GenerateOptions` value)
+2. The selected scaffold pack's `generation.indentation` value
+3. VS Code workspace/user defaults (`ipcraft.generate.indentStyle` and
+   `ipcraft.generate.indentSize`)
+4. The built-in fallback (`spaces`, size `2`) when no VS Code configuration is
+   available, such as headless library use
+
+A pack may set only `style`, only `size`, or both — an omitted field falls
+through to the next tier. An invalid `style` or `size` fails pack loading
+with an error naming the pack and the offending field; omitting
+`generation` or `generation.indentation` imposes no pack-level default, so
+existing manifests are unaffected. `ipcraft generate` and `ipcraft verify`
+resolve indentation identically for the same pack and flags.
 
 ## How templates are found
 

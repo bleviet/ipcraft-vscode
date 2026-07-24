@@ -270,7 +270,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         this.resourceRoots
       );
       const result = await generator.generateAll(tmpFile, outputDir, {
-        ...readGenerationIndentation(
+        workspaceIndentation: readGenerationIndentation(
           vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE)
         ),
         targets: legacyVendorToTargets(message.options?.vendorFiles ?? 'none'),

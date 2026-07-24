@@ -157,6 +157,58 @@ describe('runCliVerify', () => {
     }
   });
 
+  it('resolves a pack-declared indentation default identically to generate (issue #160)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-pack-indent-'));
+    try {
+      const packDir = path.join(tmp, 'tab-pack');
+      fs2.mkdirSync(packDir, { recursive: true });
+      fs2.writeFileSync(
+        path.join(packDir, 'scaffold.yml'),
+        [
+          'name: "tab-pack"',
+          'files:',
+          '  - source: architecture.vhdl.j2',
+          '    target: rtl/example.vhd',
+          'generation:',
+          '  indentation:',
+          '    style: tab',
+          '',
+        ].join('\n')
+      );
+
+      const inputPath = writeBlinkerIpYaml(tmp, '50MHz');
+      // No --indent-style/--indent-size on either call — the pack default must be the only
+      // source of indentation, and generate/verify must resolve it identically.
+      const genResult = await runCliGenerate(
+        {
+          ipYamlPath: inputPath,
+          outDir: tmp,
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+        },
+        resourceRoots
+      );
+      expect(genResult.success).toBe(true);
+      expect(fs2.readFileSync(path.join(tmp, 'rtl/example.vhd'), 'utf8')).toContain('\t\t--');
+
+      const verifyResult = await runCliVerify(
+        {
+          ipYamlPath: inputPath,
+          generatedDir: tmp,
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+        },
+        resourceRoots
+      );
+      expect(verifyResult.success).toBe(true);
+      expect(verifyResult.staleFiles).toEqual([]);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('agrees with generate when a full-generation pack owns simulation output (issue #156)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-owned-sim-'));
     try {

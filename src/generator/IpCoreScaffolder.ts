@@ -43,7 +43,7 @@ import type {
   IpCoreData,
 } from './types';
 import { packOwnsGeneratedTree, shouldGenerateFrameworkTestbench } from './scaffoldPackOwnership';
-import { DEFAULT_INDENT_SIZE, DEFAULT_INDENT_STYLE, reindentGeneratedSources } from './reindent';
+import { reindentGeneratedSources, resolveIndentationDefaults } from './reindent';
 
 /**
  * Add the POSIX executable bits (owner/group/other +x) to a freshly written file, preserving
@@ -322,11 +322,12 @@ export class IpCoreScaffolder {
         }
       }
 
-      files = reindentGeneratedSources(
-        files,
-        options.indentStyle ?? DEFAULT_INDENT_STYLE,
-        options.indentSize ?? DEFAULT_INDENT_SIZE
+      const { style: indentStyle, size: indentSize } = resolveIndentationDefaults(
+        { style: options.indentStyle, size: options.indentSize },
+        pack.generation?.indentation,
+        options.workspaceIndentation
       );
+      files = reindentGeneratedSources(files, indentStyle, indentSize);
 
       // Surface fileSets HDL entries the pack never generates at all (issue #93) so they show
       // up in the Scaffold/Regenerate review list instead of silently vanishing from it. Only
