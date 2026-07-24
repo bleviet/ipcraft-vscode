@@ -10,7 +10,9 @@ import { parseVhdlFile } from '../parser/VhdlParser';
 import { parseVerilogFile } from '../parser/VerilogParser';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../generator/TemplateLoader';
+import { readGenerationIndentation } from '../generator/generationSettings';
 import { ResourceRoots } from '../services/ResourceRoots';
+import { CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 import { resolveVendor } from '../utils/resolveVendor';
 import { writeImportedFile, describeOutcome } from '../utils/importWrite';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
@@ -268,6 +270,9 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         this.resourceRoots
       );
       const result = await generator.generateAll(tmpFile, outputDir, {
+        ...readGenerationIndentation(
+          vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE)
+        ),
         targets: legacyVendorToTargets(message.options?.vendorFiles ?? 'none'),
         includeTestbench: message.options?.includeTestbench !== false,
         includeRegs: message.options?.includeRegfile !== false,

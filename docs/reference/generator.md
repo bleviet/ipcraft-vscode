@@ -182,6 +182,8 @@ ipcraft generate path/to/core.ip.yml --target quartus --lang vhdl --out gen/
 | `--pack <name>` | Scaffold pack override |
 | `--quartus-device <part>` | Quartus device |
 | `--vivado-part <part>` | Vivado part |
+| `--indent-style <spaces\|tab>` | Indentation style for generated HDL/TCL/XDC/SDC (default: `spaces`) |
+| `--indent-size <n>` | Spaces per indentation level when `--indent-style` is `spaces` (default: `2`) |
 
 Use `verify` to compare committed output with a fresh in-memory generation:
 
@@ -190,7 +192,10 @@ ipcraft verify path/to/core.ip.yml gen/ --target quartus --lang vhdl
 ```
 
 It exits with a non-zero status and lists stale or missing files when the
-directory differs.
+directory differs. Pass the same `--indent-style`/`--indent-size` (and any
+other generation flags) used to produce the committed output, or affected
+generated source files will be reported stale against the default 2-space
+regeneration.
 
 The CLI source was introduced by [issue #72](https://github.com/bleviet/ipcraft-vscode/issues/72)
 and remains in this repository so it uses the same generator as the extension.

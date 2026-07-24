@@ -118,6 +118,10 @@ export interface GenerateOptions {
   quartusDevice?: string;
   updateYaml?: boolean;
   hdlLanguage?: HdlLanguage;
+  /** Indentation style for generated HDL and synthesis-tool source files. */
+  indentStyle?: import('./reindent').IndentStyle;
+  /** Spaces per canonical indentation level. Ignored when indentStyle is 'tab'. */
+  indentSize?: number;
   /** Testbench framework: 'cocotb' (default) or 'vunit'. */
   framework?: string;
   /** Simulation engine: 'ghdl' (default), 'icarus', 'verilator', 'questa'. */

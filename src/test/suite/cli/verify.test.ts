@@ -108,6 +108,55 @@ describe('runCliVerify', () => {
     }
   });
 
+  it('uses the same custom indentation options as generate (issue #159)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-indent-'));
+    try {
+      const inputPath = writeBlinkerIpYaml(tmp, '50MHz');
+      const indentation = {
+        indentStyle: 'spaces' as const,
+        indentSize: 4,
+      };
+      const genResult = await runCliGenerate(
+        {
+          ipYamlPath: inputPath,
+          outDir: tmp,
+          targets: [],
+          hdlLanguage: 'vhdl',
+          ...indentation,
+        },
+        resourceRoots
+      );
+      expect(genResult.success).toBe(true);
+
+      const matchingVerify = await runCliVerify(
+        {
+          ipYamlPath: inputPath,
+          generatedDir: tmp,
+          targets: [],
+          hdlLanguage: 'vhdl',
+          ...indentation,
+        },
+        resourceRoots
+      );
+      expect(matchingVerify.success).toBe(true);
+      expect(matchingVerify.staleFiles).toEqual([]);
+
+      const defaultVerify = await runCliVerify(
+        {
+          ipYamlPath: inputPath,
+          generatedDir: tmp,
+          targets: [],
+          hdlLanguage: 'vhdl',
+        },
+        resourceRoots
+      );
+      expect(defaultVerify.success).toBe(false);
+      expect(defaultVerify.staleFiles).toContain('rtl/led_blink.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('agrees with generate when a full-generation pack owns simulation output (issue #156)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-owned-sim-'));
     try {

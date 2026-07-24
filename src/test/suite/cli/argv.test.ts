@@ -88,6 +88,41 @@ describe('ipcraft CLI argv parsing', () => {
     expect(result.kind).toBe('error');
   });
 
+  it('parses --indent-style and --indent-size', () => {
+    const result = parseArgs([
+      'generate',
+      'a.ip.yml',
+      '--indent-style',
+      'tab',
+      '--indent-size',
+      '4',
+    ]);
+    expect(result.kind).toBe('generate');
+    if (result.kind === 'generate') {
+      expect(result.args.indentStyle).toBe('tab');
+      expect(result.args.indentSize).toBe(4);
+    }
+  });
+
+  it('leaves indentStyle/indentSize undefined when omitted', () => {
+    const result = parseArgs(['generate', 'a.ip.yml']);
+    expect(result.kind).toBe('generate');
+    if (result.kind === 'generate') {
+      expect(result.args.indentStyle).toBeUndefined();
+      expect(result.args.indentSize).toBeUndefined();
+    }
+  });
+
+  it('rejects an invalid --indent-style value', () => {
+    const result = parseArgs(['generate', 'a.ip.yml', '--indent-style', 'tabs']);
+    expect(result.kind).toBe('error');
+  });
+
+  it('rejects a non-positive --indent-size value', () => {
+    expect(parseArgs(['generate', 'a.ip.yml', '--indent-size', '0']).kind).toBe('error');
+    expect(parseArgs(['generate', 'a.ip.yml', '--indent-size', 'nope']).kind).toBe('error');
+  });
+
   it('rejects an unknown option', () => {
     const result = parseArgs(['generate', 'a.ip.yml', '--bogus']);
     expect(result.kind).toBe('error');

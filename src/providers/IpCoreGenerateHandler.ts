@@ -7,6 +7,8 @@ import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import { Logger } from '../utils/Logger';
 import { DocumentManager } from '../services/DocumentManager';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
+import { readGenerationIndentation } from '../generator/generationSettings';
+import { CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 
 import { ResourceRoots } from '../services/ResourceRoots';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
@@ -86,6 +88,7 @@ export async function handleGenerateRequest({
     resourceRoots
   );
   const result = await generator.generateAll(document.uri.fsPath, outputBaseDir, {
+    ...readGenerationIndentation(vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE)),
     targets: legacyVendorToTargets(message.options?.vendorFiles ?? 'none'),
     includeTestbench: message.options?.includeTestbench !== false,
     includeRegs: message.options?.includeRegfile !== false,

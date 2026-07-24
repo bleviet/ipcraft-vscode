@@ -10,6 +10,7 @@ import { TemplateLoader } from '../../../generator/TemplateLoader';
 import { Logger } from '../../../utils/Logger';
 import { BusLibraryService } from '../../../services/BusLibraryService';
 import { devResourceRoots } from '../../../services/ResourceRoots';
+import { reindentSource, shouldReindentSource } from '../../../generator/reindent';
 
 // Mock Logger
 jest.mock('../../../utils/Logger', () => {
@@ -80,6 +81,48 @@ describe('IpCoreScaffolder', () => {
     mockWorkspaceScan.mockResolvedValue({ library: {}, files: [], count: 0 });
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     jest.clearAllMocks();
+  });
+
+  it('applies configured indentation only to generated source file types', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const commonOptions = {
+      includeRegs: true,
+      includeTestbench: true,
+      includeDocs: true,
+      targets: ['vivado', 'quartus'],
+      scaffoldPack: 'builtin-ipcraft',
+      dryRun: true,
+    };
+
+    const defaultResult = await scaffolder.generateAll(inputPath, '/tmp/default-indent', {
+      ...commonOptions,
+      indentStyle: 'spaces',
+      indentSize: 2,
+    });
+    const customResult = await scaffolder.generateAll(inputPath, '/tmp/custom-indent', {
+      ...commonOptions,
+      indentStyle: 'tab',
+      indentSize: 8,
+    });
+
+    expect(defaultResult.success).toBe(true);
+    expect(customResult.success).toBe(true);
+
+    for (const [relativePath, defaultContent] of Object.entries(
+      defaultResult.generatedContents as Record<string, string>
+    )) {
+      const customContent = customResult.generatedContents[relativePath];
+      expect(customContent).toBe(
+        shouldReindentSource(relativePath) ? reindentSource(defaultContent, '\t') : defaultContent
+      );
+    }
+
+    expect(customResult.generatedContents['docs/sample_core_datasheet.md']).toBe(
+      defaultResult.generatedContents['docs/sample_core_datasheet.md']
+    );
+    expect(customResult.generatedContents['tb/sample_core_test.py']).toBe(
+      defaultResult.generatedContents['tb/sample_core_test.py']
+    );
   });
 
   it('generates a full project structure (builtin-ipcraft)', async () => {

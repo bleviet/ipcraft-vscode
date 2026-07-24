@@ -43,6 +43,7 @@ import type {
   IpCoreData,
 } from './types';
 import { packOwnsGeneratedTree, shouldGenerateFrameworkTestbench } from './scaffoldPackOwnership';
+import { DEFAULT_INDENT_SIZE, DEFAULT_INDENT_STYLE, reindentGeneratedSources } from './reindent';
 
 /**
  * Add the POSIX executable bits (owner/group/other +x) to a freshly written file, preserving
@@ -162,7 +163,7 @@ export class IpCoreScaffolder {
         this.resourceRoots.templatesDir,
       ]);
 
-      const files: Record<string, string> = {};
+      let files: Record<string, string> = {};
       const packManagedFalse = new Set<string>();
       const executableTargets = new Set<string>();
       const name = String(ipCoreData?.vlnv?.name ?? 'ip_core').toLowerCase();
@@ -320,6 +321,12 @@ export class IpCoreScaffolder {
           files[relPath] = content;
         }
       }
+
+      files = reindentGeneratedSources(
+        files,
+        options.indentStyle ?? DEFAULT_INDENT_STYLE,
+        options.indentSize ?? DEFAULT_INDENT_SIZE
+      );
 
       // Surface fileSets HDL entries the pack never generates at all (issue #93) so they show
       // up in the Scaffold/Regenerate review list instead of silently vanishing from it. Only

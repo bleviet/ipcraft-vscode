@@ -2,6 +2,8 @@ import type { CliGenerateArgs } from './generate';
 import { DEFAULT_QUARTUS_DEVICE, DEFAULT_VIVADO_PART } from './generate';
 import type { CliVerifyArgs } from './verify';
 import type { HdlLanguage } from '../generator/types';
+import type { IndentStyle } from '../generator/reindent';
+import { DEFAULT_INDENT_SIZE, DEFAULT_INDENT_STYLE } from '../generator/reindent';
 
 export function usageText(): string {
   return `ipcraft — headless IPCraft HDL / vendor-project generator
@@ -21,6 +23,10 @@ Options:
                                       in the .ip.yml)
   --quartus-device <part>            Quartus device part (default: ${DEFAULT_QUARTUS_DEVICE})
   --vivado-part <part>                Vivado part (default: ${DEFAULT_VIVADO_PART})
+  --indent-style <spaces|tab>         Indentation style for generated HDL and synthesis-tool
+                                      sources (default: ${DEFAULT_INDENT_STYLE})
+  --indent-size <n>                   Spaces per indentation level when --indent-style is
+                                      'spaces' (default: ${DEFAULT_INDENT_SIZE}); ignored for 'tab'
   -h, --help                          Show this help
 
 Examples:
@@ -42,9 +48,14 @@ interface CommonOptions {
   quartusDevice?: string;
   targetPart?: string;
   outDir?: string;
+  indentStyle?: IndentStyle;
+  indentSize?: number;
 }
 
-/** Parses the shared `--target/--lang/--out/--pack/--quartus-device/--vivado-part` options. */
+/**
+ * Parses the shared `--target/--lang/--out/--pack/--quartus-device/--vivado-part/
+ * --indent-style/--indent-size` options.
+ */
 function parseCommonOptions(
   rest: string[]
 ): { positional: string[]; options: CommonOptions } | { error: string } {
@@ -55,6 +66,8 @@ function parseCommonOptions(
   let scaffoldPack: string | undefined;
   let quartusDevice: string | undefined;
   let targetPart: string | undefined;
+  let indentStyle: IndentStyle | undefined;
+  let indentSize: number | undefined;
 
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
@@ -86,6 +99,12 @@ function parseCommonOptions(
       case '--vivado-part':
         targetPart = next();
         break;
+      case '--indent-style':
+        indentStyle = next() as IndentStyle;
+        break;
+      case '--indent-size':
+        indentSize = Number(next());
+        break;
       default:
         if (arg.startsWith('--')) {
           return { error: `Unknown option '${arg}'` };
@@ -98,9 +117,26 @@ function parseCommonOptions(
     return { error: `Invalid --lang '${hdlLanguage}': expected 'vhdl' or 'systemverilog'` };
   }
 
+  if (indentStyle !== undefined && indentStyle !== 'spaces' && indentStyle !== 'tab') {
+    return { error: `Invalid --indent-style '${indentStyle}': expected 'spaces' or 'tab'` };
+  }
+
+  if (indentSize !== undefined && (!Number.isInteger(indentSize) || indentSize < 1)) {
+    return { error: `Invalid --indent-size: expected a positive integer` };
+  }
+
   return {
     positional,
-    options: { targets, hdlLanguage, scaffoldPack, quartusDevice, targetPart, outDir },
+    options: {
+      targets,
+      hdlLanguage,
+      scaffoldPack,
+      quartusDevice,
+      targetPart,
+      outDir,
+      indentStyle,
+      indentSize,
+    },
   };
 }
 

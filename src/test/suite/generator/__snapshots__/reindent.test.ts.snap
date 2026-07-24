@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`generated source indentation reindents a rendered VHDL template with 3 spaces 1`] = `
+"architecture rtl of example is
+begin
+      -- Your architecture code goes here
+end architecture rtl;
+"
+`;
+
+exports[`generated source indentation reindents a rendered VHDL template with 4 spaces 1`] = `
+"architecture rtl of example is
+begin
+        -- Your architecture code goes here
+end architecture rtl;
+"
+`;
+
+exports[`generated source indentation reindents a rendered VHDL template with 8 spaces 1`] = `
+"architecture rtl of example is
+begin
+                -- Your architecture code goes here
+end architecture rtl;
+"
+`;
+
+exports[`generated source indentation reindents a rendered VHDL template with tabs 1`] = `
+"architecture rtl of example is
+begin
+		-- Your architecture code goes here
+end architecture rtl;
+"
+`;

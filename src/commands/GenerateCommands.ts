@@ -22,6 +22,7 @@ import { resolveVendor } from '../utils/resolveVendor';
 import { rebaseIpYamlPaths } from '../utils/rebaseYamlPaths';
 import { writeImportedFile, describeOutcome } from '../utils/importWrite';
 import type { GenerateOptions } from '../generator/types';
+import { readGenerationIndentation } from '../generator/generationSettings';
 import { createVivadoProject, createQuartusProject } from './projectCreator';
 import { getBuildOutputChannel } from './BuildCommands';
 import { StagingPanel } from '../providers/StagingPanel';
@@ -773,6 +774,10 @@ async function runGenerator(
   options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
   progressTitle: string
 ): Promise<boolean> {
+  const indentation = readGenerationIndentation(
+    vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE)
+  );
+
   // Phase 1: Generate all file content in memory (no disk writes).
   // Use a neutral label — the operation title is reserved for Phase 4 when files are written.
   let dryResult:
@@ -787,6 +792,7 @@ async function runGenerator(
         globalResourceRoots
       );
       dryResult = await generator.generateAll(ipCoreUri.fsPath, outputDir, {
+        ...indentation,
         ...options,
         dryRun: true,
       });

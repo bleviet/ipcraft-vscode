@@ -4,6 +4,7 @@ import { TemplateLoader } from '../generator/TemplateLoader';
 import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import type { ResourceRoots } from '../services/ResourceRoots';
 import type { GenerateOptions, HdlLanguage } from '../generator/types';
+import type { IndentStyle } from '../generator/reindent';
 
 export const DEFAULT_QUARTUS_DEVICE = '5CSEBA6U23I7';
 export const DEFAULT_VIVADO_PART = 'xc7z020clg484-1';
@@ -17,6 +18,8 @@ export interface CliGenerateArgs {
   scaffoldPack?: string;
   quartusDevice?: string;
   targetPart?: string;
+  indentStyle?: IndentStyle;
+  indentSize?: number;
 }
 
 export interface CliGenerateResult {
@@ -44,7 +47,13 @@ export function buildCliScaffolder(resourceRoots: ResourceRoots): IpCoreScaffold
 export function buildGenerateOptions(
   args: Pick<
     CliGenerateArgs,
-    'targets' | 'hdlLanguage' | 'scaffoldPack' | 'quartusDevice' | 'targetPart'
+    | 'targets'
+    | 'hdlLanguage'
+    | 'scaffoldPack'
+    | 'quartusDevice'
+    | 'targetPart'
+    | 'indentStyle'
+    | 'indentSize'
   >
 ): GenerateOptions {
   const includeQuartusProject = args.targets.includes('quartus');
@@ -56,6 +65,8 @@ export function buildGenerateOptions(
     includeTestbench: true,
     hdlLanguage: args.hdlLanguage,
     scaffoldPack: args.scaffoldPack,
+    indentStyle: args.indentStyle,
+    indentSize: args.indentSize,
     includeQuartusProject,
     includeVivadoProject,
     ...(includeQuartusProject

@@ -112,6 +112,28 @@ describe('runCliGenerate', () => {
     expect(projectTcl).toContain(DEFAULT_QUARTUS_DEVICE);
   });
 
+  it('threads --indent-style/--indent-size through to written RTL files (issue #159)', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const result = await runCliGenerate(
+      {
+        ipYamlPath: inputPath,
+        outDir: '/tmp/cli-test-indent',
+        targets: [],
+        hdlLanguage: 'vhdl',
+        indentStyle: 'tab',
+        indentSize: 8,
+      },
+      resourceRoots
+    );
+
+    expect(result.success).toBe(true);
+    const entityVhd = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      String(call[0]).includes('rtl/sample_core.vhd')
+    )?.[1] as string | undefined;
+    expect(entityVhd).toBeDefined();
+    expect(entityVhd).not.toMatch(/^ +/m);
+  });
+
   it('exits with a readable, non-generic error for a schema-invalid .ip.yml (issue #72 AC2)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-cli-invalid-'));
     try {

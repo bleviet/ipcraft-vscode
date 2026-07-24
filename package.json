@@ -863,6 +863,25 @@
             "default": "vhdl",
             "description": "HDL language for RTL file generation (VHDL or SystemVerilog)."
           },
+          "ipcraft.generate.indentStyle": {
+            "type": "string",
+            "enum": [
+              "spaces",
+              "tab"
+            ],
+            "enumDescriptions": [
+              "Indent generated HDL and synthesis-tool sources with spaces",
+              "Indent generated HDL and synthesis-tool sources with tabs"
+            ],
+            "default": "spaces",
+            "description": "Indentation style for generated VHDL, Verilog, SystemVerilog, TCL, XDC, and SDC files."
+          },
+          "ipcraft.generate.indentSize": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 2,
+            "description": "Number of spaces per indentation level in generated HDL and synthesis-tool sources. Ignored when indentStyle is tab."
+          },
           "ipcraft.generate.scaffoldPack": {
             "type": "string",
             "default": "",
