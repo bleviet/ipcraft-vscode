@@ -61,6 +61,16 @@ export async function applyExecutableMode(fullPath: string, logger: Logger): Pro
   }
 }
 
+/**
+ * Path prefixes IPCraft treats as "simulation content" — the same convention
+ * `collectRtlAbsPaths` uses to exclude testbench sources from RTL compile order. Reused here to
+ * detect when a scaffold pack's own file rules already render under one of these conventional
+ * directories (issue #156).
+ */
+const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
+const isSimulationPath = (p: string): boolean =>
+  SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
+
 export class IpCoreScaffolder {
   private readonly logger: Logger;
   private readonly templates: TemplateLoader;
@@ -206,6 +216,13 @@ export class IpCoreScaffolder {
       // so the TB doesn't import a package that wasn't generated.
       const tbCtx = pack.fullGeneration ? context : { ...context, has_memory_mapped_slave: false };
 
+      // Files the pack's own rules already rendered under a conventional simulation directory
+      // (tb/, sim/, simulation/, testbench/, test/) — computed before the framework testbench is
+      // merged in, so it reflects only what the pack itself owns (issue #156).
+      const packOwnSimPaths = Object.keys(files).filter(isSimulationPath);
+      const warnings: string[] = [];
+      let frameworkTestbenchPaths: string[] = [];
+
       if (includeTestbench && pack.generateFrameworkTestbench !== false) {
         const tbFiles = generateTestbenchFiles(framework, engine, {
           name,
@@ -222,7 +239,24 @@ export class IpCoreScaffolder {
             | undefined,
           rtlSourceFiles: await collectTestbenchRtlFiles(files, ipCoreData, inputPath, outputDir),
         });
+        frameworkTestbenchPaths = Object.keys(tbFiles);
         Object.assign(files, tbFiles);
+
+        // The pack already looks like it ships its own simulation environment, but never made
+        // an explicit choice about IPCraft's framework testbench — flag it so the ambiguity is
+        // visible before the output is staged/written, instead of silently blending a second,
+        // unrelated simulation environment into the generated tree (issue #156). A pack that
+        // explicitly set generateFrameworkTestbench (either value) made a deliberate choice and
+        // never warrants this warning.
+        if (!pack.generateFrameworkTestbenchDeclared && packOwnSimPaths.length > 0) {
+          warnings.push(
+            `Scaffold pack '${resolvedPackName}' renders its own simulation-looking output ` +
+              `(e.g. ${packOwnSimPaths[0]}) but does not declare 'generateFrameworkTestbench' ` +
+              `in scaffold.yml. IPCraft's default framework testbench (tb/*, .vscode/settings.json) ` +
+              `will also be generated alongside it. If this pack owns its complete simulation ` +
+              `environment, set 'generateFrameworkTestbench: false' in the pack manifest.`
+          );
+        }
       }
 
       // ── Documentation (datasheet) ──────────────────────────────────────────
@@ -346,6 +380,8 @@ export class IpCoreScaffolder {
           protectedPaths: protectedOnDisk,
           userManagedPaths: [...userManagedPaths],
           executablePaths: [...executableTargets].filter((p) => p in files),
+          frameworkTestbenchPaths,
+          warnings,
           resolvedPackName,
           count: Object.keys(files).length,
           busType,
@@ -386,6 +422,8 @@ export class IpCoreScaffolder {
         files: written,
         generatedContents: { ...files },
         executablePaths: [...executableTargets].filter((p) => p in written),
+        frameworkTestbenchPaths,
+        warnings,
         resolvedPackName,
         count: Object.keys(written).length,
         busType,
@@ -629,8 +667,7 @@ export async function collectRtlAbsPaths(
   inputPath: string,
   outputDir: string
 ): Promise<string[]> {
-  const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
-  const isSimPath = (p: string) => SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
+  const isSimPath = isSimulationPath;
 
   // Paths in fileSets are relative to the .ip.yml directory.
   const ipCoreDir = path.dirname(inputPath);

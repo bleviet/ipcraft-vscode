@@ -155,6 +155,7 @@ export class ScaffoldPackLoader {
       files,
       fullGeneration: Boolean(parsed.fullGeneration ?? false),
       generateFrameworkTestbench: Boolean(parsed.generateFrameworkTestbench ?? true),
+      generateFrameworkTestbenchDeclared: parsed.generateFrameworkTestbench !== undefined,
       apiVersion: parsed.apiVersion !== undefined ? String(parsed.apiVersion) : undefined,
       requirements: parseRequirements(parsed.requirements),
     };

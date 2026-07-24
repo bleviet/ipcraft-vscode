@@ -18,6 +18,9 @@ export interface CliVerifyResult {
    * fresh generation, e.g. after a scaffold_pack or --target change).
    */
   staleFiles?: string[];
+  /** Non-fatal generation warnings, e.g. a pack that looks like it ships its own testbench but
+   *  never declared `generateFrameworkTestbench` (issue #156). */
+  warnings?: string[];
 }
 
 /**
@@ -135,5 +138,9 @@ export async function runCliVerify(
   }
 
   const sortedStaleFiles = [...staleFiles].sort();
-  return { success: sortedStaleFiles.length === 0, staleFiles: sortedStaleFiles };
+  return {
+    success: sortedStaleFiles.length === 0,
+    staleFiles: sortedStaleFiles,
+    warnings: result.warnings,
+  };
 }

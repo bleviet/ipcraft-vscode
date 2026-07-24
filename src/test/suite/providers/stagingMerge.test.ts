@@ -75,6 +75,31 @@ describe('WebviewStagingBridge merge tracking', () => {
       overwritePaths: ['locked.vhd'],
     });
   });
+
+  it("forwards each file's origin and any generation warnings to the webview (issue #156)", async () => {
+    const panel = fakePanel();
+    const bridge = WebviewStagingBridge.getInstance();
+    const fsPath = '/proj/d.ip.yml';
+    bridge.register(fsPath, panel);
+
+    const frameworkFile: StagedFile = { ...file('tb/Makefile'), origin: 'framework-testbench' };
+    const pending = bridge.showInWebview(fsPath, [file('rtl/core.vhd'), frameworkFile], undefined, [
+      'pack does not declare generateFrameworkTestbench',
+    ]);
+    bridge.resolveStaging(fsPath, false);
+    await pending;
+
+    expect(panel.webview.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'stagingStart',
+        warnings: ['pack does not declare generateFrameworkTestbench'],
+        files: [
+          expect.objectContaining({ relativePath: 'rtl/core.vhd', origin: undefined }),
+          expect.objectContaining({ relativePath: 'tb/Makefile', origin: 'framework-testbench' }),
+        ],
+      })
+    );
+  });
 });
 
 describe('mergeStagedFile', () => {

@@ -73,6 +73,20 @@ describe('ScaffoldPackLoader.resolve', () => {
     expect(pack.generateFrameworkTestbench).toBe(false);
   });
 
+  it('marks generateFrameworkTestbench as undeclared when the manifest omits it', () => {
+    const loader = new ScaffoldPackLoader(builtinDir);
+    const pack = loader.resolve('builtin-minimal');
+    expect(pack.generateFrameworkTestbenchDeclared).toBe(false);
+  });
+
+  it('marks generateFrameworkTestbench as declared when the manifest sets it explicitly', () => {
+    writePack(builtinDir, 'explicit-true-tb', 'generateFrameworkTestbench: true\n');
+    writePack(builtinDir, 'explicit-false-tb', 'generateFrameworkTestbench: false\n');
+    const loader = new ScaffoldPackLoader(builtinDir);
+    expect(loader.resolve('explicit-true-tb').generateFrameworkTestbenchDeclared).toBe(true);
+    expect(loader.resolve('explicit-false-tb').generateFrameworkTestbenchDeclared).toBe(true);
+  });
+
   it('leaves requirements undefined when the manifest omits it', () => {
     const loader = new ScaffoldPackLoader(builtinDir);
     const pack = loader.resolve('builtin-minimal');

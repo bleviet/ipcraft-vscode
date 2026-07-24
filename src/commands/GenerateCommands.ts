@@ -730,20 +730,37 @@ async function runCreateQuartusProjectStep(name: string, ipDir: string): Promise
 async function categorizeFiles(
   generatedContents: Record<string, string>,
   outputDir: string,
-  protectedPaths: string[]
+  protectedPaths: string[],
+  frameworkTestbenchPaths: string[] = []
 ): Promise<StagedFile[]> {
   const protectedSet = new Set(protectedPaths);
+  const frameworkSet = new Set(frameworkTestbenchPaths);
   return Promise.all(
     Object.entries(generatedContents).map(async ([relativePath, content]) => {
       const diskPath = path.join(outputDir, relativePath);
       const isProtected = protectedSet.has(relativePath);
+      const origin = frameworkSet.has(relativePath) ? 'framework-testbench' : undefined;
       try {
         const existing = await readFile(diskPath, 'utf8');
         const status = existing === content ? 'unchanged' : 'modified';
-        return { relativePath, status, content, diskPath, protected: isProtected } as StagedFile;
+        return {
+          relativePath,
+          status,
+          content,
+          diskPath,
+          protected: isProtected,
+          origin,
+        } as StagedFile;
       } catch {
         // File does not exist yet — treat it as a new file to be created.
-        return { relativePath, status: 'new', content, diskPath, protected: false } as StagedFile;
+        return {
+          relativePath,
+          status: 'new',
+          content,
+          diskPath,
+          protected: false,
+          origin,
+        } as StagedFile;
       }
     })
   );
@@ -787,7 +804,8 @@ async function runGenerator(
   const staged = await categorizeFiles(
     dryResult.generatedContents,
     outputDir,
-    dryResult.protectedPaths ?? []
+    dryResult.protectedPaths ?? [],
+    dryResult.frameworkTestbenchPaths ?? []
   );
 
   // Phase 3: Show the staging overlay in the canvas webview when possible; fall back to
@@ -806,9 +824,10 @@ async function runGenerator(
     const bridgeResult = await bridge.showInWebview(
       ipCoreUri.fsPath,
       staged,
-      path.basename(outputDir)
+      path.basename(outputDir),
+      dryResult.warnings ?? []
     );
-    const decision = bridgeResult ?? (await StagingPanel.show(staged));
+    const decision = bridgeResult ?? (await StagingPanel.show(staged, dryResult.warnings ?? []));
     if (!decision.confirmed) {
       return false;
     }

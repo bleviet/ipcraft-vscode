@@ -456,6 +456,91 @@ describe('IpCoreScaffolder', () => {
     expect(generatedPaths).toContain('.vscode/settings.json');
   });
 
+  it('warns when a pack already renders its own sim-like output but never declares generateFrameworkTestbench (issue #156)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-tbwarn-'));
+    const packDir = path.join(tmp, 'own-sim-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "own-sim-pack"',
+        'fullGeneration: true',
+        'files:',
+        '  - source: custom_tb.vhd.j2',
+        '    target: sim/custom_tb.vhd',
+      ].join('\n')
+    );
+    fs2.writeFileSync(path.join(packDir, 'custom_tb.vhd.j2'), '-- custom testbench\n');
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: true,
+        targets: [],
+        scaffoldPack: packDir,
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      // Framework testbench is still generated (default-true behavior preserved)...
+      const generatedPaths = Object.keys(result.generatedContents ?? {});
+      expect(generatedPaths.some((p) => p.startsWith('tb/'))).toBe(true);
+      expect(result.frameworkTestbenchPaths?.length).toBeGreaterThan(0);
+      // ...but the ambiguity is now surfaced as a warning.
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings?.[0]).toContain('own-sim-pack');
+      expect(result.warnings?.[0]).toContain('generateFrameworkTestbench');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('does not warn when a pack explicitly declares generateFrameworkTestbench, even if it renders sim-like output', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-tbwarn-declared-'));
+    const packDir = path.join(tmp, 'own-sim-pack-declared');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "own-sim-pack-declared"',
+        'fullGeneration: true',
+        'generateFrameworkTestbench: true',
+        'files:',
+        '  - source: custom_tb.vhd.j2',
+        '    target: sim/custom_tb.vhd',
+      ].join('\n')
+    );
+    fs2.writeFileSync(path.join(packDir, 'custom_tb.vhd.j2'), '-- custom testbench\n');
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: true,
+        targets: [],
+        scaffoldPack: packDir,
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toEqual([]);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('does not warn for a pack that only renders RTL under rtl/ (issue #156 — no false positive)', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const result = await scaffolder.generateAll(inputPath, '/tmp/test-no-warning-output', {
+      includeTestbench: true,
+      targets: [],
+      scaffoldPack: 'builtin-ipcraft',
+      dryRun: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.warnings).toEqual([]);
+  });
+
   it('reports the executable: true target in executablePaths without affecting other rules (issue #153)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-executable-'));
     const packDir = path.join(tmp, 'exec-pack');

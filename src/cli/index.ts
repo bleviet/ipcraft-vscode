@@ -33,6 +33,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
       console.error(`Verification failed: ${result.error}`);
       return 1;
     }
+    printWarnings(result.warnings);
     if (!result.success) {
       console.error(
         `Stale: ${result.staleFiles?.length ?? 0} file(s) differ from a fresh generation:`
@@ -53,12 +54,20 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     console.error(`Generation failed: ${result.error}`);
     return 1;
   }
+  printWarnings(result.warnings);
 
   console.log(`Generated ${result.files?.length ?? 0} file(s) into ${result.outputDir}`);
   for (const f of result.files ?? []) {
     console.log(`  ${f}`);
   }
   return 0;
+}
+
+/** Prints non-fatal generation warnings (e.g. issue #156's framework-testbench ambiguity). */
+function printWarnings(warnings: string[] | undefined): void {
+  for (const w of warnings ?? []) {
+    console.error(`Warning: ${w}`);
+  }
 }
 
 /* istanbul ignore next -- exercised via the built dist/cli.js, not unit tests */

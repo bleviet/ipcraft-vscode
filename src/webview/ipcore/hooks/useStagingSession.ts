@@ -5,6 +5,8 @@ import type { StagedFileView } from '../components/canvas/StagingOverlay';
 export interface StagingStartMessage {
   files?: StagedFileView[];
   rootLabel?: string;
+  /** Non-fatal generation warnings to surface before the user applies (issue #156). */
+  warnings?: string[];
 }
 
 /**
@@ -17,6 +19,7 @@ export function useStagingSession() {
   const [stagingData, setStagingData] = useState<{
     files: StagedFileView[];
     rootLabel?: string;
+    warnings?: string[];
   } | null>(null);
   // Files the user opened in the merge editor during the current staging — shown
   // as "merging" in the overlay and excluded from the bulk apply by the extension.
@@ -38,7 +41,11 @@ export function useStagingSession() {
           .map((f) => f.relativePath)
       )
     );
-    setStagingData(message.files ? { files: message.files, rootLabel: message.rootLabel } : null);
+    setStagingData(
+      message.files
+        ? { files: message.files, rootLabel: message.rootLabel, warnings: message.warnings }
+        : null
+    );
   }, []);
 
   const handleStagingFileMerged = useCallback((relativePath: string | undefined) => {

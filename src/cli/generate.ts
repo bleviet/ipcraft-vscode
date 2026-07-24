@@ -24,6 +24,9 @@ export interface CliGenerateResult {
   outputDir?: string;
   files?: string[];
   error?: string;
+  /** Non-fatal generation warnings, e.g. a pack that looks like it ships its own testbench but
+   *  never declared `generateFrameworkTestbench` (issue #156). */
+  warnings?: string[];
 }
 
 /** Builds a fresh IpCoreScaffolder wired to resourceRoots — shared by `generate` and `verify`. */
@@ -91,5 +94,6 @@ export async function runCliGenerate(
     success: true,
     outputDir,
     files: Object.keys(result.files ?? {}).sort(),
+    warnings: result.warnings,
   };
 }

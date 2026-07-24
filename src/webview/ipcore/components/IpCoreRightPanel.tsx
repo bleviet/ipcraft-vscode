@@ -46,6 +46,7 @@ export const IpCoreRightPanel: React.FC<IpCoreRightPanelProps> = ({
       <StagingOverlay
         files={staging.stagingData.files}
         rootLabel={staging.stagingData.rootLabel}
+        warnings={staging.stagingData.warnings}
         mergedPaths={staging.stagingMergedPaths}
         overwritePaths={staging.stagingOverwritePaths}
         onMerge={staging.mergeStagingFile}

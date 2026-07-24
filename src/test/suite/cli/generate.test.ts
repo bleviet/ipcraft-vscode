@@ -181,6 +181,43 @@ describe('runCliGenerate', () => {
     }
   });
 
+  it('surfaces a warning when a pack renders its own sim-like output without declaring generateFrameworkTestbench (issue #156)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-cli-tbwarn-'));
+    const packDir = path.join(tmp, 'own-sim-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "own-sim-pack"',
+        'fullGeneration: true',
+        'files:',
+        '  - source: custom_tb.vhd.j2',
+        '    target: sim/custom_tb.vhd',
+      ].join('\n')
+    );
+    fs2.writeFileSync(path.join(packDir, 'custom_tb.vhd.j2'), '-- custom testbench\n');
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await runCliGenerate(
+        {
+          ipYamlPath: inputPath,
+          outDir: path.join(tmp, 'output'),
+          targets: [],
+          hdlLanguage: 'vhdl',
+          scaffoldPack: packDir,
+        },
+        resourceRoots
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings?.[0]).toContain('generateFrameworkTestbench');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('defaults the output directory to alongside the .ip.yml when --out is omitted', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-cli-outdir-'));
     try {

@@ -43,7 +43,8 @@ export class WebviewStagingBridge {
   async showInWebview(
     fsPath: string,
     files: StagedFile[],
-    rootLabel?: string
+    rootLabel?: string,
+    warnings: string[] = []
   ): Promise<StagingDecision | null> {
     const panel = this.panels.get(fsPath);
     if (!panel) {
@@ -59,15 +60,21 @@ export class WebviewStagingBridge {
     this.mergedPaths.set(fsPath, new Set());
 
     // Only send display data to the webview — content can be large and isn't needed there
-    const fileViews = files.map(({ relativePath, status, protected: prot }) => ({
+    const fileViews = files.map(({ relativePath, status, protected: prot, origin }) => ({
       relativePath,
       status,
       protected: prot,
+      origin,
     }));
 
     return new Promise<StagingDecision>((resolve) => {
       this.resolvers.set(fsPath, resolve);
-      void panel.webview.postMessage({ type: 'stagingStart', files: fileViews, rootLabel });
+      void panel.webview.postMessage({
+        type: 'stagingStart',
+        files: fileViews,
+        rootLabel,
+        warnings,
+      });
     });
   }
 

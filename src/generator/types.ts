@@ -81,6 +81,13 @@ export interface ScaffoldPack {
    */
   generateFrameworkTestbench?: boolean;
   /**
+   * True when the manifest explicitly set `generateFrameworkTestbench` (either value) rather
+   * than relying on its default-true. Set by ScaffoldPackLoader, not pack authors. Used to gate
+   * the "pack looks like it ships its own testbench but didn't opt out" warning (issue #156) —
+   * a pack that made an explicit choice never needs that warning, regardless of what it renders.
+   */
+  generateFrameworkTestbenchDeclared?: boolean;
+  /**
    * SemVer range declaring which template context contract version this pack targets.
    * E.g. "^1.0" means compatible with any 1.x contract >= 1.0.
    * IPCraft rejects a pack whose apiVersion is not satisfied by the running CONTRACT_VERSION.
@@ -136,6 +143,22 @@ export interface GenerateResult {
    * VS Code staging UI) must apply the executable bit to these paths themselves after writing.
    */
   executablePaths?: string[];
+  /**
+   * Relative paths (within generatedContents) produced by IPCraft's default framework testbench
+   * generation (tb/*, .vscode/settings.json) rather than by the active scaffold pack's own file
+   * rules (issue #156). Callers that stage generated output for review (the VS Code staging UI)
+   * use this to visually distinguish framework-owned files from pack-owned ones. Empty when
+   * `generateFrameworkTestbench` is false or testbench generation was skipped.
+   */
+  frameworkTestbenchPaths?: string[];
+  /**
+   * Human-readable warnings about the generation that don't fail the run, e.g. a pack that
+   * renders its own simulation-looking output under conventional tb/sim/testbench/test paths
+   * without explicitly declaring `generateFrameworkTestbench` (issue #156) — surfaced by the
+   * staging UI and the `ipcraft generate`/`ipcraft verify` CLI so it's unmissable before the
+   * generated output is actually written.
+   */
+  warnings?: string[];
   /**
    * Every path declared managed: false in the .ip.yml's fileSets, regardless of whether it
    * collides with a scaffold-pack target — a superset of protectedPaths (dry-run only).
