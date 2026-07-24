@@ -86,12 +86,13 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
   // masks (bit reversal) between the external ports and the internal `_be` view.
 {% for port in endian_swap_ports %}
 {% if port.swap_kind == 'bit' %}
+  genvar bit_idx_{{ port.name }};
   generate
-  for (genvar bit_idx = 0; bit_idx < $bits({{ port.name }}); bit_idx++) begin : gen_swap_{{ port.name }}
+  for (bit_idx_{{ port.name }} = 0; bit_idx_{{ port.name }} < $bits({{ port.name }}); bit_idx_{{ port.name }} = bit_idx_{{ port.name }} + 1) begin : gen_swap_{{ port.name }}
 {% if port.direction == 'in' %}
-    assign {{ port.internal_name }}[bit_idx] = {{ port.name }}[$bits({{ port.name }}) - 1 - bit_idx];
+    assign {{ port.internal_name }}[bit_idx_{{ port.name }}] = {{ port.name }}[$bits({{ port.name }}) - 1 - bit_idx_{{ port.name }}];
 {% else %}
-    assign {{ port.name }}[bit_idx] = {{ port.internal_name }}[$bits({{ port.name }}) - 1 - bit_idx];
+    assign {{ port.name }}[bit_idx_{{ port.name }}] = {{ port.internal_name }}[$bits({{ port.name }}) - 1 - bit_idx_{{ port.name }}];
 {% endif %}
   end
   endgenerate
@@ -100,12 +101,13 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
     assert (($bits({{ port.name }}) % 8) == 0)
       else $fatal(1, "{{ port.name }}: big-endian byte swap requires a width that is a multiple of 8 bits");
   end
+  genvar byte_idx_{{ port.name }};
   generate
-  for (genvar byte_idx = 0; byte_idx < $bits({{ port.name }}) / 8; byte_idx++) begin : gen_swap_{{ port.name }}
+  for (byte_idx_{{ port.name }} = 0; byte_idx_{{ port.name }} < $bits({{ port.name }}) / 8; byte_idx_{{ port.name }} = byte_idx_{{ port.name }} + 1) begin : gen_swap_{{ port.name }}
 {% if port.direction == 'in' %}
-    assign {{ port.internal_name }}[byte_idx * 8 +: 8] = {{ port.name }}[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];
+    assign {{ port.internal_name }}[byte_idx_{{ port.name }} * 8 +: 8] = {{ port.name }}[$bits({{ port.name }}) - byte_idx_{{ port.name }} * 8 - 1 -: 8];
 {% else %}
-    assign {{ port.name }}[byte_idx * 8 +: 8] = {{ port.internal_name }}[$bits({{ port.name }}) - byte_idx * 8 - 1 -: 8];
+    assign {{ port.name }}[byte_idx_{{ port.name }} * 8 +: 8] = {{ port.internal_name }}[$bits({{ port.name }}) - byte_idx_{{ port.name }} * 8 - 1 -: 8];
 {% endif %}
   end
   endgenerate

@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as fs2 from 'fs';
 import * as os from 'os';
+import * as yaml from 'js-yaml';
 import * as vscode from 'vscode';
 import { IpCoreScaffolder, collectRtlAbsPaths } from '../../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../../generator/TemplateLoader';
@@ -539,6 +540,52 @@ describe('IpCoreScaffolder', () => {
 
     expect(result.success).toBe(true);
     expect(result.warnings).toEqual([]);
+  });
+
+  it('renders big-endian for-generate loops in Quartus-compatible Verilog-2001 form, not inline SV genvar', async () => {
+    // comprehensive_avalon has a parameterized big-endian data port (aso_data), which is
+    // exactly what regressed Quartus Analysis & Synthesis with "genvar" is a reserved keyword"
+    // (Error 10170) — Quartus's parser rejects `for (genvar i = ...)`, even inside
+    // generate/endgenerate; it requires `genvar i;` declared as its own statement beforehand.
+    // Needs the real Avalon-MM/Avalon-ST bus definitions (not the AXI4L-only mock the rest of
+    // this suite uses) so the endian-swap port actually resolves. Read them directly rather
+    // than going through the real BusLibraryService, which depends on vscode.workspace.fs
+    // (not implemented by the fs shape the vscode mock provides).
+    const busDir = resourceRoots.busDefinitionsDir;
+    const mergedBusLibrary: Record<string, unknown> = {};
+    for (const fileName of fs2.readdirSync(busDir).filter((f) => f.endsWith('.yml'))) {
+      Object.assign(
+        mergedBusLibrary,
+        yaml.load(fs2.readFileSync(path.join(busDir, fileName), 'utf8')) as object
+      );
+    }
+    (BusLibraryService as jest.Mock).mockImplementation(() => ({
+      loadDefaultLibrary: jest.fn().mockResolvedValue(mergedBusLibrary),
+      clearCache: jest.fn(),
+    }));
+    scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
+
+    const inputPath = path.resolve(
+      repoRoot,
+      'ipcraft-spec/examples/comprehensive_avalon/comprehensive_avalon.ip.yml'
+    );
+    const result = await scaffolder.generateAll(inputPath, '/tmp/test-endian-swap-output', {
+      includeRegs: true,
+      includeTestbench: false,
+      targets: [],
+      hdlLanguage: 'systemverilog',
+      dryRun: true,
+    });
+
+    expect(result.success).toBe(true);
+    const topSv = result.generatedContents?.['rtl/comprehensive_avalon.sv'];
+    expect(topSv).toBeDefined();
+    expect(topSv).not.toMatch(/for\s*\(\s*genvar\b/);
+    expect(topSv).toMatch(/genvar byte_idx_aso_data;\s*\n\s*generate/);
+    expect(topSv).toContain(
+      'for (byte_idx_aso_data = 0; byte_idx_aso_data < $bits(aso_data) / 8; ' +
+        'byte_idx_aso_data = byte_idx_aso_data + 1) begin : gen_swap_aso_data'
+    );
   });
 
   it('reports the executable: true target in executablePaths without affecting other rules (issue #153)', async () => {
