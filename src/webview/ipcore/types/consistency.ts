@@ -48,6 +48,18 @@ export interface ConsistencySummary {
   added: number;
   removed: number;
   changed: number;
+  /**
+   * Informational only — the checker could not uniquely identify the top-level implementation
+   * to diff against (issue #161). Not evidence of actual .ip.yml/HDL drift.
+   */
+  ambiguous: number;
+}
+
+/** Kinds that report an unresolved checker precondition rather than actual interface drift. */
+const AMBIGUOUS_KINDS = new Set<ConsistencyKind>(['top-level-ambiguity']);
+
+export function isAmbiguousFinding(finding: ConsistencyFinding): boolean {
+  return AMBIGUOUS_KINDS.has(finding.kind);
 }
 
 const SOURCE_LABEL: Record<ConsistencySource, string> = {
@@ -141,7 +153,8 @@ export function formatFindingsForClipboard(
 ): string {
   const lines: string[] = [
     `IPCraft Consistency Check — ${findings.length} finding(s) ` +
-      `(${summary.added} added, ${summary.removed} removed, ${summary.changed} changed)`,
+      `(${summary.added} added, ${summary.removed} removed, ${summary.changed} changed, ` +
+      `${summary.ambiguous} ambiguous)`,
     '',
   ];
   for (const finding of findings) {

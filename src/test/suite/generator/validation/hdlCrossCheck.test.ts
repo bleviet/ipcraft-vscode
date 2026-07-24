@@ -106,6 +106,83 @@ describe('HDL top-level selection', () => {
     expect(findings).toEqual([]);
   });
 
+  it('does not select a prefix-named testbench (tb_core.sv) over the sole implementation', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/implementation.sv', type: 'systemverilog' },
+            { path: 'rtl/tb_core.sv', type: 'systemverilog' },
+          ],
+        },
+      ],
+      ports: [{ name: 'data', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'implementation.sv': ['module implementation(output logic data);', 'endmodule'].join('\n'),
+      'tb_core.sv': ['module core();', 'endmodule'].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+  });
+
+  it('does not select a testbench under a conventional tb/ directory whose filename carries no reserved token', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/implementation.sv', type: 'systemverilog' },
+            { path: 'tb/harness.sv', type: 'systemverilog' },
+          ],
+        },
+      ],
+      ports: [{ name: 'data', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'implementation.sv': ['module implementation(output logic data);', 'endmodule'].join('\n'),
+      // Deliberately named "core" — no _tb/_test suffix or tb_/test_ prefix — so only the
+      // conventional tb/ directory placement can identify it as a testbench.
+      'harness.sv': ['module core();', 'endmodule'].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+  });
+
+  it('does not discard a legitimately named top-level file whose own name ends in a reserved token (issue #161 follow-up)', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'memory_test', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [{ path: 'rtl/memory_test.sv', type: 'systemverilog' }],
+        },
+      ],
+      clocks: [{ name: 'clk' }],
+      ports: [{ name: 'data', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'memory_test.sv': [
+        'module memory_test(',
+        '  input logic clk,',
+        '  output logic data',
+        ');',
+        'endmodule',
+      ].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+  });
+
   it('reports one ambiguity instead of diffing an entity-less package', async () => {
     const ipCore = baseIpCore({
       fileSets: [

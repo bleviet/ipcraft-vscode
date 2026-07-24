@@ -460,13 +460,49 @@ interface TopLevelSelection {
 }
 
 /**
+ * A conventional non-implementation directory: a file under tb/, testbench/, sim/, or
+ * simulation/ is a testbench regardless of its own filename — the same directory convention
+ * scaffoldPackOwnership.ts's TESTBENCH_SOURCE_PATTERN recognizes for generated output.
+ */
+const NON_IMPLEMENTATION_DIR_PATTERN = /(?:^|\/)(?:tb|testbench|sim|simulation)\/[^/]+$/i;
+
+/**
+ * Vendor black-box/stub and testbench naming tokens. Distinct from
+ * scaffoldPackOwnership.ts's testbench-only token set: this also has to catch vendor black-box
+ * stubs (`*_bb.vhd`), which aren't testbenches but are equally never the implementation.
+ */
+const NON_IMPLEMENTATION_TOKEN = '(?:bb|black[-_]?box|stub|tb|testbench|test)';
+const NON_IMPLEMENTATION_STEM_PATTERN = new RegExp(
+  `^${NON_IMPLEMENTATION_TOKEN}(?:[_-]|$)|(?:^|[_-])${NON_IMPLEMENTATION_TOKEN}$`,
+  'i'
+);
+
+/**
  * Black-box stubs and testbenches can declare an entity/module, but they do not implement the
  * .ip.yml interface. File roles are not represented in the current schema, so recognize the
- * conventional suffixes emitted by the supported vendor and testbench flows.
+ * conventional directory, prefix, and suffix patterns emitted by the supported vendor and
+ * testbench flows (e.g. `tb/core.vhd`, `tb_core.vhd`, `core_tb.vhd`) — the same
+ * directory/prefix/suffix shape scaffoldPackOwnership.ts's TESTBENCH_SOURCE_PATTERN already
+ * uses for generated output.
+ *
+ * `coreName` (the IP core's own `vlnv.name`, lowercased) is an exemption, not an extra filter:
+ * a file whose *own* name exactly matches the core's name is never excluded here, even if that
+ * name happens to end in a reserved token (e.g. a core legitimately named `memory_test`). The
+ * heuristic exists to catch names that *differ* from the core's own name via a conventional
+ * affix — it must not reject the core's own name outright. A file placed under a conventional
+ * testbench directory is still excluded regardless of this exemption: directory placement is a
+ * stronger, independent signal than a name coincidence.
  */
-function isNonImplementationArtifact(filePath: string): boolean {
-  const stem = path.basename(filePath, path.extname(filePath));
-  return /(?:^|[_-])(?:bb|black[-_]?box|stub|tb|testbench|test)$/i.test(stem);
+function isNonImplementationArtifact(filePath: string, coreName?: string): boolean {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  if (NON_IMPLEMENTATION_DIR_PATTERN.test(normalizedPath)) {
+    return true;
+  }
+  const stem = path.basename(normalizedPath, path.extname(normalizedPath));
+  if (coreName && stem.toLowerCase() === coreName) {
+    return false;
+  }
+  return NON_IMPLEMENTATION_STEM_PATTERN.test(stem);
 }
 
 /**
@@ -479,14 +515,15 @@ function selectTopLevelFile(
   parsedFiles: ParsedManagedFile[],
   ipCoreData: IpCoreData
 ): TopLevelSelection {
+  const coreName = ipCoreData.vlnv?.name?.toLowerCase();
   const implementationFiles = parsedFiles.filter(
-    ({ file, entityName }) => entityName !== null && !isNonImplementationArtifact(file.path)
+    ({ file, entityName }) =>
+      entityName !== null && !isNonImplementationArtifact(file.path, coreName)
   );
   if (implementationFiles.length === 1) {
     return { selectedFile: implementationFiles[0], ambiguousFiles: [] };
   }
 
-  const coreName = ipCoreData.vlnv?.name?.toLowerCase();
   if (coreName) {
     const matches = implementationFiles.filter(
       (file) => file.entityName?.toLowerCase() === coreName

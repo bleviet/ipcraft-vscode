@@ -154,6 +154,9 @@ export const ConsistencyOverlay: React.FC<ConsistencyOverlayProps> = ({
             {summary.changed > 0 && (
               <span className="staging-summary-item">{summary.changed} changed</span>
             )}
+            {summary.ambiguous > 0 && (
+              <span className="staging-summary-item">{summary.ambiguous} ambiguous</span>
+            )}
           </div>
         ) : (
           <div style={{ fontSize: 12, opacity: 0.75 }}>
