@@ -120,8 +120,8 @@ Then select `my-pack` from **Scaffold Template** and generate the project.
 |---|---|---|
 | `name` | Yes | Pack name shown by IPCraft |
 | `description` | No | Short explanation shown in the preview |
-| `fullGeneration` | No | Gives generated tests the complete register and bus data when `true` |
-| `generateFrameworkTestbench` | No | Set to `false` to suppress IPCraft's `tb/*` and `.vscode/settings.json` framework testbench output — use when the pack's own `files` already provide a complete simulation environment. Defaults to `true`. If the pack's own `files` already render under a conventional simulation directory (`tb/`, `sim/`, `simulation/`, `testbench/`, `test/`) and this field is left unset, `ipcraft generate`/`verify` and the staging panel warn about the ambiguity — set the field explicitly (either value) to silence it |
+| `fullGeneration` | No | Gives generated tests the complete register and bus data when `true`. A full-generation pack that declares testbench-like output and its own build/run entry point owns the complete output tree, so IPCraft does not append framework, `docs/`, `altera/`, or `xilinx/` files |
+| `generateFrameworkTestbench` | No | Explicitly enables or suppresses IPCraft's `tb/*` and `.vscode/settings.json` framework testbench output. When omitted, it remains enabled for compatibility unless the pack owns the complete output tree |
 | `requirements` | No | Input compatibility this pack needs — see below |
 | `files` | Yes | Output rules |
 | `files[].source` | Yes | Template to render |

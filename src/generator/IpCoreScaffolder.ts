@@ -42,6 +42,7 @@ import type {
   HdlLanguage,
   IpCoreData,
 } from './types';
+import { packOwnsGeneratedTree, shouldGenerateFrameworkTestbench } from './scaffoldPackOwnership';
 
 /**
  * Add the POSIX executable bits (owner/group/other +x) to a freshly written file, preserving
@@ -153,6 +154,7 @@ export class IpCoreScaffolder {
         activeBusPortNames: extractActiveBusPortNames(context),
       });
       const resolvedPackName = path.basename(pack.packDir);
+      const packOwnsOutput = packOwnsGeneratedTree(pack);
 
       // Pack-level template loader: searches pack dir first (user overrides), then built-in templates.
       const packLoader = new TemplateLoader(this.logger, [
@@ -223,7 +225,7 @@ export class IpCoreScaffolder {
       const warnings: string[] = [];
       let frameworkTestbenchPaths: string[] = [];
 
-      if (includeTestbench && pack.generateFrameworkTestbench !== false) {
+      if (includeTestbench && shouldGenerateFrameworkTestbench(pack)) {
         const tbFiles = generateTestbenchFiles(framework, engine, {
           name,
           templateContext: tbCtx,
@@ -260,11 +262,10 @@ export class IpCoreScaffolder {
       }
 
       // ── Documentation (datasheet) ──────────────────────────────────────────
-      // Pack-independent: rendered directly from the full context (not rtlCtx/tbCtx)
-      // so ports/params/registers are present regardless of fullGeneration. Not gated
-      // on hasMmSlave — a datasheet is still useful for register-less cores; the
-      // register-map section self-guards inside the template.
-      if (includeDocs) {
+      // IPCraft-owned output: rendered directly from the full context (not rtlCtx/tbCtx)
+      // so ports/params/registers are present for packs that rely on IPCraft extras.
+      // A pack inferred to own its complete tree must not receive a separate docs/ subtree.
+      if (includeDocs && !packOwnsOutput) {
         const docTarget = `docs/${name}_datasheet.md`;
         if (!userManagedPaths.has(docTarget)) {
           files[docTarget] = packLoader.render('ip_datasheet.md.j2', context);
@@ -279,7 +280,7 @@ export class IpCoreScaffolder {
         return cachedRtlFiles;
       };
 
-      for (const targetId of targets) {
+      for (const targetId of packOwnsOutput ? [] : targets) {
         const toolchain = getToolchain(targetId);
         if (!toolchain) {
           this.logger.warn(`Unknown target '${targetId}' — skipping`);
