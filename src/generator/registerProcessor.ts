@@ -89,7 +89,10 @@ const SW_READ_ACCESSES = new Set([
   'read-write-self-clearing',
 ]);
 
-function deriveRegisterAccess(fieldAccesses: string[]): string {
+function deriveRegisterAccess(fieldAccesses: string[], explicitAccess?: string): string {
+  if (explicitAccess) {
+    return explicitAccess;
+  }
   if (fieldAccesses.length === 0) {
     return 'read-write';
   }
@@ -472,7 +475,10 @@ export async function prepareRegisters(
       };
     });
 
-    const regAccess = deriveRegisterAccess(fields.map((f) => f.access));
+    const regAccess = deriveRegisterAccess(
+      fields.map((f) => f.access),
+      reg.access
+    );
     registers.push({
       name: `${prefix}${String(regName)}`,
       offset: currentOffset,
@@ -557,7 +563,8 @@ export function projectMemoryMapsForTemplate(maps: NormalizedMemoryMap[]): unkno
             addressOffset: r.offset,
             size: r.size,
             access: deriveRegisterAccess(
-              projectedFields.map((f) => getString(f.access) || 'read-write')
+              projectedFields.map((f) => getString(f.access) || 'read-write'),
+              r.access
             ),
             resetValue: r.resetValue,
             reset_value: r.resetValue,

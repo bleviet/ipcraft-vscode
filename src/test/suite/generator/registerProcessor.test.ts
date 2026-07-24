@@ -10,7 +10,9 @@ import {
   getVhdlPortType,
   getActiveBusPortsFromDefinition,
   prepareRegisters,
+  projectMemoryMapsForTemplate,
 } from '../../../generator/registerProcessor';
+import { normalizeMemoryMap } from '../../../domain/parse';
 
 describe('registerProcessor', () => {
   describe('normalizeIpCoreData', () => {
@@ -390,6 +392,26 @@ describe('registerProcessor', () => {
   });
 
   describe('prepareRegisters (Integrative)', () => {
+    const accessMemoryMap = {
+      name: 'CSR_MAP',
+      addressBlocks: [
+        {
+          name: 'REGS',
+          baseAddress: 0,
+          usage: 'register',
+          registers: [
+            { name: 'STATUS', access: 'read-only' },
+            { name: 'COMMAND', access: 'write-only' },
+            { name: 'CONTROL' },
+            {
+              name: 'DERIVED_STATUS',
+              fields: [{ name: 'READY', access: 'read-only' }],
+            },
+          ],
+        },
+      ],
+    };
+
     it('resolves imported memory maps and flattens registers', async () => {
       const fixturePath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
       const ipCore = normalizeIpCoreData({
@@ -433,6 +455,36 @@ describe('registerProcessor', () => {
       expect(result[0].offset).toBe(0);
       expect(result[1].name).toBe('CHANNEL_1_VAL');
       expect(result[1].offset).toBe(16);
+    });
+
+    it('preserves explicit access for fieldless registers and derives access when unset', async () => {
+      const ipCore = normalizeIpCoreData({});
+
+      const result = await prepareRegisters(
+        { ...ipCore, memoryMaps: [accessMemoryMap] },
+        'dummy.yml'
+      );
+
+      expect(result.map(({ name, access }) => ({ name, access }))).toEqual([
+        { name: 'STATUS', access: 'read-only' },
+        { name: 'COMMAND', access: 'write-only' },
+        { name: 'CONTROL', access: 'read-write' },
+        { name: 'DERIVED_STATUS', access: 'read-only' },
+      ]);
+    });
+
+    it('projects the same effective access into the memory_map context', () => {
+      const [projectedMap] = projectMemoryMapsForTemplate([
+        normalizeMemoryMap(accessMemoryMap),
+      ]) as any[];
+      const registers = projectedMap.address_blocks[0].registers;
+
+      expect(registers.map(({ name, access }: any) => ({ name, access }))).toEqual([
+        { name: 'STATUS', access: 'read-only' },
+        { name: 'COMMAND', access: 'write-only' },
+        { name: 'CONTROL', access: 'read-write' },
+        { name: 'DERIVED_STATUS', access: 'read-only' },
+      ]);
     });
   });
 
