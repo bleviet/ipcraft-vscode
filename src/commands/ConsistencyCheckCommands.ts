@@ -38,6 +38,12 @@ export interface ConsistencySummary {
   removed: number;
   /** Both sides declare it, but a property (direction/width/default) disagrees. */
   changed: number;
+  /**
+   * Informational only — the checker could not uniquely identify the top-level implementation
+   * to diff against (issue #161), so no interface comparison happened at all. Not evidence of
+   * actual .ip.yml/HDL drift, so kept out of `changed`.
+   */
+  ambiguous: number;
 }
 
 export interface ConsistencyCheckResult {
@@ -53,14 +59,17 @@ const REMOVED_KINDS = new Set([
   'missing-register',
   'missing-field',
 ]);
+const AMBIGUOUS_KINDS = new Set(['top-level-ambiguity']);
 
-function summarize(findings: HdlCrossCheckFinding[]): ConsistencySummary {
-  const summary: ConsistencySummary = { added: 0, removed: 0, changed: 0 };
+export function summarize(findings: HdlCrossCheckFinding[]): ConsistencySummary {
+  const summary: ConsistencySummary = { added: 0, removed: 0, changed: 0, ambiguous: 0 };
   for (const finding of findings) {
     if (ADDED_KINDS.has(finding.kind)) {
       summary.added++;
     } else if (REMOVED_KINDS.has(finding.kind)) {
       summary.removed++;
+    } else if (AMBIGUOUS_KINDS.has(finding.kind)) {
+      summary.ambiguous++;
     } else {
       summary.changed++;
     }
@@ -137,16 +146,28 @@ export function registerConsistencyCheckCommands(
         ch.appendLine(`IPCraft consistency check — ${path.basename(ipCoreUri.fsPath)}`);
         ch.appendLine(
           `${findings.length} finding(s): ${summary.added} added, ${summary.removed} removed, ` +
-            `${summary.changed} changed.`
+            `${summary.changed} changed, ${summary.ambiguous} ambiguous.`
         );
         for (const finding of findings) {
           ch.appendLine(formatFinding(finding));
         }
         ch.show();
-        void vscode.window.showWarningMessage(
-          `IPCraft: found ${findings.length} inconsistenc${findings.length === 1 ? 'y' : 'ies'} ` +
-            `between the .ip.yml and its implementation. See "IPCraft Consistency Check" output.`
-        );
+
+        // An ambiguity finding means no interface comparison happened at all — it's not
+        // evidence of drift, so it shouldn't read as one (issue #161's "informational" ask). Only
+        // warn about actual inconsistencies; when every finding is ambiguity-only, say so plainly.
+        const hasNonAmbiguous = findings.some((f) => !AMBIGUOUS_KINDS.has(f.kind));
+        if (hasNonAmbiguous) {
+          void vscode.window.showWarningMessage(
+            `IPCraft: found ${findings.length} inconsistenc${findings.length === 1 ? 'y' : 'ies'} ` +
+              `between the .ip.yml and its implementation. See "IPCraft Consistency Check" output.`
+          );
+        } else {
+          void vscode.window.showInformationMessage(
+            `IPCraft: could not uniquely identify the top-level HDL implementation to check — ` +
+              `see "IPCraft Consistency Check" output for details.`
+          );
+        }
       } catch (error) {
         logger.error('Consistency check failed', error as Error);
         void handleErrorWithUserNotification(

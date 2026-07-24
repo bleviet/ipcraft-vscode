@@ -5,6 +5,7 @@ import type { YamlUpdateHandler } from '../../types/editor';
 import {
   consistencyFindingsToAnnotations,
   findingKey,
+  isAmbiguousFinding,
   type ConsistencyFinding,
   type ConsistencyInferredParameter,
   type ConsistencyInferredPort,
@@ -125,7 +126,7 @@ export function useConsistencySession(opts: {
       }
       setConsistencyResult({
         findings: message.findings ?? [],
-        summary: message.summary ?? { added: 0, removed: 0, changed: 0 },
+        summary: message.summary ?? { added: 0, removed: 0, changed: 0, ambiguous: 0 },
       });
       setIgnoredConsistencyKeys(new Set());
       if (!isAutoCheck) {
@@ -168,6 +169,18 @@ export function useConsistencySession(opts: {
         label: 'Consistent',
         color: 'var(--vscode-charts-green, #3aaa5c)',
         title: 'Consistent with every checked implementation source',
+      };
+    }
+    // An ambiguity finding means the checker couldn't identify what to diff at all — it isn't
+    // evidence of drift (issue #161), so it must not read as one. Only label as "Drift" once at
+    // least one visible finding is an actual comparison result.
+    if (visibleFindings.every(isAmbiguousFinding)) {
+      return {
+        label: 'Ambiguous',
+        color: 'var(--vscode-descriptionForeground)',
+        title:
+          `${visibleFindings.length} finding(s) — the top-level HDL implementation could not ` +
+          `be uniquely identified — click to review`,
       };
     }
     // "Conflict" vs "Drift" read as two different problems when they're really the same one

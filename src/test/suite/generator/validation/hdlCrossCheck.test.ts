@@ -1,4 +1,7 @@
-import { crossCheckIpCoreAgainstHdl } from '../../../../generator/validation/hdlCrossCheck';
+import {
+  crossCheckIpCoreAgainstHdl,
+  crossCheckIpCoreAgainstTopLevelHdl,
+} from '../../../../generator/validation/hdlCrossCheck';
 import type { IpCoreData } from '../../../../generator/types';
 
 function baseIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
@@ -29,6 +32,180 @@ function makeMultiReader(byBasename: Record<string, string>): (absPath: string) 
     return content;
   };
 }
+
+describe('HDL top-level selection', () => {
+  it('only checks the implementation when packages and a colliding black-box stub are present', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'acme', library: 'lib', name: 'led_ctrl', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'led_ctrl_pkg.vhd', type: 'vhdl' },
+            { path: 'led_ctrl_bb.vhd', type: 'vhdl' },
+            { path: 'led_ctrl.vhd', type: 'vhdl' },
+          ],
+        },
+      ],
+      clocks: [{ name: 'clk' }],
+      resets: [{ name: 'rst' }],
+      ports: [{ name: 'o_led', direction: 'out', width: 1 }],
+      parameters: [{ name: 'WIDTH', value: 8, dataType: 'integer' }],
+    });
+    const reader = makeMultiReader({
+      'led_ctrl_pkg.vhd': [
+        'package led_ctrl_pkg is',
+        '  constant C_FOO : integer := 1;',
+        'end package led_ctrl_pkg;',
+      ].join('\n'),
+      'led_ctrl_bb.vhd': [
+        'entity led_ctrl is',
+        '  port (dummy : in std_logic);',
+        'end entity led_ctrl;',
+        'architecture bb of led_ctrl is begin end architecture bb;',
+      ].join('\n'),
+      'led_ctrl.vhd': [
+        'entity led_ctrl is',
+        '  generic (WIDTH : integer := 8);',
+        '  port (',
+        '    clk : in std_logic;',
+        '    rst : in std_logic;',
+        '    o_led : out std_logic',
+        '  );',
+        'end entity led_ctrl;',
+        'architecture rtl of led_ctrl is begin end architecture rtl;',
+      ].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+  });
+
+  it('does not select a conventionally named testbench over the sole implementation', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/implementation.sv', type: 'systemverilog' },
+            { path: 'tb/core_tb.sv', type: 'systemverilog' },
+          ],
+        },
+      ],
+      ports: [{ name: 'data', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'implementation.sv': ['module implementation(output logic data);', 'endmodule'].join('\n'),
+      'core_tb.sv': ['module core();', 'endmodule'].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+  });
+
+  it('does not select a prefix-named testbench (tb_core.sv) over the sole implementation', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/implementation.sv', type: 'systemverilog' },
+            { path: 'rtl/tb_core.sv', type: 'systemverilog' },
+          ],
+        },
+      ],
+      ports: [{ name: 'data', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'implementation.sv': ['module implementation(output logic data);', 'endmodule'].join('\n'),
+      'tb_core.sv': ['module core();', 'endmodule'].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+  });
+
+  it('does not select a testbench under a conventional tb/ directory whose filename carries no reserved token', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [
+            { path: 'rtl/implementation.sv', type: 'systemverilog' },
+            { path: 'tb/harness.sv', type: 'systemverilog' },
+          ],
+        },
+      ],
+      ports: [{ name: 'data', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'implementation.sv': ['module implementation(output logic data);', 'endmodule'].join('\n'),
+      // Deliberately named "core" — no _tb/_test suffix or tb_/test_ prefix — so only the
+      // conventional tb/ directory placement can identify it as a testbench.
+      'harness.sv': ['module core();', 'endmodule'].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+  });
+
+  it('does not discard a legitimately named top-level file whose own name ends in a reserved token (issue #161 follow-up)', async () => {
+    const ipCore = baseIpCore({
+      vlnv: { vendor: 'test', library: 'lib', name: 'memory_test', version: '1.0.0' },
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [{ path: 'rtl/memory_test.sv', type: 'systemverilog' }],
+        },
+      ],
+      clocks: [{ name: 'clk' }],
+      ports: [{ name: 'data', direction: 'out', width: 1 }],
+    });
+    const reader = makeMultiReader({
+      'memory_test.sv': [
+        'module memory_test(',
+        '  input logic clk,',
+        '  output logic data',
+        ');',
+        'endmodule',
+      ].join('\n'),
+    });
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', reader);
+
+    expect(findings).toEqual([]);
+  });
+
+  it('reports one ambiguity instead of diffing an entity-less package', async () => {
+    const ipCore = baseIpCore({
+      fileSets: [
+        {
+          name: 'RTL_Sources',
+          files: [{ path: 'rtl/led_blink_pkg.vhd', type: 'vhdl', managed: false }],
+        },
+      ],
+      ports: [{ name: 'led', direction: 'out', width: 1 }],
+    });
+
+    const findings = await crossCheckIpCoreAgainstHdl(
+      ipCore,
+      '/proj',
+      makeReader('package led_blink_pkg is end package led_blink_pkg;')
+    );
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].kind).toBe('top-level-ambiguity');
+    expect(findings[0].message).toContain('no eligible entity/module');
+    expect(findings.some((finding) => finding.kind === 'missing-port')).toBe(false);
+  });
+});
 
 describe('crossCheckIpCoreAgainstHdl', () => {
   it('reports a width mismatch citing both the .ip.yml and the HDL location (issue #74 AC1)', async () => {
@@ -248,7 +425,7 @@ describe('crossCheckIpCoreAgainstHdl', () => {
     expect(findings.some((f) => f.hdlFile === 'rtl/submodule.sv')).toBe(false);
   });
 
-  it('falls back to checking every managed:false file when none match the IP core name', async () => {
+  it('reports one ambiguity when no managed:false entity matches the IP core name', async () => {
     const ipCore = baseIpCore({
       vlnv: { vendor: 'test', library: 'lib', name: 'ambiguous_top', version: '1.0.0' },
       fileSets: [
@@ -269,10 +446,11 @@ describe('crossCheckIpCoreAgainstHdl', () => {
 
     const findings = await crossCheckIpCoreAgainstHdl(ipCore, '/proj', reader);
 
-    // Neither file's name matches the IP core, so which is "the top" is ambiguous — every
-    // file is checked (and both report the missing 'led' port) rather than the check
-    // silently doing nothing.
-    expect(findings.filter((f) => f.kind === 'missing-port')).toHaveLength(2);
+    expect(findings).toHaveLength(1);
+    expect(findings[0].kind).toBe('top-level-ambiguity');
+    expect(findings[0].severity).toBe('amber');
+    expect(findings[0].message).toContain('rtl/alpha.sv');
+    expect(findings[0].message).toContain('rtl/beta.sv');
   });
 
   it('does not silently skip the real top when the IP core name is undefined and another managed:false file fails to parse a name', async () => {

@@ -454,36 +454,89 @@ interface ParsedManagedFile {
   rawHdlPortsByName: Map<string, ImplPort>;
 }
 
+interface TopLevelSelection {
+  selectedFile?: ParsedManagedFile;
+  ambiguousFiles: ParsedManagedFile[];
+}
+
 /**
- * A project can have more than one managed:false HDL file (a hand-authored top plus
- * hand-authored submodules it instantiates). Only the top-level entity/module is expected to
- * expose the .ip.yml's full ports/clocks/resets/parameters — checking a submodule against
- * that same full list produces false `missing-port`/`missing-parameter` findings for every
- * signal the submodule legitimately doesn't have.
- *
- * With a single managed:false file there's no ambiguity — that's the file cross-checked
- * whether or not its name happens to match the IP core's. With more than one, this narrows
- * to the file whose entity/module name matches the IP core's name (the conventional
- * top-level); if none or more than one match, which file is the top can't be determined, so
- * every file is checked (the pre-existing, imperfect-but-non-silent behavior) rather than
- * silently skipping the cross-check.
+ * A conventional non-implementation directory: a file under tb/, testbench/, sim/, or
+ * simulation/ is a testbench regardless of its own filename — the same directory convention
+ * scaffoldPackOwnership.ts's TESTBENCH_SOURCE_PATTERN recognizes for generated output.
  */
-function selectTopLevelFiles(
+const NON_IMPLEMENTATION_DIR_PATTERN = /(?:^|\/)(?:tb|testbench|sim|simulation)\/[^/]+$/i;
+
+/**
+ * Vendor black-box/stub and testbench naming tokens. Distinct from
+ * scaffoldPackOwnership.ts's testbench-only token set: this also has to catch vendor black-box
+ * stubs (`*_bb.vhd`), which aren't testbenches but are equally never the implementation.
+ */
+const NON_IMPLEMENTATION_TOKEN = '(?:bb|black[-_]?box|stub|tb|testbench|test)';
+const NON_IMPLEMENTATION_STEM_PATTERN = new RegExp(
+  `^${NON_IMPLEMENTATION_TOKEN}(?:[_-]|$)|(?:^|[_-])${NON_IMPLEMENTATION_TOKEN}$`,
+  'i'
+);
+
+/**
+ * Black-box stubs and testbenches can declare an entity/module, but they do not implement the
+ * .ip.yml interface. File roles are not represented in the current schema, so recognize the
+ * conventional directory, prefix, and suffix patterns emitted by the supported vendor and
+ * testbench flows (e.g. `tb/core.vhd`, `tb_core.vhd`, `core_tb.vhd`) — the same
+ * directory/prefix/suffix shape scaffoldPackOwnership.ts's TESTBENCH_SOURCE_PATTERN already
+ * uses for generated output.
+ *
+ * `coreName` (the IP core's own `vlnv.name`, lowercased) is an exemption, not an extra filter:
+ * a file whose *own* name exactly matches the core's name is never excluded here, even if that
+ * name happens to end in a reserved token (e.g. a core legitimately named `memory_test`). The
+ * heuristic exists to catch names that *differ* from the core's own name via a conventional
+ * affix — it must not reject the core's own name outright. A file placed under a conventional
+ * testbench directory is still excluded regardless of this exemption: directory placement is a
+ * stronger, independent signal than a name coincidence.
+ */
+function isNonImplementationArtifact(filePath: string, coreName?: string): boolean {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  if (NON_IMPLEMENTATION_DIR_PATTERN.test(normalizedPath)) {
+    return true;
+  }
+  const stem = path.basename(normalizedPath, path.extname(normalizedPath));
+  if (coreName && stem.toLowerCase() === coreName) {
+    return false;
+  }
+  return NON_IMPLEMENTATION_STEM_PATTERN.test(stem);
+}
+
+/**
+ * Selects one implementation to diff. Files without a parsed entity/module (for example VHDL
+ * packages) and conventional black-box/testbench artifacts cannot be the implementation and are
+ * removed first. If the remaining files still cannot be resolved uniquely, the caller reports
+ * one ambiguity instead of diffing the full .ip.yml interface against every candidate.
+ */
+function selectTopLevelFile(
   parsedFiles: ParsedManagedFile[],
   ipCoreData: IpCoreData
-): ParsedManagedFile[] {
-  if (parsedFiles.length <= 1) {
-    return parsedFiles;
-  }
+): TopLevelSelection {
   const coreName = ipCoreData.vlnv?.name?.toLowerCase();
-  if (!coreName) {
-    // No IP core name to match against (e.g. schema-invalid .ip.yml) — can't identify the
-    // top, so fall through to checking every file rather than matching every file whose
-    // entityName also failed to parse (undefined === undefined).
-    return parsedFiles;
+  const implementationFiles = parsedFiles.filter(
+    ({ file, entityName }) =>
+      entityName !== null && !isNonImplementationArtifact(file.path, coreName)
+  );
+  if (implementationFiles.length === 1) {
+    return { selectedFile: implementationFiles[0], ambiguousFiles: [] };
   }
-  const matches = parsedFiles.filter((f) => f.entityName?.toLowerCase() === coreName);
-  return matches.length === 1 ? matches : parsedFiles;
+
+  if (coreName) {
+    const matches = implementationFiles.filter(
+      (file) => file.entityName?.toLowerCase() === coreName
+    );
+    if (matches.length === 1) {
+      return { selectedFile: matches[0], ambiguousFiles: [] };
+    }
+    if (matches.length > 1) {
+      return { ambiguousFiles: matches };
+    }
+  }
+
+  return { ambiguousFiles: implementationFiles };
 }
 
 /**
@@ -622,7 +675,7 @@ function diffAgainstImplementation(
 
 /**
  * Shared body for both HDL cross-check entry points below: parses each candidate file, narrows
- * to the top-level entity/module (selectTopLevelFiles), and diffs it against the .ip.yml. The
+ * to the top-level entity/module (selectTopLevelFile), and diffs it against the .ip.yml. The
  * only thing that differs between the two public functions is which files are candidates.
  */
 async function diffAgainstHdlFiles(
@@ -669,28 +722,47 @@ async function diffAgainstHdlFiles(
     });
   }
 
-  for (const {
-    file,
-    entityName,
-    hdlPortsByName,
-    hdlParamsByName,
-    rawHdlPortsByName,
-  } of selectTopLevelFiles(parsedFiles, ipCoreData)) {
-    findings.push(
-      ...diffBusPorts(expectedBusPorts, rawHdlPortsByName, file.path, entityName, 'hdl').findings
-    );
-    findings.push(
-      ...diffAgainstImplementation(
-        expectedSignals,
-        expectedParams,
-        hdlPortsByName,
-        hdlParamsByName,
-        file.path,
-        entityName,
-        'hdl'
-      )
-    );
+  if (parsedFiles.length === 0) {
+    return findings;
   }
+
+  const selection = selectTopLevelFile(parsedFiles, ipCoreData);
+  if (!selection.selectedFile) {
+    const candidatePaths = selection.ambiguousFiles.map(({ file }) => file.path);
+    const inspectedPaths = parsedFiles.map(({ file }) => file.path);
+    findings.push({
+      kind: 'top-level-ambiguity',
+      message:
+        candidatePaths.length > 0
+          ? `Could not uniquely identify the top-level HDL implementation among: ` +
+            `${candidatePaths.join(', ')}.`
+          : `Could not identify a top-level HDL implementation; no eligible entity/module was ` +
+            `found in: ${inspectedPaths.join(', ')}.`,
+      ipYmlPath: ['fileSets'],
+      hdlFile: candidatePaths[0] ?? inspectedPaths[0] ?? '',
+      hdlEntity: null,
+      severity: SEVERITY_BY_KIND['top-level-ambiguity'],
+      source: 'hdl',
+    });
+    return findings;
+  }
+
+  const { file, entityName, hdlPortsByName, hdlParamsByName, rawHdlPortsByName } =
+    selection.selectedFile;
+  findings.push(
+    ...diffBusPorts(expectedBusPorts, rawHdlPortsByName, file.path, entityName, 'hdl').findings
+  );
+  findings.push(
+    ...diffAgainstImplementation(
+      expectedSignals,
+      expectedParams,
+      hdlPortsByName,
+      hdlParamsByName,
+      file.path,
+      entityName,
+      'hdl'
+    )
+  );
 
   return findings;
 }
