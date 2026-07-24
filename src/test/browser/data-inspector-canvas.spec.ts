@@ -158,6 +158,12 @@ test.describe('Data Inspector transform canvas', () => {
     await expect(page.getByLabel('INPUT_3 value')).toBeVisible();
   });
 
+  test('gives a new input the width of the inputs already on the canvas', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add source' }).click();
+    await expect(page.locator('.react-flow__node[data-id="input3"]')).toContainText('16b');
+    await expect(page.getByLabel('Width', { exact: true })).toHaveValue('16');
+  });
+
   test('keeps an unconnected operator when an input is added', async ({ page }) => {
     await page.getByRole('button', { name: 'Add NOT draft' }).click();
     await expect(page.locator('.di-flow-step.is-draft')).toHaveCount(1);
@@ -516,6 +522,119 @@ test.describe('Data Inspector transform canvas', () => {
       .evaluate((node) => (node as HTMLElement).style.transform);
     expect(transform).toContain(`${savedPosition!.x}px`);
     expect(transform).toContain(`${savedPosition!.y}px`);
+  });
+
+  test('keeps a newly wired operation while its source widths are invalid', async ({ page }) => {
+    // The Inspector derives these from the current counts, so track the fixture rather
+    // than hardcoding IDs that silently drift when the recipe above gains a node.
+    const mismatchedSourceId = `input${recipe.sources.length + 1}`;
+    const mismatchedSourceName = `INPUT_${recipe.sources.length + 1}`;
+    const invalidStateSourceId = `input${recipe.sources.length + 2}`;
+    const wiredStepId = `step${recipe.steps.length + 1}`;
+    const inspectorHeading = page.getByLabel('Inspector tools').getByRole('heading');
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    // Adding a source selects it. Wait for the Inspector to follow before editing, then
+    // widen it past the 16-bit sources it will be wired against to force the invalid state.
+    await page.getByRole('button', { name: 'Add source' }).click();
+    await expect(inspectorHeading).toContainText(mismatchedSourceName);
+    await page.getByLabel('Width', { exact: true }).fill('32');
+    await page.getByRole('button', { name: 'Add XOR draft' }).click();
+    await page.getByRole('button', { name: 'Fit canvas' }).click();
+
+    const draft = page.locator('.react-flow__node:has(.di-flow-step.is-draft)');
+    const connections = [
+      [
+        page.locator('.react-flow__node[data-id="input"] .react-flow__handle-right'),
+        draft.locator('.react-flow__handle[data-handleid="input"]'),
+      ],
+      [
+        page.locator(
+          `.react-flow__node[data-id="${mismatchedSourceId}"] .react-flow__handle-right`
+        ),
+        draft.locator('.react-flow__handle[data-handleid="operand"]'),
+      ],
+    ] as const;
+    for (const [source, target] of connections) {
+      const [sourceBounds, targetBounds] = await Promise.all([
+        source.boundingBox(),
+        target.boundingBox(),
+      ]);
+      expect(sourceBounds).not.toBeNull();
+      expect(targetBounds).not.toBeNull();
+      await page.mouse.move(
+        sourceBounds!.x + sourceBounds!.width / 2,
+        sourceBounds!.y + sourceBounds!.height / 2
+      );
+      await page.mouse.down();
+      await page.mouse.move(
+        targetBounds!.x + targetBounds!.width / 2,
+        targetBounds!.y + targetBounds!.height / 2,
+        { steps: 12 }
+      );
+      await page.mouse.up();
+    }
+
+    const addedStep = page.locator(`.react-flow__node[data-id="${wiredStepId}"]`);
+    await expect(addedStep.locator('.di-flow-step.is-error')).toContainText(
+      'operands must have equal widths'
+    );
+    await expect(page.getByRole('button', { name: 'Problems 1' })).toBeVisible();
+
+    // The invalid state is allowed to exist only because it cannot be saved.
+    await page.evaluate(() => {
+      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
+    });
+    await page.getByRole('button', { name: 'Add source' }).click();
+    const addedWhileInvalid = page.locator(`.react-flow__node[data-id="${invalidStateSourceId}"]`);
+    await expect(addedWhileInvalid).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Problems 1' })).toBeVisible();
+    await page.waitForTimeout(400); // past the autosave debounce
+    expect(
+      await page.evaluate(
+        () =>
+          (
+            window as unknown as { __vscodeMessages: Array<{ type: string }> }
+          ).__vscodeMessages.filter((message) => message.type === 'updateRecipe').length
+      )
+    ).toBe(0);
+
+    // The source node sits under the operation it feeds, so dispatch the click directly
+    // instead of routing it through a pointer that the overlapping node would swallow.
+    await page.locator(`.react-flow__node[data-id="${mismatchedSourceId}"]`).dispatchEvent('click');
+    await expect(inspectorHeading).toContainText(mismatchedSourceName);
+    await page.getByLabel('Width', { exact: true }).fill('16');
+
+    await expect(addedStep).toBeVisible();
+    await expect(addedWhileInvalid).toBeVisible();
+    await expect(addedStep.locator('.di-flow-step.is-error')).toHaveCount(0);
+    await expect(addedStep).toContainText('16b');
+    await expect(page.getByRole('button', { name: 'Problems 0' })).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          ({ sourceId, stepId }) => {
+            const updates = (
+              window as unknown as {
+                __vscodeMessages: Array<{
+                  type: string;
+                  recipe?: {
+                    sources: Array<{ id: string }>;
+                    steps: Array<{ id: string }>;
+                  };
+                }>;
+              }
+            ).__vscodeMessages.filter((message) => message.type === 'updateRecipe');
+            const savedRecipe = updates.at(-1)?.recipe;
+            return {
+              source: savedRecipe?.sources.some((source) => source.id === sourceId),
+              step: savedRecipe?.steps.some((step) => step.id === stepId),
+            };
+          },
+          { sourceId: invalidStateSourceId, stepId: wiredStepId }
+        )
+      )
+      .toEqual({ source: true, step: true });
   });
 
   test('creates a draft with the keyboard and clears it after a recipe error', async ({ page }) => {

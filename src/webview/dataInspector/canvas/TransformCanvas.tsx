@@ -145,17 +145,17 @@ function TransformCanvasInner({
   );
   const errors = useMemo(() => stepErrors(workingRecipe), [workingRecipe]);
 
+  /**
+   * Accepts every edit, including semantically invalid ones, so canvas state and recipe
+   * state cannot diverge. Semantic problems stay visible on the step nodes and in the
+   * Problems counter, and they keep the recipe from being saved; the canvas message is
+   * reserved for edits that were rejected outright and left the recipe unchanged.
+   */
   const saveCandidate = useCallback(
     (candidate: IPCraftDataInspectorRecipe) => {
       setWorkingRecipe(candidate);
-      const validationErrors = validateRecipeSemantics(candidate);
-      if (validationErrors.length > 0) {
-        setMessage(validationErrors[0]);
-        return false;
-      }
       setMessage('');
       onRecipeChange(candidate);
-      return true;
     },
     [onRecipeChange]
   );
@@ -434,17 +434,19 @@ function TransformCanvasInner({
         ...(workingRecipe.view.canvas?.nodes ?? []),
         { id, x: position.x, y: position.y },
       ];
+      // A new input is almost always destined for a binary operation against the inputs
+      // already on the canvas, and those require equal widths.
+      const width = workingRecipe.sources[workingRecipe.sources.length - 1]?.width ?? 32;
       const candidate = {
         ...workingRecipe,
-        sources: [...workingRecipe.sources, { id, name: `INPUT_${index}`, width: 32 }],
+        sources: [...workingRecipe.sources, { id, name: `INPUT_${index}`, width }],
         view: { ...workingRecipe.view, canvas: { nodes: positions } },
       };
       if (preserveViewport) {
         preserveViewportRef.current = true;
       }
-      if (saveCandidate(candidate)) {
-        onInspectValue(id, 'source');
-      }
+      saveCandidate(candidate);
+      onInspectValue(id, 'source');
     },
     [onInspectValue, preserveViewport, saveCandidate, workingRecipe]
   );
