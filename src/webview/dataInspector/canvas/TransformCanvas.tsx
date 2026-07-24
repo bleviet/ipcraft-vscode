@@ -149,13 +149,8 @@ function TransformCanvasInner({
     (candidate: IPCraftDataInspectorRecipe) => {
       setWorkingRecipe(candidate);
       const validationErrors = validateRecipeSemantics(candidate);
-      if (validationErrors.length > 0) {
-        setMessage(validationErrors[0]);
-        return false;
-      }
-      setMessage('');
+      setMessage(validationErrors[0] ?? '');
       onRecipeChange(candidate);
-      return true;
     },
     [onRecipeChange]
   );
@@ -442,9 +437,8 @@ function TransformCanvasInner({
       if (preserveViewport) {
         preserveViewportRef.current = true;
       }
-      if (saveCandidate(candidate)) {
-        onInspectValue(id, 'source');
-      }
+      saveCandidate(candidate);
+      onInspectValue(id, 'source');
     },
     [onInspectValue, preserveViewport, saveCandidate, workingRecipe]
   );
