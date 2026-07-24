@@ -442,6 +442,45 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('infers simulation ownership for a full-generation pack with a testbench and runner (issue #156)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-owned-sim-'));
+    const packDir = path.join(tmp, 'owned-sim-pack');
+    fs2.mkdirSync(packDir, { recursive: true });
+    fs2.writeFileSync(
+      path.join(packDir, 'scaffold.yml'),
+      [
+        'name: "owned-sim-pack"',
+        'fullGeneration: true',
+        'files:',
+        '  - source: custom_tb.vhd.j2',
+        '    target: sim/custom_tb.vhd',
+        '  - source: Makefile.j2',
+        '    target: sim/Makefile',
+      ].join('\n')
+    );
+    fs2.writeFileSync(path.join(packDir, 'custom_tb.vhd.j2'), '-- custom testbench\n');
+    fs2.writeFileSync(path.join(packDir, 'Makefile.j2'), 'run:\n\t@echo custom\n');
+
+    try {
+      const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+      const result = await scaffolder.generateAll(inputPath, path.join(tmp, 'output'), {
+        includeTestbench: true,
+        targets: [],
+        scaffoldPack: packDir,
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(Object.keys(result.generatedContents ?? {}).sort()).toEqual([
+        'sim/Makefile',
+        'sim/custom_tb.vhd',
+      ]);
+      expect(result.frameworkTestbenchPaths).toEqual([]);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('still emits framework testbench files by default when a pack omits generateFrameworkTestbench', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
     const result = await scaffolder.generateAll(inputPath, '/tmp/test-default-tb-output', {
@@ -455,6 +494,7 @@ describe('IpCoreScaffolder', () => {
     const generatedPaths = Object.keys(result.generatedContents ?? {});
     expect(generatedPaths.some((p) => p.startsWith('tb/'))).toBe(true);
     expect(generatedPaths).toContain('.vscode/settings.json');
+    expect(result.frameworkTestbenchPaths).toContain('tb/Makefile');
   });
 
   it('warns when a pack already renders its own sim-like output but never declares generateFrameworkTestbench (issue #156)', async () => {

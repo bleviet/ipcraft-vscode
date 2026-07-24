@@ -60,10 +60,11 @@ describe('ScaffoldPackLoader.resolve', () => {
     expect(() => loader.resolve('does-not-exist')).toThrow(/does-not-exist/);
   });
 
-  it('defaults generateFrameworkTestbench to true when the manifest omits it', () => {
+  it('tracks an omitted generateFrameworkTestbench separately from its enabled default', () => {
     const loader = new ScaffoldPackLoader(builtinDir);
     const pack = loader.resolve('builtin-minimal');
     expect(pack.generateFrameworkTestbench).toBe(true);
+    expect(pack.generateFrameworkTestbenchDeclared).toBe(false);
   });
 
   it('honors an explicit generateFrameworkTestbench: false in the manifest', () => {

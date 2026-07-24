@@ -108,6 +108,48 @@ describe('runCliVerify', () => {
     }
   });
 
+  it('agrees with generate when a full-generation pack owns simulation output (issue #156)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-owned-sim-'));
+    try {
+      const packDir = path.join(tmp, 'owned-sim-pack');
+      const outputDir = path.join(tmp, 'generated');
+      fs2.mkdirSync(packDir, { recursive: true });
+      fs2.writeFileSync(
+        path.join(packDir, 'scaffold.yml'),
+        [
+          'name: "owned-sim-pack"',
+          'fullGeneration: true',
+          'files:',
+          '  - source: custom_tb.vhd.j2',
+          '    target: sim/custom_tb.vhd',
+          '  - source: Makefile.j2',
+          '    target: sim/Makefile',
+        ].join('\n')
+      );
+      fs2.writeFileSync(path.join(packDir, 'custom_tb.vhd.j2'), '-- owned testbench\n');
+      fs2.writeFileSync(path.join(packDir, 'Makefile.j2'), 'run:\n\t@echo owned\n');
+      const inputPath = writeBlinkerIpYaml(tmp, '50MHz');
+      const args = {
+        ipYamlPath: inputPath,
+        targets: [],
+        hdlLanguage: 'vhdl' as const,
+        scaffoldPack: packDir,
+      };
+
+      const generateResult = await runCliGenerate({ ...args, outDir: outputDir }, resourceRoots);
+
+      expect(generateResult.success).toBe(true);
+      expect(generateResult.files).toEqual(['sim/Makefile', 'sim/custom_tb.vhd']);
+      expect(fs2.existsSync(path.join(outputDir, 'tb'))).toBe(false);
+      expect(fs2.existsSync(path.join(outputDir, '.vscode', 'settings.json'))).toBe(false);
+
+      const verifyResult = await runCliVerify({ ...args, generatedDir: outputDir }, resourceRoots);
+      expect(verifyResult).toEqual({ success: true, staleFiles: [] });
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('flags a stale file and exits non-zero after editing the .ip.yml without regenerating (issue #73 AC1, AC3)', async () => {
     const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-verify-stale-'));
     try {
