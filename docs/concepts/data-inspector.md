@@ -79,8 +79,18 @@ operations become edges on the canvas.
 | Truncate | Keeps low bits at a smaller width |
 | Byte swap | Preserves a width divisible by eight |
 
-Connections that would create a cycle or join incompatible widths are rejected.
-An unwired operation stays only in the current webview until it becomes valid.
+Connections that would create a cycle are rejected outright; the canvas reports
+why and the graph is unchanged. Every other connection is accepted, including
+one that joins incompatible widths. An operation becomes part of the recipe as
+soon as all its required inputs are wired, whether or not the result is valid.
+
+A wired operation that breaks a width rule keeps its place on the canvas and
+shows the failing rule on the node. The recipe still counts it as a problem, so
+neither autosave nor manual save writes the file until the widths agree. This
+lets you correct a source width in place instead of rewiring the operation.
+
+An operation with a missing input stays a draft. Drafts live only in the current
+webview and are never written to the recipe.
 
 `evaluateRecipe.ts` evaluates the graph without side effects. Besides each
 result, it reports which source supplied every bit and which ranges were

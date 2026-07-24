@@ -131,8 +131,15 @@ For example, to build a 64-bit value from two 32-bit sources:
 3. Add **Concat**.
 4. Connect `ADDR_HI` to the high input and `ADDR_LO` to the low input.
 
-New operations remain dashed until all required connections and values are
-valid. Select any node to show its result in the bit view.
+A new operation stays dashed until every required input is connected. Select any
+node to show its result in the bit view.
+
+A connected operation can still report a problem, most often when a binary
+operation joins two different widths. The operation stays on the canvas and
+names the failing rule, the Problems counter includes it, and the recipe is not
+saved until you fix it. Select the source you want to change and correct its
+width in the Inspector; the operation starts evaluating as soon as the widths
+agree.
 
 ## Inspect a VCD waveform
 
