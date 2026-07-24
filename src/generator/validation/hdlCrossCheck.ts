@@ -454,36 +454,52 @@ interface ParsedManagedFile {
   rawHdlPortsByName: Map<string, ImplPort>;
 }
 
+interface TopLevelSelection {
+  selectedFile?: ParsedManagedFile;
+  ambiguousFiles: ParsedManagedFile[];
+}
+
 /**
- * A project can have more than one managed:false HDL file (a hand-authored top plus
- * hand-authored submodules it instantiates). Only the top-level entity/module is expected to
- * expose the .ip.yml's full ports/clocks/resets/parameters — checking a submodule against
- * that same full list produces false `missing-port`/`missing-parameter` findings for every
- * signal the submodule legitimately doesn't have.
- *
- * With a single managed:false file there's no ambiguity — that's the file cross-checked
- * whether or not its name happens to match the IP core's. With more than one, this narrows
- * to the file whose entity/module name matches the IP core's name (the conventional
- * top-level); if none or more than one match, which file is the top can't be determined, so
- * every file is checked (the pre-existing, imperfect-but-non-silent behavior) rather than
- * silently skipping the cross-check.
+ * Black-box stubs and testbenches can declare an entity/module, but they do not implement the
+ * .ip.yml interface. File roles are not represented in the current schema, so recognize the
+ * conventional suffixes emitted by the supported vendor and testbench flows.
  */
-function selectTopLevelFiles(
+function isNonImplementationArtifact(filePath: string): boolean {
+  const stem = path.basename(filePath, path.extname(filePath));
+  return /(?:^|[_-])(?:bb|black[-_]?box|stub|tb|testbench|test)$/i.test(stem);
+}
+
+/**
+ * Selects one implementation to diff. Files without a parsed entity/module (for example VHDL
+ * packages) and conventional black-box/testbench artifacts cannot be the implementation and are
+ * removed first. If the remaining files still cannot be resolved uniquely, the caller reports
+ * one ambiguity instead of diffing the full .ip.yml interface against every candidate.
+ */
+function selectTopLevelFile(
   parsedFiles: ParsedManagedFile[],
   ipCoreData: IpCoreData
-): ParsedManagedFile[] {
-  if (parsedFiles.length <= 1) {
-    return parsedFiles;
+): TopLevelSelection {
+  const implementationFiles = parsedFiles.filter(
+    ({ file, entityName }) => entityName !== null && !isNonImplementationArtifact(file.path)
+  );
+  if (implementationFiles.length === 1) {
+    return { selectedFile: implementationFiles[0], ambiguousFiles: [] };
   }
+
   const coreName = ipCoreData.vlnv?.name?.toLowerCase();
-  if (!coreName) {
-    // No IP core name to match against (e.g. schema-invalid .ip.yml) — can't identify the
-    // top, so fall through to checking every file rather than matching every file whose
-    // entityName also failed to parse (undefined === undefined).
-    return parsedFiles;
+  if (coreName) {
+    const matches = implementationFiles.filter(
+      (file) => file.entityName?.toLowerCase() === coreName
+    );
+    if (matches.length === 1) {
+      return { selectedFile: matches[0], ambiguousFiles: [] };
+    }
+    if (matches.length > 1) {
+      return { ambiguousFiles: matches };
+    }
   }
-  const matches = parsedFiles.filter((f) => f.entityName?.toLowerCase() === coreName);
-  return matches.length === 1 ? matches : parsedFiles;
+
+  return { ambiguousFiles: implementationFiles };
 }
 
 /**
@@ -622,7 +638,7 @@ function diffAgainstImplementation(
 
 /**
  * Shared body for both HDL cross-check entry points below: parses each candidate file, narrows
- * to the top-level entity/module (selectTopLevelFiles), and diffs it against the .ip.yml. The
+ * to the top-level entity/module (selectTopLevelFile), and diffs it against the .ip.yml. The
  * only thing that differs between the two public functions is which files are candidates.
  */
 async function diffAgainstHdlFiles(
@@ -669,28 +685,47 @@ async function diffAgainstHdlFiles(
     });
   }
 
-  for (const {
-    file,
-    entityName,
-    hdlPortsByName,
-    hdlParamsByName,
-    rawHdlPortsByName,
-  } of selectTopLevelFiles(parsedFiles, ipCoreData)) {
-    findings.push(
-      ...diffBusPorts(expectedBusPorts, rawHdlPortsByName, file.path, entityName, 'hdl').findings
-    );
-    findings.push(
-      ...diffAgainstImplementation(
-        expectedSignals,
-        expectedParams,
-        hdlPortsByName,
-        hdlParamsByName,
-        file.path,
-        entityName,
-        'hdl'
-      )
-    );
+  if (parsedFiles.length === 0) {
+    return findings;
   }
+
+  const selection = selectTopLevelFile(parsedFiles, ipCoreData);
+  if (!selection.selectedFile) {
+    const candidatePaths = selection.ambiguousFiles.map(({ file }) => file.path);
+    const inspectedPaths = parsedFiles.map(({ file }) => file.path);
+    findings.push({
+      kind: 'top-level-ambiguity',
+      message:
+        candidatePaths.length > 0
+          ? `Could not uniquely identify the top-level HDL implementation among: ` +
+            `${candidatePaths.join(', ')}.`
+          : `Could not identify a top-level HDL implementation; no eligible entity/module was ` +
+            `found in: ${inspectedPaths.join(', ')}.`,
+      ipYmlPath: ['fileSets'],
+      hdlFile: candidatePaths[0] ?? inspectedPaths[0] ?? '',
+      hdlEntity: null,
+      severity: SEVERITY_BY_KIND['top-level-ambiguity'],
+      source: 'hdl',
+    });
+    return findings;
+  }
+
+  const { file, entityName, hdlPortsByName, hdlParamsByName, rawHdlPortsByName } =
+    selection.selectedFile;
+  findings.push(
+    ...diffBusPorts(expectedBusPorts, rawHdlPortsByName, file.path, entityName, 'hdl').findings
+  );
+  findings.push(
+    ...diffAgainstImplementation(
+      expectedSignals,
+      expectedParams,
+      hdlPortsByName,
+      hdlParamsByName,
+      file.path,
+      entityName,
+      'hdl'
+    )
+  );
 
   return findings;
 }

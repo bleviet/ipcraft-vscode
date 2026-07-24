@@ -6,6 +6,7 @@
  */
 
 export type HdlCrossCheckKind =
+  | 'top-level-ambiguity'
   | 'missing-port'
   | 'extra-port'
   | 'direction-mismatch'
@@ -29,6 +30,7 @@ export type ConsistencySeverity = 'amber' | 'red';
 export type ConsistencySource = 'hdl' | 'hwTcl' | 'componentXml';
 
 export const SEVERITY_BY_KIND: Record<HdlCrossCheckKind, ConsistencySeverity> = {
+  'top-level-ambiguity': 'amber',
   'missing-port': 'red',
   'extra-port': 'amber',
   'direction-mismatch': 'red',

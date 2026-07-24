@@ -1,6 +1,7 @@
 import type { CanvasAnnotations } from '../hooks/useCanvasValidation';
 
 export type ConsistencyKind =
+  | 'top-level-ambiguity'
   | 'missing-port'
   | 'extra-port'
   | 'direction-mismatch'
@@ -60,6 +61,7 @@ export function sourceLabel(source: ConsistencySource): string {
 }
 
 export const CONSISTENCY_KIND_LABEL: Record<ConsistencyKind, string> = {
+  'top-level-ambiguity': 'Top-level ambiguity',
   'missing-port': 'Missing port',
   'extra-port': 'New port',
   'direction-mismatch': 'Direction mismatch',
