@@ -79,10 +79,10 @@ operations become edges on the canvas.
 | Truncate | Keeps low bits at a smaller width |
 | Byte swap | Preserves a width divisible by eight |
 
-Connections that would create a cycle are rejected outright; the canvas reports
-why and the graph is unchanged. Every other connection is accepted, including
-one that joins incompatible widths. An operation becomes part of the recipe as
-soon as all its required inputs are wired, whether or not the result is valid.
+Connections that would create a cycle are rejected outright and the graph is
+unchanged. Every other connection is accepted, including one that joins
+incompatible widths. An operation becomes part of the recipe as soon as all its
+required inputs are wired, whether or not the result is valid.
 
 A wired operation that breaks a width rule keeps its place on the canvas and
 shows the failing rule on the node. The recipe still counts it as a problem, so
