@@ -1,0 +1,48 @@
+name: Open-source integration (nightly)
+
+on:
+  schedule:
+    # 02:00 UTC every night
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+# Only one nightly run at a time; cancel the in-progress one if a manual
+# dispatch is triggered while a scheduled run is already underway.
+concurrency:
+  group: nightly
+  cancel-in-progress: true
+
+jobs:
+  integration-full:
+    name: Full integration suite (Tier 0 + Tier 1)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install open-source HDL and XML tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ghdl iverilog verilator libxml2-utils
+          pip3 install --no-cache-dir cocotb pytest cocotbext-axi
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run compile
+
+      - name: Fetch real-world parser fixtures
+        run: npm run fetch-fixtures
+
+      - name: Open-source integration suite
+        env:
+          # Fixtures were fetched before Jest discovered parser-realworld tests.
+          SKIP_FETCH: 1
+        run: npm run test:integration:open-source

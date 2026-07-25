@@ -1567,6 +1567,7 @@
     "docs:links": "node scripts/check-markdown-links.js",
     "test:cli-package": "node scripts/test-cli-package.js",
     "test:integration": "jest --config config/jest.integration.js",
+    "test:integration:open-source": "jest --config config/jest.integration.opensource.js",
     "test:integration:hdl": "jest --config config/jest.integration.js --testPathPatterns=hdl",
     "test:integration:vivado": "jest --config config/jest.integration.js --testPathPatterns=vivado",
     "test:integration:quartus": "jest --config config/jest.integration.js --testPathPatterns=quartus",
