@@ -46,8 +46,12 @@ export interface MutationResult {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Deep-clone a memory map to avoid mutating the original. */
-function cloneMap(map: LayoutMemoryMap): LayoutMemoryMap {
+/**
+ * Deep-clone for the unused relocateElement helper.
+ *
+ * Production structural edits use the path-specific copy-on-write updates below.
+ */
+function cloneForRelocation(map: LayoutMemoryMap): LayoutMemoryMap {
   return JSON.parse(JSON.stringify(map)) as LayoutMemoryMap;
 }
 
@@ -56,9 +60,53 @@ function getBlocks(map: LayoutMemoryMap): LayoutBlock[] {
   return map.addressBlocks ?? [];
 }
 
-/** Set blocks array on a memory map clone. */
-function setBlocks(map: LayoutMemoryMap, blocks: LayoutBlock[]): void {
-  map.addressBlocks = blocks;
+/** Return a map with one block replaced, without changing the input map. */
+function replaceBlock(
+  map: LayoutMemoryMap,
+  blockIndex: number,
+  block: LayoutBlock
+): LayoutMemoryMap {
+  const blocks = [...getBlocks(map)];
+  blocks[blockIndex] = block;
+  return { ...map, addressBlocks: blocks };
+}
+
+/** Return a map with a replacement address-block array, without changing the input map. */
+function replaceBlocks(map: LayoutMemoryMap, blocks: LayoutBlock[]): LayoutMemoryMap {
+  return { ...map, addressBlocks: blocks };
+}
+
+/** Return a block with its top-level or nested registers replaced. */
+function replaceRegistersInBlock(
+  block: LayoutBlock,
+  blockRegisters: LayoutRegister[],
+  parentIndex: number | undefined,
+  registers: LayoutRegister[]
+): LayoutBlock {
+  if (parentIndex === undefined) {
+    return { ...block, registers };
+  }
+  return {
+    ...block,
+    registers: blockRegisters.map((register, index) =>
+      index === parentIndex ? { ...register, registers } : register
+    ),
+  };
+}
+
+/** Return a block with one register's fields replaced. */
+function replaceFieldsInBlock(
+  block: LayoutBlock,
+  blockRegisters: LayoutRegister[],
+  registerIndex: number,
+  fields: LayoutField[]
+): LayoutBlock {
+  return {
+    ...block,
+    registers: blockRegisters.map((register, index) =>
+      index === registerIndex ? { ...register, fields } : register
+    ),
+  };
 }
 
 import { generateUniqueName } from '../utils/naming';
@@ -168,18 +216,17 @@ export function insertElement(
   parentPath?: ParentPath,
   kind: 'register' | 'flat-array' | 'array' | 'block' | 'ram' = 'register'
 ): MutationResult {
-  const map = cloneMap(memoryMap);
-  const blocks = getBlocks(map);
+  const blocks = getBlocks(memoryMap);
 
   if (layer === 'block') {
     const prefix = kind === 'ram' ? 'ram' : 'block';
     const name = nextSequentialName(blocks, prefix);
     const insertIdx = computeInsertIndex(targetIndex, blocks.length, mode);
     const newBlock = kind === 'ram' ? defaultRamBlock(name) : defaultBlock(name);
-    blocks.splice(insertIdx, 0, newBlock);
-    setBlocks(map, blocks);
+    const updatedBlocks = [...blocks];
+    updatedBlocks.splice(insertIdx, 0, newBlock);
 
-    const { data, errors } = recomputeAddressLayout(map);
+    const { data, errors } = recomputeAddressLayout(replaceBlocks(memoryMap, updatedBlocks));
     const finalBlocks = getBlocks(data);
     const newIndex = finalBlocks.findIndex((b) => b.name === name);
     return { memoryMap: data, errors, newIndex };
@@ -203,10 +250,11 @@ export function insertElement(
       };
     }
 
+    const blockRegisters = block.registers ?? [];
     let regs: LayoutRegister[];
     let parentArray: LayoutRegister | undefined;
     if (parentPath?.registerIndex !== undefined) {
-      parentArray = (block.registers ?? [])[parentPath.registerIndex];
+      parentArray = blockRegisters[parentPath.registerIndex];
       if (!parentArray) {
         return {
           memoryMap,
@@ -223,7 +271,7 @@ export function insertElement(
       }
       regs = parentArray.registers ?? [];
     } else {
-      regs = block.registers ?? [];
+      regs = blockRegisters;
     }
 
     const prefix = kind === 'register' ? 'reg' : kind === 'flat-array' ? 'regArray' : 'array';
@@ -239,15 +287,16 @@ export function insertElement(
       newReg = defaultRegister(name);
     }
 
-    regs.splice(insertIdx, 0, newReg);
-    if (parentArray) {
-      parentArray.registers = regs;
-    } else {
-      block.registers = regs;
-    }
-    setBlocks(map, blocks);
+    const updatedRegs = [...regs];
+    updatedRegs.splice(insertIdx, 0, newReg);
+    const updatedBlock = replaceRegistersInBlock(
+      block,
+      blockRegisters,
+      parentArray ? parentPath?.registerIndex : undefined,
+      updatedRegs
+    );
 
-    const { data, errors } = recomputeAddressLayout(map);
+    const { data, errors } = recomputeAddressLayout(replaceBlock(memoryMap, bi, updatedBlock));
     let finalRegs: LayoutRegister[];
     if (parentPath?.registerIndex !== undefined) {
       finalRegs = (getBlocks(data)[bi]?.registers ?? [])[parentPath.registerIndex]?.registers ?? [];
@@ -276,7 +325,8 @@ export function insertElement(
         newIndex: -1,
       };
     }
-    const reg = (block.registers ?? [])[ri];
+    const blockRegisters = block.registers ?? [];
+    const reg = blockRegisters[ri];
     if (!reg) {
       return {
         memoryMap,
@@ -294,11 +344,11 @@ export function insertElement(
     const fields = reg.fields ?? [];
     const name = nextSequentialName(fields, 'field');
     const insertIdx = computeInsertIndex(targetIndex, fields.length, mode);
-    fields.splice(insertIdx, 0, defaultField(name));
-    reg.fields = fields;
-    setBlocks(map, blocks);
+    const updatedFields = [...fields];
+    updatedFields.splice(insertIdx, 0, defaultField(name));
+    const updatedBlock = replaceFieldsInBlock(block, blockRegisters, ri, updatedFields);
 
-    const { data, errors } = recomputeFullLayout(map);
+    const { data, errors } = recomputeFullLayout(replaceBlock(memoryMap, bi, updatedBlock));
     const finalFields = (getBlocks(data)[bi]?.registers ?? [])[ri]?.fields ?? [];
     const newIndex = finalFields.findIndex((f) => f.name === name);
     return { memoryMap: data, errors, newIndex };
@@ -325,8 +375,7 @@ export function deleteElement(
   targetIndex: number,
   parentPath?: ParentPath
 ): MutationResult {
-  const map = cloneMap(memoryMap);
-  const blocks = getBlocks(map);
+  const blocks = getBlocks(memoryMap);
 
   if (layer === 'block') {
     if (targetIndex < 0 || targetIndex >= blocks.length) {
@@ -338,9 +387,9 @@ export function deleteElement(
         newIndex: -1,
       };
     }
-    blocks.splice(targetIndex, 1);
-    setBlocks(map, blocks);
-    const { data, errors } = recomputeAddressLayout(map);
+    const updatedBlocks = [...blocks];
+    updatedBlocks.splice(targetIndex, 1);
+    const { data, errors } = recomputeAddressLayout(replaceBlocks(memoryMap, updatedBlocks));
     return { memoryMap: data, errors, newIndex: Math.min(targetIndex, getBlocks(data).length - 1) };
   }
 
@@ -362,10 +411,11 @@ export function deleteElement(
       };
     }
 
+    const blockRegisters = block.registers ?? [];
     let regs: LayoutRegister[];
     let parentArray: LayoutRegister | undefined;
     if (parentPath?.registerIndex !== undefined) {
-      parentArray = (block.registers ?? [])[parentPath.registerIndex];
+      parentArray = blockRegisters[parentPath.registerIndex];
       if (!parentArray) {
         return {
           memoryMap,
@@ -382,7 +432,7 @@ export function deleteElement(
       }
       regs = parentArray.registers ?? [];
     } else {
-      regs = block.registers ?? [];
+      regs = blockRegisters;
     }
 
     if (targetIndex < 0 || targetIndex >= regs.length) {
@@ -402,14 +452,15 @@ export function deleteElement(
         newIndex: -1,
       };
     }
-    regs.splice(targetIndex, 1);
-    if (parentArray) {
-      parentArray.registers = regs;
-    } else {
-      block.registers = regs;
-    }
-    setBlocks(map, blocks);
-    const { data, errors } = recomputeAddressLayout(map);
+    const updatedRegs = [...regs];
+    updatedRegs.splice(targetIndex, 1);
+    const updatedBlock = replaceRegistersInBlock(
+      block,
+      blockRegisters,
+      parentArray ? parentPath?.registerIndex : undefined,
+      updatedRegs
+    );
+    const { data, errors } = recomputeAddressLayout(replaceBlock(memoryMap, bi, updatedBlock));
     let finalRegs: LayoutRegister[];
     if (parentPath?.registerIndex !== undefined) {
       finalRegs = (getBlocks(data)[bi]?.registers ?? [])[parentPath.registerIndex]?.registers ?? [];
@@ -437,7 +488,8 @@ export function deleteElement(
         newIndex: -1,
       };
     }
-    const reg = (block.registers ?? [])[ri];
+    const blockRegisters = block.registers ?? [];
+    const reg = blockRegisters[ri];
     if (!reg) {
       return {
         memoryMap,
@@ -467,10 +519,10 @@ export function deleteElement(
         newIndex: -1,
       };
     }
-    fields.splice(targetIndex, 1);
-    reg.fields = fields;
-    setBlocks(map, blocks);
-    const { data, errors } = recomputeFullLayout(map);
+    const updatedFields = [...fields];
+    updatedFields.splice(targetIndex, 1);
+    const updatedBlock = replaceFieldsInBlock(block, blockRegisters, ri, updatedFields);
+    const { data, errors } = recomputeFullLayout(replaceBlock(memoryMap, bi, updatedBlock));
     const finalFields = (getBlocks(data)[bi]?.registers ?? [])[ri]?.fields ?? [];
     return { memoryMap: data, errors, newIndex: Math.min(targetIndex, finalFields.length - 1) };
   }
@@ -500,7 +552,7 @@ export function relocateElement(
   targetParentPath: ParentPath,
   targetIndex: number
 ): MutationResult {
-  const map = cloneMap(memoryMap);
+  const map = cloneForRelocation(memoryMap);
   const blocks = getBlocks(map);
 
   if (layer === 'block') {
@@ -516,7 +568,6 @@ export function relocateElement(
     const [removed] = blocks.splice(sourceIndex, 1);
     const clampedTarget = Math.max(0, Math.min(targetIndex, blocks.length));
     blocks.splice(clampedTarget, 0, removed);
-    setBlocks(map, blocks);
 
     const { data, errors } = recomputeAddressLayout(map);
     return { memoryMap: data, errors, newIndex: clampedTarget };
@@ -560,7 +611,6 @@ export function relocateElement(
     tgtRegs.splice(clampedTarget, 0, removed);
     tgtBlock.registers = tgtRegs;
 
-    setBlocks(map, blocks);
     const { data, errors } = recomputeAddressLayout(map);
     return { memoryMap: data, errors, newIndex: clampedTarget };
   }
@@ -615,7 +665,6 @@ export function relocateElement(
     tgtFields.splice(clampedTarget, 0, removed);
     tgtReg.fields = tgtFields;
 
-    setBlocks(map, blocks);
     const { data, errors } = recomputeFullLayout(map);
     return { memoryMap: data, errors, newIndex: clampedTarget };
   }

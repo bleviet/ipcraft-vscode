@@ -52,9 +52,84 @@ function getBlocks(map: LayoutMemoryMap) {
   return map.addressBlocks ?? [];
 }
 
+function makeNestedRegisterMap(): LayoutMemoryMap {
+  return makeMap({
+    addressBlocks: [
+      {
+        name: 'BLOCK0',
+        baseAddress: 0,
+        registers: [
+          {
+            name: 'ARRAY0',
+            count: 2,
+            stride: 8,
+            registers: [
+              { name: 'SUBREG0', offset: 0 },
+              { name: 'SUBREG1', offset: 4 },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+}
+
+function expectInputUnchanged(mutate: (map: LayoutMemoryMap) => void, makeInput = makeMap): void {
+  const map = makeInput();
+  const original = JSON.parse(JSON.stringify(map)) as LayoutMemoryMap;
+
+  mutate(map);
+
+  expect(map).toEqual(original);
+}
+
 // ---------------------------------------------------------------------------
 // insertElement
 // ---------------------------------------------------------------------------
+
+describe('MutationService input immutability', () => {
+  it('preserves the input when inserting a block', () => {
+    expectInputUnchanged((map) => insertElement(map, 'block', 'after', 0));
+  });
+
+  it('preserves the input when inserting a top-level register', () => {
+    expectInputUnchanged((map) => insertElement(map, 'register', 'after', 0, { blockIndex: 0 }));
+  });
+
+  it('preserves the input when inserting a nested register', () => {
+    expectInputUnchanged(
+      (map) => insertElement(map, 'register', 'after', 0, { blockIndex: 0, registerIndex: 0 }),
+      makeNestedRegisterMap
+    );
+  });
+
+  it('preserves the input when inserting a field', () => {
+    expectInputUnchanged((map) =>
+      insertElement(map, 'field', 'after', 0, { blockIndex: 0, registerIndex: 0 })
+    );
+  });
+
+  it('preserves the input when deleting a block', () => {
+    expectInputUnchanged((map) => deleteElement(map, 'block', 0));
+  });
+
+  it('preserves the input when deleting a top-level register', () => {
+    expectInputUnchanged((map) => deleteElement(map, 'register', 0, { blockIndex: 0 }));
+  });
+
+  it('preserves the input when deleting a nested register', () => {
+    expectInputUnchanged(
+      (map) => deleteElement(map, 'register', 0, { blockIndex: 0, registerIndex: 0 }),
+      makeNestedRegisterMap
+    );
+  });
+
+  it('preserves the input when deleting a field', () => {
+    expectInputUnchanged((map) =>
+      deleteElement(map, 'field', 0, { blockIndex: 0, registerIndex: 0 })
+    );
+  });
+});
 
 describe('MutationService.insertElement', () => {
   describe('block layer', () => {
