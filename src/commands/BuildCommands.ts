@@ -10,38 +10,17 @@ import { isIpCoreFile } from '../utils/fileExtensions';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
-
-let outputChannel: vscode.OutputChannel | undefined;
+import { findActiveIpCoreFile } from '../utils/activeIpCoreFile';
+import { getBuildOutputChannel } from '../services/BuildOutputChannel';
 
 function getOutputChannel(): vscode.OutputChannel {
-  outputChannel ??= vscode.window.createOutputChannel('IPCraft Build');
-  return outputChannel;
-}
-
-/** Shared output channel used by both Build and Generate & Build commands. */
-export function getBuildOutputChannel(): vscode.OutputChannel {
-  return getOutputChannel();
-}
-
-function getActiveIpCoreFile(): vscode.Uri | undefined {
-  const editor = vscode.window.activeTextEditor;
-  if (editor && isIpCoreFile(editor.document.fileName)) {
-    return editor.document.uri;
-  }
-  const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
-  if (activeTab?.input instanceof vscode.TabInputCustom) {
-    const { uri } = activeTab.input;
-    if (isIpCoreFile(uri.fsPath)) {
-      return uri;
-    }
-  }
-  return undefined;
+  return getBuildOutputChannel();
 }
 
 async function resolveIpCore(
   resourceUri?: vscode.Uri
 ): Promise<{ uri: vscode.Uri; name: string; dir: string } | undefined> {
-  let ipUri = resourceUri ?? getActiveIpCoreFile();
+  let ipUri = resourceUri ?? findActiveIpCoreFile({ fallThroughOnNonIpEditor: true });
 
   if (!ipUri) {
     const files = await vscode.window.showOpenDialog({

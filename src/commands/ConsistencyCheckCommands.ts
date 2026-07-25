@@ -19,7 +19,7 @@ import {
   HdlCrossCheckFinding,
 } from '../generator/validation/hdlCrossCheck';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
-import { getActiveIpCoreFile } from './GenerateCommands';
+import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 const logger = new Logger('ConsistencyCheckCommands');
