@@ -292,13 +292,14 @@ module {{ entity_name }}_regs
 {% endif %}
 {% endif %}
 {% endfor %}
-{% for reg in mixed_registers %}
+{% set composed_read_registers = registers | selectattr('has_mixed_fields', 'equalto', true) | list %}
+{% for reg in composed_read_registers %}
         REG_{{ reg.name | upper }}_ADDR: begin
           begin : blk_rd_{{ reg.name | lower }}
             logic [C_DATA_WIDTH-1:0] v;
             v = '0;
 {% for field in reg.fields %}
-{% if field.access in ['write-1-to-clear', 'read-write-1-to-clear', 'write-self-clearing', 'read-write-self-clearing'] %}
+{% if field.access in ['read-write-1-to-clear', 'read-write-self-clearing'] %}
 {% if field.width == 1 %}
             v[{{ field.offset }}] = regs.{{ reg.name | lower }}.{{ field.name | lower }};
 {% else %}

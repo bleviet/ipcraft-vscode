@@ -326,7 +326,7 @@ describe('IpCoreScaffolder', () => {
     expect(writtenFiles.some((f: string) => f.includes('rtl/sample_core_regs.vhd'))).toBe(false);
     expect(writtenFiles.some((f: string) => f.includes('rtl/sample_core_core.vhd'))).toBe(false);
 
-    // Testbench is still generated (basic smoke test, no mm_loader)
+    // A basic testbench is still generated, without MM semantic artifacts.
     expect(writtenFiles.some((f: string) => f.includes('tb/Makefile'))).toBe(true);
     expect(writtenFiles.some((f: string) => f.includes('tb/mm_loader.py'))).toBe(false);
 
@@ -1658,23 +1658,9 @@ describe('IpCoreScaffolder', () => {
     expect(vhdlContent).not.toContain('-- Avalon-MM Slave Interface');
   });
 
-  it('generates a cocotb mm_loader.py that reads camelCase addressBlocks/baseAddress (regression)', async () => {
-    // mm_loader.py.j2 (the generated cocotb helper for iterating a .mm.yml's
-    // registers) used to look up snake_case `address_blocks`/`base_address`,
-    // but the memory-map schema only ever defines camelCase `addressBlocks`/
-    // `baseAddress` (this repo's own convention: "Strict camelCase, no
-    // dual-state fallbacks"). Every `for block in mm.get("address_blocks",
-    // [])` therefore silently found nothing, so `load_regmap()` always
-    // returned an empty register list -- invisible because generated cocotb
-    // tests only log read-back values, never assert on them.
-    //
-    // A second, compounding bug in the same file: `_parse_bits` split a
-    // `bits` string on ":" without first stripping the schema's literal
-    // `[`/`]` brackets (the documented format is e.g. "[7:0]"), so
-    // `int("[7")` raised ValueError for every real bit field the moment the
-    // addressBlocks fix above let execution reach it.
+  it('generates a cocotb verification manifest from the normalized memory map', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
-    const outputDir = '/tmp/test-output-mm-loader';
+    const outputDir = '/tmp/test-output-verification-manifest';
 
     const result = await scaffolder.generateAll(inputPath, outputDir, {
       includeRegs: true,
@@ -1685,15 +1671,25 @@ describe('IpCoreScaffolder', () => {
 
     expect(result.success).toBe(true);
 
-    const mmLoaderContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
-      call[0].includes('mm_loader.py')
+    const manifestContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      call[0].includes('verification_manifest.json')
     )?.[1];
-    expect(mmLoaderContent).toBeDefined();
-    expect(mmLoaderContent).toContain('"addressBlocks"');
-    expect(mmLoaderContent).toContain('"baseAddress"');
-    expect(mmLoaderContent).not.toContain('address_blocks');
-    expect(mmLoaderContent).not.toContain('base_address');
-    expect(mmLoaderContent).toContain('s.startswith("[") and s.endswith("]")');
+    expect(manifestContent).toBeDefined();
+    const manifest = JSON.parse(manifestContent);
+    expect(manifest.source).toEqual({
+      model: 'normalizedMemoryMap',
+      provenance: 'spec',
+    });
+    expect(manifest.registers.length).toBeGreaterThan(0);
+    expect(manifest.registers[0]).toEqual(
+      expect.objectContaining({
+        name: expect.any(String),
+        offset: expect.any(Number),
+        resetValue: expect.any(Number),
+        readableMask: expect.any(Number),
+        writableMask: expect.any(Number),
+      })
+    );
   });
 
   it('generates a Quartus .sdc with create_clock on its own line (regression)', async () => {

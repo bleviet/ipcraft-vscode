@@ -1,6 +1,12 @@
 import type { ContextResolver, ResolverInput, ContractDiagnostic } from './types';
 
 const W1C_ACCESS = new Set(['write-1-to-clear', 'read-write-1-to-clear']);
+const NON_READABLE_ACCESS = new Set([
+  'write-only',
+  'wo',
+  'write-1-to-clear',
+  'write-self-clearing',
+]);
 
 function getString(value: unknown): string {
   if (value === null || value === undefined) {
@@ -122,12 +128,10 @@ export function buildShadowRegisters(
     cosRegisters.map((r) => getString((r as Record<string, unknown>).name))
   );
 
-  // A register needs per-field read composition (a "_val" struct sourced from
-  // regs_in for its RO fields at read time) whenever it mixes SW-writable
-  // fields with hardware-driven RO fields — not just when it uses
-  // monitorChangeOf. cos_registers is always a subset: a CoS-monitored field
-  // is (per validateShadowRegisters) read alongside the W1C flag field that
-  // watches it, so the monitored register is inherently mixed too.
+  // mixed_registers owns the hardware value-port records required for RO
+  // fields. Read composition is slightly broader: a stored register with
+  // software-write-only fields also needs field-by-field packing so those
+  // fields do not leak through a readable sibling.
   const mixedRegNames = new Set<string>();
   for (const reg of swRegisters) {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
@@ -137,6 +141,13 @@ export function buildShadowRegisters(
   }
   for (const name of cosRegNames) {
     mixedRegNames.add(name);
+  }
+  const readComposedRegNames = new Set(mixedRegNames);
+  for (const reg of swRegisters) {
+    const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+    if (fields.some((f) => NON_READABLE_ACCESS.has(getString(f.access) || 'read-write'))) {
+      readComposedRegNames.add(getString(reg.name));
+    }
   }
 
   const cosValFieldsByName = new Map<string, Array<Record<string, unknown>>>();
@@ -188,7 +199,7 @@ export function buildShadowRegisters(
   const annotatedRegisters = registers.map((reg) => ({
     ...reg,
     has_cos_fields: cosRegNames.has(getString(reg.name)),
-    has_mixed_fields: mixedRegNames.has(getString(reg.name)),
+    has_mixed_fields: readComposedRegNames.has(getString(reg.name)),
   }));
 
   return {

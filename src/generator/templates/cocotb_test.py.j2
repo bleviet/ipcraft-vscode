@@ -2,105 +2,260 @@
 {% set reset_deassert = 0 if reset_active_high else 1 %}
 {% if has_memory_mapped_slave %}
 import os
+import random
+
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
-from mm_loader import load_regmap
+from register_model import RegisterModel, load_manifest
 {% if bus_type in ['axil', 'axi4'] %}
 {% if bus_type == 'axil' %}
 from cocotbext.axi import AxiLiteMaster, AxiLiteBus
 {% else %}
 from cocotbext.axi import AxiMaster, AxiBus
 {% endif %}
-
-
-async def _write_reg(master, addr: int, value: int) -> None:
-    """Write a 32-bit register value via the AXI master."""
-    await master.write(addr, value.to_bytes(4, "little"))
-
-
-async def _read_reg(master, addr: int) -> int:
-    """Read a 32-bit register value via the AXI master."""
-    result = await master.read(addr, 4)
-    return int.from_bytes(result.data, "little")
-{% elif bus_type == 'avmm' %}
-
-
-async def _write_reg(dut, addr: int, value: int) -> None:
-    """Write a 32-bit register over Avalon-MM."""
-    dut.{{ bus_prefix }}_address.value = addr
-    dut.{{ bus_prefix }}_writedata.value = value
-    if hasattr(dut, "{{ bus_prefix }}_byteenable"):
-        dut.{{ bus_prefix }}_byteenable.value = 0xF
-    dut.{{ bus_prefix }}_write.value = 1
-    await RisingEdge(dut.{{ clock_port }})
-    if hasattr(dut, "{{ bus_prefix }}_waitrequest"):
-        while dut.{{ bus_prefix }}_waitrequest.value:
-            await RisingEdge(dut.{{ clock_port }})
-    dut.{{ bus_prefix }}_write.value = 0
-
-
-async def _read_reg(dut, addr: int) -> int:
-    """Read a 32-bit register over Avalon-MM."""
-    dut.{{ bus_prefix }}_address.value = addr
-    dut.{{ bus_prefix }}_read.value = 1
-    await RisingEdge(dut.{{ clock_port }})
-    if hasattr(dut, "{{ bus_prefix }}_waitrequest"):
-        while dut.{{ bus_prefix }}_waitrequest.value:
-            await RisingEdge(dut.{{ clock_port }})
-    dut.{{ bus_prefix }}_read.value = 0
-    if hasattr(dut, "{{ bus_prefix }}_readdatavalid"):
-        while not dut.{{ bus_prefix }}_readdatavalid.value:
-            await RisingEdge(dut.{{ clock_port }})
-    else:
-        # Fixed-latency Avalon-MM slave (no readdatavalid handshake): the
-        # generated register file's read path is registered (readdata is
-        # driven combinationally from a signal set inside a clocked
-        # process), so it becomes valid one cycle after `read` is sampled,
-        # not in the same cycle it is deasserted.
-        await RisingEdge(dut.{{ clock_port }})
-    return int(dut.{{ bus_prefix }}_readdata.value)
 {% endif %}
 
 
-_MM_YML = os.path.join(os.path.dirname(__file__), "{{ memmap_relpath }}")
-regmap = load_regmap(_MM_YML)
+_MANIFEST_PATH = os.path.join(os.path.dirname(__file__), "verification_manifest.json")
+manifest = load_manifest(_MANIFEST_PATH)
+model = RegisterModel(manifest)
+_LANE_COUNT = manifest["bus"]["byteEnable"]["value"]["laneCount"]
+_FULL_BYTE_ENABLE = (1 << _LANE_COUNT) - 1
+_ADDRESS_LIMIT = 1 << {{ addr_width }}
+_RANDOM_SEED = 0x175
 
 
-async def _reset_dut(dut) -> None:
-    """Apply and release reset for {{ entity_name }}."""
+def _resolved_int(value, context):
+    """Convert a bus value to int and fail explicitly if it contains X/Z."""
+    if isinstance(value, (bytes, bytearray)):
+        return int.from_bytes(value, "little")
+    resolvable = getattr(value, "is_resolvable", True)
+    if callable(resolvable):
+        resolvable = resolvable()
+    assert resolvable, f"{context}: read returned an unknown value: {value}"
+    try:
+        return int(value)
+    except (TypeError, ValueError) as error:
+        raise AssertionError(f"{context}: read returned an unknown value: {value}") from error
+
+
+def _assert_readback(actual, expected, context):
+    actual_int = _resolved_int(actual, context)
+    assert actual_int == expected, (
+        f"{context}: expected 0x{expected:0{_LANE_COUNT * 2}X}, "
+        f"got 0x{actual_int:0{_LANE_COUNT * 2}X}"
+    )
+
+
+{% if bus_type in ['axil', 'axi4'] %}
+class AxiTransport:
+    """AXI transport adapter for the shared semantic scoreboard."""
+
+    supports_byte_enable = {{ "True" if bus_type == "axil" else "False" }}
+
+    def __init__(self, dut):
+{% if bus_type == 'axil' %}
+        self.master = AxiLiteMaster(
+            AxiLiteBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }}
+        )
+{% else %}
+        self.master = AxiMaster(AxiBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
+{% endif %}
+
+    async def write(self, addr, value, byte_enable=_FULL_BYTE_ENABLE):
+        if byte_enable == _FULL_BYTE_ENABLE:
+            byte_count = _LANE_COUNT
+        else:
+            # cocotbext-axi derives WSTRB from transfer length. Generated
+            # register decode uses the aligned register address, so the
+            # portable partial primitive is a contiguous set of low lanes.
+            byte_count = byte_enable.bit_count()
+            assert byte_enable == (1 << byte_count) - 1, (
+                "AXI partial writes require contiguous low byte lanes"
+            )
+        await self.master.write(addr, value.to_bytes(_LANE_COUNT, "little")[:byte_count])
+
+    async def read(self, addr):
+        result = await self.master.read(addr, _LANE_COUNT)
+        return result.data
+{% elif bus_type == 'avmm' %}
+class AvalonTransport:
+    """Avalon-MM transport adapter for the shared semantic scoreboard."""
+
+    def __init__(self, dut):
+        self.dut = dut
+        self.supports_byte_enable = hasattr(dut, "{{ bus_prefix }}_byteenable")
+
+    async def write(self, addr, value, byte_enable=_FULL_BYTE_ENABLE):
+        self.dut.{{ bus_prefix }}_address.value = addr
+        self.dut.{{ bus_prefix }}_writedata.value = value
+        if hasattr(self.dut, "{{ bus_prefix }}_byteenable"):
+            self.dut.{{ bus_prefix }}_byteenable.value = byte_enable
+        else:
+            assert byte_enable == _FULL_BYTE_ENABLE, "Avalon-MM byteenable is not connected"
+        self.dut.{{ bus_prefix }}_write.value = 1
+        await RisingEdge(self.dut.{{ clock_port }})
+        if hasattr(self.dut, "{{ bus_prefix }}_waitrequest"):
+            while self.dut.{{ bus_prefix }}_waitrequest.value:
+                await RisingEdge(self.dut.{{ clock_port }})
+        self.dut.{{ bus_prefix }}_write.value = 0
+
+    async def read(self, addr):
+        self.dut.{{ bus_prefix }}_address.value = addr
+        self.dut.{{ bus_prefix }}_read.value = 1
+        await RisingEdge(self.dut.{{ clock_port }})
+        if hasattr(self.dut, "{{ bus_prefix }}_waitrequest"):
+            while self.dut.{{ bus_prefix }}_waitrequest.value:
+                await RisingEdge(self.dut.{{ clock_port }})
+        self.dut.{{ bus_prefix }}_read.value = 0
+        if hasattr(self.dut, "{{ bus_prefix }}_readdatavalid"):
+            while not self.dut.{{ bus_prefix }}_readdatavalid.value:
+                await RisingEdge(self.dut.{{ clock_port }})
+        else:
+            await RisingEdge(self.dut.{{ clock_port }})
+        return self.dut.{{ bus_prefix }}_readdata.value
+{% endif %}
+
+
+async def _reset_dut(dut):
     dut.{{ reset_port }}.value = {{ reset_assert }}
     await Timer(100, unit="ns")
     dut.{{ reset_port }}.value = {{ reset_deassert }}
     await RisingEdge(dut.{{ clock_port }})
     await RisingEdge(dut.{{ clock_port }})
-    dut._log.info("Reset complete")
+    model.reset()
+
+
+async def _check_all_readable(transport, scenario):
+    for reg in model.readable_registers():
+        actual = await transport.read(reg["offset"])
+        _assert_readback(actual, model.expected_read(reg["offset"]), f"{scenario}/{reg['name']}")
+
+
+def _unmapped_addresses():
+    word_bytes = _LANE_COUNT
+    mapped = {reg["offset"] for reg in model.registers}
+    if _ADDRESS_LIMIT < word_bytes:
+        return []
+    if not mapped:
+        return [0]
+
+    boundary = max(mapped) + word_bytes
+    top = ((_ADDRESS_LIMIT - word_bytes) // word_bytes) * word_bytes
+    candidate_addresses = {0, top}
+    for address in mapped:
+        candidate_addresses.add(address - word_bytes)
+        candidate_addresses.add(address + word_bytes)
+    candidates = sorted(
+        address
+        for address in candidate_addresses
+        if 0 <= address <= top and address not in mapped
+    )
+    if not candidates:
+        return []
+    gap = next((addr for addr in candidates if addr < boundary), candidates[0])
+    edge = next((addr for addr in reversed(candidates) if addr >= boundary), candidates[-1])
+    return list(dict.fromkeys([gap, edge]))
+
+
+def _check_oracle_priority_policy():
+    """Check the oracle policy; DUT arbitration is covered by the RTL behavior suites."""
+    priority_model = RegisterModel(manifest)
+    for reg in priority_model.registers:
+        for field in reg["fields"]:
+            if field["writeEffect"] == "clearOnOne":
+                priority_model.apply_write(
+                    reg["offset"],
+                    field["mask"],
+                    hardware_set_mask=field["mask"],
+                )
+                assert priority_model.state[reg["offset"]] & field["mask"] == field["mask"]
+            elif field["writeEffect"] == "setOnOne":
+                priority_model.apply_write(
+                    reg["offset"],
+                    field["mask"],
+                    hardware_clear_mask=field["mask"],
+                )
+                assert priority_model.state[reg["offset"]] & field["mask"] == 0
 
 
 @cocotb.test()
-async def test_register_access(dut):
-    """Test register read/write access for {{ entity_name }}."""
+async def test_register_semantics(dut):
+    """Run directed and deterministic-randomized semantic register checks."""
     cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, unit="ns").start())
-    await _reset_dut(dut)
+    _check_oracle_priority_policy()
 {% if bus_type in ['axil', 'axi4'] %}
-{% if bus_type == 'axil' %}
-    master = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
+    transport = AxiTransport(dut)
 {% else %}
-    master = AxiMaster(AxiBus.from_prefix(dut, "{{ bus_prefix }}"), dut.{{ clock_port }})
-{% endif %}
+    transport = AvalonTransport(dut)
 {% endif %}
 
-    for reg in regmap:
-        if "write" in reg.access:
-            await _write_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, reg.offset, 0xA5A5A5A5)
-            if "read" in reg.access:
-                val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, reg.offset)
-                dut._log.info(f"{reg.name}: wrote 0xA5A5A5A5, read back 0x{val:08X}")
-        elif "read" in reg.access:
-            val = await _read_reg({% if bus_type in ['axil', 'axi4'] %}master{% else %}dut{% endif %}, reg.offset)
-            dut._log.info(f"{reg.name}: 0x{val:08X}")
+    # Reset and RO/reserved-bit behaviour.
+    await _reset_dut(dut)
+    await _check_all_readable(transport, "reset")
 
-    dut._log.info("Register access test passed!")
+    # One pass covers RW, observable RO preservation, WO transactions, W1C,
+    # self-clearing fields, mixed-access registers, and every expanded array
+    # element described by the manifest.
+    directed_value = 0xA5A5A5A5 & model.word_mask
+    for reg in model.writable_registers():
+        await transport.write(reg["offset"], directed_value)
+        model.apply_write(reg["offset"], directed_value)
+        if reg["readableMask"]:
+            actual = await transport.read(reg["offset"])
+            _assert_readback(
+                actual,
+                model.expected_read(reg["offset"]),
+                f"directed/{reg['name']}",
+            )
+
+    # Partial byte-enable write through the same adapter and oracle.
+    if transport.supports_byte_enable and _LANE_COUNT > 1:
+        candidates = model.observable_writable_registers()
+        if candidates:
+            await _reset_dut(dut)
+            reg = candidates[0]
+            byte_enable = 0x1
+            partial_value = 0x5A
+            await transport.write(reg["offset"], partial_value, byte_enable)
+            model.apply_write(reg["offset"], partial_value, byte_enable)
+            actual = await transport.read(reg["offset"])
+            _assert_readback(
+                actual,
+                model.expected_read(reg["offset"]),
+                f"byte-enable/{reg['name']}",
+            )
+
+    # Generated wrappers define unmapped and boundary reads as zero.
+    for address in _unmapped_addresses():
+        actual = await transport.read(address)
+        _assert_readback(actual, 0, f"unmapped/0x{address:X}")
+
+    # Reproducible randomized traffic. The seed is included in every failure.
+    await _reset_dut(dut)
+    rng = random.Random(_RANDOM_SEED)
+    writable = model.writable_registers()
+    for step in range(max(16, len(writable) * 2)):
+        if not writable:
+            break
+        reg = rng.choice(writable)
+        value = rng.getrandbits(model.data_width)
+        try:
+            await transport.write(reg["offset"], value)
+            model.apply_write(reg["offset"], value)
+            if reg["readableMask"]:
+                actual = await transport.read(reg["offset"])
+                _assert_readback(
+                    actual,
+                    model.expected_read(reg["offset"]),
+                    f"random seed=0x{_RANDOM_SEED:X} step={step} reg={reg['name']}",
+                )
+        except Exception as error:
+            raise AssertionError(
+                f"random sequence failed: seed=0x{_RANDOM_SEED:X}, "
+                f"step={step}, register={reg['name']}"
+            ) from error
 
 
 {% else %}
@@ -128,9 +283,7 @@ async def test_basic_smoke(dut):
     cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, unit="ns").start())
     await reset_dut(dut)
 
-    for i in range(20):
+    for _ in range(20):
         await RisingEdge(dut.{{ clock_port }})
-
-    dut._log.info("Smoke test passed — DUT ran 20 clock cycles after reset")
 
 {% endif %}

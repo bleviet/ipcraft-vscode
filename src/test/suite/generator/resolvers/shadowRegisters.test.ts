@@ -67,6 +67,19 @@ describe('buildShadowRegisters', () => {
     expect(w1cFields.find((f) => f.name === 'EDGE')?.is_cos).toBe(true);
   });
 
+  it('uses per-field read composition without inventing hardware value ports', () => {
+    const reg = makeReg('MIXED', 'read-write', [
+      { name: 'VISIBLE', access: 'read-write' },
+      { name: 'COMMAND', access: 'write-only' },
+      { name: 'EVENT', access: 'write-1-to-clear' },
+      { name: 'TRIGGER', access: 'write-self-clearing' },
+    ]);
+    const result = buildShadowRegisters([reg]);
+
+    expect(result.registers[0].has_mixed_fields).toBe(true);
+    expect(result.mixed_registers).toHaveLength(0);
+  });
+
   it('throws when monitorChangeOf access is not w1c', () => {
     const reg = makeReg('IRQ', 'read-write', [
       { name: 'SRC', access: 'read-write' },

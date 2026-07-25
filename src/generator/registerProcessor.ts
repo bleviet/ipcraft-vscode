@@ -463,13 +463,17 @@ export async function prepareRegisters(
 
     const fields = (reg.fields ?? []).map((field) => {
       const access = getString(field.access ?? 'read-write');
+      const resetValue =
+        reg.resetValue !== 0
+          ? Math.floor(reg.resetValue / 2 ** field.offset) % 2 ** field.width
+          : field.resetValue;
 
       return {
         name: field.name,
         offset: field.offset,
         width: field.width,
         access: access.toLowerCase(),
-        reset_value: field.resetValue,
+        reset_value: resetValue,
         description: field.description ?? '',
         monitorChangeOf: field.monitorChangeOf ?? null,
       };

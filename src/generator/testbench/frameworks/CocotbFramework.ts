@@ -1,5 +1,6 @@
 import type { Engine } from '../Engine';
 import type { Framework, TestbenchContext } from '../Framework';
+import { buildVerificationManifest } from '../../verificationManifest';
 
 const RTL_HDL_TYPES = new Set(['vhdl', 'systemverilog', 'verilog']);
 const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
@@ -60,7 +61,19 @@ export class CocotbFramework implements Framework {
     };
 
     if (hasMmSlave) {
-      files['tb/mm_loader.py'] = templates.render('mm_loader.py.j2', templateContext);
+      const busPorts = Array.isArray(templateContext.bus_ports)
+        ? (templateContext.bus_ports as Array<Record<string, unknown>>)
+        : [];
+      const byteEnableSupported = busPorts.some((port) =>
+        ['WSTRB', 'byteenable'].includes(String(port.logical_name))
+      );
+      const manifest = buildVerificationManifest(ctx.memoryMaps ?? [], {
+        busType: String(templateContext.bus_type ?? ''),
+        dataWidth: Number(templateContext.data_width ?? 32),
+        byteEnableSupported,
+      });
+      files['tb/verification_manifest.json'] = `${JSON.stringify(manifest, null, 2)}\n`;
+      files['tb/register_model.py'] = templates.render('register_model.py.j2', templateContext);
     }
     files[`tb/${name}_test.py`] = templates.render('cocotb_test.py.j2', templateContext);
     files['tb/conftest.py'] = templates.render('cocotb_conftest.py.j2', cocotbCtx);

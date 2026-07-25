@@ -457,6 +457,36 @@ describe('registerProcessor', () => {
       expect(result[1].offset).toBe(16);
     });
 
+    it('projects a whole-register reset into field reset values', async () => {
+      const ipCore = normalizeIpCoreData({});
+      const memoryMaps = [
+        {
+          name: 'RESET_MAP',
+          addressBlocks: [
+            {
+              name: 'REGS',
+              defaultRegWidth: 32,
+              registers: [
+                {
+                  name: 'SCRATCH',
+                  resetValue: 0x1234,
+                  fields: [
+                    { name: 'LOW', bits: '[7:0]' },
+                    { name: 'HIGH', bits: '[15:8]' },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ] as any;
+
+      const result = await prepareRegisters({ ...ipCore, memoryMaps }, 'dummy.yml');
+      const fields = result[0].fields as Array<Record<string, unknown>>;
+
+      expect(fields.map((field) => field.reset_value)).toEqual([0x34, 0x12]);
+    });
+
     it('preserves explicit access for fieldless registers and derives access when unset', async () => {
       const ipCore = normalizeIpCoreData({});
 

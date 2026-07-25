@@ -50,13 +50,14 @@ describe('CocotbFramework', () => {
     expect(Object.keys(files)).toContain('tb/test_test_core_sim.py');
     expect(Object.keys(files)).toContain('tb/Makefile');
     expect(Object.keys(files)).toContain('.vscode/settings.json');
-    // mm_loader only for MM slave
-    expect(Object.keys(files)).not.toContain('tb/mm_loader.py');
+    // Semantic verification files only apply to an MM slave.
+    expect(Object.keys(files)).not.toContain('tb/verification_manifest.json');
+    expect(Object.keys(files)).not.toContain('tb/register_model.py');
     // dump.v only for SV
     expect(Object.keys(files)).not.toContain('tb/dump.v');
   });
 
-  it('emits mm_loader.py when hasMmSlave is true', () => {
+  it('emits the verification manifest and scoreboard when hasMmSlave is true', () => {
     const files = framework.generate(
       makeCtx({
         hasMmSlave: true,
@@ -67,6 +68,7 @@ describe('CocotbFramework', () => {
           reset_active_high: false,
           bus_type: 'axil',
           has_memory_mapped_slave: true,
+          addr_width: 32,
           memmap_relpath: '../test_core.mmap.yml',
           ports: [],
           parameters: [],
@@ -74,7 +76,20 @@ describe('CocotbFramework', () => {
       }),
       new GhdlEngine()
     );
-    expect(Object.keys(files)).toContain('tb/mm_loader.py');
+    expect(Object.keys(files)).toContain('tb/verification_manifest.json');
+    expect(Object.keys(files)).toContain('tb/register_model.py');
+    expect(Object.keys(files)).not.toContain('tb/mm_loader.py');
+    expect(files['tb/test_core_test.py']).toContain('_ADDRESS_LIMIT = 1 << 32');
+    expect(files['tb/test_core_test.py']).toContain('candidate_addresses = {0, top}');
+    expect(files['tb/test_core_test.py']).not.toContain('range(0, _ADDRESS_LIMIT');
+    expect(files['tb/test_core_test.py']).toContain('def _check_oracle_priority_policy():');
+    expect(JSON.parse(files['tb/verification_manifest.json'])).toMatchObject({
+      schemaVersion: 1,
+      source: { model: 'normalizedMemoryMap', provenance: 'spec' },
+      bus: {
+        type: { value: 'axil', provenance: 'busBinding' },
+      },
+    });
   });
 
   it('emits dump.v for SV + Icarus and sets verilog Makefile', () => {
@@ -336,11 +351,11 @@ describe('CocotbFramework — rtlSourceFiles-driven sources', () => {
     expect(testPy).not.toContain('addr >> 2');
   });
 
-  it('avmm cocotb _read_reg waits an extra cycle for a fixed-latency slave (regression)', () => {
+  it('avmm transport read waits an extra cycle for a fixed-latency slave (regression)', () => {
     // register_file.vhdl.j2's read path is registered (readdata is driven
     // from a signal set inside a clocked process), so for a slave with no
     // readdatavalid handshake, readdata is only valid one cycle after
-    // `read` is sampled -- not in the same cycle `_read_reg` deasserts
+    // `read` is sampled -- not in the same cycle the transport deasserts
     // `read`. Confirmed by running the generated testbench end-to-end
     // against a real GHDL simulation: every register read returned the
     // *previous* bus access's result until this extra RisingEdge was added.
@@ -360,13 +375,13 @@ describe('CocotbFramework — rtlSourceFiles-driven sources', () => {
       },
     });
     const testPy = framework.generate(ctx, new GhdlEngine())['tb/test_core_test.py'];
-    const readFn = testPy.slice(testPy.indexOf('async def _read_reg'));
+    const readFn = testPy.slice(testPy.indexOf('    async def read(self, addr):'));
     const deassertIdx = readFn.indexOf('avs_read.value = 0');
     // Old (buggy) code returned readdata right after this point whenever no
     // readdatavalid port exists -- no unconditional extra edge afterward.
-    const elseIdx = readFn.indexOf('\n    else:\n', deassertIdx);
+    const elseIdx = readFn.indexOf('\n        else:\n', deassertIdx);
     expect(elseIdx).toBeGreaterThan(deassertIdx);
-    const returnIdx = readFn.indexOf('return int(');
+    const returnIdx = readFn.indexOf('return self.dut.avs_readdata.value');
     const settleEdgeIdx = readFn.indexOf('await RisingEdge', elseIdx);
     expect(settleEdgeIdx).toBeGreaterThan(elseIdx);
     expect(settleEdgeIdx).toBeLessThan(returnIdx);

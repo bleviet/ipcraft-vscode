@@ -268,7 +268,8 @@ begin
   ----------------------------------------------------------------------------
   p_read : process(clk)
     variable v_addr_index : natural;
-{% if mixed_registers | length %}
+{% set composed_read_registers = registers | selectattr('has_mixed_fields', 'equalto', true) | list %}
+{% if composed_read_registers | length %}
     variable v_rd_data    : std_logic_vector(C_DATA_WIDTH-1 downto 0);
 {% endif %}
   begin
@@ -301,11 +302,11 @@ begin
 {% endif %}
 {% endif %}
 {% endfor %}
-{% for reg in mixed_registers %}
+{% for reg in composed_read_registers %}
           when C_REG_{{ reg.name | upper }}_ADDR =>
             v_rd_data := (others => '0');
 {% for field in reg.fields %}
-{% if field.access in ['write-1-to-clear', 'read-write-1-to-clear', 'write-self-clearing', 'read-write-self-clearing'] %}
+{% if field.access in ['read-write-1-to-clear', 'read-write-self-clearing'] %}
 {% if field.width == 1 %}
             v_rd_data({{ field.offset }}) := regs.{{ reg.name | lower }}.{{ field.name | lower }};
 {% else %}
