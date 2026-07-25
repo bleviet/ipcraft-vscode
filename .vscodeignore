@@ -32,6 +32,7 @@ site/**
 eslint.config.js
 mkdocs.yml
 skills-lock.json
+knip.jsonc
 .agents/**
 .claude/**
 build/**
