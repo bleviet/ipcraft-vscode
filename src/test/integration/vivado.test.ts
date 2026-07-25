@@ -176,7 +176,8 @@ it('all fixtures have correct testbench and HDL files generated', () => {
 
     // Check testbench files
     const hasRegs = files.some((f) => f.startsWith('rtl/') && f.endsWith('_regs.' + ext));
-    expect(files.includes('tb/mm_loader.py')).toBe(hasRegs);
+    expect(files.includes('tb/verification_manifest.json')).toBe(hasRegs);
+    expect(files.includes('tb/register_model.py')).toBe(hasRegs);
     expect(files.some((f) => f.startsWith('tb/') && f.endsWith('_test.py'))).toBe(true);
     expect(files.includes('tb/conftest.py')).toBe(true);
     expect(files.some((f) => f.startsWith('tb/test_') && f.endsWith('_sim.py'))).toBe(true);

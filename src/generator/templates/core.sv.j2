@@ -69,6 +69,20 @@ module {{ entity_name }}_core{% if has_memory_mapped_slave %} import {{ entity_n
       // Reset logic
 {% if has_regs_in %}
       regs_out <= '0;
+{% for reg in hw_registers %}
+{% if reg.fields | length %}
+{% for field in reg.fields %}
+      regs_out.{{ reg.name | lower }}.{{ field.name | lower }} <= {{ field.width }}'d{{ field.reset_value | default(0) }};
+{% endfor %}
+{% else %}
+      regs_out.{{ reg.name | lower }} <= {{ data_width }}'d{{ reg.reset_value | default(0) }};
+{% endif %}
+{% endfor %}
+{% for reg in mixed_registers %}
+{% for field in reg.val_fields %}
+      regs_out.{{ reg.name | lower }}_val.{{ field.name | lower }} <= {{ field.width }}'d{{ field.reset_value | default(0) }};
+{% endfor %}
+{% endfor %}
 {% else %}
       // (no HW-status / W1C / CoS registers)
 {% endif %}

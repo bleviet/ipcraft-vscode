@@ -42,7 +42,8 @@ generated-core/
 ├── tb/
 │   ├── <name>_test.py
 │   ├── test_<name>_sim.py
-│   ├── mm_loader.py
+│   ├── register_model.py
+│   ├── verification_manifest.json
 │   └── Makefile
 ├── docs/
 │   └── <name>_datasheet.md
@@ -59,6 +60,26 @@ module, core module, bus wrapper, and register module.
 
 Smaller packs intentionally produce fewer files. See
 [scaffold packs](../how-to/customizing-generated-files-with-scaffold-packs.md).
+
+## Cocotb verification source of truth
+
+For generated cocotb tests, `tb/verification_manifest.json` replaces
+`memmap.yml` as the machine-readable test input. IPCraft derives the manifest
+once from the normalized memory-map model and records the origin of every kind
+of fact:
+
+- register layout, reset values, access types, and array bounds come from the
+  specification;
+- readable and writable masks, write effects, reserved/unmapped read behavior,
+  and hardware/software arbitration come from generator policy;
+- bus type, data width, and byte-enable support come from the resolved bus
+  binding.
+
+`tb/register_model.py` is the transport-independent scoreboard. The generated
+AXI4-Lite and Avalon-MM adapters drive that same model. The
+`memmap.yml.j2` template remains available to scaffold packs as a
+driver/documentation projection, but generated cocotb tests neither load nor
+interpret it. It is therefore not a second verification oracle.
 
 ## Generation options
 

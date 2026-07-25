@@ -1,4 +1,5 @@
 import type { TemplateLoader } from '../TemplateLoader';
+import type { NormalizedMemoryMap } from '../../domain/internal.types';
 import type { Engine } from './Engine';
 
 export interface FileSetFileEntry {
@@ -23,6 +24,8 @@ export interface TestbenchContext {
   isSv: boolean;
   /** True when the IP core has a memory-mapped slave bus interface. */
   hasMmSlave: boolean;
+  /** Resolved normalized memory maps used to derive the verification oracle. */
+  memoryMaps?: NormalizedMemoryMap[];
   /** Optional testbench top-level override (simulation.topLevel in the .ip.yml), e.g. a
    *  board wrapper. Falls back to `name` (the IP core's own top) when absent. */
   topLevel?: string;

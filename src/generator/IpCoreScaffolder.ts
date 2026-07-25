@@ -233,6 +233,7 @@ export class IpCoreScaffolder {
           templates: packLoader,
           isSv,
           hasMmSlave: pack.fullGeneration ? hasMmSlave : false,
+          memoryMaps: pack.fullGeneration ? resolvedMemoryMaps : [],
           topLevel: simCfg?.topLevel,
           extraCompileArgs: simCfg?.compileArgs,
           extraSimArgs: simCfg?.simArgs,

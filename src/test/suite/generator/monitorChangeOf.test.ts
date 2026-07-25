@@ -42,7 +42,7 @@ const FIELD_FIFO_OVERFLOW = {
   name: 'FIFO_OVERFLOW',
   offset: 0,
   width: 1,
-  access: 'write-1-to-clear',
+  access: 'read-write-1-to-clear',
   reset_value: 0,
   is_cos: false,
 };
@@ -57,7 +57,7 @@ const FIELD_TEMP_UPDATED = {
   name: 'TEMP_UPDATED',
   offset: 16,
   width: 1,
-  access: 'write-1-to-clear',
+  access: 'read-write-1-to-clear',
   reset_value: 0,
   is_cos: true,
   monitorChangeOf: 'TEMP_VALUE',

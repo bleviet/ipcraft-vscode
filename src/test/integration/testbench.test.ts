@@ -66,12 +66,10 @@ function missingHandAuthoredRtl(fixture: Fixture): string | undefined {
 }
 
 /**
- * The cocotb test template always emits regmap-loading code (mm_loader.py + a
- * `../{name}.mm.yml` path guess) whenever the .ip.yml declares a memory-mapped slave
- * bus interface, regardless of whether any memoryMaps data actually backs it. An
- * example that declares such an interface but never adds a memoryMaps section (or
- * import) is incomplete data, not a generator bug: skip it rather than fail on a
- * FileNotFoundError for a .mm.yml that was never meant to exist.
+ * The cocotb test template emits a semantic verification manifest whenever the
+ * .ip.yml declares a memory-mapped slave bus interface. An example that declares
+ * such an interface but never adds a memoryMaps section (or import) has no
+ * meaningful register scenarios, so skip it as incomplete fixture data.
  */
 async function missingMemoryMap(fixture: Fixture): Promise<string | undefined> {
   let doc: IpCoreData;
