@@ -200,7 +200,7 @@ conformance-sysconsole: usb-wsl
 # transport with JTAG-to-Avalon through System Console. The runner always
 # writes HARDWARE_RESULT and exits nonzero if Quartus, the board, the JTAG
 # master, or any scenario is unavailable or fails.
-conformance-manifest: usb-wsl
+conformance-manifest: program-sof
 	mkdir -p $(dir $(HARDWARE_RESULT))
 	docker run --rm --user $$(id -u):$$(id -g) --privileged \
 	  -v /dev/bus/usb:/dev/bus/usb \
@@ -230,7 +230,7 @@ conformance-manifest: usb-wsl
 # conformance-nios is intentionally NOT in this gate (see its target
 # comment for why); conformance-sysconsole is the CI-gateable source of
 # truth today.
-test: sim program-sof conformance-manifest
+test: sim conformance-manifest
 	@echo "==== regmap_conformance_avmm: all hosts PASS ===="
 
 # ── Clean ─────────────────────────────────────────────────────────────────────

@@ -27,7 +27,7 @@ access type IPCraft generates behaves correctly — not just in simulation.
 
 | Stage | Result |
 |---|---|
-| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 14/14 tests, including two tight same-adjacent-cycle HW-priority race tests |
+| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 15/15 tests, including the shared manifest suite and two tight same-adjacent-cycle HW-priority race tests |
 | Quartus full compile (qsys + synthesis + fit + timing) | **PASS** — 0 errors; worst-case setup slack +15.4ns, hold +0.127ns |
 | Board program (JTAG, DE10-Nano) | **PASS** — configuration succeeded |
 | System Console conformance host (`conformance_sysconsole.tcl`) | **PASS** — 23/23 checks, reproducible from a freshly-programmed board |

@@ -130,7 +130,7 @@ conformance-sysconsole: usb-wsl
 # bridges it to AXI4-Lite). The runner always writes HARDWARE_RESULT and
 # exits nonzero if Quartus, the board, the JTAG master, or any scenario is
 # unavailable or fails.
-conformance-manifest: usb-wsl
+conformance-manifest: program-sof
 	mkdir -p $(dir $(HARDWARE_RESULT))
 	docker run --rm --user $$(id -u):$$(id -g) --privileged \
 	  -v /dev/bus/usb:/dev/bus/usb \
@@ -151,7 +151,7 @@ conformance-manifest: usb-wsl
 # checks assert post-reset state and the host writes non-reset values as
 # part of its own sequence, so a stale board from a prior run is not
 # idempotent. Always reprogram before grading.
-test: sim program-sof conformance-manifest
+test: sim conformance-manifest
 	@echo "==== regmap_conformance_axil: all hosts PASS ===="
 
 # ── Clean ─────────────────────────────────────────────────────────────────────

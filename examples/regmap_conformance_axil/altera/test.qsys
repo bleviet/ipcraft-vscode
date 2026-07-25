@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="test">
+  <module name="regmap_conformance_axil_0" kind="regmap_conformance_axil" version="1.0.0" enabled="1" />
+  <interface name="regmap_conformance_axil_0_clk" internal="regmap_conformance_axil_0.clk" type="clock" dir="end" />
+  <interface name="regmap_conformance_axil_0_reset_n" internal="regmap_conformance_axil_0.reset_n" type="reset" dir="end" />
+  <interface name="regmap_conformance_axil_0_S_AXI_LITE" internal="regmap_conformance_axil_0.S_AXI_LITE" type="axi4lite" dir="end" />
+</system>

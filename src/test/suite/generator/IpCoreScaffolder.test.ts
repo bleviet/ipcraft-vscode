@@ -1616,6 +1616,32 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('does not compile board-level HDL declared in the Integration file set', async () => {
+    const inputPath = '/workspace/example/core.ip.yml';
+    const outputDir = '/workspace/example';
+    const paths = await collectRtlAbsPaths(
+      { 'rtl/core.vhd': '' },
+      {
+        fileSets: [
+          {
+            name: 'RTL_Sources',
+            files: [{ path: 'rtl/user_logic.vhd', type: 'vhdl', managed: false }],
+          },
+          {
+            name: 'Integration',
+            files: [{ path: 'altera/hdl/board_top.vhd', type: 'vhdl', managed: false }],
+          },
+        ],
+      },
+      inputPath,
+      outputDir
+    );
+
+    expect(paths).toContain('/workspace/example/rtl/core.vhd');
+    expect(paths).toContain('/workspace/example/rtl/user_logic.vhd');
+    expect(paths).not.toContain('/workspace/example/altera/hdl/board_top.vhd');
+  });
+
   it('handles generation failure gracefully', async () => {
     // Force an error by passing a non-existent input path
     const result = await scaffolder.generateAll('/non/existent.yml', '/out');

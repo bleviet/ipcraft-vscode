@@ -67,10 +67,10 @@ memoryMaps:
 # (it does not merge with auto-discovered files) -- so this must be the
 # complete RTL manifest, not just the file(s) being protected below.
 # `managed: false` marks rtl/regmap_conformance_core.vhd, the cocotb
-# scoreboard, the shared manifest-driven scenarios, and the JTAG-to-Avalon
-# hardware runner as user-owned so a re-scaffold never overwrites the
-# hand-written loopback wiring, the hand-added conformance assertions, or the
-# board transport used by both simulation and hardware.
+# scoreboard, shared manifest-driven scenarios, and DE10-Nano harness as
+# user-owned so a re-scaffold never overwrites the hand-written behavior.
+# Declaring every user-owned file also lets `ipcraft verify` distinguish the
+# board harness from stale generated output.
 fileSets:
   - name: RTL_Sources
     description: RTL Sources
@@ -98,6 +98,9 @@ fileSets:
       - path: tb/conformance_scenarios.py
         type: python
         managed: false
+      - path: tb/mm_loader.py
+        type: python
+        managed: false
   - name: Integration
     description: Integration Files
     files:
@@ -105,4 +108,31 @@ fileSets:
         type: tcl
       - path: altera/debug/hardware_runner.py
         type: python
+        managed: false
+      - path: altera/debug/conformance_sysconsole.tcl
+        type: tcl
+        managed: false
+      - path: altera/hdl/de10_nano_top.vhd
+        type: vhdl
+        managed: false
+      - path: altera/qsys/regmap_conformance_system.tcl
+        type: tcl
+        managed: false
+      - path: altera/quartus/Makefile
+        type: makefile
+        managed: false
+      - path: altera/quartus/de10_nano.sdc
+        type: sdc
+        managed: false
+      - path: altera/quartus/de10_nano_pin_assignments.tcl
+        type: tcl
+        managed: false
+      - path: altera/quartus/de10_nano_project.tcl
+        type: tcl
+        managed: false
+  - name: Documentation
+    description: User-maintained validation evidence
+    files:
+      - path: docs/hardware_validation_results.md
+        type: markdown
         managed: false

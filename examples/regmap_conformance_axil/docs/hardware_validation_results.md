@@ -56,7 +56,7 @@ including its SLVERR response path (no Avalon-MM equivalent).
 
 | Stage | Result |
 |---|---|
-| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 13/13 tests, including the AXI4-Lite-specific SLVERR negative test |
+| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 14/14 tests, including the shared manifest suite and AXI4-Lite-specific SLVERR negative test |
 | Quartus full compile (qsys + synthesis + fit + timing) | **PASS** — 0 errors |
 | Board program (JTAG, DE10-Nano) | **PASS** — configuration succeeded |
 | System Console conformance host (`conformance_sysconsole.tcl`) | **PASS** — 24/24 checks, reproducible from a freshly-programmed board |
@@ -173,7 +173,7 @@ cd regmap_conformance_axil/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
 cd ../altera/quartus
 make qsys project compile      # or: make all
 make test                      # reprograms + runs the manifest-driven suite
-                                # (42 checks -- unmapped_read_zero is
+                                # (43 recorded checks -- unmapped_read_zero is
                                 # not_applicable on AXI4-Lite, see above);
                                 # writes output_files/hardware-result.json
 ```
