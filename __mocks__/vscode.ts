@@ -15,7 +15,20 @@ export const window = {
   showErrorMessage: jest.fn(),
   showWarningMessage: jest.fn(),
   showInformationMessage: jest.fn(),
+  activeTextEditor: undefined as { document: { fileName: string; uri: unknown } } | undefined,
+  tabGroups: {
+    activeTabGroup: {
+      activeTab: undefined as { input: unknown } | undefined,
+    },
+  },
 };
+
+export class TabInputCustom {
+  constructor(
+    public uri: { fsPath: string },
+    public viewType: string
+  ) {}
+}
 
 export const workspace = {
   isTrusted: true,
