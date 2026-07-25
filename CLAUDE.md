@@ -93,11 +93,11 @@ The Memory Map editor contains **three parallel table editors** that share the s
 
 | Editor | File | Rows | Table row component |
 |---|---|---|---|
-| `BlockEditor` | `src/webview/components/memorymap/BlockEditor.tsx` | registers in an address block | `RegisterTableRow` |
+| `BlockEditor` | `src/webview/components/memorymap/BlockEditor.tsx` | registers in an address block | embedded `RegisterEditor` |
 | `MemoryMapEditor` | `src/webview/components/memorymap/MemoryMapEditor.tsx` | address blocks | `BlockTableRow` |
 | `useFieldEditor` | `src/webview/hooks/useFieldEditor.ts` | bit fields in a register | `FieldTableRow` (via `FieldsTable`) |
 
-`RegisterArrayEditor` (`src/webview/components/memorymap/RegisterArrayEditor.tsx`) also uses `RegisterTableRow` for nested registers inside a register array and follows the same conventions.
+`RegisterArrayEditor` (`src/webview/components/memorymap/RegisterArrayEditor.tsx`) also uses an embedded `RegisterEditor` for nested registers inside a register array and follows the same conventions.
 
 Every keyboard-navigable table is built on **`useTableEditorState`** (`src/webview/hooks/useTableEditorState.ts`), which composes three lower-level hooks:
 

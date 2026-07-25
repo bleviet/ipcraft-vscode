@@ -13,6 +13,8 @@
     "config/tailwind.config.js",
     "scripts/prepare-cli-package.js",
     "scripts/guard-cli-publish.js",
+    // Manual headless generator for .ip.yml files outside this repository.
+    "scripts/generate-standalone-ip.js",
     "scripts/docs-screenshots/theme/dump-theme.js"
   ],
   "ignore": [
