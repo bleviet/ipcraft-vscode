@@ -32,6 +32,9 @@ Each level answers a different question:
 Passing a lower level does not guarantee that a vendor tool accepts the
 project. Vendor formats contain rules that a normal HDL compiler does not know.
 
+For the exact feature-by-feature evidence and known gaps, see the
+[generator feature coverage matrix](generator-feature-coverage.md).
+
 ## Test flow
 
 ### 1. Generate temporary examples
