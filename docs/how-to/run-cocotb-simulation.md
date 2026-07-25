@@ -110,27 +110,25 @@ automation.
 
 ## Write a custom register test
 
-Import the generated register map, then use its names instead of raw numbers.
-The generated module and class names vary by pack; inspect the generated helper
-for the exact import.
+Generated memory-mapped testbenches expose a `model` (`RegisterModel`), a
+`manifest`, and an `AxiTransport` or `AvalonTransport` in
+`tb/<ip_name>_test.py`. Extend that file and look up registers and fields by
+name instead of repeating raw offsets and masks.
 
 ```python
-from my_core_register_map import REGISTER_MAP
-
-
 def test_register_layout():
-    control = REGISTER_MAP["CONTROL"]
-    assert control.offset == 0
+    control = next(reg for reg in model.registers if reg["name"] == "CONTROL")
+    assert control["offset"] == 0
 
-    enable = control.fields["ENABLE"]
-    assert enable.mask == 0x1
+    enable = next(field for field in control["fields"] if field["name"] == "ENABLE")
+    assert enable["mask"] == 0x1
 ```
 
 To extract or update a field in a register word:
 
 ```python
-enable_value = (register_value & enable.mask) >> enable.lsb
-updated_value = (register_value & ~enable.mask) | (1 << enable.lsb)
+enable_value = (register_value & enable["mask"]) >> enable["bitOffset"]
+updated_value = (register_value & ~enable["mask"]) | (1 << enable["bitOffset"])
 ```
 
 Keep layout checks separate from bus transactions. A layout test validates the

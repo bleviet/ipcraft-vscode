@@ -326,7 +326,7 @@ describe('IpCoreScaffolder', () => {
     expect(writtenFiles.some((f: string) => f.includes('rtl/sample_core_regs.vhd'))).toBe(false);
     expect(writtenFiles.some((f: string) => f.includes('rtl/sample_core_core.vhd'))).toBe(false);
 
-    // Testbench is still generated (basic smoke test, no mm_loader)
+    // A basic testbench is still generated, without MM semantic artifacts.
     expect(writtenFiles.some((f: string) => f.includes('tb/Makefile'))).toBe(true);
     expect(writtenFiles.some((f: string) => f.includes('tb/mm_loader.py'))).toBe(false);
 

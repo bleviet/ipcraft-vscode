@@ -68,6 +68,7 @@ describe('CocotbFramework', () => {
           reset_active_high: false,
           bus_type: 'axil',
           has_memory_mapped_slave: true,
+          addr_width: 32,
           memmap_relpath: '../test_core.mmap.yml',
           ports: [],
           parameters: [],
@@ -78,6 +79,10 @@ describe('CocotbFramework', () => {
     expect(Object.keys(files)).toContain('tb/verification_manifest.json');
     expect(Object.keys(files)).toContain('tb/register_model.py');
     expect(Object.keys(files)).not.toContain('tb/mm_loader.py');
+    expect(files['tb/test_core_test.py']).toContain('_ADDRESS_LIMIT = 1 << 32');
+    expect(files['tb/test_core_test.py']).toContain('candidate_addresses = {0, top}');
+    expect(files['tb/test_core_test.py']).not.toContain('range(0, _ADDRESS_LIMIT');
+    expect(files['tb/test_core_test.py']).toContain('def _check_oracle_priority_policy():');
     expect(JSON.parse(files['tb/verification_manifest.json'])).toMatchObject({
       schemaVersion: 1,
       source: { model: 'normalizedMemoryMap', provenance: 'spec' },
@@ -350,7 +355,7 @@ describe('CocotbFramework — rtlSourceFiles-driven sources', () => {
     // register_file.vhdl.j2's read path is registered (readdata is driven
     // from a signal set inside a clocked process), so for a slave with no
     // readdatavalid handshake, readdata is only valid one cycle after
-    // `read` is sampled -- not in the same cycle `_read_reg` deasserts
+    // `read` is sampled -- not in the same cycle the transport deasserts
     // `read`. Confirmed by running the generated testbench end-to-end
     // against a real GHDL simulation: every register read returned the
     // *previous* bus access's result until this extra RisingEdge was added.

@@ -112,6 +112,30 @@ function buildMap(): NormalizedMemoryMap {
               },
             ],
           },
+          {
+            rowId: 'group',
+            name: 'GROUP',
+            offset: 0x80,
+            size: 32,
+            resetValue: 0,
+            description: '',
+            fields: [],
+            __kind: 'array',
+            count: 1,
+            stride: 4,
+            registers: [
+              {
+                rowId: 'group-status',
+                name: 'STATUS',
+                offset: 0,
+                size: 32,
+                resetValue: 0,
+                access: 'read-only',
+                description: '',
+                fields: [],
+              },
+            ],
+          },
         ],
       },
     ],
@@ -178,6 +202,22 @@ describe('buildVerificationManifest', () => {
         ],
       },
     ]);
+  });
+
+  it('does not label a count-one nested group as an array dimension', () => {
+    expect(manifest.registers.find((reg) => reg.name === 'GROUP_STATUS')).toMatchObject({
+      offset: 0x180,
+      arrayDimensions: [],
+      provenance: {
+        identity: 'spec',
+        layout: 'spec',
+        resetValue: 'spec',
+        masks: 'generatorPolicy',
+      },
+    });
+    expect(
+      manifest.registers.find((reg) => reg.name === 'GROUP_STATUS')?.provenance
+    ).not.toHaveProperty('arrayBounds');
   });
 
   it('labels specification, generator-policy, and bus-binding facts', () => {

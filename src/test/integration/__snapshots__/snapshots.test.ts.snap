@@ -4718,7 +4718,7 @@ package comprehensive_axi_pkg is
   end record;
 
   constant C_REG_SCRATCH_RESET : t_reg_scratch := (
-    value => (others => '0')
+    value => "11011110101011011011111011101111"
   );
 
   function to_slv(reg : t_reg_scratch) return std_logic_vector;

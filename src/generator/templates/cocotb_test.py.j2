@@ -136,14 +136,22 @@ async def _check_all_readable(transport, scenario):
 def _unmapped_addresses():
     word_bytes = _LANE_COUNT
     mapped = {reg["offset"] for reg in model.registers}
+    if _ADDRESS_LIMIT < word_bytes:
+        return []
     if not mapped:
         return [0]
+
     boundary = max(mapped) + word_bytes
-    candidates = [
-        addr
-        for addr in range(0, _ADDRESS_LIMIT, word_bytes)
-        if addr not in mapped and addr + word_bytes <= _ADDRESS_LIMIT
-    ]
+    top = ((_ADDRESS_LIMIT - word_bytes) // word_bytes) * word_bytes
+    candidate_addresses = {0, top}
+    for address in mapped:
+        candidate_addresses.add(address - word_bytes)
+        candidate_addresses.add(address + word_bytes)
+    candidates = sorted(
+        address
+        for address in candidate_addresses
+        if 0 <= address <= top and address not in mapped
+    )
     if not candidates:
         return []
     gap = next((addr for addr in candidates if addr < boundary), candidates[0])
@@ -151,8 +159,8 @@ def _unmapped_addresses():
     return list(dict.fromkeys([gap, edge]))
 
 
-def _check_model_priorities():
-    """Exercise policy-only hardware/SW arbitration in the semantic model."""
+def _check_oracle_priority_policy():
+    """Check the oracle policy; DUT arbitration is covered by the RTL behavior suites."""
     priority_model = RegisterModel(manifest)
     for reg in priority_model.registers:
         for field in reg["fields"]:
@@ -176,7 +184,7 @@ def _check_model_priorities():
 async def test_register_semantics(dut):
     """Run directed and deterministic-randomized semantic register checks."""
     cocotb.start_soon(Clock(dut.{{ clock_port }}, 10, unit="ns").start())
-    _check_model_priorities()
+    _check_oracle_priority_policy()
 {% if bus_type in ['axil', 'axi4'] %}
     transport = AxiTransport(dut)
 {% else %}

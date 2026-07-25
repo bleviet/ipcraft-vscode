@@ -248,21 +248,27 @@ function expandRegister(
 
   if (reg.registers && reg.registers.length > 0) {
     for (let index = 0; index < count; index += 1) {
-      const dimension: VerificationArrayDimension = {
-        name: reg.name,
-        index,
-        lowerBound: 0,
-        upperBound: count - 1,
-        stride,
-      };
       const childPrefix = count > 1 ? `${prefix}${reg.name}_${index}_` : `${prefix}${reg.name}_`;
+      const childDimensions =
+        count > 1
+          ? [
+              ...dimensions,
+              {
+                name: reg.name,
+                index,
+                lowerBound: 0,
+                upperBound: count - 1,
+                stride,
+              },
+            ]
+          : dimensions;
       for (const child of reg.registers) {
         expandRegister(
           child,
           currentOffset + index * stride,
           childPrefix,
           defaultWidth,
-          [...dimensions, dimension],
+          childDimensions,
           out
         );
       }
