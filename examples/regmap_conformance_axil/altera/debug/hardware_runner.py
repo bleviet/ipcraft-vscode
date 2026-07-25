@@ -55,6 +55,38 @@ def _run(command, cwd=None):
     return completed.stdout.strip()
 
 
+def _write_result(result, result_path):
+    # Atomic (write-then-rename) so a kill mid-write never leaves a
+    # truncated/corrupt JSON file behind.
+    result_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = result_path.with_suffix(result_path.suffix + ".tmp")
+    with open(str(tmp_path), "w", encoding="utf-8") as result_file:
+        json.dump(result, result_file, indent=2)
+        result_file.write("\n")
+    tmp_path.replace(result_path)
+
+
+class _CheckpointingChecks(list):
+    """A single manifest run makes ~40 JTAG-to-Avalon round trips through a
+    fresh System Console process each (~15-20s apart -- multi-minute total
+    runtime, see docs/hardware_validation_results.md). The result file was
+    previously only written in main()'s `finally` block, so a run killed by
+    an external timeout partway through (an easy mistake given the runtime)
+    left no output_files/hardware-result.json at all -- indistinguishable
+    from the process never having started. Writing --result after every
+    check means a killed run still leaves a diagnostic `status: "running"`
+    file with whatever checks completed."""
+
+    def __init__(self, result, result_path):
+        super().__init__()
+        self._result = result
+        self._result_path = result_path
+
+    def append(self, item):
+        super().append(item)
+        _write_result(self._result, self._result_path)
+
+
 class SystemConsoleTransport:
     """One-shot Tcl bridge from the shared scenarios to JTAG-to-Avalon-MM."""
 
@@ -250,7 +282,7 @@ async def _run_hardware(args, result):
     async def settle(cycles=3):
         time.sleep(max(cycles / 50000000, 0.001))
 
-    checks = []
+    checks = _CheckpointingChecks(result, args.result)
     result["checks"] = checks
     await run_conformance_scenarios(
         transport,
@@ -303,10 +335,7 @@ def main():
     finally:
         result["finishedAt"] = _utc_now()
         result["durationSeconds"] = round(time.monotonic() - started, 3)
-        args.result.parent.mkdir(parents=True, exist_ok=True)
-        with open(str(args.result), "w", encoding="utf-8") as result_file:
-            json.dump(result, result_file, indent=2)
-            result_file.write("\n")
+        _write_result(result, args.result)
         print(json.dumps(result, indent=2))
 
     return 0 if result["status"] == "pass" else 1
