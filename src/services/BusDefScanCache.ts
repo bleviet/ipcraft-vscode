@@ -20,6 +20,10 @@ interface BusDefScanCacheFile {
   entries: Record<string, BusDefScanCacheEntry>;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function getCacheFilePath(): string {
   return path.join(getIpcraftConfigDir(), 'bus_definitions', 'scan-cache.json');
 }
@@ -49,11 +53,11 @@ export class BusDefScanCache {
     this.entries = new Map();
     try {
       const raw = await fs.readFile(getCacheFilePath(), 'utf8');
-      const parsed = JSON.parse(raw) as Partial<BusDefScanCacheFile>;
-      if (parsed.version !== CACHE_VERSION || typeof parsed.entries !== 'object') {
+      const parsed: unknown = JSON.parse(raw);
+      if (!isRecord(parsed) || parsed.version !== CACHE_VERSION || !isRecord(parsed.entries)) {
         return;
       }
-      for (const [filePath, entry] of Object.entries(parsed.entries ?? {})) {
+      for (const [filePath, entry] of Object.entries(parsed.entries)) {
         if (isValidEntry(entry)) {
           this.entries.set(filePath, entry);
         }
