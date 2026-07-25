@@ -35,7 +35,7 @@ const ValueBar = ({
       <div className="text-xs vscode-muted font-mono font-semibold shrink-0">Value:</div>
       <div className="flex-1 min-w-[70px] text-base">
         <div
-          className="flex items-stretch rounded"
+          className="flex items-baseline rounded"
           style={{
             border: '1px solid var(--vscode-dropdown-border, var(--vscode-panel-border))',
             background: 'var(--vscode-input-background)',
@@ -43,9 +43,8 @@ const ValueBar = ({
         >
           {valueView === 'hex' ? (
             <span
-              className="flex items-center pl-1.5 font-mono select-none"
+              className="self-baseline pl-1.5 font-mono select-none"
               style={{
-                fontSize: 'var(--vscode-font-size, 13px)',
                 color: 'var(--vscode-input-foreground)',
               }}
               aria-hidden="true"
