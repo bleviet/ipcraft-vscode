@@ -27,6 +27,7 @@ describe('computeLayout', () => {
     const layout = computeLayout(ip);
 
     expect(layout.coreName).toBe('my_core v1.0.0');
+    expect(layout.coreNameLines).toEqual(['my_core v1.0.0']);
     expect(layout.vendorLabel).toBe('test');
     expect(layout.libraryLabel).toBe('ip');
     expect(layout.ports).toHaveLength(0);
@@ -34,6 +35,21 @@ describe('computeLayout', () => {
     expect(layout.blockRect.height).toBe(MIN_BLOCK_HEIGHT);
     expect(layout.viewBox.width).toBeGreaterThan(0);
     expect(layout.viewBox.height).toBeGreaterThan(0);
+  });
+
+  it('places the version on a second title line when the combined title is too wide', () => {
+    const layout = computeLayout(
+      makeIpCore({
+        vlnv: {
+          vendor: 'ipcraft',
+          library: 'examples',
+          name: 'multi_interface_accelerator',
+          version: '1.0.0',
+        },
+      })
+    );
+
+    expect(layout.coreNameLines).toEqual(['multi_interface_accelerator', 'v1.0.0']);
   });
 
   it('places clocks on the left edge', () => {

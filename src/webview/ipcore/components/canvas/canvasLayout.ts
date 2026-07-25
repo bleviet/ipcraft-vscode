@@ -18,12 +18,15 @@ export const EDGE_PADDING = 24;
 /**
  * Minimum Y-offset (relative to blockY) at which the first port may be placed.
  * The block header contains the core name (y+15), vendor (y+42), and library (y+62).
- * 82 keeps a comfortable gap below that text. When an author subtitle is present,
- * an extra AUTHOR_ROW_HEIGHT is added (see headerHeight) so ports shift down below it.
+ * 82 keeps a comfortable gap below that text. Wrapped titles and author subtitles
+ * add their row heights so ports shift down below them.
  */
 const BLOCK_HEADER_HEIGHT = 82;
 
-/** Extra header height when an author subtitle row is present (blockY+82). */
+/** Extra header height when a long core title places its version on a second line. */
+export const WRAPPED_TITLE_ROW_HEIGHT = 16;
+
+/** Extra header height when an author subtitle row is present. */
 export const AUTHOR_ROW_HEIGHT = 20;
 
 /** Minimum block height (even with zero ports) */
@@ -31,6 +34,9 @@ export const MIN_BLOCK_HEIGHT = 124;
 
 /** Horizontal block width */
 export const BLOCK_WIDTH = 280;
+
+/** Maximum single-line title length that keeps the 13px monospace text inside the block. */
+const CORE_TITLE_MAX_CHARS = 31;
 
 /** How far port stubs extend from the block edge */
 export const STUB_LENGTH = 48;
@@ -132,6 +138,8 @@ export interface CanvasLayout {
   viewBox: { width: number; height: number };
   /** Core display name */
   coreName: string;
+  /** One title line for short names; separate name and version lines for long names. */
+  coreNameLines: string[];
   /** Vendor subtitle */
   vendorLabel: string;
   /** Library subtitle */
@@ -326,12 +334,17 @@ export function computeLayout(
   const ports = ipCore.ports ?? [];
   const buses = ipCore.busInterfaces ?? [];
   const rawParameters = (ipCore.parameters ?? []) as unknown as Array<Record<string, unknown>>;
+  const vlnv = ipCore.vlnv;
+  const coreName = `${vlnv.name} v${vlnv.version}`;
+  const coreNameLines =
+    coreName.length > CORE_TITLE_MAX_CHARS ? [vlnv.name, `v${vlnv.version}`] : [coreName];
+  const titleHeight = coreNameLines.length > 1 ? WRAPPED_TITLE_ROW_HEIGHT : 0;
 
-  // Author subtitle — adds a third header row (below vendor/library) only when set,
-  // pushing everything below the header (deps/params/ports) down by AUTHOR_ROW_HEIGHT.
+  // Title wrapping and the optional author row push every later section down by the
+  // same amount, keeping the header text and port area from overlapping.
   const authorLabel = ipCore.author ?? '';
   const hasAuthor = Boolean(authorLabel);
-  const headerHeight = BLOCK_HEADER_HEIGHT + (hasAuthor ? AUTHOR_ROW_HEIGHT : 0);
+  const headerHeight = BLOCK_HEADER_HEIGHT + titleHeight + (hasAuthor ? AUTHOR_ROW_HEIGHT : 0);
 
   // Build the inline parameter list (shown inside the block, not as stubs)
   const layoutParameters: LayoutParameter[] = rawParameters.map((p, i) => {
@@ -754,8 +767,6 @@ export function computeLayout(
     blockY + blockHeight + CANVAS_MARGIN_Y + (bottomItems.length > 0 ? STUB_LENGTH + 40 : 0);
 
   // Labels
-  const vlnv = ipCore.vlnv;
-  const coreName = `${vlnv.name} v${vlnv.version}`;
   const vendorLabel = vlnv.vendor;
   const libraryLabel = vlnv.library;
 
@@ -765,6 +776,7 @@ export function computeLayout(
     subPorts: layoutSubPorts,
     viewBox: { width: viewWidth, height: viewHeight },
     coreName,
+    coreNameLines,
     vendorLabel,
     libraryLabel,
     authorLabel,

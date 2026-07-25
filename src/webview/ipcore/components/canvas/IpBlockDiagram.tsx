@@ -1,6 +1,6 @@
 import React from 'react';
 import type { CanvasLayout, LayoutPort } from './canvasLayout';
-import { resolveMemoryMapImportPath } from './canvasLayout';
+import { resolveMemoryMapImportPath, WRAPPED_TITLE_ROW_HEIGHT } from './canvasLayout';
 import { CanvasPort } from './CanvasPort';
 import { CanvasBusBundle } from './CanvasBusBundle';
 import { CanvasBusSubPort } from './CanvasBusSubPort';
@@ -106,7 +106,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
     ports,
     subPorts,
     viewBox,
-    coreName,
+    coreNameLines,
     vendorLabel,
     libraryLabel,
     authorLabel,
@@ -120,6 +120,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
   } = layout;
 
   const memoryMaps = ipCore.memoryMaps as unknown;
+  const titleRowOffset = coreNameLines.length > 1 ? WRAPPED_TITLE_ROW_HEIGHT : 0;
 
   return (
     <svg
@@ -169,7 +170,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
         x={blockRect.x}
         y={blockRect.y}
         width={blockRect.width}
-        height={28}
+        height={28 + titleRowOffset}
         className="ip-block-header"
         rx={6}
         ry={6}
@@ -180,7 +181,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
         x={blockRect.x}
         y={blockRect.y + 14}
         width={blockRect.width}
-        height={14}
+        height={14 + titleRowOffset}
         className="ip-block-header"
         style={{ pointerEvents: 'none' }}
       />
@@ -188,19 +189,27 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
       {/* Core name */}
       <text
         x={blockRect.x + blockRect.width / 2}
-        y={blockRect.y + 15}
+        y={blockRect.y + (titleRowOffset ? 9 : 15)}
         textAnchor="middle"
         dominantBaseline="central"
         className="ip-block-name"
         style={{ pointerEvents: 'none' }}
       >
-        {coreName}
+        {coreNameLines.map((line, index) => (
+          <tspan
+            key={`${index}:${line}`}
+            x={blockRect.x + blockRect.width / 2}
+            y={blockRect.y + (titleRowOffset ? 9 + index * titleRowOffset : 15)}
+          >
+            {line}
+          </tspan>
+        ))}
       </text>
 
       {/* Vendor subtitle */}
       <text
         x={blockRect.x + 24}
-        y={blockRect.y + 42}
+        y={blockRect.y + 42 + titleRowOffset}
         dominantBaseline="central"
         className="ip-block-param-name"
         style={{ pointerEvents: 'none' }}
@@ -209,7 +218,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
       </text>
       <text
         x={blockRect.x + blockRect.width - 24}
-        y={blockRect.y + 42}
+        y={blockRect.y + 42 + titleRowOffset}
         textAnchor="end"
         dominantBaseline="central"
         className="ip-block-param-value"
@@ -221,7 +230,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
       {/* Library subtitle */}
       <text
         x={blockRect.x + 24}
-        y={blockRect.y + 62}
+        y={blockRect.y + 62 + titleRowOffset}
         dominantBaseline="central"
         className="ip-block-param-name"
         style={{ pointerEvents: 'none' }}
@@ -230,7 +239,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
       </text>
       <text
         x={blockRect.x + blockRect.width - 24}
-        y={blockRect.y + 62}
+        y={blockRect.y + 62 + titleRowOffset}
         textAnchor="end"
         dominantBaseline="central"
         className="ip-block-param-value"
@@ -244,7 +253,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
         <>
           <text
             x={blockRect.x + 24}
-            y={blockRect.y + 82}
+            y={blockRect.y + 82 + titleRowOffset}
             dominantBaseline="central"
             className="ip-block-param-name"
             style={{ pointerEvents: 'none' }}
@@ -253,7 +262,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
           </text>
           <text
             x={blockRect.x + blockRect.width - 24}
-            y={blockRect.y + 82}
+            y={blockRect.y + 82 + titleRowOffset}
             textAnchor="end"
             dominantBaseline="central"
             className="ip-block-param-value"
@@ -268,7 +277,7 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
       {(blockHovered || selectedId === 'body') && (
         <text
           x={blockRect.x + blockRect.width - 8}
-          y={blockRect.y + 15}
+          y={blockRect.y + (titleRowOffset ? 9 : 15)}
           textAnchor="end"
           dominantBaseline="central"
           className="ip-block-edit-hint"

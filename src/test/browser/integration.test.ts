@@ -1,5 +1,6 @@
 /* eslint-disable */
 import { test, expect } from '@playwright/test';
+import fs from 'fs';
 import path from 'path';
 
 const selectAllShortcut = process.platform === 'darwin' ? 'Meta+A' : 'Control+A';
@@ -602,6 +603,13 @@ addressBlocks:
 
 test.describe('IPCraft IP Core Webview Integration', () => {
   const harnessPath = `file://${path.resolve(__dirname, 'ipcore.html')}`;
+  const multiInterfaceAcceleratorYaml = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      '../../../ipcraft-spec/examples/multi_interface_accelerator/accelerator.ip.yml'
+    ),
+    'utf8'
+  );
 
   const sampleIpCoreYaml = `
 vlnv:
@@ -716,6 +724,39 @@ resets:
     await expect(page.locator('span', { hasText: /test\.com.*smoke.*test_core/ })).toBeVisible({
       timeout: 5000,
     });
+  });
+
+  test('wraps the multi-interface accelerator version inside the block header', async ({
+    page,
+  }) => {
+    await setupIpCore(page, multiInterfaceAcceleratorYaml, 'accelerator.ip.yml');
+
+    const title = page.locator('.ip-block-name');
+    const titleLines = title.locator('tspan');
+    await expect(titleLines).toHaveCount(2);
+    await expect(titleLines.nth(0)).toHaveText('multi_interface_accelerator');
+    await expect(titleLines.nth(1)).toHaveText('v1.0.0');
+
+    const bounds = await page.evaluate(() => {
+      const titleElement = document.querySelector<SVGGraphicsElement>('.ip-block-name')!;
+      const bodyElement = document.querySelector<SVGGraphicsElement>('.ip-block-body')!;
+      const titleBox = titleElement.getBBox();
+      const bodyBox = bodyElement.getBBox();
+      return {
+        titleLeft: titleBox.x,
+        titleRight: titleBox.x + titleBox.width,
+        titleBottom: titleBox.y + titleBox.height,
+        bodyLeft: bodyBox.x,
+        bodyRight: bodyBox.x + bodyBox.width,
+        vendorTop: document
+          .querySelectorAll<SVGGraphicsElement>('.ip-block-param-name')[0]
+          .getBBox().y,
+      };
+    });
+
+    expect(bounds.titleLeft).toBeGreaterThan(bounds.bodyLeft);
+    expect(bounds.titleRight).toBeLessThan(bounds.bodyRight);
+    expect(bounds.titleBottom).toBeLessThan(bounds.vendorTop);
   });
 
   test('should display VLNV info in header from injected YAML', async ({ page }) => {
