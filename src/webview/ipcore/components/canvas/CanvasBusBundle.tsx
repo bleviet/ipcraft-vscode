@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutPort } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
+import { PORT_MOVE_MIME, REMOVE_MIME, parsePortMoveDragPayload } from './canvasDragTypes';
 
 import { ValidationAnnotation } from '../../hooks/useCanvasValidation';
 
@@ -31,8 +32,6 @@ const RENAME_INPUT_H = 14;
  * Visually distinct from regular ports: thicker stub, protocol badge, mode indicator.
  * Supports expand/collapse to show individual bus port signals.
  */
-const PORT_MOVE_MIME = 'application/x-ipcraft-port-move';
-
 export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
   port,
   selected,
@@ -121,7 +120,7 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
       onDragStart={(e) => {
         e.stopPropagation();
         const payload = { action: 'remove', kind: port.kind, id: port.id };
-        e.dataTransfer.setData('application/x-ipcraft-remove', JSON.stringify(payload));
+        e.dataTransfer.setData(REMOVE_MIME, JSON.stringify(payload));
         e.dataTransfer.effectAllowed = 'move';
 
         const target = e.currentTarget as SVGGElement;
@@ -167,13 +166,9 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         }
         e.preventDefault();
         e.stopPropagation();
-        try {
-          const payload = JSON.parse(raw) as { portIndex: number };
-          if (typeof payload.portIndex === 'number') {
-            onPortDrop(payload.portIndex);
-          }
-        } catch {
-          // ignore malformed payload
+        const payload = parsePortMoveDragPayload(raw);
+        if (payload) {
+          onPortDrop(payload.portIndex);
         }
       }}
     >

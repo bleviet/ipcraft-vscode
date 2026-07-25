@@ -1,5 +1,10 @@
 import { useCallback, useState } from 'react';
-import { DRAG_MIME } from '../components/canvas/canvasDragTypes';
+import {
+  DRAG_MIME,
+  PORT_MOVE_MIME,
+  REMOVE_MIME,
+  parseRemoveDragPayload,
+} from '../components/canvas/canvasDragTypes';
 import { dropHalfSide } from '../components/canvas/canvasGeometry';
 
 /**
@@ -21,8 +26,8 @@ export function useCanvasDropTarget(opts: {
     (e: React.DragEvent) => {
       // When dragging a port-to-bus (PORT_MOVE_MIME present), don't show the
       // RemoveZone — the user is targeting a bus bundle, not deleting the port.
-      if (e.dataTransfer.types.includes('application/x-ipcraft-remove')) {
-        if (!e.dataTransfer.types.includes('application/x-ipcraft-port-move')) {
+      if (e.dataTransfer.types.includes(REMOVE_MIME)) {
+        if (!e.dataTransfer.types.includes(PORT_MOVE_MIME)) {
           e.preventDefault();
           setDragOutActive(true);
         }
@@ -54,21 +59,10 @@ export function useCanvasDropTarget(opts: {
       setDragOutActive(false);
       setDragHoverSide(null);
 
-      if (e.dataTransfer.types.includes('application/x-ipcraft-remove')) {
-        try {
-          const payloadStr = e.dataTransfer.getData('application/x-ipcraft-remove');
-          if (payloadStr) {
-            const payload = JSON.parse(payloadStr) as {
-              action?: string;
-              kind?: string;
-              id?: string;
-            };
-            if (payload.action === 'remove' && payload.kind && payload.id) {
-              opts.onRemove?.(payload.kind, payload.id);
-            }
-          }
-        } catch (err) {
-          console.error('Failed to parse remove drop payload', err);
+      if (e.dataTransfer.types.includes(REMOVE_MIME)) {
+        const payload = parseRemoveDragPayload(e.dataTransfer.getData(REMOVE_MIME));
+        if (payload) {
+          opts.onRemove?.(payload.kind, payload.id);
         }
         return;
       }

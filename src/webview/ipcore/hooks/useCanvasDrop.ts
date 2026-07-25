@@ -1,7 +1,11 @@
 import { useCallback } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
 import type { IpCore, Clock, Reset, Port, BusInterface, Interrupt } from '../../types/ipCore';
-import { DRAG_MIME, type LibraryDragPayload } from '../components/canvas/canvasDragTypes';
+import {
+  DRAG_MIME,
+  parseLibraryDragPayload,
+  type LibraryDragPayload,
+} from '../components/canvas/canvasDragTypes';
 import { BLOCK_WIDTH } from '../components/canvas/canvasLayout';
 
 /**
@@ -58,10 +62,8 @@ export function useCanvasDrop({ ipCore, onUpdate, onSelect }: UseCanvasDropOptio
       e.preventDefault();
       e.stopPropagation();
 
-      let payload: LibraryDragPayload;
-      try {
-        payload = JSON.parse(raw) as LibraryDragPayload;
-      } catch {
+      const payload = parseLibraryDragPayload(raw);
+      if (!payload) {
         return;
       }
 
