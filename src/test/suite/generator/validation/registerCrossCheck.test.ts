@@ -8,7 +8,7 @@ function baseIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
     vlnv: { vendor: 'test', library: 'lib', name: 'led_blink', version: '1.0.0' },
     memoryMaps: { import: 'core.mm.yml' },
     ...overrides,
-  } as IpCoreData;
+  };
 }
 
 const SSOT_MM_YAML = [

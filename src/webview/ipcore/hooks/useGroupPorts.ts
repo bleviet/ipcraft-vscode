@@ -213,7 +213,7 @@ export function useGroupPorts(
         for (const cp of conduitPorts) {
           restoredPorts.push({
             name: cp.name,
-            direction: (cp.direction ?? 'inout') as Port['direction'],
+            direction: cp.direction ?? 'inout',
             ...(cp.width !== undefined ? { width: cp.width } : {}),
           });
         }

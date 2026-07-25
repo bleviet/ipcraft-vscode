@@ -42,7 +42,7 @@ jest.mock('../../../webview/shared/components', () => {
           data-testid={`cell-input-${editKey}`}
           defaultValue={value}
           onInput={(e) => onInput((e.target as HTMLInputElement).value)}
-          onBlur={(e) => onBlur?.((e.target as HTMLInputElement).value)}
+          onBlur={(e) => onBlur?.(e.target.value)}
         />
       );
     },

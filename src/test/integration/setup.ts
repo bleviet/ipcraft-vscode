@@ -31,7 +31,7 @@ interface MockWorkspace {
     return entries.map((e) => [e.name, e.isDirectory() ? 2 : 1] as [string, 1 | 2]);
   },
   readFile: async (uri: { fsPath: string }) => {
-    return nodefs.readFileSync(uri.fsPath) as Buffer;
+    return nodefs.readFileSync(uri.fsPath);
   },
 };
 

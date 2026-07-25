@@ -9,7 +9,7 @@ function baseIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
   return {
     vlnv: { vendor: 'test', library: 'lib', name: 'led_blink', version: '1.0.0' },
     ...overrides,
-  } as IpCoreData;
+  };
 }
 
 function makeReader(content: string): (absPath: string) => Promise<string> {
@@ -213,7 +213,7 @@ describe('crossCheckIpCoreAgainstTopLevelHdl — checks the top level regardless
           portWidthOverrides: { address: 12 },
         },
       ],
-    } as unknown as Partial<IpCoreData>);
+    });
     const hdl = [
       'entity core is',
       '  port (',
@@ -258,7 +258,7 @@ describe('crossCheckIpCoreAgainstTopLevelHdl — bus-interface signal diffing (i
         },
       ],
       ...overrides,
-    } as unknown as Partial<IpCoreData>);
+    });
   }
 
   it('reports no bus findings for a fully-consistent bus interface', async () => {

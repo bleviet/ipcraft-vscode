@@ -473,7 +473,7 @@ const App = () => {
       newChildRegs.splice(insertIdx, 0, movedChild);
 
       const width = blockRegWidth(arrayNode);
-      const laidOut = recomputeRegisterLayout(newChildRegs as LayoutRegister[], width);
+      const laidOut = recomputeRegisterLayout(newChildRegs, width);
       const sanitizedRegs = laidOut.map(
         (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
       );
@@ -516,7 +516,7 @@ const App = () => {
     newRegs.splice(insertIdx, 0, movedReg);
 
     const width = blockRegWidth(block);
-    const laidOut = recomputeRegisterLayout(newRegs as LayoutRegister[], width);
+    const laidOut = recomputeRegisterLayout(newRegs, width);
     const sanitizedRegs = laidOut.map(
       (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
     );
@@ -747,7 +747,7 @@ const App = () => {
           onPointerDown={(e) => {
             e.preventDefault();
             sidebarResizingRef.current = true;
-            (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+            e.currentTarget.setPointerCapture(e.pointerId);
           }}
           onPointerMove={(e) => {
             if (!sidebarResizingRef.current) {

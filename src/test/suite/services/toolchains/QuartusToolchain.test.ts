@@ -438,19 +438,13 @@ describe('resolveHwTclRtlFiles — compile order', () => {
     );
 
     const ipCore = makeIpCore(['rtl/main_logic.vhd', 'rtl/weird_types.vhd']);
-    const entries = await resolveHwTclRtlFiles(
-      undefined,
-      ipCore as never,
-      false,
-      'main_logic',
-      tmp
-    );
+    const entries = await resolveHwTclRtlFiles(undefined, ipCore, false, 'main_logic', tmp);
     expect(entries.map((e) => e.name)).toEqual(['weird_types.vhd', 'main_logic.vhd']);
   });
 
   it('marks only the top-level entity as is_top', async () => {
     const ipCore = makeIpCore(['rtl/dut_pkg.vhd', 'rtl/dut.vhd', 'rtl/dut_core.vhd']);
-    const entries = await resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut', undefined);
+    const entries = await resolveHwTclRtlFiles(undefined, ipCore, false, 'dut', undefined);
     expect(entries.find((e) => e.name === 'dut.vhd')?.is_top).toBe(true);
     expect(entries.find((e) => e.name === 'dut_pkg.vhd')?.is_top).toBe(false);
     expect(entries.find((e) => e.name === 'dut_core.vhd')?.is_top).toBe(false);
@@ -458,7 +452,7 @@ describe('resolveHwTclRtlFiles — compile order', () => {
 
   it('uses rtlFiles directly when provided (no sort override)', async () => {
     const provided = ['../rtl/dut.vhd', '../rtl/dut_pkg.vhd', '../rtl/legacy.v'];
-    const entries = await resolveHwTclRtlFiles(provided, {} as never, false, 'dut', undefined);
+    const entries = await resolveHwTclRtlFiles(provided, {}, false, 'dut', undefined);
     expect(entries.map((e) => e.path)).toEqual(provided);
     expect(entries.find((e) => e.name === 'legacy.v')?.hdl_type).toBe('VERILOG');
   });
@@ -480,7 +474,7 @@ describe('resolveHwTclRtlFiles — compile order', () => {
           },
         ],
       };
-      const entries = await resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut', tmp);
+      const entries = await resolveHwTclRtlFiles(undefined, ipCore, false, 'dut', tmp);
 
       expect(entries[0]?.hdl_type).toBe('VERILOG');
     }
@@ -491,7 +485,7 @@ describe('resolveHwTclRtlFiles — compile order', () => {
     // real content from, the fallback must not reorder via any naming heuristic — it
     // preserves exactly what the user declared.
     const ipCore = makeIpCore(['rtl/dut_core.vhd', 'rtl/dut_pkg.vhd', 'rtl/dut.vhd']);
-    const entries = await resolveHwTclRtlFiles(undefined, ipCore as never, false, 'dut', undefined);
+    const entries = await resolveHwTclRtlFiles(undefined, ipCore, false, 'dut', undefined);
     expect(entries.map((e) => e.name)).toEqual(['dut_core.vhd', 'dut_pkg.vhd', 'dut.vhd']);
   });
 });
@@ -503,12 +497,12 @@ describe('detectPll — issue #77', () => {
   // RTL or fileSet path contains "pll" (case-insensitive) so the SDC only
   // carries the command for designs that actually have a PLL.
   it('returns false when no path contains "pll"', () => {
-    expect(detectPll(['rtl/dut.vhd', 'rtl/dut_core.sv'], {} as never)).toBe(false);
+    expect(detectPll(['rtl/dut.vhd', 'rtl/dut_core.sv'], {})).toBe(false);
   });
 
   it('returns true when an rtlFiles path contains "pll" (case-insensitive)', () => {
-    expect(detectPll(['rtl/dut.vhd', 'rtl/my_PLL.sv'], {} as never)).toBe(true);
-    expect(detectPll(['rtl/dut.vhd', 'rtl/pll_clock_gen.vhd'], {} as never)).toBe(true);
+    expect(detectPll(['rtl/dut.vhd', 'rtl/my_PLL.sv'], {})).toBe(true);
+    expect(detectPll(['rtl/dut.vhd', 'rtl/pll_clock_gen.vhd'], {})).toBe(true);
   });
 
   it('returns true when a fileSets entry path contains "pll"', () => {
@@ -527,13 +521,13 @@ describe('detectPll — issue #77', () => {
   });
 
   it('returns false for an empty design (no rtlFiles, no fileSets)', () => {
-    expect(detectPll(undefined, {} as never)).toBe(false);
-    expect(detectPll([], {} as never)).toBe(false);
+    expect(detectPll(undefined, {})).toBe(false);
+    expect(detectPll([], {})).toBe(false);
   });
 
   it('matches "pll" anywhere in the path (substring match, case-insensitive)', () => {
-    expect(detectPll(['rtl/clock_pll_gen.vhd'], {} as never)).toBe(true);
-    expect(detectPll(['rtl/PLL_WRAPPER.vhd'], {} as never)).toBe(true);
-    expect(detectPll(['altera/altera_pll.qip'], {} as never)).toBe(true);
+    expect(detectPll(['rtl/clock_pll_gen.vhd'], {})).toBe(true);
+    expect(detectPll(['rtl/PLL_WRAPPER.vhd'], {})).toBe(true);
+    expect(detectPll(['altera/altera_pll.qip'], {})).toBe(true);
   });
 });

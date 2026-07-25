@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import type { BusInterface, Clock, ConduitPort, Reset } from '../../../../../types/ipCore';
+import type { BusInterface, ConduitPort } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
 import { validateUniqueName, validateVhdlIdentifier } from '../../../../../shared/utils/validation';
 import { lookupBusDefFromLibrary } from '../../../../data/busDefinitions';
@@ -24,9 +24,9 @@ export const ConduitPanel: React.FC<BusPanelProps> = ({
   imports,
   onUpdate,
 }) => {
-  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
-  const clocks = (ipCore.clocks ?? []) as Clock[];
-  const resets = (ipCore.resets ?? []) as Reset[];
+  const buses = ipCore.busInterfaces ?? [];
+  const clocks = ipCore.clocks ?? [];
+  const resets = ipCore.resets ?? [];
   const existingNames = buses.map((b) => b.name).filter((_, i) => i !== index);
   const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
     (p) => p.name

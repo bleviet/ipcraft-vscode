@@ -77,7 +77,7 @@ function makeIpCoreData(): IpCoreData {
         ],
       },
     ],
-  } as IpCoreData;
+  };
 }
 
 function ghdlAnalyze(cwd: string, relPaths: string[]): { success: boolean; output: string } {

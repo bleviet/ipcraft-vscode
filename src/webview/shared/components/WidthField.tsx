@@ -106,7 +106,7 @@ export const WidthField: React.FC<WidthFieldProps> = ({
     if (disabled) {
       return;
     }
-    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
       if (mode === 'number') {
         const num = parseInt(numericRef.current, 10);
         commit(!isNaN(num) && num > 0 ? num : defaultWidth);

@@ -88,8 +88,8 @@ describe('FieldOperationService -- field-add', () => {
       addressBlocks: [{ name: 'BLOCK', registers: [{ name: 'REG' }] }],
     };
 
-    apply(root as Record<string, unknown>, 'field-add', {});
-    const fields = getFields(root as Record<string, unknown>);
+    apply(root, 'field-add', {});
+    const fields = getFields(root);
     expect(fields).toHaveLength(1);
   });
 });

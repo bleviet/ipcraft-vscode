@@ -1,5 +1,5 @@
 import React from 'react';
-import type { BusInterface, Clock, IpCore, Reset } from '../../../../../types/ipCore';
+import type { IpCore } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
 import { EmptyState, Section } from '../controls/InspectorFields';
 
@@ -14,9 +14,9 @@ export const BusInterfaceMatrixPanel: React.FC<BusInterfaceMatrixPanelProps> = (
   onUpdate,
   onSelectElement,
 }) => {
-  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
-  const clocks = (ipCore.clocks ?? []) as Clock[];
-  const resets = (ipCore.resets ?? []) as Reset[];
+  const buses = ipCore.busInterfaces ?? [];
+  const clocks = ipCore.clocks ?? [];
+  const resets = ipCore.resets ?? [];
   const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
 

@@ -208,7 +208,7 @@ export const useTableEditing = <T, TColumnKey extends string>({
             : 'var(--vscode-editor-background)',
         borderBottom: '1px solid var(--vscode-panel-border)',
         cursor: 'pointer',
-      } as React.CSSProperties,
+      },
       'data-row-idx': index,
     }),
     [selectedIndex, editingIndex, isAdding, handleEdit]
@@ -232,7 +232,7 @@ export const useTableEditing = <T, TColumnKey extends string>({
             ? '2px solid var(--vscode-focusBorder)'
             : 'none',
         outlineOffset: '-2px',
-      } as React.CSSProperties,
+      },
     }),
     [selectedIndex, activeColumn, editingIndex, isAdding, handleEdit]
   );

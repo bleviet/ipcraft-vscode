@@ -91,7 +91,7 @@ describe('generateComponentXml', () => {
     });
 
     it('uses default vlnv when absent', async () => {
-      const xml = await generateComponentXml({ busInterfaces: [] } as IpCoreData, BUS_DEFS);
+      const xml = await generateComponentXml({ busInterfaces: [] }, BUS_DEFS);
       expect(xml).toContain('<spirit:vendor>user</spirit:vendor>');
       expect(xml).toContain('<spirit:library>ip</spirit:library>');
       expect(xml).toContain('<spirit:name>ip_core</spirit:name>');
@@ -926,7 +926,7 @@ describe('generateComponentXml', () => {
                 files: [{ path: 'rtl/my_core.vhd', type: 'vhdl' }],
               },
             ],
-          } as IpCoreData,
+          },
           BUS_DEFS,
           { filePathPrefix: '../', ipCoreDir: tmp }
         );
@@ -977,7 +977,7 @@ describe('generateComponentXml', () => {
                 ],
               },
             ],
-          } as IpCoreData,
+          },
           BUS_DEFS,
           { filePathPrefix: '../', ipCoreDir: tmp }
         );
@@ -1005,7 +1005,7 @@ describe('generateComponentXml', () => {
                 ],
               },
             ],
-          } as IpCoreData,
+          },
           BUS_DEFS,
           { filePathPrefix: '../' }
         );
@@ -1033,7 +1033,7 @@ describe('generateComponentXml', () => {
                 files: [{ path: 'rtl/my_core.vhd', type: 'vhdl', version: '93' }],
               },
             ],
-          } as IpCoreData,
+          },
           BUS_DEFS,
           { filePathPrefix: '../', rtlFiles: ['../rtl/my_core.vhd'] }
         );
@@ -1051,7 +1051,7 @@ describe('generateComponentXml', () => {
                 files: [{ path: 'rtl/my_core.vhd', type: 'vhdl', version: '2002' }],
               },
             ],
-          } as IpCoreData,
+          },
           BUS_DEFS,
           { filePathPrefix: '../', rtlFiles: ['../rtl/my_core.vhd'] }
         );
@@ -1084,7 +1084,7 @@ describe('generateComponentXml', () => {
                   files: [{ path: 'rtl/my_core.vhd', type: 'vhdl', version: '93' }],
                 },
               ],
-            } as IpCoreData,
+            },
             BUS_DEFS,
             { filePathPrefix: '../', ipCoreDir: tmp }
           );
@@ -1277,7 +1277,7 @@ describe('generateComponentXml', () => {
     ];
 
     it('emits interrupt bus interface for output (master)', async () => {
-      const xml = await gen({ interrupts } as Partial<IpCoreData>);
+      const xml = await gen({ interrupts });
       expect(xml).toContain('<spirit:name>irq_out</spirit:name>');
       expect(xml).toContain(
         '<spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="interrupt" spirit:version="1.0" />'
@@ -1289,38 +1289,38 @@ describe('generateComponentXml', () => {
     });
 
     it('emits interrupt bus interface for input (slave)', async () => {
-      const xml = await gen({ interrupts } as Partial<IpCoreData>);
+      const xml = await gen({ interrupts });
       expect(xml).toContain('<spirit:name>irq_in</spirit:name>');
       expect(xml).toContain('<spirit:slave />');
     });
 
     it('maps interrupt port to logical INTERRUPT signal', async () => {
-      const xml = await gen({ interrupts } as Partial<IpCoreData>);
+      const xml = await gen({ interrupts });
       expect(xml).toContain('<spirit:name>INTERRUPT</spirit:name>');
     });
 
     it('emits SENSITIVITY parameter for interrupt', async () => {
-      const xml = await gen({ interrupts } as Partial<IpCoreData>);
+      const xml = await gen({ interrupts });
       expect(xml).toContain('BUSIFPARAM_VALUE.IRQ_OUT.SENSITIVITY');
       expect(xml).toContain('>LEVEL_HIGH<');
     });
 
     it('emits physical port in spirit:ports for interrupt output', async () => {
-      const xml = await gen({ interrupts } as Partial<IpCoreData>);
+      const xml = await gen({ interrupts });
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
       expect(portsSection).toContain('<spirit:name>irq_out</spirit:name>');
       expect(portsSection).toContain('<spirit:direction>out</spirit:direction>');
     });
 
     it('emits physical port in spirit:ports for interrupt input', async () => {
-      const xml = await gen({ interrupts } as Partial<IpCoreData>);
+      const xml = await gen({ interrupts });
       const portsSection = xml.slice(xml.indexOf('<spirit:ports>'), xml.indexOf('</spirit:ports>'));
       expect(portsSection).toContain('<spirit:name>irq_in</spirit:name>');
       expect(portsSection).toContain('<spirit:direction>in</spirit:direction>');
     });
 
     it('emits no interrupt elements when interrupts array is empty', async () => {
-      const xml = await gen({ interrupts: [] } as Partial<IpCoreData>);
+      const xml = await gen({ interrupts: [] });
       expect(xml).not.toContain('spirit:name="interrupt"');
       expect(xml).not.toContain('SENSITIVITY');
     });

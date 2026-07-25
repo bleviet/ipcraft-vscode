@@ -1612,7 +1612,7 @@
     "identity-obj-proxy": "^3.0.0",
     "ipcraft-spec": "file:./ipcraft-spec",
     "jest": "^30.3.0",
-    "jest-environment-jsdom": "^30.3.0",
+    "jest-environment-jsdom": "^30.4.1",
     "json-schema-to-typescript": "^13.0.0",
     "knip": "^6.29.0",
     "lint-staged": "^15.5.2",

@@ -338,12 +338,12 @@ const VendorDropdown: React.FC<VendorDropdownProps> = ({ vendorId, items }) => {
                 }}
                 onMouseEnter={(e) => {
                   if (!item.disabled) {
-                    (e.currentTarget as HTMLButtonElement).style.background =
+                    e.currentTarget.style.background =
                       'var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground))';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                  e.currentTarget.style.background = 'transparent';
                 }}
                 style={{
                   display: 'flex',

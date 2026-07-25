@@ -110,7 +110,7 @@ export const InspectorPanelRouter: React.FC<InspectorPanelRouterProps> = ({
       );
     }
     case 'interrupt': {
-      const interrupt = ((ipCore.interrupts ?? []) as Interrupt[])[element.index];
+      const interrupt = (ipCore.interrupts ?? [])[element.index] as Interrupt | undefined;
       return interrupt ? (
         <InterruptPanel
           interrupt={interrupt}

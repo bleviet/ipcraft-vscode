@@ -418,7 +418,7 @@ const FieldTableRow = ({
       onMouseLeave={() => setHoveredFieldIndex(null)}
       onClick={() => onRowClick(index)}
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
           setEditingKey(null);
         }
       }}

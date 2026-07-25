@@ -95,11 +95,7 @@ export async function resolveHwTclRtlFiles(
       .map((f) => toEntry(`../${f.path!}`, hdlTypeFromFileType(f.type, isSv)));
   }
 
-  const resolved = await resolveFileSetRtlFiles(
-    ipCoreData as Record<string, unknown>,
-    ipCoreDir,
-    'RTL_Sources'
-  );
+  const resolved = await resolveFileSetRtlFiles(ipCoreData, ipCoreDir, 'RTL_Sources');
   return resolved.map((f) => {
     const declaredHdlType =
       f.type === 'vhdl' || f.type === 'systemverilog' || f.type === 'verilog' ? f.type : undefined;

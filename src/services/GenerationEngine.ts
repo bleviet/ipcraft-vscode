@@ -48,7 +48,7 @@ async function categorizeFiles(
           diskPath,
           protected: isProtected,
           origin,
-        } as StagedFile;
+        };
       } catch {
         // File does not exist yet — treat it as a new file to be created.
         return {
@@ -58,7 +58,7 @@ async function categorizeFiles(
           diskPath,
           protected: false,
           origin,
-        } as StagedFile;
+        };
       }
     })
   );

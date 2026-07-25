@@ -17,11 +17,7 @@ import { createNotIpCoreHtml } from './ipCoreErrorHtml';
 import { createSharedProviderServices } from './providerServices';
 import { handleGenerateRequest } from './IpCoreGenerateHandler';
 import { runConsistencyCheck } from '../commands/ConsistencyCheckCommands';
-import {
-  IpCoreWebviewMessage,
-  GenerateRequestMessage,
-  GenerateOptionsMessage,
-} from '../shared/messages/ipCore';
+import { IpCoreWebviewMessage, GenerateOptionsMessage } from '../shared/messages/ipCore';
 import { WebviewStagingBridge } from './WebviewStagingBridge';
 import { mergeStagedFile } from './StagingPanel';
 import { STAGING_SCHEME } from './StagingContentProvider';
@@ -389,7 +385,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         documentManager: this.documentManager,
         document,
         webview: webviewPanel.webview,
-        message: message as GenerateRequestMessage,
+        message: message,
         refreshWebview: updateWebview,
       });
     });

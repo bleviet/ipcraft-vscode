@@ -168,12 +168,12 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
     rows: rawRows,
     rowsPath,
     onUpdate,
-    containerRef: containerRef as React.RefObject<HTMLElement>,
+    containerRef: containerRef,
     onAfterRevert,
   });
 
   // ---- Hover insert bar ----
-  const hoverInsert = useHoverInsertBar(containerRef as React.RefObject<HTMLElement>);
+  const hoverInsert = useHoverInsertBar(containerRef);
 
   // ---- Clamp selection when data changes ----
   const extraDeps = clampDeps ?? [];
@@ -290,7 +290,7 @@ export function useTableEditorState<TRow, TColumnKey extends ColumnKey>({
     },
     rowIds,
     columnOrder: [...columnOrder],
-    containerRef: containerRef as React.RefObject<HTMLElement>,
+    containerRef: containerRef,
     onEdit: (rowId, key) => {
       setSelectedRowId(rowId);
       setHoveredRowId(rowId);

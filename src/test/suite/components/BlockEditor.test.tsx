@@ -38,7 +38,7 @@ import {
 const noop = jest.fn();
 
 function makeBlock(regs: Array<Record<string, unknown>>): AddressBlockModel {
-  return { name: 'BLOCK', base_address: 0, registers: regs } as unknown as AddressBlockModel;
+  return { name: 'BLOCK', base_address: 0, registers: regs };
 }
 
 describe('BlockEditor — register detail view', () => {

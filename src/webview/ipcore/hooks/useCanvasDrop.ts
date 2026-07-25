@@ -225,7 +225,7 @@ function addPort(
 
   const newPort: Port = {
     name,
-    direction: direction as Port['direction'],
+    direction: direction,
     width: 1,
   };
 
@@ -241,7 +241,7 @@ function addInterrupt(
   onUpdate: YamlUpdateHandler,
   onSelect: (id: string) => void
 ) {
-  const interrupts: Interrupt[] = [...((ipCore.interrupts ?? []) as Interrupt[])];
+  const interrupts: Interrupt[] = [...(ipCore.interrupts ?? [])];
   const existingNames = interrupts.map((irq) => irq.name);
   const name = uniqueName(payload.nameHint, existingNames);
   const direction = payload.direction ?? (isLeftHalf ? 'in' : 'out');

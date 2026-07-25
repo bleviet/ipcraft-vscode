@@ -90,7 +90,7 @@ export function useCanvasCommands({
     }
 
     if (canvasSelected.kind === 'busInterface') {
-      const bus = ((ipCore.busInterfaces ?? []) as BusInterface[])[canvasSelected.index] as
+      const bus = (ipCore.busInterfaces ?? [])[canvasSelected.index] as
         | (BusInterface & Record<string, unknown>)
         | undefined;
       if (!bus) {
@@ -209,7 +209,7 @@ export function useCanvasCommands({
         if (parts.length >= 3) {
           const busIndex = parseInt(parts[1], 10);
           const portName = parts.slice(2).join(':');
-          const bus = ((ipCore.busInterfaces ?? []) as BusInterface[])[busIndex] as
+          const bus = (ipCore.busInterfaces ?? [])[busIndex] as
             | { useOptionalPorts?: string[] }
             | undefined;
           const current = bus?.useOptionalPorts ?? [];

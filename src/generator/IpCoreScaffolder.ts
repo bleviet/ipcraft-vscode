@@ -59,7 +59,7 @@ export async function applyExecutableMode(fullPath: string, logger: Logger): Pro
       await fs.chmod(fullPath, modeWithExecute);
     }
   } catch (error) {
-    logger.warn(`Could not set executable bit on ${fullPath}`, error as Error);
+    logger.warn(`Could not set executable bit on ${fullPath}`, error);
   }
 }
 
@@ -759,7 +759,7 @@ export async function collectRtlAbsPaths(
   // generated package/register/core files.
   const generatedItems = generatedRelPaths.map((relPath) => ({
     absPath: path.resolve(outputDir, relPath),
-    relPath: relPath as string | undefined,
+    relPath: relPath,
     language: relPath.endsWith('.sv') ? ('systemverilog' as const) : ('vhdl' as const),
     logicalName: undefined as string | undefined,
   }));

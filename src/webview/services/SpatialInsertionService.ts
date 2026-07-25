@@ -580,7 +580,7 @@ export class SpatialInsertionService {
     const selIdx = selectedIndex >= 0 ? selectedIndex : blocks.length - 1;
     const selected = blocks[selIdx];
     const selectedBase = selected.baseAddress ?? 0;
-    const selectedSize = calculateBlockSize(selected as Parameters<typeof calculateBlockSize>[0]);
+    const selectedSize = calculateBlockSize(selected);
 
     const newBase = selectedBase + selectedSize;
 
@@ -641,7 +641,7 @@ export class SpatialInsertionService {
     if (selIdx > 0) {
       const prevBlock = newBlocks[selIdx - 1];
       const prevBase = prevBlock.baseAddress ?? 0;
-      const prevSize = calculateBlockSize(prevBlock as Parameters<typeof calculateBlockSize>[0]);
+      const prevSize = calculateBlockSize(prevBlock);
       const prevEnd = prevBase + prevSize - 1;
 
       if (prevEnd >= newBase) {

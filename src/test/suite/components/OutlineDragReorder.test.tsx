@@ -50,7 +50,7 @@ function ArrayHarness({ onReorder }: { onReorder: (p: OutlineReorder) => void })
 // jsdom returns all-zero rects; give the row a real height so the top/bottom
 // half split in onDragMove is meaningful.
 function mockRect(el: HTMLElement, top: number, height: number) {
-  el.getBoundingClientRect = (() => ({
+  el.getBoundingClientRect = () => ({
     top,
     left: 0,
     bottom: top + height,
@@ -60,7 +60,7 @@ function mockRect(el: HTMLElement, top: number, height: number) {
     x: 0,
     y: top,
     toJSON: () => ({}),
-  })) as unknown as typeof el.getBoundingClientRect;
+  });
 }
 
 describe('useOutlineDragReorder', () => {

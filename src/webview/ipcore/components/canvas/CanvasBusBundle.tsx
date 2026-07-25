@@ -123,13 +123,13 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
         e.dataTransfer.setData(REMOVE_MIME, JSON.stringify(payload));
         e.dataTransfer.effectAllowed = 'move';
 
-        const target = e.currentTarget as SVGGElement;
+        const target = e.currentTarget;
         setTimeout(() => {
           target.style.opacity = '0.4';
         }, 0);
       }}
       onDragEnd={(e) => {
-        const target = e.currentTarget as SVGGElement;
+        const target = e.currentTarget;
         target.style.opacity = '1';
         dragEnterCountRef.current = 0;
         setIsDragTarget(false);

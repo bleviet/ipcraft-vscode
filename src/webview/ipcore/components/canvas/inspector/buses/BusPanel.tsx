@@ -1,5 +1,5 @@
 import React from 'react';
-import type { BusInterface, Clock, IpCore, Reset } from '../../../../../types/ipCore';
+import type { BusInterface, IpCore } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
 import { validateUniqueName, validateVhdlIdentifier } from '../../../../../shared/utils/validation';
 import { busSupportsMemoryMap } from '../../../../../../shared/busVlnv';
@@ -41,9 +41,9 @@ export const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports,
     );
   }
 
-  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
-  const clocks = (ipCore.clocks ?? []) as Clock[];
-  const resets = (ipCore.resets ?? []) as Reset[];
+  const buses = ipCore.busInterfaces ?? [];
+  const clocks = ipCore.clocks ?? [];
+  const resets = ipCore.resets ?? [];
   const existingNames = buses.map((b) => b.name).filter((_, i) => i !== index);
 
   // Detect if this interface's physicalPrefix collides with any sibling

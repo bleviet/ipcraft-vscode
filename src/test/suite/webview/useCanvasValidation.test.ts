@@ -484,7 +484,7 @@ describe('useCanvasValidation', () => {
           name: 'bus_b',
           type: 'axis',
           mode: 'sink',
-          physicalPrefix: null as any,
+          physicalPrefix: null,
           associatedClock: 'clk',
         },
       ],

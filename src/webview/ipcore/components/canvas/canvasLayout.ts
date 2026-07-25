@@ -1,4 +1,4 @@
-import type { IpCore, BusInterface, Interrupt } from '../../../types/ipCore';
+import type { IpCore, BusInterface } from '../../../types/ipCore';
 import type { BusPortDef } from '../../data/busDefinitions';
 
 // --- Constants ---
@@ -450,7 +450,7 @@ export function computeLayout(
   });
 
   // Interrupts -> right (out/default) or left (in)
-  const interrupts = (ipCore.interrupts ?? []) as Interrupt[];
+  const interrupts = ipCore.interrupts ?? [];
   interrupts.forEach((irq, i) => {
     if (irq.direction === 'in') {
       leftItems.push({ kind: 'interrupt', index: i, data: irq });
@@ -566,7 +566,7 @@ export function computeLayout(
           protocol = busProtocolShortName(String(d.type ?? ''));
           mode = modeLabel(String(d.mode ?? ''));
           widthLabel = '';
-          domainIdx = busDomainIdx(d as { associatedClock?: string | null });
+          domainIdx = busDomainIdx(d);
           const arrCfg = d.array as { count?: number; namingPattern?: string } | undefined | null;
           if (arrCfg?.count && arrCfg.count > 1) {
             arrayCount = arrCfg.count;
@@ -680,7 +680,7 @@ export function computeLayout(
           visibleDefs.forEach((portDef, pi) => {
             const subY = y + PORT_PITCH * (pi + 1);
             const rawWidth = overrides[portDef.name] ?? portDef.width;
-            const widthLbl = formatWidth(rawWidth as number | string | undefined);
+            const widthLbl = formatWidth(rawWidth);
             const isAbsent = absentPortsSet.has(portDef.name.toUpperCase());
             const active =
               !isAbsent && (portDef.presence === 'required' || useOptional.includes(portDef.name));

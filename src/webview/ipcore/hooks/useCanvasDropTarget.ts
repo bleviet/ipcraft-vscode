@@ -37,7 +37,7 @@ export function useCanvasDropTarget(opts: {
       setDragActive(true);
 
       if (e.dataTransfer.types.includes(DRAG_MIME)) {
-        const svgEl = e.currentTarget as Element;
+        const svgEl = e.currentTarget;
         const rect = svgEl.getBoundingClientRect();
         setDragHoverSide(dropHalfSide(e.clientX, rect));
       }

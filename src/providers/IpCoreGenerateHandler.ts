@@ -58,7 +58,7 @@ export async function handleGenerateRequest({
     return;
   }
 
-  logger.info('Generate request received', message.options as Record<string, unknown> | undefined);
+  logger.info('Generate request received', message.options);
 
   const baseDir = path.dirname(document.uri.fsPath);
 

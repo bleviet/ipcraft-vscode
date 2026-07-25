@@ -1,12 +1,5 @@
 import React, { useMemo } from 'react';
-import type {
-  BusInterface,
-  Clock,
-  Interrupt,
-  IpCore,
-  Port,
-  Reset,
-} from '../../../../../types/ipCore';
+import type { Clock, Interrupt, IpCore, Port, Reset } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
 import { validateUniqueName, validateVhdlIdentifier } from '../../../../../shared/utils/validation';
 import type { BatchUpdate } from '../../../../hooks/useGroupPorts';
@@ -30,8 +23,8 @@ interface ClockPanelProps {
 }
 
 export const ClockPanel: React.FC<ClockPanelProps> = ({ clock, index, ipCore, onUpdate }) => {
-  const clocks = (ipCore.clocks ?? []) as Clock[];
-  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
+  const clocks = ipCore.clocks ?? [];
+  const buses = ipCore.busInterfaces ?? [];
   const existingNames = clocks.map((c) => c.name).filter((_, i) => i !== index);
   const usedBy = buses.filter((b) => b.associatedClock === clock.name).map((b) => b.name);
 
@@ -106,8 +99,8 @@ interface ResetPanelProps {
 }
 
 export const ResetPanel: React.FC<ResetPanelProps> = ({ reset, index, ipCore, onUpdate }) => {
-  const resets = (ipCore.resets ?? []) as Reset[];
-  const buses = (ipCore.busInterfaces ?? []) as BusInterface[];
+  const resets = ipCore.resets ?? [];
+  const buses = ipCore.busInterfaces ?? [];
   const existingNames = resets.map((r) => r.name).filter((_, i) => i !== index);
   const usedBy = buses.filter((b) => b.associatedReset === reset.name).map((b) => b.name);
 
@@ -190,14 +183,13 @@ export const PortPanel: React.FC<PortPanelProps> = ({
   onUpdate,
   batchUpdate,
 }) => {
-  const ports = (ipCore.ports ?? []) as Port[];
+  const ports = ipCore.ports ?? [];
   const existingNames = ports.map((p) => p.name).filter((_, i) => i !== index);
   const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
     (p) => p.name
   );
 
-  const currentWidth: number | string =
-    port.width === undefined || port.width === null ? 1 : (port.width as number | string);
+  const currentWidth: number | string = port.width ?? 1;
 
   const saveDirection = (direction: string) => {
     const mutations: Mutation[] = [[['ports', index, 'direction'], direction]];
@@ -309,16 +301,13 @@ export const InterruptPanel: React.FC<InterruptPanelProps> = ({
   ipCore,
   onUpdate,
 }) => {
-  const interrupts = (ipCore.interrupts ?? []) as Interrupt[];
+  const interrupts = ipCore.interrupts ?? [];
   const existingNames = interrupts.map((irq) => irq.name).filter((_, i) => i !== index);
   const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
     (p) => p.name
   );
 
-  const currentWidth: number | string =
-    interrupt.width === undefined || interrupt.width === null
-      ? 1
-      : (interrupt.width as number | string);
+  const currentWidth: number | string = interrupt.width ?? 1;
 
   const paramValues = useMemo(
     () =>

@@ -69,7 +69,7 @@ function busDefPortMaps(
   mode: string
 ): string[] {
   const activePorts = getActiveBusPortsFromDefinition(
-    ports as Array<{ name: string; width?: number; direction?: string; presence?: string }>,
+    ports,
     iface.useOptionalPorts ?? [],
     String(iface.physicalPrefix ?? ''),
     mode,
@@ -1162,9 +1162,7 @@ function renderPorts(
 
     if (!sourcePorts) {
       // Unknown bus type with preserved rawPortMaps: emit physical ports directly
-      const rawPortMaps = iface.rawPortMaps as
-        | Array<{ logical: string; physical: string; direction: 'in' | 'out'; width: number }>
-        | undefined;
+      const rawPortMaps = iface.rawPortMaps;
       if (rawPortMaps) {
         for (const pm of rawPortMaps) {
           portLines.push(...renderModelPort(pm.physical, pm.direction, pm.width, isSv));
@@ -1184,12 +1182,7 @@ function renderPorts(
     // Each interface uses only its own portWidthOverrides; sibling interfaces are independent.
     const effectiveOverrides: Record<string, number | string> = iface.portWidthOverrides ?? {};
     const activePorts = getActiveBusPortsFromDefinition(
-      sourcePorts as Array<{
-        name: string;
-        width?: number | string;
-        direction?: string;
-        presence?: string;
-      }>,
+      sourcePorts,
       iface.useOptionalPorts ?? [],
       String(iface.physicalPrefix ?? ''),
       mode,
@@ -1684,10 +1677,6 @@ export async function getFileSetPaths(
     return match.files.map((f) => `${prefix}${f.path ?? ''}`);
   }
 
-  const resolved = await resolveFileSetRtlFiles(
-    ipCore as Record<string, unknown>,
-    ipCoreDir,
-    fileSetName
-  );
+  const resolved = await resolveFileSetRtlFiles(ipCore, ipCoreDir, fileSetName);
   return resolved.map((f) => `${prefix}${f.path}`);
 }

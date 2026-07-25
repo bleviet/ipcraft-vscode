@@ -14,7 +14,7 @@ function baseIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
       },
     ],
     ...overrides,
-  } as IpCoreData;
+  };
 }
 
 function makeReader(content: string): (absPath: string) => Promise<string> {

@@ -44,7 +44,7 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
           !message ||
           typeof message !== 'object' ||
           !('type' in message) ||
-          typeof (message as { type: unknown }).type !== 'string'
+          typeof message.type !== 'string'
         ) {
           this.logger.warn('Received invalid message format from webview');
           return;

@@ -3,7 +3,7 @@ import { fireEvent, render } from '@testing-library/react';
 import { TwoPanelEditorLayout } from '../../../webview/shared/components/TwoPanelEditorLayout';
 
 function mockWidth(el: HTMLElement, width: number) {
-  el.getBoundingClientRect = (() => ({
+  el.getBoundingClientRect = () => ({
     top: 0,
     left: 0,
     bottom: 400,
@@ -13,7 +13,7 @@ function mockWidth(el: HTMLElement, width: number) {
     x: 0,
     y: 0,
     toJSON: () => ({}),
-  })) as unknown as typeof el.getBoundingClientRect;
+  });
 }
 
 describe('TwoPanelEditorLayout — resizable side-by-side', () => {

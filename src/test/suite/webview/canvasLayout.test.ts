@@ -218,7 +218,7 @@ describe('computeLayout', () => {
           ],
         },
       ],
-    } as Parameters<typeof makeIpCore>[0]);
+    });
     const layout = computeLayout(ip, new Set(['bus:0']));
 
     const subIds = layout.subPorts.map((sp) => sp.id);
@@ -274,9 +274,7 @@ describe('computeLayout', () => {
       ],
     };
     const layoutNoAuthor = computeLayout(makeIpCore(baseCore));
-    const layoutWithAuthor = computeLayout(
-      makeIpCore({ ...baseCore, author: 'Jane Doe' } as Parameters<typeof makeIpCore>[0])
-    );
+    const layoutWithAuthor = computeLayout(makeIpCore({ ...baseCore, author: 'Jane Doe' }));
 
     expect(layoutWithAuthor.authorLabel).toBe('Jane Doe');
     layoutNoAuthor.ports.forEach((p, i) => {
@@ -413,7 +411,7 @@ describe('computeLayout', () => {
     it('computes subcoreDeps entries from string subcores', () => {
       const ip = makeIpCore({
         subcores: ['xilinx.com:ip:fifo_generator:13.2', 'xilinx.com:ip:clk_wiz:6.0'],
-      } as Partial<IpCore>);
+      });
       const layout = computeLayout(ip);
 
       expect(layout.subcoreDeps).toHaveLength(2);
@@ -428,7 +426,7 @@ describe('computeLayout', () => {
     it('computes subcoreDeps entries from object subcores', () => {
       const ip = makeIpCore({
         subcores: [{ vlnv: 'my.com:lib:my_sub:1.0', path: 'cores/my_sub' }],
-      } as Partial<IpCore>);
+      });
       const layout = computeLayout(ip);
 
       expect(layout.subcoreDeps).toHaveLength(1);
@@ -439,7 +437,7 @@ describe('computeLayout', () => {
     it('depSeparatorY is at blockY + 86 regardless of subcores count', () => {
       const ip = makeIpCore({
         subcores: ['a.com:l:foo:1.0'],
-      } as Partial<IpCore>);
+      });
       const layout = computeLayout(ip);
       expect(layout.depSeparatorY).toBe(layout.blockRect.y + 86);
     });
@@ -447,7 +445,7 @@ describe('computeLayout', () => {
     it('subcore rows have increasing Y positions', () => {
       const ip = makeIpCore({
         subcores: ['a:b:c:1', 'a:b:d:1', 'a:b:e:1'],
-      } as Partial<IpCore>);
+      });
       const layout = computeLayout(ip);
 
       const ys = layout.subcoreDeps.map((d) => d.y);
@@ -462,7 +460,7 @@ describe('computeLayout', () => {
       const ipWithSub = makeIpCore({
         subcores: ['a:b:c:1', 'a:b:d:1'],
         parameters: [{ name: 'WIDTH', defaultValue: 8 }] as unknown as IpCore['parameters'],
-      } as Partial<IpCore>);
+      });
 
       const layoutNoSub = computeLayout(ipNoSub);
       const layoutWithSub = computeLayout(ipWithSub);
@@ -475,7 +473,7 @@ describe('computeLayout', () => {
       const ipNoSub = makeIpCore();
       const ipWithSub = makeIpCore({
         subcores: ['a:b:c:1', 'a:b:d:1', 'a:b:e:1'],
-      } as Partial<IpCore>);
+      });
 
       const layoutNoSub = computeLayout(ipNoSub);
       const layoutWithSub = computeLayout(ipWithSub);

@@ -228,7 +228,7 @@ function collectExpectedBusPorts(ipCoreData: IpCoreData): ExpectedBusPort[] {
     const expanded = expandBusInterfaces({
       ...ipCoreData,
       busInterfaces: [rawIface],
-    } as IpCoreData);
+    });
 
     for (const iface of expanded) {
       if ((iface.mode ?? '').toLowerCase() === 'conduit') {

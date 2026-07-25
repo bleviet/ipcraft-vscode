@@ -160,7 +160,7 @@ export function BlockTableRow({
       onMouseLeave={onMouseLeave}
       onClick={onRowClick}
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
           setEditingKey(null);
         }
       }}

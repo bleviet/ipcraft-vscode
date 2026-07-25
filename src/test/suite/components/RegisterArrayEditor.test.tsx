@@ -49,7 +49,7 @@ function makeArray(
     stride: 16,
     registers: regs,
     ...overrides,
-  } as unknown as RegisterArrayEditorProps['registerArray'];
+  };
 }
 
 describe('RegisterArrayEditor — flat array (no nested registers)', () => {

@@ -222,7 +222,7 @@ export const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps>
     );
   }
 
-  const useOptionalPorts = (bus.useOptionalPorts ?? []) as string[];
+  const useOptionalPorts = bus.useOptionalPorts ?? [];
   const enabledDefs = portDefs.filter(
     (p) => p.presence === 'required' || useOptionalPorts.includes(p.name)
   );

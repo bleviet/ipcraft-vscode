@@ -14,7 +14,7 @@ import { IpCoreShell } from './components/IpCoreShell';
 import { IpCoreRightPanel } from './components/IpCoreRightPanel';
 import type { IpCoreToolbarProps } from './components/IpCoreToolbar';
 import { EditorPanel } from './components/layout/EditorPanel';
-import type { IpCore, BusInterface } from '../types/ipCore';
+import type { IpCore } from '../types/ipCore';
 import { useGroupPorts } from './hooks/useGroupPorts';
 import type { BatchUpdate } from './hooks/useGroupPorts';
 import { lookupBusDef, lookupBusDefFromLibrary } from './data/busDefinitions';
@@ -57,7 +57,7 @@ const IpCoreApp: React.FC = () => {
     rawYaml,
     updateFromYaml,
     fileName: fileName ?? 'ipcore',
-    imports: imports as Record<string, unknown>,
+    imports: imports,
   });
 
   // Intercept updates to push to undo stack
@@ -197,7 +197,7 @@ const IpCoreApp: React.FC = () => {
   const duplicatePrefixes = useMemo((): string[] => {
     const buses = (ipCore as unknown as IpCore)?.busInterfaces ?? [];
     const prefixCount = new Map<string, number>();
-    for (const bus of buses as BusInterface[]) {
+    for (const bus of buses) {
       const p = (bus.physicalPrefix ?? '').toLowerCase();
       if (p) {
         prefixCount.set(p, (prefixCount.get(p) ?? 0) + 1);

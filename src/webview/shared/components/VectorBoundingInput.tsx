@@ -323,7 +323,7 @@ export const VectorBoundingInput: React.FC<VectorBoundingInputProps> = ({
   };
 
   const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
-    if (containerRef.current?.contains(e.relatedTarget as Node)) {
+    if (containerRef.current?.contains(e.relatedTarget)) {
       return;
     }
     isFocusedRef.current = false;

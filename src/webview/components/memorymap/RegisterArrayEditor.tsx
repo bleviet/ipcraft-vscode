@@ -52,7 +52,7 @@ function RegisterInlineHeader({
     rows: registers,
     rowsPath: ['registers'],
     onUpdate,
-    containerRef: containerRef as React.RefObject<HTMLElement>,
+    containerRef: containerRef,
   });
 
   const startEdit = (key: InlineEditKey) => (e: React.MouseEvent) => {
@@ -78,7 +78,7 @@ function RegisterInlineHeader({
       ref={containerRef}
       className="vscode-surface border-b vscode-border px-6 py-2 shrink-0 flex items-center gap-4 min-w-0"
       onBlur={(e) => {
-        if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+        if (!containerRef.current?.contains(e.relatedTarget)) {
           stopEdit();
         }
       }}

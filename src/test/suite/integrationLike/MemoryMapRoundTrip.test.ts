@@ -83,7 +83,7 @@ function uiAddRegister(text: string, blockIndex: number): string {
     blockIndex,
   ]) as Record<string, unknown>;
   const width = blockRegWidth(rawBlock);
-  const laidOut = recomputeRegisterLayout(newRegs as LayoutRegister[], width);
+  const laidOut = recomputeRegisterLayout(newRegs, width);
   const sanitized = laidOut.map(
     (r) => serializeValue(r as Record<string, unknown>, width) as Record<string, unknown>
   );

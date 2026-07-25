@@ -84,7 +84,7 @@ export class TemplateLoader {
             return value === compare;
           }
           if (operator === 'in') {
-            return Array.isArray(compare) ? compare.includes(value as never) : false;
+            return Array.isArray(compare) ? compare.includes(value) : false;
           }
           return false;
         });

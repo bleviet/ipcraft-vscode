@@ -1,4 +1,4 @@
-import type { IpCore, Interrupt } from '../../../../types/ipCore';
+import type { IpCore } from '../../../../types/ipCore';
 import type { CanvasElement, CanvasElementKind } from '../../../hooks/useCanvasSelection';
 
 export function getElementName(element: CanvasElement, ipCore: IpCore): string {
@@ -20,7 +20,7 @@ export function getElementName(element: CanvasElement, ipCore: IpCore): string {
       return String(p?.name ?? '');
     }
     case 'interrupt':
-      return ((ipCore.interrupts ?? []) as Interrupt[])[element.index]?.name ?? '';
+      return (ipCore.interrupts ?? [])[element.index]?.name ?? '';
     case 'subcore': {
       const rawSubcores = (ipCore.subcores ?? []) as Array<
         string | { vlnv: string; path?: string }

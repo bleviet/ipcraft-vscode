@@ -97,9 +97,7 @@ function effectiveRegWidth(block: LayoutBlock): number {
 
 /** Parse bit bounds from a field, returning [msb, lsb] or null. */
 function fieldBounds(field: LayoutField): [number, number] | null {
-  const bitsStr = fieldToBitsString(
-    field as { offset?: number | null; width?: number | null; bits?: string | null }
-  );
+  const bitsStr = fieldToBitsString(field);
   return parseBitsRange(bitsStr);
 }
 

@@ -59,7 +59,7 @@ export async function resolveMemoryMapImports({
     } catch (err) {
       const msg = `Failed to load memory map from ${importField}: ${(err as Error).message}`;
       errors.push(msg);
-      return { resolved: [memoryMaps as Record<string, unknown>], errors };
+      return { resolved: [memoryMaps], errors };
     }
   }
 
@@ -81,7 +81,7 @@ export async function resolveMemoryMapImports({
       } catch (err) {
         const msg = `Failed to load memory map from ${importField}: ${(err as Error).message}`;
         errors.push(msg);
-        resolved.push(entry as Record<string, unknown>);
+        resolved.push(entry);
       }
     } else if (entry && typeof entry === 'object') {
       resolved.push(entry as Record<string, unknown>);

@@ -61,7 +61,7 @@ const ValueBar = ({
             value={valueDraft}
             onFocus={(event) => {
               setValueEditing(true);
-              (event.target as HTMLInputElement).select?.();
+              event.target.select?.();
             }}
             onBlur={() => {
               setValueEditing(false);
@@ -100,12 +100,10 @@ const ValueBar = ({
           color: 'var(--vscode-button-foreground)',
         }}
         onMouseEnter={(event) => {
-          (event.currentTarget as HTMLButtonElement).style.background =
-            'var(--vscode-button-hoverBackground)';
+          event.currentTarget.style.background = 'var(--vscode-button-hoverBackground)';
         }}
         onMouseLeave={(event) => {
-          (event.currentTarget as HTMLButtonElement).style.background =
-            'var(--vscode-button-background)';
+          event.currentTarget.style.background = 'var(--vscode-button-background)';
         }}
         onClick={() => setValueView((view) => (view === 'hex' ? 'dec' : 'hex'))}
         title="Toggle hex/dec"

@@ -17,12 +17,12 @@ function baseIpCore(overrides: Partial<IpCore> = {}): IpCore {
     resets: [{ name: 'rst_n' }, { name: 'rst_hs_n' }],
     busInterfaces: [],
     ...overrides,
-  } as unknown as IpCore;
+  };
 }
 
 describe('CanvasInspector BusInterfaceMatrixPanel', () => {
   it('shows an empty state when there are no bus interfaces and no resets', () => {
-    const ipCore = baseIpCore({ resets: [] } as unknown as Partial<IpCore>);
+    const ipCore = baseIpCore({ resets: [] });
     render(
       <CanvasInspector
         selected={MATRIX_SELECTION}
@@ -202,7 +202,7 @@ describe('CanvasInspector BusInterfaceMatrixPanel', () => {
     it('renders one row per reset, showing its own associated clock', () => {
       const ipCore = baseIpCore({
         resets: [{ name: 'rst_n', associatedClock: 'clk_sys' }, { name: 'rst_hs_n' }],
-      } as unknown as Partial<IpCore>);
+      });
       render(
         <CanvasInspector
           selected={MATRIX_SELECTION}
@@ -227,7 +227,7 @@ describe('CanvasInspector BusInterfaceMatrixPanel', () => {
       const onUpdate = jest.fn();
       const ipCore = baseIpCore({
         resets: [{ name: 'rst_n' }],
-      } as unknown as Partial<IpCore>);
+      });
       render(
         <CanvasInspector
           selected={MATRIX_SELECTION}
@@ -249,7 +249,7 @@ describe('CanvasInspector BusInterfaceMatrixPanel', () => {
       const onSelectElement = jest.fn();
       const ipCore = baseIpCore({
         resets: [{ name: 'rst_n' }],
-      } as unknown as Partial<IpCore>);
+      });
       render(
         <CanvasInspector
           selected={MATRIX_SELECTION}
@@ -268,7 +268,7 @@ describe('CanvasInspector BusInterfaceMatrixPanel', () => {
       const ipCore = baseIpCore({
         busInterfaces: [],
         resets: [{ name: 'rst_n' }],
-      } as unknown as Partial<IpCore>);
+      });
       render(
         <CanvasInspector
           selected={MATRIX_SELECTION}

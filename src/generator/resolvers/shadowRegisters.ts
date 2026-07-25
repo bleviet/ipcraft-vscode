@@ -219,7 +219,7 @@ export function validateShadowRegisters(
           message: `monitorChangeOf requires write-1-to-clear access, got "${getString(field.access)}"`,
         });
       }
-      const exists = fields.some((f) => getString(f.name as string) === targetName);
+      const exists = fields.some((f) => getString(f.name) === targetName);
       if (!exists) {
         diagnostics.push({
           field: `${getString(reg.name)}.${getString(field.name)}`,

@@ -161,11 +161,7 @@ export function MemoryMapEditor({
     pendingInsertFocusRef
   );
 
-  useAutoFocus(
-    editor.containerRef as React.RefObject<HTMLDivElement>,
-    !!selectionMeta?.focusDetails,
-    [memoryMap?.name]
-  );
+  useAutoFocus(editor.containerRef, !!selectionMeta?.focusDetails, [memoryMap?.name]);
 
   const closeContextMenu = () => setContextMenu(null);
 
