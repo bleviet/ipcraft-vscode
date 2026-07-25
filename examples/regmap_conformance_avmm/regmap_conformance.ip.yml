@@ -30,6 +30,17 @@ resets:
     description: Synchronous reset
     associatedClock: clk
 
+ports:
+  - name: led
+    direction: out
+    width: 8
+    description: >
+      Board-only test-harness liveness indicator (see regmap_conformance.mm.yml
+      TEST_PROGRESS). Bits [6:0] are a steady binary readout of
+      TEST_PROGRESS.COUNT -- always lit, never blinked. Bit [7] is a
+      dedicated status LED that blinks slowly while the shared conformance
+      suite is progressing and faster once TEST_PROGRESS.FAILED is set.
+
 busInterfaces:
   - name: S_AVMM
     type: ipcraft:busif:avalon_mm:1.0
@@ -55,9 +66,11 @@ memoryMaps:
 # list from this RTL_Sources fileSet once any fileSets are present at all
 # (it does not merge with auto-discovered files) -- so this must be the
 # complete RTL manifest, not just the file(s) being protected below.
-# `managed: false` marks rtl/regmap_conformance_core.vhd and the cocotb
-# scoreboard as user-owned so a re-scaffold never overwrites the hand-written
-# loopback wiring or the hand-added conformance assertions.
+# `managed: false` marks rtl/regmap_conformance_core.vhd, the cocotb
+# scoreboard, the shared manifest-driven scenarios, and the JTAG-to-Avalon
+# hardware runner as user-owned so a re-scaffold never overwrites the
+# hand-written loopback wiring, the hand-added conformance assertions, or the
+# board transport used by both simulation and hardware.
 fileSets:
   - name: RTL_Sources
     description: RTL Sources
@@ -82,8 +95,14 @@ fileSets:
       - path: tb/test_regmap_conformance_sim.py
         type: python
         managed: false
+      - path: tb/conformance_scenarios.py
+        type: python
+        managed: false
   - name: Integration
     description: Integration Files
     files:
       - path: altera/regmap_conformance_hw.tcl
         type: tcl
+      - path: altera/debug/hardware_runner.py
+        type: python
+        managed: false

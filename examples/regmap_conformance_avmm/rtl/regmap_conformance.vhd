@@ -25,18 +25,22 @@ entity regmap_conformance is
     avs_write      : in  std_logic;
     avs_byteenable : in  std_logic_vector(3 downto 0);
     avs_writedata  : in  std_logic_vector(31 downto 0);
-    avs_readdata   : out std_logic_vector(31 downto 0)
+    avs_readdata   : out std_logic_vector(31 downto 0);
+
+    -- User ports
+    led : out std_logic_vector(7 downto 0)
     );
 end entity regmap_conformance;
 
 architecture rtl of regmap_conformance is
+
+
 
     -- Internal register signals
   signal regs_sw2hw : t_regs_sw2hw;
   signal regs_hw2sw : t_regs_hw2sw;
 
 begin
-
 
     ----------------------------------------------------------------------------
     -- Bus Wrapper Instance
@@ -64,7 +68,8 @@ begin
       clk => clk,
       rst => reset,
       regs_in  => regs_sw2hw,
-      regs_out => regs_hw2sw
+      regs_out => regs_hw2sw,
+      led => led
     );
 
 end architecture rtl;

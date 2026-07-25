@@ -15,10 +15,13 @@ import os
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
+from conformance_scenarios import DEFAULT_RANDOM_SEED, run_conformance_scenarios
 from mm_loader import load_regmap
+from register_model import RegisterModel, load_manifest
 
 _MM_YML = os.path.join(os.path.dirname(__file__), "../regmap_conformance.mm.yml")
 regmap = load_regmap(_MM_YML)
+_MANIFEST_PATH = os.path.join(os.path.dirname(__file__), "verification_manifest.json")
 
 
 async def _write_reg(dut, byte_addr: int, value: int) -> None:
@@ -93,6 +96,46 @@ def _stim(**bits) -> int:
     for name, bit_value in bits.items():
         val = reg.fields[name].insert(val, bit_value)
     return val
+
+
+class CocotbTransport:
+    """Avalon-MM adapter for the scenarios shared with the hardware runner."""
+
+    def __init__(self, dut):
+        self.dut = dut
+        self.supports_priority_races = True
+
+    async def write(self, offset, value, byte_enable=None):
+        if byte_enable is None:
+            await _write_reg(self.dut, offset, value)
+        else:
+            await _write_reg_strobe(self.dut, offset, value, byte_enable)
+
+    async def write_sequence(self, writes):
+        for offset, value, byte_enable in writes:
+            await self.write(offset, value, byte_enable)
+
+    async def read(self, offset):
+        return await _read_reg(self.dut, offset)
+
+
+@cocotb.test()
+async def test_shared_manifest_scenarios(dut):
+    """Run the exact manifest-driven scenario suite used on the DE10-Nano."""
+    model = RegisterModel(load_manifest(_MANIFEST_PATH))
+    transport = CocotbTransport(dut)
+
+    async def settle(cycles=3):
+        await _settle(dut, cycles)
+
+    results = await run_conformance_scenarios(
+        transport,
+        model,
+        lambda: _reset_dut(dut),
+        settle,
+        DEFAULT_RANDOM_SEED,
+    )
+    assert results
 
 
 # ---------------------------------------------------------------------------

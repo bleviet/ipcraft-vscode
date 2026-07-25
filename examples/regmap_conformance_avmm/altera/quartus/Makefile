@@ -27,6 +27,9 @@ SOPCINFO      = ../qsys/regmap_conformance_system.sopcinfo
 
 REGMAP_BASE   = 0x00010000
 DEBUG_DIR     = ../debug
+HARDWARE_RESULT ?= output_files/hardware-result.json
+RANDOM_SEED     ?= 0x177
+BOARD_ID        ?= de10-nano
 
 BSP_DIR       = ../../software/platform/nios2/bsp
 APP_DIR       = ../../software/platform/nios2
@@ -47,6 +50,7 @@ DEVICE_INDEX ?= 2
 # smallest root that covers this example plus the shared examples/common/
 # resources (power_on_reset_generator.vhd, uname_shim.sh).
 REPO_ROOT  = $(realpath ../../..)
+WORKSPACE_ROOT = $(realpath ../../../..)
 UNAME_SHIM = $(REPO_ROOT)/common/docker/uname_shim.sh
 DOCKER     = docker run --rm --user $$(id -u):$$(id -g) -v $(REPO_ROOT):/work $(DOCKER_IMAGE) bash -c
 DOCKER_CWD = cd /work/$(PROJECT_NAME)/altera/quartus
@@ -62,7 +66,7 @@ DOCKER_GUI = docker run --rm --user $$(id -u):$$(id -g) \
 .PHONY: all qsys project compile bsp app clean sim \
         program-sof download-elf terminal usb-windows usb-wsl \
         quartus-gui platform-designer \
-        conformance-sysconsole conformance-nios test
+        conformance-sysconsole conformance-manifest conformance-nios test
 
 all: qsys project compile bsp app
 
@@ -191,6 +195,28 @@ conformance-sysconsole: usb-wsl
 	    kill $$(pgrep jtagd) 2>/dev/null || true; \
 	    grep -q "@@RESULT CONFORMANCE: ALL PASS" /tmp/conformance_sysconsole_output.txt'
 
+# conformance-manifest: Execute the same manifest-derived scoreboard and
+# transaction scenarios as cocotb, replacing only the Avalon simulation
+# transport with JTAG-to-Avalon through System Console. The runner always
+# writes HARDWARE_RESULT and exits nonzero if Quartus, the board, the JTAG
+# master, or any scenario is unavailable or fails.
+conformance-manifest: usb-wsl
+	mkdir -p $(dir $(HARDWARE_RESULT))
+	docker run --rm --user $$(id -u):$$(id -g) --privileged \
+	  -v /dev/bus/usb:/dev/bus/usb \
+	  -v $(REPO_ROOT):/work \
+	  -v $(WORKSPACE_ROOT):/repo:ro \
+	  $(DOCKER_IMAGE) \
+	  bash -c 'jtagd && sleep 5; \
+	    python3 /work/$(PROJECT_NAME)/altera/debug/hardware_runner.py \
+	      --bitstream /work/$(PROJECT_NAME)/altera/quartus/$(REVISION_NAME).sof \
+	      --manifest /work/$(PROJECT_NAME)/tb/verification_manifest.json \
+	      --result /work/$(PROJECT_NAME)/altera/quartus/$(HARDWARE_RESULT) \
+	      --repo /repo \
+	      --board-id "$(BOARD_ID)" \
+	      --seed "$(RANDOM_SEED)"; \
+	    status=$$?; kill $$(pgrep jtagd) 2>/dev/null || true; exit $$status'
+
 # test: Aggregate exit code. The firmware/host PASS is the single source of
 # truth; this target just greps the sentinel and propagates a nonzero exit
 # if any host reports a FAIL (docs/hardware-conformance-test-plan.md
@@ -204,7 +230,7 @@ conformance-sysconsole: usb-wsl
 # conformance-nios is intentionally NOT in this gate (see its target
 # comment for why); conformance-sysconsole is the CI-gateable source of
 # truth today.
-test: sim program-sof conformance-sysconsole
+test: sim program-sof conformance-manifest
 	@echo "==== regmap_conformance_avmm: all hosts PASS ===="
 
 # ── Clean ─────────────────────────────────────────────────────────────────────

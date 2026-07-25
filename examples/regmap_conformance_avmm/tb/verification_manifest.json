@@ -1,0 +1,875 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "model": "normalizedMemoryMap",
+    "provenance": "spec"
+  },
+  "bus": {
+    "type": {
+      "value": "avmm",
+      "provenance": "busBinding"
+    },
+    "dataWidth": {
+      "value": 32,
+      "provenance": "busBinding"
+    },
+    "byteEnable": {
+      "value": {
+        "supported": true,
+        "laneCount": 4,
+        "behavior": "perByteWriteMask"
+      },
+      "provenance": "busBinding"
+    }
+  },
+  "policies": {
+    "reservedBitsReadAsZero": {
+      "value": true,
+      "provenance": "generatorPolicy"
+    },
+    "unmappedReadsReturnZero": {
+      "value": true,
+      "provenance": "generatorPolicy"
+    },
+    "writeOneToClearPriority": {
+      "value": "hardwareSet",
+      "provenance": "generatorPolicy"
+    },
+    "selfClearingPriority": {
+      "value": "hardwareClear",
+      "provenance": "generatorPolicy"
+    }
+  },
+  "registers": [
+    {
+      "name": "ID",
+      "offset": 0,
+      "width": 32,
+      "resetValue": 3237998081,
+      "readableMask": 4294967295,
+      "writableMask": 0,
+      "fields": [
+        {
+          "name": "MAGIC",
+          "bitOffset": 0,
+          "bitWidth": 32,
+          "mask": 4294967295,
+          "access": "read-only",
+          "resetValue": 3237998081,
+          "readable": true,
+          "writable": false,
+          "writeEffect": "none",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "SCRATCH",
+      "offset": 4,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 4294967295,
+      "writableMask": 4294967295,
+      "fields": [
+        {
+          "name": "VALUE",
+          "bitOffset": 0,
+          "bitWidth": 32,
+          "mask": 4294967295,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "STIMULUS",
+      "offset": 8,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 8191,
+      "writableMask": 8191,
+      "fields": [
+        {
+          "name": "STATUS_VAL",
+          "bitOffset": 0,
+          "bitWidth": 4,
+          "mask": 15,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "SAMPLE_EVT_TRIG",
+          "bitOffset": 4,
+          "bitWidth": 1,
+          "mask": 16,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "ERROR_EVT_TRIG",
+          "bitOffset": 5,
+          "bitWidth": 1,
+          "mask": 32,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "LEGACY_TRIG",
+          "bitOffset": 6,
+          "bitWidth": 1,
+          "mask": 64,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "CMD_DONE_TRIG",
+          "bitOffset": 7,
+          "bitWidth": 1,
+          "mask": 128,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "BUSY_DONE_TRIG",
+          "bitOffset": 8,
+          "bitWidth": 1,
+          "mask": 256,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "LINK_SPEED",
+          "bitOffset": 9,
+          "bitWidth": 4,
+          "mask": 7680,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "STATUS",
+      "offset": 12,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 15,
+      "writableMask": 0,
+      "fields": [
+        {
+          "name": "VALUE",
+          "bitOffset": 0,
+          "bitWidth": 4,
+          "mask": 15,
+          "access": "read-only",
+          "resetValue": 0,
+          "readable": true,
+          "writable": false,
+          "writeEffect": "none",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "INT_STATUS",
+      "offset": 16,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 3,
+      "writableMask": 3,
+      "fields": [
+        {
+          "name": "SAMPLE_EVT",
+          "bitOffset": 0,
+          "bitWidth": 1,
+          "mask": 1,
+          "access": "read-write-1-to-clear",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "clearOnOne",
+          "hardwareSoftwarePriority": "hardwareSet",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy",
+            "hardwareSoftwarePriority": "generatorPolicy"
+          }
+        },
+        {
+          "name": "ERROR_EVT",
+          "bitOffset": 1,
+          "bitWidth": 1,
+          "mask": 2,
+          "access": "read-write-1-to-clear",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "clearOnOne",
+          "hardwareSoftwarePriority": "hardwareSet",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy",
+            "hardwareSoftwarePriority": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "IRQ_LEGACY",
+      "offset": 20,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 0,
+      "writableMask": 1,
+      "fields": [
+        {
+          "name": "FLAG",
+          "bitOffset": 0,
+          "bitWidth": 1,
+          "mask": 1,
+          "access": "write-1-to-clear",
+          "resetValue": 0,
+          "readable": false,
+          "writable": true,
+          "writeEffect": "clearOnOne",
+          "hardwareSoftwarePriority": "hardwareSet",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy",
+            "hardwareSoftwarePriority": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "COMMAND",
+      "offset": 24,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 0,
+      "writableMask": 1,
+      "fields": [
+        {
+          "name": "START",
+          "bitOffset": 0,
+          "bitWidth": 1,
+          "mask": 1,
+          "access": "write-self-clearing",
+          "resetValue": 0,
+          "readable": false,
+          "writable": true,
+          "writeEffect": "setOnOne",
+          "hardwareSoftwarePriority": "hardwareClear",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy",
+            "hardwareSoftwarePriority": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "BUSY",
+      "offset": 28,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 1,
+      "writableMask": 1,
+      "fields": [
+        {
+          "name": "ACTIVE",
+          "bitOffset": 0,
+          "bitWidth": 1,
+          "mask": 1,
+          "access": "read-write-self-clearing",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "setOnOne",
+          "hardwareSoftwarePriority": "hardwareClear",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy",
+            "hardwareSoftwarePriority": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "DIAG",
+      "offset": 32,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 0,
+      "writableMask": 255,
+      "fields": [
+        {
+          "name": "SCRATCH",
+          "bitOffset": 0,
+          "bitWidth": 8,
+          "mask": 255,
+          "access": "write-only",
+          "resetValue": 0,
+          "readable": false,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "WO_MIRROR",
+      "offset": 36,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 255,
+      "writableMask": 0,
+      "fields": [
+        {
+          "name": "SCRATCH",
+          "bitOffset": 0,
+          "bitWidth": 8,
+          "mask": 255,
+          "access": "read-only",
+          "resetValue": 0,
+          "readable": true,
+          "writable": false,
+          "writeEffect": "none",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "LINK",
+      "offset": 40,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 271,
+      "writableMask": 256,
+      "fields": [
+        {
+          "name": "SPEED",
+          "bitOffset": 0,
+          "bitWidth": 4,
+          "mask": 15,
+          "access": "read-only",
+          "resetValue": 0,
+          "readable": true,
+          "writable": false,
+          "writeEffect": "none",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "SPEED_CHANGED",
+          "bitOffset": 8,
+          "bitWidth": 1,
+          "mask": 256,
+          "access": "read-write-1-to-clear",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "clearOnOne",
+          "hardwareSoftwarePriority": "hardwareSet",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy",
+            "hardwareSoftwarePriority": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "CONTROL",
+      "offset": 44,
+      "width": 32,
+      "resetValue": 1,
+      "readableMask": 3,
+      "writableMask": 3,
+      "fields": [
+        {
+          "name": "MODE",
+          "bitOffset": 0,
+          "bitWidth": 2,
+          "mask": 3,
+          "access": "read-write",
+          "resetValue": 1,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "CHANNEL_0_CONFIG",
+      "offset": 48,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 255,
+      "writableMask": 255,
+      "fields": [
+        {
+          "name": "VALUE",
+          "bitOffset": 0,
+          "bitWidth": 8,
+          "mask": 255,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [
+        {
+          "name": "CHANNEL",
+          "index": 0,
+          "lowerBound": 0,
+          "upperBound": 1,
+          "stride": 16
+        }
+      ],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy",
+        "arrayBounds": "spec"
+      }
+    },
+    {
+      "name": "CHANNEL_0_COUNT",
+      "offset": 52,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 255,
+      "writableMask": 0,
+      "fields": [
+        {
+          "name": "SAMPLES",
+          "bitOffset": 0,
+          "bitWidth": 8,
+          "mask": 255,
+          "access": "read-only",
+          "resetValue": 0,
+          "readable": true,
+          "writable": false,
+          "writeEffect": "none",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [
+        {
+          "name": "CHANNEL",
+          "index": 0,
+          "lowerBound": 0,
+          "upperBound": 1,
+          "stride": 16
+        }
+      ],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy",
+        "arrayBounds": "spec"
+      }
+    },
+    {
+      "name": "CHANNEL_1_CONFIG",
+      "offset": 64,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 255,
+      "writableMask": 255,
+      "fields": [
+        {
+          "name": "VALUE",
+          "bitOffset": 0,
+          "bitWidth": 8,
+          "mask": 255,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [
+        {
+          "name": "CHANNEL",
+          "index": 1,
+          "lowerBound": 0,
+          "upperBound": 1,
+          "stride": 16
+        }
+      ],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy",
+        "arrayBounds": "spec"
+      }
+    },
+    {
+      "name": "CHANNEL_1_COUNT",
+      "offset": 68,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 255,
+      "writableMask": 0,
+      "fields": [
+        {
+          "name": "SAMPLES",
+          "bitOffset": 0,
+          "bitWidth": 8,
+          "mask": 255,
+          "access": "read-only",
+          "resetValue": 0,
+          "readable": true,
+          "writable": false,
+          "writeEffect": "none",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [
+        {
+          "name": "CHANNEL",
+          "index": 1,
+          "lowerBound": 0,
+          "upperBound": 1,
+          "stride": 16
+        }
+      ],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy",
+        "arrayBounds": "spec"
+      }
+    },
+    {
+      "name": "HEARTBEAT_STATUS",
+      "offset": 80,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 131071,
+      "writableMask": 0,
+      "fields": [
+        {
+          "name": "COUNTER",
+          "bitOffset": 0,
+          "bitWidth": 16,
+          "mask": 65535,
+          "access": "read-only",
+          "resetValue": 0,
+          "readable": true,
+          "writable": false,
+          "writeEffect": "none",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "WATCHDOG_ALIVE",
+          "bitOffset": 16,
+          "bitWidth": 1,
+          "mask": 65536,
+          "access": "read-only",
+          "resetValue": 0,
+          "readable": true,
+          "writable": false,
+          "writeEffect": "none",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    },
+    {
+      "name": "TEST_PROGRESS",
+      "offset": 84,
+      "width": 32,
+      "resetValue": 0,
+      "readableMask": 511,
+      "writableMask": 511,
+      "fields": [
+        {
+          "name": "COUNT",
+          "bitOffset": 0,
+          "bitWidth": 8,
+          "mask": 255,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        },
+        {
+          "name": "FAILED",
+          "bitOffset": 8,
+          "bitWidth": 1,
+          "mask": 256,
+          "access": "read-write",
+          "resetValue": 0,
+          "readable": true,
+          "writable": true,
+          "writeEffect": "replace",
+          "provenance": {
+            "layout": "spec",
+            "access": "spec",
+            "resetValue": "spec",
+            "writeEffect": "generatorPolicy"
+          }
+        }
+      ],
+      "arrayDimensions": [],
+      "provenance": {
+        "identity": "spec",
+        "layout": "spec",
+        "resetValue": "spec",
+        "masks": "generatorPolicy"
+      }
+    }
+  ]
+}

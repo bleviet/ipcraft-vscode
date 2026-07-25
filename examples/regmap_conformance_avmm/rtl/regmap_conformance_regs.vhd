@@ -158,10 +158,6 @@ begin
           when C_REG_STIMULUS_ADDR =>
             v_wdata := apply_wstrb(to_slv(regs.stimulus), wr_data, wr_strb);
             regs.stimulus <= to_stimulus(v_wdata);
-          when C_REG_INT_STATUS_ADDR =>
-            v_wdata := apply_wstrb(to_slv(regs.int_status), wr_data, wr_strb);
-          when C_REG_IRQ_LEGACY_ADDR =>
-            v_wdata := apply_wstrb(to_slv(regs.irq_legacy), wr_data, wr_strb);
           when C_REG_DIAG_ADDR =>
             v_wdata := apply_wstrb(to_slv(regs.diag), wr_data, wr_strb);
             regs.diag <= to_diag(v_wdata);
@@ -176,6 +172,9 @@ begin
           when C_REG_CHANNEL_1_CONFIG_ADDR =>
             v_wdata := apply_wstrb(to_slv(regs.channel_1_config), wr_data, wr_strb);
             regs.channel_1_config <= to_channel_1_config(v_wdata);
+          when C_REG_TEST_PROGRESS_ADDR =>
+            v_wdata := apply_wstrb(to_slv(regs.test_progress), wr_data, wr_strb);
+            regs.test_progress <= to_test_progress(v_wdata);
           when others =>
             null;
           end case;
@@ -225,6 +224,19 @@ begin
             rd_data_int <= to_slv(regs.channel_1_config);
           when C_REG_CHANNEL_1_COUNT_ADDR =>
             rd_data_int <= to_slv(regs_in.channel_1_count);
+          when C_REG_HEARTBEAT_STATUS_ADDR =>
+            rd_data_int <= to_slv(regs_in.heartbeat_status);
+          when C_REG_TEST_PROGRESS_ADDR =>
+            rd_data_int <= to_slv(regs.test_progress);
+          when C_REG_IRQ_LEGACY_ADDR =>
+            v_rd_data := (others => '0');
+            rd_data_int <= v_rd_data;
+          when C_REG_COMMAND_ADDR =>
+            v_rd_data := (others => '0');
+            rd_data_int <= v_rd_data;
+          when C_REG_DIAG_ADDR =>
+            v_rd_data := (others => '0');
+            rd_data_int <= v_rd_data;
           when C_REG_LINK_ADDR =>
             v_rd_data := (others => '0');
             v_rd_data(3 downto 0) := regs_in.link_val.speed;

@@ -49,6 +49,7 @@ examples/**/*.elf
 examples/**/software/platform/*/bsp/
 examples/**/tb/sim_build/
 examples/**/tb/__pycache__/
+examples/**/debug/__pycache__/
 examples/**/tb/results.xml
 examples/**/tb/*.ghw
 examples/**/quartus/?/

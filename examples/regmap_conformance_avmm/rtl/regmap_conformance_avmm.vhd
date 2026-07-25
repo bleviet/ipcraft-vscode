@@ -10,8 +10,8 @@
 --   0004 : SCRATCH (read-write)
 --   0008 : STIMULUS (read-write)
 --   000C : STATUS (read-only)
---   0010 : INT_STATUS (read-write)
---   0014 : IRQ_LEGACY (write-only)
+--   0010 : INT_STATUS (read-write-1-to-clear)
+--   0014 : IRQ_LEGACY (write-1-to-clear)
 --   0018 : COMMAND (write-self-clearing)
 --   001C : BUSY (read-write-self-clearing)
 --   0020 : DIAG (write-only)
@@ -22,6 +22,8 @@
 --   0034 : CHANNEL_0_COUNT (read-only)
 --   0040 : CHANNEL_1_CONFIG (read-write)
 --   0044 : CHANNEL_1_COUNT (read-only)
+--   0050 : HEARTBEAT_STATUS (read-only)
+--   0054 : TEST_PROGRESS (read-write)
 --------------------------------------------------------------------------------
 
 library ieee;

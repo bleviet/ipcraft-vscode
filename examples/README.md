@@ -61,7 +61,7 @@ port) implements that HAL and nothing else. Porting an example to a new CPU
 | Directory | Bus | What it proves |
 |---|---|---|
 | `led_avmm/` | Avalon-MM | A minimal real peripheral (LED PIO + heartbeat status) end-to-end: IPCraft spec -> generated RTL -> Platform Designer system -> Nios II firmware -> real DE10-Nano hardware. The original reference example this repo's hardware bring-up process was developed against. |
-| `regmap_conformance_avmm/` | Avalon-MM | Every register/field access type IPCraft generates (all 7 access types, change-of-state, register arrays, byte strobes, mixed registers, enumerated/non-zero-reset fields), self-checked via a software-writable STIMULUS loopback register. See `docs/hardware_validation_results.md`. |
+| `regmap_conformance_avmm/` | Avalon-MM | Every register/field access type IPCraft generates (all 7 access types, change-of-state, register arrays, byte strobes, mixed registers, enumerated/non-zero-reset fields, and heartbeat/watchdog status), driven by one manifest-derived scenario suite in cocotb and through JTAG-to-Avalon on a DE10-Nano. See `docs/hardware_validation_results.md`. |
 | `regmap_conformance_axil/` | AXI4-Lite | The same register map and conformance sequence as `regmap_conformance_avmm/`, proving the AXI4-Lite bus wrapper instead -- including the SLVERR response path Avalon-MM has no equivalent for. Driven by a JTAG-to-Avalon-MM master with Platform Designer's automatic Avalon<->AXI4 bridging, no HPS/Nios II required. |
 
 Each example's `docs/hardware_validation_results.md` (where present) has the
@@ -78,8 +78,14 @@ cd examples/<name>/altera/quartus
 make sim              # cocotb pre-hardware gate (no vendor tools needed)
 make qsys project compile   # or: make all
 make program-sof      # program the connected board via JTAG
-make test             # reprogram + run the conformance/debug self-test, aggregate PASS/FAIL
+make test             # reprogram + run shared manifest scenarios, emit JSON result
 ```
+
+The hardware result is written to
+`altera/quartus/output_files/hardware-result.json`. It records the Git commit,
+generator and Quartus versions, bitstream and manifest hashes, board identity,
+random seed, and each named check. A missing tool, JTAG master, or board is a
+hard failure.
 
 `REPO_ROOT` in each Makefile resolves to `examples/` (not the whole repo),
 so Docker only ever mounts this examples tree plus `examples/common/`.

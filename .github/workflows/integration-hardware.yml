@@ -1,0 +1,64 @@
+name: DE10-Nano hardware integration
+
+on:
+  workflow_dispatch:
+    inputs:
+      randomSeed:
+        description: Deterministic register-traffic seed
+        required: false
+        default: '0x177'
+  schedule:
+    - cron: '17 3 * * 1'
+
+concurrency:
+  group: de10-nano-hardware
+  cancel-in-progress: false
+
+jobs:
+  de10-nano-register-bank:
+    name: Generated Avalon-MM register bank on DE10-Nano
+    runs-on: [self-hosted, Linux, X64, quartus, de10-nano]
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build IPCraft CLI
+        run: npm run compile
+
+      - name: Verify generated peripheral is reproducible
+        run: >-
+          node dist/cli.js verify
+          examples/regmap_conformance_avmm/regmap_conformance.ip.yml
+          examples/regmap_conformance_avmm
+          --target quartus
+          --lang vhdl
+
+      - name: Generate and compile DE10-Nano project
+        working-directory: examples/regmap_conformance_avmm/altera/quartus
+        run: make qsys project compile
+
+      - name: Program board and run shared scenarios
+        working-directory: examples/regmap_conformance_avmm/altera/quartus
+        env:
+          RANDOM_SEED: ${{ inputs.randomSeed || '0x177' }}
+          BOARD_ID: ${{ runner.name }}
+        run: make test
+
+      - name: Publish machine-readable hardware result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: de10-nano-hardware-${{ github.run_id }}
+          path: examples/regmap_conformance_avmm/altera/quartus/output_files/hardware-result.json
+          retention-days: 90
+          if-no-files-found: error
