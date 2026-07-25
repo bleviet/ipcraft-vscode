@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-07-25
+
+### Added
+
+- **Configurable generated-file indentation**: select the indentation used for generated HDL and tool files through IPCraft settings or the CLI; scaffold packs can declare a per-pack default. ([#162](https://github.com/bleviet/ipcraft-vscode/issues/162))
+
+### Fixed
+
+- **Generated register access modes**: explicit access modes declared on registers are now preserved during HDL generation.
+- **Consistency Check top-level selection**: testbenches and black-box stubs no longer cause false interface-drift reports; when IPCraft cannot choose a unique implementation, it reports an informational ambiguity instead. ([#163](https://github.com/bleviet/ipcraft-vscode/issues/163))
+- **Data Inspector canvas edits**: semantically invalid edits remain visible and are retained until corrected, rather than disappearing; new sources inherit the current input width for compatible binary operations. ([#165](https://github.com/bleviet/ipcraft-vscode/issues/165))
+- **IP Core canvas drag handling**: malformed drag payloads are rejected before they can change the canvas.
+- **Memory Map mutations**: structural insert and delete operations no longer mutate their input state, preventing stale UI state from being modified. ([#170](https://github.com/bleviet/ipcraft-vscode/issues/170))
+- **Register value input**: hexadecimal values now consistently use the `0x` prefix.
+- **Bus definition scanning**: invalid cached scan results are ignored and refreshed instead of being reused.
+
 ## [0.9.5] - 2026-07-24
 
 ### Added
