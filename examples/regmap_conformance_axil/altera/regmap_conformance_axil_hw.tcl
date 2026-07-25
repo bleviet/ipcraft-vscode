@@ -97,6 +97,18 @@ add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
 add_interface_port S_AXI_LITE s_axil_rready rready Input 1
 
 
+# Conduit interface for user port: led
+add_interface led conduit end
+set_interface_property led associatedClock clk
+set_interface_property led associatedReset reset_n
+set_interface_property led ENABLED true
+set_interface_property led EXPORT_OF ""
+set_interface_property led PORT_NAME_MAP ""
+set_interface_property led CMSIS_SVD_VARIABLES ""
+set_interface_property led SVD_ADDRESS_GROUP ""
+
+add_interface_port led led led Output 8
+
 
 # -----------------------------------------------------------------------------
 # Interrupt Interface(s)
@@ -110,18 +122,18 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL regmap_conformance_axil
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
-add_fileset_file regmap_conformance_axil_pkg.vhd VHDL PATH ../../rtl/regmap_conformance_axil_pkg.vhd
-add_fileset_file regmap_conformance_axil_regs.vhd VHDL PATH ../../rtl/regmap_conformance_axil_regs.vhd
-add_fileset_file regmap_conformance_axil_core.vhd VHDL PATH ../../rtl/regmap_conformance_axil_core.vhd
-add_fileset_file regmap_conformance_axil_axil.vhd VHDL PATH ../../rtl/regmap_conformance_axil_axil.vhd
-add_fileset_file regmap_conformance_axil.vhd VHDL PATH ../../rtl/regmap_conformance_axil.vhd TOP_LEVEL_FILE
+add_fileset_file regmap_conformance_axil_pkg.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil_pkg.vhd]
+add_fileset_file regmap_conformance_axil_regs.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil_regs.vhd]
+add_fileset_file regmap_conformance_axil_axil.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil_axil.vhd]
+add_fileset_file regmap_conformance_axil_core.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil_core.vhd]
+add_fileset_file regmap_conformance_axil.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil.vhd] TOP_LEVEL_FILE
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL regmap_conformance_axil
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
-add_fileset_file regmap_conformance_axil_pkg.vhd VHDL PATH ../../rtl/regmap_conformance_axil_pkg.vhd
-add_fileset_file regmap_conformance_axil_regs.vhd VHDL PATH ../../rtl/regmap_conformance_axil_regs.vhd
-add_fileset_file regmap_conformance_axil_core.vhd VHDL PATH ../../rtl/regmap_conformance_axil_core.vhd
-add_fileset_file regmap_conformance_axil_axil.vhd VHDL PATH ../../rtl/regmap_conformance_axil_axil.vhd
-add_fileset_file regmap_conformance_axil.vhd VHDL PATH ../../rtl/regmap_conformance_axil.vhd TOP_LEVEL_FILE
+add_fileset_file regmap_conformance_axil_pkg.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil_pkg.vhd]
+add_fileset_file regmap_conformance_axil_regs.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil_regs.vhd]
+add_fileset_file regmap_conformance_axil_axil.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil_axil.vhd]
+add_fileset_file regmap_conformance_axil_core.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil_core.vhd]
+add_fileset_file regmap_conformance_axil.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_axil.vhd] TOP_LEVEL_FILE

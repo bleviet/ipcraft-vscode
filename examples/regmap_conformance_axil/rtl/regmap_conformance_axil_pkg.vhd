@@ -38,6 +38,8 @@ package regmap_conformance_axil_pkg is
   constant C_REG_CHANNEL_0_COUNT_ADDR : natural := 52;  -- addr 34
   constant C_REG_CHANNEL_1_CONFIG_ADDR : natural := 64;  -- addr 40
   constant C_REG_CHANNEL_1_COUNT_ADDR : natural := 68;  -- addr 44
+  constant C_REG_HEARTBEAT_STATUS_ADDR : natural := 80;  -- addr 50
+  constant C_REG_TEST_PROGRESS_ADDR : natural := 84;  -- addr 54
 
   ----------------------------------------------------------------------------
   -- Register Record Types
@@ -251,6 +253,34 @@ package regmap_conformance_axil_pkg is
   function to_slv(reg : t_reg_channel_1_count) return std_logic_vector;
   function to_channel_1_count(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_channel_1_count;
 
+  -- HEARTBEAT_STATUS register fields
+  type t_reg_heartbeat_status is record
+    counter : std_logic_vector(15 downto 0);  -- bits 15:0
+    watchdog_alive : std_logic;  -- bit 16
+  end record;
+
+  constant C_REG_HEARTBEAT_STATUS_RESET : t_reg_heartbeat_status := (
+    counter => (others => '0'),
+    watchdog_alive => '0'
+  );
+
+  function to_slv(reg : t_reg_heartbeat_status) return std_logic_vector;
+  function to_heartbeat_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_heartbeat_status;
+
+  -- TEST_PROGRESS register fields
+  type t_reg_test_progress is record
+    count : std_logic_vector(7 downto 0);  -- bits 7:0
+    failed : std_logic;  -- bit 8
+  end record;
+
+  constant C_REG_TEST_PROGRESS_RESET : t_reg_test_progress := (
+    count => (others => '0'),
+    failed => '0'
+  );
+
+  function to_slv(reg : t_reg_test_progress) return std_logic_vector;
+  function to_test_progress(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_test_progress;
+
   -- W1C event-pulse record types (hardware drives a 1-cycle strobe to set a sticky bit)
 
   type t_reg_int_status_pulse is record
@@ -318,6 +348,7 @@ package regmap_conformance_axil_pkg is
     control : t_reg_control;
     channel_0_config : t_reg_channel_0_config;
     channel_1_config : t_reg_channel_1_config;
+    test_progress : t_reg_test_progress;
   end record;
 
   constant C_REGS_SW2HW_RESET : t_regs_sw2hw := (
@@ -331,7 +362,8 @@ package regmap_conformance_axil_pkg is
     link => C_REG_LINK_RESET,
     control => C_REG_CONTROL_RESET,
     channel_0_config => C_REG_CHANNEL_0_CONFIG_RESET,
-    channel_1_config => C_REG_CHANNEL_1_CONFIG_RESET
+    channel_1_config => C_REG_CHANNEL_1_CONFIG_RESET,
+    test_progress => C_REG_TEST_PROGRESS_RESET
   );
 
   -- HW -> SW: Status registers (RO) + W1C/SC event pulses + hardware-driven value ports
@@ -341,6 +373,7 @@ package regmap_conformance_axil_pkg is
     wo_mirror : t_reg_wo_mirror;
     channel_0_count : t_reg_channel_0_count;
     channel_1_count : t_reg_channel_1_count;
+    heartbeat_status : t_reg_heartbeat_status;
     int_status_pulse : t_reg_int_status_pulse;  -- W1C event pulses for INT_STATUS
     irq_legacy_pulse : t_reg_irq_legacy_pulse;  -- W1C event pulses for IRQ_LEGACY
     command_clear : t_reg_command_clear;  -- SC event clear pulses for COMMAND
@@ -354,6 +387,7 @@ package regmap_conformance_axil_pkg is
     wo_mirror => C_REG_WO_MIRROR_RESET,
     channel_0_count => C_REG_CHANNEL_0_COUNT_RESET,
     channel_1_count => C_REG_CHANNEL_1_COUNT_RESET,
+    heartbeat_status => C_REG_HEARTBEAT_STATUS_RESET,
     int_status_pulse => C_REG_INT_STATUS_PULSE_RESET,
     irq_legacy_pulse => C_REG_IRQ_LEGACY_PULSE_RESET,
     command_clear => C_REG_COMMAND_CLEAR_RESET,
@@ -623,6 +657,40 @@ package body regmap_conformance_axil_pkg is
     variable reg : t_reg_channel_1_count;
   begin
     reg.samples := slv(7 downto 0);
+    return reg;
+  end function;
+
+  -- HEARTBEAT_STATUS conversions
+  function to_slv(reg : t_reg_heartbeat_status) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(15 downto 0) := reg.counter;
+    slv(16) := reg.watchdog_alive;
+    return slv;
+  end function;
+
+  function to_heartbeat_status(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_heartbeat_status is
+    variable reg : t_reg_heartbeat_status;
+  begin
+    reg.counter := slv(15 downto 0);
+    reg.watchdog_alive := slv(16);
+    return reg;
+  end function;
+
+  -- TEST_PROGRESS conversions
+  function to_slv(reg : t_reg_test_progress) return std_logic_vector is
+    variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
+  begin
+    slv(7 downto 0) := reg.count;
+    slv(8) := reg.failed;
+    return slv;
+  end function;
+
+  function to_test_progress(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_test_progress is
+    variable reg : t_reg_test_progress;
+  begin
+    reg.count := slv(7 downto 0);
+    reg.failed := slv(8);
     return reg;
   end function;
 

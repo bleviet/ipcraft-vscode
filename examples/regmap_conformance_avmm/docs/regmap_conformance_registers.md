@@ -34,6 +34,8 @@ Hardware register-conformance test IP (see docs/hardware-conformance-test-plan.m
 | `0x34` | `CHANNEL_0_COUNT` | `read-only` | Per-channel RO constant, distinct per index -- proves no aliasing |
 | `0x40` | `CHANNEL_1_CONFIG` | `read-write` | Per-channel RW configuration |
 | `0x44` | `CHANNEL_1_COUNT` | `read-only` | Per-channel RO constant, distinct per index -- proves no aliasing |
+| `0x50` | `HEARTBEAT_STATUS` | `read-only` | Free-running liveness counter and watchdog-alive status. The hardware runner reads this register twice to prove that the peripheral clock is advancing after configuration. |
+| `0x54` | `TEST_PROGRESS` | `read-write` | Host-harness status, not part of the access-type matrix under test: the JTAG-to-Avalon/cocotb runner writes the 0-based index of the conformance check it just evaluated after every check, so the board's `led[6:0]` visually tracks live test progress as a steady (non-blinking) binary count. `led[7]` is a separate status LED that blinks slowly while the suite runs. On the first failing check the runner also sets FAILED and stops, freezing the counter and speeding up the status LED's blink. |
 
 ---
 
@@ -174,4 +176,22 @@ Per-channel RO constant, distinct per index -- proves no aliasing
 | Bits | Field | Access | Reset | Description |
 |------|-------|--------|-------|-------------|
 | `[7:0]` | `SAMPLES` | `read-only` | `0x0` | — |
+
+## `HEARTBEAT_STATUS` — Offset `0x50`
+
+Free-running liveness counter and watchdog-alive status. The hardware runner reads this register twice to prove that the peripheral clock is advancing after configuration.
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| `[15:0]` | `COUNTER` | `read-only` | `0x0` | Free-running hardware counter |
+| `[16:16]` | `WATCHDOG_ALIVE` | `read-only` | `0x0` | Asserted while the peripheral is out of reset |
+
+## `TEST_PROGRESS` — Offset `0x54`
+
+Host-harness status, not part of the access-type matrix under test: the JTAG-to-Avalon/cocotb runner writes the 0-based index of the conformance check it just evaluated after every check, so the board's `led[6:0]` visually tracks live test progress as a steady (non-blinking) binary count. `led[7]` is a separate status LED that blinks slowly while the suite runs. On the first failing check the runner also sets FAILED and stops, freezing the counter and speeding up the status LED's blink.
+
+| Bits | Field | Access | Reset | Description |
+|------|-------|--------|-------|-------------|
+| `[7:0]` | `COUNT` | `read-write` | `0x0` | 0-based index of the most recently evaluated check |
+| `[8:8]` | `FAILED` | `read-write` | `0x0` | Set by the host on the first failing check |
 

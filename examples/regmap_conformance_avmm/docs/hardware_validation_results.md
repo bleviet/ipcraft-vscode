@@ -1,5 +1,21 @@
 # regmap_conformance_avmm — Hardware Validation Results
 
+> **Update:** the historical `System Console conformance host` run below
+> predates the manifest-driven test infrastructure. `make test` now runs
+> `conformance-manifest` (`altera/debug/hardware_runner.py`), which executes
+> the exact same 43-check scenario suite (`tb/conformance_scenarios.py` +
+> `tb/register_model.py` + `tb/verification_manifest.json`) as cocotb's
+> `test_shared_manifest_scenarios`, over the same JTAG-to-Avalon-MM master,
+> and writes a machine-readable `output_files/hardware-result.json` instead
+> of a `@@PASS`/`@@RESULT` text transcript. The board also now displays live
+> progress on `led`: `led[6:0]` is a steady binary readout of the current
+> check index and `led[7]` is a status LED that blinks slowly while running
+> and faster on the first failing check (see `TEST_PROGRESS` in
+> `regmap_conformance.mm.yml`). The transcript and check names below are
+> preserved as-run for the original `conformance_sysconsole.tcl` host, which
+> is still present (`make conformance-sysconsole`) but is no longer the `make
+> test` gate.
+
 ## Status: all 23 register access-type conformance checks PASS on DE10-Nano (Quartus 23.1std, Cyclone V), Variant A (Avalon-MM)
 
 This is the Altera/Avalon-MM implementation of
@@ -180,6 +196,9 @@ is unreliable, rather than treating UART silence as a correctness failure.
 cd regmap_conformance_avmm/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
 cd ../altera/quartus
 make qsys project compile      # or: make all
-make program-sof
-make conformance-sysconsole    # 23/23 PASS, no firmware needed
+make test                      # reprograms + runs the manifest-driven suite
+                                # (43 checks); writes output_files/hardware-result.json
 ```
+
+The historical System Console host above can still be run directly with
+`make program-sof && make conformance-sysconsole`.

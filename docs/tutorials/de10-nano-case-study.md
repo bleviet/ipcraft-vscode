@@ -101,3 +101,9 @@ runs the same directed and seeded-random scenarios as cocotb, and writes
 `output_files/hardware-result.json`. Missing Quartus tools, JTAG services, or
 the board produce a nonzero exit; they are never treated as a passing hardware
 run.
+
+[`examples/regmap_conformance_axil/`](../../examples/regmap_conformance_axil/)
+proves the same register map and manifest-driven suite through the AXI4-Lite
+bus wrapper instead, over the same JTAG-to-Avalon-MM master bridged to AXI4
+by Platform Designer -- same `make qsys project compile && make test`
+workflow, no HPS/Nios II required.

@@ -46,8 +46,8 @@ set_global_assignment -name TOP_LEVEL_ENTITY regmap_conformance_axil
 # host and Docker environments — no absolute paths are stored.
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/regmap_conformance_axil_pkg.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/regmap_conformance_axil_regs.vhd]
-set_global_assignment -name VHDL_FILE [file join .. ../rtl/regmap_conformance_axil_core.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/regmap_conformance_axil_axil.vhd]
+set_global_assignment -name VHDL_FILE [file join .. ../rtl/regmap_conformance_axil_core.vhd]
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/regmap_conformance_axil.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
