@@ -25,8 +25,8 @@ SIM = os.environ.get("SIM", "ghdl")
 RTL_SOURCES = [
     BASE_DIR / "rtl/regmap_conformance_axil_pkg.vhd",
     BASE_DIR / "rtl/regmap_conformance_axil_regs.vhd",
-    BASE_DIR / "rtl/regmap_conformance_axil_core.vhd",
     BASE_DIR / "rtl/regmap_conformance_axil_axil.vhd",
+    BASE_DIR / "rtl/regmap_conformance_axil_core.vhd",
     BASE_DIR / "rtl/regmap_conformance_axil.vhd",
 ]
 

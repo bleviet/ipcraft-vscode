@@ -21,8 +21,8 @@ BASE_DIR = $(CURDIR)/..
 # From ip.yml fileSets
 VHDL_SOURCES += $(BASE_DIR)/rtl/regmap_conformance_axil_pkg.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/regmap_conformance_axil_regs.vhd
-VHDL_SOURCES += $(BASE_DIR)/rtl/regmap_conformance_axil_core.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/regmap_conformance_axil_axil.vhd
+VHDL_SOURCES += $(BASE_DIR)/rtl/regmap_conformance_axil_core.vhd
 VHDL_SOURCES += $(BASE_DIR)/rtl/regmap_conformance_axil.vhd
 
 # Top-level module

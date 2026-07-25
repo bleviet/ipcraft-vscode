@@ -77,3 +77,8 @@ def test_channel_array_no_aliasing(sim_runner):
 def test_slverr_on_unmapped_address(sim_runner):
     """AXI4-Lite returns SLVERR for a read at an unmapped address."""
     sim_runner("test_slverr_on_unmapped_address")
+
+
+def test_shared_manifest_scenarios(sim_runner):
+    """The manifest-driven suite is identical in simulation and on hardware."""
+    sim_runner("test_shared_manifest_scenarios")

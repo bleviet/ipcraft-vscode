@@ -12,11 +12,14 @@ import os
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
+from conformance_scenarios import DEFAULT_RANDOM_SEED, run_conformance_scenarios
 from mm_loader import load_regmap
+from register_model import RegisterModel, load_manifest
 from cocotbext.axi import AxiLiteMaster, AxiLiteBus
 
 _MM_YML = os.path.join(os.path.dirname(__file__), "../regmap_conformance_axil.mm.yml")
 regmap = load_regmap(_MM_YML)
+_MANIFEST_PATH = os.path.join(os.path.dirname(__file__), "verification_manifest.json")
 
 
 async def _write_reg(master, byte_addr: int, value: int) -> None:
@@ -56,6 +59,70 @@ def _stim(**bits) -> int:
 
 def _master(dut) -> AxiLiteMaster:
     return AxiLiteMaster(AxiLiteBus.from_prefix(dut, "s_axil"), dut.clk)
+
+
+class CocotbTransport:
+    """AXI4-Lite adapter for the scenarios shared with the hardware runner.
+
+    supports_priority_races is False: cocotbext-axi's multi-cycle AW/W/B
+    handshake means two "adjacent" transactions never land on truly adjacent
+    clock edges the way raw Avalon-MM pin toggling does (see
+    regmap_conformance_avmm's CocotbTransport), so the register file's
+    hw-set/hw-clear priority logic can't be observed racing a software write
+    through this driver -- see the NOTE comments on
+    test_int_status_hw_set_beats_sw_clear and test_busy_hw_clear_beats_sw_set
+    above for the same reasoning applied to the directed tests.
+
+    supports_unmapped_read_zero is False: an AXI4-Lite read at an unmapped
+    address returns SLVERR (see test_slverr_on_unmapped_address below), not
+    a defined zero value the way Avalon-MM's response-code-free reads do.
+
+    supports_byte_enable is False: this generator's AXI4-Lite address decode
+    does not word-align AWADDR before comparing it against register offsets
+    (bus_axil.vhdl.j2), so a non-zero-lane byte-strobe write -- which
+    cocotbext-axi issues as a single-byte write at offset+lane, an unaligned
+    address -- is silently dropped rather than landing in the target
+    register (see docs/hardware_validation_results.md finding 4; not fixed
+    in the generator, and this project's own SCRATCH byte-strobe test above
+    works around it by only ever strobing lane 0, the register's own base
+    offset).
+    """
+
+    def __init__(self, dut):
+        self.master = AxiLiteMaster(AxiLiteBus.from_prefix(dut, "s_axil"), dut.clk)
+        self.supports_priority_races = False
+        self.supports_unmapped_read_zero = False
+        self.supports_byte_enable = False
+
+    async def write(self, offset, value, byte_enable=None):
+        # byte_enable is never passed here: supports_byte_enable is False,
+        # so conformance_scenarios.py's only partial-write check is
+        # not_applicable for this transport (see class docstring).
+        del byte_enable
+        await self.master.write(offset, value.to_bytes(4, "little"))
+
+    async def read(self, offset):
+        result = await self.master.read(offset, 4)
+        return int.from_bytes(result.data, "little")
+
+
+@cocotb.test()
+async def test_shared_manifest_scenarios(dut):
+    """Run the exact manifest-driven scenario suite used on the DE10-Nano."""
+    model = RegisterModel(load_manifest(_MANIFEST_PATH))
+    transport = CocotbTransport(dut)
+
+    async def settle(cycles=3):
+        await _settle(dut, cycles)
+
+    results = await run_conformance_scenarios(
+        transport,
+        model,
+        lambda: _reset_dut(dut),
+        settle,
+        DEFAULT_RANDOM_SEED,
+    )
+    assert results
 
 
 # ---------------------------------------------------------------------------

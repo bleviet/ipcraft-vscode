@@ -38,18 +38,22 @@ entity regmap_conformance_axil is
     s_axil_rdata   : out std_logic_vector(31 downto 0);
     s_axil_rresp   : out std_logic_vector(1 downto 0);
     s_axil_rvalid  : out std_logic;
-    s_axil_rready  : in  std_logic
+    s_axil_rready  : in  std_logic;
+
+    -- User ports
+    led : out std_logic_vector(7 downto 0)
     );
 end entity regmap_conformance_axil;
 
 architecture rtl of regmap_conformance_axil is
+
+
 
     -- Internal register signals
   signal regs_sw2hw : t_regs_sw2hw;
   signal regs_hw2sw : t_regs_hw2sw;
 
 begin
-
 
     ----------------------------------------------------------------------------
     -- Bus Wrapper Instance
@@ -90,7 +94,8 @@ begin
       clk => clk,
       rst => not reset_n,
       regs_in  => regs_sw2hw,
-      regs_out => regs_hw2sw
+      regs_out => regs_hw2sw,
+      led => led
     );
 
 end architecture rtl;

@@ -1,5 +1,25 @@
 # regmap_conformance_axil — Hardware Validation Results
 
+> **Update:** the historical `System Console conformance host` run below
+> predates the manifest-driven test infrastructure. `make test` now runs
+> `conformance-manifest` (`altera/debug/hardware_runner.py`, shared verbatim
+> with `regmap_conformance_avmm` except for the JTAG-to-Avalon base address
+> and `supports_unmapped_read_zero=False`, since an unmapped AXI4-Lite read
+> returns SLVERR rather than a defined zero), which executes the same
+> manifest-driven scenario suite (`tb/conformance_scenarios.py` +
+> `tb/register_model.py` + `tb/verification_manifest.json`) as cocotb's
+> `test_shared_manifest_scenarios`, over the same JTAG-to-Avalon-MM master
+> bridged to AXI4-Lite, and writes a machine-readable
+> `output_files/hardware-result.json` instead of a `@@PASS`/`@@RESULT` text
+> transcript. The board also now displays live progress on `led`:
+> `led[6:0]` is a steady binary readout of the current check index and
+> `led[7]` is a status LED that blinks slowly while running and faster on
+> the first failing check (see `TEST_PROGRESS` in
+> `regmap_conformance_axil.mm.yml`). The transcript and check names below
+> are preserved as-run for the original `conformance_sysconsole.tcl` host,
+> which is still present (`make conformance-sysconsole`) but is no longer
+> the `make test` gate.
+
 ## Status: all 24 register access-type conformance checks PASS on DE10-Nano (Quartus 23.1std, Cyclone V), Variant B (AXI4-Lite)
 
 This is the AXI4-Lite implementation of
@@ -36,7 +56,7 @@ including its SLVERR response path (no Avalon-MM equivalent).
 
 | Stage | Result |
 |---|---|
-| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 13/13 tests, including the AXI4-Lite-specific SLVERR negative test |
+| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 14/14 tests, including the shared manifest suite and AXI4-Lite-specific SLVERR negative test |
 | Quartus full compile (qsys + synthesis + fit + timing) | **PASS** — 0 errors |
 | Board program (JTAG, DE10-Nano) | **PASS** — configuration succeeded |
 | System Console conformance host (`conformance_sysconsole.tcl`) | **PASS** — 24/24 checks, reproducible from a freshly-programmed board |
@@ -152,5 +172,11 @@ isn't the property under test. The priority logic itself is bus-agnostic RTL
 cd regmap_conformance_axil/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
 cd ../altera/quartus
 make qsys project compile      # or: make all
-make test                      # reprograms + runs System Console conformance, 24/24 PASS
+make test                      # reprograms + runs the manifest-driven suite
+                                # (43 recorded checks -- unmapped_read_zero is
+                                # not_applicable on AXI4-Lite, see above);
+                                # writes output_files/hardware-result.json
 ```
+
+The historical System Console host above can still be run directly with
+`make program-sof && make conformance-sysconsole`.

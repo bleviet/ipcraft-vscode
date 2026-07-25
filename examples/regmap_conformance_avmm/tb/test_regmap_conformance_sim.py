@@ -81,3 +81,8 @@ def test_control_enum_and_nonzero_reset(sim_runner):
 def test_channel_array_no_aliasing(sim_runner):
     """CHANNEL register array: independent per-index storage, no aliasing."""
     sim_runner("test_channel_array_no_aliasing")
+
+
+def test_shared_manifest_scenarios(sim_runner):
+    """The manifest-driven suite is identical in simulation and on hardware."""
+    sim_runner("test_shared_manifest_scenarios")

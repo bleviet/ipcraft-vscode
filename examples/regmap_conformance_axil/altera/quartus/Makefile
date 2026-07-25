@@ -23,6 +23,9 @@ QSYS_FILE     = ../qsys/regmap_conformance_axil_system.qsys
 QSYS_GEN_DIR  = ../qsys/regmap_conformance_axil_system_gen
 
 DEBUG_DIR     = ../debug
+HARDWARE_RESULT ?= output_files/hardware-result.json
+RANDOM_SEED     ?= 0x177
+BOARD_ID        ?= de10-nano
 
 DOCKER_IMAGE ?= ipcraft-examples/quartus:23.1
 
@@ -38,6 +41,7 @@ DEVICE_INDEX ?= 2
 # smallest root that covers both this example and the shared examples/common/
 # resources (e.g. power_on_reset_generator.vhd).
 REPO_ROOT  = $(realpath ../../..)
+WORKSPACE_ROOT = $(realpath ../../../..)
 DOCKER     = docker run --rm --user $$(id -u):$$(id -g) -v $(REPO_ROOT):/work $(DOCKER_IMAGE) bash -c
 DOCKER_CWD = cd /work/$(PROJECT_NAME)/altera/quartus
 DOCKER_GUI = docker run --rm --user $$(id -u):$$(id -g) \
@@ -52,7 +56,7 @@ DOCKER_GUI = docker run --rm --user $$(id -u):$$(id -g) \
 .PHONY: all qsys project compile clean sim \
         program-sof usb-windows usb-wsl \
         quartus-gui platform-designer \
-        conformance-sysconsole test
+        conformance-sysconsole conformance-manifest test
 
 all: qsys project compile
 
@@ -120,11 +124,34 @@ conformance-sysconsole: usb-wsl
 	    kill $$(pgrep jtagd) 2>/dev/null || true; \
 	    grep -q "@@RESULT CONFORMANCE: ALL PASS" /tmp/conformance_axil_sysconsole_output.txt'
 
+# conformance-manifest: Execute the same manifest-derived scoreboard and
+# transaction scenarios as cocotb, replacing only the Avalon simulation
+# transport with JTAG-to-Avalon through System Console (Platform Designer
+# bridges it to AXI4-Lite). The runner always writes HARDWARE_RESULT and
+# exits nonzero if Quartus, the board, the JTAG master, or any scenario is
+# unavailable or fails.
+conformance-manifest: program-sof
+	mkdir -p $(dir $(HARDWARE_RESULT))
+	docker run --rm --user $$(id -u):$$(id -g) --privileged \
+	  -v /dev/bus/usb:/dev/bus/usb \
+	  -v $(REPO_ROOT):/work \
+	  -v $(WORKSPACE_ROOT):/repo:ro \
+	  $(DOCKER_IMAGE) \
+	  bash -c 'jtagd && sleep 5; \
+	    python3 /work/$(PROJECT_NAME)/altera/debug/hardware_runner.py \
+	      --bitstream /work/$(PROJECT_NAME)/altera/quartus/$(REVISION_NAME).sof \
+	      --manifest /work/$(PROJECT_NAME)/tb/verification_manifest.json \
+	      --result /work/$(PROJECT_NAME)/altera/quartus/$(HARDWARE_RESULT) \
+	      --repo /repo \
+	      --board-id "$(BOARD_ID)" \
+	      --seed "$(RANDOM_SEED)"; \
+	    status=$$?; kill $$(pgrep jtagd) 2>/dev/null || true; exit $$status'
+
 # test: Aggregate exit code. program-sof is a hard prerequisite -- several
 # checks assert post-reset state and the host writes non-reset values as
 # part of its own sequence, so a stale board from a prior run is not
 # idempotent. Always reprogram before grading.
-test: sim program-sof conformance-sysconsole
+test: sim conformance-manifest
 	@echo "==== regmap_conformance_axil: all hosts PASS ===="
 
 # ── Clean ─────────────────────────────────────────────────────────────────────

@@ -32,6 +32,8 @@ examples/**/db/
 examples/**/incremental_db/
 examples/**/output_files/
 examples/**/*.qsys
+!examples/regmap_conformance_avmm/altera/test.qsys
+!examples/regmap_conformance_axil/altera/test.qsys
 examples/**/*.sopcinfo
 examples/**/*_system_gen/
 examples/**/*.sof
@@ -49,6 +51,7 @@ examples/**/*.elf
 examples/**/software/platform/*/bsp/
 examples/**/tb/sim_build/
 examples/**/tb/__pycache__/
+examples/**/debug/__pycache__/
 examples/**/tb/results.xml
 examples/**/tb/*.ghw
 examples/**/quartus/?/

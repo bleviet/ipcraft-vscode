@@ -213,3 +213,46 @@
                 - name: SAMPLES
                   bits: '[7:0]'
                   access: read-only
+
+        - name: HEARTBEAT_STATUS
+          offset: 0x50
+          access: read-only
+          description: >
+            Free-running liveness counter and watchdog-alive status. The
+            hardware runner reads this register twice to prove that the
+            peripheral clock is advancing after configuration.
+          fields:
+            - name: COUNTER
+              bits: '[15:0]'
+              access: read-only
+              description: Free-running hardware counter
+            - name: WATCHDOG_ALIVE
+              bits: '[16:16]'
+              access: read-only
+              description: Asserted while the peripheral is out of reset
+
+        - name: TEST_PROGRESS
+          offset: 0x54
+          access: read-write
+          description: >
+            Host-harness status, not part of the access-type matrix under
+            test: the JTAG-to-Avalon/cocotb runner writes the 0-based index
+            of the conformance check it just evaluated after every check, so
+            the board's `led[6:0]` visually tracks live test progress as a
+            steady (non-blinking) binary count. `led[7]` is a separate status
+            LED that blinks slowly while the suite runs. On the first failing
+            check the runner also sets FAILED and stops
+            (run_conformance_scenarios raises on the first failure) -- the
+            counter freezes at that check's index and the status LED's blink
+            speeds up.
+          fields:
+            - name: COUNT
+              bits: '[7:0]'
+              access: read-write
+              resetValue: 0
+              description: 0-based index of the most recently evaluated check
+            - name: FAILED
+              bits: '[8:8]'
+              access: read-write
+              resetValue: 0
+              description: Set by the host on the first failing check

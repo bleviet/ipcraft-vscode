@@ -85,6 +85,18 @@ add_interface_port S_AVMM avs_writedata writedata Input 32
 add_interface_port S_AVMM avs_readdata readdata Output 32
 
 
+# Conduit interface for user port: led
+add_interface led conduit end
+set_interface_property led associatedClock clk
+set_interface_property led associatedReset reset
+set_interface_property led ENABLED true
+set_interface_property led EXPORT_OF ""
+set_interface_property led PORT_NAME_MAP ""
+set_interface_property led CMSIS_SVD_VARIABLES ""
+set_interface_property led SVD_ADDRESS_GROUP ""
+
+add_interface_port led led led Output 8
+
 
 # -----------------------------------------------------------------------------
 # Interrupt Interface(s)
@@ -98,18 +110,18 @@ add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" ""
 set_fileset_property QUARTUS_SYNTH TOP_LEVEL regmap_conformance
 set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
-add_fileset_file regmap_conformance_pkg.vhd VHDL PATH ../../rtl/regmap_conformance_pkg.vhd
-add_fileset_file regmap_conformance_regs.vhd VHDL PATH ../../rtl/regmap_conformance_regs.vhd
-add_fileset_file regmap_conformance_core.vhd VHDL PATH ../../rtl/regmap_conformance_core.vhd
-add_fileset_file regmap_conformance_avmm.vhd VHDL PATH ../../rtl/regmap_conformance_avmm.vhd
-add_fileset_file regmap_conformance.vhd VHDL PATH ../../rtl/regmap_conformance.vhd TOP_LEVEL_FILE
+add_fileset_file regmap_conformance_pkg.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_pkg.vhd]
+add_fileset_file regmap_conformance_regs.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_regs.vhd]
+add_fileset_file regmap_conformance_avmm.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_avmm.vhd]
+add_fileset_file regmap_conformance_core.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_core.vhd]
+add_fileset_file regmap_conformance.vhd VHDL PATH [file join .. ../rtl/regmap_conformance.vhd] TOP_LEVEL_FILE
 
 add_fileset SIM_VHDL SIM_VHDL "" ""
 set_fileset_property SIM_VHDL TOP_LEVEL regmap_conformance
 set_fileset_property SIM_VHDL ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property SIM_VHDL ENABLE_FILE_OVERWRITE_MODE false
-add_fileset_file regmap_conformance_pkg.vhd VHDL PATH ../../rtl/regmap_conformance_pkg.vhd
-add_fileset_file regmap_conformance_regs.vhd VHDL PATH ../../rtl/regmap_conformance_regs.vhd
-add_fileset_file regmap_conformance_core.vhd VHDL PATH ../../rtl/regmap_conformance_core.vhd
-add_fileset_file regmap_conformance_avmm.vhd VHDL PATH ../../rtl/regmap_conformance_avmm.vhd
-add_fileset_file regmap_conformance.vhd VHDL PATH ../../rtl/regmap_conformance.vhd TOP_LEVEL_FILE
+add_fileset_file regmap_conformance_pkg.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_pkg.vhd]
+add_fileset_file regmap_conformance_regs.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_regs.vhd]
+add_fileset_file regmap_conformance_avmm.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_avmm.vhd]
+add_fileset_file regmap_conformance_core.vhd VHDL PATH [file join .. ../rtl/regmap_conformance_core.vhd]
+add_fileset_file regmap_conformance.vhd VHDL PATH [file join .. ../rtl/regmap_conformance.vhd] TOP_LEVEL_FILE

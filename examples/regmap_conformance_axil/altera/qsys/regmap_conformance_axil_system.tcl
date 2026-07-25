@@ -58,5 +58,8 @@ set_interface_property clk EXPORT_OF clk_0.in_clk
 add_interface reset reset sink
 set_interface_property reset EXPORT_OF reset_bridge.in_reset
 
+add_interface led_external_connection conduit end
+set_interface_property led_external_connection EXPORT_OF regmap_axil.led
+
 save_system regmap_conformance_axil_system.qsys
 puts "regmap_conformance_axil_system.qsys saved (JTAG-to-Avalon-MM master -> AXI4-Lite slave)"

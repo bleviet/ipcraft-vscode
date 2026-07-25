@@ -618,6 +618,9 @@ function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
 }
 
 const EXTRA_HDL_FILE_TYPES = new Set(['vhdl', 'verilog', 'systemverilog']);
+// Simulation files and board/system integration wrappers are not part of the reusable IP's
+// synthesis source set. They can still be tracked and protected through fileSets.
+const NON_RTL_FILE_SET_NAMES = new Set(['Simulation_Resources', 'Integration']);
 
 /**
  * fileSets HDL entries the scaffold pack has no rule for at all — e.g. an additional
@@ -637,7 +640,7 @@ function collectUserDeclaredExtraPaths(
     | undefined;
   const extras: string[] = [];
   for (const fset of rawFileSets ?? []) {
-    if (fset.name === 'Simulation_Resources') {
+    if (fset.name && NON_RTL_FILE_SET_NAMES.has(fset.name)) {
       continue;
     }
     for (const f of fset.files ?? []) {
@@ -724,7 +727,7 @@ export async function collectRtlAbsPaths(
   // while generated paths resolve against outputDir, two directories that are almost
   // never the same, so we can't dedupe by resolved absolute path either).
   const extraFileItems = (fileSets ?? [])
-    .filter((fs) => fs.name !== 'Simulation_Resources')
+    .filter((fs) => !fs.name || !NON_RTL_FILE_SET_NAMES.has(fs.name))
     .flatMap((fs) => fs.files ?? [])
     .filter(
       (f): f is { path: string; type?: string; logicalName?: string } =>
