@@ -158,6 +158,12 @@ test.describe('Data Inspector transform canvas', () => {
     await expect(page.getByLabel('INPUT_3 value')).toBeVisible();
   });
 
+  test('gives a new input the width of the inputs already on the canvas', async ({ page }) => {
+    await page.getByRole('button', { name: 'Add source' }).click();
+    await expect(page.locator('.react-flow__node[data-id="input3"]')).toContainText('16b');
+    await expect(page.getByLabel('Width', { exact: true })).toHaveValue('16');
+  });
+
   test('keeps an unconnected operator when an input is added', async ({ page }) => {
     await page.getByRole('button', { name: 'Add NOT draft' }).click();
     await expect(page.locator('.di-flow-step.is-draft')).toHaveCount(1);
@@ -516,6 +522,88 @@ test.describe('Data Inspector transform canvas', () => {
       .evaluate((node) => (node as HTMLElement).style.transform);
     expect(transform).toContain(`${savedPosition!.x}px`);
     expect(transform).toContain(`${savedPosition!.y}px`);
+  });
+
+  test('keeps invalid canvas edits and blocks saving until they are fixed', async ({ page }) => {
+    // Driven from a fixture rather than by wiring a draft with the mouse. React Flow only
+    // starts a connection from a trusted pointer sequence, and that sequence is not
+    // reliable under CI load: once a drag misses, the canvas stops accepting connections
+    // for the rest of the page, so retrying does not recover (seen ~7% of runs on this
+    // machine, and on the Ubuntu runner). Every canvas edit funnels through the same
+    // saveCandidate call, so adding a source while the recipe is invalid exercises the
+    // path that used to drop the edit.
+    const invalidRecipe = {
+      ...recipe,
+      sources: [{ id: 'input', name: 'STATUS', width: 12 }],
+      steps: [{ id: 'swap', type: 'byteSwap', inputId: 'input' }],
+    };
+    const addedSourceId = `input${invalidRecipe.sources.length + 1}`;
+    const step = page.locator('.react-flow__node[data-id="swap"]');
+    const addedSource = page.locator(`.react-flow__node[data-id="${addedSourceId}"]`);
+
+    await page.evaluate((next) => {
+      (
+        window as unknown as { renderRecipe: (value: unknown, docVersion: number) => void }
+      ).renderRecipe(next, 2);
+    }, invalidRecipe);
+
+    // A 12-bit input cannot be byte swapped. The operation stays on the canvas and names
+    // the rule it breaks instead of disappearing.
+    await expect(step.locator('.di-flow-step.is-error')).toContainText(
+      'byte swap requires a whole number of bytes'
+    );
+    await expect(page.getByRole('button', { name: 'Problems 1' })).toBeVisible();
+
+    // The invalid state is allowed to exist only because it cannot be saved.
+    await page.evaluate(() => {
+      (window as unknown as { __vscodeMessages: unknown[] }).__vscodeMessages = [];
+    });
+    await page.getByRole('button', { name: 'Add source' }).click();
+    await expect(addedSource).toBeVisible();
+    await expect(step).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Problems 1' })).toBeVisible();
+    await page.waitForTimeout(400); // past the autosave debounce
+    expect(
+      await page.evaluate(
+        () =>
+          (
+            window as unknown as { __vscodeMessages: Array<{ type: string }> }
+          ).__vscodeMessages.filter((message) => message.type === 'updateRecipe').length
+      )
+    ).toBe(0);
+
+    // Correcting the width in place recovers both the operation and the edit made while
+    // the recipe was invalid, and releases the save.
+    await page.locator('.react-flow__node[data-id="input"]').dispatchEvent('click');
+    await expect(page.getByLabel('Inspector tools').getByRole('heading')).toContainText('STATUS');
+    await page.getByLabel('Width', { exact: true }).fill('16');
+
+    await expect(step.locator('.di-flow-step.is-error')).toHaveCount(0);
+    await expect(step).toContainText('16b');
+    await expect(addedSource).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Problems 0' })).toBeVisible();
+    await expect
+      .poll(() =>
+        page.evaluate((sourceId) => {
+          const updates = (
+            window as unknown as {
+              __vscodeMessages: Array<{
+                type: string;
+                recipe?: {
+                  sources: Array<{ id: string }>;
+                  steps: Array<{ id: string }>;
+                };
+              }>;
+            }
+          ).__vscodeMessages.filter((message) => message.type === 'updateRecipe');
+          const savedRecipe = updates.at(-1)?.recipe;
+          return {
+            source: savedRecipe?.sources.some((entry) => entry.id === sourceId),
+            step: savedRecipe?.steps.some((entry) => entry.id === 'swap'),
+          };
+        }, addedSourceId)
+      )
+      .toEqual({ source: true, step: true });
   });
 
   test('creates a draft with the keyboard and clears it after a recipe error', async ({ page }) => {
