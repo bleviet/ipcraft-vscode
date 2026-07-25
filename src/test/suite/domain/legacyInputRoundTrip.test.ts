@@ -315,7 +315,7 @@ address_blocks:
  * (`address_offset` on registers vs. `bit_offset` on fields); resolution must use
  * the target object's own keys, not just the canonical path shape.
  */
-describe('legacy scalar offset/width edits (BlockEditor / RegisterArrayEditor / RegisterTableRow path)', () => {
+describe('legacy scalar offset/width edits (BlockEditor / RegisterArrayEditor path)', () => {
   it('edits a legacy register offset in place without creating a duplicate offset key', () => {
     const text = `name: legacy
 address_blocks:

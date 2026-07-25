@@ -13,7 +13,7 @@ if (typeof (global as any).TextDecoder === 'undefined') {
 }
 
 // jsdom does not implement ResizeObserver, but webview components (e.g. the
-// address-map ruler, GeneratorPanel) use it. Provide a no-op stub.
+// address-map ruler) use it. Provide a no-op stub.
 if (typeof (global as any).ResizeObserver === 'undefined') {
   (global as any).ResizeObserver = class {
     observe() {}

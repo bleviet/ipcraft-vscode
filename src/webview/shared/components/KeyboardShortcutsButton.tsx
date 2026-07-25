@@ -252,5 +252,3 @@ export const KeyboardShortcutsButton: React.FC<KeyboardShortcutsButtonProps> = (
     </>
   );
 };
-
-export default KeyboardShortcutsButton;
