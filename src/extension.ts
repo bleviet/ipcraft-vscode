@@ -210,7 +210,7 @@ export function activate(context: vscode.ExtensionContext): void {
     // Code/OS versions and submits via the user's browser, so no GitHub token
     // or secrets need to live in the extension.
     await vscode.commands.executeCommand('workbench.action.openIssueReporter', {
-      extensionId: 'bleviet.ipcraft-vscode',
+      extensionId: 'bahonavi.ipcraft-vscode',
     });
   });
 

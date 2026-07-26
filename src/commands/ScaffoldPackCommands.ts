@@ -49,7 +49,7 @@ export function registerScaffoldPackCommands(
   safeRegisterCommand(context, 'fpga-ip-core.openScaffoldPacksWalkthrough', async () => {
     await vscode.commands.executeCommand(
       'workbench.action.openWalkthrough',
-      'bleviet.ipcraft-vscode#scaffold-packs-getting-started',
+      'bahonavi.ipcraft-vscode#scaffold-packs-getting-started',
       false
     );
   });
@@ -58,7 +58,7 @@ export function registerScaffoldPackCommands(
   const openWalkthrough = (id: string) =>
     vscode.commands.executeCommand(
       'workbench.action.openWalkthrough',
-      `bleviet.ipcraft-vscode#${id}`,
+      `bahonavi.ipcraft-vscode#${id}`,
       false
     );
 

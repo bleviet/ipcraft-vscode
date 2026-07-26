@@ -32,17 +32,17 @@ suite('Extension Activation Test Suite', () => {
   });
 
   test('Extension should be present', () => {
-    assert.ok(vscode.extensions.getExtension('bleviet.ipcraft-vscode'));
+    assert.ok(vscode.extensions.getExtension('bahonavi.ipcraft-vscode'));
   });
 
   test('Extension should activate', async () => {
-    const extension = vscode.extensions.getExtension('bleviet.ipcraft-vscode');
+    const extension = vscode.extensions.getExtension('bahonavi.ipcraft-vscode');
     await extension?.activate();
     assert.strictEqual(extension?.isActive, true);
   });
 
   test('Declares the active workspace trust contract', () => {
-    const packageJson = vscode.extensions.getExtension('bleviet.ipcraft-vscode')?.packageJSON;
+    const packageJson = vscode.extensions.getExtension('bahonavi.ipcraft-vscode')?.packageJSON;
     const capability = packageJson.capabilities?.untrustedWorkspaces;
 
     assert.strictEqual(capability?.supported, 'limited');
@@ -55,7 +55,7 @@ suite('Extension Activation Test Suite', () => {
   });
 
   test('Should register custom editors', () => {
-    const packageJson = vscode.extensions.getExtension('bleviet.ipcraft-vscode')?.packageJSON;
+    const packageJson = vscode.extensions.getExtension('bahonavi.ipcraft-vscode')?.packageJSON;
     const customEditors = packageJson.contributes.customEditors;
 
     const hasMemoryMapEditor = customEditors.some(

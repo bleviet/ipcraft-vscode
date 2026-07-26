@@ -1,6 +1,6 @@
 {
   "name": "ipcraft-vsix-test-harness",
-  "publisher": "bleviet",
+  "publisher": "bahonavi",
   "version": "0.0.0",
   "engines": {
     "vscode": "^1.80.0"

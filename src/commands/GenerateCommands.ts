@@ -123,7 +123,7 @@ export function registerGeneratorCommands(
   safeRegisterCommand(context, 'fpga-ip-core.openSettings', async () => {
     await vscode.commands.executeCommand(
       'workbench.action.openSettings',
-      '@ext:bleviet.ipcraft-vscode'
+      '@ext:bahonavi.ipcraft-vscode'
     );
   });
 

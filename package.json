@@ -1,6 +1,6 @@
 {
   "name": "ipcraft-vscode",
-  "publisher": "bleviet",
+  "publisher": "bahonavi",
   "license": "MIT",
   "icon": "resources/icon.png",
   "galleryBanner": {
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/bleviet/ipcraft-vscode"
+    "url": "git+https://github.com/bleviet/ipcraft-vscode.git"
   },
   "homepage": "https://github.com/bleviet/ipcraft-vscode#readme",
   "bugs": {
@@ -19,15 +19,24 @@
     "fpga",
     "ip core",
     "memory map",
+    "register map",
     "vhdl",
+    "systemverilog",
     "rtl",
     "visual editor",
     "yaml",
     "register",
-    "bitfield"
+    "bitfield",
+    "axi",
+    "avalon",
+    "ip-xact",
+    "quartus",
+    "vivado",
+    "altera",
+    "xilinx"
   ],
   "displayName": "IPCraft for VS Code",
-  "description": "Visual editor for IP Core (IPCraft) and Memory Map specifications",
+  "description": "Visual FPGA IP-core and memory-map editor with VHDL/SystemVerilog, Vivado, and Quartus project generation.",
   "version": "0.9.6",
   "engines": {
     "vscode": "^1.80.0"

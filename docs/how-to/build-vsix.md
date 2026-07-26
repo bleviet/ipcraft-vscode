@@ -106,7 +106,7 @@ so normal builds, tests, and `npm pack` cannot publish the package.
 
 | Problem | Solution |
 |---------|----------|
-| `ERROR  Missing publisher name` | Ensure `publisher` is set in `package.json` (currently `bleviet`). |
+| `ERROR  Missing publisher name` | Ensure `publisher` is set in `package.json` (currently `bahonavi`). |
 | `ERROR  It seems the README.md still contains template text` | Update `README.md` to remove placeholder content. |
 | Build fails before packaging | Run `npm run package` separately first and resolve any webpack errors. |
 | VSIX installs but extension does not activate | Check `dist/extension.js` exists. Ensure `"main": "./dist/extension.js"` in `package.json`. |

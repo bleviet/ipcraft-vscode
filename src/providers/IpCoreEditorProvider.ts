@@ -452,7 +452,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     router.on('openScaffoldPacksWalkthrough', async () => {
       await vscode.commands.executeCommand(
         'workbench.action.openWalkthrough',
-        'bleviet.ipcraft-vscode#scaffold-packs-getting-started',
+        'bahonavi.ipcraft-vscode#scaffold-packs-getting-started',
         false
       );
     });
