@@ -37,8 +37,9 @@ export function buildInterruptPorts(
 
   return (ipCore.interrupts ?? []).map((interrupt) => {
     const interruptName = String(interrupt.name ?? '');
+    const hasExplicitBusAssociation = typeof interrupt.associatedBusInterface === 'string';
     const explicitBusName = interrupt.associatedBusInterface?.trim() ?? '';
-    let associatedBus = primaryBus;
+    let associatedBus = hasExplicitBusAssociation ? undefined : primaryBus;
 
     if (explicitBusName) {
       const configuredBus = (ipCore.busInterfaces ?? []).find(

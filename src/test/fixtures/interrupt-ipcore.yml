@@ -19,9 +19,12 @@ busInterfaces:
   physicalPrefix: s_axi_
   associatedClock: clk
   associatedReset: rst
+  memoryMapRef: MAP
 interrupts:
 - name: irq
   direction: out
   sensitivity: LEVEL_HIGH
   associatedBusInterface: S_AXI
   associatedClock: clk
+memoryMaps:
+  import: sample-memmap.yml

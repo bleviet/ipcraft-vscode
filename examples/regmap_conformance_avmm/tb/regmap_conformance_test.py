@@ -138,6 +138,24 @@ async def test_shared_manifest_scenarios(dut):
     assert results
 
 
+@cocotb.test()
+async def test_interrupt_outputs(dut):
+    """Exercise the register-map IP's explicitly associated interrupt port."""
+    await _reset_dut(dut)
+    assert int(dut.irq_associated.value) == 0
+
+    await _write_reg(dut, regmap["STIMULUS"].offset, _stim(SAMPLE_EVT_TRIG=1))
+    await RisingEdge(dut.clk)
+    await RisingEdge(dut.clk)
+    await Timer(1, unit="ns")
+    assert int(dut.irq_associated.value) == 1
+
+    await _write_reg(dut, regmap["INT_STATUS"].offset, 1)
+    await RisingEdge(dut.clk)
+    await Timer(1, unit="ns")
+    assert int(dut.irq_associated.value) == 0
+
+
 # ---------------------------------------------------------------------------
 # ID -- read-only constant readback
 # ---------------------------------------------------------------------------

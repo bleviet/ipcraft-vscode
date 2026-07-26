@@ -101,6 +101,22 @@ add_interface_port led led led Output 8
 # -----------------------------------------------------------------------------
 # Interrupt Interface(s)
 # -----------------------------------------------------------------------------
+# irq_associated: interrupt sender (out)
+add_interface irq_associated interrupt end
+set_interface_property irq_associated associatedAddressablePoint S_AVMM
+set_interface_property irq_associated associatedClock clk
+set_interface_property irq_associated ENABLED true
+
+add_interface_port irq_associated irq_associated irq Output 1
+
+# irq_no_bus: interrupt sender (out)
+add_interface irq_no_bus interrupt end
+set_interface_property irq_no_bus associatedAddressablePoint ""
+set_interface_property irq_no_bus associatedClock clk
+set_interface_property irq_no_bus ENABLED true
+
+add_interface_port irq_no_bus irq_no_bus irq Output 1
+
 
 
 # -----------------------------------------------------------------------------

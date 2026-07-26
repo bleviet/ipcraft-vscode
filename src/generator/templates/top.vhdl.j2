@@ -193,23 +193,28 @@ begin
       clk => {{ clock_port }},
       rst => {% if reset_active_high %}{{ reset_port }}{% else %}not {{ reset_port }}{% endif %},
 {% if sw_registers | length > 0 %}
-      regs_in  => regs_sw2hw{{ "," if has_regs_in or core_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+      regs_in  => regs_sw2hw{{ "," if has_regs_in or core_bus_ports | length > 0 or user_ports | length > 0 or interrupt_ports | length > 0 else "" }}
 {% endif %}
 {% if has_regs_in %}
-      regs_out => regs_hw2sw{{ "," if core_bus_ports | length > 0 or user_ports | length > 0 else "" }}
+      regs_out => regs_hw2sw{{ "," if core_bus_ports | length > 0 or user_ports | length > 0 or interrupt_ports | length > 0 else "" }}
 {% endif %}
 {% if core_bus_interfaces | length %}
 {% for iface in core_bus_interfaces %}{% set iface_loop = loop %}
 
       -- {{ iface.name }}
 {% for port in iface.ports %}
-      {{ "%-14s"|format(port.name) }} => {{ port.internal_name if port.needs_swap else port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length else "" }}
+      {{ "%-14s"|format(port.name) }} => {{ port.internal_name if port.needs_swap else port.name }}{{ "," if not loop.last or not iface_loop.last or user_ports | length or interrupt_ports | length else "" }}
 {% endfor %}
 {% endfor %}
 {% endif %}
 {% if user_ports | length %}
 {% for port in user_ports %}
-      {{ port.name }} => {{ port.internal_name if port.needs_swap else port.name }}{{ "," if not loop.last else "" }}
+      {{ port.name }} => {{ port.internal_name if port.needs_swap else port.name }}{{ "," if not loop.last or interrupt_ports | length else "" }}
+{% endfor %}
+{% endif %}
+{% if interrupt_ports | length %}
+{% for port in interrupt_ports %}
+      {{ port.name }} => {{ port.name }}{{ "," if not loop.last else "" }}
 {% endfor %}
 {% endif %}
     );

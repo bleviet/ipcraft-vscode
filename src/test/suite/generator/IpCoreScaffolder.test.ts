@@ -411,24 +411,32 @@ describe('IpCoreScaffolder', () => {
     const vhdlResult = await scaffolder.generateAll(inputPath, '/tmp/test-irq-vhdl', {
       includeTestbench: false,
       targets: [],
-      scaffoldPack: 'builtin-minimal',
+      scaffoldPack: 'builtin-ipcraft',
     });
     expect(vhdlResult.success).toBe(true);
     const vhdl = findContent('rtl/irq_core.vhd');
     expect(vhdl).toContain('-- Interrupts');
     expect(vhdl).toContain('irq : out std_logic');
+    expect(vhdl).toContain('irq => irq');
+    const vhdlCore = findContent('rtl/irq_core_core.vhd');
+    expect(vhdlCore).toContain('-- Interrupts');
+    expect(vhdlCore).toContain('irq : out std_logic');
 
     writeMock.mockClear();
     const svResult = await scaffolder.generateAll(inputPath, '/tmp/test-irq-sv', {
       includeTestbench: false,
       targets: [],
-      scaffoldPack: 'builtin-minimal',
+      scaffoldPack: 'builtin-ipcraft',
       hdlLanguage: 'systemverilog',
     });
     expect(svResult.success).toBe(true);
     const sv = findContent('rtl/irq_core.sv');
     expect(sv).toContain('// Interrupts');
     expect(sv).toMatch(/output\s+logic\s+irq/);
+    expect(sv).toContain('.irq(irq)');
+    const svCore = findContent('rtl/irq_core_core.sv');
+    expect(svCore).toContain('// Interrupts');
+    expect(svCore).toMatch(/output\s+logic\s+irq/);
 
     writeMock.mockClear();
     const quartusResult = await scaffolder.generateAll(inputPath, '/tmp/test-irq-quartus', {

@@ -28,7 +28,11 @@ entity regmap_conformance is
     avs_readdata   : out std_logic_vector(31 downto 0);
 
     -- User ports
-    led : out std_logic_vector(7 downto 0)
+    led : out std_logic_vector(7 downto 0);
+
+    -- Interrupts
+    irq_associated : out std_logic;
+    irq_no_bus : out std_logic
     );
 end entity regmap_conformance;
 
@@ -69,7 +73,9 @@ begin
       rst => reset,
       regs_in  => regs_sw2hw,
       regs_out => regs_hw2sw,
-      led => led
+      led => led,
+      irq_associated => irq_associated,
+      irq_no_bus => irq_no_bus
     );
 
 end architecture rtl;

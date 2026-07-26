@@ -422,6 +422,26 @@ describe('busResolver interrupt associations', () => {
     ]);
   });
 
+  it('keeps an explicitly empty addressable point when a memory-mapped slave exists', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          clocks: [{ name: 'clk' }],
+          busInterfaces: [{ name: 's_axi', type: 'AXI4L', mode: 'slave' }],
+          interrupts: [{ name: 'irq', associatedBusInterface: '' }],
+        },
+        AXI4_LITE_DEF
+      )
+    );
+
+    expect(result.interrupt_ports).toEqual([
+      expect.objectContaining({
+        associated_bus_interface: '',
+        associated_clock: 'clk',
+      }),
+    ]);
+  });
+
   it('rejects an explicit missing or ineligible bus association', () => {
     expect(() =>
       busResolver.resolve(

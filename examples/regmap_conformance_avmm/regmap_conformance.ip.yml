@@ -41,6 +41,24 @@ ports:
       dedicated status LED that blinks slowly while the shared conformance
       suite is progressing and faster once TEST_PROGRESS.FAILED is set.
 
+interrupts:
+  - name: irq_associated
+    direction: out
+    sensitivity: EDGE_RISING
+    associatedBusInterface: S_AVMM
+    associatedClock: clk
+    description: >
+      Pulses when STIMULUS.SAMPLE_EVT_TRIG rises. Explicitly associated with
+      the Avalon-MM slave to verify the portable association path.
+  - name: irq_no_bus
+    direction: out
+    sensitivity: LEVEL_HIGH
+    associatedBusInterface: ""
+    associatedClock: clk
+    description: >
+      Periodic level-sensitive interrupt with an explicitly empty bus
+      association, used to verify interrupt-only components.
+
 busInterfaces:
   - name: S_AVMM
     type: ipcraft:busif:avalon_mm:1.0
@@ -107,6 +125,12 @@ fileSets:
       - path: altera/regmap_conformance_hw.tcl
         type: tcl
       - path: altera/debug/hardware_runner.py
+        type: python
+        managed: false
+      - path: altera/debug/verify_irq_metadata.py
+        type: python
+        managed: false
+      - path: altera/debug/verify_irq_hardware.py
         type: python
         managed: false
       - path: altera/debug/conformance_sysconsole.tcl
