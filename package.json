@@ -37,7 +37,7 @@
   ],
   "displayName": "IPCraft for VS Code",
   "description": "Visual FPGA IP-core and memory-map editor with VHDL/SystemVerilog, Vivado, and Quartus project generation.",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -1226,7 +1226,7 @@
           {
             "id": "read-manifest",
             "title": "Open scaffold.yml",
-            "description": "The manifest lists every file the pack generates. The Scaffold Pack Preview panel updates as you edit it.",
+            "description": "The manifest lists every file the pack generates. Choose Open scaffold.yml after export to open it with the Scaffold Pack Preview panel.",
             "media": {
               "markdown": "media/walkthrough/scaffold-packs/step2-manifest.md"
             }
@@ -1253,7 +1253,7 @@
           {
             "id": "wire-up",
             "title": "Wire the pack to an IP core",
-            "description": "Add scaffold_pack: to .ip.yml, then run Generate HDL to see your customised output.\n\n[Generate HDL](command:fpga-ip-core.generateHdl)",
+            "description": "Add scaffold_pack: to .ip.yml and clear any global scaffold-pack override, then generate your customised output.\n\n[Generate HDL](command:fpga-ip-core.generateHdl)",
             "media": {
               "markdown": "media/walkthrough/scaffold-packs/step5-wire-up.md"
             },
@@ -1283,7 +1283,7 @@
           {
             "id": "explore-canvas",
             "title": "Meet the canvas",
-            "description": "The canvas shows your IP core as a block diagram. Clocks and resets on the left, ports and bus interfaces on the right. Click any element to inspect and edit it in the Inspector panel.",
+            "description": "The canvas shows your IP core as a block diagram: inputs and slave buses on the left, outputs and master buses on the right, and bidirectional ports on the bottom. Click any element to edit it in the Inspector.",
             "media": {
               "markdown": "media/walkthrough/fresh-ip-core/step2-explore-canvas.md"
             }
@@ -1307,7 +1307,7 @@
           {
             "id": "generate",
             "title": "Generate your RTL",
-            "description": "Scaffold Full Project generates VHDL or SystemVerilog, a testbench, and vendor packaging files — all in one command.\n\n[Scaffold Full Project](command:fpga-ip-core.scaffoldProject)",
+            "description": "Scaffold Full Project stages RTL from the selected pack, an optional testbench and datasheet, and packaging for the enabled toolbar targets.\n\n[Scaffold Full Project](command:fpga-ip-core.scaffoldProject)",
             "media": {
               "markdown": "media/walkthrough/fresh-ip-core/step5-generate.md"
             },
@@ -1329,7 +1329,7 @@
       {
         "id": "ip-core-with-registers",
         "title": "IP Core with a Register Map",
-        "description": "Create a memory-mapped IP core with AXI-Lite or Avalon-MM registers — IPCraft generates the bus wrapper and register decode automatically.",
+        "description": "Create a register map, attach it to an AXI or Avalon-MM slave, and generate the matching bus wrapper and register decoder.",
         "steps": [
           {
             "id": "create-both",
@@ -1345,7 +1345,7 @@
           {
             "id": "define-registers",
             "title": "Define your control registers",
-            "description": "The memory map editor opens as a table. Add address blocks, registers, and bit fields. The bit-field visualizer lets you drag and resize fields visually.",
+            "description": "Open the generated .mm.yml in the table editor, then add address blocks, registers, and bit fields. The bit-field visualizer lets you drag and resize fields visually.",
             "media": {
               "markdown": "media/walkthrough/ip-core-with-registers/step2-define-registers.md"
             }
@@ -1353,7 +1353,7 @@
           {
             "id": "link-and-generate",
             "title": "Generate RTL with register decode",
-            "description": "IPCraft auto-wires the bus slave interface from your register map and generates a complete register file decoder.\n\n[Scaffold Full Project](command:fpga-ip-core.scaffoldProject)",
+            "description": "Attach the imported map to a memory-mapped slave with memoryMapRef, select the builtin-ipcraft pack, and generate its bus wrapper and register decoder.\n\n[Scaffold Full Project](command:fpga-ip-core.scaffoldProject)",
             "media": {
               "markdown": "media/walkthrough/ip-core-with-registers/step3-link-and-generate.md"
             },
@@ -1364,7 +1364,7 @@
           {
             "id": "inspect-regfile",
             "title": "Inspect the generated register file",
-            "description": "Open the generated *_regfile.vhd (or *_regfile.sv) to see your register constants, field offsets, and the read/write decoder logic.",
+            "description": "Open the generated *_regs.vhd (or *_regs.sv) and *_pkg file to inspect register constants, field offsets, and the bus-neutral read/write decoder.",
             "media": {
               "markdown": "media/walkthrough/ip-core-with-registers/step4-inspect-regfile.md"
             }
@@ -1406,7 +1406,7 @@
           {
             "id": "refine-interfaces",
             "title": "Fill in what auto-detection missed",
-            "description": "Drag a bus interface from the Library Palette if it was not detected, or use the Bus Interfaces tab to add it manually. Set clock frequencies for timing-aware packaging.",
+            "description": "Drag a bus interface from the Library Palette if it was not detected, or use the Bus Interfaces tab to add it manually. Set clock frequencies for generated XDC and SDC timing constraints.",
             "media": {
               "markdown": "media/walkthrough/import-from-vhdl/step3-refine.md"
             }
@@ -1439,7 +1439,7 @@
       {
         "id": "import-from-vendor-tools",
         "title": "Import from Xilinx or Intel Tools",
-        "description": "Convert a Platform Designer _hw.tcl or Vivado component.xml into a portable .ip.yml — then generate for the other vendor.",
+        "description": "Convert supported Platform Designer _hw.tcl or IP-XACT 1685-2009 component.xml content into an editable .ip.yml, review vendor-specific details, then re-export.",
         "steps": [
           {
             "id": "preview-source",
@@ -1454,8 +1454,8 @@
           },
           {
             "id": "parse-to-ipy",
-            "title": "Convert to a portable spec",
-            "description": "Parse the vendor file into a .ip.yml that works with any toolchain.\n\n[Parse Platform Designer _hw.tcl](command:fpga-ip-core.parseHwTcl)\n\n[Parse Xilinx component.xml](command:fpga-ip-core.parseComponentXml)",
+            "title": "Convert to an IPCraft spec",
+            "description": "Parse supported vendor constructs into a .ip.yml, then review unsupported conditions and interface types before re-exporting.\n\n[Parse Platform Designer _hw.tcl](command:fpga-ip-core.parseHwTcl)\n\n[Parse Xilinx component.xml](command:fpga-ip-core.parseComponentXml)",
             "media": {
               "markdown": "media/walkthrough/import-from-vendor-tools/step2-parse.md"
             },
@@ -1475,7 +1475,7 @@
           {
             "id": "export-other-vendor",
             "title": "Generate for the other platform",
-            "description": "The same .ip.yml can generate both Xilinx and Intel packaging. Cross-vendor conversion is one command.\n\n[Export Xilinx component.xml](command:fpga-ip-core.exportXilinx)\n\n[Export Platform Designer _hw.tcl](command:fpga-ip-core.exportAltera)",
+            "description": "Generate Xilinx or Intel packaging from the reviewed .ip.yml. Protocol and vendor-specific constructs may still require manual adaptation.\n\n[Export Xilinx component.xml](command:fpga-ip-core.exportXilinx)\n\n[Export Platform Designer _hw.tcl](command:fpga-ip-core.exportAltera)",
             "media": {
               "markdown": "media/walkthrough/import-from-vendor-tools/step4-export.md"
             },
@@ -1522,7 +1522,7 @@
           {
             "id": "read-report",
             "title": "Read timing and utilization in VS Code",
-            "description": "The Build Reports panel shows WNS/WHS (Vivado) or Fmax (Quartus), LUT/FF/BRAM/DSP usage, and CDC violations — click any metric to open the raw report.\n\n[Show Build Output](command:fpga-ip-core.showBuildOutput)",
+            "description": "The Build Reports panel summarizes WNS/WHS (Vivado) or Fmax (Quartus), utilization, and CDC. The Vivado Timing parent and reported CDC violations link to raw reports.\n\n[Show Build Output](command:fpga-ip-core.showBuildOutput)",
             "media": {
               "markdown": "media/walkthrough/build-and-verify/step3-read-report.md"
             },

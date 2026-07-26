@@ -21,6 +21,6 @@ Click **Confirm & Apply** to write all staged, non-excluded files to disk. Click
 
 ### User-owned files
 
-Files are only protected from overwrite if something explicitly marks them `managed: false` — either a `fileSets` entry you add to the `.ip.yml` yourself, or a scaffold pack rule. **The default `builtin-ipcraft` pack does not mark any RTL file `managed: false`**, including `<name>_core.vhd` — every scaffold run regenerates it from the template, so custom logic you add there will be overwritten unless you protect it explicitly. To keep your hand-edited core logic safe, add a `fileSets` entry for it with `managed: false`, or switch to a pack that already protects it (e.g. `example-no-regfile`).
+Files are only protected from overwrite if something explicitly marks them `managed: false` — either a `fileSets` entry you add to the `.ip.yml` yourself, or a scaffold pack rule. **The `builtin-ipcraft` pack does not mark any RTL file `managed: false`**, including `<name>_core.vhd` — every scaffold run regenerates it from the template, so custom logic you add there will be overwritten unless you protect it explicitly. To keep your hand-edited core logic safe, add a `fileSets` entry for it with `managed: false`, or switch to a pack that already protects it (e.g. `example-no-regfile`).
 
 > **Tip:** To see which files a scaffold pack treats as user-owned, open the **Project Scaffold** section and look for the lock icon in the preview tree.

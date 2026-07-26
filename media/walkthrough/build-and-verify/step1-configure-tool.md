@@ -33,4 +33,8 @@ If you do not have tools installed locally, set `ipcraft.vivado.runner` or `ipcr
 
 ### Verifying the configuration
 
-After setting `installDir`, run any build command — IPCraft will report **Vivado not found** or **Quartus not configured** in the status bar if the path is incorrect. Click the status bar message to jump straight to the relevant setting.
+After setting `installDir`, run a build command. If IPCraft cannot find the
+tool, it shows a warning notification such as **Vivado not found** or
+**Quartus not found**. Choose **Open Settings** in that notification to correct
+the path. The status bar itself reports build state and, after a successful
+build, a timing summary.

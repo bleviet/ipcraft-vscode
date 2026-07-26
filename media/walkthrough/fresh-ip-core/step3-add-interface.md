@@ -4,9 +4,9 @@ A bus interface groups related signals (address, data, handshake) into a single 
 
 ### How to add one
 
-1. Open the Library Palette (left sidebar of the canvas) — bus types are grouped under **Protocols**
-2. Find the bus type you need (e.g. AXI4-Lite Slave), or use the search box to filter
-3. Drag it onto the right edge of the canvas block
+1. Open the Library Palette (left sidebar of the canvas) — bus types are grouped under **Bus Protocols**
+2. Find the bus type you need (e.g. AXI4-Lite), or use the search box to filter
+3. Drag it onto the **left** half for a slave/sink, or the **right** half for a master/source
 4. Click the new bus interface to select it, then edit its fields in the Inspector panel on the right
 
 ### Which bus type should I use?
@@ -15,7 +15,11 @@ A bus interface groups related signals (address, data, handshake) into a single 
 |-----------|-----|
 | Register access (control/status) | AXI4-Lite Slave or Avalon-MM Slave |
 | Burst DMA from the core | AXI4 Master |
-| Simple memory-mapped I/O | APB Slave |
+| Streaming data | AXI-Stream or Avalon-ST |
 | Custom/proprietary bus | Define a bus library YAML |
+
+The built-in palette includes AXI4-Lite, AXI4-Full, AXI-Stream, Avalon-MM,
+Avalon-ST, and conduit definitions. Protocols such as APB require a custom bus
+library.
 
 > **Tip:** The `physicalPrefix` field in the Inspector sets the HDL signal prefix, e.g. `s_axi_` → `s_axi_awaddr`, `s_axi_awvalid`, etc.

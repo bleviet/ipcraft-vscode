@@ -7,6 +7,8 @@ IPCraft generates a cocotb Python test skeleton alongside your RTL so you can st
 ```
 tb/
   my_core_test.py       ← test skeleton with AXI-Lite driver helpers
+  verification_manifest.json ← resolved register semantics
+  register_model.py     ← software oracle used for expected readback
   conftest.py           ← cocotb/pytest fixtures
   test_my_core_sim.py   ← pytest entry point that drives the simulation
   Makefile               ← one-line simulation launch
@@ -24,21 +26,25 @@ make SIM=questa      # ModelSim / Questa
 
 ### What the skeleton tests
 
-The generated test includes:
+For a memory-mapped slave, the generated test builds an AXI or Avalon
+transport and checks the resolved register manifest:
 
 ```python
 @cocotb.test()
-async def test_register_write_read(dut):
-    # Reset
-    await reset_dut(dut)
-    # Write to CTRL register
-    await axil_write(dut, REG_CTRL_OFFSET, 0x01)
-    # Read back and verify
-    val = await axil_read(dut, REG_CTRL_OFFSET)
-    assert val == 0x01, f"Expected 0x01, got {val:#010x}"
+async def test_register_semantics(dut):
+    transport = AxiTransport(dut)
+    await _reset_dut(dut)
+
+    directed_value = 0xA5A5A5A5 & model.word_mask
+    for reg in model.writable_registers():
+        await transport.write(reg["offset"], directed_value)
+        model.apply_write(reg["offset"], directed_value)
 ```
 
-Extend this skeleton with your functional test cases.
+The full generated test also covers reset values, readable and reserved bits,
+write-only transactions, write-1-to-clear and self-clearing fields, byte
+enables where supported, unmapped reads, and deterministic random traffic.
+Extend it with your design-specific functional cases.
 
 ### Changing the simulation framework
 

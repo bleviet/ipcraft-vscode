@@ -1,6 +1,9 @@
 ## From spec to RTL in one command
 
-When you run **IPCraft: Scaffold Project** from an IP core that has a memory map, IPCraft generates a complete, synthesisable register interface automatically.
+After the imported memory map is attached through `memoryMapRef` to a
+memory-mapped slave, select the `builtin-ipcraft` scaffold pack and run
+**IPCraft: Scaffold Project**. IPCraft then generates a complete,
+synthesisable register interface.
 
 ### What gets generated
 
@@ -8,7 +11,7 @@ When you run **IPCraft: Scaffold Project** from an IP core that has a memory map
 rtl/
   my_core_pkg.vhd    ← register offset constants, types
   my_core.vhd         ← top-level entity (instantiates core + wrapper)
-  my_core_core.vhd    ← your logic skeleton (user-owned, never overwritten)
+  my_core_core.vhd    ← generated logic skeleton (managed by default)
   my_core_axil.vhd    ← AXI-Lite bus wrapper (decode + handshake)
   my_core_regs.vhd    ← register read/write decoder
 ```
@@ -22,7 +25,10 @@ The generated wrapper matches the bus interfaces in your canvas:
 | AXI4-Lite Slave | `*_axil.vhd` |
 | Avalon-MM Slave | `*_avmm.vhd` |
 
-If no bus interface is present when you scaffold, IPCraft adds an AXI-Lite slave automatically based on the memory map.
+IPCraft does not infer or add a bus interface from the memory map. If the
+wrapper or register file is missing from staging, confirm that the IP core has
+a supported slave interface and that its `memoryMapRef` names the imported
+map.
 
 ### The core-to-regfile connection
 
@@ -30,11 +36,20 @@ Your `*_core.vhd` skeleton receives a record signal with one field per register 
 
 ```vhdl
 -- Inside my_core_core.vhd (simplified)
-proc_main : process(clk)
+p_main : process(clk)
 begin
   if rising_edge(clk) then
-    threshold <= regs_i.threshold;  -- read a control register
-    regs_o.status_done <= done_flag; -- write a status register
+    if regs_in.ctrl.enable = '1' then
+      null; -- Run the enabled datapath here.
+    end if;
+    regs_out.status.done <= done_flag; -- hardware-driven field
   end if;
 end process;
 ```
+
+The record and field names come from your register and field names after
+normalisation. Inspect the generated package for the exact types.
+
+> **Important:** `builtin-ipcraft` regenerates `*_core.vhd` / `*_core.sv`.
+> Mark the file `managed: false` before adding hand-written logic, or use a
+> scaffold pack that protects its core rule.

@@ -26,11 +26,13 @@ The TCL file includes:
 
 ### Generating both simultaneously
 
-Run **Scaffold Project** with both `vivado` and `quartus` listed in your targets (the `.ip.yml` `targets` field, or the `ipcraft.generate.targets` workspace setting). IPCraft generates both descriptors alongside the RTL in a single staging run.
+In the IP-core editor toolbar, enable both the **XILINX** and **ALTERA**
+target pills, then run **Scaffold Project**. The command currently reads the
+toolbar selection (`ipcraft.toolbar.targets`) and stages both descriptors
+alongside the RTL.
 
-```yaml
-# In .ip.yml
-targets: [vivado, quartus]
-```
+The root `.ip.yml` `targets` field and `ipcraft.generate.targets` setting are
+not read by the Scaffold command, so changing only those values does not alter
+this toolbar-driven workflow.
 
 > **Tip:** You can open the generated `component.xml` in Vivado IP Packager directly with **Edit in IP Packager** for final tweaks. By default `component.xml` is regenerated (overwritten) on every scaffold — to keep manual IP Packager edits, add a `fileSets` entry for it in `.ip.yml` with `managed: false`, the same mechanism used to protect hand-edited RTL.

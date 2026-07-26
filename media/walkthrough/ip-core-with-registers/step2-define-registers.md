@@ -1,6 +1,6 @@
 ## The memory map table editor
 
-The `.mm.yml` file opens in a tabular editor designed for fast register entry.
+Open the generated `.mm.yml` file to use the tabular editor designed for fast register entry.
 
 ### Structure
 

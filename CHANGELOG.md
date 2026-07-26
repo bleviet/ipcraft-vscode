@@ -2,7 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [0.9.7] - 2026-07-27
+
+### Added
+
+- **Semantic cocotb register verification**: generated testbenches now use a resolved verification manifest and software register model to check reset values, access modes, reserved bits, byte enables, unmapped reads, write-1-to-clear and self-clearing behavior, and deterministic randomized traffic across AXI and Avalon transports. ([#180](https://github.com/bleviet/ipcraft-vscode/issues/180))
+- **Generated interrupt associations**: interrupt ports now carry bus and clock associations through the schema, canvas Inspector, generated RTL, template context, and Platform Designer output, with validation for invalid references. ([#183](https://github.com/bleviet/ipcraft-vscode/issues/183))
+- **Unified DE10-Nano conformance flows**: the Avalon-MM and AXI4-Lite examples share manifest-driven scenarios between cocotb simulation and hardware validation; the Avalon-MM project now supports both Nios II and Nios V systems. ([#181](https://github.com/bleviet/ipcraft-vscode/issues/181))
+- **Generator design references**: added a feature-coverage matrix and an implementation-scoped architecture proposal for inferred RAM buffers. ([#179](https://github.com/bleviet/ipcraft-vscode/issues/179))
+
+### Changed
+
+- **Open-source integration CI** now runs all applicable suites on pull requests and uses a dedicated nightly workflow, so newly added open-source integration groups are included automatically. ([#178](https://github.com/bleviet/ipcraft-vscode/issues/178))
+- **Marketplace publishing metadata** now targets the `bahonavi` publisher and includes expanded FPGA protocol and vendor keywords.
+
+### Fixed
+
+- **IP Core canvas titles** now wrap and preserve stable layout measurements instead of overflowing or clipping long names.
+- **Getting Started walkthrough accuracy**: corrected scaffold-pack defaults and file ownership, memory-map bus attachment, canvas-side semantics, report navigation, generated VHDL and cocotb examples, target selection, clock-frequency behavior, and vendor-import limitations.
 
 ## [0.9.6] - 2026-07-25
 

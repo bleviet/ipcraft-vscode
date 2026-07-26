@@ -12,16 +12,20 @@ The canvas renders your IP core as a live block diagram. Every change you make i
 │                     │ ─────────● data_o│   Direction: out   │
 │                     │ ─────────● valid │   Width: 32        │
 │                     │                  │                     │
-│                     │ ═══════════● AXI │   Bus type: axi4.. │
+│                     │ AXI ●═══════════ │   Bus type: axi4.. │
 │                     └──────────────────┘                     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 | Edge | What appears there |
 |------|--------------------|
-| **Left** | Clocks and resets |
-| **Right** | Scalar ports and bus interfaces |
-| **Bottom** | Overflow ports and interrupts |
+| **Left** | Clocks, resets, slave/sink buses, input ports, and input interrupts |
+| **Right** | Master/source buses, output ports, and output interrupts |
+| **Bottom** | Bidirectional (`inout`) ports |
+
+The half of the block where you drop a bus also sets its initial role: left
+creates a slave/sink, while right creates a master/source. You can confirm the
+result in the Inspector.
 
 ### Keyboard shortcuts
 

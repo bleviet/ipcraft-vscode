@@ -22,13 +22,20 @@ Click each parameter on the canvas and check in the Inspector:
 
 Some bus types do not have a 1:1 equivalent across vendors:
 
-| Quartus (hw.tcl) | Vivado (component.xml) | Notes |
-|-----------------|----------------------|-------|
-| `avalon_slave` | No direct equivalent | Map manually to `axi4_lite_slave` if converting |
-| `altera_axi4` | `axi4` | Compatible |
-| `clock` | `clock` | Direct |
-| `reset` | `reset` | Direct |
+| `_hw.tcl` interface type | Imported IPCraft interface |
+|--------------------------|----------------------------|
+| `axi4lite` | AXI4-Lite |
+| `axi4` | AXI4-Full |
+| `axi4stream` / `axis` | AXI-Stream |
+| `avalon` | Avalon-MM |
+| `avalon_streaming` / `avalonst` | Avalon-ST |
 
-If your design uses Avalon-MM and you are targeting Vivado, you will need to either keep Avalon interfaces for Quartus and add separate AXI interfaces for Vivado, or replace Avalon with AXI across both.
+The `_hw.tcl` importer recognises the bus types above, plus dedicated clock,
+reset, conduit, and interrupt interfaces. Other interface types are not
+imported as bus interfaces, so compare the result with the original before
+continuing.
 
-> **Tip:** IPCraft can hold both Avalon-MM and AXI interfaces in the same `.ip.yml`. Use the `targets` field to control which packaging files each interface appears in.
+IPCraft can hold both Avalon-MM and AXI interfaces in the same `.ip.yml`, but
+target selection controls which complete packaging descriptors are generated;
+it does not filter individual interfaces. If a vendor descriptor must expose
+only a subset, maintain separate specs or adjust the staged descriptor.

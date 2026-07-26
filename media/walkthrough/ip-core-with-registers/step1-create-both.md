@@ -7,7 +7,8 @@ A register-mapped IP core in IPCraft uses two linked files:
 | `my_core.ip.yml` | IP core definition — clocks, resets, ports, bus interfaces, metadata |
 | `my_core.mm.yml` | Memory map — address blocks, registers, and bit fields |
 
-The **New IP Core + Register Map** command creates both and wires them together automatically:
+The **New IP Core + Register Map** command creates both files and imports the
+memory-map file from the IP-core specification:
 
 ```yaml
 # my_core.ip.yml (excerpt)
@@ -15,10 +16,23 @@ memoryMaps:
   import: my_core.mm.yml   # ← IPCraft links these at generation time
 ```
 
-### What IPCraft does with the link
+The command opens `my_core.ip.yml`. Open `my_core.mm.yml` separately when you
+are ready to edit its registers.
 
-When you scaffold, IPCraft reads the memory map, derives the required bus slave interface (AXI-Lite by default), adds it to your IP core automatically, and generates the register file decoder and bus wrapper to match.
+### Attach the map to a slave interface
 
-You do not need to manually describe the AXI signals in the canvas — the memory map drives them.
+The file import alone does not create a bus interface. Before scaffolding:
 
-> **Tip:** You can link multiple `.mm.yml` files or inline register definitions directly in `.ip.yml` — select the memory-mapped bus interface on the canvas and set its memory map link (`memoryMapRef`) in the Inspector.
+1. Drag an AXI4-Lite, AXI4-Full, or Avalon-MM interface onto the **left** half
+   of the canvas so its mode is `slave`.
+2. Select the interface and set `memoryMapRef` in the Inspector to the map name
+   declared inside `my_core.mm.yml` (the generated default is
+   `MY_CORE_MEMMAP`).
+3. Confirm the clock, reset, physical prefix, and data/address widths.
+
+Once that slave is attached, the `builtin-ipcraft` scaffold pack can generate
+the matching bus wrapper and register decoder. You describe the bus as one
+canvas interface; IPCraft expands its individual HDL signals from the bus
+definition.
+
+> **Tip:** You can import multiple `.mm.yml` files or define maps inline. Each memory-mapped slave selects its map by name through `memoryMapRef`.

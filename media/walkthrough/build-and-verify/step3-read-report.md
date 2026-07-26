@@ -23,13 +23,20 @@ After a build completes, IPCraft parses the vendor report files and displays the
 | **M9K / M20K** | Memory block count |
 | **DSP** | DSP block count |
 
-### Clicking into reports
+### Opening raw reports
 
-Click any metric row to open the corresponding raw report file:
-- WNS → `timing.rpt`
-- LUT → `utilization.rpt`
-- CDC → `cdc.rpt`
+Metric rows are summaries and are not all clickable:
 
-The reports open as read-only text in VS Code. Use VS Code's built-in search to navigate to the critical path or the first failing constraint.
+- For Vivado, click the parent **Timing** row to open `timing.rpt`. The WNS,
+  WHS, and failing-path child rows only display parsed values.
+- When CDC violations are present, click the **CDC** row to open `cdc.rpt`.
+- Utilization rows display parsed LUT, FF, BRAM, and DSP counts but do not open
+  `utilization.rpt`.
+- Quartus timing metrics are summaries and do not currently link to a raw
+  report.
+
+Raw reports open as normal text editors in VS Code. Use VS Code's built-in
+search to navigate to a critical path or failing constraint. Use **Show Build
+Output** to inspect the complete build log.
 
 > **Tip:** Negative WNS means your design is failing timing. The number is how many nanoseconds you need to recover — pipeline the critical path or reduce logic depth.

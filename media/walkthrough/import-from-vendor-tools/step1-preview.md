@@ -7,7 +7,7 @@ Before converting a vendor file to `.ip.yml`, use **Preview in IPCraft (Experime
 | File | Tool | Parser |
 |------|------|--------|
 | `*_hw.tcl` | Intel Quartus Platform Designer | Parses `add_interface`, `add_interface_port`, `add_parameter` |
-| `component.xml` | Xilinx/AMD Vivado IP-XACT | Parses IP-XACT 2009 and 2014 schemas |
+| `component.xml` | Xilinx/AMD Vivado IP-XACT | Parses the IP-XACT 1685-2009 namespace |
 | `*.vhd` / `*.vhdl` | Any VHDL toolchain | Parses entity declarations |
 | `*.sv` / `*.v` | Any SV/Verilog toolchain | Parses module declarations |
 
@@ -24,3 +24,7 @@ Before converting a vendor file to `.ip.yml`, use **Preview in IPCraft (Experime
 The preview renders the same canvas as a full `.ip.yml` editor, but in read-only mode. You can click ports and bus interfaces to see their detected properties in the Inspector panel.
 
 If something looks wrong in the preview, check the source file before converting — it is easier to fix in the original than to correct the imported `.ip.yml` afterwards.
+
+IP-XACT 1685-2014 uses a different namespace and is not currently supported by
+the component XML parser. Convert it to a Vivado 1685-2009 `component.xml`
+before previewing or importing it.

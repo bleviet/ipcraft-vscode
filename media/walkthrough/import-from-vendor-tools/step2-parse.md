@@ -1,6 +1,9 @@
-## Converting to a portable .ip.yml
+## Converting to an editable .ip.yml
 
-The parse commands transform a vendor-specific descriptor into an `.ip.yml` that works with any toolchain — you can then generate for Vivado, Quartus, or both, from the same spec.
+The parse commands normalise supported parts of a vendor descriptor into an
+`.ip.yml`. Review the result before generating for Vivado, Quartus, or both,
+because vendor-specific conditions and unsupported interface types do not
+transfer automatically.
 
 ### Parse Platform Designer _hw.tcl
 
@@ -14,7 +17,10 @@ Run **IPCraft: Import from Altera Platform Designer (Experimental)** with a `*_h
 - `add_parameter` — generics/parameters with types and defaults
 - `source other_file.tcl` — recursive following of sourced files
 
-**Known limitation:** Synthesisability conditions (`SYNTHESIS`) and simulation-only ports are preserved as comments but may need manual review.
+**Known limitation:** The parser reads supported commands into a new YAML
+document. TCL comments, conditional execution such as `SYNTHESIS`, and
+simulation-only intent are not represented in `.ip.yml`; review those parts
+manually before conversion.
 
 ### Parse Xilinx component.xml
 
@@ -22,10 +28,13 @@ Run **IPCraft: Import from Xilinx Component XML (Experimental)** with a `compone
 
 **What the parser handles:**
 
-- IP-XACT 2009 and 2014 schemas
+- The IP-XACT 1685-2009 namespace
 - `<busInterface>` elements — maps to IPCraft bus interface definitions
 - `<model><ports>` — all port declarations with directions and widths
 - `<parameters>` — parameter names, types, and defaults
 - `<fileSet>` references — file set paths are preserved
 
-**Note:** Vivado bus definition resolution requires the Vivado IP catalog to be available. Run **IPCraft: Scan Vivado IP Catalog** first if bus types are not recognised.
+Known AXI interfaces are normalised to IPCraft's built-in bus definitions.
+Other IP-XACT bus VLNVs and their raw port maps are preserved without requiring
+a Vivado catalog scan. Review an unknown interface in the Inspector before
+re-exporting it.

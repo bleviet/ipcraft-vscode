@@ -1,8 +1,10 @@
 ## The scaffold.yml manifest
 
-After exporting, open `.vscode/ipcraft/packs/<your-pack>/scaffold.yml`.
-The **Scaffold Pack Preview** panel opens beside it automatically and shows
-exactly which files will be generated.
+After exporting, choose **Open scaffold.yml** in the confirmation notification.
+IPCraft opens `.vscode/ipcraft/packs/<your-pack>/scaffold.yml` and the
+**Scaffold Pack Preview** panel beside it. Opening the manifest manually does
+not create the panel, but an already-open panel refreshes whenever you save
+`scaffold.yml`.
 
 A manifest entry looks like this:
 
