@@ -279,3 +279,178 @@ describe('buildUserPorts endianness', () => {
     expect(ports[0].needs_swap).toBe(true);
   });
 });
+
+describe('busResolver interrupt associations', () => {
+  it('preserves explicit bus and clock associations in the template context', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          clocks: [{ name: 'clk_sys' }, { name: 'clk_irq' }],
+          busInterfaces: [
+            {
+              name: 's_axi_control',
+              type: 'AXI4L',
+              mode: 'slave',
+              associatedClock: 'clk_sys',
+            },
+            {
+              name: 's_axi_status',
+              type: 'AXI4L',
+              mode: 'slave',
+              physicalPrefix: 's_status_',
+              associatedClock: 'clk_irq',
+            },
+          ],
+          interrupts: [
+            {
+              name: 'irq',
+              associatedBusInterface: 's_axi_status',
+              associatedClock: 'clk_sys',
+            },
+          ],
+        },
+        AXI4_LITE_DEF
+      )
+    );
+
+    expect(result.interrupt_ports).toEqual([
+      expect.objectContaining({
+        name: 'irq',
+        associated_bus_interface: 's_axi_status',
+        associated_clock: 'clk_sys',
+      }),
+    ]);
+  });
+
+  it('falls back to the primary memory-mapped slave and its associated clock', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          clocks: [{ name: 'clk_sys' }, { name: 'clk_bus' }],
+          busInterfaces: [
+            {
+              name: 's_axis',
+              type: 'AXIS',
+              mode: 'slave',
+              physicalPrefix: 's_axis_',
+            },
+            {
+              name: 's_axi',
+              type: 'AXI4L',
+              mode: 'slave',
+              associatedClock: 'clk_bus',
+            },
+          ],
+          interrupts: [{ name: 'irq' }],
+        },
+        { ...AXI4_LITE_DEF, ...AXI_STREAM_DEF }
+      )
+    );
+
+    expect(result.interrupt_ports).toEqual([
+      expect.objectContaining({
+        associated_bus_interface: 's_axi',
+        associated_clock: 'clk_bus',
+      }),
+    ]);
+  });
+
+  it('falls back to the primary clock when the selected bus has no clock', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          clocks: [{ name: 'clk_primary' }, { name: 'clk_other' }],
+          busInterfaces: [{ name: 's_axi', type: 'AXI4L', mode: 'slave' }],
+          interrupts: [{ name: 'irq' }],
+        },
+        AXI4_LITE_DEF
+      )
+    );
+
+    expect(result.interrupt_ports).toEqual([
+      expect.objectContaining({
+        associated_bus_interface: 's_axi',
+        associated_clock: 'clk_primary',
+      }),
+    ]);
+  });
+
+  it('maps a single-instance bus array association to its expanded interface name', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          clocks: [{ name: 'clk' }],
+          busInterfaces: [
+            {
+              name: 's_axi',
+              type: 'AXI4L',
+              mode: 'slave',
+              array: { count: 1, namingPattern: 'S_AXI_{index}' },
+            },
+          ],
+          interrupts: [{ name: 'irq', associatedBusInterface: 's_axi' }],
+        },
+        AXI4_LITE_DEF
+      )
+    );
+
+    expect(result.interrupt_ports).toEqual([
+      expect.objectContaining({
+        associated_bus_interface: 'S_AXI_0',
+        associated_clock: 'clk',
+      }),
+    ]);
+  });
+
+  it('keeps the addressable point empty when no memory-mapped slave exists', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          clocks: [{ name: 'clk' }],
+          busInterfaces: [{ name: 's_axis', type: 'AXIS', mode: 'slave' }],
+          interrupts: [{ name: 'irq' }],
+        },
+        AXI_STREAM_DEF
+      )
+    );
+
+    expect(result.interrupt_ports).toEqual([
+      expect.objectContaining({
+        associated_bus_interface: '',
+        associated_clock: 'clk',
+      }),
+    ]);
+  });
+
+  it('rejects an explicit missing or ineligible bus association', () => {
+    expect(() =>
+      busResolver.resolve(
+        makeInput(
+          {
+            clocks: [{ name: 'clk' }],
+            busInterfaces: [{ name: 'm_axi', type: 'AXI4L', mode: 'master' }],
+            interrupts: [{ name: 'irq', associatedBusInterface: 'm_axi' }],
+          },
+          AXI4_LITE_DEF
+        )
+      )
+    ).toThrow(
+      "Interrupt 'irq' references missing or ineligible memory-mapped slave interface 'm_axi'"
+    );
+  });
+
+  it('rejects an explicit missing clock association', () => {
+    expect(() =>
+      busResolver.resolve(
+        makeInput(
+          {
+            clocks: [{ name: 'clk' }],
+            busInterfaces: [{ name: 's_axi', type: 'AXI4L', mode: 'slave' }],
+            interrupts: [{ name: 'irq', associatedClock: 'missing_clk' }],
+          },
+          AXI4_LITE_DEF
+        )
+      )
+    ).toThrow("Interrupt 'irq' references unknown clock 'missing_clk'");
+  });
+});

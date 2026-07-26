@@ -148,6 +148,7 @@ Common template values:
 | `has_endian_swap` | Whether top-level endian reflow logic is needed |
 | `registers` | Registers sorted by address |
 | `bus_ports`, `user_ports` | Physical interface and standalone ports |
+| `interrupt_ports` | Interrupt signals with resolved bus-interface and clock associations |
 | `endian_swap_ports`, `endian_swap_widths` | Ports and fixed widths used by endian reflow logic |
 | `generics` | Core parameters |
 | `clock_port`, `reset_port` | Primary clock and reset names |
@@ -155,9 +156,9 @@ Common template values:
 The versioned template-data schema is
 `src/generator/contract/template_context.schema.json`. Template variables use
 snake case by design; TypeScript and IPCraft schema properties use camel case.
-The current contract version is 1.1.0. Packs pinned to `~1.0` must update their
-range after validating the additive endianness context; built-in packs use the
-compatible `^1.0` range.
+The current contract version is 1.2.0. Packs pinned to `~1.1` or an earlier
+minor must update their range after validating the additive interrupt
+association context; built-in packs use the compatible `^1.0` range.
 
 ## Testbench selection
 

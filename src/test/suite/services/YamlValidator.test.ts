@@ -179,6 +179,61 @@ describe('YamlValidator', () => {
       expect(result.error).toBeUndefined();
     });
 
+    it('accepts string and null interrupt associations', () => {
+      const base = {
+        vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+      };
+      expect(
+        validator.validateAgainstSchema(
+          {
+            ...base,
+            interrupts: [
+              {
+                name: 'irq',
+                associatedBusInterface: 's_axi',
+                associatedClock: 'clk',
+              },
+            ],
+          },
+          IP_CORE_SCHEMA_PATH
+        )
+      ).toEqual({ valid: true });
+      expect(
+        validator.validateAgainstSchema(
+          {
+            ...base,
+            interrupts: [
+              {
+                name: 'irq',
+                associatedBusInterface: null,
+                associatedClock: null,
+              },
+            ],
+          },
+          IP_CORE_SCHEMA_PATH
+        )
+      ).toEqual({ valid: true });
+    });
+
+    it('rejects invalid interrupt association types', () => {
+      const result = validator.validateAgainstSchema(
+        {
+          vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+          interrupts: [
+            {
+              name: 'irq',
+              associatedBusInterface: 1,
+              associatedClock: false,
+            },
+          ],
+        },
+        IP_CORE_SCHEMA_PATH
+      );
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain('interrupts.0.associatedBusInterface');
+      expect(result.error).toContain('interrupts.0.associatedClock');
+    });
+
     it('returns valid: true when simulation block is present and correct', () => {
       const data = {
         vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },

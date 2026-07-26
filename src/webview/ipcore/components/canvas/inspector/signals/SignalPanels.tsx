@@ -4,6 +4,7 @@ import type { YamlUpdateHandler } from '../../../../../types/editor';
 import { validateUniqueName, validateVhdlIdentifier } from '../../../../../shared/utils/validation';
 import type { BatchUpdate } from '../../../../hooks/useGroupPorts';
 import { portEndiannessApplies } from '../../../../utils/portEndianness';
+import { busSupportsInterruptAssociation } from '../../../../../../shared/busVlnv';
 import { applyBulkUpdate, type Mutation } from '../parameters/PlacementControls';
 import { PropField, PropSelect, PropWidthField, Section } from '../controls/InspectorFields';
 import {
@@ -303,6 +304,13 @@ export const InterruptPanel: React.FC<InterruptPanelProps> = ({
 }) => {
   const interrupts = ipCore.interrupts ?? [];
   const existingNames = interrupts.map((irq) => irq.name).filter((_, i) => i !== index);
+  const busOptions = (ipCore.busInterfaces ?? [])
+    .filter(busSupportsInterruptAssociation)
+    .map((bus) => ({ value: bus.name, label: bus.name }));
+  const clockOptions = (ipCore.clocks ?? []).map((clock) => ({
+    value: clock.name,
+    label: clock.name,
+  }));
   const paramNames = ((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
     (p) => p.name
   );
@@ -366,6 +374,22 @@ export const InterruptPanel: React.FC<InterruptPanelProps> = ({
           value={interrupt.sensitivity ?? 'LEVEL_HIGH'}
           options={SENSITIVITY_OPTS}
           onSave={(v) => onUpdate(['interrupts', index, 'sensitivity'], v)}
+        />
+      </Section>
+      <Section title="Associations">
+        <PropSelect
+          label="Associated Bus Interface"
+          value={interrupt.associatedBusInterface ?? ''}
+          options={busOptions}
+          emptyOption="— none —"
+          onSave={(v) => onUpdate(['interrupts', index, 'associatedBusInterface'], v || null)}
+        />
+        <PropSelect
+          label="Associated Clock"
+          value={interrupt.associatedClock ?? ''}
+          options={clockOptions}
+          emptyOption="— none —"
+          onSave={(v) => onUpdate(['interrupts', index, 'associatedClock'], v || null)}
         />
       </Section>
     </>

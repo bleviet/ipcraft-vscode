@@ -121,6 +121,14 @@ export type Width2 = number | string;
  */
 export type Sensitivity = 'LEVEL_HIGH' | 'LEVEL_LOW' | 'EDGE_RISING' | 'EDGE_FALLING';
 /**
+ * Name of the memory-mapped slave bus interface associated with this interrupt
+ */
+export type Associatedbusinterface = string | null;
+/**
+ * Name of the clock signal associated with this interrupt
+ */
+export type Associatedclock1 = string | null;
+/**
  * Interrupt signal description
  */
 export type Description3 = string;
@@ -179,7 +187,7 @@ export type Physicalprefix = string | null;
 /**
  * Logical clock name this interface uses
  */
-export type Associatedclock1 = string | null;
+export type Associatedclock2 = string | null;
 /**
  * Logical reset name this interface uses
  */
@@ -626,6 +634,8 @@ export interface Interrupt {
   direction?: PortDirection2;
   width?: Width2;
   sensitivity?: Sensitivity;
+  associatedBusInterface?: Associatedbusinterface;
+  associatedClock?: Associatedclock1;
   description?: Description3;
 }
 /**
@@ -654,7 +664,7 @@ export interface BusInterface {
   type: Type3;
   mode: BusInterfaceMode;
   physicalPrefix?: Physicalprefix;
-  associatedClock?: Associatedclock1;
+  associatedClock?: Associatedclock2;
   associatedReset?: Associatedreset1;
   memoryMapRef?: Memorymapref;
   useOptionalPorts?: Useoptionalports;

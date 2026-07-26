@@ -534,6 +534,8 @@ export interface Interrupt {
   direction?: PortDirection2;
   width?: Width2;
   sensitivity?: Sensitivity;
+  associatedBusInterface?: string | null;
+  associatedClock?: string | null;
   description?: Description3;
 }
 /**

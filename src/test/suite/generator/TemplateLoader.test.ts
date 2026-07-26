@@ -68,6 +68,37 @@ describe('TemplateLoader', () => {
     expect(result).toBeDefined();
   });
 
+  it('renders an empty interrupt addressable point when no memory-mapped slave exists', () => {
+    const result = loader.render('altera_hw_tcl.j2', {
+      entity_name: 'irq_only',
+      is_systemverilog: false,
+      has_memory_mapped_slave: false,
+      generics: [],
+      clock_port: 'clk',
+      reset_port: 'rst',
+      reset_associated_clock: 'clk',
+      reset_active_high: true,
+      secondary_clocks: [],
+      secondary_resets: [],
+      expanded_bus_interfaces: [],
+      user_ports: [],
+      interrupt_ports: [
+        {
+          name: 'irq',
+          direction: 'out',
+          sensitivity: 'LEVEL_HIGH',
+          associated_bus_interface: '',
+          associated_clock: 'clk',
+        },
+      ],
+      elaborate_port_widths: [],
+      rtl_files: [],
+    });
+
+    expect(result).toContain('set_interface_property irq associatedAddressablePoint ""');
+    expect(result).toContain('set_interface_property irq associatedClock clk');
+  });
+
   describe('hasTemplate', () => {
     it('returns true for a template that exists in the built-in dir', () => {
       expect(loader.hasTemplate('architecture.vhdl.j2')).toBe(true);

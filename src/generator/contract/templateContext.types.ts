@@ -11,7 +11,7 @@ export interface TemplateContext {
   /**
    * Semantic version of the template context contract.
    */
-  contract_version: '1.1.0';
+  contract_version: '1.2.0';
   name: string;
   entity_name: string;
   has_memory_mapped_slave: boolean;
@@ -214,6 +214,8 @@ export interface InterruptPort {
   name: string;
   direction: string;
   sensitivity: string;
+  associated_bus_interface?: string;
+  associated_clock?: string;
 }
 export interface BusPort {
   logical_name: string;

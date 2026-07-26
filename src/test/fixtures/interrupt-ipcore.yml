@@ -12,7 +12,16 @@ resets:
 - name: rst
   direction: in
   polarity: activeHigh
+busInterfaces:
+- name: S_AXI
+  type: AXI4L
+  mode: slave
+  physicalPrefix: s_axi_
+  associatedClock: clk
+  associatedReset: rst
 interrupts:
 - name: irq
   direction: out
   sensitivity: LEVEL_HIGH
+  associatedBusInterface: S_AXI
+  associatedClock: clk

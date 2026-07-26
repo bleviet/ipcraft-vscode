@@ -309,6 +309,14 @@ export interface ResetDef {
   associatedClock?: string;
 }
 
+export interface InterruptDef {
+  name?: string;
+  direction?: string;
+  sensitivity?: string;
+  associatedBusInterface?: string | null;
+  associatedClock?: string | null;
+}
+
 export interface SubcoreRef {
   vlnv: string;
   path?: string;
@@ -324,6 +332,7 @@ export interface IpCoreData {
   busInterfaces?: BusInterfaceDef[];
   clocks?: ClockDef[];
   resets?: ResetDef[];
+  interrupts?: InterruptDef[];
   memoryMaps?: unknown; // Tolerant memory maps structure
   subcores?: SubcoreRef[];
   targets?: string[];

@@ -167,7 +167,8 @@ add_interface_port {{ port.name }} {{ port.name }} {{ port.name }} {{ 'Output' i
 {% for intr in interrupt_ports %}
 # {{ intr.name }}: interrupt {{ 'receiver (in)' if intr.direction == 'in' else 'sender (out)' }}
 add_interface {{ intr.name }} interrupt {{ 'start' if intr.direction == 'in' else 'end' }}
-set_interface_property {{ intr.name }} associatedAddressablePoint ""
+set_interface_property {{ intr.name }} associatedAddressablePoint {{ intr.associated_bus_interface if intr.associated_bus_interface else '""' }}
+set_interface_property {{ intr.name }} associatedClock {{ intr.associated_clock }}
 set_interface_property {{ intr.name }} ENABLED true
 
 add_interface_port {{ intr.name }} {{ intr.name }} irq {{ 'Input' if intr.direction == 'in' else 'Output' }} 1

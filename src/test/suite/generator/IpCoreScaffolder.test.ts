@@ -402,7 +402,7 @@ describe('IpCoreScaffolder', () => {
     expect(tcl).toContain('associatedClock s_axi_aclk');
   });
 
-  it('emits interrupt ports on the top-level entity and module (VHDL + SV)', async () => {
+  it('emits interrupt ports and their Altera associations', async () => {
     const inputPath = path.resolve(__dirname, '../../fixtures/interrupt-ipcore.yml');
     const writeMock = fs.writeFile as unknown as jest.Mock;
     const findContent = (needle: string): string =>
@@ -429,6 +429,17 @@ describe('IpCoreScaffolder', () => {
     const sv = findContent('rtl/irq_core.sv');
     expect(sv).toContain('// Interrupts');
     expect(sv).toMatch(/output\s+logic\s+irq/);
+
+    writeMock.mockClear();
+    const quartusResult = await scaffolder.generateAll(inputPath, '/tmp/test-irq-quartus', {
+      includeTestbench: false,
+      targets: ['quartus'],
+      scaffoldPack: 'builtin-minimal',
+    });
+    expect(quartusResult.success).toBe(true);
+    const tcl = findContent('altera/irq_core_hw.tcl');
+    expect(tcl).toContain('set_interface_property irq associatedAddressablePoint S_AXI');
+    expect(tcl).toContain('set_interface_property irq associatedClock clk');
   });
 
   it('expands a clog2 port width across VHDL, SystemVerilog, Tcl, and IP-XACT', async () => {
