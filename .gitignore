@@ -50,6 +50,7 @@ examples/**/*.pin
 examples/**/*.sld
 examples/**/*.elf
 examples/**/software/platform/*/bsp/
+examples/**/software/platform/*/build/
 examples/**/tb/sim_build/
 examples/**/tb/__pycache__/
 examples/**/debug/__pycache__/

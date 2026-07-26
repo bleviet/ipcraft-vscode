@@ -31,6 +31,10 @@ void platform_report(const char *name, int pass);
  * busy-loop iterations, a cycle-accurate delay, etc.) is platform-specific. */
 void platform_settle(void);
 
+/* Returns non-zero only when the platform can deliberately issue a software
+ * write in the same clock cycle as a hardware event. */
+int platform_supports_adjacent_cycle_priority(void);
+
 /* Runs the full register access-type conformance sequence via the HAL
  * above. Returns the number of failed checks (0 = ALL PASS). */
 uint32_t run_conformance_checks(void);

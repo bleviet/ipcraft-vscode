@@ -17,7 +17,7 @@ package require -exact qsys 12.0
 # This resolves the plan's "Nios II + JTAG master: one system vs. two" open
 # item in favor of one system.
 #
-# The Nios II C self-test (software/app/main.c) and the System Console Tcl
+# The Nios II C self-test (software/platform/nios2/main.c) and the System Console Tcl
 # host (debug/conformance_sysconsole.tcl) both run against this same system,
 # without needing separate bitstreams.
 # ---------------------------------------------------------------------------
@@ -29,6 +29,7 @@ set_project_property DEVICE {5CSEBA6U23I7}
 # ── Clock bridge (50 MHz from top-level) ─────────────────────────────────────
 add_instance clk_0 altera_clock_bridge
 set_instance_parameter_value clk_0 NUM_CLOCK_OUTPUTS 1
+set_instance_parameter_value clk_0 EXPLICIT_CLOCK_RATE {50000000}
 
 # ── Reset bridge (active-high synchronous reset) ──────────────────────────────
 add_instance reset_bridge altera_reset_bridge
@@ -106,7 +107,7 @@ set_connection_parameter_value nios2.irq/regmap_ctrl.irq_no_bus irqNumber {2}
 # ── Base address map ──────────────────────────────────────────────────────────
 # regmap_conformance base is 0x00010000 -- both masters use the same absolute
 # address for a given register (nios2.data_master's C_REG_*_ADDR offsets in
-# software/app/main.c, and debug/conformance_sysconsole.tcl's
+# software/platform/nios2/main.c, and debug/conformance_sysconsole.tcl's
 # master_read_32/master_write_32 base + offset).
 set_connection_parameter_value nios2.data_master/onchip_mem.s1                  baseAddress {0x00000000}
 set_connection_parameter_value nios2.instruction_master/onchip_mem.s1           baseAddress {0x00000000}

@@ -218,12 +218,12 @@ def _parse_args():
     parser.add_argument(
         "--bitstream",
         type=pathlib.Path,
-        default=EXAMPLE_DIR / "altera" / "quartus" / "de10_nano.sof",
+        default=EXAMPLE_DIR / "altera" / "platforms" / "niosv" / "quartus" / "de10_nano.sof",
     )
     parser.add_argument(
         "--result",
         type=pathlib.Path,
-        default=EXAMPLE_DIR / "altera" / "quartus" / "output_files" / "hardware-result.json",
+        default=EXAMPLE_DIR / "altera" / "platforms" / "niosv" / "quartus" / "output_files" / "hardware-result.json",
     )
     parser.add_argument("--board-id", default=None)
     parser.add_argument("--repo", type=pathlib.Path, default=REPO_DIR)

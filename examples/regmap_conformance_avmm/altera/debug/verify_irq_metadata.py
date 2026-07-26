@@ -12,6 +12,8 @@ def _parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sopcinfo", required=True, type=pathlib.Path)
     parser.add_argument("--system-header", required=True, type=pathlib.Path)
+    parser.add_argument("--cpu-module", required=True)
+    parser.add_argument("--irq-interface", required=True)
     return parser.parse_args()
 
 
@@ -72,7 +74,7 @@ def main():
     assert _parameter(busless, "associatedAddressablePoint") == ""
     assert _parameter(busless, "associatedClock") == "clk"
 
-    cpu_irq = _interface(_module(root, "nios2"), "irq")
+    cpu_irq = _interface(_module(root, args.cpu_module), args.irq_interface)
     assert _interrupt_number(cpu_irq, "regmap_ctrl", "irq_associated") == 1
     assert _interrupt_number(cpu_irq, "regmap_ctrl", "irq_no_bus") == 2
 

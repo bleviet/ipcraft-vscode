@@ -19,8 +19,8 @@ examples/<name>/
     platform/<cpu>/                per-CPU HAL + build glue (e.g. nios2/)
   altera/                          all Quartus/Platform Designer tooling
     <name>_hw.tcl, .sdc, ...       IPCraft-generated Quartus integration
-    qsys/                          Platform Designer system script(s)
-    quartus/                       board-level Quartus project + Makefile
+    qsys/ or platforms/<cpu>/qsys/ Platform Designer system script(s)
+    quartus/ or platforms/<cpu>/quartus/ board project + Makefile
     hdl/                           board top-level wrapper (e.g. DE10-Nano)
     debug/                         System Console / debug host scripts
   xilinx/                          (future) Vivado tooling, once that
@@ -41,8 +41,7 @@ every example."
 or demo logic (what registers to poke, in what order, what to expect) is
 CPU-agnostic -- it's expressed once against a tiny HAL
 (`platform_reg_read`/`platform_reg_write`/...) declared in a header in
-`app/`. Each CPU platform (today: `platform/nios2/`, a bare-metal Nios II
-port) implements that HAL and nothing else. Porting an example to a new CPU
+`app/`. Each CPU platform (for example, `platform/nios2/` and `platform/niosv/`) implements that HAL and nothing else. Porting an example to a new CPU
 (an Arm Cortex-A/M target, RISC-V, etc.) means adding a new
 `platform/<cpu>/` directory, not rewriting the test sequence. See
 `regmap_conformance_avmm/software/app/conformance_checks.h` for the pattern.
@@ -58,9 +57,9 @@ port) implements that HAL and nothing else. Porting an example to a new CPU
 
 ## Examples
 
-| Directory | Bus | What it proves |
-|---|---|---|
-| `led_avmm/` | Avalon-MM | A minimal real peripheral (LED PIO + heartbeat status) end-to-end: IPCraft spec -> generated RTL -> Platform Designer system -> Nios II firmware -> real DE10-Nano hardware. The original reference example this repo's hardware bring-up process was developed against. |
+| Directory                  | Bus       | What it proves                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `led_avmm/`                | Avalon-MM | A minimal real peripheral (LED PIO + heartbeat status) end-to-end: IPCraft spec -> generated RTL -> Platform Designer system -> Nios II firmware -> real DE10-Nano hardware. The original reference example this repo's hardware bring-up process was developed against.                                                                                 |
 | `regmap_conformance_avmm/` | Avalon-MM | Every register/field access type IPCraft generates (all 7 access types, change-of-state, register arrays, byte strobes, mixed registers, enumerated/non-zero-reset fields, and heartbeat/watchdog status), driven by one manifest-derived scenario suite in cocotb and through JTAG-to-Avalon on a DE10-Nano. See `docs/hardware_validation_results.md`. |
 | `regmap_conformance_axil/` | AXI4-Lite | The same register map, conformance sequence, and manifest-driven scenario suite as `regmap_conformance_avmm/`, proving the AXI4-Lite bus wrapper instead -- including the SLVERR response path Avalon-MM has no equivalent for. Driven by a JTAG-to-Avalon-MM master with Platform Designer's automatic Avalon<->AXI4 bridging, no HPS/Nios II required. |
 
@@ -69,11 +68,10 @@ full test results and any generator quirks or bugs found along the way.
 
 ## Building and testing an example
 
-Every example's `altera/quartus/Makefile` follows the same target
-convention:
+Each example exposes the same target convention from `altera/quartus/`, or from an `altera/` dispatcher when multiple processor generations are supported:
 
 ```bash
-cd examples/<name>/altera/quartus
+cd examples/<name>/altera          # or altera/quartus for single-platform examples
 
 make sim              # cocotb pre-hardware gate (no vendor tools needed)
 make qsys project compile   # or: make all
@@ -82,7 +80,7 @@ make test             # reprogram + run shared manifest scenarios, emit JSON res
 ```
 
 The hardware result is written to
-`altera/quartus/output_files/hardware-result.json`. It records the Git commit,
+`altera/platforms/<cpu>/quartus/output_files/hardware-result.json` (or `altera/quartus/output_files/hardware-result.json` for single-platform examples). It records the Git commit,
 generator and Quartus versions, bitstream and manifest hashes, board identity,
 random seed, and each named check. A missing tool, JTAG master, or board is a
 hard failure.
@@ -95,7 +93,7 @@ so Docker only ever mounts this examples tree plus `examples/common/`.
 - A Xilinx/Vivado build of any of these examples (the `altera/`-only
   structure above is designed so this can be added as a `xilinx/` sibling
   without touching `rtl/`, `tb/`, or `software/app/`).
-- An ARM (or other non-Nios-II) `software/platform/` port.
+- An ARM `software/platform/` port.
 - Tutorials walking through building one of these from scratch with
   IPCraft -- these examples are the source material for that, not yet
   written up as guides.

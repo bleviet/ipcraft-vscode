@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify both Nios II pending interrupt inputs through JTAG register readback."""
+"""Verify both soft-processor pending interrupt inputs through JTAG readback."""
 
 import argparse
 import pathlib

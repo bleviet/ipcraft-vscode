@@ -53,7 +53,7 @@ interrupts:
   - name: irq_no_bus
     direction: out
     sensitivity: LEVEL_HIGH
-    associatedBusInterface: ""
+    associatedBusInterface: ''
     associatedClock: clk
     description: >
       Periodic level-sensitive interrupt with an explicitly empty bus
@@ -139,20 +139,62 @@ fileSets:
       - path: altera/hdl/de10_nano_top.vhd
         type: vhdl
         managed: false
-      - path: altera/qsys/regmap_conformance_system.tcl
-        type: tcl
-        managed: false
-      - path: altera/quartus/Makefile
+      - path: altera/Makefile
         type: makefile
         managed: false
-      - path: altera/quartus/de10_nano.sdc
+      - path: altera/README.md
+        type: markdown
+        managed: false
+      - path: altera/platforms/nios2/qsys/regmap_conformance_hw.tcl
+        type: tcl
+        managed: false
+      - path: altera/platforms/nios2/qsys/regmap_conformance_system.tcl
+        type: tcl
+        managed: false
+      - path: altera/platforms/nios2/quartus/Makefile
+        type: makefile
+        managed: false
+      - path: altera/platforms/nios2/quartus/de10_nano.sdc
         type: sdc
         managed: false
-      - path: altera/quartus/de10_nano_pin_assignments.tcl
+      - path: altera/platforms/nios2/quartus/de10_nano_pin_assignments.tcl
         type: tcl
         managed: false
-      - path: altera/quartus/de10_nano_project.tcl
+      - path: altera/platforms/nios2/quartus/de10_nano_project.tcl
         type: tcl
+        managed: false
+      - path: altera/platforms/niosv/qsys/regmap_conformance_hw.tcl
+        type: tcl
+        managed: false
+      - path: altera/platforms/niosv/qsys/regmap_conformance_system.tcl
+        type: tcl
+        managed: false
+      - path: altera/platforms/niosv/quartus/Makefile
+        type: makefile
+        managed: false
+      - path: altera/platforms/niosv/quartus/de10_nano.sdc
+        type: sdc
+        managed: false
+      - path: altera/platforms/niosv/quartus/de10_nano_pin_assignments.tcl
+        type: tcl
+        managed: false
+      - path: altera/platforms/niosv/quartus/de10_nano_project.tcl
+        type: tcl
+        managed: false
+      - path: software/platform/nios2/Makefile
+        type: makefile
+        managed: false
+      - path: software/platform/nios2/main.c
+        type: c
+        managed: false
+      - path: software/platform/nios2/platform.c
+        type: c
+        managed: false
+      - path: software/platform/niosv/main.c
+        type: c
+        managed: false
+      - path: software/platform/niosv/platform.c
+        type: c
         managed: false
   - name: Documentation
     description: User-maintained validation evidence

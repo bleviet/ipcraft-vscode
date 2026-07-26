@@ -4,11 +4,11 @@
 # generation -> app build -> program -> run the conformance self-test ->
 # aggregate PASS/FAIL exit code.
 #
-# All steps run inside the ipcraft-examples/quartus:23.1 Docker container. Call any
-# target directly from the WSL2 host -- Docker is invoked automatically.
+# Legacy Nios II tools run in the Quartus 23.1 Docker image when it is
+# available, or from a Nios II-compatible native Quartus installation.
 #
 # All vendor tooling lives under altera/ (this file's own directory tree) --
-# rtl/ and tb/ two levels up are vendor-neutral and shared with any future
+# rtl/ and tb/ four levels up are vendor-neutral and shared with any future
 # Xilinx/Vivado port of this example. software/ one level up is also
 # vendor-neutral at the top (app/): only software/platform/nios2/ is
 # Altera/Nios II-specific.
@@ -26,13 +26,13 @@ QSYS_GEN_DIR  = ../qsys/regmap_conformance_system_gen
 SOPCINFO      = ../qsys/regmap_conformance_system.sopcinfo
 
 REGMAP_BASE   = 0x00010000
-DEBUG_DIR     = ../debug
+DEBUG_DIR     = ../../../debug
 HARDWARE_RESULT ?= output_files/hardware-result.json
 RANDOM_SEED     ?= 0x177
 BOARD_ID        ?= de10-nano
 
-BSP_DIR       = ../../software/platform/nios2/bsp
-APP_DIR       = ../../software/platform/nios2
+BSP_DIR       = ../../../../software/platform/nios2/bsp
+APP_DIR       = ../../../../software/platform/nios2
 
 DOCKER_IMAGE ?= ipcraft-examples/quartus:23.1
 
@@ -45,16 +45,24 @@ USBIPD_BUSID ?= 8-3
 # JTAG chain device index: 1=HPS ARM DAP, 2=Cyclone V FPGA
 DEVICE_INDEX ?= 2
 
-# REPO_ROOT is the examples/ directory (three levels up: quartus -> altera ->
-# <example> -> examples), not the whole ipcraft-vscode repo -- this is the
+# REPO_ROOT is the examples/ directory, not the whole ipcraft-vscode repo.
+# It is the
 # smallest root that covers this example plus the shared examples/common/
 # resources (power_on_reset_generator.vhd, uname_shim.sh).
-REPO_ROOT  = $(realpath ../../..)
-WORKSPACE_ROOT = $(realpath ../../../..)
+REPO_ROOT  = $(realpath ../../../../..)
+WORKSPACE_ROOT = $(realpath ../../../../../..)
 UNAME_SHIM = $(REPO_ROOT)/common/docker/uname_shim.sh
-DOCKER     = docker run --rm --user $$(id -u):$$(id -g) -v $(REPO_ROOT):/work $(DOCKER_IMAGE) bash -c
-DOCKER_CWD = cd /work/$(PROJECT_NAME)/altera/quartus
-DOCKER_GUI = docker run --rm --user $$(id -u):$$(id -g) \
+USE_DOCKER ?= $(shell docker image inspect $(DOCKER_IMAGE) >/dev/null 2>&1 && echo 1 || echo 0)
+
+ifeq ($(USE_DOCKER),1)
+TOOL_RUN = docker run --rm --user $$(id -u):$$(id -g) \
+  -v $(REPO_ROOT):/work $(DOCKER_IMAGE) bash -c
+TOOL_CWD = cd /work/$(PROJECT_NAME)/altera/platforms/nios2/quartus
+TOOL_PROJECT_ROOT = /work/$(PROJECT_NAME)
+QUARTUS_LINUX64 = /opt/intelFPGA/quartus/linux64
+BSP_DEFAULT_TCL = /opt/intelFPGA/nios2eds/sdk2/bin/bsp-set-defaults.tcl
+TOOLCHAIN_CHECK = command -v docker >/dev/null 2>&1
+GUI_RUN = docker run --rm --user $$(id -u):$$(id -g) \
   -e DISPLAY=$$DISPLAY \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v /mnt/wslg:/mnt/wslg \
@@ -62,41 +70,73 @@ DOCKER_GUI = docker run --rm --user $$(id -u):$$(id -g) \
   -e XDG_RUNTIME_DIR=/mnt/wslg/runtime-dir \
   -v $(REPO_ROOT):/work \
   $(DOCKER_IMAGE) bash -c
+else
+NATIVE_QUARTUS_BIN := $(shell command -v quartus_sh 2>/dev/null)
+NATIVE_QUARTUS_ROOT := $(if $(QUARTUS_ROOTDIR),$(QUARTUS_ROOTDIR),$(if $(NATIVE_QUARTUS_BIN),$(realpath $(dir $(NATIVE_QUARTUS_BIN))/..)))
+ifeq ($(NATIVE_QUARTUS_ROOT),)
+$(error Native Quartus not found. Set QUARTUS_ROOTDIR or add quartus_sh to PATH)
+endif
+NATIVE_ALTERA_ROOT := $(realpath $(NATIVE_QUARTUS_ROOT)/..)
+NATIVE_ENV = env \
+  QUARTUS_ROOTDIR="$(NATIVE_QUARTUS_ROOT)" \
+  QSYS_ROOTDIR="$(NATIVE_QUARTUS_ROOT)/sopc_builder/bin" \
+  PATH="$(NATIVE_QUARTUS_ROOT)/bin:$(NATIVE_QUARTUS_ROOT)/sopc_builder/bin:$(NATIVE_ALTERA_ROOT)/nios2eds/bin:$(NATIVE_ALTERA_ROOT)/nios2eds/sdk2/bin:$$PATH"
+TOOL_RUN = $(NATIVE_ENV) bash -c
+TOOL_CWD = cd $(CURDIR)
+TOOL_PROJECT_ROOT = $(REPO_ROOT)/$(PROJECT_NAME)
+QUARTUS_LINUX64 = $(NATIVE_QUARTUS_ROOT)/linux64
+BSP_DEFAULT_TCL = $(NATIVE_ALTERA_ROOT)/nios2eds/sdk2/bin/bsp-set-defaults.tcl
+NATIVE_NIOS2_COMPONENT := $(firstword $(wildcard $(NATIVE_ALTERA_ROOT)/ip/altera/nios2_ip/*_hw.tcl))
+TOOLCHAIN_CHECK = test -x "$(NATIVE_QUARTUS_ROOT)/sopc_builder/bin/qsys-script" && \
+  test -n "$(NATIVE_NIOS2_COMPONENT)" || { \
+    echo "Native Quartus at $(NATIVE_ALTERA_ROOT) does not include the Nios II Platform Designer component." >&2; \
+    echo "Install a Nios II-compatible Quartus release (23.1 matches the Docker image) or use Docker." >&2; \
+    exit 1; \
+  }
+GUI_RUN = $(NATIVE_ENV) bash -c
+endif
 
-.PHONY: all qsys project compile bsp app clean sim \
+.PHONY: all hardware software check-toolchain qsys project compile bsp app clean sim \
         program-sof download-elf terminal usb-windows usb-wsl \
         quartus-gui platform-designer \
         irq-metadata irq-hardware conformance-sysconsole conformance-manifest conformance-nios test
 
-all: qsys project compile bsp app
+all: hardware software
+hardware: qsys project compile
+software: bsp app
+
+check-toolchain:
+	@$(TOOLCHAIN_CHECK)
 
 # ── Step 0: pre-hardware gate -- the cocotb scoreboard on GHDL ───────────────
 # Must be green before any board step (docs/hardware-conformance-test-plan.md
 # Verification step 2).
 sim:
-	$(MAKE) -C ../../tb SIM=ghdl WAVES=0
+	$(MAKE) -C ../../../../tb SIM=ghdl WAVES=0
 
 # ── Step 1: generate the .qsys file from the TCL script ──────────────────────
-$(QSYS_FILE): $(QSYS_TCL)
-	$(DOCKER) "$(DOCKER_CWD) && cd ../qsys && qsys-script --script=regmap_conformance_system.tcl --search-path=/work/$(PROJECT_NAME)/altera/qsys,\$$"
+$(QSYS_FILE): $(QSYS_TCL) | check-toolchain
+	$(TOOL_RUN) "$(TOOL_CWD) && cd ../qsys && qsys-script --script=regmap_conformance_system.tcl --search-path=$(TOOL_PROJECT_ROOT)/altera/platforms/nios2/qsys,\$$"
 
 qsys: $(QSYS_FILE)
-	$(DOCKER) "$(DOCKER_CWD) && qsys-generate $(QSYS_FILE) --synthesis=VHDL --output-directory=$(QSYS_GEN_DIR) \
-	  --search-path=/work/$(PROJECT_NAME)/altera/qsys,\$$"
+	$(TOOL_RUN) "$(TOOL_CWD) && qsys-generate $(QSYS_FILE) --synthesis=VHDL --output-directory=$(QSYS_GEN_DIR) \
+	  --search-path=$(TOOL_PROJECT_ROOT)/altera/platforms/nios2/qsys,\$$"
 
 # ── Step 2: create and compile the Quartus project ───────────────────────────
+$(QSYS_GEN_DIR)/synthesis/regmap_conformance_system.qip: qsys
+
+$(SOPCINFO): qsys
+
 project: $(QSYS_GEN_DIR)/synthesis/regmap_conformance_system.qip
-	$(DOCKER) "$(DOCKER_CWD) && quartus_sh -t de10_nano_project.tcl"
+	$(TOOL_RUN) "$(TOOL_CWD) && quartus_sh -t de10_nano_project.tcl"
 
 compile:
-	$(DOCKER) "$(DOCKER_CWD) && quartus_sh --flow compile $(PROJECT_NAME) -c $(REVISION_NAME)"
+	$(TOOL_RUN) "$(TOOL_CWD) && quartus_sh --flow compile $(PROJECT_NAME) -c $(REVISION_NAME)"
 
 # ── Step 3: generate the Nios II HAL BSP ─────────────────────────────────────
-BSP_DEFAULT_TCL = /opt/intelFPGA/nios2eds/sdk2/bin/bsp-set-defaults.tcl
-
 bsp: $(SOPCINFO)
-	$(DOCKER) "$(DOCKER_CWD) && \
-	  export LD_LIBRARY_PATH=/opt/intelFPGA/quartus/linux64:\$${LD_LIBRARY_PATH:-} && \
+	$(TOOL_RUN) "$(TOOL_CWD) && \
+	  export LD_LIBRARY_PATH=$(QUARTUS_LINUX64):\$${LD_LIBRARY_PATH:-} && \
 	  mkdir -p $(BSP_DIR) && \
 	  nios2-bsp-create-settings \
 	    --sopc $(SOPCINFO) \
@@ -109,7 +149,7 @@ bsp: $(SOPCINFO)
 
 # ── Step 4: build the C application ──────────────────────────────────────────
 app: bsp
-	$(DOCKER) "$(DOCKER_CWD) && make -C $(APP_DIR)"
+	$(TOOL_RUN) "$(TOOL_CWD) && make -C $(APP_DIR)"
 
 # Prove both Platform Designer IRQ association cases in generated artifacts:
 # the register-map interrupt is attached to S_AVMM and becomes IRQ 1 in the
@@ -118,7 +158,9 @@ app: bsp
 irq-metadata: bsp
 	python3 $(DEBUG_DIR)/verify_irq_metadata.py \
 	  --sopcinfo $(SOPCINFO) \
-	  --system-header $(BSP_DIR)/system.h
+	  --system-header $(BSP_DIR)/system.h \
+	  --cpu-module nios2 \
+	  --irq-interface irq
 
 # Exercise both generated interrupt association cases through the Nios II
 # interrupt controller. The firmware records observed ipending bits in
@@ -147,16 +189,20 @@ usb-windows:
 	@sleep 1
 
 # program-sof: Programs the FPGA bitstream via JTAG entirely from WSL2.
+$(REVISION_NAME).sof: compile
+
 program-sof: usb-wsl $(REVISION_NAME).sof
 	docker run --rm --user $$(id -u):$$(id -g) --privileged \
 	  -v /dev/bus/usb:/dev/bus/usb \
 	  -v $(REPO_ROOT):/work \
 	  $(DOCKER_IMAGE) \
 	  bash -c 'jtagd && sleep 2 && \
-	    quartus_pgm -m jtag -o "p;/work/$(PROJECT_NAME)/altera/quartus/$(REVISION_NAME).sof@$(DEVICE_INDEX)"; \
+	    quartus_pgm -m jtag -o "p;/work/$(PROJECT_NAME)/altera/platforms/nios2/quartus/$(REVISION_NAME).sof@$(DEVICE_INDEX)"; \
 	    kill $$(pgrep jtagd) 2>/dev/null || true'
 
 # download-elf: Downloads the Nios II ELF to the soft-core via JTAG and starts it.
+$(APP_DIR)/regmap_conformance_test.elf: app
+
 download-elf: usb-wsl $(APP_DIR)/regmap_conformance_test.elf
 	docker run --rm --user $$(id -u):$$(id -g) --privileged \
 	  -v $(REPO_ROOT):/work \
@@ -173,10 +219,10 @@ terminal: usb-wsl
 
 # ── GUI targets ───────────────────────────────────────────────────────────────
 quartus-gui:
-	$(DOCKER_GUI) "$(DOCKER_CWD) && quartus $(PROJECT_NAME).qpf 2>/dev/null || quartus"
+	$(GUI_RUN) "$(TOOL_CWD) && quartus $(PROJECT_NAME).qpf 2>/dev/null || quartus"
 
 platform-designer:
-	$(DOCKER_GUI) "$(DOCKER_CWD) && qsys-edit $(QSYS_FILE) 2>/dev/null || qsys-edit"
+	$(GUI_RUN) "$(TOOL_CWD) && qsys-edit $(QSYS_FILE) 2>/dev/null || qsys-edit"
 
 # ── Conformance self-test runners (Component 5: board-in-the-loop) ───────────
 
@@ -234,9 +280,9 @@ conformance-manifest: program-sof
 	  $(DOCKER_IMAGE) \
 	  bash -c 'jtagd && sleep 5; \
 	    python3 /work/$(PROJECT_NAME)/altera/debug/hardware_runner.py \
-	      --bitstream /work/$(PROJECT_NAME)/altera/quartus/$(REVISION_NAME).sof \
+	      --bitstream /work/$(PROJECT_NAME)/altera/platforms/nios2/quartus/$(REVISION_NAME).sof \
 	      --manifest /work/$(PROJECT_NAME)/tb/verification_manifest.json \
-	      --result /work/$(PROJECT_NAME)/altera/quartus/$(HARDWARE_RESULT) \
+	      --result /work/$(PROJECT_NAME)/altera/platforms/nios2/quartus/$(HARDWARE_RESULT) \
 	      --repo /repo \
 	      --board-id "$(BOARD_ID)" \
 	      --seed "$(RANDOM_SEED)"; \
@@ -260,7 +306,7 @@ test: sim irq-metadata conformance-manifest irq-hardware
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 clean:
-	$(DOCKER) "$(DOCKER_CWD) && \
+	$(TOOL_RUN) "$(TOOL_CWD) && \
 	  rm -rf db incremental_db output_files && \
 	  rm -rf $(QSYS_GEN_DIR) $(QSYS_FILE) && \
 	  rm -rf $(BSP_DIR) && \

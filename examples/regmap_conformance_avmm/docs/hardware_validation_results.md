@@ -14,7 +14,46 @@
 > `regmap_conformance.mm.yml`). The transcript and check names below are
 > preserved as-run for the original `conformance_sysconsole.tcl` host, which
 > is still present (`make conformance-sysconsole`) but is no longer the `make
-> test` gate.
+test` gate.
+
+## Processor-generation build layout
+
+The historical board results below were collected with the Nios II design on
+Quartus 23.1 Standard. That design remains under
+`altera/platforms/nios2/` and its firmware under
+`software/platform/nios2/`. Quartus 24.x and newer use the separate Nios V/m
+design in `altera/platforms/niosv/`, with firmware in
+`software/platform/niosv/`. Both systems retain the same register map, base
+address, JTAG-to-Avalon debug master, IRQ numbering, board top level, and pin
+constraints.
+
+Run builds from the dispatcher directory:
+
+```bash
+cd examples/regmap_conformance_avmm/altera
+make processor
+make                         # auto-selects Nios V with Quartus 24.x/25.x
+make PROCESSOR=nios2 USE_DOCKER=1  # legacy Quartus 23.1 Docker flow
+make PROCESSOR=niosv software      # requires the separate RISC-V GNU toolchain
+```
+
+The Nios V Platform Designer system and full FPGA image have been generated
+successfully with Quartus Prime Standard 25.1 for Cyclone V: synthesis, fitting,
+assembly, and timing completed with zero errors (worst setup slack +7.849 ns;
+worst hold slack +0.099 ns across reported corners). The Nios V firmware also builds successfully
+with GCC 13.2.0 after allocating 48 KB of on-chip RAM; the 35.59 KB ELF leaves
+6,704 bytes for stack and heap. An on-board Nios V firmware run was completed on the DE10-Nano. After
+`make PROCESSOR=niosv USE_DOCKER=0 program-sof` and
+`make PROCESSOR=niosv USE_DOCKER=0 download-elf`, a RISC-V GDB readback of
+`REGMAP_CTRL_BASE + 0x04` returned `0x49525103`. This is the exclusive firmware pass value: it means every CPU-executable
+register-access check had zero failures and both required interrupts were
+observed (associated IRQ bit 0 and busless IRQ bit 1). Any failure is encoded
+with the distinct `0x46414900` prefix. The two same-cycle hardware-priority
+rules are not executable by serialized CPU Avalon transactions; they remain
+covered by the cycle-accurate cocotb/manifest gate. The Nios V self-test
+therefore passed on hardware. The JTAG UART is intentionally not used as the
+pass criterion because an unattached host can fill its transmit FIFO; firmware
+now runs the checks before emitting diagnostic text.
 
 ## Status: all 23 register access-type conformance checks PASS on DE10-Nano (Quartus 23.1std, Cyclone V), Variant A (Avalon-MM)
 
@@ -25,13 +64,14 @@ access type IPCraft generates behaves correctly — not just in simulation.
 
 ## Result summary
 
-| Stage | Result |
-|---|---|
-| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 15/15 tests, including the shared manifest suite and two tight same-adjacent-cycle HW-priority race tests |
-| Quartus full compile (qsys + synthesis + fit + timing) | **PASS** — 0 errors; worst-case setup slack +15.4ns, hold +0.127ns |
-| Board program (JTAG, DE10-Nano) | **PASS** — configuration succeeded |
-| System Console conformance host (`conformance_sysconsole.tcl`) | **PASS** — 23/23 checks, reproducible from a freshly-programmed board |
-| Nios II C conformance host (`software/app/main.c`) | Register-level execution confirmed (see below); JTAG UART text capture unresolved (see Known limitation) |
+| Stage                                                          | Result                                                                                                               |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| cocotb scoreboard on GHDL (pre-hardware gate)                  | **PASS** — 15/15 tests, including the shared manifest suite and two tight same-adjacent-cycle HW-priority race tests |
+| Quartus full compile (qsys + synthesis + fit + timing)         | **PASS** — 0 errors; worst-case setup slack +15.4ns, hold +0.127ns                                                   |
+| Board program (JTAG, DE10-Nano)                                | **PASS** — configuration succeeded                                                                                   |
+| System Console conformance host (`conformance_sysconsole.tcl`) | **PASS** — 23/23 checks, reproducible from a freshly-programmed board                                                |
+| Nios II C conformance host (`software/platform/nios2/main.c`)  | Register-level execution confirmed (see below); JTAG UART text capture unresolved (see Known limitation)             |
+| Nios V C conformance host (`software/platform/niosv/main.c`)   | **PASS** — `0x49525103` confirms all CPU-executable checks and both required IRQs                                    |
 
 ### Full System Console run (fresh board, `make program-sof && make conformance-sysconsole`)
 
@@ -130,7 +170,7 @@ Both fixes were verified two ways:
    (e.g. `add_instance regmap_conformance regmap_conformance`) produces a
    Platform Designer-generated top-level VHDL file with a duplicate
    identifier (`Error (10465): name "regmap_conformance" cannot be used
-   because it is already used for a previously declared item`). This is a
+because it is already used for a previously declared item`). This is a
    qsys/Platform Designer naming-collision pitfall, not an IPCraft generator
    bug, but worth documenting: **always give the qsys instance a distinct
    label from the component name** (this project uses `regmap_ctrl`).
@@ -151,7 +191,7 @@ not by a per-project hand-patch.
 
 ## Nios II C host — status and known limitation
 
-`software/app/main.c` implements the identical check sequence as the cocotb
+`software/platform/nios2/main.c` implements the identical check sequence as the cocotb
 scoreboard and the System Console host, using `IOWR_32DIRECT`/`IORD_32DIRECT`
 and printing `PASS`/`FAIL` per check plus a final sentinel via `alt_printf`
 over the JTAG UART.
@@ -167,7 +207,7 @@ UART capture:
   relative to the firmware's near-instantaneous execution to catch live
   output; concurrent invocations in one container hit a JTAG cable
   contention error (`There is a problem with the Quartus Prime
-  installation...`), consistent with `jtagd` not supporting simultaneous
+installation...`), consistent with `jtagd` not supporting simultaneous
   debug-module (download) and JTAG-UART (terminal) clients reliably on this
   setup.
 - System Console's `processor` service (`processor_download_elf` +
@@ -194,9 +234,9 @@ is unreliable, rather than treating UART silence as a correctness failure.
 
 ```bash
 cd regmap_conformance_avmm/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
-cd ../altera/quartus
-make qsys project compile      # or: make all
-make test                      # reprograms + runs the manifest-driven suite
+cd ../altera
+make PROCESSOR=nios2 qsys project compile
+make -C platforms/nios2/quartus test                      # reprograms + runs the manifest-driven suite
                                 # (43 checks); writes output_files/hardware-result.json
 ```
 

@@ -12,7 +12,7 @@ flowchart LR
     B --> C[Platform Designer system]
     C --> D[FPGA image]
     D --> E[DE10-Nano board]
-    F[Nios II software or System Console] --> C
+    F[Nios II or Nios V software, or System Console] --> C
 ```
 
 The example register map contains:
@@ -24,12 +24,12 @@ The example register map contains:
 
 ## Verification stages
 
-| Stage | What it proves |
-|---|---|
-| Generate | The YAML inputs produce RTL, tests, and Quartus metadata |
-| Simulate | Reset, reads, writes, and event clearing behave as specified |
-| Compile | Quartus accepts the generated project and reports timing and size |
-| Integrate | Platform Designer connects the peripheral to the system bus |
+| Stage        | What it proves                                                    |
+| ------------ | ----------------------------------------------------------------- |
+| Generate     | The YAML inputs produce RTL, tests, and Quartus metadata          |
+| Simulate     | Reset, reads, writes, and event clearing behave as specified      |
+| Compile      | Quartus accepts the generated project and reports timing and size |
+| Integrate    | Platform Designer connects the peripheral to the system bus       |
 | Run on board | Software reaches the same registers through the real interconnect |
 
 ```mermaid
@@ -91,12 +91,13 @@ For the board-specific stages, use
 [`examples/regmap_conformance_avmm/`](../../examples/regmap_conformance_avmm/):
 
 ```bash
-cd examples/regmap_conformance_avmm/altera/quartus
+cd examples/regmap_conformance_avmm/altera
+make processor             # niosv on Quartus 24.x/25.x; nios2 on a legacy install
 make qsys project compile
-make test
+# Legacy flow: make PROCESSOR=nios2 USE_DOCKER=1 qsys project compile
 ```
 
-`make test` programs a fresh bitstream, verifies the manifest-derived build ID,
+The platform-specific hardware test target programs a fresh bitstream, verifies the manifest-derived build ID,
 runs the same directed and seeded-random scenarios as cocotb, and writes
 `output_files/hardware-result.json`. Missing Quartus tools, JTAG services, or
 the board produce a nonzero exit; they are never treated as a passing hardware

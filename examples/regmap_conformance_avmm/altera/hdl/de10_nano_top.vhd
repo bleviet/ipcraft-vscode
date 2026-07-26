@@ -52,7 +52,7 @@ begin
       por_o => power_on_reset
     );
 
-  -- Platform Designer system (IPCraft regmap_conformance + Nios II CPU +
+  -- Platform Designer system (IPCraft regmap_conformance + soft processor +
   -- JTAG-to-Avalon-MM debug master)
   regmap_conformance_system_inst : regmap_conformance_system
     port map (

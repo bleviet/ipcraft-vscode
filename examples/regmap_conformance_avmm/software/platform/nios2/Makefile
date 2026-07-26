@@ -1,6 +1,6 @@
 # Nios II application Makefile.
 # The BSP must be generated and built before this Makefile is invoked.
-# See ../../../altera/quartus/Makefile which handles the full build pipeline.
+# See ../../../altera/Makefile which handles the full build pipeline.
 #
 # SRCS pulls in the portable check sequence from ../../app/ directly --
 # that file is the single source of truth for the conformance sequence;

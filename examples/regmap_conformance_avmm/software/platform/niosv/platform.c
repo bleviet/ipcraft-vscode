@@ -1,5 +1,5 @@
 /*
- * platform.c -- Nios II bare-metal HAL for ../../app/conformance_checks.c.
+ * platform.c -- Nios V/m bare-metal HAL for ../../app/conformance_checks.c.
  *
  * Implements the four platform_* primitives the portable check sequence is
  * written against, using IOWR_32DIRECT/IORD_32DIRECT (no HAL driver exists
