@@ -56,7 +56,8 @@ including its SLVERR response path (no Avalon-MM equivalent).
 
 | Stage | Result |
 |---|---|
-| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 14/14 tests, including the shared manifest suite and AXI4-Lite-specific SLVERR negative test |
+| cocotb scoreboard on GHDL (pre-hardware gate) | **PASS** — 15/15 tests, including the shared manifest suite, AXI4-Lite-specific SLVERR negative test, and interrupt assertion/W1C-clear test |
+| Qsys interrupt metadata | **PASS** — `irq_associated` is associated with `S_AXI_LITE`; `irq_no_bus` remains explicitly busless |
 | Quartus full compile (qsys + synthesis + fit + timing) | **PASS** — 0 errors |
 | Board program (JTAG, DE10-Nano) | **PASS** — configuration succeeded |
 | System Console conformance host (`conformance_sysconsole.tcl`) | **PASS** — 24/24 checks, reproducible from a freshly-programmed board |
@@ -166,12 +167,24 @@ isn't the property under test. The priority logic itself is bus-agnostic RTL
 (the same `regs.vhd` generation is shared between `bus_avmm.vhdl.j2` and
 `bus_axil.vhdl.j2`) and is already proven by the Avalon-MM gate.
 
+## Interrupt integration
+
+The generated AXI4-Lite component exposes the same two interrupt fixtures as
+the Avalon-MM conformance example. `irq_associated` follows the sticky
+`INT_STATUS.SAMPLE_EVT` bit and deasserts when software writes one to clear
+that bit. `irq_no_bus` is the periodic, explicitly busless level source. The
+JTAG-only Qsys design exports both sources as top-level observation points
+rather than adding a Nios II interrupt receiver. `make irq-metadata` runs
+Qsys generation and verifies the resulting SOPC metadata; cocotb verifies the
+observable assert/deassert behavior directly.
+
 ## Reproducing
 
 ```bash
 cd regmap_conformance_axil/tb && make SIM=ghdl WAVES=0   # pre-hardware gate
 cd ../altera/quartus
 make qsys project compile      # or: make all
+make irq-metadata              # verify generated interrupt metadata
 make test                      # reprograms + runs the manifest-driven suite
                                 # (43 recorded checks -- unmapped_read_zero is
                                 # not_applicable on AXI4-Lite, see above);

@@ -39,7 +39,11 @@ entity regmap_conformance_axil_core is
     -- gating -- and led(7) is a dedicated status LED that blinks slowly
     -- while the host runner is progressing and faster once
     -- TEST_PROGRESS.FAILED is set.
-    led : out std_logic_vector(7 downto 0)
+    led : out std_logic_vector(7 downto 0);
+
+    -- Explicitly associated and explicitly busless interrupt fixtures.
+    irq_associated : out std_logic;
+    irq_no_bus     : out std_logic
     );
 end entity regmap_conformance_axil_core;
 
@@ -160,5 +164,9 @@ begin
 
   -- Status LED: see blink-rate selection above.
   led(7) <= blink_state;
+
+  -- Hold the interrupt request until software clears the W1C status bit.
+  irq_associated <= regs_in.int_status.sample_evt;
+  irq_no_bus <= '1' when heartbeat_counter(15 downto 12) = 0 else '0';
 
 end architecture rtl;

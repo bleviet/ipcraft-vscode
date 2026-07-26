@@ -42,6 +42,24 @@ ports:
       dedicated status LED that blinks slowly while the shared conformance
       suite is progressing and faster once TEST_PROGRESS.FAILED is set.
 
+interrupts:
+  - name: irq_associated
+    direction: out
+    sensitivity: EDGE_RISING
+    associatedBusInterface: S_AXI_LITE
+    associatedClock: clk
+    description: >
+      Asserts when STIMULUS.SAMPLE_EVT_TRIG sets INT_STATUS.SAMPLE_EVT and
+      remains asserted until software clears that W1C status bit.
+  - name: irq_no_bus
+    direction: out
+    sensitivity: LEVEL_HIGH
+    associatedBusInterface: ""
+    associatedClock: clk
+    description: >
+      Periodic level-sensitive interrupt with an explicitly empty bus
+      association, used to verify interrupt-only components.
+
 busInterfaces:
   - name: S_AXI_LITE
     type: ipcraft:busif:axi4_lite:1.0
@@ -101,6 +119,9 @@ fileSets:
       - path: altera/regmap_conformance_axil_hw.tcl
         type: tcl
       - path: altera/debug/hardware_runner.py
+        type: python
+        managed: false
+      - path: altera/debug/verify_irq_metadata.py
         type: python
         managed: false
       - path: altera/debug/conformance_sysconsole.tcl
