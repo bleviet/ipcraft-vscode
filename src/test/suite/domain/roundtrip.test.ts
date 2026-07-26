@@ -226,6 +226,30 @@ parameters:
   });
 });
 
+describe('parseIpCore interrupt association handling', () => {
+  it('round-trips associated bus interface and clock names', () => {
+    const parsed = parseIpCore(`
+vlnv: foo:bar:baz:1.0
+interrupts:
+  - name: irq
+    direction: out
+    associatedBusInterface: s_axi
+    associatedClock: clk
+`);
+
+    expect(parsed.interrupts?.[0]).toMatchObject({
+      associatedBusInterface: 's_axi',
+      associatedClock: 'clk',
+    });
+
+    const serialized = serializeIpCore(parsed) as Record<string, unknown>;
+    expect((serialized.interrupts as Array<Record<string, unknown>>)[0]).toMatchObject({
+      associatedBusInterface: 's_axi',
+      associatedClock: 'clk',
+    });
+  });
+});
+
 describe('parseIpCore endianness handling', () => {
   it('round-trips explicitly authored little-endian values', () => {
     const parsed = parseIpCore(`

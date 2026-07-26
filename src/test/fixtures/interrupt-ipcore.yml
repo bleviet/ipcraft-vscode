@@ -12,7 +12,19 @@ resets:
 - name: rst
   direction: in
   polarity: activeHigh
+busInterfaces:
+- name: S_AXI
+  type: AXI4L
+  mode: slave
+  physicalPrefix: s_axi_
+  associatedClock: clk
+  associatedReset: rst
+  memoryMapRef: MAP
 interrupts:
 - name: irq
   direction: out
   sensitivity: LEVEL_HIGH
+  associatedBusInterface: S_AXI
+  associatedClock: clk
+memoryMaps:
+  import: sample-memmap.yml

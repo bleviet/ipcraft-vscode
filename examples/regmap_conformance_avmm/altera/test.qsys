@@ -4,4 +4,6 @@
   <interface name="regmap_conformance_0_clk" internal="regmap_conformance_0.clk" type="clock" dir="end" />
   <interface name="regmap_conformance_0_reset" internal="regmap_conformance_0.reset" type="reset" dir="end" />
   <interface name="regmap_conformance_0_S_AVMM" internal="regmap_conformance_0.S_AVMM" type="avalon" dir="end" />
+  <interface name="regmap_conformance_0_irq_associated" internal="regmap_conformance_0.irq_associated" type="interrupt" dir="end" />
+  <interface name="regmap_conformance_0_irq_no_bus" internal="regmap_conformance_0.irq_no_bus" type="interrupt" dir="end" />
 </system>

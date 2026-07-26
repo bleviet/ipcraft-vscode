@@ -1,5 +1,6 @@
 import { IpCore, Clock, Reset, Port, BusInterface } from '../../types/ipCore';
 import { reconstructBusPortNameSet } from '../../../shared/busPortNameSet';
+import { busSupportsInterruptAssociation } from '../../../shared/busVlnv';
 import { lookupBusDef } from '../data/busDefinitions';
 
 export type ValidationSeverity = 'warning' | 'error';
@@ -225,7 +226,17 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
 
   // Check interrupts
   const irqNames = new Set<string>();
-  ((ipCore.interrupts ?? []) as Array<{ name?: string }>).forEach((irq, idx) => {
+  const eligibleInterruptBusNames = new Set(
+    (ipCore.busInterfaces ?? []).filter(busSupportsInterruptAssociation).map((bus) => bus.name)
+  );
+  const clockNames = new Set((ipCore.clocks ?? []).map((clock) => clock.name));
+  (
+    (ipCore.interrupts ?? []) as Array<{
+      name?: string;
+      associatedBusInterface?: string | null;
+      associatedClock?: string | null;
+    }>
+  ).forEach((irq, idx) => {
     const id = `interrupt:${idx}`;
     if (!irq.name) {
       addAnnotation(id, 'error', 'Interrupt must have a name');
@@ -236,6 +247,16 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
       } else {
         irqNames.add(key);
       }
+    }
+    if (irq.associatedBusInterface && !eligibleInterruptBusNames.has(irq.associatedBusInterface)) {
+      addAnnotation(
+        id,
+        'error',
+        `Referenced bus interface '${irq.associatedBusInterface}' does not exist or is not an eligible memory-mapped slave`
+      );
+    }
+    if (irq.associatedClock && !clockNames.has(irq.associatedClock)) {
+      addAnnotation(id, 'error', `Referenced clock '${irq.associatedClock}' does not exist`);
     }
   });
 

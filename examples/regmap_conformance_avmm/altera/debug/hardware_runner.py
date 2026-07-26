@@ -91,7 +91,13 @@ puts "@@END"
         address = self.base_address + offset
         response = self._run_tcl(
             """
-set masterPath {{{master_path}}}
+set paths [get_service_paths master]
+if {{[llength $paths] == 0}} {{
+    puts "@@ERROR no JTAG-to-Avalon master service found"
+    puts "@@END"
+    return
+}}
+set masterPath [lindex $paths 0]
 if {{[catch {{
     open_service master $masterPath
     set value [lindex [master_read_32 $masterPath {address} 1] 0]
@@ -102,13 +108,16 @@ if {{[catch {{
     puts "@@ERROR $message"
 }}
 puts "@@END"
-""".format(master_path=self.master_path, address=address)
+""".format(address=address)
         )
+        error = None
         for line in response.splitlines():
             if line.startswith("@@VALUE "):
                 return int(line[len("@@VALUE ") :], 0)
             if line.startswith("@@ERROR "):
-                raise IOError(line[len("@@ERROR ") :])
+                error = line[len("@@ERROR ") :]
+        if error:
+            raise IOError(error)
         raise IOError("System Console read produced no value")
 
     def _write_sequence(self, writes):
@@ -132,7 +141,13 @@ puts "@@END"
         command_text = "\n    ".join(commands)
         response = self._run_tcl(
             """
-set masterPath {{{master_path}}}
+set paths [get_service_paths master]
+if {{[llength $paths] == 0}} {{
+    puts "@@ERROR no JTAG-to-Avalon master service found"
+    puts "@@END"
+    return
+}}
+set masterPath [lindex $paths 0]
 if {{[catch {{
     open_service master $masterPath
     {commands}
@@ -143,12 +158,16 @@ if {{[catch {{
     puts "@@ERROR $message"
 }}
 puts "@@END"
-""".format(master_path=self.master_path, commands=command_text)
+""".format(commands=command_text)
         )
         if "@@WROTE" in response:
             return
         error = next(
-            (line[len("@@ERROR ") :] for line in response.splitlines() if line.startswith("@@ERROR ")),
+            (
+                line[len("@@ERROR ") :]
+                for line in response.splitlines()
+                if line.startswith("@@ERROR ")
+            ),
             "System Console write did not complete",
         )
         raise IOError(error)

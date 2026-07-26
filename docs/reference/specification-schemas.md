@@ -56,6 +56,21 @@ Common top-level fields:
 | `scaffold_pack` | Saved scaffold-pack selection |
 | `fileSets` | Source files grouped by purpose |
 
+Interrupts may optionally name the memory-mapped slave and clock domain that
+serve them:
+
+```yaml
+interrupts:
+  - name: irq
+    direction: out
+    associatedBusInterface: control
+    associatedClock: clk
+```
+
+`associatedBusInterface` references a memory-mapped slave in `busInterfaces`;
+`associatedClock` references an entry in `clocks`. Vendor generators translate
+these portable names to their native association properties.
+
 ## Bus interfaces
 
 ```yaml

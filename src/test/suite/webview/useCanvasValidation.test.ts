@@ -496,4 +496,62 @@ describe('useCanvasValidation', () => {
     expect(bus0Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(false);
     expect(bus1Msgs.some((m) => m.includes('Duplicate physicalPrefix'))).toBe(false);
   });
+
+  it('accepts valid interrupt bus and clock associations', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 's_axi',
+          type: 'ipcraft:busif:axi4_lite:1.0',
+          mode: 'slave',
+          physicalPrefix: 's_axi_',
+        },
+      ],
+      interrupts: [
+        {
+          name: 'irq',
+          associatedBusInterface: 's_axi',
+          associatedClock: 'clk',
+        },
+      ],
+    };
+
+    expect(useCanvasValidation(ipCore)['interrupt:0']).toBeUndefined();
+  });
+
+  it('rejects stale or ineligible interrupt associations', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'm_axi',
+          type: 'ipcraft:busif:axi4_full:1.0',
+          mode: 'master',
+          physicalPrefix: 'm_axi_',
+        },
+      ],
+      interrupts: [
+        {
+          name: 'irq',
+          associatedBusInterface: 'm_axi',
+          associatedClock: 'missing_clk',
+        },
+      ],
+    };
+
+    expect(useCanvasValidation(ipCore)['interrupt:0']).toEqual([
+      expect.objectContaining({
+        severity: 'error',
+        message:
+          "Referenced bus interface 'm_axi' does not exist or is not an eligible memory-mapped slave",
+      }),
+      expect.objectContaining({
+        severity: 'error',
+        message: "Referenced clock 'missing_clk' does not exist",
+      }),
+    ]);
+  });
 });

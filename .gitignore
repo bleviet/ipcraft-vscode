@@ -30,6 +30,7 @@ test-results/
 # altera/quartus/Makefile).
 examples/**/db/
 examples/**/incremental_db/
+**/.qsys_edit/
 examples/**/output_files/
 examples/**/*.qsys
 !examples/regmap_conformance_avmm/altera/test.qsys

@@ -35846,7 +35846,8 @@ set_interface_property o_data SVD_ADDRESS_GROUP ""
 # -----------------------------------------------------------------------------
 # o_irq: interrupt sender (out)
 add_interface o_irq interrupt end
-set_interface_property o_irq associatedAddressablePoint ""
+set_interface_property o_irq associatedAddressablePoint S_AXI_LITE
+set_interface_property o_irq associatedClock clk
 set_interface_property o_irq ENABLED true
 
 add_interface_port o_irq o_irq irq Output 1
@@ -36064,7 +36065,8 @@ set_interface_property o_data SVD_ADDRESS_GROUP ""
 # -----------------------------------------------------------------------------
 # o_irq: interrupt sender (out)
 add_interface o_irq interrupt end
-set_interface_property o_irq associatedAddressablePoint ""
+set_interface_property o_irq associatedAddressablePoint S_AXI_LITE
+set_interface_property o_irq associatedClock clk
 set_interface_property o_irq ENABLED true
 
 add_interface_port o_irq o_irq irq Output 1
@@ -36260,14 +36262,16 @@ add_interface_port i_sync i_sync i_sync Input 1
 # -----------------------------------------------------------------------------
 # o_irq_n: interrupt sender (out)
 add_interface o_irq_n interrupt end
-set_interface_property o_irq_n associatedAddressablePoint ""
+set_interface_property o_irq_n associatedAddressablePoint S_AVMM
+set_interface_property o_irq_n associatedClock clk
 set_interface_property o_irq_n ENABLED true
 
 add_interface_port o_irq_n o_irq_n irq Output 1
 
 # o_evt_fall: interrupt sender (out)
 add_interface o_evt_fall interrupt end
-set_interface_property o_evt_fall associatedAddressablePoint ""
+set_interface_property o_evt_fall associatedAddressablePoint S_AVMM
+set_interface_property o_evt_fall associatedClock clk
 set_interface_property o_evt_fall ENABLED true
 
 add_interface_port o_evt_fall o_evt_fall irq Output 1
@@ -36463,14 +36467,16 @@ add_interface_port i_sync i_sync i_sync Input 1
 # -----------------------------------------------------------------------------
 # o_irq_n: interrupt sender (out)
 add_interface o_irq_n interrupt end
-set_interface_property o_irq_n associatedAddressablePoint ""
+set_interface_property o_irq_n associatedAddressablePoint S_AVMM
+set_interface_property o_irq_n associatedClock clk
 set_interface_property o_irq_n ENABLED true
 
 add_interface_port o_irq_n o_irq_n irq Output 1
 
 # o_evt_fall: interrupt sender (out)
 add_interface o_evt_fall interrupt end
-set_interface_property o_evt_fall associatedAddressablePoint ""
+set_interface_property o_evt_fall associatedAddressablePoint S_AVMM
+set_interface_property o_evt_fall associatedClock clk
 set_interface_property o_evt_fall ENABLED true
 
 add_interface_port o_evt_fall o_evt_fall irq Output 1
@@ -36862,14 +36868,16 @@ set_interface_property o_fifo_level SVD_ADDRESS_GROUP ""
 # -----------------------------------------------------------------------------
 # o_irq: interrupt sender (out)
 add_interface o_irq interrupt end
-set_interface_property o_irq associatedAddressablePoint ""
+set_interface_property o_irq associatedAddressablePoint S_AXI
+set_interface_property o_irq associatedClock i_clk_axi
 set_interface_property o_irq ENABLED true
 
 add_interface_port o_irq o_irq irq Output 1
 
 # o_err_pulse: interrupt sender (out)
 add_interface o_err_pulse interrupt end
-set_interface_property o_err_pulse associatedAddressablePoint ""
+set_interface_property o_err_pulse associatedAddressablePoint S_AXI
+set_interface_property o_err_pulse associatedClock i_clk_axi
 set_interface_property o_err_pulse ENABLED true
 
 add_interface_port o_err_pulse o_err_pulse irq Output 1
@@ -37263,14 +37271,16 @@ set_interface_property o_fifo_level SVD_ADDRESS_GROUP ""
 # -----------------------------------------------------------------------------
 # o_irq: interrupt sender (out)
 add_interface o_irq interrupt end
-set_interface_property o_irq associatedAddressablePoint ""
+set_interface_property o_irq associatedAddressablePoint S_AXI
+set_interface_property o_irq associatedClock i_clk_axi
 set_interface_property o_irq ENABLED true
 
 add_interface_port o_irq o_irq irq Output 1
 
 # o_err_pulse: interrupt sender (out)
 add_interface o_err_pulse interrupt end
-set_interface_property o_err_pulse associatedAddressablePoint ""
+set_interface_property o_err_pulse associatedAddressablePoint S_AXI
+set_interface_property o_err_pulse associatedClock i_clk_axi
 set_interface_property o_err_pulse ENABLED true
 
 add_interface_port o_err_pulse o_err_pulse irq Output 1
@@ -37970,7 +37980,8 @@ set_interface_property i_active_channel SVD_ADDRESS_GROUP ""
 # -----------------------------------------------------------------------------
 # o_global_irq: interrupt sender (out)
 add_interface o_global_irq interrupt end
-set_interface_property o_global_irq associatedAddressablePoint ""
+set_interface_property o_global_irq associatedAddressablePoint S_AXI_LITE
+set_interface_property o_global_irq associatedClock i_clk_reg
 set_interface_property o_global_irq ENABLED true
 
 add_interface_port o_global_irq o_global_irq irq Output 1
@@ -38244,7 +38255,8 @@ set_interface_property i_active_channel SVD_ADDRESS_GROUP ""
 # -----------------------------------------------------------------------------
 # o_global_irq: interrupt sender (out)
 add_interface o_global_irq interrupt end
-set_interface_property o_global_irq associatedAddressablePoint ""
+set_interface_property o_global_irq associatedAddressablePoint S_AXI_LITE
+set_interface_property o_global_irq associatedClock i_clk_reg
 set_interface_property o_global_irq ENABLED true
 
 add_interface_port o_global_irq o_global_irq irq Output 1
@@ -38671,7 +38683,8 @@ add_interface_port usb_data_out m_axis_usb_tready tready Input 1
 # -----------------------------------------------------------------------------
 # IRQ_OUT: interrupt sender (out)
 add_interface IRQ_OUT interrupt end
-set_interface_property IRQ_OUT associatedAddressablePoint ""
+set_interface_property IRQ_OUT associatedAddressablePoint control_reg
+set_interface_property IRQ_OUT associatedClock CLK_SYS
 set_interface_property IRQ_OUT ENABLED true
 
 add_interface_port IRQ_OUT IRQ_OUT irq Output 1
@@ -39090,7 +39103,8 @@ add_interface_port usb_data_out m_axis_usb_tready tready Input 1
 # -----------------------------------------------------------------------------
 # IRQ_OUT: interrupt sender (out)
 add_interface IRQ_OUT interrupt end
-set_interface_property IRQ_OUT associatedAddressablePoint ""
+set_interface_property IRQ_OUT associatedAddressablePoint control_reg
+set_interface_property IRQ_OUT associatedClock CLK_SYS
 set_interface_property IRQ_OUT ENABLED true
 
 add_interface_port IRQ_OUT IRQ_OUT irq Output 1

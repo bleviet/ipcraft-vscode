@@ -47,3 +47,17 @@ export function busSupportsMemoryMap(busType: string, mode: string): boolean {
   }
   return lower.includes('axi4') || lower.includes('avalon');
 }
+
+/** Returns true when one interrupt can unambiguously reference this interface as
+ * a Platform Designer addressable point. Multi-instance arrays expand to several
+ * addressable points, so their unexpanded logical name is not eligible. */
+export function busSupportsInterruptAssociation(bus: {
+  type: string;
+  mode: string;
+  array?: { count?: number } | null;
+}): boolean {
+  return (
+    busSupportsMemoryMap(bus.type, bus.mode) &&
+    (bus.array?.count === undefined || bus.array.count <= 1)
+  );
+}

@@ -41,7 +41,11 @@ entity regmap_conformance_axil is
     s_axil_rready  : in  std_logic;
 
     -- User ports
-    led : out std_logic_vector(7 downto 0)
+    led : out std_logic_vector(7 downto 0);
+
+    -- Interrupts
+    irq_associated : out std_logic;
+    irq_no_bus : out std_logic
     );
 end entity regmap_conformance_axil;
 
@@ -95,7 +99,9 @@ begin
       rst => not reset_n,
       regs_in  => regs_sw2hw,
       regs_out => regs_hw2sw,
-      led => led
+      led => led,
+      irq_associated => irq_associated,
+      irq_no_bus => irq_no_bus
     );
 
 end architecture rtl;

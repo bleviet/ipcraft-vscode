@@ -82,3 +82,8 @@ def test_slverr_on_unmapped_address(sim_runner):
 def test_shared_manifest_scenarios(sim_runner):
     """The manifest-driven suite is identical in simulation and on hardware."""
     sim_runner("test_shared_manifest_scenarios")
+
+
+def test_interrupt_outputs(sim_runner):
+    """The associated interrupt asserts on a sticky event and clears with W1C."""
+    sim_runner("test_interrupt_outputs")

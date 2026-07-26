@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://ipcraft.dev/schemas/template_context/1.1.0",
+  "$id": "https://ipcraft.dev/schemas/template_context/1.2.0",
   "title": "TemplateContext",
   "description": "Versioned template context passed to all Nunjucks/Jinja2 templates during IP core generation. This is the public API for third-party scaffold packs.",
   "type": "object",
@@ -46,7 +46,7 @@
   "properties": {
     "contract_version": {
       "type": "string",
-      "const": "1.1.0",
+      "const": "1.2.0",
       "description": "Semantic version of the template context contract."
     },
     "name": { "type": "string" },
@@ -521,7 +521,9 @@
       "properties": {
         "name": { "type": "string" },
         "direction": { "type": "string" },
-        "sensitivity": { "type": "string" }
+        "sensitivity": { "type": "string" },
+        "associated_bus_interface": { "type": "string" },
+        "associated_clock": { "type": "string" }
       }
     },
     "SecondaryBusInterface": {

@@ -21,6 +21,7 @@ REVISION_NAME = de10_nano
 QSYS_TCL      = ../qsys/regmap_conformance_axil_system.tcl
 QSYS_FILE     = ../qsys/regmap_conformance_axil_system.qsys
 QSYS_GEN_DIR  = ../qsys/regmap_conformance_axil_system_gen
+SOPCINFO      = ../qsys/regmap_conformance_axil_system.sopcinfo
 
 DEBUG_DIR     = ../debug
 HARDWARE_RESULT ?= output_files/hardware-result.json
@@ -56,7 +57,7 @@ DOCKER_GUI = docker run --rm --user $$(id -u):$$(id -g) \
 .PHONY: all qsys project compile clean sim \
         program-sof usb-windows usb-wsl \
         quartus-gui platform-designer \
-        conformance-sysconsole conformance-manifest test
+        conformance-sysconsole conformance-manifest irq-metadata test
 
 all: qsys project compile
 
@@ -71,6 +72,12 @@ $(QSYS_FILE): $(QSYS_TCL)
 qsys: $(QSYS_FILE)
 	$(DOCKER) "$(DOCKER_CWD) && qsys-generate $(QSYS_FILE) --synthesis=VHDL --output-directory=$(QSYS_GEN_DIR) \
 	  --search-path=/work/$(PROJECT_NAME)/altera/qsys,\$$"
+
+# Confirm that the generated Platform Designer metadata retains both the
+# AXI4-Lite-associated and explicitly busless interrupt interfaces.
+irq-metadata: qsys
+	python3 $(DEBUG_DIR)/verify_irq_metadata.py \
+	  --sopcinfo $(SOPCINFO)
 
 # ── Step 2: create and compile the Quartus project ───────────────────────────
 project: $(QSYS_GEN_DIR)/synthesis/regmap_conformance_axil_system.qip

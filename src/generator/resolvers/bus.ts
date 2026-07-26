@@ -9,6 +9,7 @@ import {
 } from '../registerProcessor';
 import type { BusInterfaceDef, BusPortDefinition } from '../types';
 import { parse, serialize, widthExprUsesMathReal } from '../../shared/widthExprAst';
+import { buildInterruptPorts } from './interrupts';
 
 function getString(value: unknown): string {
   if (value === null || value === undefined) {
@@ -201,22 +202,6 @@ export function buildUserPorts(
   });
 }
 
-export function buildInterruptPorts(
-  ipCore: ResolverInput['ipCore']
-): Array<Record<string, unknown>> {
-  const interrupts = (ipCore as Record<string, unknown>)?.interrupts as
-    | Array<Record<string, unknown>>
-    | undefined;
-  if (!interrupts || interrupts.length === 0) {
-    return [];
-  }
-  return interrupts.map((intr) => ({
-    name: String(intr.name ?? ''),
-    direction: String(intr.direction ?? 'out').toLowerCase(),
-    sensitivity: String(intr.sensitivity ?? 'LEVEL_HIGH'),
-  }));
-}
-
 export const busResolver: ContextResolver = {
   name: 'bus',
 
@@ -234,6 +219,7 @@ export const busResolver: ContextResolver = {
     const secondaryBusPorts: Array<Record<string, unknown>> = [];
     const secondaryBusInterfaces: Array<Record<string, unknown>> = [];
     let busPrefix = 's_axi';
+    let primaryMemoryMappedIndex = -1;
 
     const elaboratePortWidths: Array<{
       iface_name: string;
@@ -244,7 +230,7 @@ export const busResolver: ContextResolver = {
     }> = [];
 
     if (expandedBusInterfaces.length > 0) {
-      const mmIdx = expandedBusInterfaces.findIndex(
+      primaryMemoryMappedIndex = expandedBusInterfaces.findIndex(
         (iface) =>
           (iface.mode ?? '').toLowerCase() === 'slave' &&
           registry.isMemoryMapped(normalizeBusType(getString(iface.type)).templateType)
@@ -252,7 +238,7 @@ export const busResolver: ContextResolver = {
       // Preserve the public template-context convention: the memory-mapped slave is
       // primary when present, otherwise the first interface is primary. Top/core
       // templates decide whether that primary interface goes through a bus wrapper.
-      const primaryIndex = mmIdx >= 0 ? mmIdx : 0;
+      const primaryIndex = primaryMemoryMappedIndex >= 0 ? primaryMemoryMappedIndex : 0;
       busPrefix = normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
 
       expandedBusInterfaces.forEach((iface, index) => {
@@ -368,7 +354,12 @@ export const busResolver: ContextResolver = {
     // per distinct width, not a single unconstrained function, to keep generated HDL simple
     // and toolchain-portable); parameterized data and all byte-qualifier masks use a
     // width-generic reflow loop at the top level (see package.vhdl.j2/pkg.sv.j2, top.*.j2).
-    const interruptPorts = buildInterruptPorts(ipCore);
+    const interruptPorts = buildInterruptPorts(
+      ipCore,
+      registry,
+      expandedBusInterfaces,
+      primaryMemoryMappedIndex
+    );
     const allTemplatePorts = [...busPorts, ...secondaryBusPorts, ...userPorts];
     const reservedNames = new Set(
       [

@@ -37,15 +37,15 @@ entity {{ entity_name }}_core is
     -- Clock and reset
     clk : in std_logic;
 {% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
-    rst : in std_logic{{ ";" if sw_registers | length > 0 or has_regs_in or core_bus_interfaces | length or user_ports | length else "" }}
+    rst : in std_logic{{ ";" if sw_registers | length > 0 or has_regs_in or core_bus_interfaces | length or user_ports | length or interrupt_ports | length else "" }}
 
 {% if sw_registers | length > 0 or has_regs_in %}
     -- Register interface (record-based)
 {% if sw_registers | length > 0 %}
-    regs_in : in t_regs_sw2hw{{ ";" if has_regs_in or core_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- SW-writable registers (from bus wrapper)
+    regs_in : in t_regs_sw2hw{{ ";" if has_regs_in or core_bus_ports | length > 0 or user_ports | length > 0 or interrupt_ports | length > 0 else "" }} -- SW-writable registers (from bus wrapper)
 {% endif %}
 {% if has_regs_in %}
-    regs_out : out t_regs_hw2sw{{ ";" if core_bus_ports | length > 0 or user_ports | length > 0 else "" }} -- HW-status / W1C pulses / CoS values (to bus wrapper)
+    regs_out : out t_regs_hw2sw{{ ";" if core_bus_ports | length > 0 or user_ports | length > 0 or interrupt_ports | length > 0 else "" }} -- HW-status / W1C pulses / CoS values (to bus wrapper)
 {% endif %}
 {% endif %}
 {% if core_bus_interfaces | length %}
@@ -53,7 +53,7 @@ entity {{ entity_name }}_core is
 
     -- {{ iface.name }} ({{ iface.mode | upper }})
 {% for port in iface.ports %}
-    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or not iface_loop.last or user_ports | length else "" }}
+    {{ "%-14s"|format(port.name) }} : {{ "%-3s"|format(port.direction) }} {{ port.type }}{{ ";" if not loop.last or not iface_loop.last or user_ports | length or interrupt_ports | length else "" }}
 {% endfor %}
 {% endfor %}
 {% endif %}
@@ -61,7 +61,14 @@ entity {{ entity_name }}_core is
 
     -- User ports
 {% for port in user_ports %}
-    {{ port.name }} : {{ port.direction }} {{ port.type }}{{ ";" if not loop.last else "" }}
+    {{ port.name }} : {{ port.direction }} {{ port.type }}{{ ";" if not loop.last or interrupt_ports | length else "" }}
+{% endfor %}
+{% endif %}
+{% if interrupt_ports | length %}
+
+    -- Interrupts
+{% for port in interrupt_ports %}
+    {{ port.name }} : {{ port.direction }} std_logic{{ ";" if not loop.last else "" }}
 {% endfor %}
 {% endif %}
     );

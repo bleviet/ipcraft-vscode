@@ -125,6 +125,22 @@ async def test_shared_manifest_scenarios(dut):
     assert results
 
 
+@cocotb.test()
+async def test_interrupt_outputs(dut):
+    """Assert and W1C-clear the explicitly associated interrupt output."""
+    await _reset_dut(dut)
+    m = _master(dut)
+    assert int(dut.irq_associated.value) == 0
+
+    await _write_reg(m, regmap["STIMULUS"].offset, _stim(SAMPLE_EVT_TRIG=1))
+    await _settle(dut)
+    assert int(dut.irq_associated.value) == 1
+
+    await _write_reg(m, regmap["INT_STATUS"].offset, 1)
+    await _settle(dut)
+    assert int(dut.irq_associated.value) == 0
+
+
 # ---------------------------------------------------------------------------
 # ID -- read-only constant readback
 # ---------------------------------------------------------------------------

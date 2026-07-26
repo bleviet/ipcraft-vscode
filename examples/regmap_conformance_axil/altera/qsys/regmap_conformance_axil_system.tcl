@@ -61,5 +61,15 @@ set_interface_property reset EXPORT_OF reset_bridge.in_reset
 add_interface led_external_connection conduit end
 set_interface_property led_external_connection EXPORT_OF regmap_axil.led
 
+# Export both interrupt fixtures. The JTAG-only system has no interrupt
+# controller, so these are top-level observation points; cocotb directly
+# verifies assertion and W1C deassertion, while the metadata check confirms
+# both associations survive Platform Designer generation.
+add_interface irq_associated interrupt end
+set_interface_property irq_associated EXPORT_OF regmap_axil.irq_associated
+
+add_interface irq_no_bus interrupt end
+set_interface_property irq_no_bus EXPORT_OF regmap_axil.irq_no_bus
+
 save_system regmap_conformance_axil_system.qsys
 puts "regmap_conformance_axil_system.qsys saved (JTAG-to-Avalon-MM master -> AXI4-Lite slave)"

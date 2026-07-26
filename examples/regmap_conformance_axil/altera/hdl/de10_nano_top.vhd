@@ -32,6 +32,8 @@ architecture rtl of de10_nano_top is
     port (
       clk_clk                     : in  std_logic;
       led_external_connection_led : out std_logic_vector(7 downto 0);
+      irq_associated_irq          : out std_logic;
+      irq_no_bus_irq              : out std_logic;
       reset_reset                 : in  std_logic
     );
   end component regmap_conformance_axil_system;
@@ -54,7 +56,9 @@ begin
     port map (
       clk_clk                     => fpga_clk1_50,
       reset_reset                 => power_on_reset,
-      led_external_connection_led => led
+      led_external_connection_led => led,
+      irq_associated_irq          => open,
+      irq_no_bus_irq              => open
     );
 
 end architecture rtl;

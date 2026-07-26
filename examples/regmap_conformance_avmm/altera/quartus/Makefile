@@ -66,7 +66,7 @@ DOCKER_GUI = docker run --rm --user $$(id -u):$$(id -g) \
 .PHONY: all qsys project compile bsp app clean sim \
         program-sof download-elf terminal usb-windows usb-wsl \
         quartus-gui platform-designer \
-        conformance-sysconsole conformance-manifest conformance-nios test
+        irq-metadata irq-hardware conformance-sysconsole conformance-manifest conformance-nios test
 
 all: qsys project compile bsp app
 
@@ -96,6 +96,7 @@ BSP_DEFAULT_TCL = /opt/intelFPGA/nios2eds/sdk2/bin/bsp-set-defaults.tcl
 
 bsp: $(SOPCINFO)
 	$(DOCKER) "$(DOCKER_CWD) && \
+	  export LD_LIBRARY_PATH=/opt/intelFPGA/quartus/linux64:\$${LD_LIBRARY_PATH:-} && \
 	  mkdir -p $(BSP_DIR) && \
 	  nios2-bsp-create-settings \
 	    --sopc $(SOPCINFO) \
@@ -109,6 +110,30 @@ bsp: $(SOPCINFO)
 # ── Step 4: build the C application ──────────────────────────────────────────
 app: bsp
 	$(DOCKER) "$(DOCKER_CWD) && make -C $(APP_DIR)"
+
+# Prove both Platform Designer IRQ association cases in generated artifacts:
+# the register-map interrupt is attached to S_AVMM and becomes IRQ 1 in the
+# Nios II BSP, while the busless interrupt retains an empty addressable point
+# and remains connected to the CPU as IRQ 2.
+irq-metadata: bsp
+	python3 $(DEBUG_DIR)/verify_irq_metadata.py \
+	  --sopcinfo $(SOPCINFO) \
+	  --system-header $(BSP_DIR)/system.h
+
+# Exercise both generated interrupt association cases through the Nios II
+# interrupt controller. The firmware records observed ipending bits in
+# SCRATCH; the host reads the result through the independent JTAG-to-Avalon
+# master.
+irq-hardware: program-sof app
+	docker run --rm --user $$(id -u):$$(id -g) --privileged \
+	  -v /dev/bus/usb:/dev/bus/usb \
+	  -v $(REPO_ROOT):/work \
+	  -v $(UNAME_SHIM):/usr/local/bin/uname:ro \
+	  $(DOCKER_IMAGE) \
+	  bash -c 'jtagd && sleep 5; \
+	    nios2-download -g /work/$(PROJECT_NAME)/software/platform/nios2/regmap_conformance_test.elf && \
+	    python3 /work/$(PROJECT_NAME)/altera/debug/verify_irq_hardware.py; \
+	    status=$$?; kill $$(pgrep jtagd) 2>/dev/null || true; exit $$status'
 
 # ── Programming & debug targets ──────────────────────────────────────────────
 usb-wsl:
@@ -230,7 +255,7 @@ conformance-manifest: program-sof
 # conformance-nios is intentionally NOT in this gate (see its target
 # comment for why); conformance-sysconsole is the CI-gateable source of
 # truth today.
-test: sim conformance-manifest
+test: sim irq-metadata conformance-manifest irq-hardware
 	@echo "==== regmap_conformance_avmm: all hosts PASS ===="
 
 # ── Clean ─────────────────────────────────────────────────────────────────────

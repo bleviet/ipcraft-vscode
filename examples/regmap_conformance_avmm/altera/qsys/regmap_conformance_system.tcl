@@ -98,6 +98,10 @@ add_connection nios2.instruction_master nios2.debug_mem_slave
 # ── IRQ: nios2.irq is the master (receiver), peripherals are senders ──────────
 add_connection nios2.irq jtag_uart.irq
 set_connection_parameter_value nios2.irq/jtag_uart.irq irqNumber {0}
+add_connection nios2.irq regmap_ctrl.irq_associated
+set_connection_parameter_value nios2.irq/regmap_ctrl.irq_associated irqNumber {1}
+add_connection nios2.irq regmap_ctrl.irq_no_bus
+set_connection_parameter_value nios2.irq/regmap_ctrl.irq_no_bus irqNumber {2}
 
 # ── Base address map ──────────────────────────────────────────────────────────
 # regmap_conformance base is 0x00010000 -- both masters use the same absolute
