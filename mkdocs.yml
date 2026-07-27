@@ -49,6 +49,9 @@ markdown_extensions:
   - toc:
       permalink: true
 
+exclude_docs: |
+  concepts/brainstorm/
+
 nav:
   - Home: index.html
   - Getting Started:
@@ -78,7 +81,6 @@ nav:
       - Vivado Interface Catalog: concepts/vivado-interface-catalog.md
       - Data Inspector: concepts/data-inspector.md
       - Generator Template Data: concepts/generator-backbone.md
-      - Generated RAM Buffers: concepts/ram-buffer-generation.md
       - EDA Integration Tests: concepts/eda-integration-tests.md
       - Generator Feature Coverage: concepts/generator-feature-coverage.md
   - Architecture:
