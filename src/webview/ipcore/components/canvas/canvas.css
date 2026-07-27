@@ -241,14 +241,14 @@
   border: 1px solid var(--vscode-panel-border);
   pointer-events: none;
   opacity: 0.9;
-  animation: ip-zoom-fade 1.5s forwards;
+  /* animation: ip-zoom-fade 1.5s forwards; */
 }
 
-@keyframes ip-zoom-fade {
+/* @keyframes ip-zoom-fade {
   0%   { opacity: 0.9; }
   60%  { opacity: 0.9; }
   100% { opacity: 0; }
-}
+} */
 
 /* --- Grid dots --- */
 
