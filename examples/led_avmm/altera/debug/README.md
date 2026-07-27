@@ -5,8 +5,8 @@ JTAG-to-Avalon-MM master added to the Platform Designer system. This is the
 hardware validation for [ipcraft-vscode issue #36](https://github.com/bleviet/ipcraft-vscode/issues/36)
 Part B/D — the SystemConsoleTransport pattern.
 
-See [`docs/systemconsole_implementation_plan.md`](../../docs/systemconsole_implementation_plan.md)
-for the full implementation plan.
+See [`docs/system_console_debug.md`](../../docs/system_console_debug.md) for
+the current architecture and usage reference.
 
 ## Files
 
