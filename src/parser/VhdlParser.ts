@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
-import { collapseVhdlFunctionCall, stripRedundantOuterParens } from '../shared/widthExprAst';
+import { collapseVhdlFunctionCallsInExpr, stripRedundantOuterParens } from '../shared/widthExprAst';
 
 export interface ParsedPort {
   name: string;
@@ -359,19 +359,36 @@ function extractWidthFromType(type: string): number | string | undefined {
     // General to direction: 0 to N*2 - 1 → "N*2"
     const generalToMatch = range.match(/^0\s+to\s+(.+?)\s*-\s*1$/i);
     const rawExpr = (generalDowntoMatch?.[1] ?? generalToMatch?.[1])?.trim();
-    if (!rawExpr) {
+    if (rawExpr) {
+      // Our own generator wraps any function-rooted or compound expression in a
+      // redundant outer paren before appending "-1" — undo that, then collapse
+      // any predefined-width-function expansion(s) found anywhere inside the
+      // expression (e.g. "integer(ceil(log2(real(DW/2))))" -> "clog2(DW/2)",
+      // including one nested inside a minimum/maximum argument) back to their
+      // width-expression form. Falls back to the plain (already-canonical)
+      // expression text where no such wrapper is present.
+      const unwrapped = stripRedundantOuterParens(rawExpr);
+      return collapseVhdlFunctionCallsInExpr(unwrapped);
+    }
+
+    // Inclusive range whose upper bound is not expressed as "<expr> - 1"
+    // (e.g. "DATA_WIDTH downto 0", or a bare function-rooted bound such as
+    // "integer(ceil(log2(real(DATA_WIDTH + 1)))) downto 0"). The bit count of
+    // an inclusive zero-based range is the upper bound plus one, so derive
+    // "<bound>+1" instead of silently dropping the width. This is a distinct
+    // synthesized expression (not a source snippet), so whitespace is
+    // normalized away rather than preserved.
+    const downtoZeroMatch = range.match(/^(.+?)\s+downto\s+0$/i);
+    const zeroToMatch = range.match(/^0\s+to\s+(.+)$/i);
+    const inclusiveUpperBound = (downtoZeroMatch?.[1] ?? zeroToMatch?.[1])
+      ?.trim()
+      .replace(/\s+/g, '');
+    if (!inclusiveUpperBound) {
       return undefined;
     }
 
-    // Our own generator wraps any function-rooted or compound expression in a
-    // redundant outer paren before appending "-1" — undo that, then try to
-    // collapse the generator's canonical VHDL expansion of a predefined width
-    // function (e.g. "integer(ceil(log2(real(DW/2))))") back to its
-    // width-expression form ("clog2(DW/2)"), with the inner argument allowed
-    // to be an arbitrary arithmetic expression, not just a bare parameter.
-    // Falls back to the plain (already-canonical) expression text otherwise.
-    const unwrapped = stripRedundantOuterParens(rawExpr);
-    return collapseVhdlFunctionCall(unwrapped) ?? unwrapped;
+    const unwrapped = stripRedundantOuterParens(inclusiveUpperBound);
+    return `${collapseVhdlFunctionCallsInExpr(unwrapped)}+1`;
   }
 
   if (/\bstd_logic\b/i.test(type)) {
