@@ -9,6 +9,7 @@ import {
 } from '../components/canvas/canvasGeometry';
 
 const PAN_DRAG_THRESHOLD = 4;
+const ZOOM_INDICATOR_HIDE_DELAY_MS = 1500;
 
 /**
  * Canvas zoom/pan viewport: Ctrl+Wheel zoom, plain-wheel pan, Space+drag or
@@ -36,13 +37,23 @@ export function useCanvasViewport(containerRef: RefObject<HTMLDivElement | null>
   const spaceDownRef = useRef(false);
   const [spaceDown, setSpaceDown] = useState(false);
 
+  const clearZoomIndicatorTimer = useCallback(() => {
+    if (zoomTimerRef.current !== null) {
+      clearTimeout(zoomTimerRef.current);
+      zoomTimerRef.current = null;
+    }
+  }, []);
+
   const triggerZoomIndicator = useCallback(() => {
     setShowZoomIndicator(true);
-    if (zoomTimerRef.current) {
-      clearTimeout(zoomTimerRef.current);
-    }
-    zoomTimerRef.current = setTimeout(() => setShowZoomIndicator(false), 1500);
-  }, []);
+    clearZoomIndicatorTimer();
+    zoomTimerRef.current = setTimeout(() => {
+      zoomTimerRef.current = null;
+      setShowZoomIndicator(false);
+    }, ZOOM_INDICATOR_HIDE_DELAY_MS);
+  }, [clearZoomIndicatorTimer]);
+
+  useEffect(() => clearZoomIndicatorTimer, [clearZoomIndicatorTimer]);
 
   const resetView = useCallback(() => {
     setZoom(1.0);

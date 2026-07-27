@@ -82,7 +82,7 @@ export const CanvasHud: React.FC<CanvasHudProps> = ({
       {/* Hover tooltip */}
       {hoveredId && <PortTooltip portId={hoveredId} ports={ports} />}
 
-      {/* Zoom level indicator — fades after 1.5 s */}
+      {/* Zoom level indicator — hides 1.5 s after zooming stops */}
       {showZoomIndicator && (
         <div className="ip-canvas-zoom-indicator">{Math.round(zoom * 100)}%</div>
       )}
