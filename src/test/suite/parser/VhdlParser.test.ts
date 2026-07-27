@@ -362,6 +362,50 @@ describe('VhdlParser', () => {
     expect(hiBus!.width).toBe('max(A, B)');
   });
 
+  it('collapses a clog2 expansion nested inside a maximum(...) argument', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'nested_minmax.vhd');
+    const vhdl = `
+      entity nested_minmax_core is
+        generic (
+          DEPTH     : positive := 1024;
+          MIN_WIDTH : positive := 2
+        );
+        port (
+          ptr : out std_logic_vector(
+            (maximum(integer(ceil(log2(real(DEPTH)))), MIN_WIDTH))-1 downto 0
+          )
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    const ptr = ports.find((p) => p.name === 'ptr');
+    expect(ptr).toBeDefined();
+    // Regression test: the outer maximum(...) collapse used to require its
+    // arguments to already parse as width expressions, so a nested
+    // function-rooted argument (the clog2 expansion) left the whole call
+    // uncanonicalized and unparseable.
+    expect(ptr!.width).toBe('max(clog2(DEPTH), MIN_WIDTH)');
+
+    const widthAst = parseWidthExpr(ptr!.width as string);
+    expect(widthAst).toBeDefined();
+    expect(
+      widthAst &&
+        evaluateWidthExpr(
+          widthAst,
+          new Map([
+            ['DEPTH', 1024],
+            ['MIN_WIDTH', 2],
+          ])
+        )
+    ).toBe(10);
+  });
+
   it('derives width from a zero-based inclusive range whose upper bound has no "- 1" (issue #187)', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
     const filePath = path.join(tempDir, 'formula_width.vhd');

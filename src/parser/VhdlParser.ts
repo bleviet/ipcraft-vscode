@@ -3,11 +3,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
-import {
-  collapseVhdlFunctionCall,
-  collapseVhdlFunctionCallsInExpr,
-  stripRedundantOuterParens,
-} from '../shared/widthExprAst';
+import { collapseVhdlFunctionCallsInExpr, stripRedundantOuterParens } from '../shared/widthExprAst';
 
 export interface ParsedPort {
   name: string;
@@ -365,14 +361,14 @@ function extractWidthFromType(type: string): number | string | undefined {
     const rawExpr = (generalDowntoMatch?.[1] ?? generalToMatch?.[1])?.trim();
     if (rawExpr) {
       // Our own generator wraps any function-rooted or compound expression in a
-      // redundant outer paren before appending "-1" — undo that, then try to
-      // collapse the generator's canonical VHDL expansion of a predefined width
-      // function (e.g. "integer(ceil(log2(real(DW/2))))") back to its
-      // width-expression form ("clog2(DW/2)"), with the inner argument allowed
-      // to be an arbitrary arithmetic expression, not just a bare parameter.
-      // Falls back to the plain (already-canonical) expression text otherwise.
+      // redundant outer paren before appending "-1" — undo that, then collapse
+      // any predefined-width-function expansion(s) found anywhere inside the
+      // expression (e.g. "integer(ceil(log2(real(DW/2))))" -> "clog2(DW/2)",
+      // including one nested inside a minimum/maximum argument) back to their
+      // width-expression form. Falls back to the plain (already-canonical)
+      // expression text where no such wrapper is present.
       const unwrapped = stripRedundantOuterParens(rawExpr);
-      return collapseVhdlFunctionCall(unwrapped) ?? unwrapped;
+      return collapseVhdlFunctionCallsInExpr(unwrapped);
     }
 
     // Inclusive range whose upper bound is not expressed as "<expr> - 1"

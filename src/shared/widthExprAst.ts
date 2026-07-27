@@ -680,7 +680,13 @@ export function collapseVhdlFunctionCallsInExpr(expr: string): string {
     return expr;
   }
 
-  const call = expr.slice(matchStart, closeIdx + 1);
+  // Canonicalize any nested wrapper call inside this call's arguments first,
+  // so an outer minimum/maximum whose argument is itself a function-rooted
+  // width expression (e.g. "maximum(integer(ceil(log2(real(W)))), A)") can
+  // still be collapsed — collapseVhdlFunctionCall only recognizes a
+  // minimum/maximum argument that already parses as a width expression.
+  const canonicalInner = collapseVhdlFunctionCallsInExpr(expr.slice(openParenIdx + 1, closeIdx));
+  const call = `${expr.slice(matchStart, openParenIdx + 1)}${canonicalInner})`;
   const replacement = collapseVhdlFunctionCall(call) ?? call;
   const before = expr.slice(0, matchStart);
   const after = collapseVhdlFunctionCallsInExpr(expr.slice(closeIdx + 1));
