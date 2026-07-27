@@ -95,6 +95,10 @@ function ensureExtension(uri: vscode.Uri, ext: string): vscode.Uri {
   if (p.endsWith(ext)) {
     return uri;
   }
+  const yamlCompoundExt = ext.endsWith('.yml') ? `${ext.slice(0, -'.yml'.length)}.yaml` : undefined;
+  if (yamlCompoundExt && p.endsWith(yamlCompoundExt)) {
+    return vscode.Uri.file(p.slice(0, -yamlCompoundExt.length) + ext);
+  }
   // VS Code's YAML filter may auto-append .yml/.yaml — replace it with the compound ext
   if (p.endsWith('.yml') || p.endsWith('.yaml')) {
     return vscode.Uri.file(p.replace(/\.(yml|yaml)$/, ext));
@@ -102,15 +106,11 @@ function ensureExtension(uri: vscode.Uri, ext: string): vscode.Uri {
   return vscode.Uri.file(p + ext);
 }
 
-function stripCompoundExtension(filename: string, ext: string): string {
-  return filename.endsWith(ext) ? filename.slice(0, -ext.length) : filename;
-}
-
 export async function createIpCoreCommand(): Promise<void> {
   const workspaceFolders = vscode.workspace.workspaceFolders;
   let defaultUri: vscode.Uri | undefined;
   if (workspaceFolders && workspaceFolders.length > 0) {
-    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core');
+    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core.ip.yml');
   }
 
   const rawUri = await vscode.window.showSaveDialog({
@@ -208,7 +208,7 @@ export async function createIpCoreWithMemoryMapCommand(): Promise<void> {
   let defaultUri: vscode.Uri | undefined;
 
   if (workspaceFolders && workspaceFolders.length > 0) {
-    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core');
+    defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, 'new_ip_core.ip.yml');
   }
 
   const rawIpCoreUri = await vscode.window.showSaveDialog({
@@ -270,16 +270,13 @@ async function createFileWithTemplate(
   compoundExt?: string
 ): Promise<void> {
   let defaultUri: vscode.Uri | undefined;
-  const dialogFileName = compoundExt
-    ? stripCompoundExtension(defaultFileName, compoundExt)
-    : defaultFileName;
 
   if (defaultDir) {
-    defaultUri = vscode.Uri.joinPath(defaultDir, dialogFileName);
+    defaultUri = vscode.Uri.joinPath(defaultDir, defaultFileName);
   } else {
     const workspaceFolders = vscode.workspace.workspaceFolders;
     if (workspaceFolders && workspaceFolders.length > 0) {
-      defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, dialogFileName);
+      defaultUri = vscode.Uri.joinPath(workspaceFolders[0].uri, defaultFileName);
     }
   }
 
