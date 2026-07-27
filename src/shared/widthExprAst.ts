@@ -645,3 +645,44 @@ export function collapseVhdlFunctionCall(text: string): string | undefined {
 
   return undefined;
 }
+
+/**
+ * Canonicalizes every VHDL wrapper call (`integer(ceil(log2(real(...))))`,
+ * `minimum(...)`, `maximum(...)`) found anywhere inside an arithmetic width
+ * expression, not just when the wrapper spans the entire string (contrast
+ * `collapseVhdlFunctionCall`). This lets a compound bound such as
+ * `DATA_WIDTH+integer(ceil(log2(real(DATA_WIDTH+1))))` come back as
+ * `DATA_WIDTH+clog2(DATA_WIDTH+1)` with the surrounding arithmetic untouched.
+ * A call that doesn't match a known wrapper shape is left as-is.
+ */
+export function collapseVhdlFunctionCallsInExpr(expr: string): string {
+  const callStart = expr.match(/\b(integer|minimum|maximum)\s*\(/i);
+  if (callStart?.index === undefined) {
+    return expr;
+  }
+
+  const matchStart = callStart.index;
+  const openParenIdx = matchStart + callStart[0].length - 1;
+  let depth = 0;
+  let closeIdx = -1;
+  for (let i = openParenIdx; i < expr.length; i++) {
+    if (expr[i] === '(') {
+      depth++;
+    } else if (expr[i] === ')') {
+      depth--;
+      if (depth === 0) {
+        closeIdx = i;
+        break;
+      }
+    }
+  }
+  if (closeIdx === -1) {
+    return expr;
+  }
+
+  const call = expr.slice(matchStart, closeIdx + 1);
+  const replacement = collapseVhdlFunctionCall(call) ?? call;
+  const before = expr.slice(0, matchStart);
+  const after = collapseVhdlFunctionCallsInExpr(expr.slice(closeIdx + 1));
+  return `${before}${replacement}${after}`;
+}

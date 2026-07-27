@@ -3,6 +3,10 @@ import * as os from 'os';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { parseVhdlFile, extractVhdlInterface } from '../../../parser/VhdlParser';
+import {
+  parse as parseWidthExpr,
+  evaluate as evaluateWidthExpr,
+} from '../../../shared/widthExprAst';
 
 describe('VhdlParser', () => {
   it('parses an entity with ports', async () => {
@@ -356,6 +360,78 @@ describe('VhdlParser', () => {
     const hiBus = ports.find((p) => p.name === 'hi_bus');
     expect(hiBus).toBeDefined();
     expect(hiBus!.width).toBe('max(A, B)');
+  });
+
+  it('derives width from a zero-based inclusive range whose upper bound has no "- 1" (issue #187)', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'formula_width.vhd');
+    const vhdl = `
+      library ieee;
+      use ieee.std_logic_1164.all;
+      use ieee.math_real.all;
+
+      entity formula_width is
+        generic (
+          DATA_WIDTH : integer := 64
+        );
+        port (
+          data   : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
+          q      : out std_logic_vector(
+            DATA_WIDTH + integer(ceil(log2(real(DATA_WIDTH + 1)))) downto 0
+          );
+          parity : out std_logic_vector(
+            integer(ceil(log2(real(DATA_WIDTH + 1)))) downto 0
+          )
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    const data = ports.find((p) => p.name === 'data');
+    expect(data).toBeDefined();
+    expect(data!.width).toBe('DATA_WIDTH');
+
+    const q = ports.find((p) => p.name === 'q');
+    expect(q).toBeDefined();
+    expect(q!.width).toBe('DATA_WIDTH+clog2(DATA_WIDTH+1)+1');
+
+    const parity = ports.find((p) => p.name === 'parity');
+    expect(parity).toBeDefined();
+    expect(parity!.width).toBe('clog2(DATA_WIDTH+1)+1');
+
+    const params = new Map([['DATA_WIDTH', 64]]);
+    const qAst = parseWidthExpr(q!.width as string);
+    const parityAst = parseWidthExpr(parity!.width as string);
+    expect(qAst && evaluateWidthExpr(qAst, params)).toBe(72);
+    expect(parityAst && evaluateWidthExpr(parityAst, params)).toBe(8);
+  });
+
+  it('derives width from a bare zero-based inclusive range (no function, no "- 1")', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'bare_upper_bound.vhd');
+    const vhdl = `
+      entity bare_upper_bound is
+        generic (
+          WIDTH : positive := 8
+        );
+        port (
+          msb_indexed : out std_logic_vector(WIDTH downto 0)
+        );
+      end entity;
+    `;
+
+    await fs.writeFile(filePath, vhdl, 'utf8');
+    const result = await parseVhdlFile(filePath);
+    const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+    const ports = (parsed.ports as Array<Record<string, unknown>>) ?? [];
+
+    const msbIndexed = ports.find((p) => p.name === 'msb_indexed');
+    expect(msbIndexed).toBeDefined();
+    expect(msbIndexed!.width).toBe('WIDTH+1');
   });
 
   it('strips IO_ prefix only once for logical port names', async () => {
