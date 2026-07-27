@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.9.8] - 2026-07-28
+
+### Changed
+
+- **Project documentation** now presents IPCraft's workflow and benefits more clearly, separates exploratory design concepts from implementation references, and describes the current LED Avalon-MM example without retaining development-history reports.
+- **Extension and CLI release versions** are synchronized at `0.9.8`.
+
+### Fixed
+
+- **Compound extensions in create dialogs** are preserved when users enter names such as `example.ip.yml`, `registers.mm.yml`, or Data Inspector recipe filenames, preventing duplicated or truncated suffixes. ([#190](https://github.com/bleviet/ipcraft-vscode/issues/190))
+- **IP Core canvas zoom indicator** remains visible throughout consecutive wheel events and hides after zooming stops instead of resetting its fade state during an active gesture. ([#186](https://github.com/bleviet/ipcraft-vscode/pull/186))
+- **Imported VHDL zero-based widths** now retain their parameter expression when a range uses forms such as `WIDTH downto 0` without a trailing `- 1`. ([#188](https://github.com/bleviet/ipcraft-vscode/issues/188))
+
 ## [0.9.7] - 2026-07-27
 
 ### Added
