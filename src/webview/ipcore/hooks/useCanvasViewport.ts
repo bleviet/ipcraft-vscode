@@ -57,11 +57,27 @@ export function useCanvasViewport(containerRef: RefObject<HTMLDivElement | null>
     if (!container) {
       return;
     }
+    // const handleWheel = (e: WheelEvent) => {
+    //   e.preventDefault();
+    //   if (e.ctrlKey) {
+    //     setZoom((prev) => nextZoomForWheel(prev, e.deltaY));
+    //     triggerZoomIndicator();
+    //   } else {
+    //     const next = panAfterWheel(currentPanRef.current, e.deltaX, e.deltaY);
+    //     currentPanRef.current = next;
+    //     setPan(next);
+    //   }
+    // };
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (e.ctrlKey) {
         setZoom((prev) => nextZoomForWheel(prev, e.deltaY));
-        triggerZoomIndicator();
+        setShowZoomIndicator(true);
+        if (zoomTimerRef.current) {
+          clearTimeout(zoomTimerRef.current);
+        }
+        // stays visible while you keep scrolling; hides shortly after you stop
+        zoomTimerRef.current = setTimeout(() => setShowZoomIndicator(false), 1200);
       } else {
         const next = panAfterWheel(currentPanRef.current, e.deltaX, e.deltaY);
         currentPanRef.current = next;
