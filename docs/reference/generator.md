@@ -151,14 +151,20 @@ Common template values:
 | `interrupt_ports` | Interrupt signals with resolved bus-interface and clock associations |
 | `endian_swap_ports`, `endian_swap_widths` | Ports and fixed widths used by endian reflow logic |
 | `generics` | Core parameters |
+| `xgui_pages` | Parameter `uiPage`/`uiGroup` layout as a page-group-parameter tree, for the Vivado xGUI |
+| `display_items` | The same layout flattened into Platform Designer `add_display_item` records |
 | `clock_port`, `reset_port` | Primary clock and reset names |
 
 The versioned template-data schema is
 `src/generator/contract/template_context.schema.json`. Template variables use
 snake case by design; TypeScript and IPCraft schema properties use camel case.
-The current contract version is 1.2.0. Packs pinned to `~1.1` or an earlier
-minor must update their range after validating the additive interrupt
-association context; built-in packs use the compatible `^1.0` range.
+The current contract version is 1.3.0. Version 1.3.0 adds `display_items`,
+display labels and Tcl-safe renderings for parameter metadata and defaults.
+Platform Designer group entries use stable internal IDs with their authored
+`uiPage`/`uiGroup` text in `display_name`; templates should not treat the ID as
+the visible label. Packs pinned to `~1.2` or an earlier minor must update their
+range after validating the additive parameter layout context; built-in packs
+use the compatible `^1.0` range.
 
 ## Testbench selection
 

@@ -11,7 +11,7 @@ export interface TemplateContext {
   /**
    * Semantic version of the template context contract.
    */
-  contract_version: '1.2.0';
+  contract_version: '1.3.0';
   name: string;
   entity_name: string;
   has_memory_mapped_slave: boolean;
@@ -34,6 +34,10 @@ export interface TemplateContext {
   mixed_registers: MixedRegister[];
   generics: Generic[];
   xgui_pages: XguiPage[];
+  /**
+   * Platform Designer parameter display tree, flattened into add_display_item records (one GROUP per uiPage, one nested GROUP per uiGroup, one PARAMETER per parameter).
+   */
+  display_items: DisplayItem[];
   user_ports: UserPort[];
   interrupt_ports: InterruptPort[];
   bus_type: string;
@@ -157,14 +161,34 @@ export interface MixedRegister {
 }
 export interface Generic {
   name: string;
+  /**
+   * Human-readable label from the parameter's displayName, or a title-cased fallback derived from name.
+   */
+  display_name: string;
+  /**
+   * display_name escaped for embedding in a Tcl double-quoted string (set_parameter_property ... DISPLAY_NAME "...").
+   */
+  display_name_tcl: string;
   type: string;
   sv_type: string;
   default_value: number | number | string | boolean | null;
+  /**
+   * default_value rendered safely for the Quartus _hw.tcl add_parameter and DEFAULT_VALUE commands.
+   */
+  default_value_tcl: number | number | string | boolean | null;
   sv_default: number | number | string | boolean | null;
   description: string;
+  /**
+   * description escaped for embedding in a Tcl double-quoted string (set_parameter_property ... DESCRIPTION "...").
+   */
+  description_tcl: string;
   min: number | null;
   max: number | null;
   allowed_values: (number | string)[] | null;
+  /**
+   * allowed_values pre-rendered as a Tcl list literal for ALLOWED_RANGES (string elements quoted and Tcl-escaped), or null when there are no allowed_values.
+   */
+  allowed_values_tcl: string | null;
   ui_page: string;
   ui_group: string;
 }
@@ -184,6 +208,25 @@ export interface XguiGroup {
     name: string;
     tooltip: string;
   }[];
+}
+export interface DisplayItem {
+  /**
+   * Globally unique internal display-item id; PARAMETER items use their add_parameter name.
+   */
+  id: string;
+  /**
+   * Parent group id, or an empty string for a root-level item.
+   */
+  parent: string;
+  kind: 'GROUP' | 'PARAMETER';
+  /**
+   * Authored uiPage/uiGroup label for GROUP items.
+   */
+  display_name?: string;
+  /**
+   * display_name escaped for set_display_item_property ... DISPLAY_NAME.
+   */
+  display_name_tcl?: string;
 }
 export interface UserPort {
   name: string;

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://ipcraft.dev/schemas/template_context/1.2.0",
+  "$id": "https://ipcraft.dev/schemas/template_context/1.3.0",
   "title": "TemplateContext",
   "description": "Versioned template context passed to all Nunjucks/Jinja2 templates during IP core generation. This is the public API for third-party scaffold packs.",
   "type": "object",
@@ -23,6 +23,7 @@
     "mixed_registers",
     "generics",
     "xgui_pages",
+    "display_items",
     "user_ports",
     "interrupt_ports",
     "bus_type",
@@ -46,7 +47,7 @@
   "properties": {
     "contract_version": {
       "type": "string",
-      "const": "1.2.0",
+      "const": "1.3.0",
       "description": "Semantic version of the template context contract."
     },
     "name": { "type": "string" },
@@ -76,6 +77,11 @@
 
     "generics": { "type": "array", "items": { "$ref": "#/definitions/Generic" } },
     "xgui_pages": { "type": "array", "items": { "$ref": "#/definitions/XguiPage" } },
+    "display_items": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/DisplayItem" },
+      "description": "Platform Designer parameter display tree, flattened into add_display_item records (one GROUP per uiPage, one nested GROUP per uiGroup, one PARAMETER per parameter)."
+    },
 
     "user_ports": { "type": "array", "items": { "$ref": "#/definitions/UserPort" } },
     "interrupt_ports": { "type": "array", "items": { "$ref": "#/definitions/InterruptPort" } },
@@ -323,25 +329,46 @@
       "type": "object",
       "required": [
         "name",
+        "display_name",
+        "display_name_tcl",
         "type",
         "sv_type",
         "default_value",
+        "default_value_tcl",
         "sv_default",
         "description",
+        "description_tcl",
         "min",
         "max",
         "allowed_values",
+        "allowed_values_tcl",
         "ui_page",
         "ui_group"
       ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
+        "display_name": {
+          "type": "string",
+          "description": "Human-readable label from the parameter's displayName, or a title-cased fallback derived from name."
+        },
+        "display_name_tcl": {
+          "type": "string",
+          "description": "display_name escaped for embedding in a Tcl double-quoted string (set_parameter_property ... DISPLAY_NAME \"...\")."
+        },
         "type": { "type": "string" },
         "sv_type": { "type": "string" },
         "default_value": { "type": ["integer", "number", "string", "boolean", "null"] },
+        "default_value_tcl": {
+          "type": ["integer", "number", "string", "boolean", "null"],
+          "description": "default_value rendered safely for the Quartus _hw.tcl add_parameter and DEFAULT_VALUE commands."
+        },
         "sv_default": { "type": ["integer", "number", "string", "boolean", "null"] },
         "description": { "type": "string" },
+        "description_tcl": {
+          "type": "string",
+          "description": "description escaped for embedding in a Tcl double-quoted string (set_parameter_property ... DESCRIPTION \"...\")."
+        },
         "min": { "type": ["number", "null"] },
         "max": { "type": ["number", "null"] },
         "allowed_values": {
@@ -350,8 +377,36 @@
             { "type": "null" }
           ]
         },
+        "allowed_values_tcl": {
+          "type": ["string", "null"],
+          "description": "allowed_values pre-rendered as a Tcl list literal for ALLOWED_RANGES (string elements quoted and Tcl-escaped), or null when there are no allowed_values."
+        },
         "ui_page": { "type": "string" },
         "ui_group": { "type": "string" }
+      }
+    },
+    "DisplayItem": {
+      "type": "object",
+      "required": ["id", "parent", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Globally unique internal display-item id; PARAMETER items use their add_parameter name."
+        },
+        "parent": {
+          "type": "string",
+          "description": "Parent group id, or an empty string for a root-level item."
+        },
+        "kind": { "type": "string", "enum": ["GROUP", "PARAMETER"] },
+        "display_name": {
+          "type": "string",
+          "description": "Authored uiPage/uiGroup label for GROUP items."
+        },
+        "display_name_tcl": {
+          "type": "string",
+          "description": "display_name escaped for set_display_item_property ... DISPLAY_NAME."
+        }
       }
     },
     "XguiGroup": {

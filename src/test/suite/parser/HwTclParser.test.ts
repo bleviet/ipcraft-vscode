@@ -508,6 +508,148 @@ describe('HwTclParser', () => {
         'string',
       ]);
     });
+
+    it('recovers uiPage and uiGroup from nested display items', () => {
+      const tcl = `
+        add_parameter DATA_WIDTH INTEGER 32
+        add_parameter MODE STRING "fast"
+        add_display_item "" "Configuration" GROUP
+        add_display_item "Configuration" "MODE" PARAMETER
+        add_display_item "Configuration" "Widths" GROUP
+        add_display_item "Widths" "DATA_WIDTH" PARAMETER
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0]).toMatchObject({ uiPage: 'Configuration', uiGroup: 'Widths' });
+      expect(doc.parameters[1]).toMatchObject({ uiPage: 'Configuration' });
+      expect(doc.parameters[1].uiGroup).toBeUndefined();
+    });
+
+    it('recovers authored labels from synthetic display-item ids', () => {
+      const tcl = `
+        add_parameter A INTEGER 1
+        add_parameter B INTEGER 2
+        add_display_item "" "ipcraft_page_0" GROUP tab
+        set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Config"
+        add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""
+        set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Advanced"
+        add_display_item "ipcraft_group_0_0" "A" PARAMETER
+        add_display_item "" "ipcraft_page_1" GROUP tab
+        set_display_item_property "ipcraft_page_1" DISPLAY_NAME "Timing"
+        add_display_item "ipcraft_page_1" "ipcraft_group_1_0" GROUP ""
+        set_display_item_property "ipcraft_group_1_0" DISPLAY_NAME "Advanced"
+        add_display_item "ipcraft_group_1_0" "B" PARAMETER
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0]).toMatchObject({ uiPage: 'Config', uiGroup: 'Advanced' });
+      expect(doc.parameters[1]).toMatchObject({ uiPage: 'Timing', uiGroup: 'Advanced' });
+    });
+
+    it('leaves a root-level display item unplaced', () => {
+      const tcl = `
+        add_parameter DATA_WIDTH INTEGER 32
+        add_display_item "" "DATA_WIDTH" PARAMETER
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0].uiPage).toBeUndefined();
+      expect(doc.parameters[0].uiGroup).toBeUndefined();
+    });
+
+    it('splits the legacy slash-joined GROUP property when there are no display items', () => {
+      const tcl = `
+        add_parameter DATA_WIDTH INTEGER 32
+        add_parameter MODE STRING "fast"
+        set_parameter_property DATA_WIDTH GROUP "Configuration/Widths"
+        set_parameter_property MODE GROUP "Advanced"
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0]).toMatchObject({ uiPage: 'Configuration', uiGroup: 'Widths' });
+      expect(doc.parameters[1]).toMatchObject({ uiPage: 'Advanced' });
+    });
+
+    it('parses ALLOWED_RANGES as min/max or discrete choices', () => {
+      const tcl = `
+        add_parameter ADDR_WIDTH INTEGER 32
+        add_parameter DATA_WIDTH INTEGER 32
+        add_parameter VENDOR STRING "ALTERA"
+        set_parameter_property ADDR_WIDTH ALLOWED_RANGES 16:64
+        set_parameter_property DATA_WIDTH ALLOWED_RANGES { 8 16 32 }
+        set_parameter_property VENDOR ALLOWED_RANGES { "ALTERA" "XILINX" }
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0]).toMatchObject({ min: 16, max: 64 });
+      expect(doc.parameters[1]).toMatchObject({ allowedValues: [8, 16, 32] });
+      expect(doc.parameters[2]).toMatchObject({ allowedValues: ['ALTERA', 'XILINX'] });
+    });
+
+    it('keeps a quoted ALLOWED_RANGES choice containing spaces as one value', () => {
+      const tcl = `
+        add_parameter MODE STRING "Fast Mode"
+        set_parameter_property MODE ALLOWED_RANGES { "Fast Mode" "Low Power" }
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0]).toMatchObject({ allowedValues: ['Fast Mode', 'Low Power'] });
+    });
+
+    it('unescapes quotes and braces in string ALLOWED_RANGES choices', () => {
+      const tcl = `
+        add_parameter MODE STRING "Fast Mode"
+        set_parameter_property MODE ALLOWED_RANGES { "He said \\"yes\\"" "A\\}B" }
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0]).toMatchObject({ allowedValues: ['He said "yes"', 'A}B'] });
+    });
+
+    it('keeps numeric-looking ALLOWED_RANGES choices as strings for a STRING parameter', () => {
+      const tcl = `
+        add_parameter CODE STRING "01"
+        set_parameter_property CODE ALLOWED_RANGES { "01" "1" }
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0].dataType).toBe('string');
+      expect(doc.parameters[0].value).toBe('01');
+      expect(doc.parameters[0].allowedValues).toEqual(['01', '1']);
+    });
+
+    it('still coerces numeric-looking ALLOWED_RANGES choices for a non-STRING parameter', () => {
+      const tcl = `
+        add_parameter DATA_WIDTH INTEGER 32
+        set_parameter_property DATA_WIDTH ALLOWED_RANGES { 8 16 32 }
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0].allowedValues).toEqual([8, 16, 32]);
+    });
+
+    it('keeps an authored DISPLAY_NAME but drops a generated title-cased one', () => {
+      const tcl = `
+        add_parameter DATA_WIDTH INTEGER 32
+        add_parameter ADDR_WIDTH INTEGER 8
+        set_parameter_property DATA_WIDTH DISPLAY_NAME "Data Bus Width"
+        set_parameter_property ADDR_WIDTH DISPLAY_NAME "Addr Width"
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        parameters: Array<Record<string, unknown>>;
+      };
+      expect(doc.parameters[0].displayName).toBe('Data Bus Width');
+      expect(doc.parameters[1].displayName).toBeUndefined();
+    });
   });
 
   describe('full pio_core_axil example', () => {

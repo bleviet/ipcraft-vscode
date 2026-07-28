@@ -35707,7 +35707,6 @@ set_parameter_property PARAM_CHOICES TYPE INTEGER
 set_parameter_property PARAM_CHOICES UNITS None
 set_parameter_property PARAM_CHOICES ALLOWED_RANGES { 8 16 32 }
 set_parameter_property PARAM_CHOICES DESCRIPTION "Width of the primary data port"
-set_parameter_property PARAM_CHOICES GROUP "Configuration/Integer Parameters"
 set_parameter_property PARAM_CHOICES HDL_PARAMETER true
 set_parameter_property PARAM_CHOICES AFFECTS_GENERATION false
 set_parameter_property PARAM_CHOICES AFFECTS_ELABORATION true
@@ -35718,7 +35717,6 @@ set_parameter_property PARAM_RANGE DISPLAY_NAME "Param Range"
 set_parameter_property PARAM_RANGE TYPE INTEGER
 set_parameter_property PARAM_RANGE UNITS None
 set_parameter_property PARAM_RANGE ALLOWED_RANGES 0:255
-set_parameter_property PARAM_RANGE GROUP "Configuration/Integer Parameters"
 set_parameter_property PARAM_RANGE HDL_PARAMETER true
 set_parameter_property PARAM_RANGE AFFECTS_GENERATION false
 set_parameter_property PARAM_RANGE AFFECTS_ELABORATION true
@@ -35728,7 +35726,6 @@ set_parameter_property PARAM_INTEGER DEFAULT_VALUE 0
 set_parameter_property PARAM_INTEGER DISPLAY_NAME "Param Integer"
 set_parameter_property PARAM_INTEGER TYPE INTEGER
 set_parameter_property PARAM_INTEGER UNITS None
-set_parameter_property PARAM_INTEGER GROUP "Configuration"
 set_parameter_property PARAM_INTEGER HDL_PARAMETER true
 set_parameter_property PARAM_INTEGER AFFECTS_GENERATION false
 set_parameter_property PARAM_INTEGER AFFECTS_ELABORATION true
@@ -35738,7 +35735,6 @@ set_parameter_property ENABLE DEFAULT_VALUE false
 set_parameter_property ENABLE DISPLAY_NAME "Enable"
 set_parameter_property ENABLE TYPE BOOLEAN
 set_parameter_property ENABLE UNITS None
-set_parameter_property ENABLE GROUP "Advanced"
 set_parameter_property ENABLE HDL_PARAMETER true
 set_parameter_property ENABLE AFFECTS_GENERATION false
 set_parameter_property ENABLE AFFECTS_ELABORATION true
@@ -35748,8 +35744,7 @@ set_parameter_property STR_CHOICES DEFAULT_VALUE "XILINX"
 set_parameter_property STR_CHOICES DISPLAY_NAME "Str Choices"
 set_parameter_property STR_CHOICES TYPE STRING
 set_parameter_property STR_CHOICES UNITS None
-set_parameter_property STR_CHOICES ALLOWED_RANGES { ALTERA XILINX }
-set_parameter_property STR_CHOICES GROUP "Advanced/String Parameters"
+set_parameter_property STR_CHOICES ALLOWED_RANGES { "ALTERA" "XILINX" }
 set_parameter_property STR_CHOICES HDL_PARAMETER true
 set_parameter_property STR_CHOICES AFFECTS_GENERATION false
 set_parameter_property STR_CHOICES AFFECTS_ELABORATION true
@@ -35759,10 +35754,31 @@ set_parameter_property STR DEFAULT_VALUE "BASIC"
 set_parameter_property STR DISPLAY_NAME "Str"
 set_parameter_property STR TYPE STRING
 set_parameter_property STR UNITS None
-set_parameter_property STR GROUP "Advanced/String Parameters"
 set_parameter_property STR HDL_PARAMETER true
 set_parameter_property STR AFFECTS_GENERATION false
 set_parameter_property STR AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "ipcraft_page_0" GROUP tab
+set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Configuration"
+
+add_display_item "ipcraft_page_0" "PARAM_INTEGER" PARAMETER
+add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""
+set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Integer Parameters"
+
+add_display_item "ipcraft_group_0_0" "PARAM_CHOICES" PARAMETER
+add_display_item "ipcraft_group_0_0" "PARAM_RANGE" PARAMETER
+add_display_item "" "ipcraft_page_1" GROUP tab
+set_display_item_property "ipcraft_page_1" DISPLAY_NAME "Advanced"
+
+add_display_item "ipcraft_page_1" "ENABLE" PARAMETER
+add_display_item "ipcraft_page_1" "ipcraft_group_1_0" GROUP ""
+set_display_item_property "ipcraft_group_1_0" DISPLAY_NAME "String Parameters"
+
+add_display_item "ipcraft_group_1_0" "STR_CHOICES" PARAMETER
+add_display_item "ipcraft_group_1_0" "STR" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -35926,7 +35942,6 @@ set_parameter_property PARAM_CHOICES TYPE INTEGER
 set_parameter_property PARAM_CHOICES UNITS None
 set_parameter_property PARAM_CHOICES ALLOWED_RANGES { 8 16 32 }
 set_parameter_property PARAM_CHOICES DESCRIPTION "Width of the primary data port"
-set_parameter_property PARAM_CHOICES GROUP "Configuration/Integer Parameters"
 set_parameter_property PARAM_CHOICES HDL_PARAMETER true
 set_parameter_property PARAM_CHOICES AFFECTS_GENERATION false
 set_parameter_property PARAM_CHOICES AFFECTS_ELABORATION true
@@ -35937,7 +35952,6 @@ set_parameter_property PARAM_RANGE DISPLAY_NAME "Param Range"
 set_parameter_property PARAM_RANGE TYPE INTEGER
 set_parameter_property PARAM_RANGE UNITS None
 set_parameter_property PARAM_RANGE ALLOWED_RANGES 0:255
-set_parameter_property PARAM_RANGE GROUP "Configuration/Integer Parameters"
 set_parameter_property PARAM_RANGE HDL_PARAMETER true
 set_parameter_property PARAM_RANGE AFFECTS_GENERATION false
 set_parameter_property PARAM_RANGE AFFECTS_ELABORATION true
@@ -35947,7 +35961,6 @@ set_parameter_property PARAM_INTEGER DEFAULT_VALUE 0
 set_parameter_property PARAM_INTEGER DISPLAY_NAME "Param Integer"
 set_parameter_property PARAM_INTEGER TYPE INTEGER
 set_parameter_property PARAM_INTEGER UNITS None
-set_parameter_property PARAM_INTEGER GROUP "Configuration"
 set_parameter_property PARAM_INTEGER HDL_PARAMETER true
 set_parameter_property PARAM_INTEGER AFFECTS_GENERATION false
 set_parameter_property PARAM_INTEGER AFFECTS_ELABORATION true
@@ -35957,7 +35970,6 @@ set_parameter_property ENABLE DEFAULT_VALUE false
 set_parameter_property ENABLE DISPLAY_NAME "Enable"
 set_parameter_property ENABLE TYPE BOOLEAN
 set_parameter_property ENABLE UNITS None
-set_parameter_property ENABLE GROUP "Advanced"
 set_parameter_property ENABLE HDL_PARAMETER true
 set_parameter_property ENABLE AFFECTS_GENERATION false
 set_parameter_property ENABLE AFFECTS_ELABORATION true
@@ -35967,8 +35979,7 @@ set_parameter_property STR_CHOICES DEFAULT_VALUE "XILINX"
 set_parameter_property STR_CHOICES DISPLAY_NAME "Str Choices"
 set_parameter_property STR_CHOICES TYPE STRING
 set_parameter_property STR_CHOICES UNITS None
-set_parameter_property STR_CHOICES ALLOWED_RANGES { ALTERA XILINX }
-set_parameter_property STR_CHOICES GROUP "Advanced/String Parameters"
+set_parameter_property STR_CHOICES ALLOWED_RANGES { "ALTERA" "XILINX" }
 set_parameter_property STR_CHOICES HDL_PARAMETER true
 set_parameter_property STR_CHOICES AFFECTS_GENERATION false
 set_parameter_property STR_CHOICES AFFECTS_ELABORATION true
@@ -35978,10 +35989,31 @@ set_parameter_property STR DEFAULT_VALUE "BASIC"
 set_parameter_property STR DISPLAY_NAME "Str"
 set_parameter_property STR TYPE STRING
 set_parameter_property STR UNITS None
-set_parameter_property STR GROUP "Advanced/String Parameters"
 set_parameter_property STR HDL_PARAMETER true
 set_parameter_property STR AFFECTS_GENERATION false
 set_parameter_property STR AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "ipcraft_page_0" GROUP tab
+set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Configuration"
+
+add_display_item "ipcraft_page_0" "PARAM_INTEGER" PARAMETER
+add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""
+set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Integer Parameters"
+
+add_display_item "ipcraft_group_0_0" "PARAM_CHOICES" PARAMETER
+add_display_item "ipcraft_group_0_0" "PARAM_RANGE" PARAMETER
+add_display_item "" "ipcraft_page_1" GROUP tab
+set_display_item_property "ipcraft_page_1" DISPLAY_NAME "Advanced"
+
+add_display_item "ipcraft_page_1" "ENABLE" PARAMETER
+add_display_item "ipcraft_page_1" "ipcraft_group_1_0" GROUP ""
+set_display_item_property "ipcraft_group_1_0" DISPLAY_NAME "String Parameters"
+
+add_display_item "ipcraft_group_1_0" "STR_CHOICES" PARAMETER
+add_display_item "ipcraft_group_1_0" "STR" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -36148,6 +36180,11 @@ set_parameter_property ST_DATA_W DESCRIPTION "Streaming data width in bits"
 set_parameter_property ST_DATA_W HDL_PARAMETER true
 set_parameter_property ST_DATA_W AFFECTS_GENERATION false
 set_parameter_property ST_DATA_W AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "ST_DATA_W" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -36353,6 +36390,11 @@ set_parameter_property ST_DATA_W DESCRIPTION "Streaming data width in bits"
 set_parameter_property ST_DATA_W HDL_PARAMETER true
 set_parameter_property ST_DATA_W AFFECTS_GENERATION false
 set_parameter_property ST_DATA_W AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "ST_DATA_W" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -36598,6 +36640,15 @@ set_parameter_property DEVICE_TAG DESCRIPTION "Build tag embedded in the ID regi
 set_parameter_property DEVICE_TAG HDL_PARAMETER true
 set_parameter_property DEVICE_TAG AFFECTS_GENERATION false
 set_parameter_property DEVICE_TAG AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "DATA_W" PARAMETER
+add_display_item "" "FIFO_DEPTH" PARAMETER
+add_display_item "" "NUM_CH" PARAMETER
+add_display_item "" "ENABLE_DBG" PARAMETER
+add_display_item "" "DEVICE_TAG" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -37001,6 +37052,15 @@ set_parameter_property DEVICE_TAG DESCRIPTION "Build tag embedded in the ID regi
 set_parameter_property DEVICE_TAG HDL_PARAMETER true
 set_parameter_property DEVICE_TAG AFFECTS_GENERATION false
 set_parameter_property DEVICE_TAG AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "DATA_W" PARAMETER
+add_display_item "" "FIFO_DEPTH" PARAMETER
+add_display_item "" "NUM_CH" PARAMETER
+add_display_item "" "ENABLE_DBG" PARAMETER
+add_display_item "" "DEVICE_TAG" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -37788,6 +37848,11 @@ set_parameter_property NUM_CHANNELS AFFECTS_GENERATION false
 set_parameter_property NUM_CHANNELS AFFECTS_ELABORATION true
 
 # -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "NUM_CHANNELS" PARAMETER
+
+# -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
 add_interface i_clk_sys clock end
@@ -38061,6 +38126,11 @@ set_parameter_property NUM_CHANNELS UNITS None
 set_parameter_property NUM_CHANNELS HDL_PARAMETER true
 set_parameter_property NUM_CHANNELS AFFECTS_GENERATION false
 set_parameter_property NUM_CHANNELS AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "NUM_CHANNELS" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -38366,6 +38436,14 @@ set_parameter_property ENABLE_DMA DESCRIPTION "Enable DMA functionality"
 set_parameter_property ENABLE_DMA HDL_PARAMETER true
 set_parameter_property ENABLE_DMA AFFECTS_GENERATION false
 set_parameter_property ENABLE_DMA AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "DATA_WIDTH" PARAMETER
+add_display_item "" "ADDR_WIDTH" PARAMETER
+add_display_item "" "FIFO_DEPTH" PARAMETER
+add_display_item "" "ENABLE_DMA" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -38788,6 +38866,14 @@ set_parameter_property ENABLE_DMA AFFECTS_GENERATION false
 set_parameter_property ENABLE_DMA AFFECTS_ELABORATION true
 
 # -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "DATA_WIDTH" PARAMETER
+add_display_item "" "ADDR_WIDTH" PARAMETER
+add_display_item "" "FIFO_DEPTH" PARAMETER
+add_display_item "" "ENABLE_DMA" PARAMETER
+
+# -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
 add_interface CLK_SYS clock end
@@ -39189,6 +39275,12 @@ set_parameter_property XCVR_KW AFFECTS_GENERATION false
 set_parameter_property XCVR_KW AFFECTS_ELABORATION true
 
 # -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "XCVR_DW" PARAMETER
+add_display_item "" "XCVR_KW" PARAMETER
+
+# -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
 add_interface clk clock end
@@ -39338,6 +39430,12 @@ set_parameter_property XCVR_KW DESCRIPTION "Transceiver control (K) bus width in
 set_parameter_property XCVR_KW HDL_PARAMETER true
 set_parameter_property XCVR_KW AFFECTS_GENERATION false
 set_parameter_property XCVR_KW AFFECTS_ELABORATION true
+
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+add_display_item "" "XCVR_DW" PARAMETER
+add_display_item "" "XCVR_KW" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface

@@ -1,6 +1,10 @@
 /* eslint-disable */
 import * as path from 'path';
 import { TemplateLoader } from '../../../generator/TemplateLoader';
+import { normalizeIpCoreData } from '../../../generator/registerProcessor';
+import { buildDisplayItems } from '../../../generator/resolvers/displayItems';
+import { buildGenerics } from '../../../generator/resolvers/generics';
+import { buildParameterLayout } from '../../../generator/resolvers/parameterLayout';
 import { Logger } from '../../../utils/Logger';
 
 // Mock Logger to avoid VS Code dependencies
@@ -97,6 +101,163 @@ describe('TemplateLoader', () => {
 
     expect(result).toContain('set_interface_property irq associatedAddressablePoint ""');
     expect(result).toContain('set_interface_property irq associatedClock clk');
+  });
+
+  describe('altera_hw_tcl parameter GUI', () => {
+    function renderParameters(ipCore: Record<string, unknown>): string {
+      const generics = buildGenerics(normalizeIpCoreData(ipCore));
+      return loader.render('altera_hw_tcl.j2', {
+        entity_name: 'params_core',
+        is_systemverilog: false,
+        has_memory_mapped_slave: false,
+        generics,
+        display_items: buildDisplayItems(buildParameterLayout(generics)),
+        clock_port: 'clk',
+        reset_port: 'rst',
+        reset_associated_clock: 'clk',
+        reset_active_high: true,
+        secondary_clocks: [],
+        secondary_resets: [],
+        expanded_bus_interfaces: [],
+        user_ports: [],
+        interrupt_ports: [],
+        elaborate_port_widths: [],
+        rtl_files: [],
+      });
+    }
+
+    it('emits a nested add_display_item tree for uiPage/uiGroup', () => {
+      const result = renderParameters({
+        parameters: [
+          {
+            name: 'DATA_WIDTH',
+            value: 32,
+            dataType: 'integer',
+            uiPage: 'Config',
+            uiGroup: 'Widths',
+          },
+          { name: 'MODE', value: 'fast', dataType: 'string', uiPage: 'Config' },
+        ],
+      });
+
+      // Page-level (root) groups render as a Platform Designer tab; nested
+      // groups render as a plain collapsible group — verified against a real,
+      // tool-generated Intel component (add_display_item "" "X" "group" "tab"
+      // for a root group vs add_display_item "X" "Y" "group" "" for a nested
+      // one).
+      expect(result).toContain('add_display_item "" "ipcraft_page_0" GROUP tab');
+      expect(result).toContain('set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Config"');
+      expect(result).toContain('add_display_item "ipcraft_page_0" "MODE" PARAMETER');
+      expect(result).toContain('add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""');
+      expect(result).toContain(
+        'set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Widths"'
+      );
+      expect(result).toContain('add_display_item "ipcraft_group_0_0" "DATA_WIDTH" PARAMETER');
+
+      // A group must be declared before anything is parented to it.
+      expect(result.indexOf('"ipcraft_page_0" GROUP')).toBeLessThan(
+        result.indexOf('"ipcraft_group_0_0" GROUP')
+      );
+      expect(result.indexOf('"ipcraft_group_0_0" GROUP')).toBeLessThan(
+        result.indexOf('"ipcraft_group_0_0" "DATA_WIDTH" PARAMETER')
+      );
+
+      // The deprecated flat GROUP property cannot express nesting and is not used.
+      expect(result).not.toMatch(/set_parameter_property \w+ GROUP/);
+    });
+
+    it('places parameters with no uiPage at the root instead of a synthetic page group', () => {
+      const result = renderParameters({
+        parameters: [{ name: 'DATA_WIDTH', value: 32, dataType: 'integer' }],
+      });
+
+      expect(result).toContain('add_display_item "" "DATA_WIDTH" PARAMETER');
+      expect(result).not.toContain('Page 0');
+    });
+
+    it('keeps an explicit uiPage: "Page 0" as its own tab, separate from unplaced parameters', () => {
+      const result = renderParameters({
+        parameters: [
+          { name: 'A', value: 1, dataType: 'integer', uiPage: 'Page 0' },
+          { name: 'B', value: 2, dataType: 'integer' },
+        ],
+      });
+
+      expect(result).toContain('add_display_item "" "ipcraft_page_0" GROUP tab');
+      expect(result).toContain('set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Page 0"');
+      expect(result).toContain('add_display_item "ipcraft_page_0" "A" PARAMETER');
+      // B has no uiPage at all, so it sits at the root rather than under the
+      // "Page 0" tab that A explicitly asked for.
+      expect(result).toContain('add_display_item "" "B" PARAMETER');
+    });
+
+    it('escapes Tcl-special characters in uiPage/uiGroup names and parameter free text', () => {
+      const result = renderParameters({
+        parameters: [
+          {
+            name: 'MODE',
+            value: '[exec pwd] and $HOME and "quoted"',
+            dataType: 'string',
+            description: 'Uses $HOME and [exec pwd] and a "quote" and \\backslash',
+            displayName: 'Mode "select"',
+            allowedValues: ['01', 'He said "yes"', 'A}B'],
+            uiPage: 'Config "Page"',
+            uiGroup: 'Group$x',
+          },
+        ],
+      });
+
+      expect(result).toContain(
+        'set_parameter_property MODE DESCRIPTION "Uses \\$HOME and \\[exec pwd] and a \\"quote\\" and \\\\backslash"'
+      );
+      expect(result).toContain('set_parameter_property MODE DISPLAY_NAME "Mode \\"select\\""');
+      expect(result).toContain(
+        'set_parameter_property MODE DEFAULT_VALUE "\\[exec pwd] and \\$HOME and \\"quoted\\""'
+      );
+      expect(result).toContain(
+        'set_parameter_property MODE ALLOWED_RANGES { "01" "He said \\"yes\\"" "A\\}B" }'
+      );
+      expect(result).toContain('add_display_item "" "ipcraft_page_0" GROUP tab');
+      expect(result).toContain(
+        'set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Config \\"Page\\""'
+      );
+      expect(result).toContain('add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""');
+      expect(result).toContain(
+        'set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Group\\$x"'
+      );
+      expect(result).toContain('add_display_item "ipcraft_group_0_0" "MODE" PARAMETER');
+    });
+
+    it('quotes string choices in ALLOWED_RANGES but leaves numeric ones bare', () => {
+      const result = renderParameters({
+        parameters: [
+          {
+            name: 'VENDOR',
+            value: 'ALTERA',
+            dataType: 'string',
+            allowedValues: ['ALTERA', 'XILINX'],
+          },
+          { name: 'DATA_WIDTH', value: 32, dataType: 'integer', allowedValues: [8, 16, 32] },
+        ],
+      });
+
+      expect(result).toContain(
+        'set_parameter_property VENDOR ALLOWED_RANGES { "ALTERA" "XILINX" }'
+      );
+      expect(result).toContain('set_parameter_property DATA_WIDTH ALLOWED_RANGES { 8 16 32 }');
+    });
+
+    it('uses displayName for DISPLAY_NAME and title-cases the name when absent', () => {
+      const result = renderParameters({
+        parameters: [
+          { name: 'DATA_WIDTH', value: 32, dataType: 'integer', displayName: 'Data Bus Width' },
+          { name: 'ADDR_WIDTH', value: 8, dataType: 'integer' },
+        ],
+      });
+
+      expect(result).toContain('set_parameter_property DATA_WIDTH DISPLAY_NAME "Data Bus Width"');
+      expect(result).toContain('set_parameter_property ADDR_WIDTH DISPLAY_NAME "Addr Width"');
+    });
   });
 
   describe('hasTemplate', () => {

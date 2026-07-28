@@ -25,6 +25,8 @@ namespace eval ::pd {
     variable errors {}
     variable warnings {}
     variable params [dict create]
+    variable display_ids {}
+    variable display_groups {}
 
     proc reset {} {
         set ::pd::interfaces {}
@@ -34,6 +36,8 @@ namespace eval ::pd {
         set ::pd::errors {}
         set ::pd::warnings {}
         set ::pd::params [dict create]
+        set ::pd::display_ids {}
+        set ::pd::display_groups {}
     }
 
     proc err {msg} {
@@ -120,6 +124,37 @@ proc add_parameter {name type {value ""} args} {
     dict set ::pd::params $name $value
 }
 
+# Platform Designer resolves a display item's parent by id at the time of the
+# call, so a group must be declared before anything is parented to it, and a
+# PARAMETER item must name a parameter that add_parameter already created.
+# Ids share one global namespace, so duplicates are an error too.
+proc add_display_item {parent id type args} {
+    set kind [string toupper $type]
+    if {$parent ne "" && $parent ni $::pd::display_groups} {
+        ::pd::err "add_display_item '$id': unknown parent group '$parent'"
+    }
+    if {$id in $::pd::display_ids} {
+        ::pd::err "add_display_item '$id': duplicate display-item id"
+    }
+    lappend ::pd::display_ids $id
+    switch -- $kind {
+        GROUP {
+            lappend ::pd::display_groups $id
+        }
+        PARAMETER {
+            if {![dict exists $::pd::params $id]} {
+                ::pd::err "add_display_item '$id': no such parameter"
+            }
+        }
+    }
+}
+
+proc set_display_item_property {id property value} {
+    if {$id ni $::pd::display_ids} {
+        ::pd::err "set_display_item_property '$id': no such display item"
+    }
+}
+
 proc get_parameter_value {name} {
     if {[info exists ::pd::params] && [dict exists $::pd::params $name]} {
         return [dict get $::pd::params $name]
@@ -137,8 +172,6 @@ foreach _cmd {
     add_fileset_file
     set_fileset_assignment
     set_parameter_property
-    add_display_item
-    set_display_item_property
     send_message
 } {
     proc $_cmd {args} {}

@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
 import { resolveVendor } from '../utils/resolveVendor';
+import { titleCaseIdentifier } from '../utils/titleCase';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { normalizeParameterDataType } from './paramDataType';
 
@@ -47,6 +48,22 @@ interface TclParameter {
   type: string;
   defaultValue?: string;
   description?: string;
+  displayName?: string;
+  /** Verbatim ALLOWED_RANGES argument: either `min:max` or a brace list of choices. */
+  allowedRanges?: string;
+  /** Legacy `set_parameter_property <p> GROUP <name>` value, if present. */
+  legacyGroup?: string;
+}
+
+/**
+ * Platform Designer parameter GUI layout, collected from `add_display_item`.
+ * `groupParents` maps a GROUP item id to its own parent id (`''` at the root);
+ * `paramParents` maps a PARAMETER item id to the group holding it.
+ */
+interface TclDisplayLayout {
+  groupParents: Map<string, string>;
+  paramParents: Map<string, string>;
+  displayNames: Map<string, string>;
 }
 
 const BUS_TYPE_MAP: Record<string, string> = {
@@ -240,6 +257,11 @@ export function parseHwTclContent(
   const interfaces = new Map<string, TclInterface>();
   const fileSets = new Map<string, TclFileSet>();
   const parameters: TclParameter[] = [];
+  const displayLayout: TclDisplayLayout = {
+    groupParents: new Map(),
+    paramParents: new Map(),
+    displayNames: new Map(),
+  };
   let currentFileSet: TclFileSet | null = null;
 
   for (const rawLine of content.split('\n')) {
@@ -302,8 +324,27 @@ export function parseHwTclContent(
           param.defaultValue = args[2];
         } else if (args[1] === 'DESCRIPTION') {
           param.description = args[2];
+        } else if (args[1] === 'DISPLAY_NAME') {
+          param.displayName = args[2];
+        } else if (args[1] === 'ALLOWED_RANGES') {
+          param.allowedRanges = args[2];
+        } else if (args[1] === 'GROUP') {
+          param.legacyGroup = args[2];
         }
       }
+    } else if (cmd === 'add_display_item' && args.length >= 3) {
+      const [parent, id, kind] = args;
+      if (kind.toUpperCase() === 'GROUP') {
+        displayLayout.groupParents.set(id, parent);
+      } else if (kind.toUpperCase() === 'PARAMETER') {
+        displayLayout.paramParents.set(id, parent);
+      }
+    } else if (
+      cmd === 'set_display_item_property' &&
+      args.length >= 3 &&
+      args[1].toUpperCase() === 'DISPLAY_NAME'
+    ) {
+      displayLayout.displayNames.set(args[0], args[2]);
     }
   }
 
@@ -507,12 +548,18 @@ export function parseHwTclContent(
   // ── Parameters ─────────────────────────────────────────────────────────────
 
   if (parameters.length > 0) {
-    yamlData.parameters = parameters.map((p) => ({
-      name: p.name,
-      value: parseParamValue(p.defaultValue),
-      dataType: normalizeParameterDataType(p.type),
-      description: p.description ?? '',
-    }));
+    yamlData.parameters = parameters.map((p) => {
+      const dataType = normalizeParameterDataType(p.type);
+      return {
+        name: p.name,
+        value: parseParamValue(p.defaultValue, dataType),
+        dataType,
+        description: p.description ?? '',
+        ...resolveParameterDisplayName(p),
+        ...resolveParameterConstraint(p.allowedRanges, dataType),
+        ...resolveParameterPlacement(p, displayLayout),
+      };
+    });
   }
 
   // ── File sets ──────────────────────────────────────────────────────────────
@@ -589,6 +636,14 @@ function parseTclTokens(line: string): string[] {
       let val = '';
       let depth = 1;
       while (i < line.length && depth > 0) {
+        if (line[i] === '\\' && i + 1 < line.length) {
+          // An escaped brace is literal and must not affect the outer braced
+          // word's nesting. Preserve the escape for a later Tcl-list parse.
+          val += line[i];
+          val += line[i + 1];
+          i += 2;
+          continue;
+        }
         if (line[i] === '{') {
           depth++;
         } else if (line[i] === '}') {
@@ -686,10 +741,101 @@ function computePhysicalPrefix(portNames: string[]): string {
   return prefix ? `${prefix}_` : '';
 }
 
-function parseParamValue(value?: string): unknown {
+function parseParamValue(value: string | undefined, dataType: string): unknown {
   if (value === undefined || value === '') {
     return undefined;
   }
+  if (dataType === 'string') {
+    return value;
+  }
   const num = Number(value);
   return Number.isFinite(num) ? num : value;
+}
+
+/**
+ * Keeps DISPLAY_NAME only when it carries information. Generators (IPCraft's
+ * included) emit a title-cased DISPLAY_NAME for every parameter, so importing
+ * it unconditionally would add a redundant `displayName` to every entry.
+ */
+function resolveParameterDisplayName(param: TclParameter): { displayName?: string } {
+  if (!param.displayName) {
+    return {};
+  }
+  if (param.displayName === titleCaseIdentifier(param.name)) {
+    return {};
+  }
+  return { displayName: param.displayName };
+}
+
+/**
+ * ALLOWED_RANGES is either a `min:max` span or a Tcl list of discrete choices
+ * (the tokenizer already unwraps the braces). Choices may be quoted for string
+ * parameters.
+ *
+ * For a STRING-typed parameter, every choice is kept as a string even when it
+ * looks numeric: `add_parameter CODE STRING "01"` with choices `{ "01" "1" }`
+ * must import as `["01", "1"]`, not `[1, 1]` — coercing would both change the
+ * dataType's meaning and lose leading-zero spellings.
+ */
+function resolveParameterConstraint(
+  allowedRanges: string | undefined,
+  dataType: string
+): { min?: number; max?: number } | { allowedValues?: Array<number | string> } {
+  if (!allowedRanges) {
+    return {};
+  }
+  const span = /^\s*(-?\d+)\s*:\s*(-?\d+)\s*$/.exec(allowedRanges);
+  if (span) {
+    return { min: Number(span[1]), max: Number(span[2]) };
+  }
+  const isString = dataType === 'string';
+  // Quoted choices are one token even when they contain spaces.
+  const tokens = parseTclTokens(allowedRanges);
+  const choices = tokens.map((token) => {
+    const unquoted = token.replace(/^"(.*)"$/, '$1');
+    if (isString) {
+      return unquoted;
+    }
+    const num = Number(unquoted);
+    return unquoted !== '' && Number.isFinite(num) ? num : unquoted;
+  });
+  return choices.length > 0 ? { allowedValues: choices } : {};
+}
+
+/**
+ * Recovers `uiPage` / `uiGroup` from the parameter GUI layout: the nested
+ * `add_display_item` tree when present, otherwise the legacy flat GROUP
+ * property (whose value older IPCraft releases joined with a slash).
+ */
+function resolveParameterPlacement(
+  param: TclParameter,
+  layout: TclDisplayLayout
+): { uiPage?: string; uiGroup?: string } {
+  const parent = layout.paramParents.get(param.name);
+  if (parent !== undefined) {
+    if (parent === '') {
+      return {};
+    }
+    const grandparent = layout.groupParents.get(parent);
+    const parentLabel = layout.displayNames.get(parent) ?? parent;
+    if (grandparent) {
+      return {
+        uiPage: layout.displayNames.get(grandparent) ?? grandparent,
+        uiGroup: parentLabel,
+      };
+    }
+    return { uiPage: parentLabel };
+  }
+
+  if (!param.legacyGroup) {
+    return {};
+  }
+  const slash = param.legacyGroup.indexOf('/');
+  if (slash === -1) {
+    return { uiPage: param.legacyGroup };
+  }
+  return {
+    uiPage: param.legacyGroup.slice(0, slash),
+    uiGroup: param.legacyGroup.slice(slash + 1),
+  };
 }

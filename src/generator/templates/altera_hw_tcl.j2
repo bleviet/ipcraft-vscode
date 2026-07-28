@@ -35,25 +35,40 @@ set_module_property ELABORATION_CALLBACK elaborate
 # Parameters
 # -----------------------------------------------------------------------------
 {% for generic in generics %}
-add_parameter {{ generic.name | upper }} {{ generic.type | upper }} {{ generic.default_value }}
-set_parameter_property {{ generic.name | upper }} DEFAULT_VALUE {{ generic.default_value }}
-set_parameter_property {{ generic.name | upper }} DISPLAY_NAME "{{ generic.name | replace('_', ' ') | title }}"
+add_parameter {{ generic.name | upper }} {{ generic.type | upper }} {{ generic.default_value_tcl }}
+set_parameter_property {{ generic.name | upper }} DEFAULT_VALUE {{ generic.default_value_tcl }}
+set_parameter_property {{ generic.name | upper }} DISPLAY_NAME "{{ generic.display_name_tcl }}"
 set_parameter_property {{ generic.name | upper }} TYPE {{ generic.type | upper }}
 set_parameter_property {{ generic.name | upper }} UNITS None
 {% if generic.min is not none and generic.max is not none %}
 set_parameter_property {{ generic.name | upper }} ALLOWED_RANGES {{ generic.min }}:{{ generic.max }}
-{% elif generic.allowed_values %}
-set_parameter_property {{ generic.name | upper }} ALLOWED_RANGES { {{ generic.allowed_values | join(' ') }} }
+{% elif generic.allowed_values_tcl %}
+set_parameter_property {{ generic.name | upper }} ALLOWED_RANGES {{ generic.allowed_values_tcl }}
 {% endif %}
 {% if generic.description %}
-set_parameter_property {{ generic.name | upper }} DESCRIPTION "{{ generic.description }}"
+set_parameter_property {{ generic.name | upper }} DESCRIPTION "{{ generic.description_tcl }}"
 {% endif %}
-{% if generic.ui_page %}set_parameter_property {{ generic.name | upper }} GROUP "{{ (generic.ui_page ~ '/' ~ generic.ui_group) if generic.ui_group else generic.ui_page }}"
-{% endif %}set_parameter_property {{ generic.name | upper }} HDL_PARAMETER true
+set_parameter_property {{ generic.name | upper }} HDL_PARAMETER true
 set_parameter_property {{ generic.name | upper }} AFFECTS_GENERATION false
 set_parameter_property {{ generic.name | upper }} AFFECTS_ELABORATION true
 
 {% endfor %}
+{% if display_items | length > 0 %}
+# -----------------------------------------------------------------------------
+# Parameter Display Layout
+# -----------------------------------------------------------------------------
+{% for item in display_items %}
+{% if item.kind == 'GROUP' -%}
+{% set group_hint = 'tab' if item.parent == '' else '""' %}
+add_display_item "{{ item.parent }}" "{{ item.id }}" GROUP {{ group_hint }}
+set_display_item_property "{{ item.id }}" DISPLAY_NAME "{{ item.display_name_tcl }}"
+
+{% else -%}
+add_display_item "{{ item.parent }}" "{{ item.id }}" PARAMETER
+{% endif %}
+{%- endfor %}
+
+{% endif %}
 # -----------------------------------------------------------------------------
 # Clock Interface
 # -----------------------------------------------------------------------------
