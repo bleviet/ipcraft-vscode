@@ -7,7 +7,13 @@ cores from inside VS Code.
 
 ## See IPCraft in action
 
-<video src="docs/media/ipcraft-demo.mp4" controls muted playsinline width="100%" title="IPCraft demo"></video>
+<table align="center">
+  <tr>
+    <td width="720">
+      <video src="https://github.com/user-attachments/assets/28238d1e-7c99-47d4-b4de-f0ee3c85f470" controls muted playsinline title="IPCraft demo"></video>
+    </td>
+  </tr>
+</table>
 
 If the video player is unavailable, [watch the demo directly](docs/media/ipcraft-demo.mp4).
 
