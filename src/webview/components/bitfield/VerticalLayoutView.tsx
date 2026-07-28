@@ -116,6 +116,29 @@ interface VerticalLayoutViewProps {
 const VERTICAL_BIT_CELL_REM = 1.5;
 const VERTICAL_BIT_VALUE_TEXT_CLASS = 'text-xs';
 
+interface BitIndexLabelsProps {
+  start: number;
+  count: number;
+}
+
+const BitIndexLabels = ({ start, count }: BitIndexLabelsProps) => (
+  <div className="w-8 shrink-0 font-mono text-[10px] vscode-muted select-none">
+    {Array.from({ length: count }).map((_, index) => {
+      const bit = start + index;
+      return (
+        <div
+          key={bit}
+          className="bitfield-bit-index flex items-center"
+          style={{ height: `${VERTICAL_BIT_CELL_REM}rem` }}
+          data-bit-index={bit}
+        >
+          {bit}
+        </div>
+      );
+    })}
+  </div>
+);
+
 const VerticalLayoutView = ({
   fields,
   segments,
@@ -173,10 +196,7 @@ const VerticalLayoutView = ({
                   style={{ height: `calc(${bitCount} * ${VERTICAL_BIT_CELL_REM}rem)` }}
                   className="relative flex"
                 >
-                  <div className="w-8 flex flex-col justify-between text-[10px] vscode-muted font-mono py-1">
-                    <span>{segment.start}</span>
-                    {bitCount > 1 ? <span>{segment.end}</span> : null}
-                  </div>
+                  <BitIndexLabels start={segment.start} count={bitCount} />
                   <div className="flex-1 min-w-0">
                     <div className="w-20 h-full overflow-hidden">
                       {Array.from({ length: bitCount }).map((_, i) => {
@@ -280,10 +300,7 @@ const VerticalLayoutView = ({
                   }
                 }}
               >
-                <div className="w-8 flex flex-col justify-between text-[10px] vscode-muted font-mono py-1">
-                  <span>{group.start}</span>
-                  {bitCount > 1 ? <span>{group.end}</span> : null}
-                </div>
+                <BitIndexLabels start={group.start} count={bitCount} />
                 <div
                   className="relative w-20 h-full overflow-hidden"
                   style={{
