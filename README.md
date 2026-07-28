@@ -5,7 +5,11 @@ vendor integration file. IPCraft turns a compact YAML specification into a
 visual, repeatable workflow for editing, generating, checking, and building IP
 cores from inside VS Code.
 
-Requires VS Code 1.80 or later.
+## See IPCraft in action
+
+<video src="docs/media/ipcraft-demo.mp4" controls muted playsinline width="100%" title="IPCraft demo"></video>
+
+If the video player is unavailable, [watch the demo directly](docs/media/ipcraft-demo.mp4).
 
 ## Why IPCraft?
 
@@ -75,6 +79,8 @@ for the complete behavior.
 ---
 
 ## Quick Start
+
+Requires VS Code 1.80 or later.
 
 1. `IPCraft: New IP Core` (or `New IP Core + Register Map`) from the Command Palette
 2. Design the core on the visual canvas
