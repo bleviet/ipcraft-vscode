@@ -115,6 +115,11 @@ export interface ScaffoldPackGeneration {
 
 export interface GenerateOptions {
   /**
+   * Optional immutable snapshot of the .ip.yml source. When provided, generation parses this
+   * text instead of reading inputPath from disk; inputPath still anchors every relative path.
+   */
+  sourceText?: string;
+  /**
    * Synthesis vendor targets to generate packaging files for.
    * Each string must match a registered toolchain id ('vivado', 'quartus', …).
    * An empty array generates HDL and testbench only.

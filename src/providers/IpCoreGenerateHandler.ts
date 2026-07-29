@@ -96,6 +96,7 @@ export async function handleGenerateRequest({
     includeRegs: message.options?.includeRegfile !== false,
     includeVhdl: message.options?.includeVhdl !== false,
     updateYaml: false,
+    sourceText: document.getText(),
   });
 
   if (!result.success) {
