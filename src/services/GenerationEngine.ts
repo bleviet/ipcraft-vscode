@@ -72,6 +72,8 @@ export async function runGenerator(
   options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
   progressTitle: string
 ): Promise<boolean> {
+  const sourceDocument = await vscode.workspace.openTextDocument(ipCoreUri);
+  const sourceText = sourceDocument.getText();
   const workspaceIndentation = readGenerationIndentation(
     vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE)
   );
@@ -92,6 +94,7 @@ export async function runGenerator(
       dryResult = await generator.generateAll(ipCoreUri.fsPath, outputDir, {
         workspaceIndentation,
         ...options,
+        sourceText,
         dryRun: true,
       });
     }
@@ -257,7 +260,6 @@ async function updateFileSetsInYaml(
       newText
     );
     await vscode.workspace.applyEdit(edit);
-    await document.save();
   } catch (error) {
     logger.error('Failed to update fileSets', error as Error);
   }
@@ -277,7 +279,6 @@ async function updateScaffoldPackInYaml(ipCoreUri: vscode.Uri, packName: string)
       newText
     );
     await vscode.workspace.applyEdit(edit);
-    await document.save();
   } catch (error) {
     logger.error('Failed to update scaffold_pack', error as Error);
   }

@@ -16,9 +16,10 @@ const validator = new YamlValidator();
  */
 export async function loadIpCoreData(
   inputPath: string,
-  resourceRoots: ResourceRoots
+  resourceRoots: ResourceRoots,
+  sourceText?: string
 ): Promise<IpCoreData> {
-  const content = await fs.readFile(inputPath, 'utf8');
+  const content = sourceText ?? (await fs.readFile(inputPath, 'utf8'));
   const parsed = yaml.load(content);
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('Invalid IP core YAML');

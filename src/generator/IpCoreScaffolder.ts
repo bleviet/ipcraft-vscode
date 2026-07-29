@@ -94,7 +94,7 @@ export class IpCoreScaffolder {
   ): Promise<GenerateResult> {
     try {
       await this.ensureBusDefinitions();
-      const ipCoreData = await this.loadIpCore(inputPath);
+      const ipCoreData = await this.loadIpCore(inputPath, options.sourceText);
       const ipCoreDir = path.dirname(inputPath);
 
       // Load per-IP custom bus library (useBusLibrary: ./path) without polluting the global cache
@@ -508,8 +508,8 @@ export class IpCoreScaffolder {
     } as BusDefinitions;
   }
 
-  private async loadIpCore(inputPath: string): Promise<IpCoreData> {
-    return loadIpCoreData(inputPath, this.resourceRoots);
+  private async loadIpCore(inputPath: string, sourceText?: string): Promise<IpCoreData> {
+    return loadIpCoreData(inputPath, this.resourceRoots, sourceText);
   }
 
   /**

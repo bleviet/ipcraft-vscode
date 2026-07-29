@@ -320,6 +320,133 @@ describe('Avalon-ST Platform Designer endianness metadata (issue #145)', () => {
   });
 });
 
+describe('Generation source snapshots (issue #195)', () => {
+  it('uses current editor YAML while resolving imported resources from the original IP directory', async () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-generation-snapshot-'));
+    const yamlPath = path.join(rootDir, 'preview_endian.ip.yml');
+    const busLibraryDir = path.join(rootDir, 'bus_definitions');
+    const userRtlDir = path.join(rootDir, 'user_rtl');
+    fs.mkdirSync(busLibraryDir);
+    fs.mkdirSync(userRtlDir);
+
+    const diskYaml = `
+vlnv:
+  vendor: ipcraft
+  library: example
+  name: preview_endian
+  version: 1.0.0
+scaffold_pack: builtin-minimal
+clocks:
+  - name: clk
+    direction: in
+resets:
+  - name: reset_n
+    direction: in
+    polarity: activeLow
+busInterfaces:
+  - name: avl_st
+    type: ipcraft:busif:avalon_st:1.0
+    mode: source
+    physicalPrefix: avl_st_
+    associatedClock: clk
+    associatedReset: reset_n
+    endianness: big
+`;
+    const editorYaml = `
+vlnv:
+  vendor: ipcraft
+  library: example
+  name: preview_endian
+  version: 1.0.0
+scaffold_pack: builtin-ipcraft
+useBusLibrary: ./bus_definitions
+clocks:
+  - name: clk
+    direction: in
+resets:
+  - name: reset_n
+    direction: in
+    polarity: activeLow
+busInterfaces:
+  - name: avl_st
+    type: ipcraft:busif:avalon_st:1.0
+    mode: source
+    physicalPrefix: avl_st_
+    associatedClock: clk
+    associatedReset: reset_n
+    endianness: little
+  - name: csr
+    type: ipcraft:busif:avalon_mm:1.0
+    mode: slave
+    physicalPrefix: csr_
+    associatedClock: clk
+    associatedReset: reset_n
+    memoryMapRef: MAP
+memoryMaps:
+  import: preview_endian.mm.yml
+fileSets:
+  - name: RTL_Sources
+    files:
+      - path: user_rtl/kept_relative.vhd
+        type: vhdl
+        managed: false
+`;
+    fs.writeFileSync(yamlPath, diskYaml);
+    fs.writeFileSync(
+      path.join(rootDir, 'preview_endian.mm.yml'),
+      `
+- name: MAP
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0
+      usage: register
+      registers:
+        - name: SNAPSHOT_CTRL
+          fields:
+            - name: ENABLE
+              bits: '[0:0]'
+              access: read-write
+`
+    );
+    fs.writeFileSync(
+      path.join(busLibraryDir, 'avalon_st.yml'),
+      fs
+        .readFileSync(path.join(REPO_ROOT, 'ipcraft-spec/bus_definitions/avalon_st.yml'), 'utf8')
+        .replace('width: 32', 'width: 64')
+    );
+    const userRtl = '-- relative file-set source\n';
+    fs.writeFileSync(path.join(userRtlDir, 'kept_relative.vhd'), userRtl);
+
+    const scaffolder = new IpCoreScaffolder(
+      logger,
+      new TemplateLoader(logger, GENERATOR_TEMPLATES),
+      devResourceRoots(REPO_ROOT)
+    );
+    const result = await scaffolder.generateAll(yamlPath, rootDir, {
+      sourceText: editorYaml,
+      targets: ['quartus'],
+      includeTestbench: false,
+      includeDocs: true,
+      hdlLanguage: 'vhdl',
+      dryRun: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.resolvedPackName).toBe('builtin-ipcraft');
+    expect(result.generatedContents?.['altera/preview_endian_hw.tcl']).toContain(
+      'set_interface_property avl_st firstSymbolInHighOrderBits false'
+    );
+    expect(result.generatedContents?.['rtl/preview_endian.vhd']).toMatch(
+      /avl_st_data\s+: out std_logic_vector\(63 downto 0\)/
+    );
+    expect(result.generatedContents?.['docs/preview_endian_datasheet.md']).toContain(
+      'SNAPSHOT_CTRL'
+    );
+    expect(result.generatedContents?.['user_rtl/kept_relative.vhd']).toBe(userRtl);
+    expect(fs.readFileSync(yamlPath, 'utf8')).toBe(diskYaml);
+  });
+});
+
 describe('Endianness on a stream-only IP with no memory-mapped slave (issue #138 M4)', () => {
   it('VHDL: instantiates a core and reflows the swap through it (no bus wrapper)', async () => {
     const { rtlDir } = await generate('vhdl', STREAM_ONLY_YAML);
