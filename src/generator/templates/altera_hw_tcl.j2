@@ -220,7 +220,7 @@ set_fileset_property QUARTUS_SYNTH ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property QUARTUS_SYNTH ENABLE_FILE_OVERWRITE_MODE false
 {% for f in rtl_files %}
 {% set top_marker = " TOP_LEVEL_FILE" if f.is_top else "" %}
-add_fileset_file {{ f.name }} {{ f.hdl_type }} PATH [file join .. {{ f.path }}]{{ top_marker }}
+add_fileset_file {{ f.name }} {{ f.hdl_type }} PATH {{ f.path }}{{ top_marker }}
 {% endfor %}
 
 add_fileset {{ sim_fileset }} {{ sim_fileset }} "" ""
@@ -229,5 +229,5 @@ set_fileset_property {{ sim_fileset }} ENABLE_RELATIVE_INCLUDE_PATHS false
 set_fileset_property {{ sim_fileset }} ENABLE_FILE_OVERWRITE_MODE false
 {% for f in rtl_files %}
 {% set top_marker = " TOP_LEVEL_FILE" if f.is_top else "" %}
-add_fileset_file {{ f.name }} {{ f.hdl_type }} PATH [file join .. {{ f.path }}]{{ top_marker }}
+add_fileset_file {{ f.name }} {{ f.hdl_type }} PATH {{ f.path }}{{ top_marker }}
 {% endfor %}

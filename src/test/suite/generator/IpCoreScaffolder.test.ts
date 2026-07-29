@@ -261,6 +261,10 @@ describe('IpCoreScaffolder', () => {
     );
     expect(tclContent).toContain('set_parameter_property ADDR_WIDTH ALLOWED_RANGES 16:64');
     expect(tclContent).toContain('set_parameter_property DATA_WIDTH ALLOWED_RANGES { 8 16 32 64 }');
+    const topLevelFilesetEntry =
+      'add_fileset_file sample_core.vhd VHDL PATH ../rtl/sample_core.vhd TOP_LEVEL_FILE';
+    expect(tclContent.match(new RegExp(topLevelFilesetEntry, 'g'))).toHaveLength(2);
+    expect(tclContent).not.toContain('PATH [file join ..');
 
     // Verify Vivado component.xml contains parameter description and choices
     const xmlContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
