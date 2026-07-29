@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.9.9] - 2026-07-29
+
+### Added
+
+- **Product demo video** in the README provides a quick walkthrough of IPCraft's visual editing and generation workflow.
+
+### Changed
+
+- **Generator template context 1.3.0** adds authored parameter page/group layouts for Vivado xGUI and Quartus Platform Designer, including Tcl-safe parameter metadata for custom scaffold packs.
+- **Extension and CLI release versions** are synchronized at `0.9.9`.
+
+### Fixed
+
+- **Vertical bit-field rulers** now show an aligned index for every bit, including gaps, instead of labeling only segment endpoints. ([#192](https://github.com/bleviet/ipcraft-vscode/issues/192))
+- **Generation from edited IP cores** now uses the current unsaved editor snapshot for previews and output while leaving generated YAML metadata changes unsaved for review. ([#197](https://github.com/bleviet/ipcraft-vscode/pull/197))
+- **Quartus parameter layout round-trips** now preserve authored `uiPage` and `uiGroup` hierarchy, labels, defaults, and Tcl string values in generated and imported Platform Designer components. ([#193](https://github.com/bleviet/ipcraft-vscode/issues/193), [#194](https://github.com/bleviet/ipcraft-vscode/pull/194))
+- **Quartus generated filesets** retain their resolved RTL paths instead of adding an extra parent-directory prefix. ([#198](https://github.com/bleviet/ipcraft-vscode/pull/198))
+
 ## [0.9.8] - 2026-07-28
 
 ### Changed

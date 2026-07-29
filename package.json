@@ -37,7 +37,7 @@
   ],
   "displayName": "IPCraft for VS Code",
   "description": "Visual FPGA IP-core and memory-map editor with VHDL/SystemVerilog, Vivado, and Quartus project generation.",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "engines": {
     "vscode": "^1.80.0"
   },
