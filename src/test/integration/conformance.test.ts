@@ -74,8 +74,8 @@ describe('built-in pack apiVersion declarations', () => {
         expect(() => checkPackApiVersion(pack)).not.toThrow();
       });
 
-      it('CONTRACT_VERSION is 1.2.0', () => {
-        expect(CONTRACT_VERSION).toBe('1.2.0');
+      it('CONTRACT_VERSION is 1.3.0', () => {
+        expect(CONTRACT_VERSION).toBe('1.3.0');
       });
     });
   }

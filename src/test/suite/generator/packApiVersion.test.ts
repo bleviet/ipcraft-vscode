@@ -5,17 +5,21 @@ function makePack(apiVersion?: string): ScaffoldPack {
   return { name: 'test-pack', packDir: '/tmp/test-pack', files: [], apiVersion };
 }
 
+// Ranges are derived from CONTRACT_VERSION rather than hard-coded, so a contract
+// bump exercises the same semantics instead of failing these tests.
+const [MAJOR, MINOR, PATCH] = CONTRACT_VERSION.split('.').map(Number);
+
 describe('checkPackApiVersion', () => {
   it('passes when apiVersion is absent', () => {
     expect(() => checkPackApiVersion(makePack())).not.toThrow();
   });
 
   it('passes when contract version satisfies caret range', () => {
-    expect(() => checkPackApiVersion(makePack('^1.0'))).not.toThrow();
+    expect(() => checkPackApiVersion(makePack(`^${MAJOR}.0`))).not.toThrow();
   });
 
   it('passes when contract version satisfies tilde range', () => {
-    expect(() => checkPackApiVersion(makePack('~1.2'))).not.toThrow();
+    expect(() => checkPackApiVersion(makePack(`~${MAJOR}.${MINOR}`))).not.toThrow();
   });
 
   it('passes for exact match', () => {
@@ -23,36 +27,41 @@ describe('checkPackApiVersion', () => {
   });
 
   it('throws when major version is incompatible', () => {
-    expect(() => checkPackApiVersion(makePack('^2.0'))).toThrow(
-      /targets apiVersion '\^2\.0' but this IPCraft provides contract 1\.2\.0/
+    const range = `^${MAJOR + 1}.0`;
+    expect(() => checkPackApiVersion(makePack(range))).toThrow(
+      new RegExp(
+        `targets apiVersion '\\^${MAJOR + 1}\\.0' but this IPCraft provides contract ` +
+          CONTRACT_VERSION.replace(/\./g, '\\.')
+      )
     );
   });
 
   it('throws when minor floor exceeds contract minor', () => {
-    expect(() => checkPackApiVersion(makePack('^1.3'))).toThrow(/apiVersion/);
+    expect(() => checkPackApiVersion(makePack(`^${MAJOR}.${MINOR + 1}`))).toThrow(/apiVersion/);
   });
 
   it('includes pack name in error message', () => {
-    const pack = makePack('^2.0');
+    const pack = makePack(`^${MAJOR + 1}.0`);
     expect(() => checkPackApiVersion(pack)).toThrow(/test-pack/);
   });
 });
 
 describe('satisfiesRange edge cases', () => {
-  it('1.2.0 satisfies ^1.0.0', () => {
-    const pack = makePack('^1.0.0');
-    expect(() => checkPackApiVersion(pack)).not.toThrow();
+  it('satisfies a caret range at the major floor', () => {
+    expect(() => checkPackApiVersion(makePack(`^${MAJOR}.0.0`))).not.toThrow();
   });
 
-  it('1.2.0 does not satisfy ^1.2.1 (patch floor not met)', () => {
-    expect(() => checkPackApiVersion(makePack('^1.2.1'))).toThrow(/apiVersion/);
+  it('does not satisfy a caret range whose patch floor is not met', () => {
+    expect(() => checkPackApiVersion(makePack(`^${MAJOR}.${MINOR}.${PATCH + 1}`))).toThrow(
+      /apiVersion/
+    );
   });
 
-  it('1.2.0 does not satisfy ~1.1 (minor mismatch for tilde)', () => {
-    expect(() => checkPackApiVersion(makePack('~1.1'))).toThrow(/apiVersion/);
+  it('does not satisfy a tilde range with a mismatched minor', () => {
+    expect(() => checkPackApiVersion(makePack(`~${MAJOR}.${MINOR + 1}`))).toThrow(/apiVersion/);
   });
 
-  it('1.2.0 satisfies ~1.2', () => {
-    expect(() => checkPackApiVersion(makePack('~1.2'))).not.toThrow();
+  it('satisfies a tilde range on the matching minor', () => {
+    expect(() => checkPackApiVersion(makePack(`~${MAJOR}.${MINOR}`))).not.toThrow();
   });
 });

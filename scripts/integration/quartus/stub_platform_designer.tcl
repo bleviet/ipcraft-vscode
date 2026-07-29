@@ -25,6 +25,9 @@ namespace eval ::pd {
     variable errors {}
     variable warnings {}
     variable params [dict create]
+    variable display_ids {}
+    variable display_groups {}
+    variable display_kinds [dict create]
 
     proc reset {} {
         set ::pd::interfaces {}
@@ -34,6 +37,9 @@ namespace eval ::pd {
         set ::pd::errors {}
         set ::pd::warnings {}
         set ::pd::params [dict create]
+        set ::pd::display_ids {}
+        set ::pd::display_groups {}
+        set ::pd::display_kinds [dict create]
     }
 
     proc err {msg} {
@@ -120,6 +126,47 @@ proc add_parameter {name type {value ""} args} {
     dict set ::pd::params $name $value
 }
 
+# Platform Designer resolves a display item's parent by id at the time of the
+# call, so a group must be declared before anything is parented to it, and a
+# PARAMETER item must name a parameter that add_parameter already created.
+# Ids share one global namespace, so duplicates are an error too.
+proc add_display_item {parent id type args} {
+    set kind [string toupper $type]
+    if {$parent ne "" && $parent ni $::pd::display_groups} {
+        ::pd::err "add_display_item '$id': unknown parent group '$parent'"
+    }
+    if {$id in $::pd::display_ids} {
+        ::pd::err "add_display_item '$id': duplicate display-item id"
+    }
+    lappend ::pd::display_ids $id
+    dict set ::pd::display_kinds $id $kind
+    switch -- $kind {
+        GROUP {
+            lappend ::pd::display_groups $id
+        }
+        PARAMETER {
+            if {![dict exists $::pd::params $id]} {
+                ::pd::err "add_display_item '$id': no such parameter"
+            }
+        }
+    }
+}
+
+# Quartus renders a GROUP display item's own id as its visible label; unlike
+# other display-item kinds it does not honor DISPLAY_NAME as a rename target
+# (confirmed against Quartus 21.1 during review of #194). Reject that call
+# here so a regression to the old (ineffective) rename pattern fails
+# generation validation instead of silently no-op'ing in the real tool.
+proc set_display_item_property {id property value} {
+    if {$id ni $::pd::display_ids} {
+        ::pd::err "set_display_item_property '$id': no such display item"
+        return
+    }
+    if {$property eq "DISPLAY_NAME" && [dict get $::pd::display_kinds $id] eq "GROUP"} {
+        ::pd::err "set_display_item_property '$id': Quartus does not use DISPLAY_NAME to label GROUP display items; the group's id is what Platform Designer renders"
+    }
+}
+
 proc get_parameter_value {name} {
     if {[info exists ::pd::params] && [dict exists $::pd::params $name]} {
         return [dict get $::pd::params $name]
@@ -137,8 +184,6 @@ foreach _cmd {
     add_fileset_file
     set_fileset_assignment
     set_parameter_property
-    add_display_item
-    set_display_item_property
     send_message
 } {
     proc $_cmd {args} {}

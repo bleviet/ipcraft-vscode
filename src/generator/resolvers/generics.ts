@@ -1,25 +1,8 @@
+import { titleCaseIdentifier } from '../../utils/titleCase';
+import { buildDisplayItems } from './displayItems';
+import { buildParameterLayout, type LayoutPage } from './parameterLayout';
+import { toTclBracedListQuotedString, toTclQuotedString } from './tclString';
 import type { ContextResolver, ResolverInput } from './types';
-
-/** A parameter as laid out for the Vivado xGUI: name plus a tooltip string. */
-export interface XguiParam {
-  name: string;
-  /** Description sanitized for a Tcl brace-quoted `set_property tooltip {...}`. */
-  tooltip: string;
-}
-
-/**
- * Sanitize a parameter description for safe use inside a Tcl brace-quoted
- * string (`{...}`) in the xGUI tooltip: collapse whitespace/newlines onto one
- * line and neutralize characters that would unbalance the braces.
- */
-function toTclBraceText(text: string): string {
-  return text
-    .replace(/\s+/g, ' ')
-    .replace(/\\/g, '')
-    .replace(/\{/g, '(')
-    .replace(/\}/g, ')')
-    .trim();
-}
 
 function resolveGenericDefault(
   value: number | string | undefined,
@@ -42,6 +25,21 @@ function resolveGenericDefault(
     return 'false';
   }
   return 0;
+}
+
+function resolveTclGenericDefault(
+  value: number | string | undefined,
+  type: string
+): number | string | null {
+  const resolved = resolveGenericDefault(value, type);
+  if (type.toLowerCase().trim() !== 'string' || typeof resolved !== 'string') {
+    return resolved;
+  }
+  const inner =
+    resolved.length >= 2 && resolved.startsWith('"') && resolved.endsWith('"')
+      ? resolved.slice(1, -1)
+      : resolved;
+  return `"${toTclQuotedString(inner)}"`;
 }
 
 function resolveSvGenericType(vhdlType: string): string {
@@ -85,76 +83,72 @@ function resolveSvGenericDefault(
   return 0;
 }
 
+/**
+ * Renders `allowedValues` as a Tcl list literal for `ALLOWED_RANGES`, quoting
+ * each element for string parameters (Platform Designer choice lists) and
+ * leaving numeric elements bare. `null` when there is nothing to render, so
+ * the template can key off it directly instead of re-deriving the branch.
+ */
+function buildAllowedRangesTcl(
+  type: string,
+  allowedValues: (number | string)[] | null
+): string | null {
+  if (!allowedValues || allowedValues.length === 0) {
+    return null;
+  }
+  const isString = type.toLowerCase().trim() === 'string';
+  const items = allowedValues.map((v) =>
+    isString ? `"${toTclBracedListQuotedString(String(v))}"` : String(v)
+  );
+  return `{ ${items.join(' ')} }`;
+}
+
 export function buildGenerics(ipCore: ResolverInput['ipCore']): Array<Record<string, unknown>> {
   const params = ipCore?.parameters ?? [];
   return params.map((param) => {
     const type = String(param.dataType ?? '');
+    const name = String(param.name ?? '');
+    const description = param.description ? String(param.description) : '';
+    const displayName = param.displayName ? String(param.displayName) : titleCaseIdentifier(name);
+    const allowedValues = param.allowedValues ?? null;
     return {
       name: param.name,
+      display_name: displayName,
+      // Tcl-double-quote-escaped copy for `set_parameter_property ... DISPLAY_NAME "..."`;
+      // display_name itself stays raw since nothing else consumes it.
+      display_name_tcl: toTclQuotedString(displayName),
       type,
       sv_type: resolveSvGenericType(type),
       default_value: resolveGenericDefault(param.value, type),
+      default_value_tcl: resolveTclGenericDefault(param.value, type),
       sv_default: resolveSvGenericDefault(param.value, type),
-      description: param.description ? String(param.description) : '',
+      description,
+      // Tcl-double-quote-escaped copy for `set_parameter_property ... DESCRIPTION "..."`;
+      // description itself stays raw for reuse by the xGUI tooltip (brace-quoted) and the
+      // Markdown datasheet template, which must not see Tcl escape sequences.
+      description_tcl: toTclQuotedString(description),
       min: param.min !== undefined ? param.min : null,
       max: param.max !== undefined ? param.max : null,
-      allowed_values: param.allowedValues ?? null,
+      allowed_values: allowedValues,
+      allowed_values_tcl: buildAllowedRangesTcl(type, allowedValues),
       ui_page: param.uiPage ?? '',
       ui_group: param.uiGroup ?? '',
     };
   });
 }
 
-export function buildXguiPages(generics: Array<Record<string, unknown>>): Array<{
-  name: string;
-  tcl_var: string;
-  groups: Array<{ name: string; tcl_var: string; params: XguiParam[] }>;
-  ungrouped_params: XguiParam[];
-}> {
-  const toTclVar = (s: string) => s.replace(/[\s\-.]/g, '_');
-
-  const pageOrder: string[] = [];
-  const groupOrder: Map<string, string[]> = new Map();
-  const groupParams: Map<string, Map<string, XguiParam[]>> = new Map();
-  const ungroupedParams: Map<string, XguiParam[]> = new Map();
-
-  for (const g of generics) {
-    const page = g.ui_page ? String(g.ui_page) : 'Page 0';
-    const group = g.ui_group ? String(g.ui_group) : '';
-    const param: XguiParam = {
-      name: String(g.name ?? ''),
-      tooltip: toTclBraceText(g.description ? String(g.description) : ''),
-    };
-
-    if (!pageOrder.includes(page)) {
-      pageOrder.push(page);
-      groupOrder.set(page, []);
-      groupParams.set(page, new Map());
-      ungroupedParams.set(page, []);
-    }
-
-    if (group) {
-      const groups = groupOrder.get(page)!;
-      if (!groups.includes(group)) {
-        groups.push(group);
-        groupParams.get(page)!.set(group, []);
-      }
-      groupParams.get(page)!.get(group)!.push(param);
-    } else {
-      ungroupedParams.get(page)!.push(param);
-    }
-  }
-
-  return pageOrder.map((page) => ({
-    name: page,
-    tcl_var: `Page_${toTclVar(page)}`,
-    groups: (groupOrder.get(page) ?? []).map((group) => ({
-      name: group,
-      tcl_var: `Group_${toTclVar(page)}_${toTclVar(group)}`,
-      params: groupParams.get(page)!.get(group) ?? [],
-    })),
-    ungrouped_params: ungroupedParams.get(page) ?? [],
-  }));
+/**
+ * The Vivado xGUI view of the shared parameter layout. `isDefault` is an
+ * internal marker for per-target flattening and is not part of the template
+ * contract, so it is dropped here.
+ */
+function toXguiPage(page: LayoutPage) {
+  return {
+    name: page.name,
+    tcl_var: page.tcl_var,
+    groups: page.groups,
+    ungrouped_params: page.ungrouped_params,
+  };
 }
 
 export const genericsResolver: ContextResolver = {
@@ -162,9 +156,11 @@ export const genericsResolver: ContextResolver = {
 
   resolve({ ipCore }: ResolverInput): Record<string, unknown> {
     const generics = buildGenerics(ipCore);
+    const layout = buildParameterLayout(generics);
     return {
       generics,
-      xgui_pages: buildXguiPages(generics),
+      xgui_pages: layout.map(toXguiPage),
+      display_items: buildDisplayItems(layout),
     };
   },
 };
