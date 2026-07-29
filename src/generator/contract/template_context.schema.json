@@ -387,26 +387,26 @@
     },
     "DisplayItem": {
       "type": "object",
-      "required": ["id", "parent", "kind"],
+      "required": ["id", "id_tcl", "parent", "parent_tcl", "kind"],
       "additionalProperties": false,
       "properties": {
         "id": {
           "type": "string",
-          "description": "Globally unique internal display-item id; PARAMETER items use their add_parameter name."
+          "description": "Globally unique display-item id. Quartus renders a GROUP item's id as its visible label, so this is the authored uiPage/uiGroup text (disambiguated on collision); PARAMETER items use their add_parameter name."
+        },
+        "id_tcl": {
+          "type": "string",
+          "description": "id escaped for embedding in a double-quoted Tcl string."
         },
         "parent": {
           "type": "string",
           "description": "Parent group id, or an empty string for a root-level item."
         },
-        "kind": { "type": "string", "enum": ["GROUP", "PARAMETER"] },
-        "display_name": {
+        "parent_tcl": {
           "type": "string",
-          "description": "Authored uiPage/uiGroup label for GROUP items."
+          "description": "parent escaped for embedding in a double-quoted Tcl string."
         },
-        "display_name_tcl": {
-          "type": "string",
-          "description": "display_name escaped for set_display_item_property ... DISPLAY_NAME."
-        }
+        "kind": { "type": "string", "enum": ["GROUP", "PARAMETER"] }
       }
     },
     "XguiGroup": {

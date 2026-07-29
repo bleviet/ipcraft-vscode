@@ -27,6 +27,7 @@ namespace eval ::pd {
     variable params [dict create]
     variable display_ids {}
     variable display_groups {}
+    variable display_kinds [dict create]
 
     proc reset {} {
         set ::pd::interfaces {}
@@ -38,6 +39,7 @@ namespace eval ::pd {
         set ::pd::params [dict create]
         set ::pd::display_ids {}
         set ::pd::display_groups {}
+        set ::pd::display_kinds [dict create]
     }
 
     proc err {msg} {
@@ -137,6 +139,7 @@ proc add_display_item {parent id type args} {
         ::pd::err "add_display_item '$id': duplicate display-item id"
     }
     lappend ::pd::display_ids $id
+    dict set ::pd::display_kinds $id $kind
     switch -- $kind {
         GROUP {
             lappend ::pd::display_groups $id
@@ -149,9 +152,18 @@ proc add_display_item {parent id type args} {
     }
 }
 
+# Quartus renders a GROUP display item's own id as its visible label; unlike
+# other display-item kinds it does not honor DISPLAY_NAME as a rename target
+# (confirmed against Quartus 21.1 during review of #194). Reject that call
+# here so a regression to the old (ineffective) rename pattern fails
+# generation validation instead of silently no-op'ing in the real tool.
 proc set_display_item_property {id property value} {
     if {$id ni $::pd::display_ids} {
         ::pd::err "set_display_item_property '$id': no such display item"
+        return
+    }
+    if {$property eq "DISPLAY_NAME" && [dict get $::pd::display_kinds $id] eq "GROUP"} {
+        ::pd::err "set_display_item_property '$id': Quartus does not use DISPLAY_NAME to label GROUP display items; the group's id is what Platform Designer renders"
     }
 }
 

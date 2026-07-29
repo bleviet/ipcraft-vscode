@@ -35761,24 +35761,16 @@ set_parameter_property STR AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Parameter Display Layout
 # -----------------------------------------------------------------------------
-add_display_item "" "ipcraft_page_0" GROUP tab
-set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Configuration"
-
-add_display_item "ipcraft_page_0" "PARAM_INTEGER" PARAMETER
-add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""
-set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Integer Parameters"
-
-add_display_item "ipcraft_group_0_0" "PARAM_CHOICES" PARAMETER
-add_display_item "ipcraft_group_0_0" "PARAM_RANGE" PARAMETER
-add_display_item "" "ipcraft_page_1" GROUP tab
-set_display_item_property "ipcraft_page_1" DISPLAY_NAME "Advanced"
-
-add_display_item "ipcraft_page_1" "ENABLE" PARAMETER
-add_display_item "ipcraft_page_1" "ipcraft_group_1_0" GROUP ""
-set_display_item_property "ipcraft_group_1_0" DISPLAY_NAME "String Parameters"
-
-add_display_item "ipcraft_group_1_0" "STR_CHOICES" PARAMETER
-add_display_item "ipcraft_group_1_0" "STR" PARAMETER
+add_display_item "" "Configuration" GROUP tab
+add_display_item "Configuration" "PARAM_INTEGER" PARAMETER
+add_display_item "Configuration" "Integer Parameters" GROUP ""
+add_display_item "Integer Parameters" "PARAM_CHOICES" PARAMETER
+add_display_item "Integer Parameters" "PARAM_RANGE" PARAMETER
+add_display_item "" "Advanced" GROUP tab
+add_display_item "Advanced" "ENABLE" PARAMETER
+add_display_item "Advanced" "String Parameters" GROUP ""
+add_display_item "String Parameters" "STR_CHOICES" PARAMETER
+add_display_item "String Parameters" "STR" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface
@@ -35996,24 +35988,16 @@ set_parameter_property STR AFFECTS_ELABORATION true
 # -----------------------------------------------------------------------------
 # Parameter Display Layout
 # -----------------------------------------------------------------------------
-add_display_item "" "ipcraft_page_0" GROUP tab
-set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Configuration"
-
-add_display_item "ipcraft_page_0" "PARAM_INTEGER" PARAMETER
-add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""
-set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Integer Parameters"
-
-add_display_item "ipcraft_group_0_0" "PARAM_CHOICES" PARAMETER
-add_display_item "ipcraft_group_0_0" "PARAM_RANGE" PARAMETER
-add_display_item "" "ipcraft_page_1" GROUP tab
-set_display_item_property "ipcraft_page_1" DISPLAY_NAME "Advanced"
-
-add_display_item "ipcraft_page_1" "ENABLE" PARAMETER
-add_display_item "ipcraft_page_1" "ipcraft_group_1_0" GROUP ""
-set_display_item_property "ipcraft_group_1_0" DISPLAY_NAME "String Parameters"
-
-add_display_item "ipcraft_group_1_0" "STR_CHOICES" PARAMETER
-add_display_item "ipcraft_group_1_0" "STR" PARAMETER
+add_display_item "" "Configuration" GROUP tab
+add_display_item "Configuration" "PARAM_INTEGER" PARAMETER
+add_display_item "Configuration" "Integer Parameters" GROUP ""
+add_display_item "Integer Parameters" "PARAM_CHOICES" PARAMETER
+add_display_item "Integer Parameters" "PARAM_RANGE" PARAMETER
+add_display_item "" "Advanced" GROUP tab
+add_display_item "Advanced" "ENABLE" PARAMETER
+add_display_item "Advanced" "String Parameters" GROUP ""
+add_display_item "String Parameters" "STR_CHOICES" PARAMETER
+add_display_item "String Parameters" "STR" PARAMETER
 
 # -----------------------------------------------------------------------------
 # Clock Interface

@@ -211,22 +211,22 @@ export interface XguiGroup {
 }
 export interface DisplayItem {
   /**
-   * Globally unique internal display-item id; PARAMETER items use their add_parameter name.
+   * Globally unique display-item id. Quartus renders a GROUP item's id as its visible label, so this is the authored uiPage/uiGroup text (disambiguated on collision); PARAMETER items use their add_parameter name.
    */
   id: string;
+  /**
+   * id escaped for embedding in a double-quoted Tcl string.
+   */
+  id_tcl: string;
   /**
    * Parent group id, or an empty string for a root-level item.
    */
   parent: string;
+  /**
+   * parent escaped for embedding in a double-quoted Tcl string.
+   */
+  parent_tcl: string;
   kind: 'GROUP' | 'PARAMETER';
-  /**
-   * Authored uiPage/uiGroup label for GROUP items.
-   */
-  display_name?: string;
-  /**
-   * display_name escaped for set_display_item_property ... DISPLAY_NAME.
-   */
-  display_name_tcl?: string;
 }
 export interface UserPort {
   name: string;

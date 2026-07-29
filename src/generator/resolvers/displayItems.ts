@@ -10,10 +10,18 @@ import type { LayoutPage } from './parameterLayout';
  * `parameterLayout` tree into those records — one root group per `uiPage`, one
  * nested group per `uiGroup`.
  *
- * GROUP ids are internal and globally unique. Their authored uiPage/uiGroup
- * labels are carried separately through DISPLAY_NAME, as defined by Platform
- * Designer's display-item property API. This preserves labels when the same
- * group name is reused on multiple pages or collides with a parameter name.
+ * Quartus renders a GROUP display item's own id as its visible label; it does
+ * not use `set_display_item_property ... DISPLAY_NAME` to rename a GROUP the
+ * way an earlier version of this module assumed (verified against Quartus
+ * 21.1 during review of #194 — see the stub's rejection of that call for
+ * GROUP items). So the authored `uiPage`/`uiGroup` text must BE the id, not a
+ * separate rename target reachable through DISPLAY_NAME.
+ *
+ * Ids share one global namespace with PARAMETER items (whose id is fixed to
+ * the `add_parameter` name), so an authored label that collides with another
+ * label or with a parameter name is disambiguated with a small, visible
+ * qualifier — there is no way to hide the disambiguation behind an internal
+ * id for this item kind.
  *
  * The legacy alternative, `set_parameter_property <p> GROUP <name>`, takes a
  * single flat group name and cannot express nesting, which is why it is not
@@ -24,36 +32,51 @@ export type DisplayItemKind = 'GROUP' | 'PARAMETER';
 
 export interface DisplayItem {
   /**
-   * Globally unique internal display-item id. For `PARAMETER` items it is the
-   * parameter name as declared by `add_parameter`.
+   * Globally unique display-item id. For `GROUP` items this is also the
+   * visible label Platform Designer renders, so it starts from the authored
+   * `uiPage`/`uiGroup` text (disambiguated on collision). For `PARAMETER`
+   * items it is the parameter name as declared by `add_parameter`.
    */
   id: string;
-  /** Parent group id (already escaped), or `''` for a root-level item. */
+  /** `id` escaped for embedding in a double-quoted Tcl string. */
+  id_tcl: string;
+  /** Parent group id, or `''` for a root-level item. */
   parent: string;
+  /** `parent` escaped for embedding in a double-quoted Tcl string. */
+  parent_tcl: string;
   kind: DisplayItemKind;
-  /** Authored label for GROUP items. */
-  display_name?: string;
-  /** Tcl-double-quote-escaped copy of display_name. */
-  display_name_tcl?: string;
 }
 
 /**
- * Display-item ids share one global namespace in Platform Designer, so a group
- * id may still collide with a parameter authored using IPCraft's internal
- * prefix. Parameter names are fixed, so internal ids gain a numeric suffix.
+ * Claims a display-item id starting from an authored label. On collision
+ * (case-insensitive, since ids share a namespace with uppercased parameter
+ * names) appends a visible `(2)`, `(3)`, ... qualifier rather than silently
+ * renaming — GROUP labels have no other way to be disambiguated.
  */
-function makeIdAllocator(reserved: Set<string>): (base: string) => string {
-  return (base) => {
-    if (!reserved.has(base.toUpperCase())) {
-      reserved.add(base.toUpperCase());
-      return base;
+function makeLabelIdAllocator(reserved: Set<string>): (label: string) => string {
+  return (label) => {
+    if (!reserved.has(label.toUpperCase())) {
+      reserved.add(label.toUpperCase());
+      return label;
     }
     let n = 2;
-    while (reserved.has(`${base}_${n}`.toUpperCase())) {
+    let candidate = `${label} (${n})`;
+    while (reserved.has(candidate.toUpperCase())) {
       n += 1;
+      candidate = `${label} (${n})`;
     }
-    reserved.add(`${base}_${n}`.toUpperCase());
-    return `${base}_${n}`;
+    reserved.add(candidate.toUpperCase());
+    return candidate;
+  };
+}
+
+function makeItem(id: string, parent: string, kind: DisplayItemKind): DisplayItem {
+  return {
+    id,
+    id_tcl: toTclQuotedString(id),
+    parent,
+    parent_tcl: toTclQuotedString(parent),
+    kind,
   };
 }
 
@@ -69,46 +92,26 @@ export function buildDisplayItems(pages: LayoutPage[]): DisplayItem[] {
       }
     }
   }
-  const claim = makeIdAllocator(reserved);
+  const claim = makeLabelIdAllocator(reserved);
 
   const items: DisplayItem[] = [];
-  for (const [pageIndex, page] of pages.entries()) {
+  for (const page of pages) {
     // Parameters that declared no uiPage sit at the root rather than in a
     // group named after Vivado's synthetic default page.
-    const pageId = page.isDefault ? '' : claim(`ipcraft_page_${pageIndex}`);
+    const pageId = page.isDefault ? '' : claim(page.name);
     if (pageId) {
-      items.push({
-        id: pageId,
-        parent: '',
-        kind: 'GROUP',
-        display_name: page.name,
-        display_name_tcl: toTclQuotedString(page.name),
-      });
+      items.push(makeItem(pageId, '', 'GROUP'));
     }
 
     for (const param of page.ungrouped_params) {
-      items.push({
-        id: param.name.toUpperCase(),
-        parent: pageId,
-        kind: 'PARAMETER',
-      });
+      items.push(makeItem(param.name.toUpperCase(), pageId, 'PARAMETER'));
     }
 
-    for (const [groupIndex, group] of page.groups.entries()) {
-      const groupId = claim(`ipcraft_group_${pageIndex}_${groupIndex}`);
-      items.push({
-        id: groupId,
-        parent: pageId,
-        kind: 'GROUP',
-        display_name: group.name,
-        display_name_tcl: toTclQuotedString(group.name),
-      });
+    for (const group of page.groups) {
+      const groupId = claim(group.name);
+      items.push(makeItem(groupId, pageId, 'GROUP'));
       for (const param of group.params) {
-        items.push({
-          id: param.name.toUpperCase(),
-          parent: groupId,
-          kind: 'PARAMETER',
-        });
+        items.push(makeItem(param.name.toUpperCase(), groupId, 'PARAMETER'));
       }
     }
   }

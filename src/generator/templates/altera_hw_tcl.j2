@@ -60,11 +60,9 @@ set_parameter_property {{ generic.name | upper }} AFFECTS_ELABORATION true
 {% for item in display_items %}
 {% if item.kind == 'GROUP' -%}
 {% set group_hint = 'tab' if item.parent == '' else '""' %}
-add_display_item "{{ item.parent }}" "{{ item.id }}" GROUP {{ group_hint }}
-set_display_item_property "{{ item.id }}" DISPLAY_NAME "{{ item.display_name_tcl }}"
-
+add_display_item "{{ item.parent_tcl }}" "{{ item.id_tcl }}" GROUP {{ group_hint }}
 {% else -%}
-add_display_item "{{ item.parent }}" "{{ item.id }}" PARAMETER
+add_display_item "{{ item.parent_tcl }}" "{{ item.id_tcl }}" PARAMETER
 {% endif %}
 {%- endfor %}
 

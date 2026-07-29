@@ -144,22 +144,21 @@ describe('TemplateLoader', () => {
       // groups render as a plain collapsible group — verified against a real,
       // tool-generated Intel component (add_display_item "" "X" "group" "tab"
       // for a root group vs add_display_item "X" "Y" "group" "" for a nested
-      // one).
-      expect(result).toContain('add_display_item "" "ipcraft_page_0" GROUP tab');
-      expect(result).toContain('set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Config"');
-      expect(result).toContain('add_display_item "ipcraft_page_0" "MODE" PARAMETER');
-      expect(result).toContain('add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""');
-      expect(result).toContain(
-        'set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Widths"'
-      );
-      expect(result).toContain('add_display_item "ipcraft_group_0_0" "DATA_WIDTH" PARAMETER');
+      // one). Quartus renders a GROUP's own id as its visible label (it does
+      // not honor DISPLAY_NAME for GROUP items), so the authored uiPage/
+      // uiGroup text is used as the id directly rather than as a rename.
+      expect(result).toContain('add_display_item "" "Config" GROUP tab');
+      expect(result).toContain('add_display_item "Config" "MODE" PARAMETER');
+      expect(result).toContain('add_display_item "Config" "Widths" GROUP ""');
+      expect(result).toContain('add_display_item "Widths" "DATA_WIDTH" PARAMETER');
+      expect(result).not.toMatch(/set_display_item_property .*DISPLAY_NAME/);
 
       // A group must be declared before anything is parented to it.
-      expect(result.indexOf('"ipcraft_page_0" GROUP')).toBeLessThan(
-        result.indexOf('"ipcraft_group_0_0" GROUP')
+      expect(result.indexOf('"" "Config" GROUP')).toBeLessThan(
+        result.indexOf('"Config" "Widths" GROUP')
       );
-      expect(result.indexOf('"ipcraft_group_0_0" GROUP')).toBeLessThan(
-        result.indexOf('"ipcraft_group_0_0" "DATA_WIDTH" PARAMETER')
+      expect(result.indexOf('"Config" "Widths" GROUP')).toBeLessThan(
+        result.indexOf('"Widths" "DATA_WIDTH" PARAMETER')
       );
 
       // The deprecated flat GROUP property cannot express nesting and is not used.
@@ -183,9 +182,8 @@ describe('TemplateLoader', () => {
         ],
       });
 
-      expect(result).toContain('add_display_item "" "ipcraft_page_0" GROUP tab');
-      expect(result).toContain('set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Page 0"');
-      expect(result).toContain('add_display_item "ipcraft_page_0" "A" PARAMETER');
+      expect(result).toContain('add_display_item "" "Page 0" GROUP tab');
+      expect(result).toContain('add_display_item "Page 0" "A" PARAMETER');
       // B has no uiPage at all, so it sits at the root rather than under the
       // "Page 0" tab that A explicitly asked for.
       expect(result).toContain('add_display_item "" "B" PARAMETER');
@@ -217,15 +215,11 @@ describe('TemplateLoader', () => {
       expect(result).toContain(
         'set_parameter_property MODE ALLOWED_RANGES { "01" "He said \\"yes\\"" "A\\}B" }'
       );
-      expect(result).toContain('add_display_item "" "ipcraft_page_0" GROUP tab');
-      expect(result).toContain(
-        'set_display_item_property "ipcraft_page_0" DISPLAY_NAME "Config \\"Page\\""'
-      );
-      expect(result).toContain('add_display_item "ipcraft_page_0" "ipcraft_group_0_0" GROUP ""');
-      expect(result).toContain(
-        'set_display_item_property "ipcraft_group_0_0" DISPLAY_NAME "Group\\$x"'
-      );
-      expect(result).toContain('add_display_item "ipcraft_group_0_0" "MODE" PARAMETER');
+      // The group's own escaped text is the id (and thus the visible label)
+      // — there is no DISPLAY_NAME rename to escape separately for GROUP.
+      expect(result).toContain('add_display_item "" "Config \\"Page\\"" GROUP tab');
+      expect(result).toContain('add_display_item "Config \\"Page\\"" "Group\\$x" GROUP ""');
+      expect(result).toContain('add_display_item "Group\\$x" "MODE" PARAMETER');
     });
 
     it('quotes string choices in ALLOWED_RANGES but leaves numeric ones bare', () => {

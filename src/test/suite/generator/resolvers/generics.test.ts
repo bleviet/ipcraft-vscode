@@ -180,26 +180,27 @@ describe('buildParameterLayout', () => {
 });
 
 describe('buildDisplayItems', () => {
-  it('nests a uiGroup inside its uiPage', () => {
+  // Quartus renders a GROUP display item's own id as its visible label — it
+  // does not honor DISPLAY_NAME as a rename target for GROUP items (see the
+  // stub's rejection of that call for GROUP kind). So the id must equal the
+  // authored uiPage/uiGroup text directly, and every item carries an
+  // `_tcl`-escaped copy of both id and parent for safe embedding in the
+  // generated double-quoted Tcl arguments.
+
+  it('nests a uiGroup inside its uiPage, using the authored text as the id', () => {
     const items = buildDisplayItems(
       buildParameterLayout([{ name: 'A', ui_page: 'Config', ui_group: 'Widths' }])
     );
     expect(items).toEqual([
+      { id: 'Config', id_tcl: 'Config', parent: '', parent_tcl: '', kind: 'GROUP' },
       {
-        id: 'ipcraft_page_0',
-        parent: '',
+        id: 'Widths',
+        id_tcl: 'Widths',
+        parent: 'Config',
+        parent_tcl: 'Config',
         kind: 'GROUP',
-        display_name: 'Config',
-        display_name_tcl: 'Config',
       },
-      {
-        id: 'ipcraft_group_0_0',
-        parent: 'ipcraft_page_0',
-        kind: 'GROUP',
-        display_name: 'Widths',
-        display_name_tcl: 'Widths',
-      },
-      { id: 'A', parent: 'ipcraft_group_0_0', kind: 'PARAMETER' },
+      { id: 'A', id_tcl: 'A', parent: 'Widths', parent_tcl: 'Widths', kind: 'PARAMETER' },
     ]);
   });
 
@@ -208,14 +209,8 @@ describe('buildDisplayItems', () => {
       buildParameterLayout([{ name: 'A', ui_page: 'Config', ui_group: '' }])
     );
     expect(items).toEqual([
-      {
-        id: 'ipcraft_page_0',
-        parent: '',
-        kind: 'GROUP',
-        display_name: 'Config',
-        display_name_tcl: 'Config',
-      },
-      { id: 'A', parent: 'ipcraft_page_0', kind: 'PARAMETER' },
+      { id: 'Config', id_tcl: 'Config', parent: '', parent_tcl: '', kind: 'GROUP' },
+      { id: 'A', id_tcl: 'A', parent: 'Config', parent_tcl: 'Config', kind: 'PARAMETER' },
     ]);
   });
 
@@ -223,7 +218,9 @@ describe('buildDisplayItems', () => {
     const items = buildDisplayItems(
       buildParameterLayout([{ name: 'A', ui_page: '', ui_group: '' }])
     );
-    expect(items).toEqual([{ id: 'A', parent: '', kind: 'PARAMETER' }]);
+    expect(items).toEqual([
+      { id: 'A', id_tcl: 'A', parent: '', parent_tcl: '', kind: 'PARAMETER' },
+    ]);
   });
 
   it('upper-cases parameter ids to match add_parameter in the hw.tcl template', () => {
@@ -232,12 +229,25 @@ describe('buildDisplayItems', () => {
     );
     expect(items[1]).toEqual({
       id: 'DATA_WIDTH',
-      parent: 'ipcraft_page_0',
+      id_tcl: 'DATA_WIDTH',
+      parent: 'Config',
+      parent_tcl: 'Config',
       kind: 'PARAMETER',
     });
   });
 
-  it('page-qualifies a group name reused on two pages', () => {
+  it('keeps distinct group labels across pages verbatim, with no qualification', () => {
+    const items = buildDisplayItems(
+      buildParameterLayout([
+        { name: 'A', ui_page: 'Config', ui_group: 'Widths' },
+        { name: 'B', ui_page: 'Timing', ui_group: 'Clocks' },
+      ])
+    );
+    const groups = items.filter((i) => i.kind === 'GROUP');
+    expect(groups.map((i) => i.id)).toEqual(['Config', 'Widths', 'Timing', 'Clocks']);
+  });
+
+  it('disambiguates a group label reused on two pages with a visible qualifier', () => {
     const items = buildDisplayItems(
       buildParameterLayout([
         { name: 'A', ui_page: 'Config', ui_group: 'Advanced' },
@@ -246,75 +256,69 @@ describe('buildDisplayItems', () => {
     );
     const groups = items.filter((i) => i.kind === 'GROUP');
     expect(groups).toEqual([
+      { id: 'Config', id_tcl: 'Config', parent: '', parent_tcl: '', kind: 'GROUP' },
       {
-        id: 'ipcraft_page_0',
-        parent: '',
+        id: 'Advanced',
+        id_tcl: 'Advanced',
+        parent: 'Config',
+        parent_tcl: 'Config',
         kind: 'GROUP',
-        display_name: 'Config',
-        display_name_tcl: 'Config',
       },
+      { id: 'Timing', id_tcl: 'Timing', parent: '', parent_tcl: '', kind: 'GROUP' },
       {
-        id: 'ipcraft_group_0_0',
-        parent: 'ipcraft_page_0',
+        id: 'Advanced (2)',
+        id_tcl: 'Advanced (2)',
+        parent: 'Timing',
+        parent_tcl: 'Timing',
         kind: 'GROUP',
-        display_name: 'Advanced',
-        display_name_tcl: 'Advanced',
-      },
-      {
-        id: 'ipcraft_page_1',
-        parent: '',
-        kind: 'GROUP',
-        display_name: 'Timing',
-        display_name_tcl: 'Timing',
-      },
-      {
-        id: 'ipcraft_group_1_0',
-        parent: 'ipcraft_page_1',
-        kind: 'GROUP',
-        display_name: 'Advanced',
-        display_name_tcl: 'Advanced',
       },
     ]);
-    expect(items.find((i) => i.id === 'B')?.parent).toBe('ipcraft_group_1_0');
+    expect(items.find((i) => i.id === 'B')?.parent).toBe('Advanced (2)');
   });
 
-  it('does not let a group id collide with a parameter name', () => {
+  it('disambiguates a group label that collides with a parameter name', () => {
     const items = buildDisplayItems(
       buildParameterLayout([{ name: 'Advanced', ui_page: 'Config', ui_group: 'Advanced' }])
     );
     expect(items).toEqual([
+      { id: 'Config', id_tcl: 'Config', parent: '', parent_tcl: '', kind: 'GROUP' },
       {
-        id: 'ipcraft_page_0',
-        parent: '',
+        id: 'Advanced (2)',
+        id_tcl: 'Advanced (2)',
+        parent: 'Config',
+        parent_tcl: 'Config',
         kind: 'GROUP',
-        display_name: 'Config',
-        display_name_tcl: 'Config',
       },
       {
-        id: 'ipcraft_group_0_0',
-        parent: 'ipcraft_page_0',
-        kind: 'GROUP',
-        display_name: 'Advanced',
-        display_name_tcl: 'Advanced',
+        id: 'ADVANCED',
+        id_tcl: 'ADVANCED',
+        parent: 'Advanced (2)',
+        parent_tcl: 'Advanced (2)',
+        kind: 'PARAMETER',
       },
-      { id: 'ADVANCED', parent: 'ipcraft_group_0_0', kind: 'PARAMETER' },
     ]);
   });
 
-  it('suffixes an internal id that collides with a parameter name', () => {
+  it('disambiguates a page label that collides with a parameter name', () => {
     const items = buildDisplayItems(
-      buildParameterLayout([{ name: 'IPCRAFT_PAGE_0', ui_page: 'Config', ui_group: '' }])
+      buildParameterLayout([{ name: 'Config', ui_page: 'Config', ui_group: '' }])
     );
-    expect(items[0]).toMatchObject({
-      id: 'ipcraft_page_0_2',
-      display_name: 'Config',
-      kind: 'GROUP',
-    });
-    expect(items[1]).toEqual({
-      id: 'IPCRAFT_PAGE_0',
-      parent: 'ipcraft_page_0_2',
-      kind: 'PARAMETER',
-    });
+    expect(items).toEqual([
+      {
+        id: 'Config (2)',
+        id_tcl: 'Config (2)',
+        parent: '',
+        parent_tcl: '',
+        kind: 'GROUP',
+      },
+      {
+        id: 'CONFIG',
+        id_tcl: 'CONFIG',
+        parent: 'Config (2)',
+        parent_tcl: 'Config (2)',
+        kind: 'PARAMETER',
+      },
+    ]);
   });
 
   it('escapes a uiPage/uiGroup name for Tcl double-quoted embedding, consistently across id and parent', () => {
@@ -323,38 +327,26 @@ describe('buildDisplayItems', () => {
     );
     expect(items).toEqual([
       {
-        id: 'ipcraft_page_0',
+        id: 'Config "Page"',
+        id_tcl: 'Config \\"Page\\"',
         parent: '',
+        parent_tcl: '',
         kind: 'GROUP',
-        display_name: 'Config "Page"',
-        display_name_tcl: 'Config \\"Page\\"',
       },
       {
-        id: 'ipcraft_group_0_0',
-        parent: 'ipcraft_page_0',
+        id: 'Group$x',
+        id_tcl: 'Group\\$x',
+        parent: 'Config "Page"',
+        parent_tcl: 'Config \\"Page\\"',
         kind: 'GROUP',
-        display_name: 'Group$x',
-        display_name_tcl: 'Group\\$x',
       },
-      { id: 'A', parent: 'ipcraft_group_0_0', kind: 'PARAMETER' },
+      {
+        id: 'A',
+        id_tcl: 'A',
+        parent: 'Group$x',
+        parent_tcl: 'Group\\$x',
+        kind: 'PARAMETER',
+      },
     ]);
-  });
-
-  it('keeps repeated group labels while assigning globally unique internal ids', () => {
-    const items = buildDisplayItems(
-      buildParameterLayout([
-        { name: 'A', ui_page: 'Config', ui_group: 'A$B' },
-        { name: 'B', ui_page: 'Timing', ui_group: 'A$B' },
-      ])
-    );
-    const groups = items.filter((i) => i.kind === 'GROUP');
-    expect(groups.map((i) => i.id)).toEqual([
-      'ipcraft_page_0',
-      'ipcraft_group_0_0',
-      'ipcraft_page_1',
-      'ipcraft_group_1_0',
-    ]);
-    expect(groups.map((i) => i.display_name)).toEqual(['Config', 'A$B', 'Timing', 'A$B']);
-    expect(groups.map((i) => i.display_name_tcl)).toEqual(['Config', 'A\\$B', 'Timing', 'A\\$B']);
   });
 });
