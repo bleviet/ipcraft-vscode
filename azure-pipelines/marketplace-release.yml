@@ -1,0 +1,264 @@
+trigger: none
+pr: none
+
+parameters:
+  - name: publish
+    displayName: Publish after verification
+    type: boolean
+    default: false
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Verify
+    displayName: Verify and package
+    jobs:
+      - job: Package
+        displayName: Verify release and package VSIX
+        steps:
+          - checkout: self
+            submodules: recursive
+            fetchDepth: 0
+            fetchTags: true
+
+          - task: NodeTool@0
+            displayName: Use Node.js 20
+            inputs:
+              versionSpec: 20.x
+
+          - script: npm ci
+            displayName: Install pinned dependencies
+
+          - script: npm run check:marketplace-release
+            displayName: Check Marketplace release contract
+
+          - script: npm run docs:links
+            displayName: Check documentation links
+
+          - script: npm run lint
+            displayName: Lint
+
+          - script: npm run type-check
+            displayName: Type-check
+
+          - script: npm run compile
+            displayName: Compile extension
+
+          - script: npm run compile-tests
+            displayName: Compile E2E tests
+
+          - script: npm run check:cli-distribution
+            displayName: Check CLI distribution
+
+          - script: npm run test:cli-package
+            displayName: Test CLI package
+
+          - script: npm run test:unit -- --coverage
+            displayName: Run unit tests with coverage
+
+          - script: |
+              set -euo pipefail
+              RELEASE_VERSION="${BUILD_SOURCEBRANCH#refs/tags/v}"
+              VSIX_PATH="$(Build.ArtifactStagingDirectory)/ipcraft-vscode-${RELEASE_VERSION}.vsix"
+              npx vsce package "$RELEASE_VERSION" --out "$VSIX_PATH"
+              npm run check:vsix -- "$VSIX_PATH"
+              cd "$(Build.ArtifactStagingDirectory)"
+              sha256sum "ipcraft-vscode-${RELEASE_VERSION}.vsix" > "ipcraft-vscode-${RELEASE_VERSION}.vsix.sha256"
+              echo "##vso[task.setvariable variable=releaseVersion;isOutput=true]$RELEASE_VERSION"
+            name: release
+            displayName: Package and checksum release VSIX
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish release artifact
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)
+              artifact: ipcraft-vscode-vsix
+              publishLocation: pipeline
+
+  - stage: Smoke
+    displayName: Smoke-test packaged VSIX
+    dependsOn:
+      - Verify
+    condition: succeeded()
+    variables:
+      releaseVersion: $[ stageDependencies.Verify.Package.outputs['release.releaseVersion'] ]
+    jobs:
+      - job: MinimumVSCode
+        displayName: VS Code 1.80.0 smoke test
+        steps:
+          - checkout: self
+            submodules: recursive
+
+          - task: NodeTool@0
+            displayName: Use Node.js 20
+            inputs:
+              versionSpec: 20.x
+
+          - script: npm ci
+            displayName: Install pinned dependencies
+
+          - task: DownloadPipelineArtifact@2
+            displayName: Download release artifact
+            inputs:
+              buildType: current
+              artifactName: ipcraft-vscode-vsix
+              targetPath: $(Pipeline.Workspace)/ipcraft-vscode-vsix
+
+          - script: sha256sum --check "ipcraft-vscode-$(releaseVersion).vsix.sha256"
+            displayName: Verify release artifact checksum
+            workingDirectory: $(Pipeline.Workspace)/ipcraft-vscode-vsix
+
+          - script: npm run check:vscode-compatibility
+            displayName: Check VS Code compatibility contract
+
+          - script: npm run compile-tests
+            displayName: Compile E2E tests
+
+          - script: xvfb-run -a npm run test:e2e
+            displayName: Smoke-test minimum VS Code
+            env:
+              VSCODE_TEST_VERSION: 1.80.0
+              VSIX_PATH: $(Pipeline.Workspace)/ipcraft-vscode-vsix/ipcraft-vscode-$(releaseVersion).vsix
+
+      - job: StableVSCode
+        displayName: Stable VS Code smoke test
+        steps:
+          - checkout: self
+            submodules: recursive
+
+          - task: NodeTool@0
+            displayName: Use Node.js 20
+            inputs:
+              versionSpec: 20.x
+
+          - script: npm ci
+            displayName: Install pinned dependencies
+
+          - task: DownloadPipelineArtifact@2
+            displayName: Download release artifact
+            inputs:
+              buildType: current
+              artifactName: ipcraft-vscode-vsix
+              targetPath: $(Pipeline.Workspace)/ipcraft-vscode-vsix
+
+          - script: sha256sum --check "ipcraft-vscode-$(releaseVersion).vsix.sha256"
+            displayName: Verify release artifact checksum
+            workingDirectory: $(Pipeline.Workspace)/ipcraft-vscode-vsix
+
+          - script: npm run check:vscode-compatibility
+            displayName: Check VS Code compatibility contract
+
+          - script: npm run compile-tests
+            displayName: Compile E2E tests
+
+          - script: xvfb-run -a npm run test:e2e
+            displayName: Smoke-test stable VS Code
+            env:
+              VSCODE_TEST_VERSION: stable
+              VSIX_PATH: $(Pipeline.Workspace)/ipcraft-vscode-vsix/ipcraft-vscode-$(releaseVersion).vsix
+
+  - stage: Publish
+    displayName: Publish to VS Code Marketplace
+    dependsOn:
+      - Verify
+      - Smoke
+    condition: and(succeeded(), ${{ eq(parameters.publish, true) }})
+    variables:
+      releaseVersion: $[ stageDependencies.Verify.Package.outputs['release.releaseVersion'] ]
+    jobs:
+      - deployment: PublishMarketplace
+        displayName: Publish verified VSIX
+        environment: vscode-marketplace
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  submodules: recursive
+
+                - download: none
+
+                - task: NodeTool@0
+                  displayName: Use Node.js 20
+                  inputs:
+                    versionSpec: 20.x
+
+                - script: npm ci
+                  displayName: Install pinned dependencies
+
+                - task: DownloadPipelineArtifact@2
+                  displayName: Download release artifact
+                  inputs:
+                    buildType: current
+                    artifactName: ipcraft-vscode-vsix
+                    targetPath: $(Pipeline.Workspace)/ipcraft-vscode-vsix
+
+                - script: sha256sum --check "ipcraft-vscode-$(releaseVersion).vsix.sha256"
+                  displayName: Verify release artifact checksum
+                  workingDirectory: $(Pipeline.Workspace)/ipcraft-vscode-vsix
+
+                - task: AzureCLI@2
+                  displayName: Publish verified VSIX
+                  inputs:
+                    azureSubscription: vscode-marketplace-entra
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: npx vsce publish --packagePath "$VSIX_PATH" --azure-credential
+                  env:
+                    VSIX_PATH: $(Pipeline.Workspace)/ipcraft-vscode-vsix/ipcraft-vscode-$(releaseVersion).vsix
+
+  - stage: PostPublish
+    displayName: Verify published Marketplace package
+    dependsOn:
+      - Verify
+      - Publish
+    condition: succeeded()
+    variables:
+      releaseVersion: $[ stageDependencies.Verify.Package.outputs['release.releaseVersion'] ]
+    jobs:
+      - job: VerifyMarketplace
+        displayName: Verify Marketplace listing and package
+        steps:
+          - checkout: self
+            submodules: recursive
+
+          - task: NodeTool@0
+            displayName: Use Node.js 20
+            inputs:
+              versionSpec: 20.x
+
+          - script: mkdir -p "$(Pipeline.Workspace)/marketplace-verification"
+            displayName: Prepare diagnostics directory
+
+          - script: npm ci
+            displayName: Install pinned dependencies
+
+          - script: npm run compile-tests
+            displayName: Compile E2E tests
+
+          - script: |
+              set -euo pipefail
+              npm run verify:marketplace-release -- --version "$RELEASE_VERSION" --out "$MARKETPLACE_VSIX" 2>&1 | tee "$DIAGNOSTICS_DIRECTORY/marketplace-verification.log"
+            displayName: Download and verify Marketplace VSIX
+            env:
+              RELEASE_VERSION: $(releaseVersion)
+              MARKETPLACE_VSIX: $(Pipeline.Workspace)/marketplace-verification/ipcraft-vscode-$(releaseVersion).vsix
+              DIAGNOSTICS_DIRECTORY: $(Pipeline.Workspace)/marketplace-verification
+
+          - script: |
+              set -euo pipefail
+              xvfb-run -a npm run test:e2e 2>&1 | tee "$DIAGNOSTICS_DIRECTORY/marketplace-e2e.log"
+            displayName: Smoke-test published Marketplace VSIX
+            env:
+              VSCODE_TEST_VERSION: stable
+              VSIX_PATH: $(Pipeline.Workspace)/marketplace-verification/ipcraft-vscode-$(releaseVersion).vsix
+              DIAGNOSTICS_DIRECTORY: $(Pipeline.Workspace)/marketplace-verification
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Marketplace verification diagnostics
+            condition: always()
+            inputs:
+              targetPath: $(Pipeline.Workspace)/marketplace-verification
+              artifact: marketplace-release-diagnostics
+              publishLocation: pipeline

@@ -75,17 +75,69 @@ function readArchive(archivePath) {
       }
 
       const entries = [];
+      let manifest;
+      let settled = false;
+      const fail = (error) => {
+        if (!settled) {
+          settled = true;
+          reject(error);
+        }
+      };
       zipFile.on('entry', (entry) => {
         if (!entry.fileName.endsWith('/')) {
           entries.push({ name: entry.fileName, size: entry.uncompressedSize });
         }
-        zipFile.readEntry();
+
+        if (entry.fileName !== 'extension/package.json') {
+          zipFile.readEntry();
+          return;
+        }
+
+        zipFile.openReadStream(entry, (streamError, stream) => {
+          if (streamError) {
+            fail(streamError);
+            return;
+          }
+
+          const chunks = [];
+          stream.on('data', (chunk) => chunks.push(chunk));
+          stream.on('error', fail);
+          stream.on('end', () => {
+            try {
+              manifest = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+              zipFile.readEntry();
+            } catch (error) {
+              fail(error);
+            }
+          });
+        });
       });
-      zipFile.on('end', () => resolve(entries));
-      zipFile.on('error', reject);
+      zipFile.on('end', () => {
+        if (settled) return;
+        if (!manifest) {
+          fail(new Error('VSIX is missing extension/package.json'));
+          return;
+        }
+        settled = true;
+        resolve({ entries, manifest });
+      });
+      zipFile.on('error', fail);
       zipFile.readEntry();
     });
   });
+}
+
+function validateManifest(manifest, archiveFiles) {
+  const errors = [];
+  if (manifest.license !== 'SEE LICENSE IN LICENSE') {
+    errors.push('extension/package.json must declare SEE LICENSE IN LICENSE');
+  }
+  if (!archiveFiles.has('extension/LICENSE.txt')) {
+    errors.push('VSIX is missing extension/LICENSE.txt');
+  }
+  if (errors.length > 0) {
+    throw new Error(errors.join('\n'));
+  }
 }
 
 async function main() {
@@ -93,8 +145,9 @@ async function main() {
     throw new Error(`VSIX not found: ${vsixPath}`);
   }
 
-  const entries = await readArchive(vsixPath);
+  const { entries, manifest } = await readArchive(vsixPath);
   const archiveFiles = new Set(entries.map((entry) => entry.name));
+  validateManifest(manifest, archiveFiles);
   const duplicateFiles = entries
     .map((entry) => entry.name)
     .filter((name, index, names) => names.indexOf(name) !== index);
@@ -144,7 +197,11 @@ async function main() {
   process.stdout.write('VSIX contents and size are within the production contract.\n');
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { validateManifest };
