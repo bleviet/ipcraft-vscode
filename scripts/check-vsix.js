@@ -11,6 +11,8 @@ const exactAllowedFiles = new Set([
   '[Content_Types].xml',
   'extension.vsixmanifest',
   'extension/LICENSE.txt',
+  'extension/SECURITY.md',
+  'extension/SUPPORT.md',
   'extension/changelog.md',
   'extension/package.json',
   'extension/readme.md',

@@ -1,0 +1,56 @@
+name: Bug report
+description: Something in IPCraft works differently than documented, or crashes.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please search [existing issues](https://github.com/bleviet/ipcraft-vscode/issues) first to avoid duplicates.
+
+        **Security vulnerability?** Do not file it here — use [private vulnerability reporting](https://github.com/bleviet/ipcraft-vscode/security/advisories/new) instead (see [SECURITY.md](https://github.com/bleviet/ipcraft-vscode/blob/main/SECURITY.md)).
+  - type: input
+    id: ipcraft-version
+    attributes:
+      label: IPCraft version
+      description: Extensions view > IPCraft > gear icon, or `version` in package.json
+      placeholder: "0.9.9"
+    validations:
+      required: true
+  - type: input
+    id: vscode-version
+    attributes:
+      label: VS Code version
+      description: Help > About
+      placeholder: "1.9x.x"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps, starting from a new/empty workspace if possible.
+      placeholder: |
+        1. Run `IPCraft: New IP Core`
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: spec
+    attributes:
+      label: Minimal .ip.yml / .mm.yml that reproduces the issue
+      description: The smallest spec that shows the problem. This is the single most useful thing you can attach.
+      render: yaml
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include any error messages from the Extension Host output channel or webview devtools console.
+    validations:
+      required: true

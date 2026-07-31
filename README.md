@@ -134,7 +134,16 @@ npm run lint         # ESLint (zero warnings)
 npm run type-check   # TypeScript check
 ```
 
-See [Development Setup](docs/getting-started/development.md) for the full contributor workflow.
+See [Development Setup](docs/getting-started/development.md) for the full contributor workflow, and [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, lint/type-check/test, and PR checklist.
+
+---
+
+## Community
+
+- [Contributing Guide](CONTRIBUTING.md) — setup, coding conventions, and test expectations
+- [Support](SUPPORT.md) — where to ask usage questions, file bugs, or request features
+- [Security Policy](SECURITY.md) — how to privately report a vulnerability
+- [Code of Conduct](CODE_OF_CONDUCT.md) — expected behavior in this project's spaces
 
 ---
 
