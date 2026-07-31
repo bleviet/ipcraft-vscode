@@ -1,0 +1,24 @@
+name: Question / support
+description: Ask how to do something in IPCraft, or why it behaves a certain way.
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [documentation](https://bleviet.github.io/ipcraft-vscode/) first — most workflows have a how-to guide. If it doesn't answer your question, fill this in. See [SUPPORT.md](https://github.com/bleviet/ipcraft-vscode/blob/main/SUPPORT.md) for how support requests are triaged.
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to do?
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you already tried?
+      description: Docs pages checked, approaches attempted, etc.
+  - type: input
+    id: ipcraft-version
+    attributes:
+      label: IPCraft version
+      placeholder: "0.9.9"

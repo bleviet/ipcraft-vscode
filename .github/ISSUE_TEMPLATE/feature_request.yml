@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest an improvement or new capability for IPCraft.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. Please search [existing issues](https://github.com/bleviet/ipcraft-vscode/issues) first to avoid duplicates.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the underlying workflow or limitation, not just the requested implementation — there may already be a supported way to do this.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would you like IPCraft to do? Include a sketch of the `.ip.yml`/`.mm.yml` shape or UI if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workarounds you're using today, or other approaches you considered.
