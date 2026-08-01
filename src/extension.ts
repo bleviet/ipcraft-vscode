@@ -20,6 +20,8 @@ import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
 import { openInVivadoCommand } from './commands/openInVivado';
 import { openInQuartusCommand } from './commands/openInQuartus';
+import { selectVivadoVersionCommand } from './commands/selectVivadoVersion';
+import { selectQuartusVersionCommand } from './commands/selectQuartusVersion';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { scanVivadoInterfacesCommand } from './commands/scanVivadoInterfaces';
 import { scanWorkspaceBusDefinitionsCommand } from './commands/scanWorkspaceBusDefinitions';
@@ -175,6 +177,8 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand, {
     requiresWorkspaceTrust: true,
   });
+  safeRegisterCommand(context, 'fpga-ip-core.selectVivadoVersion', selectVivadoVersionCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.selectQuartusVersion', selectQuartusVersionCommand);
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand, {
     requiresWorkspaceTrust: true,
   });

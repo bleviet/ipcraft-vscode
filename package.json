@@ -279,6 +279,16 @@
         "enablement": "isWorkspaceTrusted && ipcraft.quartusFound"
       },
       {
+        "command": "fpga-ip-core.selectVivadoVersion",
+        "title": "Select Vivado Version",
+        "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.selectQuartusVersion",
+        "title": "Select Quartus Version",
+        "category": "IPCraft"
+      },
+      {
         "command": "fpga-ip-core.vivadoNotConfigured",
         "title": "Vivado Not Found — Click to Configure",
         "category": "IPCraft",
@@ -516,12 +526,22 @@
           "group": "5_import@6"
         },
         {
+          "command": "fpga-ip-core.selectVivadoVersion",
+          "when": "resourceExtname == .xpr && ipcraft.vivadoFound",
+          "group": "5_import@6"
+        },
+        {
           "command": "fpga-ip-core.vivadoNotConfigured",
           "when": "resourceExtname == .xpr && !ipcraft.vivadoFound",
           "group": "5_import@6"
         },
         {
           "command": "fpga-ip-core.openInQuartus",
+          "when": "resourceExtname == .qpf && ipcraft.quartusFound",
+          "group": "5_import@7"
+        },
+        {
+          "command": "fpga-ip-core.selectQuartusVersion",
           "when": "resourceExtname == .qpf && ipcraft.quartusFound",
           "group": "5_import@7"
         },
@@ -613,12 +633,22 @@
           "group": "navigation"
         },
         {
+          "command": "fpga-ip-core.selectVivadoVersion",
+          "when": "resourceExtname == .xpr && ipcraft.vivadoFound",
+          "group": "navigation"
+        },
+        {
           "command": "fpga-ip-core.vivadoNotConfigured",
           "when": "resourceExtname == .xpr && !ipcraft.vivadoFound",
           "group": "navigation"
         },
         {
           "command": "fpga-ip-core.openInQuartus",
+          "when": "resourceExtname == .qpf && ipcraft.quartusFound",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.selectQuartusVersion",
           "when": "resourceExtname == .qpf && ipcraft.quartusFound",
           "group": "navigation"
         },
@@ -761,7 +791,15 @@
           "when": "resourceExtname == .xpr && ipcraft.vivadoFound"
         },
         {
+          "command": "fpga-ip-core.selectVivadoVersion",
+          "when": "resourceExtname == .xpr && ipcraft.vivadoFound"
+        },
+        {
           "command": "fpga-ip-core.openInQuartus",
+          "when": "resourceExtname == .qpf && ipcraft.quartusFound"
+        },
+        {
+          "command": "fpga-ip-core.selectQuartusVersion",
           "when": "resourceExtname == .qpf && ipcraft.quartusFound"
         },
         {
