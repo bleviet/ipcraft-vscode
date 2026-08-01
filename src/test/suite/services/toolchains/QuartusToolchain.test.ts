@@ -130,16 +130,25 @@ describe('QuartusToolchain', () => {
     expect(tc.isAvailable(cfg)).toBe(true);
   });
 
-  it('isAvailable() returns true when installDirs resolves at least one version', () => {
-    mockResolveQuartusVersions.mockReturnValue([{ version: '23.1', installDir: '/opt/23.1' }]);
-    const cfg = makeCfg({ 'quartus.runner': 'local', 'quartus.installDirs': ['/opt/intelFPGA'] });
+  it('isAvailable() directly finds quartus_sh in configured installDirs without resolving versions', () => {
+    mockFindInInstallDir.mockImplementation((toolName: string, installDir: string) =>
+      toolName === 'quartus_sh' && installDir === '/opt/intelFPGA/23.1'
+        ? '/opt/intelFPGA/23.1/quartus/bin/quartus_sh'
+        : null
+    );
+    const cfg = makeCfg({
+      'quartus.runner': 'local',
+      'quartus.installDirs': ['/opt/intelFPGA/22.1', '/opt/intelFPGA/23.1'],
+    });
     expect(tc.isAvailable(cfg)).toBe(true);
-    expect(mockResolveQuartusVersions).toHaveBeenCalledWith(['/opt/intelFPGA']);
+    expect(mockFindInInstallDir).toHaveBeenNthCalledWith(1, 'quartus_sh', '/opt/intelFPGA/22.1');
+    expect(mockFindInInstallDir).toHaveBeenNthCalledWith(2, 'quartus_sh', '/opt/intelFPGA/23.1');
+    expect(mockResolveQuartusVersions).not.toHaveBeenCalled();
     expect(mockSpawnSync).not.toHaveBeenCalled();
   });
 
-  it('isAvailable() returns false when installDirs is set but nothing resolves', () => {
-    mockResolveQuartusVersions.mockReturnValue([]);
+  it('isAvailable() returns false when installDirs is set but quartus_sh is not found', () => {
+    mockFindInInstallDir.mockReturnValue(null);
     mockSpawnSync.mockReturnValue({ status: 0 });
     const cfg = makeCfg({ 'quartus.runner': 'local', 'quartus.installDirs': ['/nope'] });
     // installDirs is authoritative once set — it does not silently fall through
@@ -378,13 +387,17 @@ describe('QuartusToolchain', () => {
 
     it('uses the detection-time preferred version for a local build', async () => {
       mockGetQuartusTool.mockReturnValue('/opt/23.1/quartus/bin/quartus_sh');
+      const resolve = jest.spyOn(tc, 'resolve').mockReturnValue({
+        exe: '/opt/23.1/quartus/bin/quartus_sh',
+        prefixArgs: [],
+      });
       mockRunProcess.mockResolvedValue({ success: false });
       const cfg = makeCfg({ 'quartus.runner': 'local' });
       const [mode] = await tc.detectBuildModes('foo', '/ip', cfg, outputChannel, '23.1');
 
       await mode.run();
 
-      expect(mockGetQuartusTool).toHaveBeenLastCalledWith(cfg, 'quartus_sh', '23.1');
+      expect(resolve).toHaveBeenLastCalledWith('quartus_sh', cfg, '23.1');
       expect(mockRunProcess).toHaveBeenCalledWith(
         '/opt/23.1/quartus/bin/quartus_sh',
         expect.any(Array),
@@ -539,13 +552,20 @@ describe('QuartusToolchain subTools', () => {
     expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(false);
   });
 
-  it('finds qsys-edit in a configured multi-version local install', () => {
-    mockResolveQuartusVersions.mockReturnValue([{ version: '23.1', installDir: '/opt/23.1' }]);
-    mockFindInInstallDir.mockReturnValue('/opt/23.1/quartus/sopc_builder/bin/qsys-edit');
-    const cfg = makeCfg({ 'quartus.installDirs': ['/opt/23.1'] });
+  it('directly finds qsys-edit in configured installDirs without resolving versions', () => {
+    mockFindInInstallDir.mockImplementation((toolName: string, installDir: string) =>
+      toolName === 'qsys-edit' && installDir === '/opt/intelFPGA/23.1'
+        ? '/opt/intelFPGA/23.1/quartus/sopc_builder/bin/qsys-edit'
+        : null
+    );
+    const cfg = makeCfg({
+      'quartus.installDirs': ['/opt/intelFPGA/22.1', '/opt/intelFPGA/23.1'],
+    });
 
     expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(true);
-    expect(mockFindInInstallDir).toHaveBeenCalledWith('qsys-edit', '/opt/23.1');
+    expect(mockFindInInstallDir).toHaveBeenNthCalledWith(1, 'qsys-edit', '/opt/intelFPGA/22.1');
+    expect(mockFindInInstallDir).toHaveBeenNthCalledWith(2, 'qsys-edit', '/opt/intelFPGA/23.1');
+    expect(mockResolveQuartusVersions).not.toHaveBeenCalled();
   });
 
   it('finds qsys-edit when a Docker multi-version image is configured', () => {

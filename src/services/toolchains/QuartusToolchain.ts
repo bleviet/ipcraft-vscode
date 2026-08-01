@@ -5,11 +5,7 @@ import * as yaml from 'js-yaml';
 import type * as vscode from 'vscode';
 import { parseQuartusReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
-import {
-  findInInstallDir,
-  getQuartusTool,
-  resolveQuartusVersions,
-} from '../../utils/quartusResolver';
+import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
 import { normalizeBusType } from '../../generator/registerProcessor';
@@ -278,9 +274,7 @@ export class QuartusToolchain implements SynthesisToolchain {
     }
     const installDirs = cfg.get<string[]>('quartus.installDirs', []);
     if (installDirs.length > 0) {
-      return resolveQuartusVersions(installDirs).some(
-        ({ installDir }) => findInInstallDir(toolName, installDir) !== null
-      );
+      return installDirs.some((installDir) => findInInstallDir(toolName, installDir) !== null);
     }
     const installDir = cfg.get<string>('quartus.installDir', '').trim();
     if (installDir) {
@@ -310,7 +304,7 @@ export class QuartusToolchain implements SynthesisToolchain {
     }
     const installDirs = cfg.get<string[]>('quartus.installDirs', []);
     if (installDirs.length > 0) {
-      return resolveQuartusVersions(installDirs).length > 0;
+      return installDirs.some((installDir) => findInInstallDir('quartus_sh', installDir) !== null);
     }
     const installDir = cfg.get<string>('quartus.installDir', '').trim();
     if (installDir) {
@@ -483,12 +477,15 @@ export class QuartusToolchain implements SynthesisToolchain {
         buildDir,
         run: async (runPreferredVersion = preferredVersion) => {
           const docker = this.getDocker(cfg, mountBase, runPreferredVersion);
-          const quartusExe = docker
-            ? 'quartus_sh'
-            : getQuartusTool(cfg, 'quartus_sh', runPreferredVersion);
+          const launcher = resolveExecutionLauncher(docker, 'quartus_sh', () =>
+            this.resolve('quartus_sh', cfg, runPreferredVersion)
+          );
+          if (!launcher) {
+            return undefined;
+          }
           await fsAsync.mkdir(buildDir, { recursive: true });
 
-          const step1 = await runProcess(quartusExe, ['-t', projectTcl], {
+          const step1 = await runProcess(launcher.exe, ['-t', projectTcl], {
             cwd: buildDir,
             outputChannel,
             docker,
@@ -499,7 +496,7 @@ export class QuartusToolchain implements SynthesisToolchain {
             return undefined;
           }
 
-          const step2 = await runProcess(quartusExe, ['--flow', 'compile', name], {
+          const step2 = await runProcess(launcher.exe, ['--flow', 'compile', name], {
             cwd: buildDir,
             outputChannel,
             docker,

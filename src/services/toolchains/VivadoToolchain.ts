@@ -9,11 +9,7 @@ import {
 } from '../../generator/VivadoComponentXmlGenerator';
 import { parseVivadoReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
-import {
-  findVivadoInInstallDir,
-  getVivadoLauncher,
-  resolveVivadoVersions,
-} from '../../utils/vivadoResolver';
+import { findVivadoInInstallDir, getVivadoLauncher } from '../../utils/vivadoResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
 import {
@@ -57,7 +53,7 @@ export class VivadoToolchain implements SynthesisToolchain {
     }
     const installDirs = cfg.get<string[]>('vivado.installDirs', []);
     if (installDirs.length > 0) {
-      return resolveVivadoVersions(installDirs).length > 0;
+      return installDirs.some((installDir) => findVivadoInInstallDir(installDir) !== null);
     }
     const installDir = cfg.get<string>('vivado.installDir', '').trim();
     if (installDir) {
@@ -222,9 +218,12 @@ export class VivadoToolchain implements SynthesisToolchain {
         buildDir,
         run: async (runPreferredVersion = preferredVersion) => {
           const docker = this.getDocker(cfg, ipDir, runPreferredVersion);
-          const launcher = docker
-            ? { exe: 'vivado', prefixArgs: [] }
-            : getVivadoLauncher(cfg, runPreferredVersion);
+          const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
+            this.resolve('vivado', cfg, runPreferredVersion)
+          );
+          if (!launcher) {
+            return undefined;
+          }
           const result = await runProcess(
             launcher.exe,
             [
@@ -255,9 +254,12 @@ export class VivadoToolchain implements SynthesisToolchain {
         buildDir,
         run: async (runPreferredVersion = preferredVersion) => {
           const docker = this.getDocker(cfg, ipDir, runPreferredVersion);
-          const launcher = docker
-            ? { exe: 'vivado', prefixArgs: [] }
-            : getVivadoLauncher(cfg, runPreferredVersion);
+          const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
+            this.resolve('vivado', cfg, runPreferredVersion)
+          );
+          if (!launcher) {
+            return undefined;
+          }
           const result = await runProcess(
             launcher.exe,
             [
