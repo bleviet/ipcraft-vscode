@@ -177,8 +177,12 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand, {
     requiresWorkspaceTrust: true,
   });
-  safeRegisterCommand(context, 'fpga-ip-core.selectVivadoVersion', selectVivadoVersionCommand);
-  safeRegisterCommand(context, 'fpga-ip-core.selectQuartusVersion', selectQuartusVersionCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.selectVivadoVersion', selectVivadoVersionCommand, {
+    requiresWorkspaceTrust: true,
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.selectQuartusVersion', selectQuartusVersionCommand, {
+    requiresWorkspaceTrust: true,
+  });
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand, {
     requiresWorkspaceTrust: true,
   });

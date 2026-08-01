@@ -281,12 +281,14 @@
       {
         "command": "fpga-ip-core.selectVivadoVersion",
         "title": "Select Vivado Version",
-        "category": "IPCraft"
+        "category": "IPCraft",
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
       },
       {
         "command": "fpga-ip-core.selectQuartusVersion",
         "title": "Select Quartus Version",
-        "category": "IPCraft"
+        "category": "IPCraft",
+        "enablement": "isWorkspaceTrusted && ipcraft.quartusFound"
       },
       {
         "command": "fpga-ip-core.vivadoNotConfigured",
