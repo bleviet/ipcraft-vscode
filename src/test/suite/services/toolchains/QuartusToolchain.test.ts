@@ -27,6 +27,7 @@ jest.mock('../../../../services/toolchains/toolchainVersionDetector');
 
 const mockFindInInstallDir = quartusResolver.findInInstallDir as jest.Mock;
 const mockGetQuartusTool = quartusResolver.getQuartusTool as jest.Mock;
+const mockResolveQuartusVersions = quartusResolver.resolveQuartusVersions as jest.Mock;
 const mockFileExists = fsHelpers.fileExists as jest.Mock;
 const mockRunProcess = buildRunner.runProcess as jest.Mock;
 const mockMkdir = fsPromises.mkdir as jest.Mock;
@@ -117,6 +118,32 @@ describe('QuartusToolchain', () => {
 
   it('isAvailable() returns false when docker runner has no image', () => {
     const cfg = makeCfg({ 'quartus.runner': 'docker', 'quartus.dockerImage': '' });
+    expect(tc.isAvailable(cfg)).toBe(false);
+  });
+
+  it('isAvailable() returns true when dockerImages is populated for the docker runner', () => {
+    const cfg = makeCfg({
+      'quartus.runner': 'docker',
+      'quartus.dockerImages': [{ label: '23.1', image: 'my/quartus:23.1' }],
+      'quartus.dockerImage': '',
+    });
+    expect(tc.isAvailable(cfg)).toBe(true);
+  });
+
+  it('isAvailable() returns true when installDirs resolves at least one version', () => {
+    mockResolveQuartusVersions.mockReturnValue([{ version: '23.1', installDir: '/opt/23.1' }]);
+    const cfg = makeCfg({ 'quartus.runner': 'local', 'quartus.installDirs': ['/opt/intelFPGA'] });
+    expect(tc.isAvailable(cfg)).toBe(true);
+    expect(mockResolveQuartusVersions).toHaveBeenCalledWith(['/opt/intelFPGA']);
+    expect(mockSpawnSync).not.toHaveBeenCalled();
+  });
+
+  it('isAvailable() returns false when installDirs is set but nothing resolves', () => {
+    mockResolveQuartusVersions.mockReturnValue([]);
+    mockSpawnSync.mockReturnValue({ status: 0 });
+    const cfg = makeCfg({ 'quartus.runner': 'local', 'quartus.installDirs': ['/nope'] });
+    // installDirs is authoritative once set — it does not silently fall through
+    // to the legacy installDir/dockerImage/PATH probes.
     expect(tc.isAvailable(cfg)).toBe(false);
   });
 
@@ -243,11 +270,59 @@ describe('QuartusToolchain', () => {
       const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel, '23.1');
 
       expect(ok).toBe(true);
-      expect(detector.writeSidecar).toHaveBeenCalledWith(path.join('/ip', 'altera'), {
+      // quartus_sh runs with cwd: altera/build, so `project_new` puts the .qpf
+      // there — detectQuartusProjectVersion() reads the sidecar from the .qpf's
+      // own directory, so it must be written to altera/build, not altera/.
+      expect(detector.writeSidecar).toHaveBeenCalledWith(path.join('/ip', 'altera', 'build'), {
         vendor: 'quartus',
         version: '23.1',
         sourcePath: '/opt/quartus/bin/quartus_sh',
       });
+    });
+
+    it('writes the sidecar where detectQuartusProjectVersion() actually reads it (cross-module)', async () => {
+      // Regression guard for the write-side/read-side path mismatch: the
+      // toolchain wrote the sidecar to altera/ while the detector looks for it
+      // next to the .qpf (altera/build/), so auto-detection never fired.
+      const realDetector = jest.requireActual<typeof detector>(
+        '../../../../services/toolchains/toolchainVersionDetector'
+      );
+      const realFsPromises = jest.requireActual<typeof fsPromises>('fs/promises');
+      // fs/promises is auto-mocked in this file; the real detector needs real IO.
+      (fsPromises.writeFile as jest.Mock).mockImplementation(realFsPromises.writeFile);
+      (fsPromises.readFile as jest.Mock).mockImplementation(realFsPromises.readFile);
+
+      const ipDir = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-quartus-sidecar-'));
+      try {
+        mockFileExists.mockResolvedValue(true);
+        mockGetQuartusTool.mockReturnValue('/opt/quartus/bin/quartus_sh');
+        mockRunProcess.mockResolvedValue({ success: true });
+
+        await tc.createProject('my_ip', ipDir, makeCfg(), outputChannel, '23.1');
+
+        // Where createProject() decided to put the sidecar…
+        const sidecarDir = (detector.writeSidecar as jest.Mock).mock.calls[0][0] as string;
+        fs2.mkdirSync(sidecarDir, { recursive: true });
+        await realDetector.writeSidecar(sidecarDir, {
+          vendor: 'quartus',
+          version: '23.1',
+          sourcePath: '/opt/quartus/bin/quartus_sh',
+        });
+
+        // …versus where `project_new` actually creates the .qpf (quartus_sh
+        // runs with cwd: altera/build). These must agree.
+        const qpfDir = path.join(ipDir, 'altera', 'build');
+        fs2.mkdirSync(qpfDir, { recursive: true });
+        const qpfPath = path.join(qpfDir, 'my_ip.qpf');
+        fs2.writeFileSync(qpfPath, 'QUARTUS_VERSION = "20.1"\n', 'utf8');
+        expect(await realDetector.detectQuartusProjectVersion(qpfPath)).toEqual({
+          confidence: 'exact',
+          candidates: ['23.1'],
+          source: 'sidecar',
+        });
+      } finally {
+        fs2.rmSync(ipDir, { recursive: true, force: true });
+      }
     });
 
     it('does not write a sidecar when preferredVersion is omitted', async () => {

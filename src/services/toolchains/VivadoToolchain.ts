@@ -9,7 +9,11 @@ import {
 } from '../../generator/VivadoComponentXmlGenerator';
 import { parseVivadoReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
-import { findVivadoInInstallDir, getVivadoLauncher } from '../../utils/vivadoResolver';
+import {
+  findVivadoInInstallDir,
+  getVivadoLauncher,
+  resolveVivadoVersions,
+} from '../../utils/vivadoResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
 import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
@@ -38,9 +42,17 @@ export class VivadoToolchain implements SynthesisToolchain {
 
   isAvailable(cfg: vscode.WorkspaceConfiguration): boolean {
     const runner = cfg.get<string>('vivado.runner', 'local');
-    const dockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
     if (runner === 'docker') {
-      return dockerImage.length > 0;
+      const dockerImages = cfg.get<Array<{ label: string; image: string }>>(
+        'vivado.dockerImages',
+        []
+      );
+      const dockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
+      return dockerImages.length > 0 || dockerImage.length > 0;
+    }
+    const installDirs = cfg.get<string[]>('vivado.installDirs', []);
+    if (installDirs.length > 0) {
+      return resolveVivadoVersions(installDirs).length > 0;
     }
     const installDir = cfg.get<string>('vivado.installDir', '').trim();
     if (installDir) {
@@ -170,7 +182,9 @@ export class VivadoToolchain implements SynthesisToolchain {
     );
 
     if (result.success && preferredVersion) {
-      await writeSidecar(vendorDir, {
+      // The project TCL creates the .xpr under build/ooc/ — the sidecar must
+      // sit next to the .xpr so detectVivadoProjectVersion() can find it.
+      await writeSidecar(path.join(vendorDir, 'build', 'ooc'), {
         vendor: 'vivado',
         version: preferredVersion,
         sourcePath: launcher.exe,

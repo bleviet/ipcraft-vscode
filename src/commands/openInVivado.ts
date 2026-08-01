@@ -77,10 +77,12 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const choice = await resolveToolchainVersionForOpen(cfg, 'vivado', xprPath);
-  if (!choice) {
+  if (choice === undefined) {
     return;
   }
-  const launcher = toolchain.resolve('vivado', cfg, choice.version);
+  // `null` means nothing is configured under the new multi-version settings —
+  // fall back to legacy/PATH resolution instead of aborting.
+  const launcher = toolchain.resolve('vivado', cfg, choice?.version);
   if (!launcher) {
     return;
   }
@@ -88,7 +90,7 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   // Mount the workspace root so Vivado can resolve all source paths stored as
   // absolute references inside the .xpr.
   const mountDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.dirname(xprPath);
-  const docker = toolchain.getDocker(cfg, mountDir, choice.version);
+  const docker = toolchain.getDocker(cfg, mountDir, choice?.version);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   // Detect the IP directory (the directory containing component.xml, typically

@@ -5,11 +5,20 @@ import {
 } from '../../../../services/toolchains/resolveToolchainVersion';
 import * as detector from '../../../../services/toolchains/toolchainVersionDetector';
 import * as vivadoResolver from '../../../../utils/vivadoResolver';
+import * as quartusResolver from '../../../../utils/quartusResolver';
 import * as pickToolVersionModule from '../../../../utils/pickToolVersion';
 
 jest.mock('../../../../services/toolchains/toolchainVersionDetector');
 jest.mock('../../../../utils/vivadoResolver');
-jest.mock('../../../../utils/pickToolVersion');
+jest.mock('../../../../utils/quartusResolver');
+// Only the QuickPick is mocked — listConfiguredVersions stays real so these
+// tests exercise the same install-dir resolution the production path uses.
+jest.mock('../../../../utils/pickToolVersion', () => ({
+  ...jest.requireActual<typeof import('../../../../utils/pickToolVersion')>(
+    '../../../../utils/pickToolVersion'
+  ),
+  pickToolVersion: jest.fn(),
+}));
 
 function makeCfg(overrides: Record<string, unknown>) {
   return {
@@ -25,10 +34,64 @@ describe('resolveToolchainVersionForOpen', () => {
   });
 
   it('uses the pinned version directly without running detection', async () => {
-    const cfg = makeCfg({ 'vivado.pinnedVersion': '2024.1' });
+    const cfg = makeCfg({ 'vivado.pinnedVersion': '2024.1', 'vivado.installDirs': ['/x'] });
+    (vivadoResolver.resolveVivadoVersions as jest.Mock).mockReturnValue([
+      { version: '2024.1', installDir: '/x/2024.1', launcher: { exe: 'a', prefixArgs: [] } },
+    ]);
     const result = await resolveToolchainVersionForOpen(cfg, 'vivado', '/proj/foo.xpr');
     expect(result).toEqual({ runner: 'local', version: '2024.1' });
     expect(detector.detectVivadoProjectVersion).not.toHaveBeenCalled();
+  });
+
+  it('ignores a pinned version that is no longer configured and falls through to detection', async () => {
+    // A stale pin (uninstalled version) must never silently resolve to some
+    // other install — detection/picking decides instead.
+    const cfg = makeCfg({ 'vivado.pinnedVersion': '2019.1', 'vivado.installDirs': ['/x'] });
+    (vivadoResolver.resolveVivadoVersions as jest.Mock).mockReturnValue([
+      { version: '2024.2', installDir: '/x/2024.2', launcher: { exe: 'a', prefixArgs: [] } },
+    ]);
+    (detector.detectVivadoProjectVersion as jest.Mock).mockResolvedValue({
+      confidence: 'exact',
+      candidates: ['2024.2'],
+      source: 'project-file',
+    });
+    jest.spyOn(vscode.window, 'showInformationMessage').mockResolvedValue(undefined);
+
+    const result = await resolveToolchainVersionForOpen(cfg, 'vivado', '/proj/foo.xpr');
+
+    expect(detector.detectVivadoProjectVersion).toHaveBeenCalled();
+    expect(result).toEqual({ runner: 'local', version: '2024.2' });
+  });
+
+  it('returns null (fall back to legacy/PATH) when nothing is configured', async () => {
+    const cfg = makeCfg({ 'vivado.pinnedVersion': '', 'vivado.installDirs': [] });
+    (vivadoResolver.resolveVivadoVersions as jest.Mock).mockReturnValue([]);
+
+    const result = await resolveToolchainVersionForOpen(cfg, 'vivado', '/proj/foo.xpr');
+
+    expect(result).toBeNull();
+    expect(detector.detectVivadoProjectVersion).not.toHaveBeenCalled();
+    expect(pickToolVersionModule.pickToolVersion).not.toHaveBeenCalled();
+  });
+
+  it('returns the docker choice when the vendor runner is docker', async () => {
+    // listConfiguredVersions is runner-aware, so a docker-configured version
+    // resolves with runner: 'docker', not a hardcoded 'local'.
+    const cfg = makeCfg({
+      'vivado.pinnedVersion': '',
+      'vivado.runner': 'docker',
+      'vivado.dockerImages': [{ label: '2024.2', image: 'my/vivado:2024.2' }],
+    });
+    (detector.detectVivadoProjectVersion as jest.Mock).mockResolvedValue({
+      confidence: 'exact',
+      candidates: ['2024.2'],
+      source: 'project-file',
+    });
+    jest.spyOn(vscode.window, 'showInformationMessage').mockResolvedValue(undefined);
+
+    const result = await resolveToolchainVersionForOpen(cfg, 'vivado', '/proj/foo.xpr');
+
+    expect(result).toEqual({ runner: 'docker', version: '2024.2' });
   });
 
   it('launches with a toast when the exact detected version is configured', async () => {
@@ -205,7 +268,10 @@ describe('resolveToolchainVersionForCreate', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('uses the pinned version directly', async () => {
-    const cfg = makeCfg({ 'quartus.pinnedVersion': '23.1' });
+    const cfg = makeCfg({ 'quartus.pinnedVersion': '23.1', 'quartus.installDirs': ['/q'] });
+    (quartusResolver.resolveQuartusVersions as jest.Mock).mockReturnValue([
+      { version: '23.1', installDir: '/q/23.1' },
+    ]);
     expect(await resolveToolchainVersionForCreate(cfg, 'quartus')).toEqual({
       runner: 'local',
       version: '23.1',
@@ -213,8 +279,34 @@ describe('resolveToolchainVersionForCreate', () => {
     expect(pickToolVersionModule.pickToolVersion).not.toHaveBeenCalled();
   });
 
+  it('ignores a pinned version that is no longer configured and opens the QuickPick', async () => {
+    const cfg = makeCfg({ 'quartus.pinnedVersion': '20.1', 'quartus.installDirs': ['/q'] });
+    (quartusResolver.resolveQuartusVersions as jest.Mock).mockReturnValue([
+      { version: '23.1', installDir: '/q/23.1' },
+    ]);
+    (pickToolVersionModule.pickToolVersion as jest.Mock).mockResolvedValue({
+      runner: 'local',
+      version: '23.1',
+    });
+    expect(await resolveToolchainVersionForCreate(cfg, 'quartus')).toEqual({
+      runner: 'local',
+      version: '23.1',
+    });
+    expect(pickToolVersionModule.pickToolVersion).toHaveBeenCalledWith(cfg, 'quartus');
+  });
+
+  it('returns null (fall back to legacy/PATH) when nothing is configured', async () => {
+    const cfg = makeCfg({ 'quartus.pinnedVersion': '', 'quartus.installDirs': [] });
+    (quartusResolver.resolveQuartusVersions as jest.Mock).mockReturnValue([]);
+    expect(await resolveToolchainVersionForCreate(cfg, 'quartus')).toBeNull();
+    expect(pickToolVersionModule.pickToolVersion).not.toHaveBeenCalled();
+  });
+
   it('opens the QuickPick when nothing is pinned', async () => {
-    const cfg = makeCfg({ 'quartus.pinnedVersion': '' });
+    const cfg = makeCfg({ 'quartus.pinnedVersion': '', 'quartus.installDirs': ['/q'] });
+    (quartusResolver.resolveQuartusVersions as jest.Mock).mockReturnValue([
+      { version: '23.1', installDir: '/q/23.1' },
+    ]);
     (pickToolVersionModule.pickToolVersion as jest.Mock).mockResolvedValue({
       runner: 'local',
       version: '23.1',

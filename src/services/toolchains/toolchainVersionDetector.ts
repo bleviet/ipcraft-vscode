@@ -46,13 +46,21 @@ export async function readSidecar(projectDir: string): Promise<SidecarData | und
   }
 }
 
-/** Writes the sidecar recording exactly which install/image produced the project. */
+/**
+ * Writes the sidecar recording exactly which install/image produced the
+ * project. Best-effort: a failed write (read-only directory, disk full) must
+ * never reject and break createProject()'s graceful fallback path.
+ */
 export async function writeSidecar(projectDir: string, data: SidecarData): Promise<void> {
-  await fs.writeFile(
-    path.join(projectDir, SIDECAR_FILENAME),
-    JSON.stringify(data, null, 2),
-    'utf8'
-  );
+  try {
+    await fs.writeFile(
+      path.join(projectDir, SIDECAR_FILENAME),
+      JSON.stringify(data, null, 2),
+      'utf8'
+    );
+  } catch {
+    // Best-effort hint only — a failed write must never break createProject().
+  }
 }
 
 export async function detectQuartusProjectVersion(

@@ -340,11 +340,15 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
         e.affectsConfiguration('ipcraft.vivado.installDir') ||
+        e.affectsConfiguration('ipcraft.vivado.installDirs') ||
         e.affectsConfiguration('ipcraft.vivado.runner') ||
         e.affectsConfiguration('ipcraft.vivado.dockerImage') ||
+        e.affectsConfiguration('ipcraft.vivado.dockerImages') ||
         e.affectsConfiguration('ipcraft.quartus.installDir') ||
+        e.affectsConfiguration('ipcraft.quartus.installDirs') ||
         e.affectsConfiguration('ipcraft.quartus.runner') ||
-        e.affectsConfiguration('ipcraft.quartus.dockerImage')
+        e.affectsConfiguration('ipcraft.quartus.dockerImage') ||
+        e.affectsConfiguration('ipcraft.quartus.dockerImages')
       ) {
         detectAndSetToolContext();
       }

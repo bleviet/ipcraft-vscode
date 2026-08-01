@@ -23,19 +23,25 @@ const VENDOR_LABEL: Record<'vivado' | 'quartus', string> = {
   quartus: 'Quartus',
 };
 
-function listConfiguredVersions(
+/**
+ * Lists every configured version for `vendor` that the vendor's ACTIVE runner
+ * mode can actually launch. `resolve()`/`getDocker()` only ever honour one of
+ * the two sources (whichever `${vendor}.runner` selects), so listing both would
+ * let the user pick an entry that silently resolves to something else.
+ */
+export function listConfiguredVersions(
   cfg: vscode.WorkspaceConfiguration,
   vendor: 'vivado' | 'quartus'
 ): ToolVersionChoice[] {
+  const runner = cfg.get<string>(`${vendor}.runner`, 'local');
+  if (runner === 'docker') {
+    const dockerImages = cfg.get<DockerImageSetting[]>(`${vendor}.dockerImages`, []);
+    return dockerImages.map((d): ToolVersionChoice => ({ runner: 'docker', version: d.label }));
+  }
   const installDirs = cfg.get<string[]>(`${vendor}.installDirs`, []);
   const local =
     vendor === 'vivado' ? resolveVivadoVersions(installDirs) : resolveQuartusVersions(installDirs);
-  const dockerImages = cfg.get<DockerImageSetting[]>(`${vendor}.dockerImages`, []);
-
-  return [
-    ...local.map((r): ToolVersionChoice => ({ runner: 'local', version: r.version })),
-    ...dockerImages.map((d): ToolVersionChoice => ({ runner: 'docker', version: d.label })),
-  ];
+  return local.map((r): ToolVersionChoice => ({ runner: 'local', version: r.version }));
 }
 
 function offerRememberVersion(vendor: 'vivado' | 'quartus', version: string): void {

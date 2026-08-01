@@ -5,7 +5,11 @@ import * as yaml from 'js-yaml';
 import type * as vscode from 'vscode';
 import { parseQuartusReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
-import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
+import {
+  findInInstallDir,
+  getQuartusTool,
+  resolveQuartusVersions,
+} from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
 import { normalizeBusType } from '../../generator/registerProcessor';
@@ -283,7 +287,15 @@ export class QuartusToolchain implements SynthesisToolchain {
     const runner = cfg.get<string>('quartus.runner', 'local');
     const dockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
     if (runner === 'docker') {
-      return dockerImage.length > 0;
+      const dockerImages = cfg.get<Array<{ label: string; image: string }>>(
+        'quartus.dockerImages',
+        []
+      );
+      return dockerImages.length > 0 || dockerImage.length > 0;
+    }
+    const installDirs = cfg.get<string[]>('quartus.installDirs', []);
+    if (installDirs.length > 0) {
+      return resolveQuartusVersions(installDirs).length > 0;
     }
     const installDir = cfg.get<string>('quartus.installDir', '').trim();
     if (installDir) {
@@ -417,7 +429,9 @@ export class QuartusToolchain implements SynthesisToolchain {
     });
 
     if (result.success && preferredVersion) {
-      await writeSidecar(vendorDir, {
+      // quartus_sh runs with cwd: buildDir, so `project_new` creates the .qpf
+      // there — the sidecar must sit next to it for detectQuartusProjectVersion().
+      await writeSidecar(buildDir, {
         vendor: 'quartus',
         version: preferredVersion,
         sourcePath: launcher.exe,

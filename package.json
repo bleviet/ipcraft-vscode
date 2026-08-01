@@ -57,10 +57,14 @@
         "ipcraft.generate.scaffoldPack",
         "ipcraft.vivado.runner",
         "ipcraft.vivado.installDir",
+        "ipcraft.vivado.installDirs",
         "ipcraft.vivado.dockerImage",
+        "ipcraft.vivado.dockerImages",
         "ipcraft.quartus.runner",
         "ipcraft.quartus.installDir",
-        "ipcraft.quartus.dockerImage"
+        "ipcraft.quartus.installDirs",
+        "ipcraft.quartus.dockerImage",
+        "ipcraft.quartus.dockerImages"
       ]
     }
   },

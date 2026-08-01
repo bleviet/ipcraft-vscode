@@ -28,6 +28,16 @@ describe('toolchainVersionDetector', () => {
       expect(await readSidecar(dir)).toEqual(data);
     });
 
+    it('resolves without throwing when the target directory does not exist', async () => {
+      // createProject() calls writeSidecar as a best-effort hint; a rejected
+      // write would break the "TCL written, run manually" fallback path.
+      const missing = path.join(dir, 'no', 'such', 'dir');
+      await expect(
+        writeSidecar(missing, { vendor: 'vivado', version: '2024.2', sourcePath: '/x' })
+      ).resolves.toBeUndefined();
+      expect(await readSidecar(missing)).toBeUndefined();
+    });
+
     it('returns undefined when the sidecar is missing', async () => {
       expect(await readSidecar(dir)).toBeUndefined();
     });

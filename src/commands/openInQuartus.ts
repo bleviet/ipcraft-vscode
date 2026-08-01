@@ -29,10 +29,12 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const choice = await resolveToolchainVersionForOpen(cfg, 'quartus', qpfPath);
-  if (!choice) {
+  if (choice === undefined) {
     return;
   }
-  const guiExe = toolchain.resolve('quartus', cfg, choice.version);
+  // `null` means nothing is configured under the new multi-version settings —
+  // fall back to legacy/PATH resolution instead of aborting.
+  const guiExe = toolchain.resolve('quartus', cfg, choice?.version);
   if (!guiExe?.exe) {
     return;
   }
@@ -42,7 +44,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   // {ipDir}/altera/build/, so ipDir is two levels up. Use that same convention
   // so the GUI can resolve the same paths.
   const mountBase = path.resolve(path.dirname(qpfPath), '../..');
-  const docker = toolchain.getDocker(cfg, mountBase, choice.version);
+  const docker = toolchain.getDocker(cfg, mountBase, choice?.version);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   logger.info(`Opening Quartus project: ${qpfPath}`);

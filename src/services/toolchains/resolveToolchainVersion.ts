@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import { CONFIG_KEY_IPCRAFT } from '../../utils/configKeys';
-import { pickToolVersion, type ToolVersionChoice } from '../../utils/pickToolVersion';
+import {
+  pickToolVersion,
+  listConfiguredVersions,
+  type ToolVersionChoice,
+} from '../../utils/pickToolVersion';
 import { findClosestVersion } from '../../utils/toolchainVersions';
-import { resolveVivadoVersions } from '../../utils/vivadoResolver';
-import { resolveQuartusVersions } from '../../utils/quartusResolver';
 import {
   detectVivadoProjectVersion,
   detectQuartusProjectVersion,
@@ -13,34 +15,46 @@ export type Vendor = 'vivado' | 'quartus';
 
 const VENDOR_LABEL: Record<Vendor, string> = { vivado: 'Vivado', quartus: 'Quartus' };
 
-function configuredVersions(cfg: vscode.WorkspaceConfiguration, vendor: Vendor): string[] {
-  const installDirs = cfg.get<string[]>(`${vendor}.installDirs`, []);
-  const resolved =
-    vendor === 'vivado' ? resolveVivadoVersions(installDirs) : resolveQuartusVersions(installDirs);
-  return resolved.map((r) => r.version);
-}
-
 /**
  * Resolves which configured version to use when opening an existing
  * `.xpr`/`.qpf`, following the design's confidence-tier UX:
- *  - a pinned workspace version skips detection entirely.
- *  - an exact detected version that is configured launches immediately,
- *    with an informational toast (its "Change" action re-opens the picker).
+ *  - a pinned workspace version, if it matches a currently configured entry,
+ *    skips detection entirely. A stale/invalid pin is never trusted blindly —
+ *    it falls through to normal detection instead of silently resolving to a
+ *    different version.
+ *  - when nothing is configured for this vendor at all, returns `null` so the
+ *    caller can fall back to legacy/PATH resolution instead of aborting —
+ *    preserves backward compatibility for users who haven't adopted the new
+ *    multi-version settings.
+ *  - an exact detected version that is configured launches immediately, with
+ *    an informational toast (its "Change" action re-opens the picker).
  *  - an exact/ambiguous detected version that is NOT configured warns and
  *    offers "Use <closest> anyway" / "Browse for install dir…" / "Configure
  *    paths" — never silently substitutes.
  *  - ambiguous or no signal falls back to the QuickPick, with any required
  *    candidates from detection listed first.
- * Returns undefined if the user cancels.
+ * Returns `undefined` if the user explicitly cancels an actionable prompt,
+ * `null` if nothing is configured for this vendor, or a `ToolVersionChoice`.
  */
 export async function resolveToolchainVersionForOpen(
   cfg: vscode.WorkspaceConfiguration,
   vendor: Vendor,
   projectFilePath: string
-): Promise<ToolVersionChoice | undefined> {
+): Promise<ToolVersionChoice | undefined | null> {
+  const configured = listConfiguredVersions(cfg, vendor);
+
   const pinned = cfg.get<string>(`${vendor}.pinnedVersion`, '').trim();
   if (pinned) {
-    return { runner: 'local', version: pinned };
+    const match = configured.find((c) => c.version === pinned);
+    if (match) {
+      return match;
+    }
+    // Stale/invalid pin — fall through to normal detection rather than
+    // trusting it blindly.
+  }
+
+  if (configured.length === 0) {
+    return null;
   }
 
   const detection =
@@ -53,7 +67,7 @@ export async function resolveToolchainVersionForOpen(
   }
 
   const [required] = detection.candidates;
-  const available = configuredVersions(cfg, vendor);
+  const available = configured.map((c) => c.version);
   if (available.includes(required)) {
     const change = await vscode.window.showInformationMessage(
       `Opening with ${VENDOR_LABEL[vendor]} ${required} (detected from project)`,
@@ -61,7 +75,7 @@ export async function resolveToolchainVersionForOpen(
     );
     return change === 'Change'
       ? pickToolVersion(cfg, vendor, [required])
-      : { runner: 'local', version: required };
+      : configured.find((c) => c.version === required);
   }
 
   const closest = findClosestVersion(required, available);
@@ -76,7 +90,7 @@ export async function resolveToolchainVersionForOpen(
   );
 
   if (closest && answer === `Use ${closest} anyway`) {
-    return { runner: 'local', version: closest };
+    return configured.find((c) => c.version === closest);
   }
   if (answer === 'Configure paths') {
     await vscode.commands.executeCommand(
@@ -110,16 +124,27 @@ export async function resolveToolchainVersionForOpen(
 
 /**
  * Resolves which configured version to use when creating a brand-new
- * project (no `.xpr`/`.qpf` exists yet to detect from): pinned workspace
- * version if set, else the QuickPick.
+ * project (no `.xpr`/`.qpf` exists yet to detect from): a valid pinned
+ * workspace version if set, else the QuickPick, else `null` when nothing is
+ * configured (caller falls back to legacy/PATH resolution).
  */
 export async function resolveToolchainVersionForCreate(
   cfg: vscode.WorkspaceConfiguration,
   vendor: Vendor
-): Promise<ToolVersionChoice | undefined> {
+): Promise<ToolVersionChoice | undefined | null> {
+  const configured = listConfiguredVersions(cfg, vendor);
+
   const pinned = cfg.get<string>(`${vendor}.pinnedVersion`, '').trim();
   if (pinned) {
-    return { runner: 'local', version: pinned };
+    const match = configured.find((c) => c.version === pinned);
+    if (match) {
+      return match;
+    }
   }
+
+  if (configured.length === 0) {
+    return null;
+  }
+
   return pickToolVersion(cfg, vendor);
 }

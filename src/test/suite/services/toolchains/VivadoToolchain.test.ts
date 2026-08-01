@@ -19,6 +19,7 @@ jest.mock('../../../../services/toolchains/toolchainVersionDetector');
 
 const mockFindVivado = vivadoResolver.findVivadoInInstallDir as jest.Mock;
 const mockGetLauncher = vivadoResolver.getVivadoLauncher as jest.Mock;
+const mockResolveVivadoVersions = vivadoResolver.resolveVivadoVersions as jest.Mock;
 const mockFileExists = fsHelpers.fileExists as jest.Mock;
 const mockRunProcess = buildRunner.runProcess as jest.Mock;
 const mockSpawnSync = childProcess.spawnSync as jest.Mock;
@@ -65,6 +66,32 @@ describe('VivadoToolchain', () => {
 
   it('isAvailable() returns false when docker runner has no image', () => {
     const cfg = makeCfg({ 'vivado.runner': 'docker', 'vivado.dockerImage': '' });
+    expect(tc.isAvailable(cfg)).toBe(false);
+  });
+
+  it('isAvailable() returns true when dockerImages is populated for the docker runner', () => {
+    const cfg = makeCfg({
+      'vivado.runner': 'docker',
+      'vivado.dockerImages': [{ label: '2024.2', image: 'my/vivado:2024.2' }],
+      'vivado.dockerImage': '',
+    });
+    expect(tc.isAvailable(cfg)).toBe(true);
+  });
+
+  it('isAvailable() returns true when installDirs resolves at least one version', () => {
+    mockResolveVivadoVersions.mockReturnValue([{ version: '2024.2', installDir: '/opt/2024.2' }]);
+    const cfg = makeCfg({ 'vivado.runner': 'local', 'vivado.installDirs': ['/opt/xilinx'] });
+    expect(tc.isAvailable(cfg)).toBe(true);
+    expect(mockResolveVivadoVersions).toHaveBeenCalledWith(['/opt/xilinx']);
+    expect(mockSpawnSync).not.toHaveBeenCalled();
+  });
+
+  it('isAvailable() returns false when installDirs is set but nothing resolves', () => {
+    mockResolveVivadoVersions.mockReturnValue([]);
+    mockSpawnSync.mockReturnValue({ status: 0 });
+    const cfg = makeCfg({ 'vivado.runner': 'local', 'vivado.installDirs': ['/nope'] });
+    // installDirs is authoritative once set — it does not silently fall through
+    // to the legacy installDir/PATH probe.
     expect(tc.isAvailable(cfg)).toBe(false);
   });
 
@@ -178,11 +205,59 @@ describe('VivadoToolchain', () => {
       const ok = await tc.createProject('foo', '/ip', cfg, outputChannel, '2024.2');
 
       expect(ok).toBe(true);
-      expect(detector.writeSidecar).toHaveBeenCalledWith(path.join('/ip', 'xilinx'), {
-        vendor: 'vivado',
-        version: '2024.2',
-        sourcePath: expect.stringContaining('vivado'),
-      });
+      // The .xpr lands in xilinx/build/ooc/ (see vivado_project.tcl.j2), and
+      // detectVivadoProjectVersion() reads the sidecar from the .xpr's own
+      // directory — so it must be written there, not in xilinx/.
+      expect(detector.writeSidecar).toHaveBeenCalledWith(
+        path.join('/ip', 'xilinx', 'build', 'ooc'),
+        {
+          vendor: 'vivado',
+          version: '2024.2',
+          sourcePath: expect.stringContaining('vivado'),
+        }
+      );
+    });
+
+    it('writes the sidecar where detectVivadoProjectVersion() actually reads it (cross-module)', async () => {
+      // Regression guard for the write-side/read-side path mismatch: the
+      // toolchain wrote the sidecar to xilinx/ while the detector looked for it
+      // next to the .xpr (xilinx/build/ooc/), so auto-detection was dead code.
+      // This test takes whatever directory createProject() chose and proves the
+      // REAL detector finds a real sidecar written there.
+      const realDetector = jest.requireActual<typeof detector>(
+        '../../../../services/toolchains/toolchainVersionDetector'
+      );
+      const ipDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-vivado-sidecar-'));
+      try {
+        mockFileExists.mockResolvedValue(true);
+        mockGetLauncher.mockReturnValue({ exe: '/opt/2024.2/bin/vivado', prefixArgs: [] });
+        mockRunProcess.mockResolvedValue({ success: true });
+
+        await tc.createProject('foo', ipDir, makeCfg(), outputChannel, '2024.2');
+
+        // Where createProject() decided to put the sidecar…
+        const sidecarDir = (detector.writeSidecar as jest.Mock).mock.calls[0][0] as string;
+        fs.mkdirSync(sidecarDir, { recursive: true });
+        await realDetector.writeSidecar(sidecarDir, {
+          vendor: 'vivado',
+          version: '2024.2',
+          sourcePath: '/opt/2024.2/bin/vivado',
+        });
+
+        // …versus where vivado_project.tcl.j2 actually creates the .xpr
+        // (project_dir = $script_dir/build/ooc). These must agree.
+        const xprDir = path.join(ipDir, 'xilinx', 'build', 'ooc');
+        fs.mkdirSync(xprDir, { recursive: true });
+        const xprPath = path.join(xprDir, 'foo.xpr');
+        fs.writeFileSync(xprPath, '<Project Version="7" Minor="0">', 'utf8');
+        expect(await realDetector.detectVivadoProjectVersion(xprPath)).toEqual({
+          confidence: 'exact',
+          candidates: ['2024.2'],
+          source: 'sidecar',
+        });
+      } finally {
+        fs.rmSync(ipDir, { recursive: true, force: true });
+      }
     });
 
     it('createProject() does not write a sidecar when preferredVersion is omitted', async () => {
