@@ -92,6 +92,58 @@ describe('migrateToolchainSettings', () => {
     );
   });
 
+  it('does not mistake a registry host:port for a tag when there is no tag', async () => {
+    jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+      get: jest.fn((key: string, def?: unknown) => {
+        const values: Record<string, unknown> = {
+          'vivado.installDir': '',
+          'vivado.installDirs': [],
+          'vivado.dockerImage': 'registry.internal:5000/vivado',
+          'vivado.dockerImages': [],
+          'quartus.installDir': '',
+          'quartus.installDirs': [],
+          'quartus.dockerImage': '',
+          'quartus.dockerImages': [],
+        };
+        return values[key] ?? def;
+      }),
+      update: updateMock,
+    } as unknown as vscode.WorkspaceConfiguration);
+
+    await migrateToolchainSettings(makeContext());
+    expect(updateMock).toHaveBeenCalledWith(
+      'vivado.dockerImages',
+      [{ label: 'registry.internal:5000/vivado', image: 'registry.internal:5000/vivado' }],
+      vscode.ConfigurationTarget.Global
+    );
+  });
+
+  it('extracts the tag correctly when the image has both a registry port and a tag', async () => {
+    jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+      get: jest.fn((key: string, def?: unknown) => {
+        const values: Record<string, unknown> = {
+          'vivado.installDir': '',
+          'vivado.installDirs': [],
+          'vivado.dockerImage': 'registry.internal:5000/team/vivado:2024.2',
+          'vivado.dockerImages': [],
+          'quartus.installDir': '',
+          'quartus.installDirs': [],
+          'quartus.dockerImage': '',
+          'quartus.dockerImages': [],
+        };
+        return values[key] ?? def;
+      }),
+      update: updateMock,
+    } as unknown as vscode.WorkspaceConfiguration);
+
+    await migrateToolchainSettings(makeContext());
+    expect(updateMock).toHaveBeenCalledWith(
+      'vivado.dockerImages',
+      [{ label: '2024.2', image: 'registry.internal:5000/team/vivado:2024.2' }],
+      vscode.ConfigurationTarget.Global
+    );
+  });
+
   it('falls back to the whole image reference as the label when it has no tag', async () => {
     jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
       get: jest.fn((key: string, def?: unknown) => {

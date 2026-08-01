@@ -26,10 +26,17 @@ async function migrateVendor(
  * tag. `dockerImages` entries require an explicit label since an image
  * reference can't always be parsed into a version — this is a best-effort
  * default the user can rename in Settings after migration.
+ *
+ * A colon only denotes a tag when it appears after the last `/` — a colon
+ * before that is a registry host:port separator (e.g.
+ * `registry.internal:5000/vivado` has no tag; `registry.internal:5000/vivado:2024.2`
+ * has tag `2024.2`), per the `[registry[:port]/]repository[:tag]` reference
+ * grammar.
  */
 function labelFromDockerImage(image: string): string {
+  const lastSlash = image.lastIndexOf('/');
   const lastColon = image.lastIndexOf(':');
-  return lastColon >= 0 ? image.slice(lastColon + 1) : image;
+  return lastColon > lastSlash ? image.slice(lastColon + 1) : image;
 }
 
 async function migrateVendorDockerImage(
