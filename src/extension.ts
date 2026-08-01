@@ -26,6 +26,7 @@ import { scanWorkspaceBusDefinitionsCommand } from './commands/scanWorkspaceBusD
 import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorMode';
 import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProvider';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
+import { migrateToolchainSettings } from './utils/migrateToolchainSettings';
 import { detectAndSetToolContext } from './services/ToolDetector';
 import {
   migrateLegacyIpCoreCommand,
@@ -344,6 +345,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // One-time notification if workspace contains legacy vendor: fields
   void checkForLegacyIpYmlFiles(context);
+  void migrateToolchainSettings(context);
 
   logger.info('Extension activated successfully');
 }
