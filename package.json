@@ -989,12 +989,48 @@
           "ipcraft.vivado.installDir": {
             "type": "string",
             "default": "",
-            "markdownDescription": "_(Used when `runner` is `local`)_ Path to your Vivado installation directory. IPCraft will locate the correct executable automatically.\n\n**Linux:** `/tools/Xilinx/Vivado/2024.2`\n\n**Windows:** `C:\\Xilinx\\2025.1\\Vivado`\n\nLeave empty to use `vivado` from your system PATH."
+            "deprecationMessage": "Deprecated: use ipcraft.vivado.installDirs to register one or more versions. Read once at activation as a migration fallback.",
+            "markdownDescription": "_(Deprecated — use `installDirs`)_ Path to your Vivado installation directory. IPCraft will locate the correct executable automatically.\n\n**Linux:** `/tools/Xilinx/Vivado/2024.2`\n\n**Windows:** `C:\\Xilinx\\2025.1\\Vivado`\n\nLeave empty to use `vivado` from your system PATH."
+          },
+          "ipcraft.vivado.installDirs": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "markdownDescription": "Paths to your Vivado installation directories, one per version you have installed side by side (e.g. `/tools/Xilinx/Vivado/2024.2`, `/tools/Xilinx/Vivado/2025.1`). IPCraft auto-detects each install's version and, when opening an existing project, picks the version it was created with. Use **IPCraft: Select Vivado Version** to override."
           },
           "ipcraft.vivado.dockerImage": {
             "type": "string",
             "default": "",
-            "markdownDescription": "_(Used when `runner` is `docker`)_ Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). Every Vivado command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`."
+            "deprecationMessage": "Deprecated: use ipcraft.vivado.dockerImages to register one or more version-labeled images.",
+            "markdownDescription": "_(Deprecated — use `dockerImages`)_ Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). Every Vivado command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`."
+          },
+          "ipcraft.vivado.dockerImages": {
+            "type": "array",
+            "default": [],
+            "markdownDescription": "Docker images for running Vivado, one per version. Each entry needs an explicit **label** since an image reference (e.g. `myregistry/vivado:latest-patched`) can't be parsed into a version automatically.",
+            "items": {
+              "type": "object",
+              "required": ["label", "image"],
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "Version label shown in pickers (e.g. 2025.1)"
+                },
+                "image": {
+                  "type": "string",
+                  "description": "Docker image reference (e.g. myregistry/vivado:2025.1)"
+                }
+              }
+            }
+          },
+          "ipcraft.vivado.pinnedVersion": {
+            "type": "string",
+            "default": "",
+            "scope": "resource",
+            "markdownDescription": "Pinned Vivado version/label for this workspace. When set, IPCraft skips project detection and the version picker and uses this value directly. Leave empty to always detect/prompt. Supports **User** and **Workspace** scope so each project can pin a different version."
           },
           "ipcraft.vivado.defaultPart": {
             "type": "string",
@@ -1051,12 +1087,48 @@
           "ipcraft.quartus.installDir": {
             "type": "string",
             "default": "",
-            "markdownDescription": "_(Used when `runner` is `local`)_ Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1` on Linux or `C:\\intelFPGA_pro\\23.1` on Windows). When set, IPCraft automatically locates `quartus_sh`, `quartus`, and `qsys-edit` inside the installation, searching `quartus/bin` (Linux) or `quartus/bin64` (Windows) first. Supersedes the individual `shellPath`, `guiPath`, and `qsysEditPath` settings."
+            "deprecationMessage": "Deprecated: use ipcraft.quartus.installDirs to register one or more versions. Read once at activation as a migration fallback.",
+            "markdownDescription": "_(Deprecated — use `installDirs`)_ Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1` on Linux or `C:\\intelFPGA_pro\\23.1` on Windows)."
+          },
+          "ipcraft.quartus.installDirs": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "markdownDescription": "Top-level Quartus installation directories, one per version installed side by side (e.g. `/opt/intelFPGA_pro/23.1`, `/opt/intelFPGA_pro/24.1`). IPCraft auto-detects each install's version and, when opening an existing project, picks the version it was created with. Use **IPCraft: Select Quartus Version** to override."
           },
           "ipcraft.quartus.dockerImage": {
             "type": "string",
             "default": "",
-            "markdownDescription": "_(Used when `runner` is `docker`)_ Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`). Every Quartus command is executed inside this container via `docker run --rm`, with the IP core directory mounted as `/work`."
+            "deprecationMessage": "Deprecated: use ipcraft.quartus.dockerImages to register one or more version-labeled images.",
+            "markdownDescription": "_(Deprecated — use `dockerImages`)_ Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`)."
+          },
+          "ipcraft.quartus.dockerImages": {
+            "type": "array",
+            "default": [],
+            "markdownDescription": "Docker images for running Quartus, one per version. Each entry needs an explicit **label** since an image reference can't be parsed into a version automatically.",
+            "items": {
+              "type": "object",
+              "required": ["label", "image"],
+              "additionalProperties": false,
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "Version label shown in pickers (e.g. 23.1)"
+                },
+                "image": {
+                  "type": "string",
+                  "description": "Docker image reference (e.g. myregistry/quartus:23.1)"
+                }
+              }
+            }
+          },
+          "ipcraft.quartus.pinnedVersion": {
+            "type": "string",
+            "default": "",
+            "scope": "resource",
+            "markdownDescription": "Pinned Quartus version/label for this workspace. When set, IPCraft skips project detection and the version picker and uses this value directly. Leave empty to always detect/prompt. Supports **User** and **Workspace** scope so each project can pin a different version."
           },
           "ipcraft.quartus.defaultDevice": {
             "type": "string",
