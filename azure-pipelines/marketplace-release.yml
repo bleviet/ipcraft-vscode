@@ -57,6 +57,9 @@ stages:
           - script: npm run test:unit -- --coverage
             displayName: Run unit tests with coverage
 
+          - script: npm run test:release
+            displayName: Run release contract tests
+
           - script: |
               set -euo pipefail
               RELEASE_VERSION="${BUILD_SOURCEBRANCH#refs/tags/v}"

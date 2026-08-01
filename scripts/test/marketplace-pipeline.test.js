@@ -12,6 +12,8 @@ const pipelinePath = path.resolve(
   'marketplace-release.yml'
 );
 const pipeline = parse(fs.readFileSync(pipelinePath, 'utf8'));
+const githubWorkflowPath = path.resolve(__dirname, '..', '..', '.github', 'workflows', 'ci.yml');
+const githubWorkflow = parse(fs.readFileSync(githubWorkflowPath, 'utf8'));
 
 function stage(name) {
   const result = pipeline.stages.find((candidate) => candidate.stage === name);
@@ -80,6 +82,18 @@ function assertCommonSetup(steps) {
   );
 }
 
+describe('GitHub CI release contract', () => {
+  it('runs release contract tests in the test job after the build', () => {
+    const steps = githubWorkflow.jobs.test.steps;
+    const build = steps.find((step) => step.name === 'Build');
+    const releaseTests = steps.find((step) => step.name === 'Release contract tests');
+
+    assert.ok(releaseTests, 'missing release contract tests in the GitHub CI test job');
+    assert.equal(releaseTests.run, 'npm run test:release');
+    assertOrderedSteps(steps, [build, releaseTests]);
+  });
+});
+
 describe('Marketplace release pipeline', () => {
   it('is manual, dry-run by default, and uses the protected stage graph', () => {
     assert.equal(pipeline.trigger, 'none');
@@ -126,7 +140,7 @@ describe('Marketplace release pipeline', () => {
     assert.deepEqual(taskStep(steps, 'NodeTool@0').inputs, { versionSpec: '20.x' });
 
     const scripts = steps.filter((step) => step.script).map((step) => step.script);
-    assert.deepEqual(scripts.slice(0, 10), [
+    assert.deepEqual(scripts.slice(0, 11), [
       'npm ci',
       'npm run check:marketplace-release',
       'npm run docs:links',
@@ -137,7 +151,11 @@ describe('Marketplace release pipeline', () => {
       'npm run check:cli-distribution',
       'npm run test:cli-package',
       'npm run test:unit -- --coverage',
+      'npm run test:release',
     ]);
+
+    const releaseTests = steps.find((step) => step.script === 'npm run test:release');
+    assert.equal(releaseTests.displayName, 'Run release contract tests');
 
     const packageStep = steps.find((step) => step.name === 'release');
     assert.ok(packageStep, 'missing release output step');
@@ -147,6 +165,7 @@ describe('Marketplace release pipeline', () => {
       packageStep.script,
       /VSIX_PATH="\$\(Build\.ArtifactStagingDirectory\)\/ipcraft-vscode-\$\{RELEASE_VERSION\}\.vsix"/
     );
+    assertOrderedSteps(steps, [releaseTests, packageStep]);
     assert.match(packageStep.script, /npx vsce package "\$RELEASE_VERSION" --out "\$VSIX_PATH"/);
     assert.match(packageStep.script, /npm run check:vsix -- "\$VSIX_PATH"/);
     assert.match(
