@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const yauzl = require('yauzl');
+const { readVsixArchive } = require('./vsix-archive');
 
 const COMPRESSED_BUDGET_BYTES = 2 * 1024 * 1024;
 const UNPACKED_BUDGET_BYTES = 5 * 1024 * 1024;
@@ -68,26 +68,17 @@ for (const schema of [
   requiredFiles.add(`extension/dist/resources/schemas/${schema}`);
 }
 
-function readArchive(archivePath) {
-  return new Promise((resolve, reject) => {
-    yauzl.open(archivePath, { lazyEntries: true }, (openError, zipFile) => {
-      if (openError) {
-        reject(openError);
-        return;
-      }
-
-      const entries = [];
-      zipFile.on('entry', (entry) => {
-        if (!entry.fileName.endsWith('/')) {
-          entries.push({ name: entry.fileName, size: entry.uncompressedSize });
-        }
-        zipFile.readEntry();
-      });
-      zipFile.on('end', () => resolve(entries));
-      zipFile.on('error', reject);
-      zipFile.readEntry();
-    });
-  });
+function validateManifest(manifest, archiveFiles) {
+  const errors = [];
+  if (manifest.license !== 'MIT') {
+    errors.push('extension/package.json must declare the MIT SPDX license');
+  }
+  if (!archiveFiles.has('extension/LICENSE.txt')) {
+    errors.push('VSIX is missing extension/LICENSE.txt');
+  }
+  if (errors.length > 0) {
+    throw new Error(errors.join('\n'));
+  }
 }
 
 async function main() {
@@ -95,8 +86,8 @@ async function main() {
     throw new Error(`VSIX not found: ${vsixPath}`);
   }
 
-  const entries = await readArchive(vsixPath);
-  const archiveFiles = new Set(entries.map((entry) => entry.name));
+  const { entries, manifest, archiveFiles } = await readVsixArchive(vsixPath);
+  validateManifest(manifest, archiveFiles);
   const duplicateFiles = entries
     .map((entry) => entry.name)
     .filter((name, index, names) => names.indexOf(name) !== index);
@@ -146,7 +137,11 @@ async function main() {
   process.stdout.write('VSIX contents and size are within the production contract.\n');
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { validateManifest };

@@ -64,6 +64,9 @@ jobs:
       - name: Build
         run: npm run compile && npm run compile-tests
 
+      - name: Release contract tests
+        run: npm run test:release
+
       - name: Verify CLI distribution contract
         run: npm run check:cli-distribution
 
