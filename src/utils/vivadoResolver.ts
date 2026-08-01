@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type * as vscode from 'vscode';
+import { detectVivadoVersionAt } from './detectVivadoVersion';
+import { compareVersions } from './toolchainVersions';
 
 // On Windows, Vivado must be launched through vvgl.exe with vivado.bat as the first
 // argument — running vivado.bat directly skips the wrapper that sets up the environment.
@@ -94,14 +96,59 @@ export function findVivadoInInstallDir(installDir: string): VivadoLauncher | nul
   return { exe: path.join(resolvedDir, LINUX_BIN_SUBPATH), prefixArgs: [] };
 }
 
+export interface ResolvedVivadoVersion {
+  version: string;
+  installDir: string;
+  launcher: VivadoLauncher;
+}
+
+/**
+ * Resolves each entry in `installDirs` to its version label (probed via
+ * `-version`, falling back to the resolved directory's folder name) and
+ * launcher. Entries that don't resolve to a real Vivado install are skipped.
+ */
+export function resolveVivadoVersions(installDirs: string[]): ResolvedVivadoVersion[] {
+  const results: ResolvedVivadoVersion[] = [];
+  for (const dir of installDirs) {
+    const launcher = findVivadoInInstallDir(dir);
+    const resolvedDir = resolveVivadoInstallDir(dir);
+    if (!launcher || !resolvedDir) {
+      continue;
+    }
+    const probed = detectVivadoVersionAt(launcher.exe, launcher.prefixArgs);
+    results.push({
+      version: probed ?? path.basename(resolvedDir),
+      installDir: resolvedDir,
+      launcher,
+    });
+  }
+  return results;
+}
+
 /**
  * Returns the launcher for the Vivado executable.
  *
  * Resolution order:
- *  1. `ipcraft.vivado.installDir` — searches the installation directory for vivado
- *  2. `'vivado'`                  — relies on PATH
+ *  1. `ipcraft.vivado.installDirs` — multi-version array; picks `preferredVersion`
+ *     if given and configured, else the latest configured version.
+ *  2. `ipcraft.vivado.installDir` — legacy single path (kept for migration).
+ *  3. `'vivado'`                  — relies on PATH
  */
-export function getVivadoLauncher(config: vscode.WorkspaceConfiguration): VivadoLauncher {
+export function getVivadoLauncher(
+  config: vscode.WorkspaceConfiguration,
+  preferredVersion?: string
+): VivadoLauncher {
+  const installDirs = config.get<string[]>('vivado.installDirs', []);
+  if (installDirs.length > 0) {
+    const resolved = resolveVivadoVersions(installDirs);
+    const chosen = preferredVersion
+      ? resolved.find((r) => r.version === preferredVersion)
+      : [...resolved].sort((a, b) => compareVersions(b.version, a.version))[0];
+    if (chosen) {
+      return chosen.launcher;
+    }
+  }
+
   const installDir = config.get<string>('vivado.installDir', '').trim();
   if (installDir) {
     const found = findVivadoInInstallDir(installDir);
