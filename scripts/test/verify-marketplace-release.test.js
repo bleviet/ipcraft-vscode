@@ -9,11 +9,8 @@ const {
   getMarketplacePackageUrl,
   validatePublishedPackage,
 } = require('../marketplace-release-contract');
-const {
-  downloadFile,
-  pollForVersion,
-  readVsixManifest,
-} = require('../verify-marketplace-release');
+const { downloadFile, pollForVersion } = require('../verify-marketplace-release');
+const { readVsixArchive } = require('../vsix-archive');
 
 const expectedShortDescription =
   'Visual FPGA IP-core and memory-map editor with VHDL/SystemVerilog, Vivado, and Quartus project generation.';
@@ -55,10 +52,10 @@ function createPublishedPackageInput(overrides = {}) {
 
 describe('published Marketplace package verification', () => {
   it('accepts the expected public listing and packaged manifest', () => {
-    assert.deepEqual(
-      validatePublishedPackage(createPublishedPackageInput()),
-      { version: '1.2.3', extensionId: 'bahonavi.ipcraft-vscode' }
-    );
+    assert.deepEqual(validatePublishedPackage(createPublishedPackageInput()), {
+      version: '1.2.3',
+      extensionId: 'bahonavi.ipcraft-vscode',
+    });
   });
 
   it('accepts a Marketplace short description supplied by the packaged manifest', () => {
@@ -116,10 +113,12 @@ function createTemporaryDirectory() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-marketplace-release-'));
 }
 
-function writeVsix(archivePath, manifest) {
+function writeVsix(archivePath, manifest, includeManifest = true) {
   return new Promise((resolve, reject) => {
     const archive = new yazl.ZipFile();
-    archive.addBuffer(Buffer.from(JSON.stringify(manifest)), 'extension/package.json');
+    if (includeManifest) {
+      archive.addBuffer(Buffer.from(JSON.stringify(manifest)), 'extension/package.json');
+    }
     archive.addBuffer(Buffer.from('license'), 'extension/LICENSE.txt');
     archive.addBuffer(Buffer.from('readme'), 'extension/readme.md');
     archive.addBuffer(Buffer.from('changelog'), 'extension/changelog.md');
@@ -164,8 +163,10 @@ describe('Marketplace verification CLI helpers', () => {
     const outputPath = path.join(temporaryDirectory, 'marketplace-1.2.3.vsix');
 
     try {
-      await downloadFile('https://example.invalid/marketplace.vsix', outputPath, async () =>
-        new Response(Buffer.from('vsix-bytes'), { status: 200 })
+      await downloadFile(
+        'https://example.invalid/marketplace.vsix',
+        outputPath,
+        async () => new Response(Buffer.from('vsix-bytes'), { status: 200 })
       );
 
       assert.deepEqual(fs.readFileSync(outputPath), Buffer.from('vsix-bytes'));
@@ -209,8 +210,10 @@ describe('Marketplace verification CLI helpers', () => {
 
     try {
       await assert.rejects(
-        downloadFile('https://example.invalid/marketplace.vsix', outputPath, async () =>
-          new Response('not found', { status: 404, statusText: 'Not Found' })
+        downloadFile(
+          'https://example.invalid/marketplace.vsix',
+          outputPath,
+          async () => new Response('not found', { status: 404, statusText: 'Not Found' })
         ),
         /Failed to download published VSIX: 404 Not Found/
       );
@@ -227,9 +230,9 @@ describe('Marketplace verification CLI helpers', () => {
 
     try {
       await writeVsix(archivePath, manifest);
-      const result = await readVsixManifest(archivePath);
+      const result = await readVsixArchive(archivePath);
 
-      assert.deepEqual(result.packagedManifest, manifest);
+      assert.deepEqual(result.manifest, manifest);
       assert.deepEqual([...result.archiveFiles].sort(), [
         'extension/LICENSE.txt',
         'extension/changelog.md',
@@ -237,6 +240,25 @@ describe('Marketplace verification CLI helpers', () => {
         'extension/readme.md',
         'extension/resources/icon.png',
       ]);
+      assert.deepEqual(result.entries, [
+        { name: 'extension/package.json', size: Buffer.byteLength(JSON.stringify(manifest)) },
+        { name: 'extension/LICENSE.txt', size: 7 },
+        { name: 'extension/readme.md', size: 6 },
+        { name: 'extension/changelog.md', size: 9 },
+        { name: 'extension/resources/icon.png', size: 4 },
+      ]);
+    } finally {
+      fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it('rejects a VSIX without an extension manifest', async () => {
+    const temporaryDirectory = createTemporaryDirectory();
+    const archivePath = path.join(temporaryDirectory, 'missing-manifest.vsix');
+
+    try {
+      await writeVsix(archivePath, {}, false);
+      await assert.rejects(readVsixArchive(archivePath), /VSIX is missing extension\/package.json/);
     } finally {
       fs.rmSync(temporaryDirectory, { recursive: true, force: true });
     }

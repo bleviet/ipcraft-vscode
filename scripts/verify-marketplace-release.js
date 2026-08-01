@@ -1,11 +1,11 @@
 const fs = require('node:fs');
 const { spawnSync } = require('node:child_process');
-const yauzl = require('yauzl');
 const {
   MARKETPLACE_IDENTITY,
   getMarketplacePackageUrl,
   validatePublishedPackage,
 } = require('./marketplace-release-contract');
+const { readVsixArchive } = require('./vsix-archive');
 
 const MAX_POLL_ATTEMPTS = 60;
 const POLL_INTERVAL_MS = 10_000;
@@ -45,7 +45,9 @@ async function downloadFile(
   try {
     const response = await fetchImplementation(url, { signal: controller.signal });
     if (!response.ok) {
-      throw new Error(`Failed to download published VSIX: ${response.status} ${response.statusText}`);
+      throw new Error(
+        `Failed to download published VSIX: ${response.status} ${response.statusText}`
+      );
     }
     await fs.promises.writeFile(outputPath, Buffer.from(await response.arrayBuffer()));
   } catch (error) {
@@ -56,70 +58,6 @@ async function downloadFile(
   } finally {
     clearTimeout(timeout);
   }
-}
-
-function readVsixManifest(archivePath) {
-  return new Promise((resolve, reject) => {
-    yauzl.open(archivePath, { lazyEntries: true }, (openError, archive) => {
-      if (openError) {
-        reject(openError);
-        return;
-      }
-
-      const archiveFiles = new Set();
-      let packagedManifest;
-      let settled = false;
-      const fail = (error) => {
-        if (!settled) {
-          settled = true;
-          reject(error);
-        }
-      };
-
-      archive.on('entry', (entry) => {
-        if (entry.fileName.endsWith('/')) {
-          archive.readEntry();
-          return;
-        }
-
-        archiveFiles.add(entry.fileName);
-        if (entry.fileName !== 'extension/package.json') {
-          archive.readEntry();
-          return;
-        }
-
-        archive.openReadStream(entry, (streamError, stream) => {
-          if (streamError) {
-            fail(streamError);
-            return;
-          }
-
-          const chunks = [];
-          stream.on('data', (chunk) => chunks.push(chunk));
-          stream.on('error', fail);
-          stream.on('end', () => {
-            try {
-              packagedManifest = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-              archive.readEntry();
-            } catch (error) {
-              fail(error);
-            }
-          });
-        });
-      });
-      archive.on('error', fail);
-      archive.on('end', () => {
-        if (settled) return;
-        if (!packagedManifest) {
-          fail(new Error('Published VSIX is missing extension/package.json'));
-          return;
-        }
-        settled = true;
-        resolve({ packagedManifest, archiveFiles });
-      });
-      archive.readEntry();
-    });
-  });
 }
 
 function loadMarketplaceListing() {
@@ -152,7 +90,7 @@ async function main(argv = process.argv.slice(2)) {
   const { version, out } = parseArguments(argv);
   const listing = await pollForVersion(loadMarketplaceListing, version);
   await downloadFile(getMarketplacePackageUrl(version), out);
-  const { packagedManifest, archiveFiles } = await readVsixManifest(out);
+  const { manifest: packagedManifest, archiveFiles } = await readVsixArchive(out);
   validatePublishedPackage({ version, listing, packagedManifest, archiveFiles });
   process.stdout.write(`Downloaded and verified published VSIX: ${out}\n`);
 }
@@ -164,4 +102,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { downloadFile, pollForVersion, readVsixManifest };
+module.exports = { downloadFile, pollForVersion };

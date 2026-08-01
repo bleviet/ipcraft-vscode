@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const yauzl = require('yauzl');
+const { readVsixArchive } = require('./vsix-archive');
 
 const COMPRESSED_BUDGET_BYTES = 2 * 1024 * 1024;
 const UNPACKED_BUDGET_BYTES = 5 * 1024 * 1024;
@@ -66,67 +66,6 @@ for (const schema of [
   requiredFiles.add(`extension/dist/resources/schemas/${schema}`);
 }
 
-function readArchive(archivePath) {
-  return new Promise((resolve, reject) => {
-    yauzl.open(archivePath, { lazyEntries: true }, (openError, zipFile) => {
-      if (openError) {
-        reject(openError);
-        return;
-      }
-
-      const entries = [];
-      let manifest;
-      let settled = false;
-      const fail = (error) => {
-        if (!settled) {
-          settled = true;
-          reject(error);
-        }
-      };
-      zipFile.on('entry', (entry) => {
-        if (!entry.fileName.endsWith('/')) {
-          entries.push({ name: entry.fileName, size: entry.uncompressedSize });
-        }
-
-        if (entry.fileName !== 'extension/package.json') {
-          zipFile.readEntry();
-          return;
-        }
-
-        zipFile.openReadStream(entry, (streamError, stream) => {
-          if (streamError) {
-            fail(streamError);
-            return;
-          }
-
-          const chunks = [];
-          stream.on('data', (chunk) => chunks.push(chunk));
-          stream.on('error', fail);
-          stream.on('end', () => {
-            try {
-              manifest = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-              zipFile.readEntry();
-            } catch (error) {
-              fail(error);
-            }
-          });
-        });
-      });
-      zipFile.on('end', () => {
-        if (settled) return;
-        if (!manifest) {
-          fail(new Error('VSIX is missing extension/package.json'));
-          return;
-        }
-        settled = true;
-        resolve({ entries, manifest });
-      });
-      zipFile.on('error', fail);
-      zipFile.readEntry();
-    });
-  });
-}
-
 function validateManifest(manifest, archiveFiles) {
   const errors = [];
   if (manifest.license !== 'MIT') {
@@ -145,8 +84,7 @@ async function main() {
     throw new Error(`VSIX not found: ${vsixPath}`);
   }
 
-  const { entries, manifest } = await readArchive(vsixPath);
-  const archiveFiles = new Set(entries.map((entry) => entry.name));
+  const { entries, manifest, archiveFiles } = await readVsixArchive(vsixPath);
   validateManifest(manifest, archiveFiles);
   const duplicateFiles = entries
     .map((entry) => entry.name)
