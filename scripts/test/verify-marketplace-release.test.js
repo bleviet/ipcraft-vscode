@@ -35,6 +35,7 @@ function createPublishedPackageInput(overrides = {}) {
       publisher: 'bahonavi',
       version: '1.2.3',
       license: 'MIT',
+      description: expectedShortDescription,
       icon: 'resources/icon.png',
       repository: { url: 'git+https://github.com/bleviet/ipcraft-vscode.git' },
       homepage: 'https://github.com/bleviet/ipcraft-vscode#readme',
@@ -60,6 +61,14 @@ describe('published Marketplace package verification', () => {
     );
   });
 
+  it('accepts a Marketplace short description supplied by the packaged manifest', () => {
+    const input = createPublishedPackageInput();
+    input.packagedManifest.description = 'Description supplied by the packaged manifest.';
+    input.listing.shortDescription = 'Description supplied by the packaged manifest.';
+
+    assert.doesNotThrow(() => validatePublishedPackage(input));
+  });
+
   it('reports a listing without the README, license, and commands together', () => {
     const invalidInput = createPublishedPackageInput({
       listing: {
@@ -81,7 +90,7 @@ describe('published Marketplace package verification', () => {
     );
   });
 
-  it('rejects a listing whose short description differs from the root manifest', () => {
+  it('rejects a listing whose short description differs from the packaged manifest', () => {
     const input = createPublishedPackageInput({
       listing: {
         ...createPublishedPackageInput().listing,
@@ -91,7 +100,7 @@ describe('published Marketplace package verification', () => {
 
     assert.throws(
       () => validatePublishedPackage(input),
-      /Marketplace short description must match the release contract/
+      /Marketplace short description must match the packaged manifest/
     );
   });
 

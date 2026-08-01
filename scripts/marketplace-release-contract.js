@@ -4,9 +4,6 @@ const MARKETPLACE_IDENTITY = Object.freeze({
   publisherId: '68ba6820-f472-413e-8a4f-4be6765ede40',
   extensionId: '98c7d872-c2ba-4955-8ee5-5bf5e193ef78',
 });
-const MARKETPLACE_SHORT_DESCRIPTION =
-  'Visual FPGA IP-core and memory-map editor with VHDL/SystemVerilog, Vivado, and Quartus project generation.';
-
 function parseVersionTag(sourceBranch) {
   const match = /^refs\/tags\/v(\d+\.\d+\.\d+)$/.exec(sourceBranch ?? '');
   if (!match) throw new Error('Build.SourceBranch must be an exact v<major>.<minor>.<patch> tag');
@@ -124,8 +121,8 @@ function validatePublishedPackage({ version, listing, packagedManifest, archiveF
   if (listing.displayName !== 'IPCraft for VS Code') {
     errors.push('Marketplace display name must be IPCraft for VS Code');
   }
-  if (listing.shortDescription !== MARKETPLACE_SHORT_DESCRIPTION) {
-    errors.push('Marketplace short description must match the release contract');
+  if (listing.shortDescription !== packagedManifest.description) {
+    errors.push('Marketplace short description must match the packaged manifest');
   }
   if (!listing.versions?.some((item) => item.version === version)) {
     errors.push(`Marketplace listing does not contain version ${version}`);
