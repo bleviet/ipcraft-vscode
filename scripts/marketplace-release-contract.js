@@ -19,7 +19,9 @@ function validateReleaseContract(input) {
     errors.push(`tag version ${version} does not match extension version ${manifest.version}`);
   }
   if (input.cliManifest.version !== manifest.version) {
-    errors.push(`CLI version ${input.cliManifest.version} does not match extension version ${manifest.version}`);
+    errors.push(
+      `CLI version ${input.cliManifest.version} does not match extension version ${manifest.version}`
+    );
   }
   if (manifest.publisher !== MARKETPLACE_IDENTITY.publisher) {
     errors.push(`publisher must be ${MARKETPLACE_IDENTITY.publisher}`);
@@ -30,7 +32,7 @@ function validateReleaseContract(input) {
   if (manifest.license !== 'MIT') {
     errors.push('license must be the MIT SPDX license');
   }
-  if (!new RegExp(`^## \\[${version.replaceAll('.', '\\.') }\\] - `, 'm').test(input.changelog)) {
+  if (!new RegExp(`^## \\[${version.replaceAll('.', '\\.')}\\] - `, 'm').test(input.changelog)) {
     errors.push(`CHANGELOG must contain a ${version} release heading`);
   }
   if (input.marketplace.publisher?.publisherId !== MARKETPLACE_IDENTITY.publisherId) {
@@ -99,8 +101,14 @@ function validatePublishedPackage({ version, listing, packagedManifest, archiveF
   if (packagedManifest.bugs?.url !== 'https://github.com/bleviet/ipcraft-vscode/issues') {
     errors.push('Published manifest bugs URL does not match the release contract');
   }
-  if (!['Programming Languages', 'Visualization', 'Other'].every((category) => packagedManifest.categories?.includes(category))) {
-    errors.push('Published manifest categories must include Programming Languages, Visualization, and Other');
+  if (
+    !['Programming Languages', 'Visualization', 'Other'].every((category) =>
+      packagedManifest.categories?.includes(category)
+    )
+  ) {
+    errors.push(
+      'Published manifest categories must include Programming Languages, Visualization, and Other'
+    );
   }
   if (!packagedManifest.contributes?.commands?.length) {
     errors.push('Published manifest must contribute commands');
@@ -127,7 +135,11 @@ function validatePublishedPackage({ version, listing, packagedManifest, archiveF
   if (!listing.versions?.some((item) => item.version === version)) {
     errors.push(`Marketplace listing does not contain version ${version}`);
   }
-  if (!['Programming Languages', 'Visualization'].every((category) => listing.categories?.includes(category))) {
+  if (
+    !['Programming Languages', 'Visualization'].every((category) =>
+      listing.categories?.includes(category)
+    )
+  ) {
     errors.push('Marketplace categories must include Programming Languages and Visualization');
   }
 

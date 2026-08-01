@@ -14,10 +14,7 @@ it('requires the MIT SPDX declaration and packaged license file', () => {
     () => validateManifest({ license: 'Apache-2.0' }, new Set(['extension/LICENSE.txt'])),
     /MIT SPDX license/
   );
-  assert.throws(
-    () => validateManifest({ license: 'MIT' }, new Set()),
-    /extension\/LICENSE.txt/
-  );
+  assert.throws(() => validateManifest({ license: 'MIT' }, new Set()), /extension\/LICENSE.txt/);
 });
 
 it('excludes the release pipeline from the packaged file set', () => {
