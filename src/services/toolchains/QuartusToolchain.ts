@@ -7,6 +7,7 @@ import { parseQuartusReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
+import { writeSidecar } from './toolchainVersionDetector';
 import { normalizeBusType } from '../../generator/registerProcessor';
 import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
@@ -386,7 +387,8 @@ export class QuartusToolchain implements SynthesisToolchain {
     name: string,
     ipDir: string,
     cfg: vscode.WorkspaceConfiguration,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    preferredVersion?: string
   ): Promise<boolean> {
     const vendorDir = path.join(ipDir, this.outputSubdir);
     const projectTcl = path.join(vendorDir, `${name}_project.tcl`);
@@ -397,13 +399,13 @@ export class QuartusToolchain implements SynthesisToolchain {
     const buildDir = path.join(vendorDir, 'build');
     await fsAsync.mkdir(buildDir, { recursive: true });
 
-    const launcher = this.resolve('quartus_sh', cfg);
+    const launcher = this.resolve('quartus_sh', cfg, preferredVersion);
     if (!launcher?.exe) {
       return false;
     }
 
     const mountBase = await computeMountBase(name, ipDir);
-    const docker = this.getDocker(cfg, mountBase);
+    const docker = this.getDocker(cfg, mountBase, preferredVersion);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
 
     const result = await runProcess(launcher.exe, ['-t', projectTcl], {
@@ -413,6 +415,15 @@ export class QuartusToolchain implements SynthesisToolchain {
       env,
       extraMounts,
     });
+
+    if (result.success && preferredVersion) {
+      await writeSidecar(vendorDir, {
+        vendor: 'quartus',
+        version: preferredVersion,
+        sourcePath: launcher.exe,
+      });
+    }
+
     return result.success;
   }
 

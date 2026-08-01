@@ -6,6 +6,7 @@ import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { runGenerator, readScaffoldPackSetting } from '../services/GenerationEngine';
 import { createVivadoProject, createQuartusProject } from './projectCreator';
 import { getBuildOutputChannel } from '../services/BuildOutputChannel';
+import { resolveToolchainVersionForCreate } from '../services/toolchains/resolveToolchainVersion';
 import { CONFIG_KEY_IPCRAFT, CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 
 /**
@@ -14,6 +15,8 @@ import { CONFIG_KEY_IPCRAFT, CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/config
  */
 export async function runCreateVivadoProjectStep(name: string, ipDir: string): Promise<void> {
   const ch = getBuildOutputChannel();
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const choice = await resolveToolchainVersionForCreate(cfg, 'vivado');
   let success = false;
   await vscode.window.withProgress(
     {
@@ -22,7 +25,7 @@ export async function runCreateVivadoProjectStep(name: string, ipDir: string): P
       cancellable: false,
     },
     async () => {
-      success = await createVivadoProject(name, ipDir, ch);
+      success = await createVivadoProject(name, ipDir, ch, choice?.version);
     }
   );
   if (!success) {
@@ -40,6 +43,8 @@ export async function runCreateVivadoProjectStep(name: string, ipDir: string): P
  */
 export async function runCreateQuartusProjectStep(name: string, ipDir: string): Promise<void> {
   const ch = getBuildOutputChannel();
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const choice = await resolveToolchainVersionForCreate(cfg, 'quartus');
   let success = false;
   await vscode.window.withProgress(
     {
@@ -48,7 +53,7 @@ export async function runCreateQuartusProjectStep(name: string, ipDir: string): 
       cancellable: false,
     },
     async () => {
-      success = await createQuartusProject(name, ipDir, ch);
+      success = await createQuartusProject(name, ipDir, ch, choice?.version);
     }
   );
   if (!success) {

@@ -11,6 +11,7 @@ import { parseVivadoReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
 import { findVivadoInInstallDir, getVivadoLauncher } from '../../utils/vivadoResolver';
 import { fileExists } from '../../utils/fsHelpers';
+import { writeSidecar } from './toolchainVersionDetector';
 import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
 import type {
   SynthesisToolchain,
@@ -145,7 +146,8 @@ export class VivadoToolchain implements SynthesisToolchain {
     name: string,
     ipDir: string,
     cfg: vscode.WorkspaceConfiguration,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    preferredVersion?: string
   ): Promise<boolean> {
     const vendorDir = path.join(ipDir, this.outputSubdir);
     const projectTcl = `${name}_project.tcl`;
@@ -153,12 +155,12 @@ export class VivadoToolchain implements SynthesisToolchain {
       return false;
     }
 
-    const launcher = this.resolve('vivado', cfg);
+    const launcher = this.resolve('vivado', cfg, preferredVersion);
     if (!launcher) {
       return false;
     }
 
-    const docker = this.getDocker(cfg, ipDir);
+    const docker = this.getDocker(cfg, ipDir, preferredVersion);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
 
     const result = await runProcess(
@@ -166,6 +168,15 @@ export class VivadoToolchain implements SynthesisToolchain {
       [...launcher.prefixArgs, '-mode', 'batch', '-source', projectTcl, '-nojournal', '-nolog'],
       { cwd: vendorDir, outputChannel, docker, env, extraMounts }
     );
+
+    if (result.success && preferredVersion) {
+      await writeSidecar(vendorDir, {
+        vendor: 'vivado',
+        version: preferredVersion,
+        sourcePath: launcher.exe,
+      });
+    }
+
     return result.success;
   }
 

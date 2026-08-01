@@ -92,6 +92,7 @@ export interface SynthesisToolchain extends LaunchableTool {
     name: string,
     ipDir: string,
     cfg: vscode.WorkspaceConfiguration,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    preferredVersion?: string
   ): Promise<boolean>;
 }

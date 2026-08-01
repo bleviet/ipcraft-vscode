@@ -16,12 +16,14 @@ import * as os from 'os';
 import type { ScaffoldContext } from '../../../../services/toolchains/SynthesisToolchain';
 import type { TemplateLoader } from '../../../../generator/TemplateLoader';
 import type { IpCoreData } from '../../../../generator/types';
+import * as detector from '../../../../services/toolchains/toolchainVersionDetector';
 
 jest.mock('../../../../utils/quartusResolver');
 jest.mock('../../../../utils/fsHelpers');
 jest.mock('../../../../services/BuildRunner');
 jest.mock('fs/promises');
 jest.mock('child_process');
+jest.mock('../../../../services/toolchains/toolchainVersionDetector');
 
 const mockFindInInstallDir = quartusResolver.findInInstallDir as jest.Mock;
 const mockGetQuartusTool = quartusResolver.getQuartusTool as jest.Mock;
@@ -231,6 +233,31 @@ describe('QuartusToolchain', () => {
         ['-t', expect.stringContaining('my_ip_project.tcl')],
         expect.objectContaining({ cwd: expect.stringContaining('altera/build') })
       );
+    });
+
+    it('writes the sidecar after a successful run, when preferredVersion is given', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetQuartusTool.mockReturnValue('/opt/quartus/bin/quartus_sh');
+      mockRunProcess.mockResolvedValue({ success: true });
+
+      const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel, '23.1');
+
+      expect(ok).toBe(true);
+      expect(detector.writeSidecar).toHaveBeenCalledWith(path.join('/ip', 'altera'), {
+        vendor: 'quartus',
+        version: '23.1',
+        sourcePath: '/opt/quartus/bin/quartus_sh',
+      });
+    });
+
+    it('does not write a sidecar when preferredVersion is omitted', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetQuartusTool.mockReturnValue('/opt/quartus/bin/quartus_sh');
+      mockRunProcess.mockResolvedValue({ success: true });
+
+      await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel);
+
+      expect(detector.writeSidecar).not.toHaveBeenCalled();
     });
   });
 });

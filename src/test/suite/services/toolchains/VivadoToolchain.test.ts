@@ -9,11 +9,13 @@ import * as path from 'path';
 import type { ScaffoldContext } from '../../../../services/toolchains/SynthesisToolchain';
 import type { TemplateLoader } from '../../../../generator/TemplateLoader';
 import type { IpCoreData } from '../../../../generator/types';
+import * as detector from '../../../../services/toolchains/toolchainVersionDetector';
 
 jest.mock('../../../../utils/vivadoResolver');
 jest.mock('../../../../utils/fsHelpers');
 jest.mock('../../../../services/BuildRunner');
 jest.mock('child_process');
+jest.mock('../../../../services/toolchains/toolchainVersionDetector');
 
 const mockFindVivado = vivadoResolver.findVivadoInInstallDir as jest.Mock;
 const mockGetLauncher = vivadoResolver.getVivadoLauncher as jest.Mock;
@@ -164,6 +166,35 @@ describe('VivadoToolchain', () => {
         expect.arrayContaining(['-mode', 'batch', '-source', 'my_ip_project.tcl']),
         expect.objectContaining({ cwd: expect.stringContaining('xilinx') })
       );
+    });
+
+    it('createProject() writes the sidecar after a successful run, when preferredVersion is given', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetLauncher.mockReturnValue({ exe: 'vivado', prefixArgs: [] });
+      mockRunProcess.mockResolvedValue({ success: true, exitCode: 0 });
+      const cfg = makeCfg();
+      const outputChannel = { appendLine: jest.fn() } as unknown as import('vscode').OutputChannel;
+
+      const ok = await tc.createProject('foo', '/ip', cfg, outputChannel, '2024.2');
+
+      expect(ok).toBe(true);
+      expect(detector.writeSidecar).toHaveBeenCalledWith(path.join('/ip', 'xilinx'), {
+        vendor: 'vivado',
+        version: '2024.2',
+        sourcePath: expect.stringContaining('vivado'),
+      });
+    });
+
+    it('createProject() does not write a sidecar when preferredVersion is omitted', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetLauncher.mockReturnValue({ exe: 'vivado', prefixArgs: [] });
+      mockRunProcess.mockResolvedValue({ success: true, exitCode: 0 });
+      const cfg = makeCfg();
+      const outputChannel = { appendLine: jest.fn() } as unknown as import('vscode').OutputChannel;
+
+      await tc.createProject('foo', '/ip', cfg, outputChannel);
+
+      expect(detector.writeSidecar).not.toHaveBeenCalled();
     });
   });
 });
