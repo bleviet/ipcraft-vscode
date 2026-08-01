@@ -94,6 +94,18 @@ export async function detectVivadoProjectVersion(
 
   try {
     const content = await fs.readFile(xprPath, 'utf8');
+
+    // Vivado stamps the exact release into a header comment, e.g.
+    // "<!-- Product Version: Vivado v2024.2 (64-bit)              -->" —
+    // verified present (same position, same wording) in real .xpr files
+    // saved by Vivado 2014.2 through 2017.4. This is an exact, unambiguous
+    // signal and needs no lookup table, so it's tried before the
+    // Version/Minor format-version table.
+    const productVersionMatch = content.match(/Product Version:\s*Vivado v(\d+\.\d+)/i);
+    if (productVersionMatch?.[1]) {
+      return { confidence: 'exact', candidates: [productVersionMatch[1]], source: 'project-file' };
+    }
+
     const match = content.match(/<Project\b[^>]*\bVersion="(\d+)"[^>]*\bMinor="(\d+)"/);
     if (match) {
       const candidates = candidateVivadoReleases(match[1], match[2]);

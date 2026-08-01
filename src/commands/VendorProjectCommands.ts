@@ -15,8 +15,11 @@ import { CONFIG_KEY_IPCRAFT, CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/config
  */
 export async function runCreateVivadoProjectStep(name: string, ipDir: string): Promise<void> {
   const ch = getBuildOutputChannel();
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, vscode.Uri.file(ipDir));
   const choice = await resolveToolchainVersionForCreate(cfg, 'vivado');
+  if (choice === undefined) {
+    return;
+  }
   let success = false;
   await vscode.window.withProgress(
     {
@@ -43,8 +46,11 @@ export async function runCreateVivadoProjectStep(name: string, ipDir: string): P
  */
 export async function runCreateQuartusProjectStep(name: string, ipDir: string): Promise<void> {
   const ch = getBuildOutputChannel();
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, vscode.Uri.file(ipDir));
   const choice = await resolveToolchainVersionForCreate(cfg, 'quartus');
+  if (choice === undefined) {
+    return;
+  }
   let success = false;
   await vscode.window.withProgress(
     {

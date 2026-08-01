@@ -15,6 +15,12 @@ export const window = {
   showErrorMessage: jest.fn(),
   showWarningMessage: jest.fn(),
   showInformationMessage: jest.fn(),
+  showOpenDialog: jest.fn(),
+  showQuickPick: jest.fn(),
+  // `resetMocks: true` (config/jest.config.js) wipes any default implementation
+  // before every test, so this is a bare stub — tests that need withProgress to
+  // actually invoke its task must call `.mockImplementation(...)` themselves.
+  withProgress: jest.fn(),
   activeTextEditor: undefined as { document: { fileName: string; uri: unknown } } | undefined,
   tabGroups: {
     activeTabGroup: {
@@ -57,6 +63,17 @@ export enum ConfigurationTarget {
   Global = 1,
   Workspace = 2,
   WorkspaceFolder = 3,
+}
+
+export enum ProgressLocation {
+  SourceControl = 1,
+  Window = 10,
+  Notification = 15,
+}
+
+export enum QuickPickItemKind {
+  Separator = -1,
+  Default = 0,
 }
 
 export const commands = {

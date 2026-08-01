@@ -24,8 +24,12 @@ describe('migrateToolchainSettings', () => {
         const values: Record<string, unknown> = {
           'vivado.installDir': '/tools/Xilinx/Vivado/2024.2',
           'vivado.installDirs': [],
+          'vivado.dockerImage': '',
+          'vivado.dockerImages': [],
           'quartus.installDir': '',
           'quartus.installDirs': [],
+          'quartus.dockerImage': '',
+          'quartus.dockerImages': [],
         };
         return values[key] ?? def;
       }),
@@ -60,6 +64,115 @@ describe('migrateToolchainSettings', () => {
     updateMock.mockClear();
     await migrateToolchainSettings(context);
     expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('folds a set legacy dockerImage into dockerImages, deriving the label from the image tag', async () => {
+    jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+      get: jest.fn((key: string, def?: unknown) => {
+        const values: Record<string, unknown> = {
+          'vivado.installDir': '',
+          'vivado.installDirs': [],
+          'vivado.dockerImage': 'cvsoc/vivado:2024.2',
+          'vivado.dockerImages': [],
+          'quartus.installDir': '',
+          'quartus.installDirs': [],
+          'quartus.dockerImage': '',
+          'quartus.dockerImages': [],
+        };
+        return values[key] ?? def;
+      }),
+      update: updateMock,
+    } as unknown as vscode.WorkspaceConfiguration);
+
+    await migrateToolchainSettings(makeContext());
+    expect(updateMock).toHaveBeenCalledWith(
+      'vivado.dockerImages',
+      [{ label: '2024.2', image: 'cvsoc/vivado:2024.2' }],
+      vscode.ConfigurationTarget.Global
+    );
+  });
+
+  it('falls back to the whole image reference as the label when it has no tag', async () => {
+    jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+      get: jest.fn((key: string, def?: unknown) => {
+        const values: Record<string, unknown> = {
+          'vivado.installDir': '',
+          'vivado.installDirs': [],
+          'vivado.dockerImage': 'my-custom-vivado-image',
+          'vivado.dockerImages': [],
+          'quartus.installDir': '',
+          'quartus.installDirs': [],
+          'quartus.dockerImage': '',
+          'quartus.dockerImages': [],
+        };
+        return values[key] ?? def;
+      }),
+      update: updateMock,
+    } as unknown as vscode.WorkspaceConfiguration);
+
+    await migrateToolchainSettings(makeContext());
+    expect(updateMock).toHaveBeenCalledWith(
+      'vivado.dockerImages',
+      [{ label: 'my-custom-vivado-image', image: 'my-custom-vivado-image' }],
+      vscode.ConfigurationTarget.Global
+    );
+  });
+
+  it('migrates both installDir and dockerImage independently when both are legacy-set', async () => {
+    jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+      get: jest.fn((key: string, def?: unknown) => {
+        const values: Record<string, unknown> = {
+          'vivado.installDir': '/tools/Xilinx/Vivado/2024.2',
+          'vivado.installDirs': [],
+          'vivado.dockerImage': 'cvsoc/vivado:2024.2',
+          'vivado.dockerImages': [],
+          'quartus.installDir': '',
+          'quartus.installDirs': [],
+          'quartus.dockerImage': '',
+          'quartus.dockerImages': [],
+        };
+        return values[key] ?? def;
+      }),
+      update: updateMock,
+    } as unknown as vscode.WorkspaceConfiguration);
+
+    await migrateToolchainSettings(makeContext());
+    expect(updateMock).toHaveBeenCalledWith(
+      'vivado.installDirs',
+      ['/tools/Xilinx/Vivado/2024.2'],
+      vscode.ConfigurationTarget.Global
+    );
+    expect(updateMock).toHaveBeenCalledWith(
+      'vivado.dockerImages',
+      [{ label: '2024.2', image: 'cvsoc/vivado:2024.2' }],
+      vscode.ConfigurationTarget.Global
+    );
+  });
+
+  it('never overwrites an already-populated dockerImages array', async () => {
+    jest.spyOn(vscode.workspace, 'getConfiguration').mockReturnValue({
+      get: jest.fn((key: string, def?: unknown) => {
+        const values: Record<string, unknown> = {
+          'vivado.installDir': '',
+          'vivado.installDirs': [],
+          'vivado.dockerImage': 'cvsoc/vivado:2024.2',
+          'vivado.dockerImages': [{ label: 'existing', image: 'foo/bar:1' }],
+          'quartus.installDir': '',
+          'quartus.installDirs': [],
+          'quartus.dockerImage': '',
+          'quartus.dockerImages': [],
+        };
+        return values[key] ?? def;
+      }),
+      update: updateMock,
+    } as unknown as vscode.WorkspaceConfiguration);
+
+    await migrateToolchainSettings(makeContext());
+    expect(updateMock).not.toHaveBeenCalledWith(
+      'vivado.dockerImages',
+      expect.anything(),
+      expect.anything()
+    );
   });
 
   it('never overwrites an already-populated installDirs array', async () => {

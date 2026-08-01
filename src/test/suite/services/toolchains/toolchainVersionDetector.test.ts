@@ -89,6 +89,52 @@ describe('toolchainVersionDetector', () => {
   });
 
   describe('detectVivadoProjectVersion', () => {
+    it('reports exact from the "Product Version: Vivado vX.Y" header comment, verbatim as Vivado writes it', async () => {
+      const xprPath = path.join(dir, 'foo.xpr');
+      await fs.writeFile(
+        xprPath,
+        [
+          '<?xml version="1.0" encoding="UTF-8"?>',
+          '<!-- Product Version: Vivado v2017.4 (64-bit)              -->',
+          '<!--                                                         -->',
+          '<!-- Copyright 1986-2017 Xilinx, Inc. All Rights Reserved.   -->',
+          '<Project Version="7" Minor="35" Path="/x/foo.xpr">',
+        ].join('\n'),
+        'utf8'
+      );
+      expect(await detectVivadoProjectVersion(xprPath)).toEqual({
+        confidence: 'exact',
+        candidates: ['2017.4'],
+        source: 'project-file',
+      });
+    });
+
+    it('prefers the sidecar over the header comment', async () => {
+      await writeSidecar(dir, { vendor: 'vivado', version: '99.9', sourcePath: 'x' });
+      const xprPath = path.join(dir, 'foo.xpr');
+      await fs.writeFile(
+        xprPath,
+        '<!-- Product Version: Vivado v2017.4 (64-bit) -->\n<Project Version="7" Minor="35">',
+        'utf8'
+      );
+      expect(await detectVivadoProjectVersion(xprPath)).toEqual({
+        confidence: 'exact',
+        candidates: ['99.9'],
+        source: 'sidecar',
+      });
+    });
+
+    it('falls back to the format-version table when the header comment is absent', async () => {
+      jest.spyOn(toolchainVersions, 'candidateVivadoReleases').mockReturnValue(['2024.2']);
+      const xprPath = path.join(dir, 'foo.xpr');
+      await fs.writeFile(xprPath, '<Project Version="7" Minor="0">', 'utf8');
+      expect(await detectVivadoProjectVersion(xprPath)).toEqual({
+        confidence: 'exact',
+        candidates: ['2024.2'],
+        source: 'project-file',
+      });
+    });
+
     it('reports exact when the format version maps to a single release', async () => {
       jest.spyOn(toolchainVersions, 'candidateVivadoReleases').mockReturnValue(['2024.2']);
       const xprPath = path.join(dir, 'foo.xpr');

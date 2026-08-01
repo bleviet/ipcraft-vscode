@@ -70,7 +70,7 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const xprPath = targetUri.fsPath;
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, targetUri);
   const toolchain = getToolchain('vivado');
   if (!toolchain) {
     return;

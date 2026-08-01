@@ -22,7 +22,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const qpfPath = targetUri.fsPath;
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, targetUri);
   const toolchain = getToolchain('quartus');
   if (!toolchain) {
     return;
