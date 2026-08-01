@@ -273,8 +273,11 @@ export class QuartusToolchain implements SynthesisToolchain {
     return spawnSync(cmd, [toolName], { stdio: 'pipe' }).status === 0;
   }
 
-  resolve(subTool: string, cfg: vscode.WorkspaceConfiguration) {
-    const exe = getQuartusTool(cfg, subTool);
+  resolve(subTool: string, cfg: vscode.WorkspaceConfiguration, preferredVersion?: string) {
+    const exe =
+      preferredVersion === undefined
+        ? getQuartusTool(cfg, subTool)
+        : getQuartusTool(cfg, subTool, preferredVersion);
     return { exe, prefixArgs: [] };
   }
 
@@ -295,13 +298,26 @@ export class QuartusToolchain implements SynthesisToolchain {
     return spawnSync(cmd, ['quartus_sh'], { stdio: 'pipe' }).status === 0;
   }
 
-  getDocker(cfg: vscode.WorkspaceConfiguration, mountBase: string): DockerConfig | undefined {
+  getDocker(
+    cfg: vscode.WorkspaceConfiguration,
+    mountBase: string,
+    preferredVersion?: string
+  ): DockerConfig | undefined {
     const runner = cfg.get<string>('quartus.runner', 'local');
-    const image = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
-    if (runner === 'docker' && image) {
-      return { image, mountBase };
+    if (runner !== 'docker') {
+      return undefined;
     }
-    return undefined;
+    const images = cfg.get<Array<{ label: string; image: string }>>('quartus.dockerImages', []);
+    if (images.length > 0) {
+      const chosen = preferredVersion
+        ? images.find((i) => i.label === preferredVersion)
+        : images[0];
+      if (chosen) {
+        return { image: chosen.image, mountBase };
+      }
+    }
+    const image = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
+    return image ? { image, mountBase } : undefined;
   }
 
   getLaunchEnv(_cfg: vscode.WorkspaceConfiguration): LaunchEnv {

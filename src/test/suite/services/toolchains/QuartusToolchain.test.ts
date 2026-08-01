@@ -98,6 +98,16 @@ describe('QuartusToolchain', () => {
     expect(mockGetQuartusTool).toHaveBeenCalledWith(cfg, 'quartus_sh');
   });
 
+  it('resolve() forwards preferredVersion to getQuartusTool', () => {
+    mockGetQuartusTool.mockReturnValue('/opt/23.1/quartus/bin/quartus_sh');
+    const cfg = makeCfg();
+    expect(tc.resolve('quartus_sh', cfg, '23.1')).toEqual({
+      exe: '/opt/23.1/quartus/bin/quartus_sh',
+      prefixArgs: [],
+    });
+    expect(mockGetQuartusTool).toHaveBeenCalledWith(cfg, 'quartus_sh', '23.1');
+  });
+
   it('isAvailable() returns true when docker runner is configured with image', () => {
     const cfg = makeCfg({ 'quartus.runner': 'docker', 'quartus.dockerImage': 'my/quartus:latest' });
     expect(tc.isAvailable(cfg)).toBe(true);
@@ -153,6 +163,25 @@ describe('QuartusToolchain', () => {
   it('getDocker() returns undefined for local runner', () => {
     const cfg = makeCfg({ 'quartus.runner': 'local' });
     expect(tc.getDocker(cfg, '/workspace')).toBeUndefined();
+  });
+
+  it('getDocker() picks the dockerImages entry matching preferredVersion', () => {
+    const cfg = makeCfg({
+      'quartus.runner': 'docker',
+      'quartus.dockerImages': [
+        { label: '23.1', image: 'my/quartus:23.1' },
+        { label: '24.1', image: 'my/quartus:24.1' },
+      ],
+    });
+    expect(tc.getDocker(cfg, '/work', '23.1')).toEqual({
+      image: 'my/quartus:23.1',
+      mountBase: '/work',
+    });
+  });
+
+  it('getDocker() falls back to the legacy singular dockerImage when dockerImages is empty', () => {
+    const cfg = makeCfg({ 'quartus.runner': 'docker', 'quartus.dockerImage': 'my/quartus:latest' });
+    expect(tc.getDocker(cfg, '/work')).toEqual({ image: 'my/quartus:latest', mountBase: '/work' });
   });
 
   it('getLaunchEnv() returns empty env and mounts', () => {

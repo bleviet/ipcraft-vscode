@@ -48,6 +48,14 @@ describe('VivadoToolchain', () => {
     expect(mockGetLauncher).toHaveBeenCalledWith(cfg);
   });
 
+  it('resolve() forwards preferredVersion to getVivadoLauncher', () => {
+    const expected = { exe: '/opt/2024.1/bin/vivado', prefixArgs: [] };
+    mockGetLauncher.mockReturnValue(expected);
+    const cfg = makeCfg();
+    expect(tc.resolve('any', cfg, '2024.1')).toBe(expected);
+    expect(mockGetLauncher).toHaveBeenCalledWith(cfg, '2024.1');
+  });
+
   it('isAvailable() returns true when docker runner is configured with image', () => {
     const cfg = makeCfg({ 'vivado.runner': 'docker', 'vivado.dockerImage': 'my/vivado:latest' });
     expect(tc.isAvailable(cfg)).toBe(true);
@@ -93,6 +101,25 @@ describe('VivadoToolchain', () => {
   it('getDocker() returns undefined for local runner', () => {
     const cfg = makeCfg({ 'vivado.runner': 'local' });
     expect(tc.getDocker(cfg, '/workspace')).toBeUndefined();
+  });
+
+  it('getDocker() picks the dockerImages entry matching preferredVersion', () => {
+    const cfg = makeCfg({
+      'vivado.runner': 'docker',
+      'vivado.dockerImages': [
+        { label: '2024.1', image: 'my/vivado:2024.1' },
+        { label: '2024.2', image: 'my/vivado:2024.2' },
+      ],
+    });
+    expect(tc.getDocker(cfg, '/work', '2024.1')).toEqual({
+      image: 'my/vivado:2024.1',
+      mountBase: '/work',
+    });
+  });
+
+  it('getDocker() falls back to the legacy singular dockerImage when dockerImages is empty', () => {
+    const cfg = makeCfg({ 'vivado.runner': 'docker', 'vivado.dockerImage': 'my/vivado:latest' });
+    expect(tc.getDocker(cfg, '/work')).toEqual({ image: 'my/vivado:latest', mountBase: '/work' });
   });
 
   it('getLaunchEnv() returns empty env and mounts', () => {

@@ -30,9 +30,11 @@ export class VivadoToolchain implements SynthesisToolchain {
     return false;
   }
 
-  resolve(subTool: string, cfg: vscode.WorkspaceConfiguration) {
+  resolve(_subTool: string, cfg: vscode.WorkspaceConfiguration, preferredVersion?: string) {
     // subTool is ignored — Vivado exposes a single launcher for all operations.
-    return getVivadoLauncher(cfg);
+    return preferredVersion === undefined
+      ? getVivadoLauncher(cfg)
+      : getVivadoLauncher(cfg, preferredVersion);
   }
 
   isAvailable(cfg: vscode.WorkspaceConfiguration): boolean {
@@ -49,13 +51,26 @@ export class VivadoToolchain implements SynthesisToolchain {
     return spawnSync(cmd, ['vivado'], { stdio: 'pipe' }).status === 0;
   }
 
-  getDocker(cfg: vscode.WorkspaceConfiguration, mountBase: string): DockerConfig | undefined {
+  getDocker(
+    cfg: vscode.WorkspaceConfiguration,
+    mountBase: string,
+    preferredVersion?: string
+  ): DockerConfig | undefined {
     const runner = cfg.get<string>('vivado.runner', 'local');
-    const image = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
-    if (runner === 'docker' && image) {
-      return { image, mountBase };
+    if (runner !== 'docker') {
+      return undefined;
     }
-    return undefined;
+    const images = cfg.get<Array<{ label: string; image: string }>>('vivado.dockerImages', []);
+    if (images.length > 0) {
+      const chosen = preferredVersion
+        ? images.find((i) => i.label === preferredVersion)
+        : images[0];
+      if (chosen) {
+        return { image: chosen.image, mountBase };
+      }
+    }
+    const image = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
+    return image ? { image, mountBase } : undefined;
   }
 
   getLaunchEnv(_cfg: vscode.WorkspaceConfiguration): LaunchEnv {

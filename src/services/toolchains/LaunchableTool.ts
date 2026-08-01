@@ -51,14 +51,26 @@ export interface LaunchableTool {
   /**
    * Resolve the executable path for a named sub-tool (e.g. 'vivado', 'quartus_sh',
    * 'vsim'). Returns null when the tool cannot be located.
+   * `preferredVersion`, when given, selects a specific configured install
+   * version instead of the default (latest configured / first Docker image).
    */
-  resolve(subTool: string, cfg: vscode.WorkspaceConfiguration): ResolvedExecutable | null;
+  resolve(
+    subTool: string,
+    cfg: vscode.WorkspaceConfiguration,
+    preferredVersion?: string
+  ): ResolvedExecutable | null;
 
   /**
    * Build the Docker configuration for batch runs, or undefined when running locally.
    * `mountBase` is the primary directory that will be mounted as /work.
+   * `preferredVersion`, when given, selects the `dockerImages` entry whose
+   * `label` matches instead of the first configured entry.
    */
-  getDocker(cfg: vscode.WorkspaceConfiguration, mountBase: string): DockerConfig | undefined;
+  getDocker(
+    cfg: vscode.WorkspaceConfiguration,
+    mountBase: string,
+    preferredVersion?: string
+  ): DockerConfig | undefined;
 
   /**
    * Build the environment variable overlay and extra Docker mounts needed for
