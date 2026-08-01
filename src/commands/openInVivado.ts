@@ -6,6 +6,7 @@ import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
+import { resolveToolchainVersionForOpen } from '../services/toolchains/resolveToolchainVersion';
 
 const logger = new Logger('OpenInVivado');
 
@@ -75,7 +76,11 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
     return;
   }
 
-  const launcher = toolchain.resolve('vivado', cfg);
+  const choice = await resolveToolchainVersionForOpen(cfg, 'vivado', xprPath);
+  if (!choice) {
+    return;
+  }
+  const launcher = toolchain.resolve('vivado', cfg, choice.version);
   if (!launcher) {
     return;
   }
@@ -83,7 +88,7 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   // Mount the workspace root so Vivado can resolve all source paths stored as
   // absolute references inside the .xpr.
   const mountDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.dirname(xprPath);
-  const docker = toolchain.getDocker(cfg, mountDir);
+  const docker = toolchain.getDocker(cfg, mountDir, choice.version);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   // Detect the IP directory (the directory containing component.xml, typically

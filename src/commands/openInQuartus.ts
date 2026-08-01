@@ -5,6 +5,7 @@ import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
+import { resolveToolchainVersionForOpen } from '../services/toolchains/resolveToolchainVersion';
 
 const logger = new Logger('OpenInQuartus');
 
@@ -27,7 +28,11 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
     return;
   }
 
-  const guiExe = toolchain.resolve('quartus', cfg);
+  const choice = await resolveToolchainVersionForOpen(cfg, 'quartus', qpfPath);
+  if (!choice) {
+    return;
+  }
+  const guiExe = toolchain.resolve('quartus', cfg, choice.version);
   if (!guiExe?.exe) {
     return;
   }
@@ -37,7 +42,7 @@ export async function openInQuartusCommand(uri?: vscode.Uri): Promise<void> {
   // {ipDir}/altera/build/, so ipDir is two levels up. Use that same convention
   // so the GUI can resolve the same paths.
   const mountBase = path.resolve(path.dirname(qpfPath), '../..');
-  const docker = toolchain.getDocker(cfg, mountBase);
+  const docker = toolchain.getDocker(cfg, mountBase, choice.version);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   logger.info(`Opening Quartus project: ${qpfPath}`);
