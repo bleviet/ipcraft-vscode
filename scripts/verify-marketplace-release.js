@@ -7,7 +7,7 @@ const {
   validatePublishedPackage,
 } = require('./marketplace-release-contract');
 
-const MAX_POLL_ATTEMPTS = 12;
+const MAX_POLL_ATTEMPTS = 60;
 const POLL_INTERVAL_MS = 10_000;
 const DOWNLOAD_TIMEOUT_MS = 30_000;
 

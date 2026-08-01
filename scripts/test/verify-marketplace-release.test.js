@@ -133,6 +133,17 @@ function writeVsix(archivePath, manifest) {
 }
 
 describe('Marketplace verification CLI helpers', () => {
+  it('uses the default polling budget when a version appears on attempt 13', async () => {
+    let attempts = 0;
+    const listing = await pollForVersion(
+      async () => ({ versions: ++attempts === 13 ? [{ version: '1.2.3' }] : [] }),
+      '1.2.3',
+      { sleep: async () => {} }
+    );
+
+    assert.equal(listing.versions[0].version, '1.2.3');
+  });
+
   it('retries a Marketplace listing until the requested version is visible', async () => {
     let calls = 0;
     const listing = await pollForVersion(
