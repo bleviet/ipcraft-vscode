@@ -274,10 +274,7 @@ export class QuartusToolchain implements SynthesisToolchain {
   }
 
   resolve(subTool: string, cfg: vscode.WorkspaceConfiguration, preferredVersion?: string) {
-    const exe =
-      preferredVersion === undefined
-        ? getQuartusTool(cfg, subTool)
-        : getQuartusTool(cfg, subTool, preferredVersion);
+    const exe = getQuartusTool(cfg, subTool, preferredVersion);
     return { exe, prefixArgs: [] };
   }
 

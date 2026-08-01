@@ -32,9 +32,7 @@ export class VivadoToolchain implements SynthesisToolchain {
 
   resolve(_subTool: string, cfg: vscode.WorkspaceConfiguration, preferredVersion?: string) {
     // subTool is ignored — Vivado exposes a single launcher for all operations.
-    return preferredVersion === undefined
-      ? getVivadoLauncher(cfg)
-      : getVivadoLauncher(cfg, preferredVersion);
+    return getVivadoLauncher(cfg, preferredVersion);
   }
 
   isAvailable(cfg: vscode.WorkspaceConfiguration): boolean {

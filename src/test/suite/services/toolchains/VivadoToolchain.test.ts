@@ -45,7 +45,7 @@ describe('VivadoToolchain', () => {
     mockGetLauncher.mockReturnValue(expected);
     const cfg = makeCfg();
     expect(tc.resolve('any', cfg)).toBe(expected);
-    expect(mockGetLauncher).toHaveBeenCalledWith(cfg);
+    expect(mockGetLauncher).toHaveBeenCalledWith(cfg, undefined);
   });
 
   it('resolve() forwards preferredVersion to getVivadoLauncher', () => {

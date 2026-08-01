@@ -95,7 +95,7 @@ describe('QuartusToolchain', () => {
     const result = tc.resolve('quartus_sh', cfg);
     expect(result.exe).toBe('/opt/quartus/bin/quartus_sh');
     expect(result.prefixArgs).toEqual([]);
-    expect(mockGetQuartusTool).toHaveBeenCalledWith(cfg, 'quartus_sh');
+    expect(mockGetQuartusTool).toHaveBeenCalledWith(cfg, 'quartus_sh', undefined);
   });
 
   it('resolve() forwards preferredVersion to getQuartusTool', () => {
