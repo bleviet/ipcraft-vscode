@@ -2,7 +2,7 @@
 
 Date: 2026-08-01
 
-**Status:** Proposed — design approved, no issue or implementation plan yet.
+**Status:** Implemented in PR #202 (2026-08-01).
 
 ## Problem
 
@@ -30,6 +30,35 @@ clarification, several Docker images) per vendor, have IPCraft pick the
 correct one automatically when opening an existing project, and let users
 force a specific version at any time — with a UX that stays out of the way
 in the common case.
+
+## Implementation record
+
+The design is implemented and extended through the complete vendor-integration
+surface:
+
+- Versioned local installs and Docker images, workspace-resource pins,
+  sidecars, project-file detection, and explicit selection commands are
+  available for both Vivado and Quartus. Deprecated singular settings remain
+  as compatibility fallbacks.
+- Project creation, opening, IP Packager, Platform Designer, direct builds,
+  Generate & Build, and Vivado catalog/interface scans resolve the same
+  resource-scoped version policy. Cancellation leaves processes and caches
+  untouched.
+- Docker actions use container-native executables through
+  `resolveExecutionLauncher`; a host-resolved executable path is never passed
+  into a selected container image.
+- Vivado catalog and interface caches are isolated by selected version and
+  cache kind. A successful scan records the selected cache per workspace
+  resource; staged replacement protects prior cache data and selection
+  metadata if a write fails.
+- Tool availability checks search configured install directories directly
+  rather than invoking each vendor executable only to identify a version.
+- Browser CI allocates a 4 GB Node heap for webpack so macOS can build the
+  browser assets before Playwright runs.
+
+The remaining sections preserve the approved design record. The implementation
+record above is the source of truth where a planned file name or mechanism
+changed during delivery.
 
 ## A. Settings model & version identification
 

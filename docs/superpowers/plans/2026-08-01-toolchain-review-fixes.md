@@ -1,6 +1,9 @@
 # Toolchain Review Fixes Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Status:** Completed in PR #202 (2026-08-01). The follow-up browser CI heap
+guard was completed in the same PR after this plan's toolchain tasks.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Remove duplicated launch-policy decisions and expensive version probes identified in PR #202 review.
 
@@ -29,20 +32,20 @@
 - Consumes: `resolveExecutionLauncher(docker, containerExecutable, resolveLocal)`.
 - Produces: build-mode `run(preferredVersion?)` functions with one canonical launcher decision.
 
-- [ ] **Step 1: Write the failing build-mode tests**
+- [x] **Step 1: Write the failing build-mode tests**
 
 Add a local-mode assertion that the mode resolves through the toolchain's
 `resolve` method and a Docker-mode assertion that the runner receives the
 native literal command `vivado` or `quartus_sh`.
 
-- [ ] **Step 2: Run the focused tests to verify they fail**
+- [x] **Step 2: Run the focused tests to verify they fail**
 
 Run: `npx jest --config config/jest.config.js src/test/suite/services/toolchains/VivadoToolchain.test.ts src/test/suite/services/toolchains/QuartusToolchain.test.ts --runInBand`
 
 Expected: the new assertions fail because the closures duplicate the decision
 instead of using the shared helper.
 
-- [ ] **Step 3: Replace duplicated branches with the shared launcher helper**
+- [x] **Step 3: Replace duplicated branches with the shared launcher helper**
 
 ```ts
 const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
@@ -53,7 +56,7 @@ const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
 Use the equivalent Quartus call with `quartus_sh`, and retain the existing
 arguments passed to `runProcess`.
 
-- [ ] **Step 4: Run focused tests to verify they pass**
+- [x] **Step 4: Run focused tests to verify they pass**
 
 Run the command from Step 2. Expected: all tests pass.
 
@@ -71,21 +74,21 @@ Run the command from Step 2. Expected: all tests pass.
 - Produces: boolean availability without `resolveVivadoVersions` or
   `resolveQuartusVersions` when `installDirs` is configured.
 
-- [ ] **Step 1: Write failing no-probe tests**
+- [x] **Step 1: Write failing no-probe tests**
 
 Configure two `installDirs`, make the direct finder succeed in one directory,
 and assert availability is true while the corresponding version resolver is
 not called. Cover Vivado availability, Quartus availability, and Quartus
 `qsys-edit` availability.
 
-- [ ] **Step 2: Run focused tests to verify they fail**
+- [x] **Step 2: Run focused tests to verify they fail**
 
 Run: `npx jest --config config/jest.config.js src/test/suite/services/toolchains/VivadoToolchain.test.ts src/test/suite/services/toolchains/QuartusToolchain.test.ts --runInBand`
 
 Expected: the no-probe assertions fail because the methods call the version
 resolvers.
 
-- [ ] **Step 3: Search configured directories directly**
+- [x] **Step 3: Search configured directories directly**
 
 ```ts
 return installDirs.some((installDir) =>
@@ -96,7 +99,7 @@ return installDirs.some((installDir) =>
 Use `findVivadoInInstallDir` for Vivado. Leave all non-`installDirs` branches
 unchanged.
 
-- [ ] **Step 4: Verify focused and full project checks**
+- [x] **Step 4: Verify focused and full project checks**
 
 Run the focused Jest command, then `npm test` and `git diff --check`.
 Expected: all commands exit zero.
