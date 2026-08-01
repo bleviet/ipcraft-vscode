@@ -6,16 +6,26 @@ import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { runGenerator, readScaffoldPackSetting } from '../services/GenerationEngine';
 import { createVivadoProject, createQuartusProject } from './projectCreator';
 import { getBuildOutputChannel } from '../services/BuildOutputChannel';
-import { resolveToolchainVersionForCreate } from '../services/toolchains/resolveToolchainVersion';
+import {
+  resolveToolchainVersionForCreate,
+  resolveToolchainVersionForResource,
+} from '../services/toolchains/resolveToolchainVersion';
 import { CONFIG_KEY_IPCRAFT, CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 
 /**
  * Run the Vivado project-creation step after Generate, showing a progress notification.
  * If Vivado is not found, shows an info message with manual instructions.
  */
-export async function runCreateVivadoProjectStep(name: string, ipDir: string): Promise<void> {
+export async function runCreateVivadoProjectStep(
+  name: string,
+  ipDir: string,
+  resourceUri?: vscode.Uri
+): Promise<void> {
   const ch = getBuildOutputChannel();
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, vscode.Uri.file(ipDir));
+  const cfg = vscode.workspace.getConfiguration(
+    CONFIG_KEY_IPCRAFT,
+    resourceUri ?? vscode.Uri.file(ipDir)
+  );
   const choice = await resolveToolchainVersionForCreate(cfg, 'vivado');
   if (choice === undefined) {
     return;
@@ -28,7 +38,7 @@ export async function runCreateVivadoProjectStep(name: string, ipDir: string): P
       cancellable: false,
     },
     async () => {
-      success = await createVivadoProject(name, ipDir, ch, choice?.version);
+      success = await createVivadoProject(name, ipDir, ch, choice?.version, cfg);
     }
   );
   if (!success) {
@@ -44,9 +54,16 @@ export async function runCreateVivadoProjectStep(name: string, ipDir: string): P
  * Run the Quartus project-creation step after Generate, showing a progress notification.
  * If Quartus is not found, shows an info message with manual instructions.
  */
-export async function runCreateQuartusProjectStep(name: string, ipDir: string): Promise<void> {
+export async function runCreateQuartusProjectStep(
+  name: string,
+  ipDir: string,
+  resourceUri?: vscode.Uri
+): Promise<void> {
   const ch = getBuildOutputChannel();
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, vscode.Uri.file(ipDir));
+  const cfg = vscode.workspace.getConfiguration(
+    CONFIG_KEY_IPCRAFT,
+    resourceUri ?? vscode.Uri.file(ipDir)
+  );
   const choice = await resolveToolchainVersionForCreate(cfg, 'quartus');
   if (choice === undefined) {
     return;
@@ -59,7 +76,7 @@ export async function runCreateQuartusProjectStep(name: string, ipDir: string): 
       cancellable: false,
     },
     async () => {
-      success = await createQuartusProject(name, ipDir, ch, choice?.version);
+      success = await createQuartusProject(name, ipDir, ch, choice?.version, cfg);
     }
   );
   if (!success) {
@@ -81,8 +98,8 @@ export async function generateVivadoProject(
     return;
   }
 
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
-  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, ipCoreUri);
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE, ipCoreUri);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const targetPart = await pickVivadoPart(
     context,
@@ -117,7 +134,7 @@ export async function generateVivadoProject(
   );
 
   if (ok) {
-    await runCreateVivadoProjectStep(name, outputDir);
+    await runCreateVivadoProjectStep(name, outputDir, ipCoreUri);
   }
 }
 
@@ -131,8 +148,8 @@ export async function generateQuartusProject(
     return;
   }
 
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
-  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, ipCoreUri);
+  const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE, ipCoreUri);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const quartusDevice = await pickQuartusDevice(
     context,
@@ -167,7 +184,7 @@ export async function generateQuartusProject(
   );
 
   if (ok) {
-    await runCreateQuartusProjectStep(name, outputDir);
+    await runCreateQuartusProjectStep(name, outputDir, ipCoreUri);
   }
 }
 
@@ -181,7 +198,11 @@ export async function generateAndBuildVivado(
     return;
   }
 
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, ipCoreUri);
+  const choice = await resolveToolchainVersionForResource(cfg, 'vivado');
+  if (choice === undefined) {
+    return;
+  }
   const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const targetPart = await pickVivadoPart(
@@ -212,7 +233,11 @@ export async function generateAndBuildVivado(
   );
 
   if (ok) {
-    await vscode.commands.executeCommand('fpga-ip-core.buildVivadoOoc', ipCoreUri);
+    await vscode.commands.executeCommand(
+      'fpga-ip-core.buildVivadoOoc',
+      ipCoreUri,
+      choice?.version ?? null
+    );
   }
 }
 
@@ -226,7 +251,11 @@ export async function generateAndBuildQuartus(
     return;
   }
 
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, ipCoreUri);
+  const choice = await resolveToolchainVersionForResource(cfg, 'quartus');
+  if (choice === undefined) {
+    return;
+  }
   const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const scaffoldPack = readScaffoldPackSetting(genCfg);
   const quartusDevice = await pickQuartusDevice(
@@ -257,6 +286,10 @@ export async function generateAndBuildQuartus(
   );
 
   if (ok) {
-    await vscode.commands.executeCommand('fpga-ip-core.buildQuartusCompile', ipCoreUri);
+    await vscode.commands.executeCommand(
+      'fpga-ip-core.buildQuartusCompile',
+      ipCoreUri,
+      choice?.version ?? null
+    );
   }
 }

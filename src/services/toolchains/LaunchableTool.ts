@@ -22,6 +22,19 @@ export interface DockerConfig {
 }
 
 /**
+ * A Docker container cannot execute a host-resolved binary path. Keep the
+ * launch decision in one place so every GUI and project-creation path uses a
+ * vendor executable available inside the selected image.
+ */
+export function resolveExecutionLauncher(
+  docker: DockerConfig | undefined,
+  containerExecutable: string,
+  resolveLocal: () => ResolvedExecutable | null
+): ResolvedExecutable | null {
+  return docker ? { exe: containerExecutable, prefixArgs: [] } : resolveLocal();
+}
+
+/**
  * A companion executable that lives inside the same toolchain installation but
  * has its own VS Code context key (e.g. `qsys-edit` inside Quartus).
  */

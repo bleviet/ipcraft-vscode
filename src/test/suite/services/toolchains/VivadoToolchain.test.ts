@@ -195,6 +195,25 @@ describe('VivadoToolchain', () => {
       );
     });
 
+    it('uses the container-native vivado executable for Docker project creation', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetLauncher.mockReturnValue({ exe: '/host/xilinx/bin/vivado', prefixArgs: [] });
+      mockRunProcess.mockResolvedValue({ success: true });
+      const cfg = makeCfg({
+        'vivado.runner': 'docker',
+        'vivado.dockerImages': [{ label: '2024.2', image: 'example/vivado:2024.2' }],
+      });
+
+      await tc.createProject('my_ip', '/ip', cfg, outputChannel, '2024.2');
+
+      expect(mockGetLauncher).not.toHaveBeenCalled();
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        'vivado',
+        expect.arrayContaining(['-mode', 'batch']),
+        expect.objectContaining({ docker: { image: 'example/vivado:2024.2', mountBase: '/ip' } })
+      );
+    });
+
     it('createProject() writes the sidecar after a successful run, when preferredVersion is given', async () => {
       mockFileExists.mockResolvedValue(true);
       mockGetLauncher.mockReturnValue({ exe: 'vivado', prefixArgs: [] });
@@ -270,6 +289,66 @@ describe('VivadoToolchain', () => {
       await tc.createProject('foo', '/ip', cfg, outputChannel);
 
       expect(detector.writeSidecar).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('detectBuildModes()', () => {
+    const outputChannel = { appendLine: jest.fn() } as unknown as import('vscode').OutputChannel;
+
+    it('describes the OOC project file used for version detection', async () => {
+      mockFileExists.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      mockGetLauncher.mockReturnValue({ exe: 'vivado', prefixArgs: [] });
+
+      const [mode] = await tc.detectBuildModes('foo', '/ip', makeCfg(), outputChannel);
+
+      expect(mode).toEqual(
+        expect.objectContaining({
+          vendor: 'vivado',
+          projectFilePath: path.join('/ip', 'xilinx', 'build', 'ooc', 'foo.xpr'),
+        })
+      );
+    });
+
+    it('uses the detection-time preferred version for a local build', async () => {
+      mockFileExists.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      mockGetLauncher.mockReturnValue({ exe: '/opt/2023.2/bin/vivado', prefixArgs: [] });
+      mockRunProcess.mockResolvedValue({ success: false });
+      const cfg = makeCfg({ 'vivado.runner': 'local' });
+      const [mode] = await tc.detectBuildModes('foo', '/ip', cfg, outputChannel, '2023.2');
+
+      await mode.run();
+
+      expect(mockGetLauncher).toHaveBeenLastCalledWith(cfg, '2023.2');
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        '/opt/2023.2/bin/vivado',
+        expect.any(Array),
+        expect.objectContaining({ docker: undefined })
+      );
+    });
+
+    it('uses the container command with the preferred Docker image', async () => {
+      mockFileExists.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      mockGetLauncher.mockReturnValue({ exe: '/opt/2023.2/bin/vivado', prefixArgs: [] });
+      mockRunProcess.mockResolvedValue({ success: false });
+      const cfg = makeCfg({
+        'vivado.runner': 'docker',
+        'vivado.installDirs': ['/opt/Xilinx'],
+        'vivado.dockerImages': [
+          { label: '2024.1', image: 'vivado:2024.1' },
+          { label: '2023.2', image: 'vivado:2023.2' },
+        ],
+      });
+      const [mode] = await tc.detectBuildModes('foo', '/ip', cfg, outputChannel);
+
+      await (mode.run as (preferredVersion?: string) => Promise<unknown>)('2023.2');
+
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        'vivado',
+        expect.any(Array),
+        expect.objectContaining({
+          docker: { image: 'vivado:2023.2', mountBase: '/ip' },
+        })
+      );
     });
   });
 });

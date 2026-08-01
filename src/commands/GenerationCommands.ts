@@ -126,10 +126,10 @@ export async function scaffoldProject(
     // Sequential, not Promise.all: each step can open a version QuickPick, and
     // VS Code dismisses the first picker the moment the second one opens.
     if (targets.includes('vivado')) {
-      await runCreateVivadoProjectStep(name, outputDir);
+      await runCreateVivadoProjectStep(name, outputDir, ipCoreUri);
     }
     if (targets.includes('quartus')) {
-      await runCreateQuartusProjectStep(name, outputDir);
+      await runCreateQuartusProjectStep(name, outputDir, ipCoreUri);
     }
   }
 }

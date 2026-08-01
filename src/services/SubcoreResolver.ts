@@ -6,6 +6,7 @@ import { Logger } from '../utils/Logger';
 import { VivadoCatalogScanner } from './VivadoCatalogScanner';
 import { XILINX_COMMON_IPS } from '../data/xilinxCatalog';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
+import { resolveVivadoCacheVersion } from './VivadoCacheVersion';
 
 const logger = new Logger('SubcoreResolver');
 
@@ -99,8 +100,12 @@ export class SubcoreResolver {
     return candidates;
   }
 
-  async refresh(): Promise<void> {
-    await Promise.all([this.scanWorkspace(), this.scanUserRepoPaths(), this.loadVivadoCatalog()]);
+  async refresh(resourceUri?: vscode.Uri): Promise<void> {
+    await Promise.all([
+      this.scanWorkspace(),
+      this.scanUserRepoPaths(),
+      this.loadVivadoCatalog(resourceUri),
+    ]);
   }
 
   private async scanWorkspace(): Promise<void> {
@@ -153,8 +158,10 @@ export class SubcoreResolver {
     this.userRepoIndex = newIndex;
   }
 
-  private async loadVivadoCatalog(): Promise<void> {
-    this.vivadoCatalog = await this.scanner.loadCachedCatalog();
+  private async loadVivadoCatalog(resourceUri?: vscode.Uri): Promise<void> {
+    const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, resourceUri);
+    const cacheVersion = await resolveVivadoCacheVersion(config, 'catalog', resourceUri);
+    this.vivadoCatalog = await this.scanner.loadCachedCatalog(cacheVersion);
   }
 
   private async loadBuiltinCatalog(): Promise<void> {

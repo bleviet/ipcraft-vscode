@@ -39,10 +39,14 @@ export interface ScaffoldOptions {
 export interface BuildMode {
   label: string;
   description: string;
+  /** Vendor used to resolve the project-specific tool version. */
+  vendor: 'vivado' | 'quartus';
+  /** Vendor project file inspected for its required tool version. */
+  projectFilePath: string;
   /** Build directory where reports will be written. */
   buildDir: string;
   /** Run the build, return parsed reports on success or undefined on failure. */
-  run: () => Promise<BuildReports | undefined>;
+  run: (preferredVersion?: string) => Promise<BuildReports | undefined>;
 }
 
 /**
@@ -78,7 +82,8 @@ export interface SynthesisToolchain extends LaunchableTool {
     name: string,
     ipDir: string,
     cfg: vscode.WorkspaceConfiguration,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    preferredVersion?: string
   ): Promise<BuildMode[]>;
 
   /**

@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import {
   resolveToolchainVersionForOpen,
   resolveToolchainVersionForCreate,
+  resolveToolchainVersionForResource,
+  resolveLocalVivadoVersionForInterfaceScan,
 } from '../../../../services/toolchains/resolveToolchainVersion';
 import * as detector from '../../../../services/toolchains/toolchainVersionDetector';
 import * as vivadoResolver from '../../../../utils/vivadoResolver';
@@ -316,5 +318,106 @@ describe('resolveToolchainVersionForCreate', () => {
       version: '23.1',
     });
     expect(pickToolVersionModule.pickToolVersion).toHaveBeenCalledWith(cfg, 'quartus');
+  });
+});
+
+describe('resolveToolchainVersionForResource', () => {
+  beforeEach(() => jest.clearAllMocks());
+  afterEach(() => jest.restoreAllMocks());
+
+  it('uses a configured resource pin without opening the picker', async () => {
+    const cfg = makeCfg({ 'vivado.pinnedVersion': '2024.2', 'vivado.installDirs': ['/x'] });
+    (vivadoResolver.resolveVivadoVersions as jest.Mock).mockReturnValue([
+      { version: '2024.2', installDir: '/x/2024.2', launcher: { exe: 'vivado', prefixArgs: [] } },
+    ]);
+
+    await expect(resolveToolchainVersionForResource(cfg, 'vivado')).resolves.toEqual({
+      runner: 'local',
+      version: '2024.2',
+    });
+    expect(pickToolVersionModule.pickToolVersion).not.toHaveBeenCalled();
+  });
+
+  it('opens the picker when a configured resource has no valid pin', async () => {
+    const cfg = makeCfg({ 'quartus.pinnedVersion': '', 'quartus.installDirs': ['/q'] });
+    (quartusResolver.resolveQuartusVersions as jest.Mock).mockReturnValue([
+      { version: '23.1', installDir: '/q/23.1' },
+    ]);
+    (pickToolVersionModule.pickToolVersion as jest.Mock).mockResolvedValue({
+      runner: 'local',
+      version: '23.1',
+    });
+
+    await expect(resolveToolchainVersionForResource(cfg, 'quartus')).resolves.toEqual({
+      runner: 'local',
+      version: '23.1',
+    });
+    expect(pickToolVersionModule.pickToolVersion).toHaveBeenCalledWith(cfg, 'quartus');
+  });
+
+  it('returns null when no resource versions are configured', async () => {
+    const cfg = makeCfg({ 'quartus.pinnedVersion': '', 'quartus.installDirs': [] });
+    (quartusResolver.resolveQuartusVersions as jest.Mock).mockReturnValue([]);
+
+    await expect(resolveToolchainVersionForResource(cfg, 'quartus')).resolves.toBeNull();
+    expect(pickToolVersionModule.pickToolVersion).not.toHaveBeenCalled();
+  });
+
+  it('returns undefined when the resource picker is dismissed', async () => {
+    const cfg = makeCfg({ 'quartus.pinnedVersion': '', 'quartus.installDirs': ['/q'] });
+    (quartusResolver.resolveQuartusVersions as jest.Mock).mockReturnValue([
+      { version: '23.1', installDir: '/q/23.1' },
+    ]);
+    (pickToolVersionModule.pickToolVersion as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(resolveToolchainVersionForResource(cfg, 'quartus')).resolves.toBeUndefined();
+  });
+});
+
+describe('resolveLocalVivadoVersionForInterfaceScan', () => {
+  beforeEach(() => jest.clearAllMocks());
+  afterEach(() => jest.restoreAllMocks());
+
+  it('offers resource-scoped local installs even when the active runner is Docker', async () => {
+    const cfg = makeCfg({
+      'vivado.runner': 'docker',
+      'vivado.installDirs': ['/xilinx'],
+      'vivado.pinnedVersion': '',
+      'vivado.dockerImages': [{ label: '2024.2', image: 'example/vivado:2024.2' }],
+    });
+    (vivadoResolver.resolveVivadoVersions as jest.Mock).mockReturnValue([
+      {
+        version: '2024.1',
+        installDir: '/xilinx/2024.1',
+        launcher: { exe: 'vivado', prefixArgs: [] },
+      },
+    ]);
+    (vscode.window.showQuickPick as jest.Mock).mockResolvedValue({
+      label: '2024.1',
+      choice: { runner: 'local', version: '2024.1' },
+    });
+
+    await expect(resolveLocalVivadoVersionForInterfaceScan(cfg)).resolves.toEqual({
+      runner: 'local',
+      version: '2024.1',
+    });
+    expect(vscode.window.showQuickPick).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ label: '2024.1', description: 'local' })]),
+      expect.objectContaining({ title: 'Select local Vivado Version for Interface Scan' })
+    );
+  });
+
+  it('returns undefined when the local-only version picker is cancelled', async () => {
+    const cfg = makeCfg({ 'vivado.installDirs': ['/xilinx'], 'vivado.pinnedVersion': '' });
+    (vivadoResolver.resolveVivadoVersions as jest.Mock).mockReturnValue([
+      {
+        version: '2024.1',
+        installDir: '/xilinx/2024.1',
+        launcher: { exe: 'vivado', prefixArgs: [] },
+      },
+    ]);
+    (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(undefined);
+
+    await expect(resolveLocalVivadoVersionForInterfaceScan(cfg)).resolves.toBeUndefined();
   });
 });

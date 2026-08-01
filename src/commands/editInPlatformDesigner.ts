@@ -4,9 +4,11 @@ import * as fs from 'fs/promises';
 import { Logger } from '../utils/Logger';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
+import { resolveExecutionLauncher } from '../services/toolchains/LaunchableTool';
 import { sourceDirsFromHwTcl } from '../utils/sourceFileMounts';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
+import { resolveToolchainVersionForResource } from '../services/toolchains/resolveToolchainVersion';
 
 const logger = new Logger('EditInPlatformDesigner');
 
@@ -27,18 +29,24 @@ export async function editInPlatformDesignerCommand(uri?: vscode.Uri): Promise<v
   // Mount the IP root (parent of altera/) so relative paths like ../rtl/... in
   // the _hw.tcl resolve correctly inside Docker (/work/altera/../rtl → /work/rtl).
   const ipRootDir = path.dirname(alteraDir);
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, targetUri);
   const toolchain = getToolchain('quartus');
   if (!toolchain) {
     return;
   }
 
-  const qsysEdit = toolchain.resolve('qsys-edit', cfg);
-  if (!qsysEdit) {
+  const choice = await resolveToolchainVersionForResource(cfg, 'quartus');
+  if (choice === undefined) {
     return;
   }
 
-  const docker = toolchain.getDocker(cfg, ipRootDir);
+  const docker = toolchain.getDocker(cfg, ipRootDir, choice?.version);
+  const qsysEdit = resolveExecutionLauncher(docker, 'qsys-edit', () =>
+    toolchain.resolve('qsys-edit', cfg, choice?.version)
+  );
+  if (!qsysEdit) {
+    return;
+  }
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   // Mount source directories referenced in the _hw.tcl so Platform Designer

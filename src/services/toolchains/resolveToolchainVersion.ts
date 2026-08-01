@@ -5,7 +5,8 @@ import {
   listConfiguredVersions,
   type ToolVersionChoice,
 } from '../../utils/pickToolVersion';
-import { findClosestVersion } from '../../utils/toolchainVersions';
+import { findClosestVersion, sortVersionsDescending } from '../../utils/toolchainVersions';
+import { resolveVivadoVersions } from '../../utils/vivadoResolver';
 import {
   detectVivadoProjectVersion,
   detectQuartusProjectVersion,
@@ -147,4 +148,63 @@ export async function resolveToolchainVersionForCreate(
   }
 
   return pickToolVersion(cfg, vendor);
+}
+
+/**
+ * Resolves a configured version for a resource-scoped action that has no
+ * project file to inspect. A valid pin wins; otherwise the user chooses from
+ * configured versions. `null` preserves the caller's legacy/PATH fallback
+ * when no versions are configured, and `undefined` represents cancellation.
+ */
+export async function resolveToolchainVersionForResource(
+  cfg: vscode.WorkspaceConfiguration,
+  vendor: Vendor
+): Promise<ToolVersionChoice | undefined | null> {
+  const configured = listConfiguredVersions(cfg, vendor);
+  const pinned = cfg.get<string>(`${vendor}.pinnedVersion`, '').trim();
+  const pinnedChoice = configured.find((choice) => choice.version === pinned);
+  if (pinnedChoice) {
+    return pinnedChoice;
+  }
+  if (configured.length === 0) {
+    return null;
+  }
+  return pickToolVersion(cfg, vendor);
+}
+
+interface LocalVivadoPickItem extends vscode.QuickPickItem {
+  choice?: ToolVersionChoice;
+}
+
+/**
+ * The interface catalog consists of static files from a local Vivado install,
+ * so it cannot be scanned through the Docker runner. Resolve against local
+ * install directories even when the resource selects Docker for build tools.
+ */
+export async function resolveLocalVivadoVersionForInterfaceScan(
+  cfg: vscode.WorkspaceConfiguration
+): Promise<ToolVersionChoice | undefined | null> {
+  const localVersions = sortVersionsDescending(
+    resolveVivadoVersions(cfg.get<string[]>('vivado.installDirs', [])).map((entry) => entry.version)
+  );
+  const pinned = cfg.get<string>('vivado.pinnedVersion', '').trim();
+  if (pinned && localVersions.includes(pinned)) {
+    return { runner: 'local', version: pinned };
+  }
+  if (localVersions.length === 0) {
+    return null;
+  }
+
+  const picked = await vscode.window.showQuickPick<LocalVivadoPickItem>(
+    localVersions.map((version) => ({
+      label: version,
+      description: 'local',
+      choice: { runner: 'local', version },
+    })),
+    {
+      title: 'Select local Vivado Version for Interface Scan',
+      placeHolder: 'Interface definitions are read from a local Vivado installation',
+    }
+  );
+  return picked?.choice;
 }

@@ -48,8 +48,11 @@ jest.mock('fs/promises', () => {
 
 // Mock the Vivado interface cache lookup used by ensureBusDefinitions().
 const mockVivadoPathExists = jest.fn().mockResolvedValue(false);
+const mockGetVivadoInterfaceCacheDir = jest.fn(
+  (version?: string) => `/fake/vivado/${version ?? 'legacy'}/bus_definitions`
+);
 jest.mock('../../../services/VivadoInterfaceScanner', () => ({
-  getVivadoInterfaceCacheDir: () => '/fake/vivado/cache/bus_definitions',
+  getVivadoInterfaceCacheDir: (version?: string) => mockGetVivadoInterfaceCacheDir(version),
   pathExists: (p: string) => mockVivadoPathExists(p),
 }));
 
@@ -78,6 +81,13 @@ describe('IpCoreScaffolder', () => {
       clearCache: jest.fn(),
     }));
     mockVivadoPathExists.mockResolvedValue(false);
+    mockGetVivadoInterfaceCacheDir.mockImplementation(
+      (version?: string) => `/fake/vivado/${version ?? 'legacy'}/bus_definitions`
+    );
+    (vscode.Uri.file as jest.Mock).mockImplementation((filePath: string) => ({
+      fsPath: filePath,
+      toString: () => filePath,
+    }));
     mockWorkspaceScan.mockResolvedValue({ library: {}, files: [], count: 0 });
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     jest.clearAllMocks();
@@ -2311,7 +2321,39 @@ describe('IpCoreScaffolder', () => {
     });
 
     expect(loadFromUserPaths).toHaveBeenCalledWith(
-      expect.arrayContaining(['/fake/vivado/cache/bus_definitions']),
+      expect.arrayContaining(['/fake/vivado/legacy/bus_definitions']),
+      undefined
+    );
+  });
+
+  it('loads the input-resource-pinned Vivado interface cache', async () => {
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+      get: (key: string, defaultValue?: unknown) =>
+        key === 'vivado.pinnedVersion' ? '2023.1' : defaultValue,
+    });
+    const loadFromUserPaths = jest.fn().mockResolvedValue({});
+    (BusLibraryService as jest.Mock).mockImplementation(() => ({
+      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
+      loadFromUserPaths,
+      clearCache: jest.fn(),
+    }));
+    mockVivadoPathExists.mockResolvedValue(true);
+    scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+
+    await scaffolder.generateAll(inputPath, '/tmp/test-output', {
+      includeRegs: false,
+      includeTestbench: false,
+      targets: ['vivado'],
+    });
+
+    expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith(
+      'ipcraft',
+      expect.objectContaining({ fsPath: inputPath })
+    );
+    expect(mockGetVivadoInterfaceCacheDir).toHaveBeenCalledWith('2023.1');
+    expect(loadFromUserPaths).toHaveBeenCalledWith(
+      expect.arrayContaining(['/fake/vivado/2023.1/bus_definitions']),
       undefined
     );
   });

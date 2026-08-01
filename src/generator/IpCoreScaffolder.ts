@@ -5,6 +5,7 @@ import { Logger } from '../utils/Logger';
 import { ResourceRoots } from '../services/ResourceRoots';
 import { BusLibraryService } from '../services/BusLibraryService';
 import { getVivadoInterfaceCacheDir, pathExists } from '../services/VivadoInterfaceScanner';
+import { resolveVivadoCacheVersion } from '../services/VivadoCacheVersion';
 import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
 import { TemplateLoader } from './TemplateLoader';
 import { resolveScaffoldOutputPath, ScaffoldPackLoader } from './ScaffoldPackLoader';
@@ -93,7 +94,7 @@ export class IpCoreScaffolder {
     options: GenerateOptions = {}
   ): Promise<GenerateResult> {
     try {
-      await this.ensureBusDefinitions();
+      await this.ensureBusDefinitions(inputPath);
       const ipCoreData = await this.loadIpCore(inputPath, options.sourceText);
       const ipCoreDir = path.dirname(inputPath);
 
@@ -459,7 +460,7 @@ export class IpCoreScaffolder {
     }
   }
 
-  private async ensureBusDefinitions(): Promise<void> {
+  private async ensureBusDefinitions(inputPath: string): Promise<void> {
     if (this.busDefinitions) {
       return;
     }
@@ -468,12 +469,14 @@ export class IpCoreScaffolder {
     let userLibrary: Record<string, unknown> = {};
     let workspaceLibrary: Record<string, unknown> = {};
     try {
-      const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+      const resourceUri = vscode.Uri.file(inputPath);
+      const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, resourceUri);
       const userPaths = [...config.get<string[]>('busLibraryPaths', [])];
       // Cached Vivado interface catalog (if "Scan Vivado Interface Catalog" has been
-      // run) — a single global cache shared by every IP core, never duplicated per
-      // project. Same merge point used by ImportResolver for the webview.
-      const vivadoCacheDir = getVivadoInterfaceCacheDir();
+      // run). The resource's successful scan selection (or explicit pin when no
+      // selection metadata exists) chooses the cache. Same merge point as ImportResolver.
+      const cacheVersion = await resolveVivadoCacheVersion(config, 'interfaces', resourceUri);
+      const vivadoCacheDir = getVivadoInterfaceCacheDir(cacheVersion);
       if (await pathExists(vivadoCacheDir)) {
         userPaths.push(vivadoCacheDir);
       }
@@ -517,7 +520,7 @@ export class IpCoreScaffolder {
    * Used by TemplatePreviewProvider to render .j2 previews without writing files.
    */
   async buildTemplateContextPublic(inputPath: string): Promise<TemplateContext> {
-    await this.ensureBusDefinitions();
+    await this.ensureBusDefinitions(inputPath);
     const ipCore = await this.loadIpCore(inputPath);
     const busType = getBusTypeForTemplate(ipCore);
     const hasMmSlave = hasMemoryMappedSlaveInterface(ipCore);

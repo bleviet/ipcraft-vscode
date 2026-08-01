@@ -466,7 +466,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     router.on('addSubcore', async () => {
-      await this.handleAddSubcoreMessage(webviewPanel);
+      await this.handleAddSubcoreMessage(document.uri, webviewPanel);
     });
 
     router.on('editInIpPackager', async () => {
@@ -593,7 +593,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       const baseDir = path.dirname(document.uri.fsPath);
       const imports = await this.importResolver.resolveImports(
         parsed as Record<string, unknown>,
-        baseDir
+        baseDir,
+        document.uri
       );
 
       // vlnv.name (lowercased) is the name the scaffolder uses for generated files,
@@ -866,7 +867,11 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     }
   }
 
-  private async handleAddSubcoreMessage(webviewPanel: vscode.WebviewPanel): Promise<void> {
+  private async handleAddSubcoreMessage(
+    resourceUri: vscode.Uri,
+    webviewPanel: vscode.WebviewPanel
+  ): Promise<void> {
+    await this.subcoreResolver.refresh(resourceUri);
     const candidates = this.subcoreResolver.getAvailableIps();
 
     const items: vscode.QuickPickItem[] = [];
