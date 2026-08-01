@@ -7,10 +7,16 @@ import { parseQuartusReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
+import { writeSidecar } from './toolchainVersionDetector';
 import { normalizeBusType } from '../../generator/registerProcessor';
 import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
-import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
+import {
+  resolveExecutionLauncher,
+  type DockerConfig,
+  type LaunchEnv,
+  type SubToolDeclaration,
+} from './LaunchableTool';
 import type {
   SynthesisToolchain,
   ScaffoldContext,
@@ -260,7 +266,15 @@ export class QuartusToolchain implements SynthesisToolchain {
     const runner = cfg.get<string>('quartus.runner', 'local');
     const dockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
     if (runner === 'docker') {
-      return dockerImage.length > 0;
+      const dockerImages = cfg.get<Array<{ label: string; image: string }>>(
+        'quartus.dockerImages',
+        []
+      );
+      return dockerImages.length > 0 || dockerImage.length > 0;
+    }
+    const installDirs = cfg.get<string[]>('quartus.installDirs', []);
+    if (installDirs.length > 0) {
+      return installDirs.some((installDir) => findInInstallDir(toolName, installDir) !== null);
     }
     const installDir = cfg.get<string>('quartus.installDir', '').trim();
     if (installDir) {
@@ -273,8 +287,8 @@ export class QuartusToolchain implements SynthesisToolchain {
     return spawnSync(cmd, [toolName], { stdio: 'pipe' }).status === 0;
   }
 
-  resolve(subTool: string, cfg: vscode.WorkspaceConfiguration) {
-    const exe = getQuartusTool(cfg, subTool);
+  resolve(subTool: string, cfg: vscode.WorkspaceConfiguration, preferredVersion?: string) {
+    const exe = getQuartusTool(cfg, subTool, preferredVersion);
     return { exe, prefixArgs: [] };
   }
 
@@ -282,7 +296,15 @@ export class QuartusToolchain implements SynthesisToolchain {
     const runner = cfg.get<string>('quartus.runner', 'local');
     const dockerImage = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
     if (runner === 'docker') {
-      return dockerImage.length > 0;
+      const dockerImages = cfg.get<Array<{ label: string; image: string }>>(
+        'quartus.dockerImages',
+        []
+      );
+      return dockerImages.length > 0 || dockerImage.length > 0;
+    }
+    const installDirs = cfg.get<string[]>('quartus.installDirs', []);
+    if (installDirs.length > 0) {
+      return installDirs.some((installDir) => findInInstallDir('quartus_sh', installDir) !== null);
     }
     const installDir = cfg.get<string>('quartus.installDir', '').trim();
     if (installDir) {
@@ -295,13 +317,26 @@ export class QuartusToolchain implements SynthesisToolchain {
     return spawnSync(cmd, ['quartus_sh'], { stdio: 'pipe' }).status === 0;
   }
 
-  getDocker(cfg: vscode.WorkspaceConfiguration, mountBase: string): DockerConfig | undefined {
+  getDocker(
+    cfg: vscode.WorkspaceConfiguration,
+    mountBase: string,
+    preferredVersion?: string
+  ): DockerConfig | undefined {
     const runner = cfg.get<string>('quartus.runner', 'local');
-    const image = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
-    if (runner === 'docker' && image) {
-      return { image, mountBase };
+    if (runner !== 'docker') {
+      return undefined;
     }
-    return undefined;
+    const images = cfg.get<Array<{ label: string; image: string }>>('quartus.dockerImages', []);
+    if (images.length > 0) {
+      const chosen = preferredVersion
+        ? images.find((i) => i.label === preferredVersion)
+        : images[0];
+      if (chosen) {
+        return { image: chosen.image, mountBase };
+      }
+    }
+    const image = (cfg.get<string>('quartus.dockerImage') ?? '').trim();
+    return image ? { image, mountBase } : undefined;
   }
 
   getLaunchEnv(_cfg: vscode.WorkspaceConfiguration): LaunchEnv {
@@ -373,7 +408,8 @@ export class QuartusToolchain implements SynthesisToolchain {
     name: string,
     ipDir: string,
     cfg: vscode.WorkspaceConfiguration,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    preferredVersion?: string
   ): Promise<boolean> {
     const vendorDir = path.join(ipDir, this.outputSubdir);
     const projectTcl = path.join(vendorDir, `${name}_project.tcl`);
@@ -384,13 +420,14 @@ export class QuartusToolchain implements SynthesisToolchain {
     const buildDir = path.join(vendorDir, 'build');
     await fsAsync.mkdir(buildDir, { recursive: true });
 
-    const launcher = this.resolve('quartus_sh', cfg);
+    const mountBase = await computeMountBase(name, ipDir);
+    const docker = this.getDocker(cfg, mountBase, preferredVersion);
+    const launcher = resolveExecutionLauncher(docker, 'quartus_sh', () =>
+      this.resolve('quartus_sh', cfg, preferredVersion)
+    );
     if (!launcher?.exe) {
       return false;
     }
-
-    const mountBase = await computeMountBase(name, ipDir);
-    const docker = this.getDocker(cfg, mountBase);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
 
     const result = await runProcess(launcher.exe, ['-t', projectTcl], {
@@ -400,6 +437,17 @@ export class QuartusToolchain implements SynthesisToolchain {
       env,
       extraMounts,
     });
+
+    if (result.success && preferredVersion) {
+      // quartus_sh runs with cwd: buildDir, so `project_new` creates the .qpf
+      // there — the sidecar must sit next to it for detectQuartusProjectVersion().
+      await writeSidecar(buildDir, {
+        vendor: 'quartus',
+        version: preferredVersion,
+        sourcePath: launcher.exe,
+      });
+    }
+
     return result.success;
   }
 
@@ -407,7 +455,8 @@ export class QuartusToolchain implements SynthesisToolchain {
     name: string,
     ipDir: string,
     cfg: vscode.WorkspaceConfiguration,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    preferredVersion?: string
   ): Promise<BuildMode[]> {
     const alteraDir = path.join(ipDir, this.outputSubdir);
     const projectTcl = path.join(alteraDir, `${name}_project.tcl`);
@@ -415,9 +464,7 @@ export class QuartusToolchain implements SynthesisToolchain {
       return [];
     }
 
-    const quartusExe = getQuartusTool(cfg, 'quartus_sh');
     const mountBase = await computeMountBase(name, ipDir);
-    const docker = this.getDocker(cfg, mountBase);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
     const buildDir = path.join(alteraDir, 'build');
 
@@ -425,11 +472,20 @@ export class QuartusToolchain implements SynthesisToolchain {
       {
         label: 'Quartus Compile',
         description: 'Full synthesis + fitter + timing — reports in altera/build/output_files/',
+        vendor: 'quartus',
+        projectFilePath: path.join(buildDir, `${name}.qpf`),
         buildDir,
-        run: async () => {
+        run: async (runPreferredVersion = preferredVersion) => {
+          const docker = this.getDocker(cfg, mountBase, runPreferredVersion);
+          const launcher = resolveExecutionLauncher(docker, 'quartus_sh', () =>
+            this.resolve('quartus_sh', cfg, runPreferredVersion)
+          );
+          if (!launcher) {
+            return undefined;
+          }
           await fsAsync.mkdir(buildDir, { recursive: true });
 
-          const step1 = await runProcess(quartusExe, ['-t', projectTcl], {
+          const step1 = await runProcess(launcher.exe, ['-t', projectTcl], {
             cwd: buildDir,
             outputChannel,
             docker,
@@ -440,7 +496,7 @@ export class QuartusToolchain implements SynthesisToolchain {
             return undefined;
           }
 
-          const step2 = await runProcess(quartusExe, ['--flow', 'compile', name], {
+          const step2 = await runProcess(launcher.exe, ['--flow', 'compile', name], {
             cwd: buildDir,
             outputChannel,
             docker,

@@ -12,6 +12,7 @@ import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { findActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { getBuildOutputChannel } from '../services/BuildOutputChannel';
+import { resolveToolchainVersionForOpen } from '../services/toolchains/resolveToolchainVersion';
 
 function getOutputChannel(): vscode.OutputChannel {
   return getBuildOutputChannel();
@@ -58,18 +59,36 @@ async function resolveIpCore(
 type BuildTarget = {
   label: string;
   description: string;
-  run: () => Promise<BuildReports | undefined>;
+  vendor: 'vivado' | 'quartus';
+  projectFilePath: string;
+  run: (preferredVersion?: string) => Promise<BuildReports | undefined>;
 };
 
-async function detectTargets(name: string, ipDir: string): Promise<BuildTarget[]> {
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+async function detectTargets(
+  name: string,
+  ipDir: string,
+  cfg: vscode.WorkspaceConfiguration,
+  preferredVersion?: string
+): Promise<BuildTarget[]> {
   const ch = getOutputChannel();
   const targets: BuildTarget[] = [];
 
   for (const toolchain of listAll()) {
-    const modes: BuildMode[] = await toolchain.detectBuildModes(name, ipDir, cfg, ch);
+    const modes: BuildMode[] = await toolchain.detectBuildModes(
+      name,
+      ipDir,
+      cfg,
+      ch,
+      preferredVersion
+    );
     for (const mode of modes) {
-      targets.push({ label: mode.label, description: mode.description, run: mode.run });
+      targets.push({
+        label: mode.label,
+        description: mode.description,
+        vendor: mode.vendor,
+        projectFilePath: mode.projectFilePath,
+        run: mode.run,
+      });
     }
   }
 
@@ -132,13 +151,18 @@ export function registerBuildCommands(
     updateStatusBar(statusBarItem, status, reports);
   };
 
-  const doRun = async (autoTargetLabel?: string, resourceUri?: vscode.Uri) => {
+  const doRun = async (
+    autoTargetLabel?: string,
+    resourceUri?: vscode.Uri,
+    preferredVersion?: string | null
+  ) => {
     const ip = await resolveIpCore(resourceUri);
     if (!ip) {
       return;
     }
 
-    const targets = await detectTargets(ip.name, ip.dir);
+    const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, ip.uri);
+    const targets = await detectTargets(ip.name, ip.dir, cfg, preferredVersion ?? undefined);
 
     if (targets.length === 0) {
       void vscode.window.showWarningMessage(
@@ -163,6 +187,19 @@ export function registerBuildCommands(
       return;
     }
 
+    let selectedVersion = preferredVersion ?? undefined;
+    if (preferredVersion === undefined) {
+      const choice = await resolveToolchainVersionForOpen(
+        cfg,
+        picked.vendor,
+        picked.projectFilePath
+      );
+      if (choice === undefined) {
+        return;
+      }
+      selectedVersion = choice?.version;
+    }
+
     const ch = getOutputChannel();
     ch.show(true);
     ch.appendLine(`\n${'='.repeat(60)}`);
@@ -173,7 +210,7 @@ export function registerBuildCommands(
 
     setStatus('running');
 
-    const reports = await picked.run();
+    const reports = await picked.run(selectedVersion);
 
     if (reports) {
       setStatus('success', [reports]);
@@ -189,13 +226,15 @@ export function registerBuildCommands(
   safeRegisterCommand(
     context,
     'fpga-ip-core.buildVivadoOoc',
-    (uri?: vscode.Uri) => void doRun('Vivado OOC Synthesis', uri),
+    (uri?: vscode.Uri, preferredVersion?: string | null) =>
+      void doRun('Vivado OOC Synthesis', uri, preferredVersion),
     { requiresWorkspaceTrust: true }
   );
   safeRegisterCommand(
     context,
     'fpga-ip-core.buildQuartusCompile',
-    (uri?: vscode.Uri) => void doRun('Quartus Compile', uri),
+    (uri?: vscode.Uri, preferredVersion?: string | null) =>
+      void doRun('Quartus Compile', uri, preferredVersion),
     { requiresWorkspaceTrust: true }
   );
   safeRegisterCommand(context, 'fpga-ip-core.showBuildOutput', () => getOutputChannel().show());

@@ -18,31 +18,37 @@ export async function createVendorProject(
   toolchainId: string,
   name: string,
   ipDir: string,
-  outputChannel: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel,
+  preferredVersion?: string,
+  config?: vscode.WorkspaceConfiguration
 ): Promise<boolean> {
   const toolchain = getToolchain(toolchainId);
   if (!toolchain) {
     return false;
   }
 
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
-  return toolchain.createProject(name, ipDir, cfg, outputChannel);
+  const cfg = config ?? vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  return toolchain.createProject(name, ipDir, cfg, outputChannel, preferredVersion);
 }
 
 /** Convenience wrapper — kept for backward compat with GenerateCommands callers. */
 export async function createVivadoProject(
   name: string,
   ipDir: string,
-  outputChannel: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel,
+  preferredVersion?: string,
+  config?: vscode.WorkspaceConfiguration
 ): Promise<boolean> {
-  return createVendorProject('vivado', name, ipDir, outputChannel);
+  return createVendorProject('vivado', name, ipDir, outputChannel, preferredVersion, config);
 }
 
 /** Convenience wrapper — kept for backward compat with GenerateCommands callers. */
 export async function createQuartusProject(
   name: string,
   ipDir: string,
-  outputChannel: vscode.OutputChannel
+  outputChannel: vscode.OutputChannel,
+  preferredVersion?: string,
+  config?: vscode.WorkspaceConfiguration
 ): Promise<boolean> {
-  return createVendorProject('quartus', name, ipDir, outputChannel);
+  return createVendorProject('quartus', name, ipDir, outputChannel, preferredVersion, config);
 }

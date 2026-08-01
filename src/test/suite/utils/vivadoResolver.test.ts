@@ -5,7 +5,14 @@ import {
   resolveVivadoInstallDir,
   findVivadoInInstallDir,
   getVivadoLauncher,
+  resolveVivadoVersions,
 } from '../../../utils/vivadoResolver';
+import * as detectVivadoVersion from '../../../utils/detectVivadoVersion';
+
+// src/test/setup.ts globally mocks this module with a factory that only exposes
+// `detectVivadoVersion`; unmock it here (same pattern as detectVivadoVersion.test.ts)
+// so `detectVivadoVersionAt` is available to spy on.
+jest.unmock('../../../utils/detectVivadoVersion');
 
 function makeFakeVivadoDir(versionDirName: string): { root: string; versionDir: string } {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-vivado-test-'));
@@ -121,6 +128,73 @@ describe('vivadoResolver', () => {
       >[0];
       const launcher = getVivadoLauncher(config);
       expect(launcher.exe).not.toBe('vivado');
+    });
+  });
+
+  describe('resolveVivadoVersions', () => {
+    it('resolves each installDirs entry to its probed version and launcher', () => {
+      const { root: root1, versionDir: dir1 } = makeFakeVivadoDir('2024.1');
+      const { root: root2, versionDir: dir2 } = makeFakeVivadoDir('2024.2');
+      cleanupDirs.push(root1, root2);
+      jest
+        .spyOn(detectVivadoVersion, 'detectVivadoVersionAt')
+        .mockReturnValueOnce('2024.1')
+        .mockReturnValueOnce('2024.2');
+
+      const resolved = resolveVivadoVersions([dir1, dir2]);
+      expect(resolved.map((r) => r.version)).toEqual(['2024.1', '2024.2']);
+      expect(resolved[0].installDir).toBe(dir1);
+    });
+
+    it('falls back to the folder name when the version probe fails', () => {
+      const { root, versionDir } = makeFakeVivadoDir('2025.1');
+      cleanupDirs.push(root);
+      jest.spyOn(detectVivadoVersion, 'detectVivadoVersionAt').mockReturnValue(undefined);
+
+      const resolved = resolveVivadoVersions([versionDir]);
+      expect(resolved[0].version).toBe('2025.1');
+    });
+
+    it('skips entries that do not resolve to a real install', () => {
+      expect(resolveVivadoVersions(['/no/such/dir'])).toEqual([]);
+    });
+  });
+
+  describe('getVivadoLauncher with installDirs', () => {
+    function makeCfg(overrides: Record<string, unknown>) {
+      return {
+        get: jest.fn((key: string, def?: unknown) => overrides[key] ?? def),
+      } as unknown as import('vscode').WorkspaceConfiguration;
+    }
+
+    it('picks the latest configured version when no preferredVersion is given', () => {
+      const { root: root1, versionDir: dir1 } = makeFakeVivadoDir('2024.1');
+      const { root: root2, versionDir: dir2 } = makeFakeVivadoDir('2024.2');
+      cleanupDirs.push(root1, root2);
+      jest.spyOn(detectVivadoVersion, 'detectVivadoVersionAt').mockReturnValue(undefined);
+
+      const cfg = makeCfg({ 'vivado.installDirs': [dir1, dir2] });
+      const launcher = getVivadoLauncher(cfg);
+      expect(launcher.exe).toContain(dir2);
+    });
+
+    it('picks the requested preferredVersion when configured', () => {
+      const { root: root1, versionDir: dir1 } = makeFakeVivadoDir('2024.1');
+      const { root: root2, versionDir: dir2 } = makeFakeVivadoDir('2024.2');
+      cleanupDirs.push(root1, root2);
+      jest.spyOn(detectVivadoVersion, 'detectVivadoVersionAt').mockReturnValue(undefined);
+
+      const cfg = makeCfg({ 'vivado.installDirs': [dir1, dir2] });
+      const launcher = getVivadoLauncher(cfg, '2024.1');
+      expect(launcher.exe).toContain(dir1);
+    });
+
+    it('falls back to the legacy singular installDir when installDirs is empty', () => {
+      const { root, versionDir } = makeFakeVivadoDir('2024.2');
+      cleanupDirs.push(root);
+      const cfg = makeCfg({ 'vivado.installDirs': [], 'vivado.installDir': versionDir });
+      const launcher = getVivadoLauncher(cfg);
+      expect(launcher.exe).toContain(versionDir);
     });
   });
 });

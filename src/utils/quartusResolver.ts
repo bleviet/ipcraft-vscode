@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type * as vscode from 'vscode';
+import { detectQuartusVersionAt } from './detectQuartusVersion';
+import { compareVersions } from './toolchainVersions';
 
 // quartus_sh / quartus live in bin64 (Windows) or bin / linux64 (Linux).
 // qsys-edit lives in sopc_builder/bin on both platforms (verified against
@@ -47,12 +49,58 @@ export function findInInstallDir(toolName: string, installDir: string): string |
   return null;
 }
 
+export interface ResolvedQuartusVersion {
+  version: string;
+  installDir: string;
+}
+
+/**
+ * Resolves each entry in `installDirs` to its version label (probed via
+ * `quartus_sh --version`, falling back to the directory's own folder name).
+ * Entries where `quartus_sh` can't be found are skipped — unlike Vivado,
+ * each Quartus installDirs entry must already be the exact version directory.
+ */
+export function resolveQuartusVersions(installDirs: string[]): ResolvedQuartusVersion[] {
+  const results: ResolvedQuartusVersion[] = [];
+  for (const dir of installDirs) {
+    const exe = findInInstallDir('quartus_sh', dir);
+    if (!exe) {
+      continue;
+    }
+    const probed = detectQuartusVersionAt(exe);
+    results.push({ version: probed ?? path.basename(dir), installDir: dir });
+  }
+  return results;
+}
+
 /**
  * Returns the executable path for a Quartus tool.
- * Looks in `ipcraft.quartus.installDir` first; falls back to bare tool name
- * (PATH lookup) when installDir is empty or the tool is not found within it.
+ *
+ * Resolution order:
+ *  1. `ipcraft.quartus.installDirs` — multi-version array; picks `preferredVersion`
+ *     if given and configured, else the latest configured version.
+ *  2. `ipcraft.quartus.installDir` — legacy single path (kept for migration).
+ *  3. bare tool name — relies on PATH
  */
-export function getQuartusTool(config: vscode.WorkspaceConfiguration, toolName: string): string {
+export function getQuartusTool(
+  config: vscode.WorkspaceConfiguration,
+  toolName: string,
+  preferredVersion?: string
+): string {
+  const installDirs = config.get<string[]>('quartus.installDirs', []);
+  if (installDirs.length > 0) {
+    const resolved = resolveQuartusVersions(installDirs);
+    const chosen = preferredVersion
+      ? resolved.find((r) => r.version === preferredVersion)
+      : [...resolved].sort((a, b) => compareVersions(b.version, a.version))[0];
+    if (chosen) {
+      const found = findInInstallDir(toolName, chosen.installDir);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
   const installDir = config.get<string>('quartus.installDir', '').trim();
   if (installDir) {
     return findInInstallDir(toolName, installDir) ?? toolName;

@@ -4,8 +4,10 @@ import * as fs from 'fs';
 import { Logger } from '../utils/Logger';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
+import { resolveExecutionLauncher } from '../services/toolchains/LaunchableTool';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
+import { resolveToolchainVersionForOpen } from '../services/toolchains/resolveToolchainVersion';
 
 const logger = new Logger('OpenInVivado');
 
@@ -69,27 +71,39 @@ export async function openInVivadoCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const xprPath = targetUri.fsPath;
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, targetUri);
   const toolchain = getToolchain('vivado');
   if (!toolchain) {
     return;
   }
 
-  const launcher = toolchain.resolve('vivado', cfg);
+  const choice = await resolveToolchainVersionForOpen(cfg, 'vivado', xprPath);
+  if (choice === undefined) {
+    return;
+  }
+  // Detect the IP directory before choosing a Docker mount. Outside a
+  // workspace the generated component root contains the startup script and
+  // project, while the immediate .xpr directory does not.
+  const ipDir = findIpDir(path.dirname(xprPath));
+  // `null` means nothing is configured under the new multi-version settings —
+  // fall back to legacy/PATH resolution instead of aborting.
+  // Mount the workspace folder that contains this project. In multi-root
+  // workspaces the first folder can be unrelated, leaving the selected .xpr
+  // and its startup script unreachable inside Docker.
+  const mountDir =
+    vscode.workspace.getWorkspaceFolder?.(targetUri)?.uri.fsPath ?? ipDir ?? path.dirname(xprPath);
+  const docker = toolchain.getDocker(cfg, mountDir, choice?.version);
+  const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
+    toolchain.resolve('vivado', cfg, choice?.version)
+  );
   if (!launcher) {
     return;
   }
-
-  // Mount the workspace root so Vivado can resolve all source paths stored as
-  // absolute references inside the .xpr.
-  const mountDir = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? path.dirname(xprPath);
-  const docker = toolchain.getDocker(cfg, mountDir);
   const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
   // Detect the IP directory (the directory containing component.xml, typically
   // xilinx/ from the IP root).  If found, write a startup script that opens
   // the project AND registers the IP repository in one step.
-  const ipDir = findIpDir(path.dirname(xprPath));
   if (ipDir) {
     logger.info(`IP directory detected: ${ipDir} — registering as IP repository`);
     const startupScript = writeStartupScript(ipDir, xprPath);

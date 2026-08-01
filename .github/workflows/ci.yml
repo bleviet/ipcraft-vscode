@@ -104,6 +104,8 @@ jobs:
       - run: npm ci
 
       - name: Build browser assets
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
         run: npm run compile
 
       - name: Install Chromium with Linux dependencies

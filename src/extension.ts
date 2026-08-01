@@ -20,12 +20,15 @@ import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
 import { openInVivadoCommand } from './commands/openInVivado';
 import { openInQuartusCommand } from './commands/openInQuartus';
+import { selectVivadoVersionCommand } from './commands/selectVivadoVersion';
+import { selectQuartusVersionCommand } from './commands/selectQuartusVersion';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { scanVivadoInterfacesCommand } from './commands/scanVivadoInterfaces';
 import { scanWorkspaceBusDefinitionsCommand } from './commands/scanWorkspaceBusDefinitions';
 import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorMode';
 import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProvider';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
+import { migrateToolchainSettings } from './utils/migrateToolchainSettings';
 import { detectAndSetToolContext } from './services/ToolDetector';
 import {
   migrateLegacyIpCoreCommand,
@@ -172,6 +175,12 @@ export function activate(context: vscode.ExtensionContext): void {
     requiresWorkspaceTrust: true,
   });
   safeRegisterCommand(context, 'fpga-ip-core.openInQuartus', openInQuartusCommand, {
+    requiresWorkspaceTrust: true,
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.selectVivadoVersion', selectVivadoVersionCommand, {
+    requiresWorkspaceTrust: true,
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.selectQuartusVersion', selectQuartusVersionCommand, {
     requiresWorkspaceTrust: true,
   });
   safeRegisterCommand(context, 'fpga-ip-core.scanVivadoCatalog', scanVivadoCatalogCommand, {
@@ -331,11 +340,15 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (
         e.affectsConfiguration('ipcraft.vivado.installDir') ||
+        e.affectsConfiguration('ipcraft.vivado.installDirs') ||
         e.affectsConfiguration('ipcraft.vivado.runner') ||
         e.affectsConfiguration('ipcraft.vivado.dockerImage') ||
+        e.affectsConfiguration('ipcraft.vivado.dockerImages') ||
         e.affectsConfiguration('ipcraft.quartus.installDir') ||
+        e.affectsConfiguration('ipcraft.quartus.installDirs') ||
         e.affectsConfiguration('ipcraft.quartus.runner') ||
-        e.affectsConfiguration('ipcraft.quartus.dockerImage')
+        e.affectsConfiguration('ipcraft.quartus.dockerImage') ||
+        e.affectsConfiguration('ipcraft.quartus.dockerImages')
       ) {
         detectAndSetToolContext();
       }
@@ -344,6 +357,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // One-time notification if workspace contains legacy vendor: fields
   void checkForLegacyIpYmlFiles(context);
+  void migrateToolchainSettings(context);
 
   logger.info('Extension activated successfully');
 }

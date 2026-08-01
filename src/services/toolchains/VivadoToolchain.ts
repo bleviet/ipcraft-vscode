@@ -11,7 +11,13 @@ import { parseVivadoReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
 import { findVivadoInInstallDir, getVivadoLauncher } from '../../utils/vivadoResolver';
 import { fileExists } from '../../utils/fsHelpers';
-import type { DockerConfig, LaunchEnv, SubToolDeclaration } from './LaunchableTool';
+import { writeSidecar } from './toolchainVersionDetector';
+import {
+  resolveExecutionLauncher,
+  type DockerConfig,
+  type LaunchEnv,
+  type SubToolDeclaration,
+} from './LaunchableTool';
 import type {
   SynthesisToolchain,
   ScaffoldContext,
@@ -30,16 +36,24 @@ export class VivadoToolchain implements SynthesisToolchain {
     return false;
   }
 
-  resolve(subTool: string, cfg: vscode.WorkspaceConfiguration) {
+  resolve(_subTool: string, cfg: vscode.WorkspaceConfiguration, preferredVersion?: string) {
     // subTool is ignored — Vivado exposes a single launcher for all operations.
-    return getVivadoLauncher(cfg);
+    return getVivadoLauncher(cfg, preferredVersion);
   }
 
   isAvailable(cfg: vscode.WorkspaceConfiguration): boolean {
     const runner = cfg.get<string>('vivado.runner', 'local');
-    const dockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
     if (runner === 'docker') {
-      return dockerImage.length > 0;
+      const dockerImages = cfg.get<Array<{ label: string; image: string }>>(
+        'vivado.dockerImages',
+        []
+      );
+      const dockerImage = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
+      return dockerImages.length > 0 || dockerImage.length > 0;
+    }
+    const installDirs = cfg.get<string[]>('vivado.installDirs', []);
+    if (installDirs.length > 0) {
+      return installDirs.some((installDir) => findVivadoInInstallDir(installDir) !== null);
     }
     const installDir = cfg.get<string>('vivado.installDir', '').trim();
     if (installDir) {
@@ -49,13 +63,26 @@ export class VivadoToolchain implements SynthesisToolchain {
     return spawnSync(cmd, ['vivado'], { stdio: 'pipe' }).status === 0;
   }
 
-  getDocker(cfg: vscode.WorkspaceConfiguration, mountBase: string): DockerConfig | undefined {
+  getDocker(
+    cfg: vscode.WorkspaceConfiguration,
+    mountBase: string,
+    preferredVersion?: string
+  ): DockerConfig | undefined {
     const runner = cfg.get<string>('vivado.runner', 'local');
-    const image = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
-    if (runner === 'docker' && image) {
-      return { image, mountBase };
+    if (runner !== 'docker') {
+      return undefined;
     }
-    return undefined;
+    const images = cfg.get<Array<{ label: string; image: string }>>('vivado.dockerImages', []);
+    if (images.length > 0) {
+      const chosen = preferredVersion
+        ? images.find((i) => i.label === preferredVersion)
+        : images[0];
+      if (chosen) {
+        return { image: chosen.image, mountBase };
+      }
+    }
+    const image = (cfg.get<string>('vivado.dockerImage') ?? '').trim();
+    return image ? { image, mountBase } : undefined;
   }
 
   getLaunchEnv(_cfg: vscode.WorkspaceConfiguration): LaunchEnv {
@@ -132,7 +159,8 @@ export class VivadoToolchain implements SynthesisToolchain {
     name: string,
     ipDir: string,
     cfg: vscode.WorkspaceConfiguration,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    preferredVersion?: string
   ): Promise<boolean> {
     const vendorDir = path.join(ipDir, this.outputSubdir);
     const projectTcl = `${name}_project.tcl`;
@@ -140,12 +168,13 @@ export class VivadoToolchain implements SynthesisToolchain {
       return false;
     }
 
-    const launcher = this.resolve('vivado', cfg);
+    const docker = this.getDocker(cfg, ipDir, preferredVersion);
+    const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
+      this.resolve('vivado', cfg, preferredVersion)
+    );
     if (!launcher) {
       return false;
     }
-
-    const docker = this.getDocker(cfg, ipDir);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
 
     const result = await runProcess(
@@ -153,6 +182,17 @@ export class VivadoToolchain implements SynthesisToolchain {
       [...launcher.prefixArgs, '-mode', 'batch', '-source', projectTcl, '-nojournal', '-nolog'],
       { cwd: vendorDir, outputChannel, docker, env, extraMounts }
     );
+
+    if (result.success && preferredVersion) {
+      // The project TCL creates the .xpr under build/ooc/ — the sidecar must
+      // sit next to the .xpr so detectVivadoProjectVersion() can find it.
+      await writeSidecar(path.join(vendorDir, 'build', 'ooc'), {
+        vendor: 'vivado',
+        version: preferredVersion,
+        sourcePath: launcher.exe,
+      });
+    }
+
     return result.success;
   }
 
@@ -160,11 +200,10 @@ export class VivadoToolchain implements SynthesisToolchain {
     name: string,
     ipDir: string,
     cfg: vscode.WorkspaceConfiguration,
-    outputChannel: vscode.OutputChannel
+    outputChannel: vscode.OutputChannel,
+    preferredVersion?: string
   ): Promise<BuildMode[]> {
     const xilinxDir = path.join(ipDir, this.outputSubdir);
-    const launcher = getVivadoLauncher(cfg);
-    const docker = this.getDocker(cfg, ipDir);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
     const jobs = cfg.get<number>('build.jobs') ?? 4;
     const modes: BuildMode[] = [];
@@ -174,8 +213,17 @@ export class VivadoToolchain implements SynthesisToolchain {
       modes.push({
         label: 'Vivado OOC Synthesis',
         description: 'Out-of-context synthesis — reports in xilinx/build/ooc/',
+        vendor: 'vivado',
+        projectFilePath: path.join(buildDir, `${name}.xpr`),
         buildDir,
-        run: async () => {
+        run: async (runPreferredVersion = preferredVersion) => {
+          const docker = this.getDocker(cfg, ipDir, runPreferredVersion);
+          const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
+            this.resolve('vivado', cfg, runPreferredVersion)
+          );
+          if (!launcher) {
+            return undefined;
+          }
           const result = await runProcess(
             launcher.exe,
             [
@@ -201,8 +249,17 @@ export class VivadoToolchain implements SynthesisToolchain {
       modes.push({
         label: 'Vivado Full Implementation (XPR)',
         description: 'Synthesis + place + route — reports in xilinx/build/xpr/',
+        vendor: 'vivado',
+        projectFilePath: path.join(buildDir, `${name}.xpr`),
         buildDir,
-        run: async () => {
+        run: async (runPreferredVersion = preferredVersion) => {
+          const docker = this.getDocker(cfg, ipDir, runPreferredVersion);
+          const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
+            this.resolve('vivado', cfg, runPreferredVersion)
+          );
+          if (!launcher) {
+            return undefined;
+          }
           const result = await runProcess(
             launcher.exe,
             [

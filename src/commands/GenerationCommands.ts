@@ -123,12 +123,14 @@ export async function scaffoldProject(
       .basename(ipCoreUri.fsPath)
       .replace(/\.ip\.ya?ml$/, '')
       .toLowerCase();
-    await Promise.all([
-      targets.includes('vivado') ? runCreateVivadoProjectStep(name, outputDir) : Promise.resolve(),
-      targets.includes('quartus')
-        ? runCreateQuartusProjectStep(name, outputDir)
-        : Promise.resolve(),
-    ]);
+    // Sequential, not Promise.all: each step can open a version QuickPick, and
+    // VS Code dismisses the first picker the moment the second one opens.
+    if (targets.includes('vivado')) {
+      await runCreateVivadoProjectStep(name, outputDir, ipCoreUri);
+    }
+    if (targets.includes('quartus')) {
+      await runCreateQuartusProjectStep(name, outputDir, ipCoreUri);
+    }
   }
 }
 

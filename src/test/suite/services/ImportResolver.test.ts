@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
 
 const mockPathExists = jest.fn<Promise<boolean>, [string]>();
+const mockGetVivadoInterfaceCacheDir = jest.fn(
+  (version?: string) => `/fake/vivado/${version ?? 'legacy'}/bus_definitions`
+);
 jest.mock('../../../services/VivadoInterfaceScanner', () => ({
-  getVivadoInterfaceCacheDir: () => '/fake/vivado/cache/bus_definitions',
+  getVivadoInterfaceCacheDir: (version?: string) => mockGetVivadoInterfaceCacheDir(version),
   pathExists: (p: string): Promise<boolean> => mockPathExists(p),
 }));
 
@@ -33,6 +36,9 @@ describe('ImportResolver', () => {
       error: jest.fn(),
     };
     mockPathExists.mockReset().mockResolvedValue(false);
+    mockGetVivadoInterfaceCacheDir.mockImplementation(
+      (version?: string) => `/fake/vivado/${version ?? 'legacy'}/bus_definitions`
+    );
     mockWorkspaceScan.mockReset().mockReturnValue({ library: {}, count: 0, files: [] });
 
     readFileMock = jest.fn();
@@ -104,7 +110,39 @@ describe('ImportResolver', () => {
     await resolver.resolveImports({}, '/project');
 
     expect(loadFromUserPaths).toHaveBeenCalledWith(
-      ['./my-buses', '/fake/vivado/cache/bus_definitions'],
+      ['./my-buses', '/fake/vivado/legacy/bus_definitions'],
+      undefined
+    );
+  });
+
+  it('loads the resource-pinned Vivado interface cache', async () => {
+    mockPathExists.mockResolvedValue(true);
+    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const loadFromUserPaths = jest.fn().mockResolvedValue({});
+    (
+      resolver as unknown as {
+        busLibraryService: { loadDefaultLibrary: jest.Mock; loadFromUserPaths: jest.Mock };
+      }
+    ).busLibraryService.loadDefaultLibrary = jest.fn().mockResolvedValue({});
+    (
+      resolver as unknown as { busLibraryService: { loadFromUserPaths: jest.Mock } }
+    ).busLibraryService.loadFromUserPaths = loadFromUserPaths;
+    (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+      get: (key: string, defaultValue?: unknown) =>
+        key === 'vivado.pinnedVersion' ? '2024.2' : defaultValue,
+    });
+
+    const resource = {
+      fsPath: '/workspace/ip/core.ip.yml',
+      toString: () => 'file:///workspace/ip/core.ip.yml',
+    } as vscode.Uri;
+
+    await resolver.resolveImports({}, '/workspace/ip', resource);
+
+    expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith('ipcraft', resource);
+    expect(mockGetVivadoInterfaceCacheDir).toHaveBeenCalledWith('2024.2');
+    expect(loadFromUserPaths).toHaveBeenCalledWith(
+      ['/fake/vivado/2024.2/bus_definitions'],
       undefined
     );
   });
@@ -123,7 +161,7 @@ describe('ImportResolver', () => {
     await resolver.resolveImports({}, '/project');
 
     expect(loadFromUserPaths).toHaveBeenCalledWith(
-      ['/fake/vivado/cache/bus_definitions'],
+      ['/fake/vivado/legacy/bus_definitions'],
       undefined
     );
   });

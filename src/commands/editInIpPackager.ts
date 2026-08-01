@@ -6,9 +6,11 @@ import { Logger } from '../utils/Logger';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { spawnGui } from '../services/BuildRunner';
 import { getToolchain } from '../services/toolchains/registry';
+import { resolveExecutionLauncher } from '../services/toolchains/LaunchableTool';
 import { sourceDirsFromComponentXml } from '../utils/sourceFileMounts';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
+import { resolveToolchainVersionForResource } from '../services/toolchains/resolveToolchainVersion';
 
 const logger = new Logger('EditInIpPackager');
 
@@ -25,14 +27,14 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
   }
 
   const componentPath = targetUri.fsPath.replace(/\\/g, '/');
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, targetUri);
   const toolchain = getToolchain('vivado');
   if (!toolchain) {
     return;
   }
 
-  const launcher = toolchain.resolve('vivado', cfg);
-  if (!launcher) {
+  const choice = await resolveToolchainVersionForResource(cfg, 'vivado');
+  if (choice === undefined) {
     return;
   }
 
@@ -51,7 +53,13 @@ export async function editInIpPackagerCommand(uri?: vscode.Uri): Promise<void> {
     await fs.writeFile(tclScriptPath, tclScript, 'utf8');
 
     const componentDir = path.dirname(componentPath);
-    const docker = toolchain.getDocker(cfg, tmpDir);
+    const docker = toolchain.getDocker(cfg, tmpDir, choice?.version);
+    const launcher = resolveExecutionLauncher(docker, 'vivado', () =>
+      toolchain.resolve('vivado', cfg, choice?.version)
+    );
+    if (!launcher) {
+      return;
+    }
     const { env, extraMounts } = toolchain.getLaunchEnv(cfg);
 
     // Extra source dirs referenced inside component.xml need to be mounted at

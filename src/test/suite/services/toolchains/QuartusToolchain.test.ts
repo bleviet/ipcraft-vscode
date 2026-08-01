@@ -16,15 +16,18 @@ import * as os from 'os';
 import type { ScaffoldContext } from '../../../../services/toolchains/SynthesisToolchain';
 import type { TemplateLoader } from '../../../../generator/TemplateLoader';
 import type { IpCoreData } from '../../../../generator/types';
+import * as detector from '../../../../services/toolchains/toolchainVersionDetector';
 
 jest.mock('../../../../utils/quartusResolver');
 jest.mock('../../../../utils/fsHelpers');
 jest.mock('../../../../services/BuildRunner');
 jest.mock('fs/promises');
 jest.mock('child_process');
+jest.mock('../../../../services/toolchains/toolchainVersionDetector');
 
 const mockFindInInstallDir = quartusResolver.findInInstallDir as jest.Mock;
 const mockGetQuartusTool = quartusResolver.getQuartusTool as jest.Mock;
+const mockResolveQuartusVersions = quartusResolver.resolveQuartusVersions as jest.Mock;
 const mockFileExists = fsHelpers.fileExists as jest.Mock;
 const mockRunProcess = buildRunner.runProcess as jest.Mock;
 const mockMkdir = fsPromises.mkdir as jest.Mock;
@@ -95,7 +98,17 @@ describe('QuartusToolchain', () => {
     const result = tc.resolve('quartus_sh', cfg);
     expect(result.exe).toBe('/opt/quartus/bin/quartus_sh');
     expect(result.prefixArgs).toEqual([]);
-    expect(mockGetQuartusTool).toHaveBeenCalledWith(cfg, 'quartus_sh');
+    expect(mockGetQuartusTool).toHaveBeenCalledWith(cfg, 'quartus_sh', undefined);
+  });
+
+  it('resolve() forwards preferredVersion to getQuartusTool', () => {
+    mockGetQuartusTool.mockReturnValue('/opt/23.1/quartus/bin/quartus_sh');
+    const cfg = makeCfg();
+    expect(tc.resolve('quartus_sh', cfg, '23.1')).toEqual({
+      exe: '/opt/23.1/quartus/bin/quartus_sh',
+      prefixArgs: [],
+    });
+    expect(mockGetQuartusTool).toHaveBeenCalledWith(cfg, 'quartus_sh', '23.1');
   });
 
   it('isAvailable() returns true when docker runner is configured with image', () => {
@@ -105,6 +118,41 @@ describe('QuartusToolchain', () => {
 
   it('isAvailable() returns false when docker runner has no image', () => {
     const cfg = makeCfg({ 'quartus.runner': 'docker', 'quartus.dockerImage': '' });
+    expect(tc.isAvailable(cfg)).toBe(false);
+  });
+
+  it('isAvailable() returns true when dockerImages is populated for the docker runner', () => {
+    const cfg = makeCfg({
+      'quartus.runner': 'docker',
+      'quartus.dockerImages': [{ label: '23.1', image: 'my/quartus:23.1' }],
+      'quartus.dockerImage': '',
+    });
+    expect(tc.isAvailable(cfg)).toBe(true);
+  });
+
+  it('isAvailable() directly finds quartus_sh in configured installDirs without resolving versions', () => {
+    mockFindInInstallDir.mockImplementation((toolName: string, installDir: string) =>
+      toolName === 'quartus_sh' && installDir === '/opt/intelFPGA/23.1'
+        ? '/opt/intelFPGA/23.1/quartus/bin/quartus_sh'
+        : null
+    );
+    const cfg = makeCfg({
+      'quartus.runner': 'local',
+      'quartus.installDirs': ['/opt/intelFPGA/22.1', '/opt/intelFPGA/23.1'],
+    });
+    expect(tc.isAvailable(cfg)).toBe(true);
+    expect(mockFindInInstallDir).toHaveBeenNthCalledWith(1, 'quartus_sh', '/opt/intelFPGA/22.1');
+    expect(mockFindInInstallDir).toHaveBeenNthCalledWith(2, 'quartus_sh', '/opt/intelFPGA/23.1');
+    expect(mockResolveQuartusVersions).not.toHaveBeenCalled();
+    expect(mockSpawnSync).not.toHaveBeenCalled();
+  });
+
+  it('isAvailable() returns false when installDirs is set but quartus_sh is not found', () => {
+    mockFindInInstallDir.mockReturnValue(null);
+    mockSpawnSync.mockReturnValue({ status: 0 });
+    const cfg = makeCfg({ 'quartus.runner': 'local', 'quartus.installDirs': ['/nope'] });
+    // installDirs is authoritative once set — it does not silently fall through
+    // to the legacy installDir/dockerImage/PATH probes.
     expect(tc.isAvailable(cfg)).toBe(false);
   });
 
@@ -155,6 +203,25 @@ describe('QuartusToolchain', () => {
     expect(tc.getDocker(cfg, '/workspace')).toBeUndefined();
   });
 
+  it('getDocker() picks the dockerImages entry matching preferredVersion', () => {
+    const cfg = makeCfg({
+      'quartus.runner': 'docker',
+      'quartus.dockerImages': [
+        { label: '23.1', image: 'my/quartus:23.1' },
+        { label: '24.1', image: 'my/quartus:24.1' },
+      ],
+    });
+    expect(tc.getDocker(cfg, '/work', '23.1')).toEqual({
+      image: 'my/quartus:23.1',
+      mountBase: '/work',
+    });
+  });
+
+  it('getDocker() falls back to the legacy singular dockerImage when dockerImages is empty', () => {
+    const cfg = makeCfg({ 'quartus.runner': 'docker', 'quartus.dockerImage': 'my/quartus:latest' });
+    expect(tc.getDocker(cfg, '/work')).toEqual({ image: 'my/quartus:latest', mountBase: '/work' });
+  });
+
   it('getLaunchEnv() returns empty env and mounts', () => {
     const cfg = makeCfg();
     const env = tc.getLaunchEnv(cfg);
@@ -201,6 +268,164 @@ describe('QuartusToolchain', () => {
         '/opt/quartus/bin/quartus_sh',
         ['-t', expect.stringContaining('my_ip_project.tcl')],
         expect.objectContaining({ cwd: expect.stringContaining('altera/build') })
+      );
+    });
+
+    it('uses the container-native quartus_sh executable for Docker project creation', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetQuartusTool.mockReturnValue('/host/quartus/bin/quartus_sh');
+      mockRunProcess.mockResolvedValue({ success: true });
+      const cfg = makeCfg({
+        'quartus.runner': 'docker',
+        'quartus.dockerImages': [{ label: '23.1', image: 'example/quartus:23.1' }],
+      });
+
+      await tc.createProject('my_ip', '/ip', cfg, outputChannel, '23.1');
+
+      expect(mockGetQuartusTool).not.toHaveBeenCalled();
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        'quartus_sh',
+        ['-t', expect.stringContaining('my_ip_project.tcl')],
+        expect.objectContaining({ docker: { image: 'example/quartus:23.1', mountBase: '/ip' } })
+      );
+    });
+
+    it('writes the sidecar after a successful run, when preferredVersion is given', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetQuartusTool.mockReturnValue('/opt/quartus/bin/quartus_sh');
+      mockRunProcess.mockResolvedValue({ success: true });
+
+      const ok = await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel, '23.1');
+
+      expect(ok).toBe(true);
+      // quartus_sh runs with cwd: altera/build, so `project_new` puts the .qpf
+      // there — detectQuartusProjectVersion() reads the sidecar from the .qpf's
+      // own directory, so it must be written to altera/build, not altera/.
+      expect(detector.writeSidecar).toHaveBeenCalledWith(path.join('/ip', 'altera', 'build'), {
+        vendor: 'quartus',
+        version: '23.1',
+        sourcePath: '/opt/quartus/bin/quartus_sh',
+      });
+    });
+
+    it('writes the sidecar where detectQuartusProjectVersion() actually reads it (cross-module)', async () => {
+      // Regression guard for the write-side/read-side path mismatch: the
+      // toolchain wrote the sidecar to altera/ while the detector looks for it
+      // next to the .qpf (altera/build/), so auto-detection never fired.
+      const realDetector = jest.requireActual<typeof detector>(
+        '../../../../services/toolchains/toolchainVersionDetector'
+      );
+      const realFsPromises = jest.requireActual<typeof fsPromises>('fs/promises');
+      // fs/promises is auto-mocked in this file; the real detector needs real IO.
+      (fsPromises.writeFile as jest.Mock).mockImplementation(realFsPromises.writeFile);
+      (fsPromises.readFile as jest.Mock).mockImplementation(realFsPromises.readFile);
+
+      const ipDir = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-quartus-sidecar-'));
+      try {
+        mockFileExists.mockResolvedValue(true);
+        mockGetQuartusTool.mockReturnValue('/opt/quartus/bin/quartus_sh');
+        mockRunProcess.mockResolvedValue({ success: true });
+
+        await tc.createProject('my_ip', ipDir, makeCfg(), outputChannel, '23.1');
+
+        // Where createProject() decided to put the sidecar…
+        const sidecarDir = (detector.writeSidecar as jest.Mock).mock.calls[0][0] as string;
+        fs2.mkdirSync(sidecarDir, { recursive: true });
+        await realDetector.writeSidecar(sidecarDir, {
+          vendor: 'quartus',
+          version: '23.1',
+          sourcePath: '/opt/quartus/bin/quartus_sh',
+        });
+
+        // …versus where `project_new` actually creates the .qpf (quartus_sh
+        // runs with cwd: altera/build). These must agree.
+        const qpfDir = path.join(ipDir, 'altera', 'build');
+        fs2.mkdirSync(qpfDir, { recursive: true });
+        const qpfPath = path.join(qpfDir, 'my_ip.qpf');
+        fs2.writeFileSync(qpfPath, 'QUARTUS_VERSION = "20.1"\n', 'utf8');
+        expect(await realDetector.detectQuartusProjectVersion(qpfPath)).toEqual({
+          confidence: 'exact',
+          candidates: ['23.1'],
+          source: 'sidecar',
+        });
+      } finally {
+        fs2.rmSync(ipDir, { recursive: true, force: true });
+      }
+    });
+
+    it('does not write a sidecar when preferredVersion is omitted', async () => {
+      mockFileExists.mockResolvedValue(true);
+      mockGetQuartusTool.mockReturnValue('/opt/quartus/bin/quartus_sh');
+      mockRunProcess.mockResolvedValue({ success: true });
+
+      await tc.createProject('my_ip', '/ip', makeCfg(), outputChannel);
+
+      expect(detector.writeSidecar).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('detectBuildModes()', () => {
+    const outputChannel = { appendLine: jest.fn() } as unknown as import('vscode').OutputChannel;
+
+    beforeEach(() => {
+      mockFileExists.mockResolvedValue(true);
+      mockMkdir.mockResolvedValue(undefined);
+    });
+
+    it('describes the Quartus project file used for version detection', async () => {
+      mockGetQuartusTool.mockReturnValue('/opt/quartus/bin/quartus_sh');
+
+      const [mode] = await tc.detectBuildModes('foo', '/ip', makeCfg(), outputChannel);
+
+      expect(mode).toEqual(
+        expect.objectContaining({
+          vendor: 'quartus',
+          projectFilePath: path.join('/ip', 'altera', 'build', 'foo.qpf'),
+        })
+      );
+    });
+
+    it('uses the detection-time preferred version for a local build', async () => {
+      mockGetQuartusTool.mockReturnValue('/opt/23.1/quartus/bin/quartus_sh');
+      const resolve = jest.spyOn(tc, 'resolve').mockReturnValue({
+        exe: '/opt/23.1/quartus/bin/quartus_sh',
+        prefixArgs: [],
+      });
+      mockRunProcess.mockResolvedValue({ success: false });
+      const cfg = makeCfg({ 'quartus.runner': 'local' });
+      const [mode] = await tc.detectBuildModes('foo', '/ip', cfg, outputChannel, '23.1');
+
+      await mode.run();
+
+      expect(resolve).toHaveBeenLastCalledWith('quartus_sh', cfg, '23.1');
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        '/opt/23.1/quartus/bin/quartus_sh',
+        expect.any(Array),
+        expect.objectContaining({ docker: undefined })
+      );
+    });
+
+    it('uses the container command with the preferred Docker image', async () => {
+      mockGetQuartusTool.mockReturnValue('/opt/23.1/quartus/bin/quartus_sh');
+      mockRunProcess.mockResolvedValue({ success: false });
+      const cfg = makeCfg({
+        'quartus.runner': 'docker',
+        'quartus.installDirs': ['/opt/intelFPGA'],
+        'quartus.dockerImages': [
+          { label: '24.1', image: 'quartus:24.1' },
+          { label: '23.1', image: 'quartus:23.1' },
+        ],
+      });
+      const [mode] = await tc.detectBuildModes('foo', '/ip', cfg, outputChannel);
+
+      await (mode.run as (preferredVersion?: string) => Promise<unknown>)('23.1');
+
+      expect(mockRunProcess).toHaveBeenCalledWith(
+        'quartus_sh',
+        expect.any(Array),
+        expect.objectContaining({
+          docker: { image: 'quartus:23.1', mountBase: '/ip' },
+        })
       );
     });
   });
@@ -325,6 +550,32 @@ describe('QuartusToolchain subTools', () => {
   it('isSubToolAvailable returns false when docker runner has no image', () => {
     const cfg = makeCfg({ 'quartus.runner': 'docker', 'quartus.dockerImage': '' });
     expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(false);
+  });
+
+  it('directly finds qsys-edit in configured installDirs without resolving versions', () => {
+    mockFindInInstallDir.mockImplementation((toolName: string, installDir: string) =>
+      toolName === 'qsys-edit' && installDir === '/opt/intelFPGA/23.1'
+        ? '/opt/intelFPGA/23.1/quartus/sopc_builder/bin/qsys-edit'
+        : null
+    );
+    const cfg = makeCfg({
+      'quartus.installDirs': ['/opt/intelFPGA/22.1', '/opt/intelFPGA/23.1'],
+    });
+
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(true);
+    expect(mockFindInInstallDir).toHaveBeenNthCalledWith(1, 'qsys-edit', '/opt/intelFPGA/22.1');
+    expect(mockFindInInstallDir).toHaveBeenNthCalledWith(2, 'qsys-edit', '/opt/intelFPGA/23.1');
+    expect(mockResolveQuartusVersions).not.toHaveBeenCalled();
+  });
+
+  it('finds qsys-edit when a Docker multi-version image is configured', () => {
+    const cfg = makeCfg({
+      'quartus.runner': 'docker',
+      'quartus.dockerImages': [{ label: '23.1', image: 'my/quartus:23.1' }],
+      'quartus.dockerImage': '',
+    });
+
+    expect(tc.isSubToolAvailable('qsys-edit', cfg)).toBe(true);
   });
 
   it('isSubToolAvailable uses findInInstallDir when installDir is set', () => {

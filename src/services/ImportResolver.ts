@@ -15,6 +15,7 @@ import { BusLibraryService } from './BusLibraryService';
 import { getWorkspaceBusDefinitionScanner } from './WorkspaceBusDefinitionScanner';
 import { resolveMemoryMapImports } from './imports/resolveMemoryMapImports';
 import { getVivadoInterfaceCacheDir, pathExists } from './VivadoInterfaceScanner';
+import { resolveVivadoCacheVersion } from './VivadoCacheVersion';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 
 export interface ResolvedImports {
@@ -49,7 +50,11 @@ export class ImportResolver {
    * @param baseDir Directory containing the IP core YAML file
    * @returns Resolved imports
    */
-  async resolveImports(ipCoreData: IpCoreDataNode, baseDir: string): Promise<ResolvedImports> {
+  async resolveImports(
+    ipCoreData: IpCoreDataNode,
+    baseDir: string,
+    resourceUri: vscode.Uri = vscode.Uri.file(baseDir)
+  ): Promise<ResolvedImports> {
     const resolved: ResolvedImports = {};
 
     // Resolve bus library - first try explicit path, then fall back to default
@@ -62,11 +67,11 @@ export class ImportResolver {
             `(resolved to: ${path.resolve(baseDir, String(ipCoreData.useBusLibrary))}). ` +
             `Falling back to default bus library. Reason: ${(busError as Error).message}`
         );
-        resolved.busLibrary = await this.loadDefaultBusLibrary();
+        resolved.busLibrary = await this.loadDefaultBusLibrary(resourceUri);
       }
     } else {
       // Load default bus library from Python backend
-      resolved.busLibrary = await this.loadDefaultBusLibrary();
+      resolved.busLibrary = await this.loadDefaultBusLibrary(resourceUri);
     }
 
     // Resolve memory map imports
@@ -100,18 +105,20 @@ export class ImportResolver {
   /**
    * Load default bus library from ipcore_spec, extended with any user-defined paths
    * configured via the `ipcraft.busLibraryPaths` VS Code setting, plus the cached
-   * Vivado interface catalog (if "Scan Vivado Interface Catalog" has been run) —
-   * a single global cache shared by every IP core, never duplicated per project.
+   * Vivado interface catalog (if "Scan Vivado Interface Catalog" has been run).
+   * The resource's successful scan selection (or explicit pin when no selection
+   * metadata exists) selects that version's machine-wide cache.
    * Returns the library in the format expected by the UI: { [key]: { ports: [...] } }
    */
-  private async loadDefaultBusLibrary(): Promise<Record<string, unknown>> {
+  private async loadDefaultBusLibrary(resourceUri: vscode.Uri): Promise<Record<string, unknown>> {
     const library = await this.busLibraryService.loadDefaultLibrary();
     const count = library ? Object.keys(library).length : 0;
     this.logger.info(`Loaded ${count} bus types from local library`);
 
-    const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+    const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, resourceUri);
     const userPaths = [...config.get<string[]>('busLibraryPaths', [])];
-    const vivadoCacheDir = getVivadoInterfaceCacheDir();
+    const cacheVersion = await resolveVivadoCacheVersion(config, 'interfaces', resourceUri);
+    const vivadoCacheDir = getVivadoInterfaceCacheDir(cacheVersion);
     if (await pathExists(vivadoCacheDir)) {
       userPaths.push(vivadoCacheDir);
     }
