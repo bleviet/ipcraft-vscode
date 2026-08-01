@@ -58,3 +58,6 @@ examples/**/tb/results.xml
 examples/**/tb/*.ghw
 examples/**/quartus/?/
 examples/**/*_dump.txt
+
+# Local isolated agent worktrees.
+.worktrees/
