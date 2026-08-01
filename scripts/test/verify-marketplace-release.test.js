@@ -34,7 +34,7 @@ function createPublishedPackageInput(overrides = {}) {
       name: 'ipcraft-vscode',
       publisher: 'bahonavi',
       version: '1.2.3',
-      license: 'SEE LICENSE IN LICENSE',
+      license: 'MIT',
       icon: 'resources/icon.png',
       repository: { url: 'git+https://github.com/bleviet/ipcraft-vscode.git' },
       homepage: 'https://github.com/bleviet/ipcraft-vscode#readme',
@@ -69,7 +69,7 @@ describe('published Marketplace package verification', () => {
       },
       packagedManifest: {
         ...createPublishedPackageInput().packagedManifest,
-        license: 'MIT',
+        license: 'Apache-2.0',
         contributes: { commands: [] },
       },
       archiveFiles: new Set(['extension/LICENSE.txt']),
@@ -77,7 +77,7 @@ describe('published Marketplace package verification', () => {
 
     assert.throws(
       () => validatePublishedPackage(invalidInput),
-      /README[\s\S]*license[\s\S]*commands/
+      /README[\s\S]*MIT SPDX license[\s\S]*commands/
     );
   });
 

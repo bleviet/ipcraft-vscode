@@ -129,8 +129,8 @@ function readArchive(archivePath) {
 
 function validateManifest(manifest, archiveFiles) {
   const errors = [];
-  if (manifest.license !== 'SEE LICENSE IN LICENSE') {
-    errors.push('extension/package.json must declare SEE LICENSE IN LICENSE');
+  if (manifest.license !== 'MIT') {
+    errors.push('extension/package.json must declare the MIT SPDX license');
   }
   if (!archiveFiles.has('extension/LICENSE.txt')) {
     errors.push('VSIX is missing extension/LICENSE.txt');

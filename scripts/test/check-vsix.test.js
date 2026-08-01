@@ -6,16 +6,16 @@ const { validateManifest } = require('../check-vsix');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 
-it('requires the root license declaration and packaged license file', () => {
+it('requires the MIT SPDX declaration and packaged license file', () => {
   assert.doesNotThrow(() =>
-    validateManifest({ license: 'SEE LICENSE IN LICENSE' }, new Set(['extension/LICENSE.txt']))
+    validateManifest({ license: 'MIT' }, new Set(['extension/LICENSE.txt']))
   );
   assert.throws(
-    () => validateManifest({ license: 'MIT' }, new Set(['extension/LICENSE.txt'])),
-    /SEE LICENSE IN LICENSE/
+    () => validateManifest({ license: 'Apache-2.0' }, new Set(['extension/LICENSE.txt'])),
+    /MIT SPDX license/
   );
   assert.throws(
-    () => validateManifest({ license: 'SEE LICENSE IN LICENSE' }, new Set()),
+    () => validateManifest({ license: 'MIT' }, new Set()),
     /extension\/LICENSE.txt/
   );
 });

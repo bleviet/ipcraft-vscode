@@ -1,7 +1,7 @@
 {
   "name": "ipcraft-vscode",
   "publisher": "bahonavi",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "icon": "resources/icon.png",
   "galleryBanner": {
     "color": "#1a1a2e",

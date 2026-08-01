@@ -10,7 +10,7 @@ const extensionManifest = {
   name: 'ipcraft-vscode',
   publisher: 'bahonavi',
   version: '1.2.3',
-  license: 'SEE LICENSE IN LICENSE',
+  license: 'MIT',
 };
 const cliManifest = { version: '1.2.3' };
 const marketplace = {
@@ -71,7 +71,7 @@ describe('validateReleaseContract', () => {
       () =>
         validateReleaseContract({
           sourceBranch: 'refs/tags/v1.2.4',
-          extensionManifest: { ...extensionManifest, publisher: 'wrong', license: 'MIT' },
+          extensionManifest: { ...extensionManifest, publisher: 'wrong', license: 'Apache-2.0' },
           cliManifest: { version: '1.2.2' },
           changelog: '# Changelog\n',
           marketplace: { ...marketplace, versions: [{ version: '1.2.4' }] },
@@ -80,7 +80,7 @@ describe('validateReleaseContract', () => {
         assert.match(error.message, /tag version 1.2.4/);
         assert.match(error.message, /CLI version 1.2.2/);
         assert.match(error.message, /publisher/);
-        assert.match(error.message, /SEE LICENSE IN LICENSE/);
+        assert.match(error.message, /MIT SPDX license/);
         assert.match(error.message, /CHANGELOG/);
         assert.match(error.message, /already exists/);
         return true;

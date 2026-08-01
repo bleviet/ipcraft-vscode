@@ -30,8 +30,8 @@ function validateReleaseContract(input) {
   if (manifest.name !== MARKETPLACE_IDENTITY.name) {
     errors.push(`extension name must be ${MARKETPLACE_IDENTITY.name}`);
   }
-  if (manifest.license !== 'SEE LICENSE IN LICENSE') {
-    errors.push('license must be SEE LICENSE IN LICENSE');
+  if (manifest.license !== 'MIT') {
+    errors.push('license must be the MIT SPDX license');
   }
   if (!new RegExp(`^## \\[${version.replaceAll('.', '\\.') }\\] - `, 'm').test(input.changelog)) {
     errors.push(`CHANGELOG must contain a ${version} release heading`);
@@ -78,8 +78,8 @@ function validatePublishedPackage({ version, listing, packagedManifest, archiveF
     }
   }
 
-  if (packagedManifest.license !== 'SEE LICENSE IN LICENSE') {
-    errors.push('Published manifest license must be SEE LICENSE IN LICENSE');
+  if (packagedManifest.license !== 'MIT') {
+    errors.push('Published manifest license must be the MIT SPDX license');
   }
   if (packagedManifest.publisher !== MARKETPLACE_IDENTITY.publisher) {
     errors.push(`Published manifest publisher must be ${MARKETPLACE_IDENTITY.publisher}`);
