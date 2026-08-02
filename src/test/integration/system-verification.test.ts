@@ -4,9 +4,11 @@ import * as os from 'os';
 import * as path from 'path';
 import type * as vscode from 'vscode';
 import type {
+  DiscoveredSystem,
   SystemVerificationConfig,
   SystemVerificationPlan,
 } from '../../domain/systemVerification.types';
+import discoveryOutput from '../fixtures/system-verification/discovery-output.json';
 import { parseSystemVerificationConfig } from '../../services/systemVerification/SystemVerificationConfig';
 import { buildSystemVerificationPlan } from '../../services/systemVerification/SystemVerificationPlanner';
 import { scaffoldSystemVerification } from '../../services/systemVerification/SystemVerificationScaffolder';
@@ -30,17 +32,12 @@ const config: SystemVerificationConfig = {
   },
 };
 
+const discoveredFixture = discoveryOutput as DiscoveredSystem;
 const planBinding = {
-  boundaryInterface: {
-    path: '/S_AXI_TEST',
-    mode: 'Slave',
-    protocol: 'AXI4LITE',
-    addressWidth: 32,
-    dataWidth: 32,
-    signals: [],
-  },
-  clockPort: { path: '/sys_clk', type: 'clock' as const, direction: 'in' as const, width: 1 },
-  resetPort: { path: '/sys_rst_n', type: 'reset' as const, direction: 'in' as const, width: 1 },
+  boundaryInterface: discoveredFixture.boundaryInterfaces[0],
+  clockPort: discoveredFixture.boundaryPorts[0],
+  resetPort: discoveredFixture.boundaryPorts[1],
+  wrapperPorts: discoveredFixture.wrapperPorts,
   wrapperLanguage: 'VHDL' as const,
 };
 

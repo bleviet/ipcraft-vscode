@@ -229,7 +229,10 @@ describe('VivadoSystemDiscovery', () => {
       `
 proc current_bd_design {args} { return system }
 proc current_project {} { return project }
-proc get_bd_intf_ports {args} { return boundary }
+proc get_bd_intf_ports {args} {
+    if {[llength $args] == 1 && [lindex $args 0] eq "-quiet"} { return {boundary gpio_boundary} }
+    return boundary
+}
 proc get_bd_ports {args} {
     if {[lsearch -exact $args -of_objects] >= 0} { return boundary_awaddr }
     return {sys_clk sys_rst_n}
@@ -266,6 +269,9 @@ proc get_property {args} {
         boundary,CONFIG.PROTOCOL AXI4-Lite
         boundary,CONFIG.ADDR_WIDTH 32
         boundary,CONFIG.DATA_WIDTH 32
+        gpio_boundary,PATH /led_8bits
+        gpio_boundary,NAME led_8bits
+        gpio_boundary,MODE Master
         boundary_awaddr,NAME S_AXI_TEST_awaddr
         boundary_awaddr,DIR I
         boundary_awaddr,LEFT 31
@@ -310,6 +316,9 @@ source {${discoverScript}}
     expect(parsedManifest.boundaryPorts).toEqual([
       { path: '/sys_clk', type: 'clock', direction: 'in', width: 1 },
       { path: '/sys_rst_n', type: 'reset', direction: 'in', width: 1 },
+    ]);
+    expect(parsedManifest.boundaryInterfaces).toEqual([
+      expect.objectContaining({ path: '/S_AXI_TEST', protocol: 'AXI4-Lite' }),
     ]);
     expect(parsedManifest.axiRoutes).toEqual([
       expect.objectContaining({

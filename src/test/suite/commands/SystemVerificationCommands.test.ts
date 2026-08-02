@@ -41,6 +41,7 @@ const discovered: DiscoveredSystem = {
     { path: '/sys_rst_n', type: 'reset', direction: 'in', width: 1 },
     { path: '/status', type: 'data', direction: 'in', width: 1 },
   ],
+  wrapperPorts: [],
   instancePaths: ['/control_0', '/unrelated_0'],
   axiRoutes: [
     {
@@ -73,6 +74,7 @@ const plan: SystemVerificationPlan = {
   boundaryInterface: discovered.boundaryInterfaces[0],
   clockPort: discovered.boundaryPorts[0],
   resetPort: discovered.boundaryPorts[1],
+  wrapperPorts: discovered.wrapperPorts,
   wrapperLanguage: 'VHDL',
   transactions: [],
 };

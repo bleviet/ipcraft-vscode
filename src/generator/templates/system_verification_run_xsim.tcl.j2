@@ -81,7 +81,17 @@ proc vhdl_wrapper_ports {wrapper_file} {
     set contents [read $handle]
     close $handle
     set ports [dict create]
+    set in_entity_ports false
     foreach line [split $contents "\n"] {
+        if {!$in_entity_ports} {
+            if {[regexp -nocase {^\s*port\s*\(\s*$} $line]} {
+                set in_entity_ports true
+            }
+            continue
+        }
+        if {[regexp {^\s*\);\s*$} $line]} {
+            break
+        }
         if {[regexp -nocase {^\s*([[:alnum:]_]+)\s*:\s*(in|out|inout)\s+std_logic_vector\s*\(\s*([0-9]+)\s+(downto|to)\s+([0-9]+)\s*\)} $line -> name direction left ordering right]} {
             dict set ports $name [list [string tolower $direction] [expr {abs($left - $right) + 1}]]
         } elseif {[regexp -nocase {^\s*([[:alnum:]_]+)\s*:\s*(in|out|inout)\s+std_logic\s*;?\s*$} $line -> name direction]} {

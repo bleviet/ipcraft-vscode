@@ -58,11 +58,19 @@ export interface DiscoveredBoundaryPort {
   readonly width: number;
 }
 
+export interface DiscoveredWrapperPort {
+  readonly name: string;
+  readonly direction: DiscoveredPortDirection;
+  readonly width: number;
+  readonly isVector: boolean;
+}
+
 export interface DiscoveredSystem {
   readonly designName: string;
   readonly wrapperLanguage: string;
   readonly boundaryInterfaces: ReadonlyArray<DiscoveredBoundaryInterface>;
   readonly boundaryPorts: ReadonlyArray<DiscoveredBoundaryPort>;
+  readonly wrapperPorts: ReadonlyArray<DiscoveredWrapperPort>;
   readonly instancePaths: ReadonlyArray<string>;
   readonly axiRoutes: ReadonlyArray<DiscoveredAxiRoute>;
 }
@@ -90,6 +98,7 @@ export interface SystemVerificationPlan {
   readonly boundaryInterface: DiscoveredBoundaryInterface;
   readonly clockPort: DiscoveredBoundaryPort;
   readonly resetPort: DiscoveredBoundaryPort;
+  readonly wrapperPorts: ReadonlyArray<DiscoveredWrapperPort>;
   readonly wrapperLanguage: 'VHDL';
   readonly transactions: ReadonlyArray<SystemVerificationTransaction>;
 }

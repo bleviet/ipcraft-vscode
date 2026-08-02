@@ -5,9 +5,11 @@ import { spawnSync } from 'child_process';
 import type {
   DiscoveredBoundaryInterface,
   DiscoveredBoundaryPort,
+  DiscoveredSystem,
   SystemVerificationConfig,
   SystemVerificationPlan,
 } from '../../../../domain/systemVerification.types';
+import discoveredFixture from '../../../fixtures/system-verification/discovery-output.json';
 import { scaffoldSystemVerification } from '../../../../services/systemVerification/SystemVerificationScaffolder';
 
 const config: SystemVerificationConfig = {
@@ -26,12 +28,9 @@ const config: SystemVerificationConfig = {
   },
 };
 
+const discovered = discoveredFixture as DiscoveredSystem;
 const boundaryInterface: DiscoveredBoundaryInterface = {
-  path: '/S_AXI_TEST',
-  mode: 'Slave',
-  protocol: 'AXI4LITE',
-  addressWidth: 32,
-  dataWidth: 32,
+  ...discovered.boundaryInterfaces[0],
   signals: [],
 };
 const clockPort: DiscoveredBoundaryPort = {
@@ -62,6 +61,7 @@ const plan: SystemVerificationPlan = {
   boundaryInterface,
   clockPort,
   resetPort,
+  wrapperPorts: discovered.wrapperPorts,
   wrapperLanguage: 'VHDL',
   transactions: [
     {
@@ -114,6 +114,29 @@ describe('SystemVerificationScaffolder', () => {
     ]);
     expect(files.Makefile).toContain('run:');
     expect(files['tb/system_verification_tb.vhd']).toContain('44A00004');
+  });
+
+  it('adapts scalar AXI handshakes and safely associates unrelated wrapper ports', () => {
+    const scalarPlan: SystemVerificationPlan = {
+      ...plan,
+      wrapperPorts: [
+        ...plan.wrapperPorts.map((port) =>
+          port.width === 1 && port.name.startsWith('S_AXI_TEST_')
+            ? { ...port, isVector: false }
+            : port
+        ),
+        { name: 'aux_input', direction: 'in', width: 4, isVector: true },
+        { name: 'aux_output', direction: 'out', width: 1, isVector: false },
+      ],
+    };
+
+    const testbench = scaffoldSystemVerification({ ...input, plan: scalarPlan })[
+      'tb/system_verification_tb.vhd'
+    ];
+
+    expect(testbench).toContain('S_AXI_TEST_awvalid => awValid');
+    expect(testbench).toContain("aux_input => (others => '0')");
+    expect(testbench).toContain('aux_output => open');
   });
 
   it('refuses to clean an unowned run directory and removes an owned canonical run', () => {
@@ -322,6 +345,10 @@ describe('SystemVerificationScaffolder', () => {
         addressSegmentPath: `${dangerousInstancePath}/S_AXI/reg0`,
         mappedSegmentPath: `${dangerousInterfacePath}/SEG_control_0_reg0`,
       },
+      wrapperPorts: plan.wrapperPorts.map((port) => ({
+        ...port,
+        name: port.name.replace('S_AXI_TEST_', 'S_AXI__path_puts_PATH_INJECTED___'),
+      })),
       transactions: plan.transactions,
     };
     const runner = scaffoldSystemVerification({
@@ -461,6 +488,16 @@ describe('SystemVerificationScaffolder', () => {
     sys_rst_n : in STD_LOGIC
   );
 end system_wrapper;
+
+architecture structure of system_wrapper is
+  component internal_design is
+    port (
+      S_AXI_TEST_awvalid : in STD_LOGIC;
+      S_AXI_TEST_awready : out STD_LOGIC
+    );
+  end component;
+begin
+end structure;
 `,
         'utf8'
       );

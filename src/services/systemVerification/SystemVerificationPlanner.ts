@@ -76,6 +76,7 @@ export function buildSystemVerificationPlan(
     boundaryInterface,
     clockPort,
     resetPort,
+    wrapperPorts: discovered.wrapperPorts,
     wrapperLanguage: 'VHDL',
     transactions,
   };

@@ -35,6 +35,29 @@
     { "path": "/sys_clk", "type": "clock", "direction": "in", "width": 1 },
     { "path": "/sys_rst_n", "type": "reset", "direction": "in", "width": 1 }
   ],
+  "wrapperPorts": [
+    { "name": "sys_clk", "direction": "in", "width": 1, "isVector": false },
+    { "name": "sys_rst_n", "direction": "in", "width": 1, "isVector": false },
+    { "name": "S_AXI_TEST_awaddr", "direction": "in", "width": 32, "isVector": true },
+    { "name": "S_AXI_TEST_awprot", "direction": "in", "width": 3, "isVector": true },
+    { "name": "S_AXI_TEST_awvalid", "direction": "in", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_awready", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_wdata", "direction": "in", "width": 32, "isVector": true },
+    { "name": "S_AXI_TEST_wstrb", "direction": "in", "width": 4, "isVector": true },
+    { "name": "S_AXI_TEST_wvalid", "direction": "in", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_wready", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_bresp", "direction": "out", "width": 2, "isVector": true },
+    { "name": "S_AXI_TEST_bvalid", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_bready", "direction": "in", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_araddr", "direction": "in", "width": 32, "isVector": true },
+    { "name": "S_AXI_TEST_arprot", "direction": "in", "width": 3, "isVector": true },
+    { "name": "S_AXI_TEST_arvalid", "direction": "in", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_arready", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_rdata", "direction": "out", "width": 32, "isVector": true },
+    { "name": "S_AXI_TEST_rresp", "direction": "out", "width": 2, "isVector": true },
+    { "name": "S_AXI_TEST_rvalid", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_rready", "direction": "in", "width": 1, "isVector": true }
+  ],
   "instancePaths": ["/control_0", "/neighbor_0"],
   "axiRoutes": [
     {

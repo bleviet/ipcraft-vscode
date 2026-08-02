@@ -26,6 +26,7 @@ const manifestSchema = {
     'wrapperLanguage',
     'boundaryInterfaces',
     'boundaryPorts',
+    'wrapperPorts',
     'instancePaths',
     'axiRoutes',
   ],
@@ -71,6 +72,20 @@ const manifestSchema = {
           type: { enum: ['clock', 'reset', 'data'] },
           direction: { enum: ['in', 'out', 'inout'] },
           width: { type: 'integer', exclusiveMinimum: 0 },
+        },
+      },
+    },
+    wrapperPorts: {
+      type: 'array',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['name', 'direction', 'width', 'isVector'],
+        properties: {
+          name: { type: 'string', minLength: 1 },
+          direction: { enum: ['in', 'out', 'inout'] },
+          width: { type: 'integer', exclusiveMinimum: 0 },
+          isVector: { type: 'boolean' },
         },
       },
     },

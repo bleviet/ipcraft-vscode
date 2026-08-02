@@ -40,6 +40,46 @@ export function scaffoldSystemVerification(
   const configText = createSystemVerificationConfigText(config);
   const dataWidth = plan.route.busBytes * 8;
   const relativeProjectRoot = projectRootRelative(config.recreateScript, input.outputDirectory);
+  const interfacePortName = toVhdlIdentifier(config.target.driveInterfacePath);
+  const clockPortName = toVhdlIdentifier(config.clockPath);
+  const resetPortName = toVhdlIdentifier(config.resetPath);
+  const wrapperPortsByName = new Map(
+    plan.wrapperPorts.map((port) => [port.name.toLowerCase(), port] as const)
+  );
+  const wrapperPort = (name: string) => wrapperPortsByName.get(name.toLowerCase());
+  const interfaceSignalIsVector = (signal: string): boolean => {
+    const port = wrapperPort(`${interfacePortName}_${signal}`);
+    if (!port) {
+      throw new Error(`discovered wrapper port ${interfacePortName}_${signal} is missing`);
+    }
+    return port.isVector;
+  };
+  const axi4LiteSignalNames = [
+    'awaddr',
+    'awprot',
+    'awvalid',
+    'awready',
+    'wdata',
+    'wstrb',
+    'wvalid',
+    'wready',
+    'bresp',
+    'bvalid',
+    'bready',
+    'araddr',
+    'arprot',
+    'arvalid',
+    'arready',
+    'rdata',
+    'rresp',
+    'rvalid',
+    'rready',
+  ] as const;
+  const selectedNames = new Set([
+    clockPortName.toLowerCase(),
+    resetPortName.toLowerCase(),
+    ...axi4LiteSignalNames.map((signal) => `${interfacePortName}_${signal}`.toLowerCase()),
+  ]);
   const templates = new TemplateLoader(
     new Logger('SystemVerificationScaffolder'),
     resolveTemplatesDirectory()
@@ -49,9 +89,29 @@ export function scaffoldSystemVerification(
     plan,
     dataWidth,
     addressWidth: plan.route.addressWidth,
-    clockPort: toVhdlIdentifier(config.clockPath),
-    resetPort: toVhdlIdentifier(config.resetPath),
-    interfacePort: toVhdlIdentifier(config.target.driveInterfacePath),
+    clockPort: clockPortName,
+    resetPort: resetPortName,
+    clockPortIsVector: wrapperPort(clockPortName)?.isVector ?? false,
+    resetPortIsVector: wrapperPort(resetPortName)?.isVector ?? false,
+    interfacePort: interfacePortName,
+    vectorHandshake: {
+      awValid: interfaceSignalIsVector('awvalid'),
+      awReady: interfaceSignalIsVector('awready'),
+      writeValid: interfaceSignalIsVector('wvalid'),
+      writeReady: interfaceSignalIsVector('wready'),
+      writeResponseValid: interfaceSignalIsVector('bvalid'),
+      writeResponseReady: interfaceSignalIsVector('bready'),
+      readAddressValid: interfaceSignalIsVector('arvalid'),
+      readAddressReady: interfaceSignalIsVector('arready'),
+      readValid: interfaceSignalIsVector('rvalid'),
+      readReady: interfaceSignalIsVector('rready'),
+    },
+    unusedWrapperPorts: plan.wrapperPorts
+      .filter((port) => !selectedNames.has(port.name.toLowerCase()))
+      .map((port) => ({
+        name: port.name,
+        actual: port.direction === 'in' ? (port.isVector ? "(others => '0')" : "'0'") : 'open',
+      })),
     expectedConfigBase64: Buffer.from(configText, 'utf8').toString('base64'),
     expectedMemoryMapBase64: Buffer.from(input.memoryMapText, 'utf8').toString('base64'),
     projectRootRelative: relativeProjectRoot,
