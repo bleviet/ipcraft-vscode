@@ -86,7 +86,34 @@ describe('Spec Conformance Tests', () => {
     ...getYamlFiles(FIXTURES_DIR),
     ...getYamlFiles(TEMPLATES_DIR),
     ...getYamlFiles(EXAMPLES_DIR),
-  ].filter((f) => !f.includes('invalid-syntax'));
+  ].filter(
+    (filePath) =>
+      !filePath.includes('invalid-syntax') &&
+      (filePath.endsWith('.ip.yml') ||
+        filePath.endsWith('.ip.yaml') ||
+        filePath.endsWith('.mm.yml') ||
+        filePath.endsWith('.ipci.yml') ||
+        filePath.endsWith('-ipcore.yml') ||
+        filePath.endsWith('-memmap.yml'))
+  );
+
+  it('selects schema-owned YAML without treating unrelated fixture configuration as a memory map', () => {
+    const selectedPaths = allYamlFiles.map((filePath) => path.relative(REPO_ROOT, filePath));
+
+    expect(selectedPaths).toEqual(
+      expect.arrayContaining([
+        'src/test/fixtures/sample-ipcore.yml',
+        'src/test/fixtures/sample-memmap.yml',
+        'src/test/fixtures/avmm-no-optional-ports.ip.yml',
+        'src/test/fixtures/avmm-no-optional-ports.mm.yml',
+        'src/test/fixtures/supported-extension.ip.yaml',
+        'ipcraft-spec/examples/data_inspector/comprehensive_axi_status.ipci.yml',
+      ])
+    );
+    expect(selectedPaths).not.toContain(
+      'src/test/fixtures/system-verification/vivado/system-verification.yml'
+    );
+  });
 
   for (const filePath of allYamlFiles) {
     const relativePath = path.relative(REPO_ROOT, filePath);

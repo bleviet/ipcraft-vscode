@@ -36,6 +36,8 @@ describe('registerGeneratorCommands registration surface', () => {
       { command: 'fpga-ip-core.generateQuartusProject', requiresWorkspaceTrust: true },
       { command: 'fpga-ip-core.generateAndBuildVivado', requiresWorkspaceTrust: true },
       { command: 'fpga-ip-core.generateAndBuildQuartus', requiresWorkspaceTrust: true },
+      { command: 'fpga-ip-core.generateSystemTestbench', requiresWorkspaceTrust: true },
+      { command: 'fpga-ip-core.runSystemTestbench', requiresWorkspaceTrust: true },
       { command: 'fpga-ip-core.generateTestbench', requiresWorkspaceTrust: true },
       { command: 'fpga-ip-core.generateDocumentation', requiresWorkspaceTrust: true },
       { command: 'fpga-ip-core.openSettings', requiresWorkspaceTrust: false },

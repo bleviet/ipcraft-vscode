@@ -1,0 +1,335 @@
+# IPCraft Vivado/XSim batch runner for {{ config.designName }}
+
+proc write_result {run_dir outcome {first_failure ""}} {
+    set result_path [file join $run_dir result.json]
+    set handle [open $result_path w]
+    set escaped [string map [list "\\" "\\\\" "\"" "\\\"" "\n" "\\n" "\r" "\\r"] $first_failure]
+    set route_json $::ipcraft_validated_route_json
+    if {$first_failure eq ""} {
+        if {$route_json eq ""} {
+            puts $handle [format "{\"outcome\":\"%s\"}" $outcome]
+        } else {
+            puts $handle [format "{\"outcome\":\"%s\",\"route\":%s}" $outcome $route_json]
+        }
+    } else {
+        if {$route_json eq ""} {
+            puts $handle [format "{\"outcome\":\"%s\",\"firstFailure\":\"%s\"}" $outcome $escaped]
+        } else {
+            puts $handle [format "{\"outcome\":\"%s\",\"firstFailure\":\"%s\",\"route\":%s}" $outcome $escaped $route_json]
+        }
+    }
+    close $handle
+}
+
+proc validate_tracked_file {path expected_base64 label} {
+    if {![file exists $path]} {
+        error "$label does not exist: $path"
+    }
+    set handle [open $path rb]
+    set contents [read $handle]
+    close $handle
+    set actual_base64 [binary encode base64 -maxlen 0 $contents]
+    if {$actual_base64 ne $expected_base64} {
+        error "$label drifted after staging: $path; regenerate the system testbench"
+    }
+}
+
+proc property_or_empty {property object} {
+    set value [get_property -quiet $property $object]
+    return [expr {$value eq "" ? "" : $value}]
+}
+
+proc integer_property_or_zero {property object} {
+    set value [property_or_empty $property $object]
+    if {$value eq "" || [scan $value %i parsed] != 1} {
+        return 0
+    }
+    return $parsed
+}
+
+proc canonical_path {object} {
+    set object_path [property_or_empty PATH $object]
+    if {$object_path eq ""} {
+        set object_path "$object"
+    }
+    if {![string match "/*" $object_path]} {
+        set object_path "/$object_path"
+    }
+    return $object_path
+}
+
+proc port_direction {port} {
+    switch -nocase -- [property_or_empty DIR $port] {
+        I { return in }
+        O { return out }
+        IO { return inout }
+        default { return inout }
+    }
+}
+
+proc port_width {port} {
+    set left [property_or_empty LEFT $port]
+    set right [property_or_empty RIGHT $port]
+    if {$left eq "" || $right eq ""} {
+        return 1
+    }
+    return [expr {abs(int($left) - int($right)) + 1}]
+}
+
+proc vhdl_wrapper_ports {wrapper_file} {
+    set handle [open $wrapper_file r]
+    set contents [read $handle]
+    close $handle
+    set ports [dict create]
+    foreach line [split $contents "\n"] {
+        if {[regexp -nocase {^\s*([[:alnum:]_]+)\s*:\s*(in|out|inout)\s+std_logic_vector\s*\(\s*([0-9]+)\s+(downto|to)\s+([0-9]+)\s*\)} $line -> name direction left ordering right]} {
+            dict set ports $name [list [string tolower $direction] [expr {abs($left - $right) + 1}]]
+        } elseif {[regexp -nocase {^\s*([[:alnum:]_]+)\s*:\s*(in|out|inout)\s+std_logic\s*;?\s*$} $line -> name direction]} {
+            dict set ports $name [list [string tolower $direction] 1]
+        }
+    }
+    return $ports
+}
+
+proc validate_scalar_port {path expected_type field} {
+    set ports [get_bd_ports -quiet $path]
+    if {[llength $ports] != 1} {
+        error "$field $path is absent from the recreated design"
+    }
+    set port [lindex $ports 0]
+    set actual_type [string tolower [property_or_empty TYPE $port]]
+    if {$actual_type ne $expected_type || [port_direction $port] ne "in" || [port_width $port] != 1} {
+        error "$field $path is not the reviewed scalar input $expected_type port"
+    }
+}
+
+proc validate_runtime_binding {wrapper_file} {
+    set wrapper_language [property_or_empty TARGET_LANGUAGE [current_project]]
+    if {![string equal -nocase $wrapper_language { {{- plan.wrapperLanguage -}} }]} {
+        error "wrapper language drift: expected {{ plan.wrapperLanguage }}, found $wrapper_language"
+    }
+
+    set boundary_path { {{- plan.boundaryInterface.path -}} }
+    set boundaries [get_bd_intf_ports -quiet $boundary_path]
+    if {[llength $boundaries] != 1} {
+        error "target.driveInterfacePath $boundary_path is absent from the recreated design"
+    }
+    set boundary [lindex $boundaries 0]
+    if {![string equal -nocase [property_or_empty MODE $boundary] { {{- plan.boundaryInterface.mode -}} }] ||
+        ![string equal -nocase [property_or_empty CONFIG.PROTOCOL $boundary] { {{- plan.boundaryInterface.protocol -}} }] ||
+        [integer_property_or_zero CONFIG.ADDR_WIDTH $boundary] != {{ plan.boundaryInterface.addressWidth }} ||
+        [integer_property_or_zero CONFIG.DATA_WIDTH $boundary] != {{ plan.boundaryInterface.dataWidth }}} {
+        error "target.driveInterfacePath $boundary_path protocol/mode/width drifted after staging"
+    }
+
+    set boundary_name [get_property NAME $boundary]
+    set actual_signals {}
+    set wrapper_ports [vhdl_wrapper_ports $wrapper_file]
+    set prefix "${boundary_name}_"
+    foreach wrapper_port [dict keys $wrapper_ports "${prefix}*"] {
+        set signal_name [string range $wrapper_port [string length $prefix] end]
+        lassign [dict get $wrapper_ports $wrapper_port] direction width
+        lappend actual_signals "[string tolower $signal_name]:$direction:$width"
+    }
+    set actual_shape [join [lsort $actual_signals] ,]
+    set expected_shape { {{- boundarySignalShape -}} }
+    if {$actual_shape ne $expected_shape} {
+        error "target.driveInterfacePath $boundary_path physical shape drift: expected $expected_shape, found $actual_shape"
+    }
+
+    validate_scalar_port { {{- plan.clockPort.path -}} } clk clockPath
+    validate_scalar_port { {{- plan.resetPort.path -}} } rst resetPath
+
+    set address_spaces [get_bd_addr_spaces -quiet $boundary_path]
+    if {[llength $address_spaces] != 1} {
+        error "target.driveInterfacePath $boundary_path has no unique address space"
+    }
+    set expected_mapped { {{- plan.route.mappedSegmentPath -}} }
+    set expected_slave { {{- plan.route.addressSegmentPath -}} }
+    set mapped [get_bd_addr_segs -quiet $expected_mapped]
+    if {[llength $mapped] != 1 || [lsearch -exact [get_bd_addr_segs -quiet -of_objects [lindex $address_spaces 0]] [lindex $mapped 0]] < 0} {
+        error "mapped address segment $expected_mapped is absent from boundary $boundary_path"
+    }
+    set mapped [lindex $mapped 0]
+    set slaves [get_bd_addr_segs -quiet -of_objects $mapped]
+    if {[llength $slaves] != 1 || [canonical_path [lindex $slaves 0]] ne $expected_slave} {
+        error "mapped address segment $expected_mapped no longer targets $expected_slave"
+    }
+    set slave [lindex $slaves 0]
+    set pins [get_bd_intf_pins -quiet -of_objects $slave]
+    set cell [expr {[llength $pins] == 1 ? [lindex [get_bd_cells -quiet -of_objects [lindex $pins 0]] 0] : ""}]
+    if {$cell eq "" || [canonical_path $cell] ne { {{- plan.route.instancePath -}} }} {
+        error "address segment $expected_slave no longer belongs to target.instancePath {{ plan.route.instancePath }}"
+    }
+    set actual_base [integer_property_or_zero OFFSET $mapped]
+    set actual_range [integer_property_or_zero RANGE $mapped]
+    if {$actual_base != {{ routeBaseAddressHex }} || $actual_range != {{ routeAddressRangeHex }}} {
+        error "route address drift for $expected_mapped: expected base={{ routeBaseAddressHex }} range={{ routeAddressRangeHex }}, found base=[format 0x%08X $actual_base] range=[format 0x%08X $actual_range]"
+    }
+
+    set ::ipcraft_validated_route_json [format {% raw %}{{"driveInterfacePath":"{% endraw %}{{ plan.route.driveInterfacePath }}{% raw %}","instancePath":"{% endraw %}{{ plan.route.instancePath }}{% raw %}","baseAddress":%d}}{% endraw %} $actual_base]
+}
+
+proc first_meaningful_diagnostic {output fallback} {
+    set first_error ""
+    set first_nonempty ""
+    foreach line [split $output "\n"] {
+        set trimmed [string trim $line]
+        if {$trimmed eq ""} {
+            continue
+        }
+        if {$first_nonempty eq ""} {
+            set first_nonempty $trimmed
+        }
+        if {[regexp -nocase {(address=|response=|timeout|assertion|severity failure|fatal)} $trimmed]} {
+            return $trimmed
+        }
+        if {$first_error eq "" && [regexp -nocase {(^|[[:space:]])(error|failure)(:|[[:space:]])} $trimmed]} {
+            set first_error $trimmed
+        }
+    }
+    if {$first_error ne ""} {
+        return $first_error
+    }
+    if {$first_nonempty ne ""} {
+        return $first_nonempty
+    }
+    return $fallback
+}
+
+proc collect_simulation_diagnostics {directory} {
+    set output ""
+    foreach entry [glob -nocomplain -directory $directory *] {
+        if {[file isdirectory $entry]} {
+            append output [collect_simulation_diagnostics $entry]
+        } elseif {[string equal -nocase [file extension $entry] ".log"]} {
+            if {![catch {
+                set handle [open $entry r]
+                set contents [read $handle]
+                close $handle
+            }]} {
+                append output "\n$contents"
+            }
+        }
+    }
+    return $output
+}
+
+proc first_failure_diagnostic {output} {
+    foreach line [split $output "\n"] {
+        set trimmed [string trim $line]
+        if {[regexp -nocase {(address=|response=|timeout|assertion|severity failure|(^|[[:space:]])(error|fatal)(:|[[:space:]]))} $trimmed]} {
+            return $trimmed
+        }
+    }
+    return ""
+}
+
+proc run_verification {run_dir waves} {
+    set script_dir [file normalize [file dirname [info script]]]
+    set verification_dir [file normalize [file join $script_dir ..]]
+    set project_root [file normalize [file join $verification_dir {{ projectRootRelative }}]]
+    set recreate_script [file normalize [file join $project_root { {{- config.recreateScript -}} }]]
+    set vivado_work [file join $run_dir vivado]
+    set export_dir [file join $run_dir exported-simulation]
+
+    validate_tracked_file \
+        [file join $verification_dir system-verification.yml] \
+        { {{- expectedConfigBase64 -}} } \
+        {tracked configuration}
+    validate_tracked_file \
+        [file normalize [file join $verification_dir { {{- config.target.memoryMap -}} }]] \
+        { {{- expectedMemoryMapBase64 -}} } \
+        {tracked memory map}
+
+    file mkdir $run_dir
+    file delete -force $vivado_work $export_dir
+    file mkdir $vivado_work $export_dir
+    cd $vivado_work
+
+    if {![file exists $recreate_script]} {
+        error "recreation Tcl does not exist: $recreate_script"
+    }
+    source $recreate_script
+
+    set expected_part { {{- config.part -}} }
+    set actual_part [get_property PART [current_project]]
+    if {$actual_part ne $expected_part} {
+        error "recreated project part $actual_part does not match configured part $expected_part"
+    }
+
+    set actual_design [current_bd_design]
+    if {$actual_design ne { {{- config.designName -}} }} {
+        error "recreated block design $actual_design does not match configured design {{ config.designName }}"
+    }
+
+    set design_file [get_files -quiet {{ config.designName }}.bd]
+    if {[llength $design_file] != 1} {
+        error "expected one {{ config.designName }}.bd after recreation, found [llength $design_file]"
+    }
+    generate_target all $design_file
+    set wrapper_files [make_wrapper -files $design_file -top -force]
+    set vhdl_wrappers [lsearch -all -inline -glob $wrapper_files *.vhd]
+    if {[llength $vhdl_wrappers] != 1} {
+        error "expected one generated VHDL wrapper, found [llength $vhdl_wrappers]"
+    }
+    validate_runtime_binding [lindex $vhdl_wrappers 0]
+    puts "IPCRAFT_LIFECYCLE:discover"
+    puts "IPCRAFT_LIFECYCLE:plan"
+    add_files -norecurse $wrapper_files
+
+    set bfm_file [file join $verification_dir tb axi4lite_master_bfm.vhd]
+    set testbench_file [file join $verification_dir tb system_verification_tb.vhd]
+    add_files -fileset sim_1 -norecurse [list $bfm_file $testbench_file]
+    set_property file_type {VHDL 2008} [get_files -of_objects [get_filesets sim_1] *.vhd]
+    set_property top system_verification_tb [get_filesets sim_1]
+    set_property xsim.simulate.log_all_signals [expr {$waves eq "1"}] [get_filesets sim_1]
+    update_compile_order -fileset sources_1
+    update_compile_order -fileset sim_1
+
+    puts "IPCRAFT_LIFECYCLE:compile"
+    export_ip_user_files -of_objects $design_file -no_script -sync -force
+    set simulationStatus [catch {
+        export_simulation \
+            -simulator xsim \
+            -directory $export_dir \
+            -absolute_path \
+            -export_source_files \
+            -exec \
+            -force
+    } simulationFailure]
+    set simulationOutput [collect_simulation_diagnostics $export_dir]
+    set loggedFailure [first_failure_diagnostic $simulationOutput]
+    if {$simulationStatus || $loggedFailure ne ""} {
+        if {$simulationOutput ne ""} {
+            puts stderr $simulationOutput
+        }
+        if {$loggedFailure ne ""} {
+            error $loggedFailure
+        }
+        error [first_meaningful_diagnostic $simulationOutput $simulationFailure]
+    }
+}
+
+if {[llength $argv] < 1} {
+    puts stderr "usage: run_xsim.tcl RUN_DIR ?WAVES=0|1?"
+    exit 2
+}
+
+set run_dir [file normalize [lindex $argv 0]]
+set waves [expr {[llength $argv] > 1 ? [lindex $argv 1] : "0"}]
+set ::ipcraft_validated_route_json ""
+file mkdir $run_dir
+
+if {[catch {run_verification $run_dir $waves} failure options]} {
+    write_result $run_dir failed $failure
+    puts stderr "IPCraft system verification failed: $failure"
+    if {[dict exists $options -errorinfo]} {
+        puts stderr [dict get $options -errorinfo]
+    }
+    exit 1
+}
+
+write_result $run_dir passed
+puts "IPCraft system verification passed"
+exit 0

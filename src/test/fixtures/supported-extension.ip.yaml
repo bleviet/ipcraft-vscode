@@ -1,0 +1,5 @@
+vlnv:
+  vendor: ipcraft
+  library: tests
+  name: supported_extension
+  version: 1.0.0

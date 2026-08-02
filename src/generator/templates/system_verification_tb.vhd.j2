@@ -1,0 +1,121 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use std.env.all;
+use work.axi4lite_master_bfm.all;
+
+entity system_verification_tb is
+end entity system_verification_tb;
+
+architecture test of system_verification_tb is
+  constant clockPeriod : time := {{ config.clockPeriodNs }} ns;
+  constant resetCycles : positive := {{ config.resetCycles }};
+  constant timeoutCycles : positive := 100;
+  constant resetAsserted : std_logic := '{{ resetAsserted }}';
+  constant resetDeasserted : std_logic := '{{ resetDeasserted }}';
+
+  signal clock : std_logic := '0';
+  signal reset : std_logic := resetAsserted;
+  signal awAddress : std_logic_vector({{ addressWidth - 1 }} downto 0) := (others => '0');
+  signal awProtection : std_logic_vector(2 downto 0) := (others => '0');
+  signal awValid : std_logic := '0';
+  signal awReady : std_logic;
+  signal writeData : std_logic_vector({{ dataWidth - 1 }} downto 0) := (others => '0');
+  signal writeStrobe : std_logic_vector({{ plan.route.busBytes - 1 }} downto 0) := (others => '0');
+  signal writeValid : std_logic := '0';
+  signal writeReady : std_logic;
+  signal writeResponse : std_logic_vector(1 downto 0);
+  signal writeResponseValid : std_logic;
+  signal writeResponseReady : std_logic := '0';
+  signal readAddress : std_logic_vector({{ addressWidth - 1 }} downto 0) := (others => '0');
+  signal readProtection : std_logic_vector(2 downto 0) := (others => '0');
+  signal readAddressValid : std_logic := '0';
+  signal readAddressReady : std_logic;
+  signal readData : std_logic_vector({{ dataWidth - 1 }} downto 0);
+  signal readResponse : std_logic_vector(1 downto 0);
+  signal readValid : std_logic;
+  signal readReady : std_logic := '0';
+  signal wrapperAwValid : std_logic_vector(0 to 0) := (others => '0');
+  signal wrapperAwReady : std_logic_vector(0 to 0);
+  signal wrapperWriteValid : std_logic_vector(0 to 0) := (others => '0');
+  signal wrapperWriteReady : std_logic_vector(0 to 0);
+  signal wrapperWriteResponseValid : std_logic_vector(0 to 0);
+  signal wrapperWriteResponseReady : std_logic_vector(0 to 0) := (others => '0');
+  signal wrapperReadAddressValid : std_logic_vector(0 to 0) := (others => '0');
+  signal wrapperReadAddressReady : std_logic_vector(0 to 0);
+  signal wrapperReadValid : std_logic_vector(0 to 0);
+  signal wrapperReadReady : std_logic_vector(0 to 0) := (others => '0');
+begin
+  clock <= not clock after clockPeriod / 2;
+  wrapperAwValid(0) <= awValid;
+  awReady <= wrapperAwReady(0);
+  wrapperWriteValid(0) <= writeValid;
+  writeReady <= wrapperWriteReady(0);
+  writeResponseValid <= wrapperWriteResponseValid(0);
+  wrapperWriteResponseReady(0) <= writeResponseReady;
+  wrapperReadAddressValid(0) <= readAddressValid;
+  readAddressReady <= wrapperReadAddressReady(0);
+  readValid <= wrapperReadValid(0);
+  wrapperReadReady(0) <= readReady;
+
+  dut : entity work.{{ config.designName }}_wrapper
+    port map (
+      {{ clockPort }} => clock,
+      {{ resetPort }} => reset,
+      {{ interfacePort }}_awaddr => awAddress,
+      {{ interfacePort }}_awprot => awProtection,
+      {{ interfacePort }}_awvalid => wrapperAwValid,
+      {{ interfacePort }}_awready => wrapperAwReady,
+      {{ interfacePort }}_wdata => writeData,
+      {{ interfacePort }}_wstrb => writeStrobe,
+      {{ interfacePort }}_wvalid => wrapperWriteValid,
+      {{ interfacePort }}_wready => wrapperWriteReady,
+      {{ interfacePort }}_bresp => writeResponse,
+      {{ interfacePort }}_bvalid => wrapperWriteResponseValid,
+      {{ interfacePort }}_bready => wrapperWriteResponseReady,
+      {{ interfacePort }}_araddr => readAddress,
+      {{ interfacePort }}_arprot => readProtection,
+      {{ interfacePort }}_arvalid => wrapperReadAddressValid,
+      {{ interfacePort }}_arready => wrapperReadAddressReady,
+      {{ interfacePort }}_rdata => readData,
+      {{ interfacePort }}_rresp => readResponse,
+      {{ interfacePort }}_rvalid => wrapperReadValid,
+      {{ interfacePort }}_rready => wrapperReadReady
+    );
+
+  stimulus : process
+    variable observedData : std_logic_vector({{ dataWidth - 1 }} downto 0);
+  begin
+    report "IPCRAFT_LIFECYCLE:run" severity note;
+    reset <= resetAsserted;
+    for cycle in 1 to resetCycles loop
+      wait until rising_edge(clock);
+    end loop;
+    reset <= resetDeasserted;
+    wait until rising_edge(clock);
+
+    -- Deterministic reset, zero, writable-ones, and walking-one checks.
+{% for transaction in transactions %}
+{% for vector in transaction.vectors %}
+{% if vector.kind == 'writeReadback' %}
+    axi4lite_write_single(
+      clock, x"{{ vector.addressHex }}", x"{{ vector.writeValueHex }}",
+      awAddress, awValid, awReady, writeData, writeStrobe, writeValid, writeReady,
+      writeResponse, writeResponseValid, writeResponseReady,
+      timeoutCycles, "{{ vector.registerName }} write address=0x{{ vector.addressHex }}"
+    );
+{% endif %}
+    axi4lite_read_single(
+      clock, x"{{ vector.addressHex }}", readAddress, readAddressValid, readAddressReady,
+      readData, readResponse, readValid, readReady, observedData,
+      timeoutCycles, "{{ vector.registerName }} read address=0x{{ vector.addressHex }}"
+    );
+    assert (observedData and x"{{ vector.compareMaskHex }}") = (x"{{ vector.expectedValueHex }}" and x"{{ vector.compareMaskHex }}")
+      report "{{ vector.registerName }} address=0x{{ vector.addressHex }} expected=0x{{ vector.expectedValueHex }}" &
+        " observed=0x" & to_hstring(observedData) & " mask=0x{{ vector.compareMaskHex }}"
+      severity failure;
+{% endfor %}
+{% endfor %}
+    report "SYSTEM VERIFICATION PASS" severity note;
+    finish;
+  end process stimulus;
+end architecture test;

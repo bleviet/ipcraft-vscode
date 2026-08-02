@@ -153,6 +153,20 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "fpga-ip-core.generateSystemTestbench",
+        "title": "Generate System Testbench from Vivado Tcl",
+        "category": "IPCraft",
+        "icon": "$(beaker)",
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
+      },
+      {
+        "command": "fpga-ip-core.runSystemTestbench",
+        "title": "Run System Testbench",
+        "category": "IPCraft",
+        "icon": "$(play)",
+        "enablement": "isWorkspaceTrusted && ipcraft.vivadoFound"
+      },
+      {
         "command": "fpga-ip-core.generateDocumentation",
         "title": "Generate Documentation",
         "category": "IPCraft",
@@ -745,6 +759,10 @@
           "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
         {
+          "command": "fpga-ip-core.runSystemTestbench",
+          "when": "resourceFilename == system-verification.yml && ipcraft.vivadoFound"
+        },
+        {
           "command": "fpga-ip-core.generateDocumentation",
           "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
@@ -1056,7 +1074,10 @@
             "markdownDescription": "Docker images for running Vivado, one per version. Each entry needs an explicit **label** since an image reference (e.g. `myregistry/vivado:latest-patched`) can't be parsed into a version automatically.",
             "items": {
               "type": "object",
-              "required": ["label", "image"],
+              "required": [
+                "label",
+                "image"
+              ],
               "additionalProperties": false,
               "properties": {
                 "label": {
@@ -1154,7 +1175,10 @@
             "markdownDescription": "Docker images for running Quartus, one per version. Each entry needs an explicit **label** since an image reference can't be parsed into a version automatically.",
             "items": {
               "type": "object",
-              "required": ["label", "image"],
+              "required": [
+                "label",
+                "image"
+              ],
               "additionalProperties": false,
               "properties": {
                 "label": {
