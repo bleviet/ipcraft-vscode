@@ -6,6 +6,7 @@ import type {
   VerificationVector,
 } from '../../domain/systemVerification.types';
 import { TemplateLoader } from '../../generator/TemplateLoader';
+import { toTclQuotedString } from '../../generator/resolvers/tclString';
 import { Logger } from '../../utils/Logger';
 import { createSystemVerificationConfigText } from './SystemVerificationConfig';
 
@@ -20,6 +21,7 @@ interface RenderedVector extends VerificationVector {
   readonly addressHex: string;
   readonly expectedValueHex: string;
   readonly compareMaskHex: string;
+  readonly registerNameVhdl: string;
   readonly writeValueHex?: string;
 }
 
@@ -37,6 +39,7 @@ export function scaffoldSystemVerification(
   const { config, plan } = input;
   const configText = createSystemVerificationConfigText(config);
   const dataWidth = plan.route.busBytes * 8;
+  const relativeProjectRoot = projectRootRelative(config.recreateScript, input.outputDirectory);
   const templates = new TemplateLoader(
     new Logger('SystemVerificationScaffolder'),
     resolveTemplatesDirectory()
@@ -51,20 +54,38 @@ export function scaffoldSystemVerification(
     interfacePort: toVhdlIdentifier(config.target.driveInterfacePath),
     expectedConfigBase64: Buffer.from(configText, 'utf8').toString('base64'),
     expectedMemoryMapBase64: Buffer.from(input.memoryMapText, 'utf8').toString('base64'),
-    boundarySignalShape: plan.boundaryInterface.signals
-      .map((signal) => `${signal.name}:${signal.direction}:${signal.width}`)
-      .sort()
-      .join(','),
-    resultRouteJson: JSON.stringify({
-      driveInterfacePath: plan.route.driveInterfacePath,
-      instancePath: plan.route.instancePath,
-      baseAddress: plan.route.baseAddress,
-    }),
+    projectRootRelative: relativeProjectRoot,
+    tclProjectRootRelative: toTclQuotedString(relativeProjectRoot),
+    tclRecreateScript: toTclQuotedString(config.recreateScript),
+    tclMemoryMap: toTclQuotedString(config.target.memoryMap),
+    tclPart: toTclQuotedString(config.part),
+    tclDesignName: toTclQuotedString(config.designName),
+    tclWrapperLanguage: toTclQuotedString(plan.wrapperLanguage),
+    tclBoundaryPath: toTclQuotedString(plan.boundaryInterface.path),
+    tclBoundaryMode: toTclQuotedString(plan.boundaryInterface.mode),
+    tclBoundaryProtocol: toTclQuotedString(plan.boundaryInterface.protocol),
+    tclBoundarySignalShape: toTclQuotedString(
+      plan.boundaryInterface.signals
+        .map((signal) => `${signal.name}:${signal.direction}:${signal.width}`)
+        .sort()
+        .join(',')
+    ),
+    tclClockPath: toTclQuotedString(plan.clockPort.path),
+    tclResetPath: toTclQuotedString(plan.resetPort.path),
+    tclMappedSegmentPath: toTclQuotedString(plan.route.mappedSegmentPath),
+    tclAddressSegmentPath: toTclQuotedString(plan.route.addressSegmentPath),
+    tclInstancePath: toTclQuotedString(plan.route.instancePath),
+    tclResultRouteJson: toTclQuotedString(
+      JSON.stringify({
+        driveInterfacePath: plan.route.driveInterfacePath,
+        instancePath: plan.route.instancePath,
+        baseAddress: plan.route.baseAddress,
+      })
+    ),
     routeBaseAddressHex: `0x${fixedWidthHex(plan.route.baseAddress, 32)}`,
     routeAddressRangeHex: `0x${fixedWidthHex(plan.route.addressRange, 32)}`,
     resetAsserted: config.resetActiveLow ? '0' : '1',
     resetDeasserted: config.resetActiveLow ? '1' : '0',
-    projectRootRelative: projectRootRelative(config.recreateScript, input.outputDirectory),
     transactions: plan.transactions.map((transaction) => ({
       ...transaction,
       addressHex: fixedWidthHex(transaction.address, 32),
@@ -87,9 +108,19 @@ function renderVector(vector: VerificationVector, dataWidth: number): RenderedVe
     addressHex: fixedWidthHex(vector.address, 32),
     expectedValueHex: fixedWidthHex(vector.expectedValue, dataWidth),
     compareMaskHex: fixedWidthHex(vector.compareMask, dataWidth),
+    registerNameVhdl: toVhdlStringText(vector.registerName),
     writeValueHex:
       vector.writeValue === undefined ? undefined : fixedWidthHex(vector.writeValue, dataWidth),
   };
+}
+
+function toVhdlStringText(value: string): string {
+  return value.replace(/[\u0000-\u001f\u007f"]/g, (character) => {
+    if (character === '"') {
+      return '""';
+    }
+    return `\\x${character.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`;
+  });
 }
 
 function fixedWidthHex(value: number, width: number): string {

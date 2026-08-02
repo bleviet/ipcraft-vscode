@@ -63,6 +63,13 @@ export function buildSystemVerificationPlan(
       (left, right) =>
         left.address - right.address || left.registerName.localeCompare(right.registerName)
     );
+  const vectorCount = transactions.reduce(
+    (count, transaction) => count + transaction.vectors.length,
+    0
+  );
+  if (vectorCount === 0) {
+    throw new Error('memory map produces no executable verification vectors');
+  }
 
   return {
     route,

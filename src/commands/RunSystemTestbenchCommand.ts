@@ -65,6 +65,8 @@ export async function runSystemTestbench(
       return;
     }
 
+    // Parse-only validation gate; the generated Tcl separately verifies the
+    // tracked configuration bytes before recreating the Vivado project.
     await dependencies.readConfig(configPath);
     await vscode.window.withProgress(
       {

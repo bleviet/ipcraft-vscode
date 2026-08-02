@@ -62,8 +62,7 @@ const plan: SystemVerificationPlan = {
 
 const fixtureDirectory = path.resolve(__dirname, '../fixtures/system-verification/vhdl');
 const vivadoFixtureDirectory = path.resolve(__dirname, '../fixtures/system-verification/vivado');
-const VIVADO_BIN =
-  process.env.VIVADO_BIN ?? '/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado';
+const VIVADO_BIN = process.env.VIVADO_BIN ?? 'vivado';
 
 function runGhdl(workDirectory: string, args: ReadonlyArray<string>): SpawnSyncReturns<string> {
   return spawnSync('ghdl', args, {
@@ -191,10 +190,10 @@ describe('recreated Vivado system verification', () => {
     if (
       guardTier2(
         'vivado',
-        () => !explicitlySkipped && fs.existsSync(VIVADO_BIN),
+        () => !explicitlySkipped && (fs.existsSync(VIVADO_BIN) || toolOnPath(VIVADO_BIN)),
         explicitlySkipped
           ? 'SKIP_VIVADO=1 (explicit opt-out)'
-          : `not found at ${VIVADO_BIN} (set VIVADO_BIN or REQUIRE_VIVADO=1)`
+          : `${VIVADO_BIN} was not found as a path or on PATH (set VIVADO_BIN or REQUIRE_VIVADO=1)`
       )
     ) {
       return;

@@ -60,11 +60,10 @@ export async function generateSystemTestbench(
   contextOrDependencies: vscode.ExtensionContext | GenerateSystemTestbenchDependencies,
   resourceRoots?: ResourceRoots
 ): Promise<void> {
-  const dependencies = resourceRoots
-    ? createProductionDependencies(resourceRoots)
-    : (contextOrDependencies as GenerateSystemTestbenchDependencies);
-
   try {
+    const dependencies = resourceRoots
+      ? createProductionDependencies(resourceRoots)
+      : (contextOrDependencies as GenerateSystemTestbenchDependencies);
     await runGenerateSystemTestbench(dependencies);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

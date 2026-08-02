@@ -101,16 +101,16 @@ begin
       clock, x"{{ vector.addressHex }}", x"{{ vector.writeValueHex }}",
       awAddress, awValid, awReady, writeData, writeStrobe, writeValid, writeReady,
       writeResponse, writeResponseValid, writeResponseReady,
-      timeoutCycles, "{{ vector.registerName }} write address=0x{{ vector.addressHex }}"
+      timeoutCycles, "{{ vector.registerNameVhdl }} write address=0x{{ vector.addressHex }}"
     );
 {% endif %}
     axi4lite_read_single(
       clock, x"{{ vector.addressHex }}", readAddress, readAddressValid, readAddressReady,
       readData, readResponse, readValid, readReady, observedData,
-      timeoutCycles, "{{ vector.registerName }} read address=0x{{ vector.addressHex }}"
+      timeoutCycles, "{{ vector.registerNameVhdl }} read address=0x{{ vector.addressHex }}"
     );
     assert (observedData and x"{{ vector.compareMaskHex }}") = (x"{{ vector.expectedValueHex }}" and x"{{ vector.compareMaskHex }}")
-      report "{{ vector.registerName }} address=0x{{ vector.addressHex }} expected=0x{{ vector.expectedValueHex }}" &
+      report "{{ vector.registerNameVhdl }} address=0x{{ vector.addressHex }} expected=0x{{ vector.expectedValueHex }}" &
         " observed=0x" & to_hstring(observedData) & " mask=0x{{ vector.compareMaskHex }}"
       severity failure;
 {% endfor %}

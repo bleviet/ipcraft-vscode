@@ -1,4 +1,4 @@
-# IPCraft Vivado/XSim batch runner for {{ config.designName }}
+# IPCraft Vivado/XSim batch runner.
 
 proc write_result {run_dir outcome {first_failure ""}} {
     set result_path [file join $run_dir result.json]
@@ -104,19 +104,31 @@ proc validate_scalar_port {path expected_type field} {
 }
 
 proc validate_runtime_binding {wrapper_file} {
+    # Dynamic values are rendered as escaped Tcl double-quoted literals. Keep
+    # the quotes around these expressions; the escaping is context-specific.
+    set expected_wrapper_language "{{ tclWrapperLanguage }}"
+    set boundary_path "{{ tclBoundaryPath }}"
+    set expected_boundary_mode "{{ tclBoundaryMode }}"
+    set expected_boundary_protocol "{{ tclBoundaryProtocol }}"
+    set expected_shape "{{ tclBoundarySignalShape }}"
+    set clock_path "{{ tclClockPath }}"
+    set reset_path "{{ tclResetPath }}"
+    set expected_mapped "{{ tclMappedSegmentPath }}"
+    set expected_slave "{{ tclAddressSegmentPath }}"
+    set expected_instance "{{ tclInstancePath }}"
+
     set wrapper_language [property_or_empty TARGET_LANGUAGE [current_project]]
-    if {![string equal -nocase $wrapper_language { {{- plan.wrapperLanguage -}} }]} {
-        error "wrapper language drift: expected {{ plan.wrapperLanguage }}, found $wrapper_language"
+    if {![string equal -nocase $wrapper_language $expected_wrapper_language]} {
+        error "wrapper language drift: expected $expected_wrapper_language, found $wrapper_language"
     }
 
-    set boundary_path { {{- plan.boundaryInterface.path -}} }
     set boundaries [get_bd_intf_ports -quiet $boundary_path]
     if {[llength $boundaries] != 1} {
         error "target.driveInterfacePath $boundary_path is absent from the recreated design"
     }
     set boundary [lindex $boundaries 0]
-    if {![string equal -nocase [property_or_empty MODE $boundary] { {{- plan.boundaryInterface.mode -}} }] ||
-        ![string equal -nocase [property_or_empty CONFIG.PROTOCOL $boundary] { {{- plan.boundaryInterface.protocol -}} }] ||
+    if {![string equal -nocase [property_or_empty MODE $boundary] $expected_boundary_mode] ||
+        ![string equal -nocase [property_or_empty CONFIG.PROTOCOL $boundary] $expected_boundary_protocol] ||
         [integer_property_or_zero CONFIG.ADDR_WIDTH $boundary] != {{ plan.boundaryInterface.addressWidth }} ||
         [integer_property_or_zero CONFIG.DATA_WIDTH $boundary] != {{ plan.boundaryInterface.dataWidth }}} {
         error "target.driveInterfacePath $boundary_path protocol/mode/width drifted after staging"
@@ -132,20 +144,17 @@ proc validate_runtime_binding {wrapper_file} {
         lappend actual_signals "[string tolower $signal_name]:$direction:$width"
     }
     set actual_shape [join [lsort $actual_signals] ,]
-    set expected_shape { {{- boundarySignalShape -}} }
     if {$actual_shape ne $expected_shape} {
         error "target.driveInterfacePath $boundary_path physical shape drift: expected $expected_shape, found $actual_shape"
     }
 
-    validate_scalar_port { {{- plan.clockPort.path -}} } clk clockPath
-    validate_scalar_port { {{- plan.resetPort.path -}} } rst resetPath
+    validate_scalar_port $clock_path clk clockPath
+    validate_scalar_port $reset_path rst resetPath
 
     set address_spaces [get_bd_addr_spaces -quiet $boundary_path]
     if {[llength $address_spaces] != 1} {
         error "target.driveInterfacePath $boundary_path has no unique address space"
     }
-    set expected_mapped { {{- plan.route.mappedSegmentPath -}} }
-    set expected_slave { {{- plan.route.addressSegmentPath -}} }
     set mapped [get_bd_addr_segs -quiet $expected_mapped]
     if {[llength $mapped] != 1 || [lsearch -exact [get_bd_addr_segs -quiet -of_objects [lindex $address_spaces 0]] [lindex $mapped 0]] < 0} {
         error "mapped address segment $expected_mapped is absent from boundary $boundary_path"
@@ -158,8 +167,8 @@ proc validate_runtime_binding {wrapper_file} {
     set slave [lindex $slaves 0]
     set pins [get_bd_intf_pins -quiet -of_objects $slave]
     set cell [expr {[llength $pins] == 1 ? [lindex [get_bd_cells -quiet -of_objects [lindex $pins 0]] 0] : ""}]
-    if {$cell eq "" || [canonical_path $cell] ne { {{- plan.route.instancePath -}} }} {
-        error "address segment $expected_slave no longer belongs to target.instancePath {{ plan.route.instancePath }}"
+    if {$cell eq "" || [canonical_path $cell] ne $expected_instance} {
+        error "address segment $expected_slave no longer belongs to target.instancePath $expected_instance"
     }
     set actual_base [integer_property_or_zero OFFSET $mapped]
     set actual_range [integer_property_or_zero RANGE $mapped]
@@ -167,7 +176,7 @@ proc validate_runtime_binding {wrapper_file} {
         error "route address drift for $expected_mapped: expected base={{ routeBaseAddressHex }} range={{ routeAddressRangeHex }}, found base=[format 0x%08X $actual_base] range=[format 0x%08X $actual_range]"
     }
 
-    set ::ipcraft_validated_route_json [format {% raw %}{{"driveInterfacePath":"{% endraw %}{{ plan.route.driveInterfacePath }}{% raw %}","instancePath":"{% endraw %}{{ plan.route.instancePath }}{% raw %}","baseAddress":%d}}{% endraw %} $actual_base]
+    set ::ipcraft_validated_route_json "{{ tclResultRouteJson }}"
 }
 
 proc first_meaningful_diagnostic {output fallback} {
@@ -228,8 +237,8 @@ proc first_failure_diagnostic {output} {
 proc run_verification {run_dir waves} {
     set script_dir [file normalize [file dirname [info script]]]
     set verification_dir [file normalize [file join $script_dir ..]]
-    set project_root [file normalize [file join $verification_dir {{ projectRootRelative }}]]
-    set recreate_script [file normalize [file join $project_root { {{- config.recreateScript -}} }]]
+    set project_root [file normalize [file join $verification_dir "{{ tclProjectRootRelative }}"]]
+    set recreate_script [file normalize [file join $project_root "{{ tclRecreateScript }}"]]
     set vivado_work [file join $run_dir vivado]
     set export_dir [file join $run_dir exported-simulation]
 
@@ -238,7 +247,7 @@ proc run_verification {run_dir waves} {
         { {{- expectedConfigBase64 -}} } \
         {tracked configuration}
     validate_tracked_file \
-        [file normalize [file join $verification_dir { {{- config.target.memoryMap -}} }]] \
+        [file normalize [file join $verification_dir "{{ tclMemoryMap }}"]] \
         { {{- expectedMemoryMapBase64 -}} } \
         {tracked memory map}
 
@@ -252,20 +261,21 @@ proc run_verification {run_dir waves} {
     }
     source $recreate_script
 
-    set expected_part { {{- config.part -}} }
+    set expected_part "{{ tclPart }}"
     set actual_part [get_property PART [current_project]]
     if {$actual_part ne $expected_part} {
         error "recreated project part $actual_part does not match configured part $expected_part"
     }
 
+    set expected_design_name "{{ tclDesignName }}"
     set actual_design [current_bd_design]
-    if {$actual_design ne { {{- config.designName -}} }} {
-        error "recreated block design $actual_design does not match configured design {{ config.designName }}"
+    if {$actual_design ne $expected_design_name} {
+        error "recreated block design $actual_design does not match configured design $expected_design_name"
     }
 
-    set design_file [get_files -quiet {{ config.designName }}.bd]
+    set design_file [get_files -quiet "${expected_design_name}.bd"]
     if {[llength $design_file] != 1} {
-        error "expected one {{ config.designName }}.bd after recreation, found [llength $design_file]"
+        error "expected one ${expected_design_name}.bd after recreation, found [llength $design_file]"
     }
     generate_target all $design_file
     set wrapper_files [make_wrapper -files $design_file -top -force]
@@ -283,6 +293,7 @@ proc run_verification {run_dir waves} {
     add_files -fileset sim_1 -norecurse [list $bfm_file $testbench_file]
     set_property file_type {VHDL 2008} [get_files -of_objects [get_filesets sim_1] *.vhd]
     set_property top system_verification_tb [get_filesets sim_1]
+    set_property xsim.simulate.runtime {all} [get_filesets sim_1]
     set_property xsim.simulate.log_all_signals [expr {$waves eq "1"}] [get_filesets sim_1]
     update_compile_order -fileset sources_1
     update_compile_order -fileset sim_1
@@ -308,6 +319,9 @@ proc run_verification {run_dir waves} {
             error $loggedFailure
         }
         error [first_meaningful_diagnostic $simulationOutput $simulationFailure]
+    }
+    if {[string first {SYSTEM VERIFICATION PASS} $simulationOutput] < 0} {
+        error "exported simulation completed without the SYSTEM VERIFICATION PASS marker"
     }
 }
 

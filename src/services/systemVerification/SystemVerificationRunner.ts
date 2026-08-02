@@ -426,15 +426,23 @@ function createRunOutput(
   logsPath: string
 ): Pick<vscode.OutputChannel, 'appendLine'> & { flush: () => Promise<void> } {
   let pendingWrite = Promise.resolve();
+  let writeFailure: unknown;
   return {
     appendLine(value: string): void {
       channel.appendLine(value);
-      pendingWrite = pendingWrite.then(async () => {
-        await fs.appendFile(logsPath, `${value}\n`, 'utf8');
-      });
+      pendingWrite = pendingWrite
+        .then(async () => {
+          await fs.appendFile(logsPath, `${value}\n`, 'utf8');
+        })
+        .catch((error: unknown) => {
+          writeFailure ??= error;
+        });
     },
     async flush(): Promise<void> {
       await pendingWrite;
+      if (writeFailure) {
+        throw writeFailure;
+      }
     },
   };
 }

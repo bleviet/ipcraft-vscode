@@ -336,6 +336,23 @@ describe('SystemVerificationPlanner', () => {
     ]);
   });
 
+  it('rejects a plan that would execute no verification vectors', () => {
+    const writeOnlyRegister: NormalizedRegister = {
+      ...controlRegister,
+      name: 'COMMAND',
+      access: 'write-only',
+      fields: [],
+    };
+
+    expect(() =>
+      buildSystemVerificationPlan(
+        config,
+        withRoutes([{ ...discovered.axiRoutes[0], addressRange: 0x40 }]),
+        memoryMapWithRegisters([writeOnlyRegister])
+      )
+    ).toThrow(/no executable verification vectors/i);
+  });
+
   it.each(accessCases)(
     'uses legal reset reads and skips write/readback vectors for %s fields',
     (

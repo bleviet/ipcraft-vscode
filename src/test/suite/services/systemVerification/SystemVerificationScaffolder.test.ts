@@ -294,6 +294,89 @@ describe('SystemVerificationScaffolder', () => {
     expect(runner).not.toMatch(/\brun_command\b|\bxvhdl\b|\bxvlog\b|\bxelab\b/);
   });
 
+  it('requires the testbench pass marker before writing a passed result', () => {
+    const runner = scaffoldSystemVerification(input)['scripts/run_xsim.tcl'];
+
+    expect(runner).toContain('set_property xsim.simulate.runtime {all} [get_filesets sim_1]');
+    expect(runner).toContain('string first {SYSTEM VERIFICATION PASS} $simulationOutput');
+    expect(runner.indexOf('SYSTEM VERIFICATION PASS')).toBeLessThan(
+      runner.indexOf('write_result $run_dir passed')
+    );
+  });
+
+  it('renders dynamic Tcl values as quoted literals instead of executable syntax', () => {
+    const dangerousPart = 'xc7$part[puts PART_INJECTED]"}';
+    const dangerousDesignName = 'system[puts DESIGN_INJECTED]';
+    const dangerousInterfacePath = '/S_AXI_$path[puts PATH_INJECTED]}';
+    const dangerousInstancePath = '/control_$cell[puts CELL_INJECTED]}';
+    const dangerousPlan: SystemVerificationPlan = {
+      ...plan,
+      boundaryInterface: {
+        ...plan.boundaryInterface,
+        path: dangerousInterfacePath,
+      },
+      route: {
+        ...plan.route,
+        driveInterfacePath: dangerousInterfacePath,
+        instancePath: dangerousInstancePath,
+        addressSegmentPath: `${dangerousInstancePath}/S_AXI/reg0`,
+        mappedSegmentPath: `${dangerousInterfacePath}/SEG_control_0_reg0`,
+      },
+      transactions: plan.transactions,
+    };
+    const runner = scaffoldSystemVerification({
+      ...input,
+      config: {
+        ...config,
+        recreateScript: 'hardware/system/create$script[puts SCRIPT_INJECTED]}.tcl',
+        part: dangerousPart,
+        designName: dangerousDesignName,
+        target: {
+          ...config.target,
+          driveInterfacePath: dangerousInterfacePath,
+          instancePath: dangerousInstancePath,
+          memoryMap: '../ip/control$map[puts MAP_INJECTED]}.mm.yml',
+        },
+      },
+      plan: dangerousPlan,
+    })['scripts/run_xsim.tcl'];
+
+    expect(runner).toContain('set expected_part "xc7\\$part\\[puts PART_INJECTED]\\"}"');
+    expect(runner).toContain('set expected_design_name "system\\[puts DESIGN_INJECTED]"');
+    expect(runner).toContain('set boundary_path "/S_AXI_\\$path\\[puts PATH_INJECTED]}"');
+    expect(runner).toContain('get_files -quiet "${expected_design_name}.bd"');
+    expect(runner).not.toContain('get_files -quiet system[puts DESIGN_INJECTED]');
+  });
+
+  it('escapes register names embedded in VHDL diagnostic strings', () => {
+    const unsafeName = 'STATUS "quoted"\nnext';
+    const unsafePlan: SystemVerificationPlan = {
+      ...plan,
+      transactions: [
+        {
+          registerName: unsafeName,
+          address: 0x44a00000,
+          vectors: [
+            {
+              kind: 'resetRead',
+              address: 0x44a00000,
+              expectedValue: 1,
+              compareMask: 1,
+              registerName: unsafeName,
+            },
+          ],
+        },
+      ],
+    };
+
+    const testbench = scaffoldSystemVerification({ ...input, plan: unsafePlan })[
+      'tb/system_verification_tb.vhd'
+    ];
+
+    expect(testbench).toContain('STATUS ""quoted""\\x0Anext read address=0x44A00000');
+    expect(testbench).not.toContain('STATUS "quoted"\nnext');
+  });
+
   it('validates the recreated physical binding before reporting discover and plan lifecycle stages', () => {
     const runner = scaffoldSystemVerification(input)['scripts/run_xsim.tcl'];
     const validationCall = runner.indexOf('validate_runtime_binding');
