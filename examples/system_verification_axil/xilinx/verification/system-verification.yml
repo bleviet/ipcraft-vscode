@@ -1,4 +1,4 @@
-recreateScript: hardware/system/create_system.tcl
+recreateScript: examples/system_verification_axil/xilinx/create_system.tcl
 part: xc7z020clg484-1
 designName: system
 clockPath: /sys_clk
@@ -9,4 +9,4 @@ resetCycles: 5
 target:
   driveInterfacePath: /S_AXI_TEST
   instancePath: /control_0
-  memoryMap: ../../ip/control.mm.yml
+  memoryMap: ../../control.mm.yml

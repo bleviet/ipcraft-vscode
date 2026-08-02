@@ -1,11 +1,11 @@
-# Recreate a minimal mixed-language AXI4-Lite system from paths relative to
-# this checked-in script. The caller owns the current working directory.
+# Recreate the system-verification example from paths relative to this
+# checked-in script. The caller owns the current working directory.
 
 set script_dir [file normalize [file dirname [info script]]]
-set project_dir [file normalize [file join [pwd] system_fixture_project]]
+set project_dir [file normalize [file join [pwd] system_verification_project]]
 set part xc7z020clg484-1
 
-create_project -force system_fixture $project_dir -part $part
+create_project -force system_verification_example $project_dir -part $part
 set_property target_language VHDL [current_project]
 set_property simulator_language Mixed [current_project]
 

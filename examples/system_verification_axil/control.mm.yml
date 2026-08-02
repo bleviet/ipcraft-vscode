@@ -1,5 +1,5 @@
 - name: CONTROL
-  description: Register contract for the mixed-language Vivado system fixture
+  description: Register contract for the Vivado system-verification example
   addressBlocks:
     - name: REGISTERS
       baseAddress: 0

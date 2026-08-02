@@ -7,6 +7,11 @@ const REPO_ROOT = path.resolve(__dirname, '../../../..');
 const FIXTURES_DIR = path.join(REPO_ROOT, 'src', 'test', 'fixtures');
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'ipcraft-spec', 'templates');
 const EXAMPLES_DIR = path.join(REPO_ROOT, 'ipcraft-spec', 'examples');
+const SYSTEM_VERIFICATION_EXAMPLE_DIR = path.join(
+  REPO_ROOT,
+  'examples',
+  'system_verification_axil'
+);
 
 const IP_CORE_SCHEMA_PATH = path.join(REPO_ROOT, 'ipcraft-spec', 'schemas', 'ip_core.schema.json');
 const MEMORY_MAP_SCHEMA_PATH = path.join(
@@ -86,6 +91,7 @@ describe('Spec Conformance Tests', () => {
     ...getYamlFiles(FIXTURES_DIR),
     ...getYamlFiles(TEMPLATES_DIR),
     ...getYamlFiles(EXAMPLES_DIR),
+    ...getYamlFiles(SYSTEM_VERIFICATION_EXAMPLE_DIR),
   ].filter(
     (filePath) =>
       !filePath.includes('invalid-syntax') &&
@@ -108,10 +114,11 @@ describe('Spec Conformance Tests', () => {
         'src/test/fixtures/avmm-no-optional-ports.mm.yml',
         'src/test/fixtures/supported-extension.ip.yaml',
         'ipcraft-spec/examples/data_inspector/comprehensive_axi_status.ipci.yml',
+        'examples/system_verification_axil/control.mm.yml',
       ])
     );
     expect(selectedPaths).not.toContain(
-      'src/test/fixtures/system-verification/vivado/system-verification.yml'
+      'examples/system_verification_axil/xilinx/verification/system-verification.yml'
     );
   });
 

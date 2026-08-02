@@ -58,7 +58,8 @@ const plan: SystemVerificationPlan = {
 };
 
 const fixtureDirectory = path.resolve(__dirname, '../fixtures/system-verification/vhdl');
-const vivadoFixtureDirectory = path.resolve(__dirname, '../fixtures/system-verification/vivado');
+const vivadoExampleDirectory = path.resolve(process.cwd(), 'examples/system_verification_axil');
+const vivadoFixtureDirectory = path.join(vivadoExampleDirectory, 'xilinx');
 const VIVADO_BIN = process.env.VIVADO_BIN ?? 'vivado';
 
 function runGhdl(workDirectory: string, args: ReadonlyArray<string>): SpawnSyncReturns<string> {
@@ -197,9 +198,14 @@ describe('recreated Vivado system verification', () => {
     }
 
     const workDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-vivado-system-'));
-    const systemDirectory = path.join(workDirectory, 'hardware', 'system');
+    const systemDirectory = path.join(
+      workDirectory,
+      'examples',
+      'system_verification_axil',
+      'xilinx'
+    );
     const verificationDirectory = path.join(systemDirectory, 'verification');
-    const memoryMapDirectory = path.join(workDirectory, 'hardware', 'ip');
+    const memoryMapDirectory = path.dirname(systemDirectory);
     const passingRunDirectory = path.join(workDirectory, 'passing-run');
     const failingRunDirectory = path.join(workDirectory, 'failing-run');
 
@@ -214,12 +220,16 @@ describe('recreated Vivado system verification', () => {
 
       fs.mkdirSync(memoryMapDirectory, { recursive: true });
       const memoryMapText = fs.readFileSync(
-        path.join(vivadoFixtureDirectory, 'control.mm.yml'),
+        path.join(vivadoExampleDirectory, 'control.mm.yml'),
         'utf8'
       );
       fs.writeFileSync(path.join(memoryMapDirectory, 'control.mm.yml'), memoryMapText, 'utf8');
 
-      const fixtureConfigPath = path.join(vivadoFixtureDirectory, 'system-verification.yml');
+      const fixtureConfigPath = path.join(
+        vivadoFixtureDirectory,
+        'verification',
+        'system-verification.yml'
+      );
       const fixtureConfig = parseSystemVerificationConfig(
         fs.readFileSync(fixtureConfigPath, 'utf8'),
         fixtureConfigPath
@@ -259,15 +269,18 @@ describe('recreated Vivado system verification', () => {
         addressRange: 0x1000,
       });
 
-      writeScaffold(
-        verificationDirectory,
-        scaffoldSystemVerification({
-          config: fixtureConfig,
-          plan: passingPlan,
-          memoryMapText,
-          outputDirectory: verificationDirectory,
-        })
-      );
+      const passingScaffold = scaffoldSystemVerification({
+        config: fixtureConfig,
+        plan: passingPlan,
+        memoryMapText,
+        outputDirectory: verificationDirectory,
+      });
+      for (const [relativePath, contents] of Object.entries(passingScaffold)) {
+        expect(
+          fs.readFileSync(path.join(vivadoFixtureDirectory, 'verification', relativePath), 'utf8')
+        ).toBe(contents);
+      }
+      writeScaffold(verificationDirectory, passingScaffold);
 
       const passingResult = spawnSync(
         'make',
