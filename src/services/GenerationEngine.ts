@@ -12,6 +12,7 @@ import { readGenerationIndentation } from '../generator/generationSettings';
 import { StagingPanel } from '../providers/StagingPanel';
 import type { StagedFile } from '../providers/StagingPanel';
 import { WebviewStagingBridge } from '../providers/WebviewStagingBridge';
+import { getGeneratedArtifactsEmitter } from './GeneratedArtifactsEmitter';
 import { CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 
 const logger = new Logger('GenerationEngine');
@@ -214,6 +215,10 @@ export async function runGenerator(
     if (action === 'Open Folder') {
       await vscode.commands.executeCommand('revealFileInOS', vscode.Uri.file(outputDir));
     }
+  }
+
+  if (writtenRelPaths.length > 0) {
+    getGeneratedArtifactsEmitter().fire(ipCoreUri);
   }
 
   return true;

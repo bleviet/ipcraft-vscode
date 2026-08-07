@@ -11,6 +11,7 @@ import { YamlValidator } from '../services/YamlValidator';
 import { DocumentManager } from '../services/DocumentManager';
 import { ImportResolver } from '../services/ImportResolver';
 import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
+import { getGeneratedArtifactsEmitter } from '../services/GeneratedArtifactsEmitter';
 import { SubcoreResolver } from '../services/SubcoreResolver';
 import { isValidVlnv } from '../utils/vlnv';
 import { createNotIpCoreHtml } from './ipCoreErrorHtml';
@@ -238,6 +239,15 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       this.importResolver.clearCache();
       void updateWebview(undefined, true);
     });
+    // Explicit refresh signal from generate/export/vendor-project commands (issue: toolbar
+    // stayed greyed out until reopening the document). Complements watchGeneratedFiles below,
+    // which is not a reliable signal for files created inside a directory that did not exist
+    // a moment earlier (e.g. the first `xilinx/component.xml` or `altera/*_hw.tcl`).
+    const generatedArtifactsSubscription = getGeneratedArtifactsEmitter().onDidGenerate((uri) => {
+      if (uri.fsPath === document.uri.fsPath) {
+        void updateWebview(undefined, true);
+      }
+    });
     const fileWatcher = this.watchGeneratedFiles(document, async () => {
       await updateWebview(undefined, true);
       scheduleAutoConsistencyCheck();
@@ -251,6 +261,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       changeDocumentSubscription.dispose();
       configSubscription.dispose();
       workspaceBusDefSubscription.dispose();
+      generatedArtifactsSubscription.dispose();
       fileWatcher.dispose();
       hdlSourceWatcher.dispose();
       router.dispose();

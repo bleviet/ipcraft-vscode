@@ -6,6 +6,7 @@ import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { runGenerator, readScaffoldPackSetting } from '../services/GenerationEngine';
 import { createVivadoProject, createQuartusProject } from './projectCreator';
 import { getBuildOutputChannel } from '../services/BuildOutputChannel';
+import { getGeneratedArtifactsEmitter } from '../services/GeneratedArtifactsEmitter';
 import {
   resolveToolchainVersionForCreate,
   resolveToolchainVersionForResource,
@@ -41,6 +42,9 @@ export async function runCreateVivadoProjectStep(
       success = await createVivadoProject(name, ipDir, ch, choice?.version, cfg);
     }
   );
+  if (success && resourceUri) {
+    getGeneratedArtifactsEmitter().fire(resourceUri);
+  }
   if (!success) {
     void vscode.window.showInformationMessage(
       `Vivado project TCL written. Run manually to create the .xpr:\n` +
@@ -79,6 +83,9 @@ export async function runCreateQuartusProjectStep(
       success = await createQuartusProject(name, ipDir, ch, choice?.version, cfg);
     }
   );
+  if (success && resourceUri) {
+    getGeneratedArtifactsEmitter().fire(resourceUri);
+  }
   if (!success) {
     void vscode.window.showInformationMessage(
       `Quartus project TCL written. Run manually to create the .qpf:\n` +
