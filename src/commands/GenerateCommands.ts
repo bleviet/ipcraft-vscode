@@ -25,6 +25,7 @@ import {
 } from './VendorProjectCommands';
 import { parseVHDL, parseHwTcl, parseComponentXml } from './ImportCommands';
 import { viewBusDefinitions } from './BusDefinitionCommands';
+import { generateSystemTestbench, runSystemTestbench } from './SystemVerificationCommands';
 
 export function registerGeneratorCommands(
   context: vscode.ExtensionContext,
@@ -98,6 +99,22 @@ export function registerGeneratorCommands(
     'fpga-ip-core.generateAndBuildQuartus',
     async (uri?: vscode.Uri) => {
       await generateAndBuildQuartus(context, resourceRoots, uri);
+    },
+    { requiresWorkspaceTrust: true }
+  );
+
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.generateSystemTestbench',
+    () => generateSystemTestbench(context, resourceRoots),
+    { requiresWorkspaceTrust: true }
+  );
+
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.runSystemTestbench',
+    async (uri?: vscode.Uri) => {
+      await runSystemTestbench(uri);
     },
     { requiresWorkspaceTrust: true }
   );

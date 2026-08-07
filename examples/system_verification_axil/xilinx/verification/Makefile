@@ -1,0 +1,37 @@
+# IPCraft Vivado/XSim system verification runner
+
+VIVADO ?= vivado
+RUN_DIR ?= $(CURDIR)/.run
+WAVES ?= 0
+PROJECT_ROOT := $(abspath $(CURDIR)/../../../..)
+PROJECT_ROOT_REAL := $(shell cd "$(PROJECT_ROOT)" 2>/dev/null && pwd -P)
+PROJECT_RUN_ROOT_REAL := $(PROJECT_ROOT_REAL)/.ipcraft/system-verification
+VERIFICATION_ROOT_REAL := $(shell pwd -P)
+LOCAL_RUN_DIR_REAL := $(VERIFICATION_ROOT_REAL)/.run
+RUN_DIR_ABS := $(abspath $(RUN_DIR))
+RUN_DIR_REAL := $(shell cd "$(RUN_DIR_ABS)" 2>/dev/null && pwd -P)
+RUN_MARKER := .ipcraft-system-verification-run
+
+.PHONY: run clean help
+
+run:
+	@mkdir -p "$(RUN_DIR_ABS)"
+	@touch "$(RUN_DIR_ABS)/$(RUN_MARKER)"
+	$(VIVADO) -mode batch -source scripts/run_xsim.tcl -nojournal -nolog -tclargs "$(RUN_DIR_ABS)" "$(WAVES)"
+
+clean:
+	@test -n "$(RUN_DIR_REAL)" || \
+	  { echo "Refusing to clean missing or unresolved RUN_DIR: $(RUN_DIR_ABS)" >&2; exit 2; }
+	@case "$(RUN_DIR_REAL)" in \
+	  "$(LOCAL_RUN_DIR_REAL)"|"$(PROJECT_RUN_ROOT_REAL)"/*) ;; \
+	  *) echo "Refusing to clean unsafe RUN_DIR: $(RUN_DIR_ABS) resolves to $(RUN_DIR_REAL)" >&2; exit 2 ;; \
+	esac
+	@test -f "$(RUN_DIR_REAL)/$(RUN_MARKER)" || \
+	  { echo "Refusing to clean unowned RUN_DIR without $(RUN_MARKER): $(RUN_DIR_REAL)" >&2; exit 2; }
+	rm -rf -- "$(RUN_DIR_REAL)"
+
+help:
+	@echo "System verification targets:"
+	@echo "  run    Recreate the design and run XSim (WAVES=1 enables XSim waveform logging)"
+	@echo "  clean  Remove RUN_DIR only"
+	@echo "  help   Show this help"

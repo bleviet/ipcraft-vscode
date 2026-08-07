@@ -1,0 +1,75 @@
+{
+  "designName": "system",
+  "wrapperLanguage": "VHDL",
+  "boundaryInterfaces": [
+    {
+      "path": "/S_AXI_TEST",
+      "mode": "Slave",
+      "protocol": "AXI4LITE",
+      "addressWidth": 32,
+      "dataWidth": 32,
+      "signals": [
+        { "name": "araddr", "direction": "in", "width": 32 },
+        { "name": "arprot", "direction": "in", "width": 3 },
+        { "name": "arready", "direction": "out", "width": 1 },
+        { "name": "arvalid", "direction": "in", "width": 1 },
+        { "name": "awaddr", "direction": "in", "width": 32 },
+        { "name": "awprot", "direction": "in", "width": 3 },
+        { "name": "awready", "direction": "out", "width": 1 },
+        { "name": "awvalid", "direction": "in", "width": 1 },
+        { "name": "bready", "direction": "in", "width": 1 },
+        { "name": "bresp", "direction": "out", "width": 2 },
+        { "name": "bvalid", "direction": "out", "width": 1 },
+        { "name": "rdata", "direction": "out", "width": 32 },
+        { "name": "rready", "direction": "in", "width": 1 },
+        { "name": "rresp", "direction": "out", "width": 2 },
+        { "name": "rvalid", "direction": "out", "width": 1 },
+        { "name": "wdata", "direction": "in", "width": 32 },
+        { "name": "wready", "direction": "out", "width": 1 },
+        { "name": "wstrb", "direction": "in", "width": 4 },
+        { "name": "wvalid", "direction": "in", "width": 1 }
+      ]
+    }
+  ],
+  "boundaryPorts": [
+    { "path": "/sys_clk", "type": "clock", "direction": "in", "width": 1 },
+    { "path": "/sys_rst_n", "type": "reset", "direction": "in", "width": 1 }
+  ],
+  "wrapperPorts": [
+    { "name": "sys_clk", "direction": "in", "width": 1, "isVector": false },
+    { "name": "sys_rst_n", "direction": "in", "width": 1, "isVector": false },
+    { "name": "S_AXI_TEST_awaddr", "direction": "in", "width": 32, "isVector": true },
+    { "name": "S_AXI_TEST_awprot", "direction": "in", "width": 3, "isVector": true },
+    { "name": "S_AXI_TEST_awvalid", "direction": "in", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_awready", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_wdata", "direction": "in", "width": 32, "isVector": true },
+    { "name": "S_AXI_TEST_wstrb", "direction": "in", "width": 4, "isVector": true },
+    { "name": "S_AXI_TEST_wvalid", "direction": "in", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_wready", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_bresp", "direction": "out", "width": 2, "isVector": true },
+    { "name": "S_AXI_TEST_bvalid", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_bready", "direction": "in", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_araddr", "direction": "in", "width": 32, "isVector": true },
+    { "name": "S_AXI_TEST_arprot", "direction": "in", "width": 3, "isVector": true },
+    { "name": "S_AXI_TEST_arvalid", "direction": "in", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_arready", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_rdata", "direction": "out", "width": 32, "isVector": true },
+    { "name": "S_AXI_TEST_rresp", "direction": "out", "width": 2, "isVector": true },
+    { "name": "S_AXI_TEST_rvalid", "direction": "out", "width": 1, "isVector": true },
+    { "name": "S_AXI_TEST_rready", "direction": "in", "width": 1, "isVector": true }
+  ],
+  "instancePaths": ["/control_0", "/neighbor_0"],
+  "axiRoutes": [
+    {
+      "driveInterfacePath": "/S_AXI_TEST",
+      "instancePath": "/control_0",
+      "protocol": "AXI4-Lite",
+      "baseAddress": 1151336448,
+      "addressRange": 32,
+      "busBytes": 4,
+      "addressWidth": 32,
+      "addressSegmentPath": "/control_0/s_axi/reg0",
+      "mappedSegmentPath": "/S_AXI_TEST/SEG_control_0_reg0"
+    }
+  ]
+}

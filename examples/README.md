@@ -1,12 +1,13 @@
 # IPCraft examples
 
-Full, hardware-validated IP designs built with IPCraft, kept in this repo so
-they double as regression fixtures for the generator and as source material
-for tutorials.
+IP designs and system-verification examples built with IPCraft, kept in this
+repository so they double as regression fixtures and as source material for
+tutorials. The board-oriented examples include hardware-validation evidence;
+the Vivado system-verification example is simulation-only.
 
 ## Directory structure
 
-Each example follows the same shape:
+Board-oriented peripheral examples follow this shape:
 
 ```
 examples/<name>/
@@ -23,8 +24,7 @@ examples/<name>/
     quartus/ or platforms/<cpu>/quartus/ board project + Makefile
     hdl/                           board top-level wrapper (e.g. DE10-Nano)
     debug/                         System Console / debug host scripts
-  xilinx/                          (future) Vivado tooling, once that
-                                   toolchain integration exists
+  xilinx/                          Vivado project and verification tooling
 ```
 
 **Why `rtl/`, `tb/`, and `software/app/` sit outside `altera/`:** they don't
@@ -57,18 +57,24 @@ CPU-agnostic -- it's expressed once against a tiny HAL
 
 ## Examples
 
-| Directory                  | Bus       | What it proves                                                                                                                                                                                                                                                                                                                                           |
-| -------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `led_avmm/`                | Avalon-MM | A minimal real peripheral (LED PIO + heartbeat status) end-to-end: IPCraft spec -> generated RTL -> Platform Designer system -> Nios II firmware -> real DE10-Nano hardware. The original reference example this repo's hardware bring-up process was developed against.                                                                                 |
-| `regmap_conformance_avmm/` | Avalon-MM | Every register/field access type IPCraft generates (all 7 access types, change-of-state, register arrays, byte strobes, mixed registers, enumerated/non-zero-reset fields, and heartbeat/watchdog status), driven by one manifest-derived scenario suite in cocotb and through JTAG-to-Avalon on a DE10-Nano. See `docs/hardware_validation_results.md`. |
-| `regmap_conformance_axil/` | AXI4-Lite | The same register map, conformance sequence, and manifest-driven scenario suite as `regmap_conformance_avmm/`, proving the AXI4-Lite bus wrapper instead -- including the SLVERR response path Avalon-MM has no equivalent for. Driven by a JTAG-to-Avalon-MM master with Platform Designer's automatic Avalon<->AXI4 bridging, no HPS/Nios II required. |
+| Directory                   | Bus       | What it proves                                                                                                                                                                                                                                                                                                                                           |
+| --------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `led_avmm/`                 | Avalon-MM | A minimal real peripheral (LED PIO + heartbeat status) end-to-end: IPCraft spec -> generated RTL -> Platform Designer system -> Nios II firmware -> real DE10-Nano hardware. The original reference example this repo's hardware bring-up process was developed against.                                                                                 |
+| `regmap_conformance_avmm/`  | Avalon-MM | Every register/field access type IPCraft generates (all 7 access types, change-of-state, register arrays, byte strobes, mixed registers, enumerated/non-zero-reset fields, and heartbeat/watchdog status), driven by one manifest-derived scenario suite in cocotb and through JTAG-to-Avalon on a DE10-Nano. See `docs/hardware_validation_results.md`. |
+| `regmap_conformance_axil/`  | AXI4-Lite | The same register map, conformance sequence, and manifest-driven scenario suite as `regmap_conformance_avmm/`, proving the AXI4-Lite bus wrapper instead -- including the SLVERR response path Avalon-MM has no equivalent for. Driven by a JTAG-to-Avalon-MM master with Platform Designer's automatic Avalon<->AXI4 bridging, no HPS/Nios II required. |
+| `system_verification_axil/` | AXI4-Lite | A recreatable mixed-language Vivado block design with a tracked IPCraft system-verification scaffold. It runs deterministic register checks through the design's external AXI4-Lite port and interconnect in XSim.                                                                                                                                       |
 
 Each example's `docs/hardware_validation_results.md` (where present) has the
 full test results and any generator quirks or bugs found along the way.
 
-## Building and testing an example
+The simulation-only `system_verification_axil/` example has a smaller layout
+described in its own README.
 
-Each example exposes the same target convention from `altera/quartus/`, or from an `altera/` dispatcher when multiple processor generations are supported:
+## Building and testing a board-oriented example
+
+Each board-oriented example exposes the same target convention from
+`altera/quartus/`, or from an `altera/` dispatcher when multiple processor
+generations are supported:
 
 ```bash
 cd examples/<name>/altera          # or altera/quartus for single-platform examples
@@ -90,9 +96,9 @@ so Docker only ever mounts this examples tree plus `examples/common/`.
 
 ## What's not here yet
 
-- A Xilinx/Vivado build of any of these examples (the `altera/`-only
-  structure above is designed so this can be added as a `xilinx/` sibling
-  without touching `rtl/`, `tb/`, or `software/app/`).
+- A board-targeted Xilinx/Vivado build of the reusable peripheral examples.
+  `system_verification_axil/` is simulation-only and does not generate a
+  bitstream.
 - An ARM `software/platform/` port.
 - Tutorials walking through building one of these from scratch with
   IPCraft -- these examples are the source material for that, not yet
