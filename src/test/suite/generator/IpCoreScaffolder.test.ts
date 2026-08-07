@@ -1277,6 +1277,106 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  it('generates in place when a fileSets entry points outside the .ip.yml directory (issue #204)', async () => {
+    // Repro: a Qsys/Platform Designer-style layout keeps the .ip.yml in its own directory
+    // (e.g. qsys/) while sources live in a sibling src/. The extras pass previously read this
+    // parent-relative path successfully and inserted it into the scaffold *output* map, where
+    // resolveScaffoldOutputPath's containment check rejected it and aborted the whole run —
+    // even though the path was never going to be written, only read.
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-parent-relative-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'src'), { recursive: true });
+      fs2.mkdirSync(path.join(tmp, 'qsys'), { recursive: true });
+      fs2.writeFileSync(path.join(tmp, 'src', 'rsa_core_pkg.vhd'), '-- shared package\n');
+
+      const inputPath = path.join(tmp, 'qsys', 'rsa_core.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: cip',
+          '  library: ip',
+          '  name: rsa_core',
+          '  version: 1.0.0',
+          'clocks:',
+          '  - name: clk_i',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: ../src/rsa_core_pkg.vhd',
+          '        type: vhdl',
+          '        managed: false',
+        ].join('\n')
+      );
+
+      // Default output directory: the .ip.yml's own directory.
+      const outputDir = path.join(tmp, 'qsys');
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: [],
+        dryRun: true,
+      });
+
+      expect(result.success).toBe(true);
+      // The out-of-tree source is never a scaffold output target, so it must not be surfaced
+      // in the output map at all.
+      expect(result.generatedContents?.['../src/rsa_core_pkg.vhd']).toBeUndefined();
+      expect(result.protectedPaths ?? []).not.toContain('../src/rsa_core_pkg.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('still references a parent-relative fileSets source in component.xml (issue #204)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-parent-relative-xml-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'src'), { recursive: true });
+      fs2.mkdirSync(path.join(tmp, 'qsys'), { recursive: true });
+      fs2.writeFileSync(path.join(tmp, 'src', 'rsa_core_pkg.vhd'), '-- shared package\n');
+
+      const inputPath = path.join(tmp, 'qsys', 'rsa_core.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: cip',
+          '  library: ip',
+          '  name: rsa_core',
+          '  version: 1.0.0',
+          'clocks:',
+          '  - name: clk_i',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: ../src/rsa_core_pkg.vhd',
+          '        type: vhdl',
+          '        managed: false',
+        ].join('\n')
+      );
+
+      const outputDir = path.join(tmp, 'qsys');
+      const result = await scaffolder.generateAll(inputPath, outputDir, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: ['vivado'],
+      });
+
+      expect(result.success).toBe(true);
+      const componentXml = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).includes('xilinx/component.xml')
+      )?.[1] as string;
+      expect(componentXml).toBeDefined();
+      expect(componentXml).toContain('../src/rsa_core_pkg.vhd');
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('does not treat a fileSets entry the pack DID generate this run as a duplicate extra', async () => {
     // fileSets can (redundantly) list the same top-level file the pack itself renders. The
     // "extra" pass must skip it — otherwise it would clobber the freshly rendered template

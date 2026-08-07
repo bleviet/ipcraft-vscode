@@ -337,7 +337,9 @@ export class IpCoreScaffolder {
       // a different directory, the file doesn't exist there yet regardless.
       const extraUserPaths = new Set<string>();
       if (path.resolve(outputDir) === path.resolve(ipCoreDir)) {
-        const extraPaths = collectUserDeclaredExtraPaths(ipCoreData, files);
+        const extraPaths = collectUserDeclaredExtraPaths(ipCoreData, files).filter((relativePath) =>
+          isWithinDir(outputDir, path.resolve(ipCoreDir, relativePath))
+        );
         await Promise.all(
           extraPaths.map(async (relativePath) => {
             try {
@@ -618,6 +620,18 @@ function collectUserManagedPaths(ipCoreData: IpCoreData): Set<string> {
     }
   }
   return paths;
+}
+
+/**
+ * True when `absPath` resolves inside `dir` (or equals it). Used to keep out-of-tree
+ * `fileSets` references (e.g. `../src/pkg.vhd`, shared packages pulled from a sibling IP
+ * core) out of the scaffold output map entirely — see issue #204. Those paths are legitimate
+ * *inputs* the packaging templates read and reference, never write targets, so they must
+ * never reach `resolveScaffoldOutputPath`'s containment check.
+ */
+function isWithinDir(dir: string, absPath: string): boolean {
+  const rel = path.relative(path.resolve(dir), absPath);
+  return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 
 const EXTRA_HDL_FILE_TYPES = new Set(['vhdl', 'verilog', 'systemverilog']);
