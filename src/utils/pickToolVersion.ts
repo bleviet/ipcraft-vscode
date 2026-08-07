@@ -115,6 +115,12 @@ export async function pickToolVersion(
   const picked = await vscode.window.showQuickPick<ToolVersionPickItem>(items, {
     title: `Select ${VENDOR_LABEL[vendor]} Version`,
     placeHolder: 'Choose which configured version or image to use',
+    // These callers are invoked from a webview postMessage handler (toolbar
+    // "Open in Vivado/Quartus"/"Edit in IP Packager"), where focus hasn't yet
+    // transferred out of the webview iframe when the picker opens. Without
+    // this, the picker treats that as focus-out and immediately self-closes,
+    // silently cancelling the very first click.
+    ignoreFocusOut: true,
   });
 
   if (!picked?.choice) {
