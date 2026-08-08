@@ -112,6 +112,27 @@ describe('resolveToolchainVersionForOpen', () => {
     expect(result).toEqual({ runner: 'local', version: '2024.2' });
   });
 
+  it('does not wait for the informational toast before returning an exact match', async () => {
+    const cfg = makeCfg({ 'vivado.pinnedVersion': '', 'vivado.installDirs': ['/x'] });
+    (detector.detectVivadoProjectVersion as jest.Mock).mockResolvedValue({
+      confidence: 'exact',
+      candidates: ['2024.2'],
+      source: 'project-file',
+    });
+    (vivadoResolver.resolveVivadoVersions as jest.Mock).mockReturnValue([
+      { version: '2024.2', installDir: '/x/2024.2', launcher: { exe: 'vivado', prefixArgs: [] } },
+    ]);
+    jest.spyOn(vscode.window, 'showInformationMessage').mockReturnValue(new Promise(() => {}));
+
+    const resolution = resolveToolchainVersionForOpen(cfg, 'vivado', '/proj/foo.xpr');
+    const outcome = await Promise.race([
+      resolution,
+      new Promise<'still-pending'>((resolve) => setTimeout(() => resolve('still-pending'), 0)),
+    ]);
+
+    expect(outcome).toEqual({ runner: 'local', version: '2024.2' });
+  });
+
   it('opens the QuickPick, pre-filtered to required candidates, when ambiguous', async () => {
     const cfg = makeCfg({ 'vivado.pinnedVersion': '', 'vivado.installDirs': ['/x', '/y'] });
     (detector.detectVivadoProjectVersion as jest.Mock).mockResolvedValue({

@@ -389,6 +389,7 @@ export class IpCoreScaffolder {
         );
         return {
           success: true,
+          ipCoreName: name,
           generatedContents: { ...files },
           protectedPaths: protectedOnDisk,
           userManagedPaths: [...userManagedPaths],
@@ -432,6 +433,7 @@ export class IpCoreScaffolder {
 
       return {
         success: true,
+        ipCoreName: name,
         files: written,
         generatedContents: { ...files },
         executablePaths: [...executableTargets].filter((p) => p in written),

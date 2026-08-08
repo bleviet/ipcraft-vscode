@@ -12,6 +12,7 @@ import {
   resolveToolchainVersionForResource,
 } from '../services/toolchains/resolveToolchainVersion';
 import { CONFIG_KEY_IPCRAFT, CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
+import type { ToolVersionChoice } from '../utils/pickToolVersion';
 
 /**
  * Run the Vivado project-creation step after Generate, showing a progress notification.
@@ -20,14 +21,18 @@ import { CONFIG_KEY_IPCRAFT, CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/config
 export async function runCreateVivadoProjectStep(
   name: string,
   ipDir: string,
-  resourceUri?: vscode.Uri
+  resourceUri?: vscode.Uri,
+  preparedChoice?: ToolVersionChoice | null
 ): Promise<void> {
   const ch = getBuildOutputChannel();
   const cfg = vscode.workspace.getConfiguration(
     CONFIG_KEY_IPCRAFT,
     resourceUri ?? vscode.Uri.file(ipDir)
   );
-  const choice = await resolveToolchainVersionForCreate(cfg, 'vivado');
+  const choice =
+    preparedChoice === undefined
+      ? await resolveToolchainVersionForCreate(cfg, 'vivado')
+      : preparedChoice;
   if (choice === undefined) {
     return;
   }
@@ -61,14 +66,18 @@ export async function runCreateVivadoProjectStep(
 export async function runCreateQuartusProjectStep(
   name: string,
   ipDir: string,
-  resourceUri?: vscode.Uri
+  resourceUri?: vscode.Uri,
+  preparedChoice?: ToolVersionChoice | null
 ): Promise<void> {
   const ch = getBuildOutputChannel();
   const cfg = vscode.workspace.getConfiguration(
     CONFIG_KEY_IPCRAFT,
     resourceUri ?? vscode.Uri.file(ipDir)
   );
-  const choice = await resolveToolchainVersionForCreate(cfg, 'quartus');
+  const choice =
+    preparedChoice === undefined
+      ? await resolveToolchainVersionForCreate(cfg, 'quartus')
+      : preparedChoice;
   if (choice === undefined) {
     return;
   }
@@ -117,12 +126,7 @@ export async function generateVivadoProject(
   }
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
-  const name = path
-    .basename(ipCoreUri.fsPath)
-    .replace(/\.ip\.ya?ml$/, '')
-    .toLowerCase();
-
-  const ok = await runGenerator(
+  const result = await runGenerator(
     resourceRoots,
     context,
     ipCoreUri,
@@ -140,8 +144,8 @@ export async function generateVivadoProject(
     'Generating Vivado project...'
   );
 
-  if (ok) {
-    await runCreateVivadoProjectStep(name, outputDir, ipCoreUri);
+  if (result.success) {
+    await runCreateVivadoProjectStep(result.ipCoreName, outputDir, ipCoreUri);
   }
 }
 
@@ -167,12 +171,7 @@ export async function generateQuartusProject(
   }
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
-  const name = path
-    .basename(ipCoreUri.fsPath)
-    .replace(/\.ip\.ya?ml$/, '')
-    .toLowerCase();
-
-  const ok = await runGenerator(
+  const result = await runGenerator(
     resourceRoots,
     context,
     ipCoreUri,
@@ -190,8 +189,8 @@ export async function generateQuartusProject(
     'Generating Quartus project...'
   );
 
-  if (ok) {
-    await runCreateQuartusProjectStep(name, outputDir, ipCoreUri);
+  if (result.success) {
+    await runCreateQuartusProjectStep(result.ipCoreName, outputDir, ipCoreUri);
   }
 }
 
@@ -221,7 +220,7 @@ export async function generateAndBuildVivado(
   }
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
-  const ok = await runGenerator(
+  const result = await runGenerator(
     resourceRoots,
     context,
     ipCoreUri,
@@ -239,7 +238,7 @@ export async function generateAndBuildVivado(
     'Generating Vivado project...'
   );
 
-  if (ok) {
+  if (result.success) {
     await vscode.commands.executeCommand(
       'fpga-ip-core.buildVivadoOoc',
       ipCoreUri,
@@ -274,7 +273,7 @@ export async function generateAndBuildQuartus(
   }
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
-  const ok = await runGenerator(
+  const result = await runGenerator(
     resourceRoots,
     context,
     ipCoreUri,
@@ -292,7 +291,7 @@ export async function generateAndBuildQuartus(
     'Generating Quartus project...'
   );
 
-  if (ok) {
+  if (result.success) {
     await vscode.commands.executeCommand(
       'fpga-ip-core.buildQuartusCompile',
       ipCoreUri,

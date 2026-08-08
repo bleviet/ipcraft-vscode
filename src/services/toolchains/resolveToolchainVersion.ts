@@ -27,8 +27,8 @@ const VENDOR_LABEL: Record<Vendor, string> = { vivado: 'Vivado', quartus: 'Quart
  *    caller can fall back to legacy/PATH resolution instead of aborting —
  *    preserves backward compatibility for users who haven't adopted the new
  *    multi-version settings.
- *  - an exact detected version that is configured launches immediately, with
- *    an informational toast (its "Change" action re-opens the picker).
+ *  - an exact detected version that is configured launches immediately and
+ *    reports the detected choice with a non-blocking informational toast.
  *  - an exact/ambiguous detected version that is NOT configured warns and
  *    offers "Use <closest> anyway" / "Browse for install dir…" / "Configure
  *    paths" — never silently substitutes.
@@ -70,13 +70,10 @@ export async function resolveToolchainVersionForOpen(
   const [required] = detection.candidates;
   const available = configured.map((c) => c.version);
   if (available.includes(required)) {
-    const change = await vscode.window.showInformationMessage(
-      `Opening with ${VENDOR_LABEL[vendor]} ${required} (detected from project)`,
-      'Change'
+    void vscode.window.showInformationMessage(
+      `Opening with ${VENDOR_LABEL[vendor]} ${required} (detected from project)`
     );
-    return change === 'Change'
-      ? pickToolVersion(cfg, vendor, [required])
-      : configured.find((c) => c.version === required);
+    return configured.find((c) => c.version === required);
   }
 
   const closest = findClosestVersion(required, available);

@@ -5,6 +5,8 @@ import { pickVivadoPart, pickQuartusDevice } from '../utils/pickBoard';
 import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { runGenerator, readScaffoldPackSetting } from '../services/GenerationEngine';
 import { runCreateVivadoProjectStep, runCreateQuartusProjectStep } from './VendorProjectCommands';
+import { resolveToolchainVersionForCreate } from '../services/toolchains/resolveToolchainVersion';
+import type { ToolVersionChoice } from '../utils/pickToolVersion';
 import {
   CONFIG_KEY_IPCRAFT,
   CONFIG_KEY_IPCRAFT_GENERATE,
@@ -56,7 +58,7 @@ export async function scaffoldProject(
 
   const outputDir = path.dirname(ipCoreUri.fsPath);
 
-  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT);
+  const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, ipCoreUri);
   const genCfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_GENERATE);
   const includeTestbench = genCfg.get<boolean>('includeTestbench', true);
   const includeDocs = genCfg.get<boolean>('includeDocs', true);
@@ -93,7 +95,27 @@ export async function scaffoldProject(
     }
   }
 
-  const ok = await runGenerator(
+  // Resolve every vendor choice before generation/project creation starts. A
+  // completed Vivado project refreshes the toolbar immediately; deferring the
+  // Quartus picker until after that refresh makes its prompt appear to have
+  // been triggered by a concurrent "Open Project in Vivado" click.
+  let vivadoVersionChoice: ToolVersionChoice | null | undefined;
+  if (targets.includes('vivado')) {
+    vivadoVersionChoice = await resolveToolchainVersionForCreate(cfg, 'vivado');
+    if (vivadoVersionChoice === undefined) {
+      return;
+    }
+  }
+
+  let quartusVersionChoice: ToolVersionChoice | null | undefined;
+  if (targets.includes('quartus')) {
+    quartusVersionChoice = await resolveToolchainVersionForCreate(cfg, 'quartus');
+    if (quartusVersionChoice === undefined) {
+      return;
+    }
+  }
+
+  const result = await runGenerator(
     resourceRoots,
     context,
     ipCoreUri,
@@ -118,18 +140,15 @@ export async function scaffoldProject(
     'Scaffolding project...'
   );
 
-  if (ok) {
-    const name = path
-      .basename(ipCoreUri.fsPath)
-      .replace(/\.ip\.ya?ml$/, '')
-      .toLowerCase();
-    // Sequential, not Promise.all: each step can open a version QuickPick, and
-    // VS Code dismisses the first picker the moment the second one opens.
+  if (result.success) {
+    const name = result.ipCoreName;
+    // Keep vendor tools sequential; their version choices were resolved above,
+    // before either generated project became available from the toolbar.
     if (targets.includes('vivado')) {
-      await runCreateVivadoProjectStep(name, outputDir, ipCoreUri);
+      await runCreateVivadoProjectStep(name, outputDir, ipCoreUri, vivadoVersionChoice);
     }
     if (targets.includes('quartus')) {
-      await runCreateQuartusProjectStep(name, outputDir, ipCoreUri);
+      await runCreateQuartusProjectStep(name, outputDir, ipCoreUri, quartusVersionChoice);
     }
   }
 }

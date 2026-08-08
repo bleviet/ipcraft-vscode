@@ -17,6 +17,8 @@ import { CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 
 const logger = new Logger('GenerationEngine');
 
+export type GenerationRunResult = { success: true; ipCoreName: string } | { success: false };
+
 /**
  * Read the active scaffold pack name from settings. Returns undefined when the
  * YAML's own scaffold_pack field should take precedence (i.e. when the setting is empty).
@@ -72,7 +74,7 @@ export async function runGenerator(
   outputDir: string,
   options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
   progressTitle: string
-): Promise<boolean> {
+): Promise<GenerationRunResult> {
   const sourceDocument = await vscode.workspace.openTextDocument(ipCoreUri);
   const sourceText = sourceDocument.getText();
   const workspaceIndentation = readGenerationIndentation(
@@ -101,11 +103,11 @@ export async function runGenerator(
     }
   );
 
-  if (!dryResult?.success || !dryResult.generatedContents) {
+  if (!dryResult?.success || !dryResult.generatedContents || !dryResult.ipCoreName) {
     void vscode.window.showErrorMessage(
       `Generation failed: ${dryResult?.error ?? 'Unknown error'}`
     );
-    return false;
+    return { success: false };
   }
 
   // Phase 2: Categorise generated files against what is currently on disk
@@ -137,7 +139,7 @@ export async function runGenerator(
     );
     const decision = bridgeResult ?? (await StagingPanel.show(staged, dryResult.warnings ?? []));
     if (!decision.confirmed) {
-      return false;
+      return { success: false };
     }
     mergedPaths = new Set(decision.mergedPaths);
     overwritePaths = new Set(decision.overwritePaths);
@@ -185,7 +187,7 @@ export async function runGenerator(
 
   if (writeError) {
     void vscode.window.showErrorMessage(`Failed to write files: ${writeError}`);
-    return false;
+    return { success: false };
   }
 
   if (options.updateYaml) {
@@ -221,7 +223,7 @@ export async function runGenerator(
     getGeneratedArtifactsEmitter().fire(ipCoreUri);
   }
 
-  return true;
+  return { success: true, ipCoreName: dryResult.ipCoreName };
 }
 
 async function updateFileSetsInYaml(

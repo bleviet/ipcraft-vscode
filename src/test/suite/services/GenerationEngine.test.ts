@@ -64,6 +64,7 @@ describe('runGenerator (issue #195)', () => {
           const usesLittleEndian = options.sourceText?.includes('endianness: little') === true;
           return {
             success: true,
+            ipCoreName: 'preview_endian',
             generatedContents: {
               'altera/preview_endian_hw.tcl':
                 `set_interface_property avl_st firstSymbolInHighOrderBits ` +
@@ -106,7 +107,7 @@ describe('runGenerator (issue #195)', () => {
     );
 
     const generatedPath = path.join(tmpDir, 'altera', 'preview_endian_hw.tcl');
-    expect(result).toBe(true);
+    expect(result).toEqual({ success: true, ipCoreName: 'preview_endian' });
     expect(previewedContent).toContain('firstSymbolInHighOrderBits false');
     expect(fs.readFileSync(generatedPath, 'utf8')).toBe(previewedContent);
     expect(fs.readFileSync(ipCorePath, 'utf8')).toBe(savedYaml);
@@ -121,6 +122,7 @@ describe('runGenerator (issue #195)', () => {
   it('leaves the IP-core document dirty when generation updates its YAML metadata', async () => {
     generateAll.mockResolvedValue({
       success: true,
+      ipCoreName: 'preview_endian',
       generatedContents: {
         'rtl/preview_endian.vhd': '-- generated from the snapshot\n',
       },
@@ -145,7 +147,7 @@ describe('runGenerator (issue #195)', () => {
       'Generating HDL...'
     );
 
-    expect(result).toBe(true);
+    expect(result).toEqual({ success: true, ipCoreName: 'preview_endian' });
     expect(vscode.workspace.applyEdit).toHaveBeenCalledTimes(2);
     expect(saveDocument).not.toHaveBeenCalled();
     expect(fs.readFileSync(ipCorePath, 'utf8')).toBe(savedYaml);

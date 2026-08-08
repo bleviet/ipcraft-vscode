@@ -164,6 +164,8 @@ export interface GenerateOptions {
 
 export interface GenerateResult {
   success: boolean;
+  /** Canonical lower-case project/entity name read from vlnv.name. */
+  ipCoreName?: string;
   /** relativePath → fullPath for files actually written to disk (absent in dry-run mode). */
   files?: Record<string, string>;
   /** relativePath → file content for all generated files (always present on success). */

@@ -81,6 +81,24 @@ describe('VendorProjectCommands', () => {
       );
     });
 
+    it('uses a prepared version choice without reopening the picker', async () => {
+      mockCreateVivadoProject.mockResolvedValue(true);
+
+      await runCreateVivadoProjectStep('my_ip', '/ip', undefined, {
+        runner: 'local',
+        version: '2024.2',
+      });
+
+      expect(mockResolveForCreate).not.toHaveBeenCalled();
+      expect(mockCreateVivadoProject).toHaveBeenCalledWith(
+        'my_ip',
+        '/ip',
+        expect.anything(),
+        '2024.2',
+        undefined
+      );
+    });
+
     it('passes the resource-scoped config selected by the version resolver into creation', async () => {
       const scopedCfg = { get: jest.fn() } as unknown as vscode.WorkspaceConfiguration;
       (vscode.Uri.file as jest.Mock).mockImplementation((fsPath: string) => ({ fsPath }));
@@ -127,6 +145,24 @@ describe('VendorProjectCommands', () => {
         undefined
       );
     });
+
+    it('uses a prepared version choice without reopening the picker', async () => {
+      mockCreateQuartusProject.mockResolvedValue(true);
+
+      await runCreateQuartusProjectStep('my_ip', '/ip', undefined, {
+        runner: 'local',
+        version: '23.1',
+      });
+
+      expect(mockResolveForCreate).not.toHaveBeenCalled();
+      expect(mockCreateQuartusProject).toHaveBeenCalledWith(
+        'my_ip',
+        '/ip',
+        expect.anything(),
+        '23.1',
+        undefined
+      );
+    });
   });
 
   describe('Generate & Build', () => {
@@ -136,7 +172,10 @@ describe('VendorProjectCommands', () => {
 
     beforeEach(() => {
       (generationEngine.readScaffoldPackSetting as jest.Mock).mockReturnValue(undefined);
-      (generationEngine.runGenerator as jest.Mock).mockResolvedValue(true);
+      (generationEngine.runGenerator as jest.Mock).mockResolvedValue({
+        success: true,
+        ipCoreName: 'foo',
+      });
       (pickBoard.pickVivadoPart as jest.Mock).mockResolvedValue('xc7z020clg484-1');
       (pickBoard.pickQuartusDevice as jest.Mock).mockResolvedValue('5CSEBA6U23I7');
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
@@ -220,7 +259,7 @@ describe('VendorProjectCommands', () => {
 
     beforeEach(() => {
       (generationEngine.readScaffoldPackSetting as jest.Mock).mockReturnValue(undefined);
-      (generationEngine.runGenerator as jest.Mock).mockResolvedValue(false);
+      (generationEngine.runGenerator as jest.Mock).mockResolvedValue({ success: false });
       (pickBoard.pickVivadoPart as jest.Mock).mockResolvedValue('xc7z020clg484-1');
       (pickBoard.pickQuartusDevice as jest.Mock).mockResolvedValue('5CSEBA6U23I7');
       (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
@@ -238,6 +277,52 @@ describe('VendorProjectCommands', () => {
       await generateQuartusProject(context, resourceRoots, ipCoreUri);
 
       expect(vscode.workspace.getConfiguration).toHaveBeenCalledWith(CONFIG_KEY_IPCRAFT, ipCoreUri);
+    });
+  });
+
+  describe('Generate Project naming', () => {
+    const context = {} as vscode.ExtensionContext;
+    const resourceRoots = {} as never;
+    const ipCoreUri = vscode.Uri.file('/workspace-a/ip/file_name.ip.yml');
+
+    beforeEach(() => {
+      (generationEngine.readScaffoldPackSetting as jest.Mock).mockReturnValue(undefined);
+      (generationEngine.runGenerator as jest.Mock).mockResolvedValue({
+        success: true,
+        ipCoreName: 'vlnv_name',
+      });
+      (pickBoard.pickVivadoPart as jest.Mock).mockResolvedValue('xc7z020clg484-1');
+      (pickBoard.pickQuartusDevice as jest.Mock).mockResolvedValue('5CSEBA6U23I7');
+      mockResolveForCreate.mockResolvedValue({ runner: 'local', version: '2024.2' });
+      mockCreateVivadoProject.mockResolvedValue(true);
+      mockCreateQuartusProject.mockResolvedValue(true);
+      (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
+        get: jest.fn((_key: string, defaultValue?: unknown) => defaultValue),
+      });
+    });
+
+    it('uses the generated vlnv.name for Vivado project creation', async () => {
+      await generateVivadoProject(context, resourceRoots, ipCoreUri);
+
+      expect(mockCreateVivadoProject).toHaveBeenCalledWith(
+        'vlnv_name',
+        '/workspace-a/ip',
+        expect.anything(),
+        '2024.2',
+        expect.anything()
+      );
+    });
+
+    it('uses the generated vlnv.name for Quartus project creation', async () => {
+      await generateQuartusProject(context, resourceRoots, ipCoreUri);
+
+      expect(mockCreateQuartusProject).toHaveBeenCalledWith(
+        'vlnv_name',
+        '/workspace-a/ip',
+        expect.anything(),
+        '2024.2',
+        expect.anything()
+      );
     });
   });
 });
