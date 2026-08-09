@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.0] - 2026-08-09
+
+### Added
+
+- **Multi-version Vivado/Quartus toolchain support** lets you register several installed versions (and Docker images) per vendor, auto-detects which one an existing project needs from a `.ipcraft-toolchain.json` sidecar or by parsing the project file, and lets you force a specific version at any time via the new **IPCraft: Select Vivado Version** / **Select Quartus Version** commands. ([#202](https://github.com/bleviet/ipcraft-vscode/pull/202))
+- **Automated Marketplace releases.** Starting with this version, IPCraft is published through a protected Azure Pipelines workflow with immutable versioned artifacts, SHA-256 verification, VS Code minimum/stable smoke tests, and Azure workload-identity federation, replacing manual VSIX uploads. ([#201](https://github.com/bleviet/ipcraft-vscode/pull/201))
+- **SECURITY.md, CONTRIBUTING.md, SUPPORT.md, and CODE_OF_CONDUCT.md** document the vulnerability reporting process, contributor setup, and support channels. ([#200](https://github.com/bleviet/ipcraft-vscode/pull/200))
+
+### Fixed
+
+- **IP Core toolbar buttons** ("Open in Platform Designer", "Edit in IP Packager") now refresh immediately after Generate/Export/vendor-project commands instead of staying greyed out until the editor is closed and reopened.
+- **The Vivado/Quartus version picker** no longer self-closes on the first click when triggered from a webview toolbar button.
+- **Vendor project launch workflows** no longer show a spurious, seemingly concurrent version-picker prompt when Vivado and Quartus projects are scaffolded together.
+- **Generation with an out-of-tree `fileSets` path** (e.g. `../src/pkg.vhd`, common in Qsys/Platform Designer layouts) no longer aborts the whole scaffold; only paths meant to be written are checked for output-directory containment. ([#204](https://github.com/bleviet/ipcraft-vscode/issues/204))
+- **The README demo** now embeds an animated GIF instead of an unsupported `<video>` tag, so it renders on the VS Code Marketplace and in the editor's Markdown preview, not just on GitHub.
+
 ## [0.9.9] - 2026-07-29
 
 ### Added
