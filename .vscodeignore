@@ -22,7 +22,6 @@ package-lock.json
 **/*.map
 CMakeLists.txt
 .github/**
-azure-pipelines/**
 .husky/**
 coverage/**
 test-results/**
@@ -36,6 +35,8 @@ skills-lock.json
 knip.jsonc
 .agents/**
 .claude/**
+.worktrees/**
+.superpowers/**
 build/**
 artifacts/**
 docker/**

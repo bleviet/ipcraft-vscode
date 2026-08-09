@@ -6,6 +6,7 @@ packages/ipcraft/LICENSE
 node_modules/
 .vscode-test/
 *.vsix
+artifacts/
 .DS_Store
 coverage/
 .pytest_cache/
