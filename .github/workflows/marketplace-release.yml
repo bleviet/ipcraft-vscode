@@ -1,0 +1,222 @@
+name: Marketplace Release
+
+run-name: Marketplace release ${{ github.ref_name }} (publish=${{ inputs.publish }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish to the VS Code Marketplace after verification
+        type: boolean
+        default: false
+
+concurrency:
+  group: marketplace-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify and package
+    runs-on: ubuntu-latest
+    outputs:
+      release-version: ${{ steps.release.outputs.release-version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check Marketplace release contract
+        env:
+          BUILD_SOURCEBRANCH: ${{ github.ref }}
+        run: npm run check:marketplace-release
+
+      - name: Check documentation links
+        run: npm run docs:links
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Compile extension
+        run: npm run compile
+
+      - name: Compile E2E tests
+        run: npm run compile-tests
+
+      - name: Check CLI distribution
+        run: npm run check:cli-distribution
+
+      - name: Test CLI package
+        run: npm run test:cli-package
+
+      - name: Unit tests with coverage
+        run: npm run test:unit -- --coverage
+
+      - name: Release contract tests
+        run: npm run test:release
+
+      - name: Package and checksum release VSIX
+        id: release
+        run: |
+          set -euo pipefail
+          RELEASE_VERSION="${GITHUB_REF#refs/tags/v}"
+          mkdir -p artifacts
+          VSIX_PATH="artifacts/ipcraft-vscode-${RELEASE_VERSION}.vsix"
+          npx vsce package "$RELEASE_VERSION" --out "$VSIX_PATH"
+          npm run check:vsix -- "$VSIX_PATH"
+          (cd artifacts && sha256sum "ipcraft-vscode-${RELEASE_VERSION}.vsix" > "ipcraft-vscode-${RELEASE_VERSION}.vsix.sha256")
+          echo "release-version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipcraft-vscode-vsix
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
+
+  smoke:
+    name: Smoke-test packaged VSIX (${{ matrix.name }})
+    needs: verify
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: minimum VS Code 1.80.0
+            vscode-version: 1.80.0
+          - name: stable VS Code
+            vscode-version: stable
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ipcraft-vscode-vsix
+          path: artifacts
+
+      - name: Verify release artifact checksum
+        working-directory: artifacts
+        run: sha256sum --check "ipcraft-vscode-${{ needs.verify.outputs.release-version }}.vsix.sha256"
+
+      - name: Check VS Code compatibility contract
+        run: npm run check:vscode-compatibility
+
+      - name: Compile E2E tests
+        run: npm run compile-tests
+
+      - name: Smoke-test VS Code
+        env:
+          VSCODE_TEST_VERSION: ${{ matrix.vscode-version }}
+          VSIX_PATH: artifacts/ipcraft-vscode-${{ needs.verify.outputs.release-version }}.vsix
+        run: xvfb-run -a npm run test:e2e
+
+  publish:
+    name: Publish to VS Code Marketplace
+    needs: [verify, smoke]
+    if: ${{ success() && inputs.publish }}
+    runs-on: ubuntu-latest
+    environment: vscode-marketplace
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ipcraft-vscode-vsix
+          path: artifacts
+
+      - name: Verify release artifact checksum
+        working-directory: artifacts
+        run: sha256sum --check "ipcraft-vscode-${{ needs.verify.outputs.release-version }}.vsix.sha256"
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Publish verified VSIX
+        env:
+          VSIX_PATH: artifacts/ipcraft-vscode-${{ needs.verify.outputs.release-version }}.vsix
+        run: npx vsce publish --packagePath "$VSIX_PATH" --azure-credential
+
+  postpublish:
+    name: Verify published Marketplace package
+    needs: [verify, publish]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Compile E2E tests
+        run: npm run compile-tests
+
+      - name: Prepare diagnostics directory
+        run: mkdir -p marketplace-verification
+
+      - name: Download and verify Marketplace VSIX
+        env:
+          RELEASE_VERSION: ${{ needs.verify.outputs.release-version }}
+        run: |
+          set -euo pipefail
+          npm run verify:marketplace-release -- \
+            --version "$RELEASE_VERSION" \
+            --out "marketplace-verification/ipcraft-vscode-$RELEASE_VERSION.vsix" \
+            2>&1 | tee marketplace-verification/marketplace-verification.log
+
+      - name: Smoke-test published Marketplace VSIX
+        env:
+          VSCODE_TEST_VERSION: stable
+          VSIX_PATH: marketplace-verification/ipcraft-vscode-${{ needs.verify.outputs.release-version }}.vsix
+        run: |
+          set -euo pipefail
+          xvfb-run -a npm run test:e2e 2>&1 | tee marketplace-verification/marketplace-e2e.log
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: marketplace-release-diagnostics
+          path: marketplace-verification/
+          retention-days: 14

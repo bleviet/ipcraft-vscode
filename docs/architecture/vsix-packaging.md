@@ -29,19 +29,21 @@ document and the constants in `scripts/check-vsix.js` with a reviewed reason.
 
 ## Marketplace release boundary
 
-Marketplace release execution is a separate Azure Pipelines contract:
-`Verify -> Smoke -> protected Publish -> PostPublish`. `Verify` packages the
-versioned VSIX once, validates it, and publishes the immutable pipeline artifact
-with its SHA-256 sidecar. Both smoke jobs download and checksum-verify that exact
-artifact before installing it on the minimum supported and stable VS Code
-versions. The protected `vscode-marketplace` deployment downloads and verifies
-the same artifact before `vsce` publishes it through the federated
-`vscode-marketplace-entra` service connection. `PostPublish` independently
-downloads the Marketplace package, validates its contents and metadata, then
-installs it for a stable smoke test.
+Marketplace release execution is a separate, manually dispatched GitHub Actions
+contract (`.github/workflows/marketplace-release.yml`):
+`verify -> smoke -> protected publish -> postpublish`. `verify` packages the
+versioned VSIX once, validates it, and uploads the immutable workflow artifact
+with its SHA-256 sidecar. Both smoke matrix legs download and checksum-verify
+that exact artifact before installing it on the minimum supported and stable VS
+Code versions. The protected `vscode-marketplace` GitHub environment downloads
+and verifies the same artifact before `vsce` publishes it through OIDC-federated
+Azure authentication (`azure/login`) — no Marketplace personal access token is
+stored anywhere. `postpublish` independently downloads the Marketplace package,
+validates its contents and metadata, then installs it for a stable smoke test.
 
-GitHub CI deliberately does not publish: it validates changes but does not own
-the Marketplace Contributor identity or the protected Azure environment approval
-boundary. Azure Pipelines owns publication so an identity-based service
-connection, named approvers, and an exclusive environment lock govern the only
-operation that can make a version public.
+The regular `CI` workflow deliberately does not publish: it validates changes on
+every push and pull request but does not own the Marketplace Contributor
+identity or the protected environment approval boundary. Only the manually
+dispatched `Marketplace Release` workflow can publish, so an identity-based OIDC
+credential, required environment reviewers, and a serialized concurrency group
+govern the only operation that can make a version public.

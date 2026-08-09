@@ -37,24 +37,21 @@ npx vsce package
 This produces a file named `ipcraft-vscode-<version>.vsix` in the project root (e.g. `ipcraft-vscode-0.8.6.vsix`).
 
 !!! tip
-    Steps 2 and 3 can be combined since `vscode:prepublish` automatically runs `npm run package` before `vsce package`:
-    ```bash
+Steps 2 and 3 can be combined since `vscode:prepublish` automatically runs `npm run package` before `vsce package`:
+`bash
     npx vsce package   # triggers vscode:prepublish → npm run package first
-    ```
+    `
 
 ## Installing the VSIX
 
 Install directly in VS Code:
 
-=== "VS Code UI"
-    1. Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`).
-    2. Click the **`···`** menu (top-right of the panel).
-    3. Choose **Install from VSIX…** and select the generated file.
+=== "VS Code UI" 1. Open the Extensions view (`Ctrl+Shift+X` / `Cmd+Shift+X`). 2. Click the **`···`** menu (top-right of the panel). 3. Choose **Install from VSIX…** and select the generated file.
 
 === "Command line"
-    ```bash
+`bash
     code --install-extension ipcraft-vscode-0.8.6.vsix
-    ```
+    `
 
 ## Verifying the package contents
 
@@ -96,12 +93,13 @@ Then re-run `npx vsce package`.
 
 ## Marketplace release runbook
 
-The production Marketplace release is operated from
-[`azure-pipelines/marketplace-release.yml`](https://github.com/bleviet/ipcraft-vscode/blob/main/azure-pipelines/marketplace-release.yml),
-not from a developer workstation or GitHub CI. The pipeline builds the VSIX once,
-publishes it as a versioned pipeline artifact with a SHA-256 sidecar, smoke-tests
-that exact artifact on VS Code 1.80.0 and stable, and only then permits a
-protected publication.
+The production Marketplace release is operated from the
+[`Marketplace Release`](https://github.com/bleviet/ipcraft-vscode/blob/main/.github/workflows/marketplace-release.yml)
+GitHub Actions workflow, not from a developer workstation. It is manually
+dispatched against an exact release tag and builds the VSIX once, uploads it as
+a versioned workflow artifact with a SHA-256 sidecar, smoke-tests that exact
+artifact on VS Code 1.80.0 and stable, and only then permits a protected
+publication.
 
 ### One-time Azure and Marketplace setup
 
@@ -113,10 +111,6 @@ the first release:
   extension ID `98c7d872-c2ba-4955-8ee5-5bf5e193ef78`. In Marketplace management,
   manually confirm that the release administrators own this publisher and its
   extension before granting automation access.
-- Create an Azure Pipeline connected to the
-  [`bleviet/ipcraft-vscode`](https://github.com/bleviet/ipcraft-vscode) GitHub
-  repository and select `azure-pipelines/marketplace-release.yml` as its YAML
-  path. Limit who can edit the pipeline and queue releases.
 - In the GitHub repository, create an active **tag ruleset** targeting `v*`.
   Enable **Restrict updates** and **Restrict deletions**. Its bypass list must
   contain only explicitly designated, break-glass release administrators with
@@ -126,26 +120,34 @@ the first release:
   ruleset guide](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository).
   This protection is a release prerequisite: do not create or run a release tag
   until it is active.
-- Create a user-assigned managed identity, then create the federated Azure
-  Resource Manager service connection named `vscode-marketplace-entra`. Configure
-  its workload identity federation subject and issuer exactly as Azure DevOps
-  displays them, and authorize only this release pipeline to use the connection.
+- Create a user-assigned managed identity in Microsoft Entra ID, then add a
+  **federated credential** on it scoped to a **GitHub Actions** issuer
+  (`https://token.actions.githubusercontent.com`) with subject
+  `repo:bleviet/ipcraft-vscode:environment:vscode-marketplace`. This lets the
+  `publish` job authenticate to Azure with no stored secret — only workflow runs
+  that pass the `vscode-marketplace` environment gate can mint a matching OIDC
+  token.
+- Store the managed identity's `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and
+  `AZURE_SUBSCRIPTION_ID` as **environment secrets** on the GitHub
+  `vscode-marketplace` environment (Repository Settings → Environments), not as
+  repository-wide secrets — this keeps them inaccessible to any job that doesn't
+  target that environment.
 - Add that managed identity to the Marketplace publisher as a **Contributor**.
-  The pipeline uses `vsce publish --azure-credential` through the federated
-  service connection; it does not use a publisher personal access token (PAT).
-- Create the protected `vscode-marketplace` Azure Pipelines environment used by
-  the deployment job. Add named release approvers and enable an exclusive lock so
-  only one publication can pass the gate at a time.
-- Do not store a Marketplace PAT in GitHub secrets, GitHub Actions, Azure Pipeline
-  variables, or variable groups. The identity-based flow deliberately has no PAT
-  secret to rotate or expose.
+  The workflow uses `vsce publish --azure-credential` via `azure/login`'s OIDC
+  federation; it does not use a publisher personal access token (PAT).
+- Create the protected `vscode-marketplace` GitHub **environment** used by the
+  `publish` job. Add required reviewers so a release needs explicit human
+  approval before it can publish.
+- Do not store a Marketplace PAT in GitHub secrets, GitHub Actions variables, or
+  anywhere else. The identity-based flow deliberately has no PAT secret to
+  rotate or expose.
 
 Microsoft documents [secure automated Marketplace
 publishing](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#secure-automated-publishing-to-visual-studio-marketplace),
-the [Azure Pipelines workload identity federation
-setup](https://learn.microsoft.com/en-us/azure/devops/pipelines/release/configure-workload-identity?view=azure-devops),
-[environment approvals and exclusive
-locks](https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals?view=azure-devops),
+[connecting GitHub Actions to Azure with
+OpenID Connect](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure-openid-connect),
+GitHub's [environment protection
+rules](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment),
 and the [VS Code extension
 manifest](https://code.visualstudio.com/api/references/extension-manifest).
 
@@ -156,28 +158,31 @@ manifest](https://code.visualstudio.com/api/references/extension-manifest).
    follow the version procedure above so the release commit includes matching
    extension and CLI manifests, the `package-lock.json` update, and the
    `CHANGELOG.md` heading before the immutable exact SemVer tag, `vX.Y.Z` (for
-   example, `v0.9.9`), is created and pushed.
-2. In Azure Pipelines, manually select that tag and run the Marketplace release
-   pipeline with `publish: false`. This is the default and performs no publication.
-3. Inspect the `ipcraft-vscode-vsix` pipeline artifact: it must contain the
+   example, `v1.0.0`), is created and pushed.
+2. Run the **Marketplace Release** workflow from the Actions tab (or
+   `gh workflow run marketplace-release.yml --ref vX.Y.Z -f publish=false`),
+   selecting that tag as the ref. `publish: false` is the default and performs
+   no publication.
+3. Inspect the `ipcraft-vscode-vsix` workflow artifact: it must contain the
    versioned `ipcraft-vscode-X.Y.Z.vsix` and its `.sha256` file. Review the
-   `Verify` checks and both `Smoke` jobs, which install that artifact on VS Code
-   1.80.0 and stable after verifying its checksum.
+   `verify` job's checks and both `smoke` matrix legs, which install that
+   artifact on VS Code 1.80.0 and stable after verifying its checksum.
 
 ### Publish
 
-1. Re-run the same tag protected by the active `v*` ruleset with `publish: true`;
-   do not create or package a different source revision between dry run and
-   publication.
+1. Re-run the workflow against the same tag protected by the active `v*`
+   ruleset, with `publish: true`; do not create or package a different source
+   revision between dry run and publication
+   (`gh workflow run marketplace-release.yml --ref vX.Y.Z -f publish=true`).
 2. At the `vscode-marketplace` environment approval, review the versioned VSIX
-   artifact and SHA-256 sidecar that the pipeline checksum-verifies before the
-   publish command. The named approver then approves the protected deployment.
-3. Wait for `PostPublish` to finish. It polls the Marketplace for `X.Y.Z`,
+   artifact and SHA-256 sidecar that the workflow checksum-verifies before the
+   publish step. A required reviewer then approves the protected deployment.
+3. Wait for `postpublish` to finish. It polls the Marketplace for `X.Y.Z`,
    downloads the published VSIX, checks its Marketplace metadata and archive
    contents, and installs that downloaded package in a stable VS Code smoke test.
 4. Perform the Marketplace listing review below. Only after the extension has
    published and been verified may the operator run the existing `Publish CLI to
-   npm` GitHub Actions workflow for the matching version.
+npm` GitHub Actions workflow for the matching version.
 
 ### Marketplace listing review
 
@@ -202,7 +207,7 @@ the post-publication installation smoke test.
   source.
 - Never reuse an existing Marketplace version or silently skip a version. The
   release contract rejects a version that is already listed.
-- If publication may have succeeded but `PostPublish` fails, retain the pipeline
+- If publication may have succeeded but `postpublish` fails, retain the workflow
   artifact, its SHA-256 sidecar, and diagnostics. Diagnose the published listing
   and downloaded VSIX against that retained evidence before taking another action.
 - Prefer a corrected, higher version for a replacement release.
@@ -234,9 +239,9 @@ so normal builds, tests, and `npm pack` cannot publish the package.
 
 ## Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| `ERROR  Missing publisher name` | Ensure `publisher` is set in `package.json` (currently `bahonavi`). |
-| `ERROR  It seems the README.md still contains template text` | Update `README.md` to remove placeholder content. |
-| Build fails before packaging | Run `npm run package` separately first and resolve any webpack errors. |
-| VSIX installs but extension does not activate | Check `dist/extension.js` exists. Ensure `"main": "./dist/extension.js"` in `package.json`. |
+| Problem                                                      | Solution                                                                                    |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| `ERROR  Missing publisher name`                              | Ensure `publisher` is set in `package.json` (currently `bahonavi`).                         |
+| `ERROR  It seems the README.md still contains template text` | Update `README.md` to remove placeholder content.                                           |
+| Build fails before packaging                                 | Run `npm run package` separately first and resolve any webpack errors.                      |
+| VSIX installs but extension does not activate                | Check `dist/extension.js` exists. Ensure `"main": "./dist/extension.js"` in `package.json`. |
