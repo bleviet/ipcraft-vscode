@@ -359,6 +359,65 @@ describe('HwTclParser', () => {
         width: 'DATA_WIDTH',
       });
     });
+
+    it('resolves a parameter value assigned to a Tcl variable', () => {
+      const tcl = `
+        add_interface data conduit end
+        add_parameter DATA_WIDTH INTEGER 32
+        proc elaborate {} {
+            set dataWidth [get_parameter_value DATA_WIDTH]
+            add_interface_port data data data Input $dataWidth
+        }
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        ports: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.ports).toHaveLength(1);
+      expect(doc.ports[0]).toMatchObject({
+        name: 'data',
+        direction: 'in',
+        width: 'DATA_WIDTH',
+      });
+    });
+
+    it('resolves braced and embedded Tcl variable references', () => {
+      const tcl = `
+        add_interface data conduit end
+        add_parameter DATA_WIDTH INTEGER 32
+        proc elaborate {} {
+            set dataWidth [get_parameter_value DATA_WIDTH]
+            add_interface_port data data data Input "\${dataWidth} * 2"
+            add_interface_port data strobe strobe Input $dataWidth/8
+        }
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        ports: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.ports).toHaveLength(2);
+      expect(doc.ports[0].width).toBe('DATA_WIDTH * 2');
+      expect(doc.ports[1].width).toBe('DATA_WIDTH/8');
+    });
+
+    it('does not substitute braced, escaped, or unknown Tcl variable references', () => {
+      const tcl = `
+        add_interface data conduit end
+        set dataWidth [get_parameter_value DATA_WIDTH]
+        add_interface_port data braced braced Input {$dataWidth}
+        add_interface_port data escaped escaped Input "\\$dataWidth"
+        add_interface_port data unknown unknown Input $missingWidth
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        ports: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.ports.map((port) => port.width)).toEqual([
+        '$dataWidth',
+        '$dataWidth',
+        '$missingWidth',
+      ]);
+    });
   });
 
   describe('interrupts', () => {

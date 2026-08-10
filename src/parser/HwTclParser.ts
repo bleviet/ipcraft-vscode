@@ -262,6 +262,7 @@ export function parseHwTclContent(
     paramParents: new Map(),
     displayNames: new Map(),
   };
+  const variables = new Map<string, string>();
   let currentFileSet: TclFileSet | null = null;
 
   for (const rawLine of content.split('\n')) {
@@ -270,14 +271,16 @@ export function parseHwTclContent(
       continue;
     }
 
-    const tokens = parseTclTokens(line);
+    const tokens = parseTclTokens(line, variables);
     if (tokens.length === 0) {
       continue;
     }
 
     const [cmd, ...args] = tokens;
 
-    if (cmd === 'set_module_property' && args.length >= 2) {
+    if (cmd === 'set' && args.length >= 2) {
+      variables.set(args[0], args[1]);
+    } else if (cmd === 'set_module_property' && args.length >= 2) {
       moduleProps.set(args[0], args[1]);
     } else if (cmd === 'add_interface' && args.length >= 3) {
       const [name, type, mode] = args;
@@ -602,7 +605,10 @@ export function parseHwTclContent(
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function parseTclTokens(line: string): string[] {
+function parseTclTokens(
+  line: string,
+  variables: ReadonlyMap<string, string> = new Map()
+): string[] {
   const tokens: string[] = [];
   let i = 0;
 
@@ -619,15 +625,17 @@ function parseTclTokens(line: string): string[] {
       let val = '';
       while (i < line.length && line[i] !== '"') {
         if (line[i] === '\\' && i + 1 < line.length) {
-          i++;
-          val += line[i];
+          const escaped = line[i + 1];
+          val += escaped === '$' ? `\\${escaped}` : escaped;
+          i += 2;
+          continue;
         } else {
           val += line[i];
         }
         i++;
       }
       i++; // closing quote
-      tokens.push(val);
+      tokens.push(substituteTclVariables(val, variables));
       continue;
     }
 
@@ -683,7 +691,7 @@ function parseTclTokens(line: string): string[] {
       i++; // closing bracket
       const paramRef = /^\s*get_parameter_value\s+(\S+)\s*$/.exec(body);
       if (paramRef) {
-        tokens.push(paramRef[1]);
+        tokens.push(substituteTclVariables(paramRef[1], variables));
       } else {
         // A more complex expression this parser can't reduce to a single parameter
         // reference — e.g. a clog2-style width `[expr int(ceil(log([get_parameter_value
@@ -694,7 +702,7 @@ function parseTclTokens(line: string): string[] {
         // add_interface_port's own width parsing already falls back to keeping a
         // non-numeric widthStr as-is, so this just surfaces the port with an
         // unresolved (string) width instead of losing it.
-        tokens.push(body);
+        tokens.push(substituteTclVariables(body, variables));
       }
       continue;
     }
@@ -705,10 +713,62 @@ function parseTclTokens(line: string): string[] {
       val += line[i];
       i++;
     }
-    tokens.push(val);
+    tokens.push(substituteTclVariables(val, variables));
   }
 
   return tokens;
+}
+
+/**
+ * Applies the two common Tcl variable-reference forms to a word. Unknown
+ * variables stay verbatim so an unsupported or out-of-scope reference is not
+ * silently discarded. Braced Tcl words bypass this helper in parseTclTokens,
+ * matching Tcl's rule that braces suppress substitutions.
+ */
+function substituteTclVariables(value: string, variables: ReadonlyMap<string, string>): string {
+  let result = '';
+  let i = 0;
+
+  while (i < value.length) {
+    if (value[i] === '\\' && value[i + 1] === '$') {
+      result += '$';
+      i += 2;
+      continue;
+    }
+
+    if (value[i] !== '$') {
+      result += value[i];
+      i++;
+      continue;
+    }
+
+    let name = '';
+    let end = i + 1;
+    if (value[end] === '{') {
+      const closingBrace = value.indexOf('}', end + 1);
+      if (closingBrace === -1) {
+        result += '$';
+        i++;
+        continue;
+      }
+      name = value.slice(end + 1, closingBrace);
+      end = closingBrace + 1;
+    } else {
+      const nameMatch = /^[A-Za-z0-9_:]+/.exec(value.slice(end));
+      if (!nameMatch) {
+        result += '$';
+        i++;
+        continue;
+      }
+      name = nameMatch[0];
+      end += name.length;
+    }
+
+    result += variables.get(name) ?? value.slice(i, end);
+    i = end;
+  }
+
+  return result;
 }
 
 function mapDirection(dir: string): string {
