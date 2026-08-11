@@ -1,0 +1,2978 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/superpowers/plans/2026-08-02-block-design-system-verification/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Block Design System Verification Implementation Plan - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#block-design-system-verification-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Block Design System Verification Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/development/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../how-to/create-your-first-ip-core/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../concepts/yaml-data-flow/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/de10-nano-case-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DE10-Nano Case Study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/create-your-first-ip-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Your First IP Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/defining-a-custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Defining a Custom Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/importing-an-existing-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing an Existing Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/customizing-generated-files-with-scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customizing Generated Files with Scaffold Packs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/check-consistency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking Consistency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/use-data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/using-arithmetic-functions-in-port-widths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Arithmetic Functions in Port Widths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-cocotb-simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a Cocotb Simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/vivado-interface-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vivado Interface Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Template Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-feature-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Feature Coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/bit-field-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/vsix-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSIX Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Developer Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/docs-screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Docs Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../images/codicons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codicon Attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#global-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Constraints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-1-define-the-normalized-system-verification-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Define the normalized system-verification contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-2-build-the-pure-route-planner-and-deterministic-register-oracle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Build the pure route planner and deterministic register oracle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-3-discover-recreated-vivado-systems-in-an-isolated-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Discover recreated Vivado systems in an isolated workspace
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-4-generate-the-tracked-vhdlxsim-runner-scaffold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Generate the tracked VHDL/XSim runner scaffold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-5-reuse-staging-for-generated-system-verification-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Reuse staging for generated system-verification files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6-add-the-generate-from-tcl-command-and-reviewed-selections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Add the generate-from-Tcl command and reviewed selections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7-run-make-run-with-typed-lifecycle-events-and-cancellation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Run make run with typed lifecycle events and cancellation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-8-add-the-run-command-and-make-the-makefile-the-shared-execution-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8: Add the run command and make the Makefile the shared execution path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-9-prove-the-vhdl-bfm-independently-of-vivado" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9: Prove the VHDL BFM independently of Vivado
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-10-prove-a-recreated-mixed-language-vivadoxsim-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 10: Prove a recreated mixed-language Vivado/XSim system
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-11-document-the-workflow-and-verify-the-complete-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 11: Document the workflow and verify the complete change
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/superpowers/plans/2026-08-02-block-design-system-verification.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="block-design-system-verification-implementation-plan">Block Design System Verification Implementation Plan<a class="headerlink" href="#block-design-system-verification-implementation-plan" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Generate, review, run, and diagnose a VHDL AXI4-Lite register-contract testbench for a Vivado block design recreated from a checked-in Tcl script.</p>
+<p><strong>Architecture:</strong> Keep normalized configuration, Vivado-discovery data, route resolution, and deterministic register-vector construction as pure TypeScript. A Vivado-specific service runs the recreation/query Tcl in an isolated workspace, then generator templates produce a tracked <code>verification/</code> directory containing the configuration, mandatory Makefile, Tcl runner, VHDL testbench, and narrow AXI4-Lite BFM. The command stages every generated source file through the existing <code>StagingPanel</code>; a runner subsequently invokes <code>make run</code>, streams typed lifecycle events to a dedicated run panel, and retains only disposable execution output under <code>.ipcraft/system-verification/</code>.</p>
+<p><strong>Tech Stack:</strong> TypeScript, VS Code extension APIs, <code>yaml</code> v2, Node child processes, Vivado Tcl/XSim, VHDL-2008, Nunjucks templates, GNU Make, Jest, GHDL (optional BFM integration gate), Vivado/XSim (optional vendor integration gate).</p>
+<h2 id="global-constraints">Global Constraints<a class="headerlink" href="#global-constraints" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Version 1 supports Vivado only and drives an already-exposed AXI4-Lite block-design boundary; it must not alter the recreation Tcl, <code>.bd</code>, or in-memory block-design graph.</li>
+<li>V1 generates VHDL only; it uses XSim for mixed-language DUT elaboration and does not depend on Cocotb, Questa, or AXI VIP.</li>
+<li>The BFM supports exactly one ordered, single-word AXI4-Lite transaction at a time. Bursts, multiple outstanding transactions, randomization, and AXI VIP are out of scope.</li>
+<li>Register vectors are deterministic: reset checks plus zero, all writable bits set, and walking-one values only where the field access semantics permit them.</li>
+<li><code>clockPath</code>, <code>clockPeriodNs</code>, <code>resetPath</code>, <code>resetActiveLow</code>, and <code>resetCycles</code> are explicit configuration values; never infer them from signal names.</li>
+<li><code>Makefile</code> is a mandatory, tracked generated file; GNU Make and Vivado must be preflighted before runs.</li>
+<li>Generated reviewed sources live beside the Tcl at <code>verification/</code>; disposable Vivado/XSim output lives only in <code>.ipcraft/system-verification/&lt;run-id&gt;/</code>.</li>
+<li>Preserve the dependency direction: pure types/utilities → services/controllers → providers/components. Use camelCase TypeScript and YAML fields only.</li>
+<li>All generated source writes must use the existing staging review. Cancelling staging writes no user-workspace source files.</li>
+<li>Extension-side code uses <code>Logger</code>, never <code>console.log</code>; documentation contains no emojis.</li>
+<li>Do not auto-commit. Before a later developer commit, run <code>npm run lint</code>, <code>npm run type-check</code>, relevant Jest suites with <code>--config config/jest.config.js</code>, and the gated integration suite where the tools are available.</li>
+</ul>
+<hr />
+<h2 id="file-structure">File structure<a class="headerlink" href="#file-structure" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/domain/systemVerification.types.ts</code></td>
+<td>Immutable normalized configuration, discovery manifest, route, test-plan, vector, lifecycle, and result types.</td>
+</tr>
+<tr>
+<td><code>src/services/systemVerification/SystemVerificationConfig.ts</code></td>
+<td>Parse/validate/configure the tracked YAML file and create its initial YAML text.</td>
+</tr>
+<tr>
+<td><code>src/services/systemVerification/SystemVerificationPlanner.ts</code></td>
+<td>Pure validation, address resolution, and deterministic register-vector construction.</td>
+</tr>
+<tr>
+<td><code>src/services/systemVerification/VivadoSystemDiscovery.ts</code></td>
+<td>Generate discovery Tcl, launch Vivado through the configured toolchain, and parse a JSON discovery manifest.</td>
+</tr>
+<tr>
+<td><code>src/services/systemVerification/SystemVerificationScaffolder.ts</code></td>
+<td>Render the Makefile, Tcl, VHDL BFM/testbench, and configuration artifact map.</td>
+</tr>
+<tr>
+<td><code>src/services/systemVerification/SystemVerificationStaging.ts</code></td>
+<td>Categorize generated system-verification files, invoke <code>StagingPanel</code>, and apply only accepted writes.</td>
+</tr>
+<tr>
+<td><code>src/services/systemVerification/SystemVerificationRunner.ts</code></td>
+<td>Preflight Make/Vivado, allocate run output, invoke <code>make run</code>, decode <code>result.json</code>, and emit lifecycle events.</td>
+</tr>
+<tr>
+<td><code>src/commands/SystemVerificationCommands.ts</code></td>
+<td>Command composition: Tcl picker, discovery selections, staging, run, cancellation, and user notifications.</td>
+</tr>
+<tr>
+<td><code>src/providers/SystemVerificationRunPanel.ts</code></td>
+<td>Minimal standalone webview for typed lifecycle stage, route summary, first failure, logs, and waveform links.</td>
+</tr>
+<tr>
+<td><code>src/generator/templates/system_verification_*.j2</code></td>
+<td>Generated Makefile, Tcl runner, VHDL BFM, VHDL testbench, and YAML starter templates.</td>
+</tr>
+<tr>
+<td><code>src/test/suite/services/systemVerification/*.test.ts</code></td>
+<td>Fast configuration, planner, discovery, scaffold, staging, and runner tests.</td>
+</tr>
+<tr>
+<td><code>src/test/suite/commands/SystemVerificationCommands.test.ts</code></td>
+<td>Command picker, staging, selection, cancellation, and notification tests.</td>
+</tr>
+<tr>
+<td><code>src/test/integration/system-verification.test.ts</code></td>
+<td>Gated GHDL/Vivado integration coverage.</td>
+</tr>
+<tr>
+<td><code>src/test/fixtures/system-verification/</code></td>
+<td>AXI4-Lite VHDL slave, mixed-language Vivado block-design recreation Tcl, and expected manifests.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="task-1-define-the-normalized-system-verification-contract">Task 1: Define the normalized system-verification contract<a class="headerlink" href="#task-1-define-the-normalized-system-verification-contract" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/domain/systemVerification.types.ts</code></li>
+<li>Create: <code>src/services/systemVerification/SystemVerificationConfig.ts</code></li>
+<li>Test: <code>src/test/suite/services/systemVerification/SystemVerificationConfig.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Produces <code>SystemVerificationConfig</code>, <code>SystemVerificationTarget</code>, <code>DiscoveredSystem</code>, <code>DiscoveredAxiRoute</code>, <code>VerificationVector</code>, <code>SystemVerificationPlan</code>, <code>SystemVerificationStage</code>, and <code>SystemVerificationResult</code>.</li>
+<li>
+<p>Produces <code>parseSystemVerificationConfig(text, sourcePath)</code> and <code>createSystemVerificationConfigText(config)</code> for all later services.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing configuration tests</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;accepts an explicit V1 AXI4-Lite configuration&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span>
+<span class="w">    </span><span class="nx">parseSystemVerificationConfig</span><span class="p">(</span><span class="nx">validYaml</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;/work/verification/system-verification.yml&#39;</span><span class="p">)</span>
+<span class="w">  </span><span class="p">).</span><span class="nx">toMatchObject</span><span class="p">({</span><span class="w"> </span><span class="nx">clockPeriodNs</span><span class="o">:</span><span class="w"> </span><span class="kt">10</span><span class="p">,</span><span class="w"> </span><span class="nx">resetActiveLow</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="p">,</span><span class="w"> </span><span class="nx">resetCycles</span><span class="o">:</span><span class="w"> </span><span class="kt">5</span><span class="w"> </span><span class="p">});</span>
+<span class="p">});</span>
+
+<span class="nx">it</span><span class="p">.</span><span class="nx">each</span><span class="p">([</span>
+<span class="w">  </span><span class="p">[</span>
+<span class="w">    </span><span class="nx">validYaml</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="s1">&#39;clockPeriodNs: 10&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;clockPeriodNs: 0&#39;</span><span class="p">),</span>
+<span class="w">    </span><span class="sr">/clockPeriodNs must be greater than zero/</span><span class="p">,</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="p">[</span><span class="nx">validYaml</span><span class="p">.</span><span class="nx">replace</span><span class="p">(</span><span class="s1">&#39;resetCycles: 5&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;resetCycles: 0&#39;</span><span class="p">),</span><span class="w"> </span><span class="sr">/resetCycles must be a positive integer/</span><span class="p">],</span>
+<span class="p">])(</span><span class="s1">&#39;rejects invalid configuration&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">yaml</span><span class="p">,</span><span class="w"> </span><span class="nx">message</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">parseSystemVerificationConfig</span><span class="p">(</span><span class="nx">yaml</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;x.yml&#39;</span><span class="p">)).</span><span class="nx">toThrow</span><span class="p">(</span><span class="nx">message</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the failing test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationConfig.test.ts</code></p>
+<p>Expected: FAIL because the module does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Add explicit types and parser</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">SystemVerificationConfig</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">recreateScript</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">part</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">designName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">clockPath</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">clockPeriodNs</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">resetPath</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">resetActiveLow</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">resetCycles</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">target</span><span class="o">:</span><span class="w"> </span><span class="kt">SystemVerificationTarget</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">parseSystemVerificationConfig</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">text</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">sourcePath</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">SystemVerificationConfig</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// yaml.parseDocument, validate exact camelCase keys and return normalized paths relative to sourcePath.</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Reject missing target paths and unsupported non-AXI4-Lite discovered routes with field-specific errors. Serialize only camelCase YAML fields in a deterministic field order.</p>
+<ul>
+<li>[ ] <strong>Step 4: Run the configuration test again</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationConfig.test.ts</code></p>
+<p>Expected: PASS.</p>
+<ul>
+<li>[ ] <strong>Step 5: Add contract boundary tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;round-trips a newly generated configuration without changing relative paths&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">createSystemVerificationConfigText</span><span class="p">(</span><span class="nx">config</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">parseSystemVerificationConfig</span><span class="p">(</span><span class="nx">text</span><span class="p">,</span><span class="w"> </span><span class="nx">configPath</span><span class="p">)).</span><span class="nx">toEqual</span><span class="p">(</span><span class="nx">config</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 6: Run formatting and type checks for the new contract</strong></li>
+</ul>
+<p>Run: <code>npx prettier --check src/domain/systemVerification.types.ts src/services/systemVerification/SystemVerificationConfig.ts src/test/suite/services/systemVerification/SystemVerificationConfig.test.ts &amp;&amp; npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationConfig.test.ts</code></p>
+<p>Expected: both commands exit 0.</p>
+<h3 id="task-2-build-the-pure-route-planner-and-deterministic-register-oracle">Task 2: Build the pure route planner and deterministic register oracle<a class="headerlink" href="#task-2-build-the-pure-route-planner-and-deterministic-register-oracle" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/services/systemVerification/SystemVerificationPlanner.ts</code></li>
+<li>Test: <code>src/test/suite/services/systemVerification/SystemVerificationPlanner.test.ts</code></li>
+<li>Test fixture: <code>src/test/fixtures/system-verification/discovered-system.json</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes <code>SystemVerificationConfig</code>, <code>DiscoveredSystem</code>, and <code>NormalizedMemoryMap</code>.</li>
+<li>Produces <code>buildSystemVerificationPlan(config, discovered, memoryMap): SystemVerificationPlan</code>.</li>
+<li>
+<p>Produces <code>buildDeterministicVectors(register, busBytes): VerificationVector[]</code> for template rendering and unit tests.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing route-resolution tests</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;uses the discovered system base plus register offset&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">plan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">buildSystemVerificationPlan</span><span class="p">(</span><span class="nx">config</span><span class="p">,</span><span class="w"> </span><span class="nx">discovered</span><span class="p">,</span><span class="w"> </span><span class="nx">memoryMap</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">plan</span><span class="p">.</span><span class="nx">transactions</span><span class="p">.</span><span class="nx">find</span><span class="p">((</span><span class="nx">item</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">item</span><span class="p">.</span><span class="nx">registerName</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;CONTROL&#39;</span><span class="p">)).</span><span class="nx">toMatchObject</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">address</span><span class="o">:</span><span class="w"> </span><span class="kt">0x44a00004</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="p">});</span>
+
+<span class="nx">it</span><span class="p">(</span><span class="s1">&#39;rejects an ambiguous compatible route&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">buildSystemVerificationPlan</span><span class="p">(</span><span class="nx">config</span><span class="p">,</span><span class="w"> </span><span class="nx">ambiguousSystem</span><span class="p">,</span><span class="w"> </span><span class="nx">memoryMap</span><span class="p">)).</span><span class="nx">toThrow</span><span class="p">(</span>
+<span class="w">    </span><span class="sr">/target.*has more than one AXI4-Lite route/</span>
+<span class="w">  </span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the failing planner test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationPlanner.test.ts</code></p>
+<p>Expected: FAIL because the planner does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement route and address validation</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">buildSystemVerificationPlan</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">config</span><span class="o">:</span><span class="w"> </span><span class="kt">SystemVerificationConfig</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">discovered</span><span class="o">:</span><span class="w"> </span><span class="kt">DiscoveredSystem</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">memoryMap</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedMemoryMap</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">SystemVerificationPlan</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">route</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">resolveUniqueAxi4LiteRoute</span><span class="p">(</span><span class="nx">config</span><span class="p">.</span><span class="nx">target</span><span class="p">,</span><span class="w"> </span><span class="nx">discovered</span><span class="p">);</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">route</span><span class="p">,</span><span class="w"> </span><span class="nx">transactions</span><span class="o">:</span><span class="w"> </span><span class="kt">buildRegisterTransactions</span><span class="p">(</span><span class="nx">route</span><span class="p">.</span><span class="nx">baseAddress</span><span class="p">,</span><span class="w"> </span><span class="nx">memoryMap</span><span class="p">)</span><span class="w"> </span><span class="p">};</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Reject missing boundary interfaces, missing target instances, non-AXI4-Lite routes, non-unique routes, and address ranges smaller than the memory map. Keep all path matching exact; do not add guessed-name fallback behavior.</p>
+<ul>
+<li>[ ] <strong>Step 4: Add failing vector tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;emits reset, zero, writable-ones, and per-bit walking-one vectors in address order&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">buildDeterministicVectors</span><span class="p">(</span><span class="nx">controlRegister</span><span class="p">,</span><span class="w"> </span><span class="mf">4</span><span class="p">)).</span><span class="nx">toEqual</span><span class="p">([</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;resetRead&#39;</span><span class="w"> </span><span class="p">}),</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;writeReadback&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">writeValue</span><span class="o">:</span><span class="w"> </span><span class="kt">0</span><span class="w"> </span><span class="p">}),</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;writeReadback&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">writeValue</span><span class="o">:</span><span class="w"> </span><span class="kt">0x00000003</span><span class="w"> </span><span class="p">}),</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;writeReadback&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">writeValue</span><span class="o">:</span><span class="w"> </span><span class="kt">0x00000001</span><span class="w"> </span><span class="p">}),</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;writeReadback&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">writeValue</span><span class="o">:</span><span class="w"> </span><span class="kt">0x00000002</span><span class="w"> </span><span class="p">}),</span>
+<span class="w">  </span><span class="p">]);</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 5: Implement vector construction</strong></li>
+</ul>
+<p>Use the normalized field access rules to create masks and expected readback values. Exclude read-only, write-one-to-clear, volatile, and side-effect fields from write/readback vectors; retain their legal reset/read checks. Make the skipped reason explicit in the plan so generated comments and UI diagnostics explain it.</p>
+<ul>
+<li>[ ] <strong>Step 6: Run planner tests</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationPlanner.test.ts</code></p>
+<p>Expected: PASS with both success and rejection cases.</p>
+<h3 id="task-3-discover-recreated-vivado-systems-in-an-isolated-workspace">Task 3: Discover recreated Vivado systems in an isolated workspace<a class="headerlink" href="#task-3-discover-recreated-vivado-systems-in-an-isolated-workspace" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/services/systemVerification/VivadoSystemDiscovery.ts</code></li>
+<li>Create: <code>src/generator/templates/system_verification_discover.tcl.j2</code></li>
+<li>Test: <code>src/test/suite/services/systemVerification/VivadoSystemDiscovery.test.ts</code></li>
+<li>Test fixture: <code>src/test/fixtures/system-verification/discovery-output.json</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes a <code>VivadoToolchain</code>, <code>SystemVerificationConfig</code>, workspace root, and cancellation token.</li>
+<li>Produces <code>discoverVivadoSystem(request): Promise&lt;DiscoveredSystem&gt;</code>.</li>
+<li>
+<p>The command layer owns all QuickPick decisions; discovery never opens UI.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing command-construction and manifest-parsing tests</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;runs Vivado in batch mode inside the supplied scratch directory&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">discovery</span><span class="p">.</span><span class="nx">discover</span><span class="p">(</span><span class="nx">request</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">runProcess</span><span class="p">).</span><span class="nx">toHaveBeenCalledWith</span><span class="p">(</span>
+<span class="w">    </span><span class="s1">&#39;vivado&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">arrayContaining</span><span class="p">([</span><span class="s1">&#39;-mode&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;batch&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;-source&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">expect</span><span class="p">.</span><span class="nx">stringContaining</span><span class="p">(</span><span class="s1">&#39;discover.tcl&#39;</span><span class="p">)]),</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">cwd</span><span class="o">:</span><span class="w"> </span><span class="kt">scratchDir</span><span class="w"> </span><span class="p">})</span>
+<span class="w">  </span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">it</span><span class="p">(</span><span class="s1">&#39;rejects malformed discovery JSON with its source path&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">expect</span><span class="p">(</span><span class="nx">discovery</span><span class="p">.</span><span class="nx">parseManifest</span><span class="p">(</span><span class="s1">&#39;{bad}&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">manifestPath</span><span class="p">)).</span><span class="nx">rejects</span><span class="p">.</span><span class="nx">toThrow</span><span class="p">(</span><span class="sr">/manifestPath/</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the failing discovery test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/VivadoSystemDiscovery.test.ts</code></p>
+<p>Expected: FAIL because the discovery service does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement Tcl query generation and manifest parsing</strong></li>
+</ul>
+<p>The Tcl script must source the selected recreation script in a fresh temporary project/work directory, verify the configured design name, and emit one JSON file containing only: design name, block-boundary ports/interfaces, component instances, AXI interface properties, graph route candidates, and address segments. Use a file result rather than scraping console output. Invoke Vivado through <code>VivadoToolchain.resolve</code>, <code>getDocker</code>, <code>getLaunchEnv</code>, and <code>runProcess</code> so local and configured Docker execution retain existing behavior.</p>
+<ul>
+<li>[ ] <strong>Step 4: Run discovery tests</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/VivadoSystemDiscovery.test.ts</code></p>
+<p>Expected: PASS, including source order and malformed-result diagnostics.</p>
+<ul>
+<li>[ ] <strong>Step 5: Add cancellation cleanup coverage</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;removes the scratch directory when discovery is cancelled before staging&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">expect</span><span class="p">(</span><span class="nx">discovery</span><span class="p">.</span><span class="nx">discover</span><span class="p">(</span><span class="nx">cancelledRequest</span><span class="p">)).</span><span class="nx">rejects</span><span class="p">.</span><span class="nx">toThrow</span><span class="p">(</span><span class="sr">/cancelled/</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">fs</span><span class="p">.</span><span class="nx">existsSync</span><span class="p">(</span><span class="nx">scratchDir</span><span class="p">)).</span><span class="nx">toBe</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<h3 id="task-4-generate-the-tracked-vhdlxsim-runner-scaffold">Task 4: Generate the tracked VHDL/XSim runner scaffold<a class="headerlink" href="#task-4-generate-the-tracked-vhdlxsim-runner-scaffold" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/services/systemVerification/SystemVerificationScaffolder.ts</code></li>
+<li>Create: <code>src/generator/templates/system_verification_makefile.j2</code></li>
+<li>Create: <code>src/generator/templates/system_verification_run_xsim.tcl.j2</code></li>
+<li>Create: <code>src/generator/templates/system_verification_tb.vhd.j2</code></li>
+<li>Create: <code>src/generator/templates/system_verification_axi4lite_bfm.vhd.j2</code></li>
+<li>Test: <code>src/test/suite/services/systemVerification/SystemVerificationScaffolder.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes <code>SystemVerificationConfig</code>, <code>SystemVerificationPlan</code>, and an output directory.</li>
+<li>
+<p>Produces <code>scaffoldSystemVerification(input): Record&lt;string, string&gt;</code> with the exact relative paths <code>system-verification.yml</code>, <code>Makefile</code>, <code>scripts/run_xsim.tcl</code>, <code>tb/system_verification_tb.vhd</code>, and <code>tb/axi4lite_master_bfm.vhd</code>.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write a failing generated-file contract test</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;renders the mandatory Makefile and VHDL BFM with resolved plan values&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">files</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">scaffoldSystemVerification</span><span class="p">(</span><span class="nx">input</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nb">Object</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">files</span><span class="p">).</span><span class="nx">sort</span><span class="p">()).</span><span class="nx">toEqual</span><span class="p">([</span>
+<span class="w">    </span><span class="s1">&#39;Makefile&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;scripts/run_xsim.tcl&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;system-verification.yml&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;tb/axi4lite_master_bfm.vhd&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;tb/system_verification_tb.vhd&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">]);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">files</span><span class="p">.</span><span class="nx">Makefile</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;run:&#39;</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">files</span><span class="p">[</span><span class="s1">&#39;tb/system_verification_tb.vhd&#39;</span><span class="p">]).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;44A00004&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the failing scaffold test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationScaffolder.test.ts</code></p>
+<p>Expected: FAIL because the scaffolder does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Render all five tracked artifacts</strong></li>
+</ul>
+<p>The Makefile must expose <code>run</code>, <code>clean</code>, and <code>help</code>; <code>run</code> calls <code>$(VIVADO) -mode batch -source scripts/run_xsim.tcl</code>, and <code>WAVES=1</code> is forwarded as a Tcl argument. The Tcl runner must recreate/export sources into <code>RUN_DIR</code>, compile via Vivado-generated source order, elaborate XSim, execute batch simulation, and write <code>result.json</code> on both pass and failure paths. The VHDL testbench must drive the explicit clock/reset and call BFM single-word procedures only. The BFM must use bounded <code>AW</code>, <code>W</code>, <code>B</code>, <code>AR</code>, and <code>R</code> handshakes and fail with transaction context on timeout or non-<code>OKAY</code> response.</p>
+<ul>
+<li>[ ] <strong>Step 4: Add source-level assertions for V1 scope</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">files</span><span class="p">[</span><span class="s1">&#39;tb/axi4lite_master_bfm.vhd&#39;</span><span class="p">]).</span><span class="nx">not</span><span class="p">.</span><span class="nx">toMatch</span><span class="p">(</span><span class="sr">/burst|axi_vip|cocotb|questa/i</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">files</span><span class="p">[</span><span class="s1">&#39;tb/system_verification_tb.vhd&#39;</span><span class="p">]).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;resetCycles&#39;</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">files</span><span class="p">[</span><span class="s1">&#39;tb/system_verification_tb.vhd&#39;</span><span class="p">]).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;walking-one&#39;</span><span class="p">);</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 5: Run the scaffold test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationScaffolder.test.ts</code></p>
+<p>Expected: PASS.</p>
+<h3 id="task-5-reuse-staging-for-generated-system-verification-files">Task 5: Reuse staging for generated system-verification files<a class="headerlink" href="#task-5-reuse-staging-for-generated-system-verification-files" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/services/systemVerification/SystemVerificationStaging.ts</code></li>
+<li>Test: <code>src/test/suite/services/systemVerification/SystemVerificationStaging.test.ts</code></li>
+<li>Modify: <code>src/providers/StagingPanel.ts</code> only if a small typed <code>stageAndApply</code> helper prevents duplicated status/merge/overwrite policy.</li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes <code>Record&lt;string, string&gt;</code> and an absolute <code>verification/</code> directory.</li>
+<li>Produces <code>stageSystemVerificationFiles(contents, outputDir): Promise&lt;{ accepted: boolean; writtenPaths: string[] }&gt;</code>.</li>
+<li>
+<p>Uses the existing <code>StagedFile</code> and <code>StagingDecision</code> contracts; never opens an IP-core webview staging bridge.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing staging tests</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;opens the existing panel before writing a new file&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">stageSystemVerificationFiles</span><span class="p">({</span><span class="w"> </span><span class="nx">Makefile</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;run:\n&#39;</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nx">verificationDir</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">StagingPanel</span><span class="p">.</span><span class="nx">show</span><span class="p">).</span><span class="nx">toHaveBeenCalledWith</span><span class="p">([</span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">status</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;new&#39;</span><span class="w"> </span><span class="p">})],</span><span class="w"> </span><span class="p">[]);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">fs</span><span class="p">.</span><span class="nx">existsSync</span><span class="p">(</span><span class="nx">path</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">verificationDir</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;Makefile&#39;</span><span class="p">))).</span><span class="nx">toBe</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">it</span><span class="p">(</span><span class="s1">&#39;writes only accepted new and selected modified files&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">jest</span>
+<span class="w">    </span><span class="p">.</span><span class="nx">spyOn</span><span class="p">(</span><span class="nx">StagingPanel</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;show&#39;</span><span class="p">)</span>
+<span class="w">    </span><span class="p">.</span><span class="nx">mockResolvedValue</span><span class="p">({</span><span class="w"> </span><span class="nx">confirmed</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="p">,</span><span class="w"> </span><span class="nx">mergedPaths</span><span class="o">:</span><span class="w"> </span><span class="p">[],</span><span class="w"> </span><span class="nx">overwritePaths</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;Makefile&#39;</span><span class="p">]</span><span class="w"> </span><span class="p">});</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">((</span><span class="k">await</span><span class="w"> </span><span class="nx">stageSystemVerificationFiles</span><span class="p">(</span><span class="nx">contents</span><span class="p">,</span><span class="w"> </span><span class="nx">verificationDir</span><span class="p">)).</span><span class="nx">writtenPaths</span><span class="p">).</span><span class="nx">toEqual</span><span class="p">([</span>
+<span class="w">    </span><span class="s1">&#39;Makefile&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">]);</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the failing staging test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationStaging.test.ts</code></p>
+<p>Expected: FAIL because the staging service does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement categorization and accepted writes</strong></li>
+</ul>
+<p>Use the same new/modified/unchanged comparison and overwrite semantics as <code>GenerationEngine</code>, but keep the new service independent of <code>.ip.yml</code> and <code>WebviewStagingBridge</code>. Resolve every path against <code>verificationDir</code>; reject a generated relative path that escapes it. On cancel, return <code>{ accepted: false, writtenPaths: [] }</code> and write nothing. Preserve merge-editor paths exactly as <code>StagingPanel</code> requires.</p>
+<ul>
+<li>[ ] <strong>Step 4: Run staging tests</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationStaging.test.ts src/test/suite/providers/stagingMerge.test.ts</code></p>
+<p>Expected: PASS.</p>
+<h3 id="task-6-add-the-generate-from-tcl-command-and-reviewed-selections">Task 6: Add the generate-from-Tcl command and reviewed selections<a class="headerlink" href="#task-6-add-the-generate-from-tcl-command-and-reviewed-selections" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/commands/SystemVerificationCommands.ts</code></li>
+<li>Modify: <code>src/commands/GenerateCommands.ts</code></li>
+<li>Modify: <code>package.json</code></li>
+<li>Test: <code>src/test/suite/commands/SystemVerificationCommands.test.ts</code></li>
+<li>Test: <code>src/test/suite/commands/GenerateCommands.characterization.test.ts</code></li>
+<li>Test: <code>src/test/suite/workspaceTrustManifest.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Register command ID <code>fpga-ip-core.generateSystemTestbench</code> with title <code>Generate System Testbench from Vivado Tcl</code> and <code>requiresWorkspaceTrust: true</code>.</li>
+<li>
+<p>Consumes <code>VivadoSystemDiscovery</code>, <code>SystemVerificationPlanner</code>, <code>SystemVerificationScaffolder</code>, and <code>SystemVerificationStaging</code> through narrow constructor parameters.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing command-flow tests</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;opens a Tcl picker, selects only discovered AXI4-Lite entries, then stages the scaffold&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">generateSystemTestbench</span><span class="p">(</span><span class="nx">dependencies</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">vscode</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">showOpenDialog</span><span class="p">).</span><span class="nx">toHaveBeenCalledWith</span><span class="p">(</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">filters</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">Tcl</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;tcl&#39;</span><span class="p">]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">})</span>
+<span class="w">  </span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">vscode</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">showQuickPick</span><span class="p">).</span><span class="nx">toHaveBeenCalledTimes</span><span class="p">(</span><span class="mf">6</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">stageSystemVerificationFiles</span><span class="p">).</span><span class="nx">toHaveBeenCalledWith</span><span class="p">(</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">any</span><span class="p">(</span><span class="nb">Object</span><span class="p">),</span>
+<span class="w">    </span><span class="nx">path</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="s1">&#39;/work/hardware/system&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;verification&#39;</span><span class="p">)</span>
+<span class="w">  </span><span class="p">);</span>
+<span class="p">});</span>
+
+<span class="nx">it</span><span class="p">(</span><span class="s1">&#39;stops without staging when a selection is cancelled&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">vscode</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">showQuickPick</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="nx">jest</span><span class="p">.</span><span class="nx">Mock</span><span class="p">).</span><span class="nx">mockResolvedValueOnce</span><span class="p">(</span><span class="kc">undefined</span><span class="p">);</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">generateSystemTestbench</span><span class="p">(</span><span class="nx">dependencies</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">stageSystemVerificationFiles</span><span class="p">).</span><span class="nx">not</span><span class="p">.</span><span class="nx">toHaveBeenCalled</span><span class="p">();</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the failing command test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/commands/SystemVerificationCommands.test.ts</code></p>
+<p>Expected: FAIL because the command does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement the selection and generation flow</strong></li>
+</ul>
+<p>Use <code>showOpenDialog</code> for the Tcl file, run discovery in an isolated temporary workspace, then require separate QuickPicks for block design, external AXI4-Lite interface, target instance, linked <code>.mm.yml</code>, clock path, and reset path. Ask for clock period, reset polarity, and reset cycles using validated input boxes. Default output to <code>&lt;tcl directory&gt;/verification</code>. Build the configuration and plan only after all selections are explicit, then stage the generated files. A cancelled picker deletes the discovery scratch directory and shows no success notification.</p>
+<ul>
+<li>[ ] <strong>Step 4: Register the command and manifest contribution</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">safeRegisterCommand</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">context</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">&#39;fpga-ip-core.generateSystemTestbench&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">generateSystemTestbench</span><span class="p">(</span><span class="nx">context</span><span class="p">,</span><span class="w"> </span><span class="nx">resourceRoots</span><span class="p">),</span>
+<span class="w">  </span><span class="p">{</span><span class="w"> </span><span class="nx">requiresWorkspaceTrust</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="w"> </span><span class="p">}</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>Add the matching <code>package.json</code> command contribution with <code>isWorkspaceTrusted &amp;&amp; ipcraft.vivadoFound</code> enablement. Add characterization and workspace-trust expectations so future refactors cannot expose it to untrusted workspaces.</p>
+<ul>
+<li>[ ] <strong>Step 5: Run command registration tests</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/commands/SystemVerificationCommands.test.ts src/test/suite/commands/GenerateCommands.characterization.test.ts src/test/suite/workspaceTrustManifest.test.ts</code></p>
+<p>Expected: PASS.</p>
+<h3 id="task-7-run-make-run-with-typed-lifecycle-events-and-cancellation">Task 7: Run <code>make run</code> with typed lifecycle events and cancellation<a class="headerlink" href="#task-7-run-make-run-with-typed-lifecycle-events-and-cancellation" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/services/systemVerification/SystemVerificationRunner.ts</code></li>
+<li>Modify: <code>src/services/BuildRunner.ts</code></li>
+<li>Create: <code>src/providers/SystemVerificationRunPanel.ts</code></li>
+<li>Test: <code>src/test/suite/services/systemVerification/SystemVerificationRunner.test.ts</code></li>
+<li>Test: <code>src/test/suite/providers/SystemVerificationRunPanel.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Produces <code>runSystemVerification(request, onEvent, cancellationToken): Promise&lt;SystemVerificationResult&gt;</code>.</li>
+<li>Emits <code>SystemVerificationLifecycleEvent</code> with one of <code>preflight</code>, <code>recreate</code>, <code>discover</code>, <code>plan</code>, <code>compile</code>, <code>run</code>, <code>complete</code> and a monotonic timestamp.</li>
+<li>
+<p><code>BuildRunner.runProcess</code> gains an optional VS Code cancellation token and a documented process-tree termination callback without changing existing callers.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing runner tests</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;preflights GNU Make and Vivado before invoking make run&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">expect</span><span class="p">(</span><span class="nx">runner</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="nx">request</span><span class="p">,</span><span class="w"> </span><span class="nx">onEvent</span><span class="p">,</span><span class="w"> </span><span class="nx">token</span><span class="p">)).</span><span class="nx">rejects</span><span class="p">.</span><span class="nx">toThrow</span><span class="p">(</span><span class="sr">/GNU Make/</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">runProcess</span><span class="p">).</span><span class="nx">not</span><span class="p">.</span><span class="nx">toHaveBeenCalled</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">it</span><span class="p">(</span><span class="s1">&#39;emits ordered lifecycle events and preserves result paths on a failed simulation&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">await</span><span class="w"> </span><span class="nx">runner</span><span class="p">.</span><span class="nx">run</span><span class="p">(</span><span class="nx">request</span><span class="p">,</span><span class="w"> </span><span class="nx">onEvent</span><span class="p">,</span><span class="w"> </span><span class="nx">token</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">onEvent</span><span class="p">.</span><span class="nx">mock</span><span class="p">.</span><span class="nx">calls</span><span class="p">.</span><span class="nx">map</span><span class="p">(([</span><span class="nx">event</span><span class="p">])</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">event</span><span class="p">.</span><span class="nx">stage</span><span class="p">)).</span><span class="nx">toEqual</span><span class="p">([</span>
+<span class="w">    </span><span class="s1">&#39;preflight&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;recreate&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;discover&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;plan&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;compile&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;run&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;complete&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">]);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">).</span><span class="nx">toMatchObject</span><span class="p">({</span><span class="w"> </span><span class="nx">outcome</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;failed&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">logsPath</span><span class="o">:</span><span class="w"> </span><span class="kt">expect.any</span><span class="p">(</span><span class="nb">String</span><span class="p">)</span><span class="w"> </span><span class="p">});</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the failing runner test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationRunner.test.ts</code></p>
+<p>Expected: FAIL because the runner does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement preflight, isolated run directories, and result parsing</strong></li>
+</ul>
+<p>Create a collision-resistant run ID under <code>&lt;workspace&gt;/.ipcraft/system-verification/</code>. Verify <code>make --version</code> and the configured Vivado toolchain before starting. Invoke <code>make run RUN_DIR=&lt;absolute run dir&gt; WAVES=0|1</code> through <code>runProcess</code>, keep raw output in a dedicated output channel, and parse a schema-checked <code>result.json</code>. A nonzero Make exit is a failure even if malformed output claims success. Preserve the run directory on pass, fail, and cancellation.</p>
+<ul>
+<li>[ ] <strong>Step 4: Add cancellation behavior to <code>BuildRunner</code></strong></li>
+</ul>
+<p>The cancellation implementation must terminate only the child process tree created for this run. Add tests using a spawned fixture process to prove the cancellation callback resolves once, marks the result as <code>cancelled</code>, and does not terminate an unrelated process. Do not change behavior for existing build callers that omit the token.</p>
+<ul>
+<li>[ ] <strong>Step 5: Implement the minimal run panel</strong></li>
+</ul>
+<p>The panel receives typed events only; it never parses terminal text. Render current stage, elapsed time, resolved route/base address, current scenario, first actionable diagnostic, and local links for logs/waves. Dispose safely on cancellation and ensure opening/closing it does not affect a running process.</p>
+<ul>
+<li>[ ] <strong>Step 6: Run runner and panel tests</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/services/systemVerification/SystemVerificationRunner.test.ts src/test/suite/providers/SystemVerificationRunPanel.test.ts</code></p>
+<p>Expected: PASS.</p>
+<h3 id="task-8-add-the-run-command-and-make-the-makefile-the-shared-execution-path">Task 8: Add the run command and make the Makefile the shared execution path<a class="headerlink" href="#task-8-add-the-run-command-and-make-the-makefile-the-shared-execution-path" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/commands/SystemVerificationCommands.ts</code></li>
+<li>Modify: <code>src/commands/GenerateCommands.ts</code></li>
+<li>Modify: <code>package.json</code></li>
+<li>Test: <code>src/test/suite/commands/SystemVerificationCommands.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Register <code>fpga-ip-core.runSystemTestbench</code> with title <code>Run System Testbench</code> and trusted-workspace/Vivado enablement.</li>
+<li>
+<p>Consumes a selected <code>system-verification.yml</code>; delegates exclusively to <code>SystemVerificationRunner</code>.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing run-command tests</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;uses the selected tracked configuration and starts the run panel&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">runSystemTestbench</span><span class="p">(</span><span class="nx">dependencies</span><span class="p">,</span><span class="w"> </span><span class="nx">vscode</span><span class="p">.</span><span class="nx">Uri</span><span class="p">.</span><span class="nx">file</span><span class="p">(</span><span class="nx">configPath</span><span class="p">));</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">runner</span><span class="p">.</span><span class="nx">run</span><span class="p">).</span><span class="nx">toHaveBeenCalledWith</span><span class="p">(</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span><span class="w"> </span><span class="nx">configPath</span><span class="w"> </span><span class="p">}),</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">any</span><span class="p">(</span><span class="nb">Function</span><span class="p">),</span>
+<span class="w">    </span><span class="nx">expect</span><span class="p">.</span><span class="nx">anything</span><span class="p">()</span>
+<span class="w">  </span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">runPanel</span><span class="p">.</span><span class="nx">show</span><span class="p">).</span><span class="nx">toHaveBeenCalled</span><span class="p">();</span>
+<span class="p">});</span>
+
+<span class="nx">it</span><span class="p">(</span><span class="s1">&#39;reports a preflight failure without launching a simulation process&#39;</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">runner</span><span class="p">.</span><span class="nx">run</span><span class="p">.</span><span class="nx">mockRejectedValue</span><span class="p">(</span><span class="ow">new</span><span class="w"> </span><span class="ne">Error</span><span class="p">(</span><span class="s1">&#39;GNU Make was not found&#39;</span><span class="p">));</span>
+<span class="w">  </span><span class="k">await</span><span class="w"> </span><span class="nx">runSystemTestbench</span><span class="p">(</span><span class="nx">dependencies</span><span class="p">,</span><span class="w"> </span><span class="nx">vscode</span><span class="p">.</span><span class="nx">Uri</span><span class="p">.</span><span class="nx">file</span><span class="p">(</span><span class="nx">configPath</span><span class="p">));</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">vscode</span><span class="p">.</span><span class="nb">window</span><span class="p">.</span><span class="nx">showErrorMessage</span><span class="p">).</span><span class="nx">toHaveBeenCalledWith</span><span class="p">(</span><span class="nx">expect</span><span class="p">.</span><span class="nx">stringContaining</span><span class="p">(</span><span class="s1">&#39;GNU Make&#39;</span><span class="p">));</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the failing command tests</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/commands/SystemVerificationCommands.test.ts</code></p>
+<p>Expected: FAIL because the run command is unregistered.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement command registration and cancellation wiring</strong></li>
+</ul>
+<p>Make the tracked YAML configuration the command resource. The command opens the run panel, passes its cancellation token to the runner, and reports completion/failure using the typed result. Add <code>runSystemTestbench</code> to the command manifest and command-registration test. Do not run Tcl directly from the command; all execution must remain <code>make run</code> through the runner.</p>
+<ul>
+<li>[ ] <strong>Step 4: Run command tests</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.config.js src/test/suite/commands/SystemVerificationCommands.test.ts</code></p>
+<p>Expected: PASS.</p>
+<h3 id="task-9-prove-the-vhdl-bfm-independently-of-vivado">Task 9: Prove the VHDL BFM independently of Vivado<a class="headerlink" href="#task-9-prove-the-vhdl-bfm-independently-of-vivado" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/test/fixtures/system-verification/vhdl/axi4lite_slave_model.vhd</code></li>
+<li>Create: <code>src/test/fixtures/system-verification/vhdl/axi4lite_bfm_tb.vhd</code></li>
+<li>Create: <code>src/test/integration/system-verification.test.ts</code></li>
+<li>Modify: <code>config/jest.integration.js</code> only if the existing integration path pattern does not include the new file.</li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes the rendered BFM source from <code>SystemVerificationScaffolder</code> and the VHDL slave fixture.</li>
+<li>
+<p>Produces an opt-in GHDL gate using <code>guardTier2('ghdl', ...)</code> consistent with existing integration tests.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Add a failing BFM integration case</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;compiles and runs deterministic AXI4-Lite reads, writes, errors, and timeouts&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">spawnSync</span><span class="p">(</span><span class="s1">&#39;ghdl&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;-r&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;--std=08&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi4lite_bfm_tb&#39;</span><span class="p">],</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">cwd</span><span class="o">:</span><span class="w"> </span><span class="kt">workDir</span><span class="w"> </span><span class="p">});</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">status</span><span class="p">).</span><span class="nx">toBe</span><span class="p">(</span><span class="mf">0</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">stdout</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;BFM PASS&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the GHDL-gated integration test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.integration.js src/test/integration/system-verification.test.ts</code></p>
+<p>Expected: FAIL while the fixture and generated BFM are incomplete; skip only when GHDL is unavailable according to the existing tier guard.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement a self-checking slave fixture</strong></li>
+</ul>
+<p>Model separate <code>AW</code>/<code>W</code> acceptance, <code>B</code> responses, <code>AR</code>/<code>R</code> reads, byte strobes, <code>SLVERR</code>, <code>DECERR</code>, and withheld-ready timeout behavior. The VHDL testbench must prove the generated BFM reports each expected fault without issuing bursts or parallel transactions.</p>
+<ul>
+<li>[ ] <strong>Step 4: Re-run the GHDL gate</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.integration.js src/test/integration/system-verification.test.ts</code></p>
+<p>Expected: PASS or explicit tier skip when GHDL is absent.</p>
+<h3 id="task-10-prove-a-recreated-mixed-language-vivadoxsim-system">Task 10: Prove a recreated mixed-language Vivado/XSim system<a class="headerlink" href="#task-10-prove-a-recreated-mixed-language-vivadoxsim-system" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/test/fixtures/system-verification/vivado/create_system.tcl</code></li>
+<li>Create: <code>src/test/fixtures/system-verification/vivado/vhdl_target.vhd</code></li>
+<li>Create: <code>src/test/fixtures/system-verification/vivado/verilog_neighbour.sv</code></li>
+<li>Create: <code>src/test/fixtures/system-verification/vivado/system-verification.yml</code></li>
+<li>Modify: <code>src/test/integration/system-verification.test.ts</code></li>
+<li>Modify: <code>scripts/integration/vivado/</code> only if a reusable fixture launcher is clearer than the test-owned process invocation.</li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes the tracked-like generated <code>verification/Makefile</code> and config fixture.</li>
+<li>
+<p>Produces a gated XSim end-to-end result with explicit <code>VIVADO_BIN</code>, <code>REQUIRE_VIVADO</code>, and <code>SKIP_VIVADO</code> behavior matching <code>src/test/integration/vivado.test.ts</code>.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Add a failing vendor integration test</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">&#39;runs make run through a recreated mixed-language AXI4-Lite block design&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">spawnSync</span><span class="p">(</span><span class="s1">&#39;make&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;run&#39;</span><span class="p">,</span><span class="w"> </span><span class="sb">`VIVADO=</span><span class="si">${</span><span class="nx">VIVADO_BIN</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;WAVES=0&#39;</span><span class="p">],</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">cwd</span><span class="o">:</span><span class="w"> </span><span class="kt">verificationDir</span><span class="p">,</span>
+<span class="w">  </span><span class="p">});</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">status</span><span class="p">).</span><span class="nx">toBe</span><span class="p">(</span><span class="mf">0</span><span class="p">);</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">(</span><span class="nx">readResult</span><span class="p">(</span><span class="nx">verificationDir</span><span class="p">)).</span><span class="nx">toMatchObject</span><span class="p">({</span><span class="w"> </span><span class="nx">outcome</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;passed&#39;</span><span class="w"> </span><span class="p">});</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the gated vendor integration test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.integration.js src/test/integration/system-verification.test.ts -t "mixed-language"</code></p>
+<p>Expected: FAIL until the Tcl recreates the fixture; skip when Vivado is unavailable, and fail instead when <code>REQUIRE_VIVADO=1</code>.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement the minimal fixture</strong></li>
+</ul>
+<p>Create a reproducible block design with the external AXI4-Lite test entry, AXI Interconnect or SmartConnect, a VHDL IPCraft-style target, and a SystemVerilog neighbour. The Tcl must not depend on a GUI-only project or user-local source path. Cover absolute base-plus-offset routing, reset reads, legal reads, deterministic writes, and an intentional wrong-expectation run that produces register/address/value diagnostics.</p>
+<ul>
+<li>[ ] <strong>Step 4: Re-run the vendor integration test</strong></li>
+</ul>
+<p>Run: <code>npx jest --config config/jest.integration.js src/test/integration/system-verification.test.ts -t "mixed-language"</code></p>
+<p>Expected: PASS on a configured Vivado/XSim host or explicit tier skip elsewhere.</p>
+<h3 id="task-11-document-the-workflow-and-verify-the-complete-change">Task 11: Document the workflow and verify the complete change<a class="headerlink" href="#task-11-document-the-workflow-and-verify-the-complete-change" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>docs/how-to/run-system-verification.md</code></li>
+<li>Modify: <code>docs/reference/commands.md</code></li>
+<li>Modify: <code>docs/reference/generator.md</code></li>
+<li>Modify: <code>README.md</code> only if its feature list has a dedicated system-verification entry.</li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>
+<p>Documents the command, tracked layout, mandatory Makefile targets, tool prerequisites, staging guarantees, v1 limitations, run result locations, and failure diagnosis.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write documentation assertions as a checklist in the documentation test review</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">- [ ]</span> Shows <span class="sb">`make run`</span> and <span class="sb">`make run WAVES=1`</span>.
+<span class="k">- [ ]</span> States GNU Make and Vivado/XSim are required.
+<span class="k">- [ ]</span> States AXI4-Lite single-word only; no AXI VIP, Cocotb, or Questa in v1.
+<span class="k">- [ ]</span> Explains staging cancellation writes no tracked files.
+<span class="k">- [ ]</span> Explains <span class="sb">`.ipcraft/system-verification/&lt;run-id&gt;/`</span> output retention.
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Write the user documentation</strong></li>
+</ul>
+<p>Include the exact command names, configuration example, required explicit clock/reset fields, supported Make targets, expected result/log/wave locations, and first-failure troubleshooting. Link to the existing staging documentation instead of duplicating its visual behavior.</p>
+<ul>
+<li>[ ] <strong>Step 3: Run focused tests and static checks</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/systemVerification<span class="w"> </span>src/test/suite/commands/SystemVerificationCommands.test.ts<span class="w"> </span>src/test/suite/providers/SystemVerificationRunPanel.test.ts
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.integration.js<span class="w"> </span>src/test/integration/system-verification.test.ts
+npm<span class="w"> </span>run<span class="w"> </span>type-check
+npm<span class="w"> </span>run<span class="w"> </span>lint
+git<span class="w"> </span>diff<span class="w"> </span>--check
+</code></pre></div>
+<p>Expected: unit tests, type check, lint, and diff check pass; integration tests pass on equipped hosts or report their documented tool-gated skips.</p>
+<ul>
+<li>[ ] <strong>Step 4: Review the final diff against the approved design</strong></li>
+</ul>
+<p>Confirm each approved requirement is represented: VHDL/XSim only, mandatory Makefile, exact explicit clock/reset configuration, staged tracked scaffold, isolated transient output, deterministic no-burst BFM, typed lifecycle run view, actionable failure diagnostics, GHDL BFM test, and Vivado mixed-language fixture. Leave all changes uncommitted for developer review.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,3465 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/superpowers/specs/2026-08-11-bus-interface-conformance-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Bus Interface Conformance Design - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bus-interface-conformance-design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Bus Interface Conformance Design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/development/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../how-to/create-your-first-ip-core/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../concepts/yaml-data-flow/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/de10-nano-case-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DE10-Nano Case Study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/create-your-first-ip-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Your First IP Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/defining-a-custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Defining a Custom Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/importing-an-existing-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing an Existing Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/customizing-generated-files-with-scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customizing Generated Files with Scaffold Packs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/check-consistency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking Consistency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/use-data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/using-arithmetic-functions-in-port-widths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Arithmetic Functions in Port Widths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-cocotb-simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a Cocotb Simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/vivado-interface-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vivado Interface Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Template Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-feature-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Feature Coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/bit-field-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/vsix-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSIX Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Developer Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/docs-screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Docs Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../images/codicons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codicon Attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#selected-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Selected approach
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ownership-and-dependency-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ownership and dependency direction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#specification-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Specification model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Specification model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ipyml-interface-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        .ip.yml interface properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#canonical-endianness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Canonical endianness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bus-contract-version-and-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bus contract version and compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port-width-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Port width policies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interface-property-declarations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interface property declarations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#port-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Port roles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interface-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interface modes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#interface-kind-and-addressability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Interface kind and addressability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#constraint-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constraint vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#built-in-conformance-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Built-in conformance rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Built-in conformance rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#axi4-lite" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AXI4-Lite
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#axi4-full" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AXI4 Full
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#axi4-stream" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AXI4-Stream
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#avalon-mm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avalon-MM
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#avalon-st" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Avalon-ST
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#effective-width-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Effective-width resolution
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diagnostics-and-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diagnostics and enforcement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#editor-and-checker-experience" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Editor and checker experience
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#root-and-derived-width-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root and derived width behavior
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_hwtcl-import-and-avalon-st-fidelity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        _hw.tcl import and Avalon-ST fidelity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#componentxml-export-and-protocol-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        component.xml export and protocol identity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-library-and-custom-buses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime library and custom buses
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#documentation-and-agent-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Documentation and agent guidance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compatibility-and-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compatibility and migration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Verification strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schema-and-contract-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schema and contract tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pure-resolver-and-validator-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pure resolver and validator tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-and-integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service and integration tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webview-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webview tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delivery-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delivery sequence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reference-material" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reference material
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/superpowers/specs/2026-08-11-bus-interface-conformance-design.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="bus-interface-conformance-design">Bus Interface Conformance Design<a class="headerlink" href="#bus-interface-conformance-design" title="Permanent link">&para;</a></h1>
+<p><strong>Status:</strong> Approved — revised after three code-review passes; implementation
+plan pending.</p>
+<p>This document defines declarative bus-interface contracts, shared conformance
+validation, editor diagnostics, and lossless vendor import/export behavior for
+IPCraft. It covers all five built-in bus definitions and makes the same contract
+mechanism available to project-defined buses.</p>
+<h2 id="problem">Problem<a class="headerlink" href="#problem" title="Permanent link">&para;</a></h2>
+<p>IPCraft currently describes the signals and default widths of its built-in bus
+interfaces, but it does not describe or enforce the relationships that make those
+signals protocol-conformant. <code>portWidthOverrides</code> accepts arbitrary integer or
+string values. JSON Schema validation proves only that the document has the right
+shape; HDL and vendor consistency checks compare declarations with generated or
+imported artifacts but do not prove that the interface itself is legal.</p>
+<p>This permits examples such as an 8-bit AXI4-Lite data interface or an AXI4-Stream
+<code>TKEEP</code> width unrelated to <code>TDATA</code> to pass the current schema. It also loses
+Avalon-ST semantics such as <code>dataBitsPerSymbol</code>, <code>symbolsPerBeat</code>, and
+<code>readyLatency</code> when importing <code>_hw.tcl</code>.</p>
+<p>The webview also contains hard-coded copies of built-in bus definitions. Those
+copies can and currently do disagree with <code>ipcraft-spec</code>, so the extension,
+editor, importer, and generator do not share one protocol authority.</p>
+<p>Replacing those copies is an observable canvas migration, not a pure refactor.
+For example, the canonical Avalon-MM YAML marks <code>clk</code> and <code>reset</code> optional, has
+eight logical ports absent from the webview table (<code>byteenable_n</code>,
+<code>debugaccess</code>, <code>lock</code>, <code>writeresponsevalid</code>, <code>readdatavalid_n</code>,
+<code>waitrequest_n</code>, <code>read_n</code>, and <code>write_n</code>), and does not contain the webview-only
+<code>chipselect</code>. The implementation must make and test those behavior changes
+deliberately.</p>
+<h2 id="goals">Goals<a class="headerlink" href="#goals" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Make <code>ipcraft-spec</code> the single source of truth for the five built-in bus
+  contracts: AXI4-Lite, AXI4 Full, AXI4-Stream, Avalon-MM, and Avalon-ST.</li>
+<li>Canonicalize documented short aliases and foreign vendor VLNVs through
+  explicit definition data before exact contract lookup.</li>
+<li>Express common width, presence, and interface-property rules declaratively,
+  without embedding protocol-specific branches throughout TypeScript code.</li>
+<li>Validate the same effective interface in the editor, explicit checker,
+  importers, generators, exporters, and CI.</li>
+<li>Preserve valid parameterized interfaces while distinguishing proven,
+  unresolved, and invalid widths.</li>
+<li>Preserve Avalon-ST symbol semantics across <code>_hw.tcl</code>, <code>.ip.yml</code>, generated
+  <code>_hw.tcl</code>, and custom IP-XACT packaging.</li>
+<li>Give users actionable, source-located diagnostics on the canvas, in the
+  inspector, and in one consolidated Issues panel.</li>
+<li>Give LLM-based agents a compact orientation backed by a detailed canonical
+  reference and machine-readable constraints.</li>
+<li>Allow project bus definitions to opt into the same constraint vocabulary.</li>
+</ul>
+<h2 id="non-goals">Non-goals<a class="headerlink" href="#non-goals" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Proving dynamic RTL behavior such as handshake stability, ordering, burst
+  legality, or timing at runtime.</li>
+<li>Implementing an arbitrary expression or scripting language in bus definitions.</li>
+<li>Silently repairing invalid documents or changing a protocol during import or
+  export.</li>
+<li>Automatically converting Avalon-ST into AXI4-Stream.</li>
+<li>Generating an Avalon-ST-to-AXI4-Stream data packing adapter in this feature.</li>
+<li>Replacing vendor protocol checkers or simulation assertions.</li>
+</ul>
+<h2 id="selected-approach">Selected approach<a class="headerlink" href="#selected-approach" title="Permanent link">&para;</a></h2>
+<p>Bus definition YAML gains a small, versioned declarative contract model. A
+single pure TypeScript resolver and validator interprets the model. This was
+chosen over protocol-specific TypeScript validators and over a general-purpose
+constraint expression language.</p>
+<p>Protocol-specific validators would be easy to start but would duplicate policy,
+make custom bus constraints impossible without code changes, and encourage
+different importer, UI, and generator behavior. A general expression language
+would be flexible but would add parsing, security, diagnostics, and
+compatibility complexity beyond the required relationships.</p>
+<h2 id="ownership-and-dependency-direction">Ownership and dependency direction<a class="headerlink" href="#ownership-and-dependency-direction" title="Permanent link">&para;</a></h2>
+<p>The dependency direction is:</p>
+<div class="highlight"><pre><span></span><code>ipcraft-spec bus definitions and schemas
+  -&gt; pure contract types, normalizer, width resolver, and validator
+  -&gt; loading, import, checking, and generation services
+  -&gt; hooks and typed message construction
+  -&gt; components and application roots
+</code></pre></div>
+<p><code>ipcraft-spec</code> owns:</p>
+<ul>
+<li>the hand-authored bus-definition JSON Schema;</li>
+<li>the five built-in bus definition YAML files;</li>
+<li>the short-name and foreign-VLNV aliases for those built-ins;</li>
+<li>the canonical port-role, interface-mode, and interface-kind metadata;</li>
+<li>declarations of interface properties;</li>
+<li>root, derived, and fixed port-width policies;</li>
+<li>constraints and stable rule identifiers; and</li>
+<li>the detailed bus-interface conformance reference.</li>
+</ul>
+<p>The extension owns filesystem discovery and precedence through
+<code>BusLibraryService</code>. It validates and normalizes built-in and workspace bus
+definitions into a typed <code>BusDefinitionContract</code> library. The normalized runtime
+library, rather than the raw files or hard-coded webview tables, crosses the
+existing extension/webview message boundary.</p>
+<p>The new <code>ipcraft-spec/schemas/bus_definition.schema.json</code> is authored directly
+as JSON Schema. The current submodule contains generated Pydantic schema
+artifacts but no Python model or schema-generation path to extend. Therefore
+<code>npm run generate-types</code> is extended to generate
+<code>src/domain/busDefinition.types.ts</code> from the hand-authored bus-definition
+schema. The schema is copied and packaged with the other resource schemas.</p>
+<p>The pure conformance module must have no dependency on VS Code, React,
+filesystem access, generator templates, or components. Its inputs are a bus
+contract, one interface declaration, active ports, effective parameter values,
+and resolution options. Its outputs are resolved port widths, resolved semantic
+properties, and structured diagnostics.</p>
+<p>The webview's hard-coded built-in definition tables are removed. <code>IpCoreApp</code>
+receives the runtime library and injects narrow lookup and validation functions
+into hooks and components. Protocol matching, grouping, ungrouping, layout,
+inspection, import preview, and generation therefore use the same definitions.</p>
+<p>As part of that move, <code>HwTclParser</code> must stop importing <code>lookupBusDef</code> from the
+webview directory. Parser, generator, and webview consumers instead depend on
+the shared normalized contract lookup, restoring the intended dependency
+direction.</p>
+<h2 id="specification-model">Specification model<a class="headerlink" href="#specification-model" title="Permanent link">&para;</a></h2>
+<h3 id="ipyml-interface-properties"><code>.ip.yml</code> interface properties<a class="headerlink" href="#ipyml-interface-properties" title="Permanent link">&para;</a></h3>
+<p><code>BusInterface</code> gains an optional camelCase <code>interfaceProperties</code> object for
+semantic values that are not physical signals:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">busInterfaces</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">streamOut</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ipcraft:busif:avalon_st:1.0</span>
+<span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source</span>
+<span class="w">    </span><span class="nt">physicalPrefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source_</span>
+<span class="w">    </span><span class="nt">portWidthOverrides</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">    </span><span class="nt">interfaceProperties</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">dataBitsPerSymbol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<span class="w">      </span><span class="nt">symbolsPerBeat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">      </span><span class="nt">readyLatency</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</code></pre></div>
+<p><code>portWidthOverrides</code> continues to describe physical logical-port widths.
+<code>interfaceProperties</code> describes protocol meaning. The schema permits numeric
+parameter references where the corresponding property declaration permits
+them, using the same width-expression subset supported by IPCraft parameters.</p>
+<p>Because property names are contract-specific, <code>ip_core.schema.json</code> validates
+the object and scalar value shapes but cannot enumerate all valid keys. For a
+recognized contract, the conformance validator rejects an unknown
+<code>interfaceProperties</code> key and reports the valid keys. For a genuinely unknown
+VLNV or a legacy custom definition without a contract, the map is opaque,
+preserved, and does not produce protocol diagnostics.</p>
+<h3 id="canonical-endianness">Canonical endianness<a class="headerlink" href="#canonical-endianness" title="Permanent link">&para;</a></h3>
+<p><code>BusInterface.endianness</code> remains the single canonical <code>.ip.yml</code> field for
+interface lane ordering. Avalon-ST <code>firstSymbolInHighOrderBits</code> is a vendor
+import/export representation of that field and is not also stored in
+<code>interfaceProperties</code>.</p>
+<p>The meaning of interface endianness is protocol-aware. AXI and Avalon-MM use
+eight-bit byte lanes. Avalon-ST uses lanes of <code>dataBitsPerSymbol</code> bits, so an
+interface with one-bit symbols reverses symbol lanes rather than groups of eight
+bits. Raw standalone-port endianness remains byte-oriented. Importers map the
+vendor property to <code>endianness</code>; Altera generation maps <code>endianness</code> back to
+<code>firstSymbolInHighOrderBits</code>.</p>
+<p>This is an intentional generated-RTL compatibility change for Avalon-ST. Today,
+the generator and canvas validation treat every data role as byte-lane based, so
+a five-bit, one-bit-symbol big-endian stream produces no reordering. After this
+migration, it reverses five one-bit symbol lanes. The implementation must make
+the swap unit explicit in generated template context rather than reuse the
+byte-only <code>needsByteSwap</code> decision. The standalone-port
+<code>portEndiannessApplies</code> helper remains byte-oriented; Avalon-ST bus controls and
+diagnostics use the resolved contract and symbol width instead.</p>
+<h3 id="bus-contract-version-and-compatibility">Bus contract version and compatibility<a class="headerlink" href="#bus-contract-version-and-compatibility" title="Permanent link">&para;</a></h3>
+<p>The bus-definition schema recognizes a version-1 contract. The constraint
+section remains optional for legacy custom definitions. All five shipped
+built-ins are required by repository tests to declare a complete version-1
+contract.</p>
+<p>Malformed contracts are rejected when loading the library. A malformed custom
+definition is excluded and reported with its source file and schema path; it
+must not crash the editor or weaken a built-in definition.</p>
+<h3 id="port-width-policies">Port width policies<a class="headerlink" href="#port-width-policies" title="Permanent link">&para;</a></h3>
+<p>Each width-bearing port has one of three policies:</p>
+<ul>
+<li><code>root</code>: a width selected directly by the interface author, such as AXI-Stream
+  <code>TDATA</code> or Avalon-ST <code>data</code>;</li>
+<li><code>derived</code>: a width computed from a root port or semantic property, such as
+  <code>TKEEP</code>, <code>WSTRB</code>, or Avalon-ST <code>empty</code>; or</li>
+<li><code>fixed</code>: a protocol-defined constant width, such as <code>VALID</code>, <code>READY</code>, and AXI
+  response/control fields.</li>
+</ul>
+<p>Derived widths use named operations with typed operands. Version 1 supports
+only the operations needed by the built-ins:</p>
+<ul>
+<li>copy another port's width;</li>
+<li>multiply or divide a port/property width by a positive integer;</li>
+<li>multiply two semantic properties;</li>
+<li><code>ceil(log2(value))</code>;</li>
+<li>require enough bits to encode a declared maximum value; and</li>
+<li>derive the maximum value encodable by a port width (<code>2^width - 1</code>).</li>
+</ul>
+<p>This is not a general expression language. Contract normalization rejects
+unknown operations, missing operands, division by zero, circular derivations,
+and references to undeclared ports or properties.</p>
+<p>An explicit override of a derived port is accepted for compatibility only when
+it equals the computed width. An override of a fixed port is an error unless it
+equals the fixed width. Matching redundant overrides are preserved until the
+user changes the related root value; loading a document never rewrites it. See
+"Root and derived width behavior" for the deterministic root-edit cleanup rule.</p>
+<h3 id="interface-property-declarations">Interface property declarations<a class="headerlink" href="#interface-property-declarations" title="Permanent link">&para;</a></h3>
+<p>A contract may declare semantic properties with:</p>
+<ul>
+<li>type (<code>integer</code>, <code>boolean</code>, or <code>string</code> where required);</li>
+<li>default value;</li>
+<li>minimum and maximum values;</li>
+<li>allowed values;</li>
+<li>whether the property becomes required when a named port is active; and</li>
+<li>whether omission can be resolved from active port widths and other
+  properties.</li>
+</ul>
+<p>Avalon-ST version 1 declares at least <code>dataBitsPerSymbol</code>, <code>symbolsPerBeat</code>,
+<code>readyLatency</code>, and <code>maxChannel</code>. <code>firstSymbolInHighOrderBits</code> is excluded
+because <code>BusInterface.endianness</code> is its canonical representation. Additional
+properties such as error descriptions can be added later without expanding the
+constraint language.</p>
+<h3 id="port-roles">Port roles<a class="headerlink" href="#port-roles" title="Permanent link">&para;</a></h3>
+<p>Every built-in port declares exactly one canonical role:</p>
+<ul>
+<li><code>clock</code> and <code>reset</code> identify association ports that the canvas may hide;</li>
+<li><code>data</code> identifies protocol payloads whose lane ordering is meaningful;</li>
+<li><code>byteQualifier</code> identifies one-bit-per-byte masks that follow byte-lane
+  ordering; and</li>
+<li><code>control</code> covers other protocol signals.</li>
+</ul>
+<p>The normalizer carries this single <code>role</code> field to all consumers. It does not
+produce separate <code>role</code> and <code>endianRole</code> fields. Legacy custom ports without a
+role normalize to <code>control</code>. An unrecognized role on a workspace definition
+also normalizes to <code>control</code> and produces a <code>BUS_DEF_UNKNOWN_PORT_ROLE</code> warning
+with the source file and schema-style document path, such as
+<code>["ports", 3, "role"]</code>; this annotation typo does not exclude the entire
+definition from the canvas. The bus-definition schema therefore validates
+<code>role</code> as a non-empty string, while semantic normalization recognizes the
+canonical vocabulary. Repository tests require every built-in port to have a
+recognized explicit role and treat any built-in role warning as a failure.</p>
+<p>The five built-ins explicitly mark <code>clk</code>/<code>ACLK</code> as <code>clock</code>,
+<code>reset</code>/<code>ARESETn</code> as <code>reset</code>, and all remaining ports with their appropriate
+roles.</p>
+<h3 id="interface-modes">Interface modes<a class="headerlink" href="#interface-modes" title="Permanent link">&para;</a></h3>
+<p>Each contract declares its canonical producer and consumer modes and the mode
+aliases it accepts. AXI4, AXI4-Lite, AXI4-Stream, and Avalon-MM use
+<code>master</code>/<code>slave</code>; Avalon-ST uses <code>source</code>/<code>sink</code>. For legacy Avalon-ST documents,
+<code>master</code> normalizes in memory to <code>source</code> and <code>slave</code> to <code>sink</code> without rewriting
+the document merely because it was opened. New imports and UI-created
+Avalon-ST interfaces serialize <code>source</code> or <code>sink</code>.</p>
+<p>Port directions in a definition are expressed from the declared producer mode
+and are reversed for the consumer mode. Presence dependencies are evaluated
+after mode normalization. A mode outside the contract's canonical modes or
+declared aliases is an error.</p>
+<h3 id="interface-kind-and-addressability">Interface kind and addressability<a class="headerlink" href="#interface-kind-and-addressability" title="Permanent link">&para;</a></h3>
+<p>Every version-1 contract declares one <code>interfaceKind</code>: <code>memoryMapped</code>,
+<code>streaming</code>, or <code>conduit</code>. This metadata replaces protocol-name inference. A
+single, non-array interface may carry <code>memoryMapRef</code> and act as an interrupt
+association target only when its resolved contract is <code>memoryMapped</code> and its
+normalized mode is the consumer mode. A custom bus can opt into this behavior
+by declaring a version-1 memory-mapped contract. An unknown VLNV or legacy
+contract-less custom definition is not assumed to be memory-mapped.</p>
+<p>If an interface declares <code>memoryMapRef</code> but contract lookup fails, its resolved
+<code>interfaceKind</code> is not <code>memoryMapped</code>, or its normalized mode is not the
+contract's consumer mode, validation emits blocking
+<code>BUS_MEMORY_MAP_UNSUPPORTED</code> at that interface's <code>memoryMapRef</code> path. Generation
+must stop before addressing or register-file resolution rather than silently
+falling back to a default data width or omitting the register file.</p>
+<h3 id="constraint-vocabulary">Constraint vocabulary<a class="headerlink" href="#constraint-vocabulary" title="Permanent link">&para;</a></h3>
+<p>Version 1 supports named constraints for:</p>
+<ul>
+<li>numeric range, allowed values, and integer multiple;</li>
+<li>equal port widths;</li>
+<li>quotient, product, and <code>ceil(log2())</code> relationships;</li>
+<li>port presence dependencies;</li>
+<li>property-required-when-port-present dependencies; and</li>
+<li>recommendation severity for preferred but not mandatory shapes.</li>
+</ul>
+<p>Every constraint has a stable <code>ruleId</code>, default diagnostic code, severity, and
+message template. Known protocol violations are errors. Standards or ecosystem
+preferences that are not protocol requirements are warnings.</p>
+<p>A representative definition fragment is:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">AVALON_STREAMING</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">busType</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">vendor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ipcraft</span>
+<span class="w">    </span><span class="nt">library</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">busif</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">avalon_st</span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;1.0&#39;</span>
+<span class="w">  </span><span class="nt">aliases</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">short</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AVST</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vlnv</span>
+<span class="w">      </span><span class="nt">vendor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">altera.com</span>
+<span class="w">      </span><span class="nt">library</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">interface</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">avalon_streaming</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;*&#39;</span>
+<span class="w">  </span><span class="nt">contract</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">    </span><span class="nt">interfaceKind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">streaming</span>
+<span class="w">    </span><span class="nt">modePolicy</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">producer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source</span>
+<span class="w">      </span><span class="nt">consumer</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sink</span>
+<span class="w">      </span><span class="nt">aliases</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">master</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source</span>
+<span class="w">        </span><span class="nt">slave</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sink</span>
+<span class="w">    </span><span class="nt">interfaceProperties</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">dataBitsPerSymbol</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
+<span class="w">        </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+<span class="w">        </span><span class="nt">minimum</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">      </span><span class="nt">symbolsPerBeat</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
+<span class="w">        </span><span class="nt">minimum</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">    </span><span class="nt">constraints</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">ruleId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">avalonStDataLayout</span>
+<span class="w">        </span><span class="nt">code</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AVALON_ST_DATA_LAYOUT</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">productEqualsPort</span>
+<span class="w">        </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="w">        </span><span class="nt">properties</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">dataBitsPerSymbol</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">symbolsPerBeat</span><span class="p p-Indicator">]</span>
+<span class="w">        </span><span class="nt">severity</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">error</span>
+<span class="w">  </span><span class="nt">ports</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clk</span>
+<span class="w">      </span><span class="nt">presence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">optional</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clock</span>
+<span class="w">      </span><span class="nt">widthPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fixed</span>
+<span class="w">      </span><span class="nt">width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">reset</span>
+<span class="w">      </span><span class="nt">presence</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">optional</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">reset</span>
+<span class="w">      </span><span class="nt">widthPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fixed</span>
+<span class="w">      </span><span class="nt">width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="w">      </span><span class="nt">width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data</span>
+<span class="w">      </span><span class="nt">widthPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">root</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">empty</span>
+<span class="w">      </span><span class="nt">width</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">control</span>
+<span class="w">      </span><span class="nt">widthPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">derived</span>
+<span class="w">      </span><span class="nt">derivedWidth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">operation</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ceilLog2</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">symbolsPerBeat</span>
+</code></pre></div>
+<p>The bus-definition JSON Schema fixes these field names and the operand shape for
+each <code>kind</code> and <code>operation</code>. Implementations do not accept alternate spellings or
+untyped operand objects.</p>
+<h2 id="built-in-conformance-rules">Built-in conformance rules<a class="headerlink" href="#built-in-conformance-rules" title="Permanent link">&para;</a></h2>
+<p>The first contract version enforces the following static declaration rules.</p>
+<h3 id="axi4-lite">AXI4-Lite<a class="headerlink" href="#axi4-lite" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>WDATA</code> and <code>RDATA</code> have equal widths and are either 32 or 64 bits.</li>
+<li><code>WSTRB</code> is <code>WDATA / 8</code>.</li>
+<li>Write and read address widths agree.</li>
+<li>Single-bit handshake and control ports are fixed.</li>
+<li><code>AWPROT</code> and <code>ARPROT</code> are 3 bits; <code>BRESP</code> and <code>RRESP</code> are 2 bits.</li>
+<li>Required read and write channel ports cannot be removed from the built-in
+  full AXI4-Lite interface definition.</li>
+</ul>
+<h3 id="axi4-full">AXI4 Full<a class="headerlink" href="#axi4-full" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Data widths are 8 through 1024 bits in powers of two.</li>
+<li><code>WDATA</code> and <code>RDATA</code> have equal widths.</li>
+<li><code>WSTRB</code> is <code>WDATA / 8</code>.</li>
+<li><code>BID</code> matches <code>AWID</code>, and <code>RID</code> matches <code>ARID</code>.</li>
+<li>Burst, size, lock, cache, protection, quality-of-service, response, last, and
+  handshake fields use their protocol-defined widths.</li>
+<li>Presence dependencies prevent a response or sideband port from being active
+  without the channel it qualifies.</li>
+</ul>
+<h3 id="axi4-stream">AXI4-Stream<a class="headerlink" href="#axi4-stream" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>TDATA</code> is a positive multiple of eight bits.</li>
+<li>When active, <code>TKEEP</code> and <code>TSTRB</code> are each <code>TDATA / 8</code>.</li>
+<li><code>TVALID</code>, <code>TREADY</code>, and <code>TLAST</code> are one bit.</li>
+<li>Power-of-two byte widths from 8 through 1024 are recommendations, not
+  mandatory constraints.</li>
+<li>Optional sidebands retain their declared fixed or configurable policies.</li>
+</ul>
+<h3 id="avalon-mm">Avalon-MM<a class="headerlink" href="#avalon-mm" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Active read and write data ports agree in width.</li>
+<li>Data width is byte-aligned, a power of two, and no more than 1024 bits.</li>
+<li><code>byteenable</code> is the active data width divided by eight.</li>
+<li>Read/write control, wait, response-valid, and response fields retain their
+  defined widths.</li>
+<li>Address-unit and byte-enable relationships are validated where the contract
+  has enough information; dynamic behavior and address translation remain out
+  of scope.</li>
+</ul>
+<h3 id="avalon-st">Avalon-ST<a class="headerlink" href="#avalon-st" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Effective <code>data</code> width equals
+  <code>dataBitsPerSymbol * symbolsPerBeat</code>.</li>
+<li><code>dataBitsPerSymbol</code> and <code>symbolsPerBeat</code> are positive and need not be powers
+  of two.</li>
+<li>If omitted for a legacy document, <code>dataBitsPerSymbol</code> defaults to 8 and
+  <code>symbolsPerBeat</code> is derived from the effective data width when divisible.</li>
+<li>Explicit properties take precedence over defaults and must satisfy the data
+  width product.</li>
+<li>When active, <code>empty</code> is <code>ceil(log2(symbolsPerBeat))</code>, requires more than one
+  symbol per beat, and requires packet support. <code>startofpacket</code> and
+  <code>endofpacket</code> are enabled as a pair; <code>empty</code> additionally depends on
+  <code>endofpacket</code>.</li>
+<li><code>readyLatency</code> is a non-negative integer and is relevant when <code>ready</code> is
+  active.</li>
+<li>When <code>channel</code> is active and <code>maxChannel</code> is omitted, it is derived as the
+  maximum value representable by the channel width (<code>2^channelWidth - 1</code>). An
+  explicit <code>maxChannel</code> must be non-negative and fit within that width.</li>
+<li>Signal widths remain within the ranges declared by the Avalon-ST contract.</li>
+</ul>
+<p>The Avalon-ST symbol rules follow Altera's current interface specification,
+which defines <code>dataBitsPerSymbol</code> and <code>symbolsPerBeat</code> independently and does
+not restrict symbol size to a power of two:
+<a href="https://docs.altera.com/r/docs/683091/22.3/avalon-interface-specifications/synchronous-interface">https://docs.altera.com/r/docs/683091/22.3/avalon-interface-specifications/synchronous-interface</a>.</p>
+<h2 id="effective-width-resolution">Effective-width resolution<a class="headerlink" href="#effective-width-resolution" title="Permanent link">&para;</a></h2>
+<p>Contract selection has a separate table-driven canonicalization step:</p>
+<ol>
+<li>An exact canonical built-in or custom VLNV selects that contract.</li>
+<li>A declared short alias such as <code>AXI4L</code> maps to its canonical VLNV.</li>
+<li>A structured foreign-VLNV alias matches vendor, library, and name exactly;
+   its version is either exact or the explicit <code>"*"</code> wildcard.</li>
+<li>A genuinely unknown VLNV has no protocol contract. It receives structural,
+   schema, and HDL consistency checks, but the lack of a contract does not by
+   itself block generation.</li>
+</ol>
+<p>The initial alias inventory is a compatibility boundary, not a minimal sample.
+Before deleting the open-ended matchers, the implementation records every
+spelling accepted by the existing <code>busVlnv.test.ts</code>, <code>busDefinitions.test.ts</code>,
+and <code>lookupBusDef</code> branches. This includes the tested foreign Avalon VLNVs and
+the existing short or name spellings <code>AXI4L</code>, <code>AXI4F</code>, <code>AXIS</code>, <code>AXI4S</code>,
+<code>AVALON_MM</code>, <code>avalon_memory</code>, and the supported underscore and hyphen variants.
+Short aliases are matched case-insensitively after trimming; structured VLNV
+aliases are matched by their declared components and explicit version policy.
+Future aliases require a definition-data change rather than another substring
+branch.</p>
+<p>Substring checks such as looking for <code>axi</code>, <code>stream</code>, or <code>avalon</code> are never
+protocol or conformance decisions. The alias data lives with the bus definition
+in <code>ipcraft-spec</code>. The same canonicalizer and resolved <code>interfaceKind</code> replace
+the current independent webview and generator alias logic, including the
+substring-based <code>busSupportsMemoryMap</code> and derived
+<code>busSupportsInterruptAssociation</code> decisions in <code>src/shared/busVlnv.ts</code> and the
+hard-coded <code>BusRuleRegistry.isMemoryMapped</code> classification. Narrow helper
+functions may remain, but they consume resolved contract metadata rather than a
+raw type string.</p>
+<p>The migration also removes literal <code>mode === "slave"</code> gates from
+<code>src/generator/resolvers/addressing.ts</code> and the <code>getBusTypeForTemplate</code> and
+<code>hasMemoryMappedSlaveInterface</code> paths in <code>src/generator/registerProcessor.ts</code>.
+Those sites test the resolved contract's normalized consumer mode, so a custom
+memory-mapped contract is not skipped merely because it uses a different mode
+name.</p>
+<p>For every active port, resolution proceeds as follows:</p>
+<ol>
+<li>Read the declared bus-definition width and policy.</li>
+<li>Apply a matching <code>portWidthOverrides</code> value.</li>
+<li>Resolve parameter references with the existing <code>widthExprAst</code> parser and
+   evaluator.</li>
+<li>Evaluate parameter defaults and the declared <code>allowedValues</code> domain under
+   the bounded policy below.</li>
+<li>Resolve semantic property defaults and derivations.</li>
+<li>Resolve derived port widths.</li>
+<li>Apply presence and conformance constraints.</li>
+</ol>
+<p>Resolution returns one of four states:</p>
+<ul>
+<li><code>concrete</code>: a known positive integer;</li>
+<li><code>symbolic</code>: the required relationship is structurally provable;</li>
+<li><code>unresolved</code>: the declaration lacks enough information for proof; or</li>
+<li><code>invalid</code>: the expression, override, derivation, or constraint is illegal.</li>
+</ul>
+<p>Equivalent symbolic relationships are accepted where the AST can prove them.
+Every concrete default and declared allowed value must conform. If a default
+conforms but arbitrary external parameter overrides cannot be proven, validation
+emits a warning rather than rejecting an otherwise valid parametric IP. If no
+conforming default exists and the relationship cannot be proven, the document
+remains editable but generation and export are blocked.</p>
+<p>Allowed-value evaluation is bounded per constraint, not across the entire IP.
+The resolver first computes the distinct parameters referenced by that
+constraint, then evaluates their Cartesian product. It evaluates at most 256
+combinations. A larger domain returns <code>unresolved</code> with
+<code>CONFORMANCE_DOMAIN_NOT_EXHAUSTIVE</code>; it is never silently sampled or treated as
+proven. This preserves correctness for relationships involving multiple
+parameters without unbounded combinatorial work.</p>
+<p>Version 1 does not generate elaboration-time protocol assertions for arbitrary
+external parameter overrides. The diagnostic explicitly states when only the
+declared default and allowed-value domain were checked.</p>
+<h2 id="diagnostics-and-enforcement">Diagnostics and enforcement<a class="headerlink" href="#diagnostics-and-enforcement" title="Permanent link">&para;</a></h2>
+<p>Diagnostics are structured and stable:</p>
+<div class="highlight"><pre><span></span><code><span class="kr">type</span><span class="w"> </span><span class="nx">DocumentPath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">readonly</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="p">)[];</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">BusConformanceDiagnostic</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">code</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">ruleId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">severity</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;error&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;warning&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">interfaceName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">DocumentPath</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">suggestedValue?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The array path is the machine identity used for YAML edits, canvas selection,
+inspector focus, deduplication, and future quick fixes. Presentation adapters
+render it as a dotted or indexed string; consumers never parse a rendered path
+back into segments.</p>
+<p>Examples include:</p>
+<div class="highlight"><pre><span></span><code>AXI4L_DATA_WIDTH
+[&quot;busInterfaces&quot;, 0, &quot;portWidthOverrides&quot;, &quot;WDATA&quot;]
+AXI4-Lite WDATA must be 32 or 64 bits; received 24.
+
+AVALON_ST_EMPTY_WIDTH
+[&quot;busInterfaces&quot;, 1, &quot;portWidthOverrides&quot;, &quot;empty&quot;]
+empty must be ceil(log2(symbolsPerBeat)); expected 2, received 1.
+</code></pre></div>
+<p>The enforcement policy is:</p>
+<table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th>Known violation</th>
+<th>Unresolved constraint</th>
+<th>Recommendation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>YAML and canvas editing</td>
+<td>Show error</td>
+<td>Show warning</td>
+<td>Show warning</td>
+</tr>
+<tr>
+<td>Save <code>.ip.yml</code></td>
+<td>Allow</td>
+<td>Allow</td>
+<td>Allow</td>
+</tr>
+<tr>
+<td>Import result</td>
+<td>Do not write</td>
+<td>Write with warning</td>
+<td>Allow</td>
+</tr>
+<tr>
+<td>HDL generation/export</td>
+<td>Block before writing</td>
+<td>Block before writing</td>
+<td>Allow</td>
+</tr>
+<tr>
+<td>Explicit consistency/CI check</td>
+<td>Fail</td>
+<td>Fail</td>
+<td>Report only</td>
+</tr>
+</tbody>
+</table>
+<p>The validation layer never silently changes values. An editor command may offer
+an explicit atomic update, but the user initiates it. Importers do not silently
+coerce a known-invalid standard interface, change its VLNV, flatten it, or leave
+a partial output file. An unresolved but well-formed import is saved with
+warnings so the user can resolve it in <code>.ip.yml</code>; the generator remains the
+strict proof boundary. Generators validate before staging or writing any output.</p>
+<h2 id="editor-and-checker-experience">Editor and checker experience<a class="headerlink" href="#editor-and-checker-experience" title="Permanent link">&para;</a></h2>
+<p>Protocol diagnostics use the existing canvas annotation mechanism. An
+interface-level error maps to its bus bundle. A port-specific error also maps to
+the expanded logical subport. The bundle and subport show severity markers and
+tooltips using the same diagnostic message.</p>
+<p>The bus inspector exposes root widths and declared <code>interfaceProperties</code> as
+editable values. Derived widths are visible but read-only, with their formula
+and resolved value. Fixed values are read-only. Invalid editable fields show
+expected and actual values inline. A coupled editor operation, such as changing
+AXI <code>WDATA</code>, updates dependent explicit overrides in one batch, one document
+transition, and one undo entry.</p>
+<p>Coupled IP Core edits use the existing <code>updateIpCoreBatch</code> path. They do not add
+a Memory Map <code>__op</code> variant or issue multiple <code>sendUpdate</code> calls.</p>
+<p>The current reference-error footer becomes one consolidated <strong>Issues</strong> panel.
+It groups diagnostics by source:</p>
+<ul>
+<li>Schema</li>
+<li>Protocol</li>
+<li>References</li>
+<li>HDL consistency</li>
+<li>Vendor artifact consistency</li>
+</ul>
+<p>Clicking an issue selects the matching canvas element and focuses the relevant
+inspector field when one exists. The toolbar reports error and warning counts.
+Attempting blocked generation opens the Issues panel and selects the first
+blocking diagnostic.</p>
+<p>Immediate webview validation and the explicit checker both call the same pure
+conformance code. The explicit checker adds authoritative extension-side schema,
+HDL, and vendor-artifact checks. Results are deduplicated by diagnostic code and
+document path; it must not contain a second implementation of protocol rules.</p>
+<p>Import preview runs conformance validation before <code>Save as .ip.yml</code>. Known
+violations remain visible on the preview canvas and disable saving. Unresolved
+diagnostics remain visible as warnings but permit saving for later repair. No
+destination is modified when a known blocking violation exists.</p>
+<h2 id="root-and-derived-width-behavior">Root and derived width behavior<a class="headerlink" href="#root-and-derived-width-behavior" title="Permanent link">&para;</a></h2>
+<p>Users normally specify only semantic choices and root widths. For example:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">portWidthOverrides</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">TDATA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+</code></pre></div>
+<p>is sufficient for an AXI4-Stream interface with active <code>TKEEP</code>; its effective
+<code>TKEEP</code> width is eight. An explicit compatible override is accepted and
+preserved:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">portWidthOverrides</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">TDATA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">64</span>
+<span class="w">  </span><span class="nt">TKEEP</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span>
+</code></pre></div>
+<p>An explicit <code>TKEEP: 4</code> is rejected. This is derivation from the contract, not
+silent document correction.</p>
+<p>Serialization writes root selections and explicitly authored semantic
+properties. It does not materialize every derived width. Existing matching
+dependent overrides remain untouched until a user operation changes their root,
+at which point <code>updateIpCoreBatch</code> always deletes every affected explicit
+derived override in the same atomic edit. The effective value then comes from
+the contract. This deterministic rule keeps formatting and snapshot behavior
+stable.</p>
+<h2 id="_hwtcl-import-and-avalon-st-fidelity"><code>_hw.tcl</code> import and Avalon-ST fidelity<a class="headerlink" href="#_hwtcl-import-and-avalon-st-fidelity" title="Permanent link">&para;</a></h2>
+<p><code>HwTclParser</code> must capture the supported Avalon-ST interface properties rather
+than preserving only one vendor field. It maps <code>firstSymbolInHighOrderBits</code> to
+the canonical <code>endianness</code> field. It recognizes the current
+<code>dataBitsPerSymbol</code> name and the legacy <code>bitsPerSymbol</code> spelling that appears in
+vendor artifacts; both normalize to <code>dataBitsPerSymbol</code> in <code>.ip.yml</code>. If both
+source spellings occur and have different effective values, import fails with a
+source-located diagnostic rather than guessing.</p>
+<p>For a stream with one-bit symbols and an <code>N</code>-bit data port, the lossless result
+is:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">busInterfaces</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">streamOut</span>
+<span class="w">    </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ipcraft:busif:avalon_st:1.0</span>
+<span class="w">    </span><span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">source</span>
+<span class="w">    </span><span class="nt">portWidthOverrides</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">data</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">N</span>
+<span class="w">    </span><span class="nt">interfaceProperties</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">dataBitsPerSymbol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">      </span><span class="nt">symbolsPerBeat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">N</span>
+</code></pre></div>
+<p>If <code>symbolsPerBeat</code> is absent but the data width and symbol size resolve,
+IPCraft derives it. If all three values are present, their product must agree.
+The generated Altera <code>_hw.tcl</code> emits the canonical interface properties so the
+round trip retains one-bit symbol semantics. It derives
+<code>firstSymbolInHighOrderBits</code> from <code>endianness</code> and applies ordering in
+<code>dataBitsPerSymbol</code>-sized lanes.</p>
+<h2 id="componentxml-export-and-protocol-identity"><code>component.xml</code> export and protocol identity<a class="headerlink" href="#componentxml-export-and-protocol-identity" title="Permanent link">&para;</a></h2>
+<p>Avalon-ST is not silently mapped to AXI4-Stream. AXI4-Stream is byte-lane based:
+<code>TDATA</code> is an integral number of bytes, and <code>TKEEP</code> and <code>TSTRB</code> have one bit per
+byte. The protocol reference is Arm IHI 0051B:
+<a href="https://documentation-service.arm.com/static/64819f1516f0f201aa6b963c">https://documentation-service.arm.com/static/64819f1516f0f201aa6b963c</a>.</p>
+<p>The lossless AMD/IP-XACT export path is:</p>
+<ol>
+<li>Keep the interface's Avalon-ST VLNV in <code>component.xml</code>.</li>
+<li>Emit and bundle its custom IP-XACT bus definition and abstraction definition.</li>
+<li>Emit the physical port maps without padding or renaming semantic roles.</li>
+<li>Preserve <code>dataBitsPerSymbol</code>, <code>symbolsPerBeat</code>, <code>readyLatency</code>, and related
+   semantic properties as standard IP-XACT bus-interface parameters. Export
+   <code>firstSymbolInHighOrderBits</code> only as the vendor representation derived from
+   canonical <code>endianness</code>.</li>
+<li>Mirror the complete canonical <code>interfaceProperties</code> map, <code>endianness</code>, and
+   contract version in one
+   IPCraft-namespaced vendor extension so a tool that ignores arbitrary
+   bus-interface parameters cannot erase IPCraft's round-trip metadata.</li>
+<li>On re-import, standard IP-XACT parameters are authoritative and the exported
+   symbol-order property maps back to <code>endianness</code>. A conflicting mirrored value
+   is a blocking diagnostic rather than an implicit precedence choice.</li>
+<li>Install or reference the generated custom bus artifacts through the existing
+   custom bus-definition mechanism.</li>
+</ol>
+<p>The extension namespace is <code>urn:ipcraft:interface-contract:1</code>. Its single
+<code>interfaceContract</code> element has <code>version="1"</code> and contains ordered <code>property</code>
+elements with <code>name</code> and canonical scalar <code>value</code> attributes. Properties are
+ordered by name for deterministic output. This fixed representation is part of
+the round-trip contract rather than a generator-specific choice.</p>
+<p>Vivado therefore sees a valid custom interface, not an AXI4-Stream interface.
+It cannot connect directly to an AMD AXI4-Stream interconnect, which is the
+correct outcome without an adapter.</p>
+<p>Even when an <code>N</code>-bit Avalon stream is byte-aligned, an Avalon <code>empty</code> value can
+count invalid one-bit symbols while AXI <code>TKEEP</code> qualifies whole bytes. Directly
+mapping the signals can lose packet-tail information. Flattening to a conduit or
+packing data into AXI4-Stream therefore requires an explicit user-selected
+conversion policy. A generated protocol adapter and such export choices are
+separate future work.</p>
+<h2 id="runtime-library-and-custom-buses">Runtime library and custom buses<a class="headerlink" href="#runtime-library-and-custom-buses" title="Permanent link">&para;</a></h2>
+<p>Built-in and custom definitions follow one data path:</p>
+<div class="highlight"><pre><span></span><code>built-in and workspace bus YAML
+  -&gt; schema validation and normalization
+  -&gt; BusDefinitionContract library
+  -&gt; shared width/property resolver and validator
+  -&gt; editor, import, generation, export, and CI consumers
+</code></pre></div>
+<p>Workspace precedence remains the responsibility of <code>BusLibraryService</code>, but
+replacement is by exact library key and VLNV according to existing project
+rules. Built-in short names and foreign VLNVs are resolved by the contract's
+structured alias table before exact lookup. Conformance lookup never falls back
+to substring matching.</p>
+<p>A project definition may declare root, derived, and fixed ports, semantic
+properties, and any version-1 constraint. It receives the same editor and
+generation behavior without a TypeScript protocol branch. A legacy custom
+definition without constraints continues to load and receives structural width
+validation only.</p>
+<p>A genuinely unknown VLNV or legacy custom definition without a contract is not
+treated as a protocol violation. Its <code>interfaceProperties</code> remain opaque, and
+generation is blocked only by other schema, resolution, HDL, or vendor
+diagnostics.</p>
+<h2 id="documentation-and-agent-guidance">Documentation and agent guidance<a class="headerlink" href="#documentation-and-agent-guidance" title="Permanent link">&para;</a></h2>
+<p>Protocol details should not be duplicated in full in root <code>AGENTS.md</code>. The
+documentation has three layers:</p>
+<ol>
+<li>The bus definition contracts are the machine authority.</li>
+<li><code>ipcraft-spec/docs/bus-interface-conformance.md</code> is the human and LLM
+   reference, with tables and concrete <code>TKEEP</code>, <code>empty</code>, parameterization, and
+   vendor-conversion examples.</li>
+<li>Root <code>AGENTS.md</code> contains a compact orientation that directs agents to the
+   canonical reference and lists only high-risk facts.</li>
+</ol>
+<p>The agent orientation states that AXI4 and AXI4-Lite are memory-mapped and have
+no <code>TDATA</code>; AXI4-Stream uses byte lanes; Avalon-ST has explicit symbol semantics;
+defaults do not prove overrides legal; and agents must invoke the shared
+validator instead of recreating rules in prompts or templates.</p>
+<p>JSON Schema descriptions, stable rule identifiers, and diagnostics provide
+additional context to agents operating directly on <code>.ip.yml</code> and bus definition
+files.</p>
+<h2 id="compatibility-and-migration">Compatibility and migration<a class="headerlink" href="#compatibility-and-migration" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>interfaceProperties</code> is optional in existing <code>.ip.yml</code> files.</li>
+<li>Legacy Avalon-ST documents default to eight-bit symbols and derive
+  <code>symbolsPerBeat</code> only when the data width permits an unambiguous result.</li>
+<li>A legacy Avalon-ST interface with <code>channel</code> but no <code>maxChannel</code> derives the
+  maximum encodable channel value from the channel width. The shipped two-bit
+  example therefore resolves to <code>maxChannel: 3</code> without a document rewrite.</li>
+<li>Legacy Avalon-ST <code>master</code>/<code>slave</code> modes normalize in memory to
+  <code>source</code>/<code>sink</code>; new UI edits and imports serialize canonical streaming modes.</li>
+<li><code>firstSymbolInHighOrderBits</code> remains a vendor import/export spelling only;
+  existing <code>.ip.yml</code> continues to store the fact in <code>endianness</code>.</li>
+<li>Constraint sections are optional for existing project bus definitions.</li>
+<li>Every built-in definition must have a complete version-1 contract before
+  enforcement is activated.</li>
+<li>Valid explicit dependent overrides are preserved.</li>
+<li>Editing a root width deterministically removes affected explicit derived
+  overrides through <code>updateIpCoreBatch</code>.</li>
+<li>Unknown property names are errors for a recognized contract but remain opaque
+  for an unknown or contract-less custom bus.</li>
+<li>Existing invalid documents display diagnostics and are never rewritten on
+  load.</li>
+<li>Big-endian Avalon-ST generated RTL changes from byte-only behavior to
+  <code>dataBitsPerSymbol</code>-lane reversal. In particular, non-byte-multiple streams
+  such as five one-bit symbols now reorder their symbol lanes instead of
+  silently receiving no reordering. This is an intentional compatibility change
+  and must be called out in release notes.</li>
+<li>Saving remains possible during incomplete edits; generation and export do not
+  proceed without proof.</li>
+<li>All shipped examples are validated and corrected deliberately before the
+  enforcement gate is enabled.</li>
+</ul>
+<p>The runtime-library migration intentionally changes canvas behavior wherever
+the old hard-coded table disagrees with <code>ipcraft-spec</code>. In particular,
+Avalon-MM optionality and port choices follow the canonical YAML. These changes
+must be visible in release notes and covered by explicit tests rather than
+hidden as snapshot churn.</p>
+<p>The migration does not include a permanent warn-only mode. Audit during
+implementation is used to find existing violations; release behavior follows
+the enforcement table above.</p>
+<h2 id="verification-strategy">Verification strategy<a class="headerlink" href="#verification-strategy" title="Permanent link">&para;</a></h2>
+<h3 id="schema-and-contract-tests">Schema and contract tests<a class="headerlink" href="#schema-and-contract-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Accept complete built-in and custom version-1 contracts.</li>
+<li>Reject unknown operations, invalid operands, cycles, illegal references, and
+  malformed interface property declarations.</li>
+<li>Accept an unknown workspace port role with a source-located warning and
+  normalize it to <code>control</code>; fail repository tests if a built-in produces that
+  warning.</li>
+<li>Reject invalid mode policies, interface kinds, ambiguous aliases, and
+  unsupported alias wildcards.</li>
+<li>Prove that the hand-authored bus-definition schema generates the expected
+  <code>busDefinition.types.ts</code> types through <code>npm run generate-types</code>.</li>
+<li>Prove that all five shipped built-ins carry complete contracts.</li>
+<li>Prove that a legacy custom definition without constraints remains loadable.</li>
+</ul>
+<h3 id="pure-resolver-and-validator-tests">Pure resolver and validator tests<a class="headerlink" href="#pure-resolver-and-validator-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Use table-driven valid, invalid, warning, and unresolved cases for every
+  built-in rule.</li>
+<li>Cover concrete defaults, every value in each dependency-sliced
+  <code>allowedValues</code> domain within the cap, symbolic equality, compatible and
+  incompatible explicit derived overrides, unresolved expressions, and illegal
+  fixed overrides.</li>
+<li>Cover dependency-sliced allowed-value products below the 256-combination cap
+  and the explicit unresolved diagnostic above it.</li>
+<li>Cover exact canonical VLNVs, short aliases, structured foreign VLNVs with
+  exact or wildcard versions, and genuinely unknown VLNVs.</li>
+<li>Add a closure characterization table containing every bus spelling exercised
+  by the existing <code>busVlnv.test.ts</code> and <code>busDefinitions.test.ts</code> suites plus
+  every explicit <code>lookupBusDef</code> spelling branch. Prove each resolves to the same
+  canonical contract and <code>interfaceKind</code> before the substring matchers are
+  removed.</li>
+<li>Derive memory-map and interrupt-association eligibility from the resolved
+  <code>interfaceKind</code>, mode, and array shape. Cover a custom version-1 memory-mapped
+  bus with a non-<code>slave</code> consumer mode and prove unknown or contract-less buses
+  do not opt in.</li>
+<li>Cover mode normalization and direction reversal for Avalon-ST source/sink and
+  legacy master/slave inputs.</li>
+<li>Reject an unknown <code>interfaceProperties</code> key for a recognized contract while
+  preserving the same key for a contract-less custom bus.</li>
+<li>Include at least these examples:</li>
+<li>AXI4-Stream <code>TDATA=32</code>, <code>TKEEP=4</code> is valid.</li>
+<li>AXI4-Stream <code>TDATA=20</code> is invalid.</li>
+<li>AXI4-Stream <code>TDATA=64</code> derives <code>TKEEP=8</code> when omitted.</li>
+<li>Four Avalon symbols of eight bits with <code>empty=2</code> are valid.</li>
+<li>Four Avalon symbols of one bit with <code>data=4</code> and <code>empty=2</code> are valid.</li>
+<li>A two-bit Avalon <code>channel</code> with no explicit property derives
+    <code>maxChannel=3</code>.</li>
+<li>Big-endian one-bit Avalon symbols reverse symbol lanes rather than bytes.</li>
+<li>A one-bit-symbol stream whose <code>data</code>, <code>dataBitsPerSymbol</code>, and
+    <code>symbolsPerBeat</code> disagree is invalid.</li>
+</ul>
+<h3 id="service-and-integration-tests">Service and integration tests<a class="headerlink" href="#service-and-integration-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Load built-in and workspace definitions with deterministic precedence.</li>
+<li>Before deleting the webview tables, characterize every port, direction,
+  presence, and role shared with the normalized runtime definitions. Record the
+  known Avalon-MM differences as intentional expected deltas.</li>
+<li>Prove that parser, generator, and webview consumers use the shared contract
+  lookup and that <code>HwTclParser</code> no longer imports from the webview layer.</li>
+<li>Validate every shipped <code>.ip.yml</code> example.</li>
+<li>Prove <code>_hw.tcl</code> import retains current and legacy symbol properties and blocks
+  contradictory values without writing output.</li>
+<li>Prove an unresolved but well-formed parameterized import can be saved with a
+  warning, while generation remains blocked.</li>
+<li>Prove Altera regeneration retains the imported semantic properties.</li>
+<li>Extend <code>src/test/integration/endianness.test.ts</code> with five-bit,
+  one-bit-symbol, big-endian Avalon-ST fixtures for VHDL and SystemVerilog.
+  Assert the generated RTL reverses five symbol lanes, does not apply a
+  byte-multiple guard, and compiles or elaborates under the integration suite's
+  available HDL tools.</li>
+<li>Prove <code>component.xml</code> keeps one-bit-symbol Avalon-ST as a custom interface,
+  emits custom bus artifacts, and never labels it AXI4-Stream.</li>
+<li>Prove invalid or unresolved generation fails before any staging or filesystem
+  output.</li>
+<li>Prove an interface with <code>memoryMapRef</code> and an unknown, streaming, or
+  wrong-mode contract reports <code>BUS_MEMORY_MAP_UNSUPPORTED</code> and cannot generate;
+  it must not silently select the default addressing width or omit the register
+  file.</li>
+<li>Prove <code>addressing.ts</code>, <code>getBusTypeForTemplate</code>, and
+  <code>hasMemoryMappedSlaveInterface</code> recognize the normalized consumer mode of a
+  custom memory-mapped contract rather than requiring the literal <code>slave</code>.</li>
+<li>Prove the explicit checker returns protocol diagnostics together with schema,
+  reference, HDL, and vendor-artifact diagnostics.</li>
+</ul>
+<h3 id="webview-tests">Webview tests<a class="headerlink" href="#webview-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Show interface and subport severity markers on the canvas.</li>
+<li>Show expected and actual values in the inspector.</li>
+<li>Group and deduplicate diagnostics in the Issues panel.</li>
+<li>Select and focus the affected interface or field when an issue is clicked.</li>
+<li>Keep derived values read-only and update their display after a root edit.</li>
+<li>Prove a five-bit, one-bit-symbol Avalon-ST interface permits big-endian
+  selection and does not emit the byte-multiple warning. Retain the existing
+  byte-alignment warning and disabled-control behavior for a five-bit standalone
+  port.</li>
+<li>Apply coupled changes through <code>updateIpCoreBatch</code> as one state transition and
+  one undo entry, without multiple outbound updates.</li>
+<li>Prove a root edit deletes affected explicit derived overrides rather than
+  updating or materializing them.</li>
+<li>Disable saving an invalid import preview and open the Issues panel on blocked
+  generation.</li>
+</ul>
+<p>After schema-derived type generation, run compile, unit tests, relevant
+integration tests, lint, and repository formatting checks. Enforcement is not
+enabled until all built-ins and shipped examples pass the shared validator.</p>
+<h2 id="delivery-sequence">Delivery sequence<a class="headerlink" href="#delivery-sequence" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Add the hand-authored bus-definition schema, <code>.ip.yml</code>
+   <code>interfaceProperties</code>, <code>npm run generate-types</code> integration, five built-in
+   contracts with roles/modes/interface kinds/aliases, and the canonical
+   reference in <code>ipcraft-spec</code>.</li>
+<li>Implement and unit-test pure alias canonicalization, contract normalization,
+   width/property resolution, mode handling, structured-path diagnostics, and
+   conformance validation.</li>
+<li>Characterize the shared behavior and intentional Avalon-MM differences
+   between the current hard-coded webview tables and normalized contracts. Then
+   make <code>BusLibraryService</code> produce the canonical runtime library, migrate all
+   consumers, replace <code>busVlnv.ts</code> and generator memory-map classification with
+   resolved <code>interfaceKind</code> and consumer-mode metadata, remove literal <code>slave</code>
+   gates in <code>addressing.ts</code> and <code>registerProcessor.ts</code>, remove <code>HwTclParser</code>'s
+   webview dependency, and finally delete the hard-coded tables.</li>
+<li>Integrate diagnostics into the canvas, inspector, unified Issues panel, and
+   explicit checker.</li>
+<li>Add <code>_hw.tcl</code> property import and Altera round-trip generation.</li>
+<li>Add lossless Avalon-ST custom IP-XACT parameter and bus-definition export.</li>
+<li>Add preflight gates to import writing, staging, generation, export, and CI.</li>
+<li>Validate and deliberately migrate all shipped examples, then activate full
+   enforcement.</li>
+</ol>
+<p>Each step must preserve existing format-preserving YAML edits, message protocol
+atomicity, undo granularity, selection, focus, and custom bus behavior.</p>
+<h2 id="reference-material">Reference material<a class="headerlink" href="#reference-material" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Arm, <em>AMBA AXI4-Stream Protocol Specification</em>, IHI 0051B:
+  <a href="https://documentation-service.arm.com/static/64819f1516f0f201aa6b963c">https://documentation-service.arm.com/static/64819f1516f0f201aa6b963c</a></li>
+<li>Arm, <em>AMBA AXI and ACE Protocol Specification</em>:
+  <a href="https://documentation-service.arm.com/static/68b03beb01ae952d9559f9eb">https://documentation-service.arm.com/static/68b03beb01ae952d9559f9eb</a></li>
+<li>Arm, <em>AMBA AXI4-Lite Protocol Specification</em>, relevant AXI4-Lite width rules:
+  <a href="https://documentation-service.arm.com/static/64256e84314e245d086bc88f?token=">https://documentation-service.arm.com/static/64256e84314e245d086bc88f?token=</a></li>
+<li>Altera, <em>Avalon Interface Specifications</em>, synchronous streaming interface
+  properties:
+  <a href="https://docs.altera.com/r/docs/683091/22.3/avalon-interface-specifications/synchronous-interface">https://docs.altera.com/r/docs/683091/22.3/avalon-interface-specifications/synchronous-interface</a></li>
+<li>Intel, <em>Avalon Streaming Interface Signal Roles</em>:
+  <a href="https://www.intel.com/content/www/us/en/docs/programmable/683609/23-3/streaming-interface-signal-roles.html">https://www.intel.com/content/www/us/en/docs/programmable/683609/23-3/streaming-interface-signal-roles.html</a></li>
+<li>Intel, <em>Data Transfers Using readyLatency</em>:
+  <a href="https://www.intel.com/content/www/us/en/docs/programmable/683091/22-3/data-transfers-using-readylatency.html">https://www.intel.com/content/www/us/en/docs/programmable/683091/22-3/data-transfers-using-readylatency.html</a></li>
+<li>Intel, <em>Avalon Streaming Demultiplexer IP Input Interface</em>:
+  <a href="https://www.intel.com/content/www/us/en/docs/programmable/683609/24-3/streaming-demultiplexer-ip-input-interface.html">https://www.intel.com/content/www/us/en/docs/programmable/683609/24-3/streaming-demultiplexer-ip-input-interface.html</a></li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

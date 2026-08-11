@@ -1,0 +1,3971 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/superpowers/plans/2026-08-11-bus-interface-conformance/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Bus Interface Conformance Implementation Plan - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bus-interface-conformance-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Bus Interface Conformance Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/development/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../how-to/create-your-first-ip-core/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../concepts/yaml-data-flow/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/de10-nano-case-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DE10-Nano Case Study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/create-your-first-ip-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Your First IP Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/defining-a-custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Defining a Custom Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/importing-an-existing-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing an Existing Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/customizing-generated-files-with-scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customizing Generated Files with Scaffold Packs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/check-consistency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking Consistency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/use-data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/using-arithmetic-functions-in-port-widths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Arithmetic Functions in Port Widths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-cocotb-simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a Cocotb Simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/vivado-interface-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vivado Interface Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Template Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-feature-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Feature Coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/bit-field-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/vsix-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSIX Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Developer Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/docs-screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Docs Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../images/codicons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codicon Attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#global-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Constraints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Global Constraints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-1-add-bus-contract-schemas-and-generated-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Add bus-contract schemas and generated types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-2-encode-all-five-built-in-contracts-and-their-compatibility-aliases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Encode all five built-in contracts and their compatibility aliases
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-3-normalize-the-runtime-library-and-canonicalize-types-and-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Normalize the runtime library and canonicalize types and modes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-4-resolve-effective-widths-and-validate-conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Resolve effective widths and validate conformance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-5-load-and-transport-one-normalized-runtime-contract-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Load and transport one normalized runtime contract library
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6a-adopt-canonical-contracts-in-shared-and-extension-side-consumers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6A: Adopt canonical contracts in shared and extension-side consumers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6b-migrate-webview-consumers-and-delete-the-hard-coded-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6B: Migrate webview consumers and delete the hard-coded table
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7-enforce-conformance-in-generation-imports-and-the-explicit-checker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Enforce conformance in generation, imports, and the explicit checker
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-8-replace-fragmented-validation-ui-with-one-actionable-issues-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8: Replace fragmented validation UI with one actionable Issues panel
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-9-add-contract-aware-bus-editing-and-atomic-derived-width-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9: Add contract-aware bus editing and atomic derived-width cleanup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-10-preserve-avalon-st-properties-through-_hwtcl-import-and-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 10: Preserve Avalon-ST properties through _hw.tcl import and export
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-11-generate-avalon-st-endianness-in-symbol-sized-lanes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 11: Generate Avalon-ST endianness in symbol-sized lanes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-12-preserve-avalon-st-identity-and-properties-in-custom-ip-xact" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 12: Preserve Avalon-ST identity and properties in custom IP-XACT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-13-migrate-examples-finish-browser-coverage-and-activate-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 13: Migrate examples, finish browser coverage, and activate enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/superpowers/plans/2026-08-11-bus-interface-conformance.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="bus-interface-conformance-implementation-plan">Bus Interface Conformance Implementation Plan<a class="headerlink" href="#bus-interface-conformance-implementation-plan" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use
+<code>superpowers:subagent-driven-development</code> (recommended) or
+<code>superpowers:executing-plans</code> to implement this plan task-by-task. Steps use
+checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Make the five built-in AXI/Avalon interfaces machine-validatable from
+one declarative contract library, surface the same diagnostics in every UI and
+generation boundary, and preserve Avalon-ST symbol semantics through vendor
+round trips.</p>
+<p><strong>Architecture:</strong> <code>ipcraft-spec</code> owns a versioned bus-definition schema and the
+five complete contracts. Pure modules under <code>src/shared/busContracts/</code> normalize
+the library, canonicalize aliases and modes, resolve effective widths and
+properties, and return structured diagnostics. Services load that runtime
+library once and inject it into parsers, generators, checkers, and the webview;
+components only project diagnostics and dispatch atomic edits.</p>
+<p><strong>Tech Stack:</strong> TypeScript, React, JSON Schema, Ajv, js-yaml for read-only
+parsing, <code>yaml</code> v2 for format-preserving edits, Nunjucks, Jest, Playwright,
+GHDL, Icarus Verilog.</p>
+<p><strong>Design reference:</strong>
+<code>docs/superpowers/specs/2026-08-11-bus-interface-conformance-design.md</code></p>
+<h2 id="global-constraints">Global Constraints<a class="headerlink" href="#global-constraints" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Keep source imports relative; repository path aliases are test-only.</li>
+<li>Keep camelCase in TypeScript, React, and JSON Schema. Do not add dual-state
+  fallbacks for new fields.</li>
+<li>Preserve the dependency direction <code>types/pure utilities -&gt; services/hooks -&gt;
+components -&gt; roots</code>; parsers and generators must not import webview code.</li>
+<li>Use <code>yaml</code> v2 and the existing <code>src/yamledit/</code> path-edit helpers for document
+  writes. <code>js-yaml</code> remains read-only except for importer-created new documents.</li>
+<li>Carry diagnostic paths as <code>readonly (string | number)[]</code>; rendered strings are
+  presentation only.</li>
+<li>Evaluate at most 256 dependency-sliced <code>allowedValues</code> combinations per
+  constraint. Never sample an oversized domain.</li>
+<li>Unknown VLNVs do not fail merely for lacking a contract, but an interface with
+  <code>memoryMapRef</code> must resolve to a memory-mapped contract in its normalized
+  consumer mode.</li>
+<li>Known import violations block writes; unresolved well-formed imports save with
+  warnings; known or unresolved generation failures stop before staging or disk
+  output.</li>
+<li>Coupled IP Core edits use <code>updateIpCoreBatch</code> for one state transition and one
+  undo entry. Do not add a Memory Map <code>__op</code> or issue multiple outbound updates.</li>
+<li>Do not automatically stage, commit, or push. Each task ends with a review
+  checkpoint for the developer.</li>
+<li>Before deleting a hard-coded behavior source, land and run its characterization
+  tests.</li>
+<li>After generated types change, run <code>npm run generate-types</code> and
+  <code>npm run compile</code>.</li>
+<li>Jest commands must include <code>--config config/jest.config.js</code>.</li>
+</ul>
+<hr />
+<h3 id="task-1-add-bus-contract-schemas-and-generated-types">Task 1: Add bus-contract schemas and generated types<a class="headerlink" href="#task-1-add-bus-contract-schemas-and-generated-types" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>ipcraft-spec/schemas/bus_definition.schema.json</code></li>
+<li>Modify: <code>ipcraft-spec/schemas/ip_core.schema.json</code></li>
+<li>Modify: <code>scripts/generate-types.js</code></li>
+<li>Modify: <code>config/webpack.config.js</code></li>
+<li>Modify: <code>scripts/check-vsix.js</code></li>
+<li>Generate: <code>src/domain/busDefinition.types.ts</code></li>
+<li>Generate: <code>src/domain/ipcore.types.ts</code></li>
+<li>Modify: <code>src/webview/types/ipCore.d.ts</code></li>
+<li>Modify: <code>src/generator/types.ts</code></li>
+<li>Test: <code>src/test/suite/services/SpecConformance.test.ts</code></li>
+<li>Test: <code>src/test/suite/domain/roundtrip.test.ts</code></li>
+<li>Create: <code>src/test/suite/services/BusDefinitionSchema.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Produces: generated raw schema types <code>BusDefinitionFile</code>,
+  <code>BusDefinitionEntry</code>, <code>BusContract</code>, and <code>BusContractPort</code>.</li>
+<li>Produces: <code>BusInterface.interfaceProperties?: Record&lt;string, number | string |
+boolean&gt;</code> in generated, legacy webview, and generator-facing types.</li>
+<li>
+<p>Consumes: existing <code>json-schema-to-typescript</code> generation path and Ajv test
+  setup.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing schema tests for the version-1 shape</strong></p>
+</li>
+</ul>
+<p>Add Ajv cases covering a complete streaming contract, a legacy definition
+  with only <code>ports</code>, malformed operations, missing operands, invalid aliases,
+  empty role strings, and arbitrary non-empty role strings:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">validate</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">TEST_BUS</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">busType</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">vendor</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;acme&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">library</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;busif&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;test&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">version</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;1.0&#39;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="nx">aliases</span><span class="o">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;short&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;TEST&#39;</span><span class="w"> </span><span class="p">}],</span>
+<span class="w">      </span><span class="nx">contract</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">version</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">interfaceKind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;streaming&#39;</span><span class="p">,</span>
+<span class="w">        </span><span class="nx">modePolicy</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">producer</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;source&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">consumer</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;sink&#39;</span><span class="p">,</span><span class="w"> </span><span class="nx">aliases</span><span class="o">:</span><span class="w"> </span><span class="p">{}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="nx">interfaceProperties</span><span class="o">:</span><span class="w"> </span><span class="p">{},</span>
+<span class="w">        </span><span class="nx">constraints</span><span class="o">:</span><span class="w"> </span><span class="p">[],</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nx">ports</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">          </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;data&#39;</span><span class="p">,</span>
+<span class="w">          </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="kt">32</span><span class="p">,</span>
+<span class="w">          </span><span class="nx">direction</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;out&#39;</span><span class="p">,</span>
+<span class="w">          </span><span class="nx">presence</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;required&#39;</span><span class="p">,</span>
+<span class="w">          </span><span class="nx">role</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;data&#39;</span><span class="p">,</span>
+<span class="w">          </span><span class="nx">widthPolicy</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;root&#39;</span><span class="p">,</span>
+<span class="w">        </span><span class="p">},</span>
+<span class="w">      </span><span class="p">],</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">  </span><span class="p">})</span>
+<span class="p">).</span><span class="nx">toBe</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the new schema tests and confirm the missing schema fails</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusDefinitionSchema.test.ts
+</code></pre></div>
+<p>Expected: FAIL because <code>bus_definition.schema.json</code> does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Author the discriminated JSON Schema</strong></li>
+</ul>
+<p>Define these closed version-1 vocabularies in
+  <code>bus_definition.schema.json</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;interfaceKind&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;memoryMapped&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;streaming&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;conduit&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;presence&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;required&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;optional&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;widthPolicy&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;root&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;derived&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;fixed&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;canonicalRoles&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;clock&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;reset&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;data&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;byteQualifier&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;control&quot;</span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;derivedOperations&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;copyPort&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;multiplyBy&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;divideBy&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;multiplyProperties&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;ceilLog2&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;bitsForMaximum&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;maxEncodableValue&quot;</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;constraintKinds&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s2">&quot;range&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;allowedValues&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;multipleOf&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;powerOfTwo&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;portWidthsEqual&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;portWidthQuotient&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;productEqualsPort&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;portPresenceRequires&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;propertyRequiredWhenPortPresent&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="s2">&quot;propertyFitsPort&quot;</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Encode operations and constraint kinds as <code>oneOf</code> discriminated object
+  shapes so missing or extra operands fail schema validation. Keep <code>contract</code>
+  optional for legacy definitions. Validate <code>role</code> as a non-empty string so the
+  semantic normalizer can degrade unknown workspace roles with a warning.</p>
+<ul>
+<li>[ ] <strong>Step 4: Add <code>interfaceProperties</code> to the IP-core schema and round trip</strong></li>
+</ul>
+<p>Add an object after <code>portWidthOverrides</code> whose values are integer, string, or
+  boolean and whose description says recognized contracts validate their keys.
+  Update the <code>Endianness</code> description to distinguish byte lanes from
+  Avalon-ST symbol lanes. Add a round-trip assertion:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">iface</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span>
+<span class="w">  </span><span class="nx">serializeIpCore</span><span class="p">(</span><span class="nx">parseIpCore</span><span class="p">(</span><span class="nx">yamlText</span><span class="p">).</span><span class="nx">ipCore</span><span class="p">)</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">busInterfaces</span><span class="o">:</span><span class="w"> </span><span class="kt">Array</span><span class="o">&lt;</span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">unknown</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">).</span><span class="nx">busInterfaces</span><span class="p">[</span><span class="mf">0</span><span class="p">];</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">iface</span><span class="p">.</span><span class="nx">interfaceProperties</span><span class="p">).</span><span class="nx">toEqual</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">dataBitsPerSymbol</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">symbolsPerBeat</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;DATA_WIDTH&#39;</span><span class="p">,</span>
+<span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 5: Extend type generation and resource packaging</strong></li>
+</ul>
+<p>Add <code>BUS_DEFINITION_SCHEMA_PATH</code> and <code>BUS_DEFINITION_OUTPUT_PATH</code> to
+  <code>scripts/generate-types.js</code>, call <code>compile(rawBusDefinition,
+'BusDefinitionFile', { additionalProperties: false })</code>, and copy the new
+  schema in webpack. Add it to the VSIX required-schema list. Update the legacy
+  webview and generator types deliberately; do not hand-edit generated files.</p>
+<ul>
+<li>[ ] <strong>Step 6: Generate types and verify schema, compilation, and packaging</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>generate-types
+npm<span class="w"> </span>run<span class="w"> </span>compile
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusDefinitionSchema.test.ts<span class="w"> </span>src/test/suite/services/SpecConformance.test.ts<span class="w"> </span>src/test/suite/domain/roundtrip.test.ts
+</code></pre></div>
+<p>Expected: generated <code>busDefinition.types.ts</code>, successful webpack compilation,
+  and all listed tests passing.</p>
+<ul>
+<li>[ ] <strong>Step 7: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and inspect only the schema/type-generation changes.
+  Leave the worktree unstaged.</p>
+<hr />
+<h3 id="task-2-encode-all-five-built-in-contracts-and-their-compatibility-aliases">Task 2: Encode all five built-in contracts and their compatibility aliases<a class="headerlink" href="#task-2-encode-all-five-built-in-contracts-and-their-compatibility-aliases" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>ipcraft-spec/bus_definitions/axi4_lite.yml</code></li>
+<li>Modify: <code>ipcraft-spec/bus_definitions/axi4_full.yml</code></li>
+<li>Modify: <code>ipcraft-spec/bus_definitions/axi_stream.yml</code></li>
+<li>Modify: <code>ipcraft-spec/bus_definitions/avalon_mm.yml</code></li>
+<li>Modify: <code>ipcraft-spec/bus_definitions/avalon_st.yml</code></li>
+<li>Create: <code>ipcraft-spec/docs/bus-interface-conformance.md</code></li>
+<li>Modify: <code>ipcraft-spec/docs/ip_spec.md</code></li>
+<li>Modify: <code>AGENTS.md</code></li>
+<li>Create: <code>src/test/suite/services/BuiltinBusContracts.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: raw schema types from Task 1.</li>
+<li>
+<p>Produces: five complete version-1 contracts with explicit canonical VLNV,
+  aliases, <code>interfaceKind</code>, <code>modePolicy</code>, roles, width policies, properties,
+  derivations, and stable rules.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing completeness and alias-inventory tests</strong></p>
+</li>
+</ul>
+<p>Load all five YAML files and assert every built-in has a version-1 contract,
+  every port has a recognized explicit role and width policy, aliases do not
+  collide after normalization, and this compatibility matrix is present:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">compatibilityAliases</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">AXI4_LITE</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;AXI4L&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;AXI4LITE&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;AXILITE&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;AXIL&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi4_lite&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi4-lite&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi4l&#39;</span><span class="p">],</span>
+<span class="w">  </span><span class="nx">AXI4_FULL</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;AXI4F&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;AXI4FULL&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;AXI4&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi4_full&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi4-full&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi4f&#39;</span><span class="p">],</span>
+<span class="w">  </span><span class="nx">AXI_STREAM</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;AXIS&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;AXI4S&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;AXISTREAM&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi_stream&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;axi-stream&#39;</span><span class="p">],</span>
+<span class="w">  </span><span class="nx">AVALON_MEMORY_MAPPED</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s1">&#39;AVMM&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;AVALONMM&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;AVALONMEMORYMAPPED&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;AVALON_MEMORY_MAPPED&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;avalon_mm&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;avalon-mm&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;avalon_memory&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nx">AVALON_STREAMING</span><span class="o">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="s1">&#39;AVST&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;AVALONST&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;AVALONSTREAMING&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;avalon_st&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;avalon-st&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="s1">&#39;avalon_stream&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="p">}</span><span class="w"> </span><span class="kr">as</span><span class="w"> </span><span class="kd">const</span><span class="p">;</span>
+</code></pre></div>
+<p>Include structured foreign aliases for
+  <code>xilinx.com:interface:avalon:*</code>,
+  <code>xilinx.com:interface:avalon-mm:*</code>,
+  <code>xilinx.com:interface:avalon-st:*</code>, and
+  <code>altera.com:interface:avalon_streaming:*</code>.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run the completeness test and confirm it fails</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BuiltinBusContracts.test.ts
+</code></pre></div>
+<p>Expected: FAIL because the shipped definitions do not yet contain contracts,
+  complete roles, modes, or aliases.</p>
+<ul>
+<li>[ ] <strong>Step 3: Add canonical metadata and width policies</strong></li>
+</ul>
+<p>Use <code>interfaceKind: memoryMapped</code> for AXI4-Lite, AXI4 Full, and Avalon-MM;
+  <code>interfaceKind: streaming</code> for AXI4-Stream and Avalon-ST. Use
+  <code>master</code>/<code>slave</code> for AXI and Avalon-MM, and <code>source</code>/<code>sink</code> with
+  <code>master -&gt; source</code>, <code>slave -&gt; sink</code> aliases for Avalon-ST. Mark clocks,
+  resets, data, byte qualifiers, and all remaining control ports explicitly.</p>
+<ul>
+<li>[ ] <strong>Step 4: Encode stable built-in rules</strong></li>
+</ul>
+<p>Use these rule IDs and severities as the contract inventory:</p>
+<table>
+<thead>
+<tr>
+<th>Contract</th>
+<th>Required error rules</th>
+<th>Warning rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AXI4-Lite</td>
+<td><code>AXI4L_DATA_WIDTH</code>, <code>AXI4L_DATA_EQUAL</code>, <code>AXI4L_WSTRB_WIDTH</code>, <code>AXI4L_ADDRESS_EQUAL</code>, fixed control widths</td>
+<td>none</td>
+</tr>
+<tr>
+<td>AXI4 Full</td>
+<td><code>AXI4_DATA_WIDTH</code>, <code>AXI4_DATA_EQUAL</code>, <code>AXI4_WSTRB_WIDTH</code>, <code>AXI4_ID_WIDTHS</code>, fixed sideband widths, presence dependencies</td>
+<td>none</td>
+</tr>
+<tr>
+<td>AXI4-Stream</td>
+<td><code>AXIS_DATA_BYTE_ALIGNED</code>, <code>AXIS_TKEEP_WIDTH</code>, <code>AXIS_TSTRB_WIDTH</code>, fixed handshake widths</td>
+<td><code>AXIS_PREFERRED_DATA_WIDTH</code></td>
+</tr>
+<tr>
+<td>Avalon-MM</td>
+<td><code>AVALON_MM_DATA_WIDTH</code>, <code>AVALON_MM_DATA_EQUAL</code>, <code>AVALON_MM_BYTEENABLE_WIDTH</code>, fixed controls</td>
+<td>none</td>
+</tr>
+<tr>
+<td>Avalon-ST</td>
+<td><code>AVALON_ST_DATA_LAYOUT</code>, <code>AVALON_ST_EMPTY_WIDTH</code>, <code>AVALON_ST_PACKET_PORTS</code>, <code>AVALON_ST_READY_LATENCY</code>, <code>AVALON_ST_MAX_CHANNEL</code></td>
+<td>none</td>
+</tr>
+</tbody>
+</table>
+<p>Declare <code>dataBitsPerSymbol</code> default <code>8</code>, derived <code>symbolsPerBeat</code>,
+  <code>readyLatency</code> default <code>0</code>, and derived <code>maxChannel</code> in Avalon-ST.
+  Keep <code>firstSymbolInHighOrderBits</code> out of <code>interfaceProperties</code>.</p>
+<ul>
+<li>[ ] <strong>Step 5: Document the machine contract for people and agents</strong></li>
+</ul>
+<p>In <code>ipcraft-spec/docs/bus-interface-conformance.md</code>, include concrete
+  <code>TDATA/TKEEP</code>, Avalon <code>data/empty</code>, one-bit-symbol, parameterized, and vendor
+  conversion examples. Add a short pointer in <code>AGENTS.md</code>; do not duplicate the
+  rule tables there. Link the reference from <code>ip_spec.md</code>.</p>
+<ul>
+<li>[ ] <strong>Step 6: Validate all built-ins</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusDefinitionSchema.test.ts<span class="w"> </span>src/test/suite/services/BuiltinBusContracts.test.ts
+</code></pre></div>
+<p>Expected: all five definitions pass schema validation and the completeness
+  invariant without warnings.</p>
+<ul>
+<li>[ ] <strong>Step 7: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>; compare the contract tables against the approved
+  design, especially AXI4-Lite 32/64-bit widths, AXI4-Stream byte lanes, and
+  Avalon-ST arbitrary symbol widths.</p>
+<hr />
+<h3 id="task-3-normalize-the-runtime-library-and-canonicalize-types-and-modes">Task 3: Normalize the runtime library and canonicalize types and modes<a class="headerlink" href="#task-3-normalize-the-runtime-library-and-canonicalize-types-and-modes" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/shared/busContracts/types.ts</code></li>
+<li>Create: <code>src/shared/busContracts/normalize.ts</code></li>
+<li>Create: <code>src/shared/busContracts/canonicalize.ts</code></li>
+<li>Create: <code>src/shared/busContracts/index.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busContractNormalize.test.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busContractCanonicalize.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: <code>BusDefinitionFile</code> from Task 1 and definition data from Task 2.</li>
+<li>Produces:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">DocumentPath</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">readonly</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="p">)[];</span>
+<span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">InterfaceKind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;memoryMapped&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;streaming&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;conduit&#39;</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">CanonicalPortRole</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;clock&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;reset&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;data&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;byteQualifier&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;control&#39;</span><span class="p">;</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">BusDefinitionSource</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">sourceFile</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">sourceKind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;builtin&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;workspace&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;configured&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;ipLocal&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">definitions</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionFile</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">BusLibraryDiagnostic</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">code</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">severity</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;error&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;warning&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">sourceFile</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">DocumentPath</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">NormalizedBusLibrary</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">definitions</span><span class="o">:</span><span class="w"> </span><span class="kt">Readonly</span><span class="o">&lt;</span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">BusDefinitionContract</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">aliases</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">NormalizedBusAlias</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">diagnostics</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">BusLibraryDiagnostic</span><span class="p">[];</span>
+<span class="p">}</span>
+
+<span class="kr">type</span><span class="w"> </span><span class="nx">RawPropertyDeclarations</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">NonNullable</span><span class="o">&lt;</span><span class="nx">BusContract</span><span class="p">[</span><span class="s1">&#39;interfaceProperties&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">NormalizedDerivedWidth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">NonNullable</span><span class="o">&lt;</span><span class="nx">BusContractPort</span><span class="p">[</span><span class="s1">&#39;derivedWidth&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">NormalizedPropertyDerivation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">NonNullable</span><span class="o">&lt;</span><span class="nx">RawPropertyDeclarations</span><span class="p">[</span><span class="kt">string</span><span class="p">][</span><span class="s1">&#39;derive&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">NormalizedBusConstraint</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">NonNullable</span><span class="o">&lt;</span><span class="nx">BusContract</span><span class="p">[</span><span class="s1">&#39;constraints&#39;</span><span class="p">]</span><span class="o">&gt;</span><span class="p">[</span><span class="kt">number</span><span class="p">];</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">BusDefinitionContract</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">key</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">canonicalVlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">interfaceKind</span><span class="o">:</span><span class="w"> </span><span class="kt">InterfaceKind</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">modePolicy</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedModePolicy</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">ports</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">NormalizedBusPort</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">interfaceProperties</span><span class="o">:</span><span class="w"> </span><span class="kt">Readonly</span><span class="o">&lt;</span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">NormalizedPropertyDeclaration</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">constraints</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">NormalizedBusConstraint</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">sourceFile</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">NormalizedModePolicy</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">producer</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">consumer</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">aliases</span><span class="o">:</span><span class="w"> </span><span class="kt">Readonly</span><span class="o">&lt;</span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">NormalizedBusAlias</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;short&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;vlnv&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">canonicalVlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">shortValue?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">vendor?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">library?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">name?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">version?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">NormalizedBusPort</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">width?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">direction</span><span class="o">?:</span><span class="w"> </span><span class="s1">&#39;in&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;out&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">presence</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;required&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;optional&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">role</span><span class="o">:</span><span class="w"> </span><span class="kt">CanonicalPortRole</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">widthPolicy</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;root&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;derived&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;fixed&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">derivedWidth?</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedDerivedWidth</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">NormalizedPropertyDeclaration</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;integer&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;boolean&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;string&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">default?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">minimum?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">maximum?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">allowedValues?</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="p">(</span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">)[];</span>
+<span class="w">  </span><span class="nx">derive?</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedPropertyDerivation</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">CanonicalBusMatch</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">key</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">canonicalVlnv</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">contract</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionContract</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">matchedBy</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;canonicalVlnv&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;shortAlias&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;structuredAlias&#39;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">normalizeBusLibrary</span><span class="p">(</span><span class="nx">inputs</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">BusDefinitionSource</span><span class="p">[])</span><span class="o">:</span><span class="w"> </span><span class="nx">NormalizedBusLibrary</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">canonicalizeBusType</span><span class="p">(</span>
+<span class="w">  </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">library</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusLibrary</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">CanonicalBusMatch</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">normalizeInterfaceMode</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">contract</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionContract</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">mode</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">isConsumerInterface</span><span class="p">(</span><span class="nx">contract</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionContract</span><span class="p">,</span><span class="w"> </span><span class="nx">mode</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 1: Write failing normalization tests</strong></li>
+</ul>
+<p>Cover exact VLNV construction, short-alias trim/case normalization,
+  structured wildcard versions, alias collision errors, derivation cycles,
+  undeclared references, missing roles, and unknown workspace roles. Assert:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">definitions</span><span class="p">.</span><span class="nx">TEST</span><span class="p">.</span><span class="nx">ports</span><span class="p">[</span><span class="mf">0</span><span class="p">].</span><span class="nx">role</span><span class="p">).</span><span class="nx">toBe</span><span class="p">(</span><span class="s1">&#39;control&#39;</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">).</span><span class="nx">toContainEqual</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">code</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;BUS_DEF_UNKNOWN_PORT_ROLE&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">severity</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;warning&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">sourceFile</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;/workspace/test.yml&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">&#39;TEST&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;ports&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;role&#39;</span><span class="p">],</span>
+<span class="w">  </span><span class="p">})</span>
+<span class="p">);</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Run the tests and confirm missing exports fail</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractNormalize.test.ts<span class="w"> </span>src/test/suite/shared/busContractCanonicalize.test.ts
+</code></pre></div>
+<p>Expected: FAIL because <code>src/shared/busContracts/</code> does not exist.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement semantic normalization</strong></li>
+</ul>
+<p>Convert raw schema types into immutable normalized entries. Treat malformed
+  contracts, conflicting aliases, cycles, and undeclared operands as errors that
+  exclude that entry. Treat missing roles and unknown workspace roles as
+  <code>control</code>; record a warning only for an explicit unknown value. Reject any
+  warning from a bundled built-in in its repository test.</p>
+<ul>
+<li>[ ] <strong>Step 4: Implement exact canonicalization and mode normalization</strong></li>
+</ul>
+<p>Apply this order without substring matching:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">match</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="nx">matchCanonicalVlnv</span><span class="p">(</span><span class="nx">trimmed</span><span class="p">,</span><span class="w"> </span><span class="nx">library</span><span class="p">)</span><span class="w"> </span><span class="o">??</span>
+<span class="w">  </span><span class="nx">matchShortAlias</span><span class="p">(</span><span class="nx">trimmed</span><span class="p">.</span><span class="nx">toLowerCase</span><span class="p">(),</span><span class="w"> </span><span class="nx">library</span><span class="p">)</span><span class="w"> </span><span class="o">??</span>
+<span class="w">  </span><span class="nx">matchStructuredVlnv</span><span class="p">(</span><span class="nx">parseVlnv</span><span class="p">(</span><span class="nx">trimmed</span><span class="p">),</span><span class="w"> </span><span class="nx">library</span><span class="p">)</span><span class="w"> </span><span class="o">??</span>
+<span class="w">  </span><span class="kc">null</span><span class="p">;</span>
+</code></pre></div>
+<p>Structured aliases compare vendor, library, and name exactly and accept only
+  an exact declared version or <code>"*"</code>. <code>normalizeInterfaceMode</code> returns the
+  canonical producer/consumer mode or <code>null</code>; it never guesses from a protocol
+  name.</p>
+<ul>
+<li>[ ] <strong>Step 5: Verify the pure library</strong></li>
+</ul>
+<p>Run the two Jest files from Step 2. Expected: PASS with no VS Code, React,
+  filesystem, generator, or webview imports in <code>src/shared/busContracts/</code>.</p>
+<ul>
+<li>[ ] <strong>Step 6: Review checkpoint</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;includes\(&#39;(axi|stream|avalon)&quot;</span><span class="w"> </span>src/shared/busContracts
+git<span class="w"> </span>diff<span class="w"> </span>--check
+</code></pre></div>
+<p>Expected: no protocol substring matcher and no whitespace errors.</p>
+<hr />
+<h3 id="task-4-resolve-effective-widths-and-validate-conformance">Task 4: Resolve effective widths and validate conformance<a class="headerlink" href="#task-4-resolve-effective-widths-and-validate-conformance" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/shared/busContracts/expression.ts</code></li>
+<li>Create: <code>src/shared/busContracts/activePorts.ts</code></li>
+<li>Create: <code>src/shared/busContracts/resolve.ts</code></li>
+<li>Create: <code>src/shared/busContracts/validate.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/types.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/index.ts</code></li>
+<li>Modify: <code>src/domain/parse.ts</code></li>
+<li>Test: <code>src/test/suite/domain/roundtrip.test.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busContractResolve.test.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busConformance.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: normalized contracts from Task 3 and <code>widthExprAst</code>.</li>
+<li>Produces:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">ResolutionState</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;concrete&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;symbolic&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;unresolved&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;invalid&#39;</span><span class="p">;</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ResolvedNumericValue</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="kt">ResolutionState</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">value?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">expression?</span><span class="o">:</span><span class="w"> </span><span class="kt">WidthExprNode</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">reason?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ResolveBusInterfaceInput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">busInterface</span><span class="o">:</span><span class="w"> </span><span class="kt">BusInterface</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">busIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">parameters</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">Parameter</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">library</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusLibrary</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ValidateBusInterfacesInput</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">busInterfaces</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">BusInterface</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">parameters</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">Parameter</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">library</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusLibrary</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">BusConformanceDiagnostic</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">code</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">ruleId</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">severity</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;error&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;warning&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="kt">ResolutionState</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">interfaceName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">DocumentPath</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">suggestedValue?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">BusInterfaceResolution</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">match</span><span class="o">:</span><span class="w"> </span><span class="kt">CanonicalBusMatch</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">normalizedMode</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">portWidths</span><span class="o">:</span><span class="w"> </span><span class="kt">Readonly</span><span class="o">&lt;</span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">ResolvedNumericValue</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">properties</span><span class="o">:</span><span class="w"> </span><span class="kt">Readonly</span><span class="o">&lt;</span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">ResolvedSemanticValue</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">activePorts</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">ResolvedBusPort</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">diagnostics</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">BusConformanceDiagnostic</span><span class="p">[];</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">ResolvedSemanticValue</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="nx">ResolvedNumericValue</span>
+<span class="w">  </span><span class="o">|</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="kt">ResolutionState</span><span class="p">;</span>
+<span class="w">      </span><span class="nx">value?</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">      </span><span class="nx">reason?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">    </span><span class="p">};</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ResolvedBusPort</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="nx">NormalizedBusPort</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">effectiveDirection</span><span class="o">?:</span><span class="w"> </span><span class="s1">&#39;in&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;out&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">effectiveWidth</span><span class="o">:</span><span class="w"> </span><span class="kt">ResolvedNumericValue</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">resolveBusInterface</span><span class="p">(</span><span class="nx">input</span><span class="o">:</span><span class="w"> </span><span class="kt">ResolveBusInterfaceInput</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">BusInterfaceResolution</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">validateBusInterfaces</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">input</span><span class="o">:</span><span class="w"> </span><span class="kt">ValidateBusInterfacesInput</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="k">readonly</span><span class="w"> </span><span class="nx">BusConformanceDiagnostic</span><span class="p">[];</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 1: Write failing four-state and built-in table tests</strong></li>
+</ul>
+<p>Add <code>it.each</code> cases for every rule ID from Task 2. Include concrete, symbolic,
+  unresolved, and invalid outcomes; compatible and incompatible derived
+  overrides; fixed overrides; unknown property keys; mode aliases; and unknown
+  VLNVs. Include the required examples:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">.</span><span class="nx">each</span><span class="p">([</span>
+<span class="w">  </span><span class="p">[</span><span class="mf">32</span><span class="p">,</span><span class="w"> </span><span class="mf">4</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">],</span>
+<span class="w">  </span><span class="p">[</span><span class="mf">64</span><span class="p">,</span><span class="w"> </span><span class="mf">8</span><span class="p">,</span><span class="w"> </span><span class="kc">true</span><span class="p">],</span>
+<span class="w">  </span><span class="p">[</span><span class="mf">20</span><span class="p">,</span><span class="w"> </span><span class="mf">3</span><span class="p">,</span><span class="w"> </span><span class="kc">false</span><span class="p">],</span>
+<span class="p">])(</span><span class="s1">&#39;validates AXIS TDATA=%i TKEEP=%i&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="nx">data</span><span class="p">,</span><span class="w"> </span><span class="nx">keep</span><span class="p">,</span><span class="w"> </span><span class="nx">valid</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="cm">/* explicit fixture assertion */</span>
+<span class="p">});</span>
+
+<span class="nx">expect</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">resolveAvalon</span><span class="p">(</span>
+<span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="kt">4</span><span class="p">,</span><span class="w"> </span><span class="nx">empty</span><span class="o">:</span><span class="w"> </span><span class="kt">2</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">dataBitsPerSymbol</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">symbolsPerBeat</span><span class="o">:</span><span class="w"> </span><span class="kt">4</span><span class="p">,</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">).</span><span class="nx">diagnostics</span>
+<span class="p">).</span><span class="nx">toEqual</span><span class="p">([]);</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 2: Write failing domain-cap and memory-map diagnostic tests</strong></li>
+</ul>
+<p>Build a two-parameter 16-by-16 domain that evaluates exactly 256 combinations
+  and a 17-by-16 domain that returns:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">diagnostics</span><span class="p">).</span><span class="nx">toContainEqual</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">expect</span><span class="p">.</span><span class="nx">objectContaining</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">code</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;CONFORMANCE_DOMAIN_NOT_EXHAUSTIVE&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;unresolved&#39;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">severity</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;warning&#39;</span><span class="p">,</span>
+<span class="w">  </span><span class="p">})</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>Also assert an unknown, streaming, or wrong-mode interface with
+  <code>memoryMapRef</code> reports <code>BUS_MEMORY_MAP_UNSUPPORTED</code> at
+  <code>['busInterfaces', index, 'memoryMapRef']</code>.</p>
+<ul>
+<li>[ ] <strong>Step 3: Run the new resolver tests and confirm they fail</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractResolve.test.ts<span class="w"> </span>src/test/suite/shared/busConformance.test.ts
+</code></pre></div>
+<p>Expected: FAIL because the resolver and validator exports are absent.</p>
+<ul>
+<li>[ ] <strong>Step 4: Implement expression resolution and structural proof</strong></li>
+</ul>
+<p>Reuse <code>parse</code> and <code>evaluate</code> from <code>widthExprAst</code>. Reduce constant subtrees,
+  normalize parameter-name case exactly as the parameter table does, and compare
+  canonical ASTs for structural equality. Do not use <code>eval</code>, regex arithmetic,
+  or algebraic guessing. A relation is <code>symbolic</code> only when the normalized AST
+  structure proves it.</p>
+<ul>
+<li>[ ] <strong>Step 5: Implement active ports, property defaults, and derivations</strong></li>
+</ul>
+<p>Resolve in the approved order: declared width -&gt; explicit override -&gt;
+  parameter expression -&gt; property defaults/derivations -&gt; derived width -&gt;
+  presence constraints. Derive omitted legacy Avalon-ST values as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">symbolsPerBeat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">dataWidth</span><span class="w"> </span><span class="o">%</span><span class="w"> </span><span class="nx">dataBitsPerSymbol</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="mf">0</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="nx">dataWidth</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nx">dataBitsPerSymbol</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="kt">unresolved</span><span class="p">;</span>
+<span class="nx">maxChannel</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">2</span><span class="w"> </span><span class="o">**</span><span class="w"> </span><span class="nx">channelWidth</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mf">1</span><span class="p">;</span>
+<span class="nx">emptyWidth</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">Math</span><span class="p">.</span><span class="nx">ceil</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">log2</span><span class="p">(</span><span class="nx">symbolsPerBeat</span><span class="p">));</span>
+</code></pre></div>
+<p>Reject zero, negative, fractional, or overflowed widths.</p>
+<ul>
+<li>[ ] <strong>Step 6: Implement bounded constraint evaluation and diagnostics</strong></li>
+</ul>
+<p>For each constraint, collect only referenced parameters, form their Cartesian
+  product, and stop before evaluation if its size exceeds 256. Validate defaults
+  and every declared combination within the cap. Unknown
+  <code>interfaceProperties</code> keys are errors only when a contract resolved.</p>
+<ul>
+<li>[ ] <strong>Step 7: Preserve <code>interfaceProperties</code> in domain normalization</strong></li>
+</ul>
+<p>Read only canonical <code>interfaceProperties</code> into normalized bus interfaces and
+  leave opaque keys untouched. Add a round-trip test proving no property map is
+  dropped or materialized when absent.</p>
+<ul>
+<li>[ ] <strong>Step 8: Verify the resolver</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractResolve.test.ts<span class="w"> </span>src/test/suite/shared/busConformance.test.ts<span class="w"> </span>src/test/suite/domain/roundtrip.test.ts
+</code></pre></div>
+<p>Expected: all four states, the 256 cap, five built-in rule tables, and
+  structured paths pass.</p>
+<ul>
+<li>[ ] <strong>Step 9: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and confirm the pure modules import neither <code>vscode</code>,
+  React, components, nor generator templates.</p>
+<hr />
+<h3 id="task-5-load-and-transport-one-normalized-runtime-contract-library">Task 5: Load and transport one normalized runtime contract library<a class="headerlink" href="#task-5-load-and-transport-one-normalized-runtime-contract-library" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/services/BusLibraryService.ts</code></li>
+<li>Modify: <code>src/services/ImportResolver.ts</code></li>
+<li>Modify: <code>src/services/ResourceRoots.ts</code></li>
+<li>Modify: <code>src/providers/IpCoreEditorProvider.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/types/messages.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useIpCoreState.ts</code></li>
+<li>Modify: <code>src/generator/IpCoreScaffolder.ts</code></li>
+<li>Modify: <code>src/generator/resolvers/types.ts</code></li>
+<li>Test: <code>src/test/suite/services/BusLibraryService.test.ts</code></li>
+<li>Test: <code>src/test/suite/services/ImportResolver.test.ts</code></li>
+<li>Create: <code>src/test/suite/services/IpCoreEditorProvider.test.ts</code></li>
+<li>Test: <code>src/test/suite/generator/IpCoreScaffolder.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: <code>normalizeBusLibrary</code> from Task 3.</li>
+<li>Produces: <code>ResolvedImports.busLibrary?: NormalizedBusLibrary</code> and
+  <code>ResolverInput.busLibrary: NormalizedBusLibrary</code> across the process boundary.</li>
+<li>
+<p>Produces: deterministic precedence <code>built-in &lt; workspace &lt; configured user &lt;
+per-IP useBusLibrary</code> by exact definition key/canonical VLNV.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing service tests for normalization and diagnostics</strong></p>
+</li>
+</ul>
+<p>Update fixtures to include complete raw definition objects. Assert bundled
+  malformed contracts throw, malformed workspace contracts are excluded with
+  source paths, unknown workspace roles remain with warnings, and later sources
+  win deterministically.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run focused service tests and confirm raw-record expectations fail</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusLibraryService.test.ts<span class="w"> </span>src/test/suite/services/ImportResolver.test.ts
+</code></pre></div>
+<p>Expected: FAIL until services return the normalized runtime shape.</p>
+<ul>
+<li>[ ] <strong>Step 3: Preserve source identity while loading</strong></li>
+</ul>
+<p>Replace anonymous <code>Object.assign</code> merging with ordered
+  <code>BusDefinitionSource[]</code> entries:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">source</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">sourceFile</span><span class="o">:</span><span class="w"> </span><span class="kt">filePath</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">sourceKind</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">definitions</span><span class="o">:</span><span class="w"> </span><span class="kt">parsed</span><span class="p">,</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>Parse files with <code>js-yaml</code>, validate each with the packaged schema, normalize
+  them once, and cache the resulting serializable <code>NormalizedBusLibrary</code>.</p>
+<ul>
+<li>[ ] <strong>Step 4: Send the normalized library to the webview</strong></li>
+</ul>
+<p>Narrow the message/import types from <code>Record&lt;string, unknown&gt;</code> to
+  <code>NormalizedBusLibrary</code>. Ensure update messages and revision filtering remain
+  unchanged except for the payload type. Add a provider test that inspects the
+  posted update message.</p>
+<ul>
+<li>[ ] <strong>Step 5: Inject the same library into generator resolver input</strong></li>
+</ul>
+<p>Make <code>IpCoreScaffolder.ensureBusDefinitions</code> assemble all sources first,
+  including per-IP definitions, and retain both normalized contracts and raw
+  port data through one <code>NormalizedBusLibrary</code>. Do not reload or renormalize per
+  resolver.</p>
+<ul>
+<li>[ ] <strong>Step 6: Verify loading and transport</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusLibraryService.test.ts<span class="w"> </span>src/test/suite/services/ImportResolver.test.ts<span class="w"> </span>src/test/suite/services/IpCoreEditorProvider.test.ts<span class="w"> </span>src/test/suite/generator/IpCoreScaffolder.test.ts
+npm<span class="w"> </span>run<span class="w"> </span>compile
+</code></pre></div>
+<p>Expected: normalized contracts and load diagnostics reach both generator and
+  webview without broad contexts or layer-reversing imports.</p>
+<ul>
+<li>[ ] <strong>Step 7: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and inspect the extension/webview message pair together
+  for protocol compatibility.</p>
+<hr />
+<h3 id="task-6a-adopt-canonical-contracts-in-shared-and-extension-side-consumers">Task 6A: Adopt canonical contracts in shared and extension-side consumers<a class="headerlink" href="#task-6a-adopt-canonical-contracts-in-shared-and-extension-side-consumers" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Test: <code>src/test/suite/webview/busDefinitions.test.ts</code></li>
+<li>Modify: <code>src/test/suite/shared/busVlnv.test.ts</code></li>
+<li>Modify: <code>src/test/suite/generator/resolvers/busRegistry.test.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busContractMigration.characterization.test.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busPortNameSet.test.ts</code></li>
+<li>Modify: <code>src/shared/busVlnv.ts</code></li>
+<li>Modify: <code>src/shared/busPortNameSet.ts</code></li>
+<li>Modify: <code>src/generator/buses/types.ts</code></li>
+<li>Modify: <code>src/generator/buses/registry.ts</code></li>
+<li>Modify: <code>src/generator/buses/builtin.ts</code></li>
+<li>Modify: <code>src/generator/registerProcessor.ts</code></li>
+<li>Modify: <code>src/generator/resolvers/addressing.ts</code></li>
+<li>Modify: <code>src/generator/resolvers/bus.ts</code></li>
+<li>Modify: <code>src/generator/resolvers/interrupts.ts</code></li>
+<li>Modify: <code>src/generator/validation/hdlCrossCheck.ts</code></li>
+<li>Modify: <code>src/parser/HwTclParser.ts</code></li>
+<li>Modify: <code>src/parser/ComponentXmlParser.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: <code>canonicalizeBusType</code>, <code>normalizeInterfaceMode</code>, normalized port
+  definitions, and the runtime library transported in Task 5.</li>
+<li>
+<p>Produces: shared and extension-side consumers that accept an injected
+  <code>NormalizedBusLibrary</code>, plus an exact template registry keyed by canonical
+  VLNV. No shared, parser, or generator module imports webview code or owns
+  aliases, modes, roles, or memory-mapped classification.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Land the shared characterization gate before changing lookup behavior</strong></p>
+</li>
+</ul>
+<p>Store the legacy port expectations as test-owned data, then assert both the
+  current hard-coded lookup and the normalized built-ins match each shared
+  port's name, direction, presence, role, and width. Record the known Avalon-MM
+  differences as explicit expected deltas. Add one alias closure table combining
+  all four current sources: <code>busVlnv.test.ts</code>, <code>busDefinitions.test.ts</code>, every
+  <code>lookupBusDef</code> branch, and <code>src/generator/buses/builtin.ts</code>. Assert each
+  spelling resolves to the same canonical contract and <code>interfaceKind</code>.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run characterization tests against the old tables</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractMigration.characterization.test.ts<span class="w"> </span>src/test/suite/webview/busDefinitions.test.ts<span class="w"> </span>src/test/suite/shared/busVlnv.test.ts<span class="w"> </span>src/test/suite/generator/resolvers/busRegistry.test.ts
+</code></pre></div>
+<p>Expected: PASS before any production lookup path changes. The test-owned
+  expectations remain after the hard-coded module is deleted in Task 6B.</p>
+<ul>
+<li>[ ] <strong>Step 3: Replace memory-map and mode predicates</strong></li>
+</ul>
+<p>Change <code>busSupportsMemoryMap</code>, <code>busSupportsInterruptAssociation</code>,
+  <code>getBusTypeForTemplate</code>, <code>hasMemoryMappedSlaveInterface</code>, addressing, and
+  interrupt resolution to consume a canonical match and call:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">eligible</span><span class="w"> </span><span class="o">=</span>
+<span class="w">  </span><span class="nx">match</span><span class="p">.</span><span class="nx">contract</span><span class="p">.</span><span class="nx">interfaceKind</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">&#39;memoryMapped&#39;</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">  </span><span class="nx">normalizeInterfaceMode</span><span class="p">(</span><span class="nx">match</span><span class="p">.</span><span class="nx">contract</span><span class="p">,</span><span class="w"> </span><span class="nx">iface</span><span class="p">.</span><span class="nx">mode</span><span class="p">)</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="nx">match</span><span class="p">.</span><span class="nx">contract</span><span class="p">.</span><span class="nx">modePolicy</span><span class="p">.</span><span class="nx">consumer</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<span class="w">  </span><span class="p">(</span><span class="nx">iface</span><span class="p">.</span><span class="nx">array</span><span class="o">?</span><span class="p">.</span><span class="nx">count</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="kc">undefined</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">iface</span><span class="p">.</span><span class="nx">array</span><span class="p">.</span><span class="nx">count</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mf">1</span><span class="p">);</span>
+</code></pre></div>
+<p>Remove literal <code>slave</code> gates from <code>addressing.ts</code> and
+  <code>registerProcessor.ts</code>. Keep generator template selection separate and keyed
+  by exact canonical VLNV.</p>
+<ul>
+<li>[ ] <strong>Step 4: Migrate parser, checker, generator, and shared utilities</strong></li>
+</ul>
+<p>Add an injected <code>NormalizedBusLibrary</code> parameter to each pure parser/helper
+  that needs protocol lookup. Update command/provider/service callers to supply
+  the loaded library. Remove imports from <code>src/webview/</code> in <code>HwTclParser</code>,
+  <code>ComponentXmlParser</code>, <code>hdlCrossCheck</code>, and <code>busPortNameSet</code>. Add direct tests
+  proving <code>busPortNameSet</code> uses canonical ports and preserves a contract-less
+  custom interface's physical ports.</p>
+<ul>
+<li>[ ] <strong>Step 5: Retire extension-side alias and classification ownership</strong></li>
+</ul>
+<p>Remove alias arrays and <code>isMemoryMapped</code> from the generator registry; retain
+  only exact canonical template-provider mapping required by the Nunjucks packs.
+  Keep <code>src/webview/ipcore/data/busDefinitions.ts</code> temporarily as the webview's
+  characterized adapter until Task 6B.</p>
+<ul>
+<li>[ ] <strong>Step 6: Verify the extension-side cutover and dependency direction</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractMigration.characterization.test.ts<span class="w"> </span>src/test/suite/shared/busPortNameSet.test.ts<span class="w"> </span>src/test/suite/shared/busVlnv.test.ts<span class="w"> </span>src/test/suite/generator/resolvers/busRegistry.test.ts<span class="w"> </span>src/test/suite/generator/registerProcessor.test.ts<span class="w"> </span>src/test/suite/generator/resolvers/addressing.test.ts<span class="w"> </span>src/test/suite/generator/validation/hdlCrossCheck.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.altera.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts
+rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;webview/ipcore/data/busDefinitions|includes\(&#39;(axi|stream|avalon)|mode.*slave&quot;</span><span class="w"> </span>src/parser<span class="w"> </span>src/generator<span class="w"> </span>src/shared
+npm<span class="w"> </span>run<span class="w"> </span>compile
+</code></pre></div>
+<p>Expected: tests pass; no shared/parser/generator import from webview remains;
+  no protocol substring or literal-consumer gate remains in those layers. Review
+  any unrelated <code>slave</code> occurrence manually rather than deleting it
+  mechanically.</p>
+<ul>
+<li>[ ] <strong>Step 7: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and review the extension-side behavior and layering
+  fix independently. Leave the hard-coded webview table and its consumers for
+  Task 6B.</p>
+<hr />
+<h3 id="task-6b-migrate-webview-consumers-and-delete-the-hard-coded-table">Task 6B: Migrate webview consumers and delete the hard-coded table<a class="headerlink" href="#task-6b-migrate-webview-consumers-and-delete-the-hard-coded-table" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/test/suite/shared/busContractMigration.characterization.test.ts</code></li>
+<li>Delete after cases move to the characterization test:
+  <code>src/test/suite/webview/busDefinitions.test.ts</code></li>
+<li>Modify: <code>src/test/suite/webview/useCanvasValidation.test.ts</code></li>
+<li>Create: <code>src/test/browser/bus-contract-library.spec.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/IpCoreApp.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useGroupPorts.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useCanvasValidation.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/IpBlockCanvas.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/GroupingMappingStep.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/BusPanel.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/ConduitFields.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/ConduitPanel.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/busInterfaceMetadata.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/controls/BusTypeFields.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/utils/protocolMatcher.ts</code></li>
+<li>Delete after characterization passes: <code>src/webview/ipcore/data/busDefinitions.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: the <code>NormalizedBusLibrary</code> delivered to the webview in Task 5 and
+  the test-owned legacy expectations established in Task 6A.</li>
+<li>
+<p>Produces: narrow canonical lookup props for grouping, validation, canvas, and
+  inspector consumers. The webview no longer has a protocol table parallel to
+  <code>ipcraft-spec</code>.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Re-run the shared characterization gate before webview changes</strong></p>
+</li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractMigration.characterization.test.ts<span class="w"> </span>src/test/suite/webview/busDefinitions.test.ts
+</code></pre></div>
+<p>Expected: PASS with the hard-coded table still present.</p>
+<ul>
+<li>[ ] <strong>Step 2: Write failing webview regression coverage</strong></li>
+</ul>
+<p>Extend <code>useCanvasValidation.test.ts</code> and add
+  <code>bus-contract-library.spec.ts</code>. Inject the normalized library with AXI4-Stream
+  and Avalon-MM interfaces. Assert grouping and inspector metadata use canonical
+  roles, then expand Avalon-MM and assert the canonical optional <code>clk</code>/<code>reset</code>
+  behavior and the intentional canonical-YAML port set. Assert selecting a
+  bundle or subport still opens and focuses the correct inspector field.</p>
+<ul>
+<li>[ ] <strong>Step 3: Run the new UI coverage and confirm the canonical Avalon-MM expectations fail</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/webview/useCanvasValidation.test.ts
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>src/test/browser/bus-contract-library.spec.ts
+</code></pre></div>
+<p>Expected: FAIL while the webview still prefers the hard-coded Avalon-MM table.</p>
+<ul>
+<li>[ ] <strong>Step 4: Migrate every webview consumer through narrow props</strong></li>
+</ul>
+<p>Have <code>IpCoreApp</code> derive lookup adapters from its transported
+  <code>NormalizedBusLibrary</code>, then pass only the library or focused lookup callbacks
+  to consumers that need them. Replace <code>role</code>/<code>endianRole</code> dual fields with the
+  one normalized <code>role</code>. Keep <code>IpCoreApp</code> and <code>IpBlockCanvas</code> focused on
+  composition and preserve selection, grouping, optional-port toggles, and
+  inspector focus.</p>
+<ul>
+<li>[ ] <strong>Step 5: Delete the hard-coded table after both gates pass</strong></li>
+</ul>
+<p>Move the durable alias/port cases from <code>busDefinitions.test.ts</code> into the
+  test-owned expectations in
+  <code>busContractMigration.characterization.test.ts</code>, remove its import of the old
+  module, then delete <code>busDefinitions.test.ts</code> and <code>busDefinitions.ts</code>. Do not
+  delete an expected legacy value merely because the new canonical Avalon-MM
+  value differs; keep each intentional delta named in the characterization
+  fixture.</p>
+<ul>
+<li>[ ] <strong>Step 6: Verify the webview cutover and visible canvas behavior</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractMigration.characterization.test.ts<span class="w"> </span>src/test/suite/webview/useCanvasValidation.test.ts<span class="w"> </span>src/test/suite/components/CanvasInspector.ConduitPanel.test.tsx<span class="w"> </span>src/test/suite/components/CanvasInspector.BusInterfaceMatrix.test.tsx
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>src/test/browser/bus-contract-library.spec.ts<span class="w"> </span>src/test/browser/bus-interface-matrix-select.spec.ts<span class="w"> </span>src/test/browser/subport-click-toggle.spec.ts
+rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;webview/ipcore/data/busDefinitions|from .*data/busDefinitions&quot;</span><span class="w"> </span>src
+npm<span class="w"> </span>run<span class="w"> </span>compile
+</code></pre></div>
+<p>Expected: unit and browser tests pass, no production or test import references
+  the deleted module, and the browser assertions expose the intentional
+  Avalon-MM canvas changes independently from the extension-side refactor.</p>
+<ul>
+<li>[ ] <strong>Step 7: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and review only the webview migration, deleted table,
+  retained characterization expectations, and intentional canvas deltas.</p>
+<hr />
+<h3 id="task-7-enforce-conformance-in-generation-imports-and-the-explicit-checker">Task 7: Enforce conformance in generation, imports, and the explicit checker<a class="headerlink" href="#task-7-enforce-conformance-in-generation-imports-and-the-explicit-checker" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/shared/issues.ts</code></li>
+<li>Create: <code>src/services/BusConformanceService.ts</code></li>
+<li>Modify: <code>src/generator/IpCoreScaffolder.ts</code></li>
+<li>Modify: <code>src/generator/loadIpCore.ts</code></li>
+<li>Modify: <code>src/services/GenerationEngine.ts</code></li>
+<li>Modify: <code>src/providers/IpCoreGenerateHandler.ts</code></li>
+<li>Modify: <code>src/commands/ConsistencyCheckCommands.ts</code></li>
+<li>Modify: <code>src/commands/ImportCommands.ts</code></li>
+<li>Modify: <code>src/providers/IpCoreSourcePreviewProvider.ts</code></li>
+<li>Modify: <code>src/shared/messages/ipCore.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/types/messages.ts</code></li>
+<li>Create: <code>src/test/suite/services/BusConformanceService.test.ts</code></li>
+<li>Test: <code>src/test/suite/generator/IpCoreScaffolder.test.ts</code></li>
+<li>Test: <code>src/test/suite/services/GenerationEngine.test.ts</code></li>
+<li>Test: <code>src/test/suite/commands/ConsistencyCheckCommands.test.ts</code></li>
+<li>Create: <code>src/test/suite/commands/ImportCommands.test.ts</code></li>
+<li>Create: <code>src/test/suite/providers/IpCoreSourcePreviewProvider.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: <code>validateBusInterfaces</code> and the runtime library.</li>
+<li>Produces:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">IssueSource</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">&#39;schema&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;protocol&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;references&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;hdl&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;hwTcl&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;componentXml&#39;</span><span class="p">;</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">IpcraftIssue</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">code</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">severity</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;error&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;warning&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">source</span><span class="o">:</span><span class="w"> </span><span class="kt">IssueSource</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="p">)[];</span>
+<span class="w">  </span><span class="nx">message</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">interfaceName?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ConformanceReport</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">issues</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">IpcraftIssue</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">hasKnownErrors</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">hasUnresolved</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">checkBusConformance</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">ipCore</span><span class="o">:</span><span class="w"> </span><span class="kt">IpCoreData</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">library</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusLibrary</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">ConformanceReport</span><span class="p">;</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 1: Write the enforcement-table tests before adding gates</strong></li>
+</ul>
+<p>Cover these exact decisions:</p>
+<table>
+<thead>
+<tr>
+<th>Boundary</th>
+<th style="text-align: right;">Known error</th>
+<th style="text-align: right;">Unresolved</th>
+<th style="text-align: right;">Warning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Save edited <code>.ip.yml</code></td>
+<td style="text-align: right;">allow</td>
+<td style="text-align: right;">allow</td>
+<td style="text-align: right;">allow</td>
+</tr>
+<tr>
+<td>Save import result</td>
+<td style="text-align: right;">block</td>
+<td style="text-align: right;">allow with warning</td>
+<td style="text-align: right;">allow</td>
+</tr>
+<tr>
+<td>Generate/export</td>
+<td style="text-align: right;">block</td>
+<td style="text-align: right;">block</td>
+<td style="text-align: right;">allow</td>
+</tr>
+<tr>
+<td>Explicit checker</td>
+<td style="text-align: right;">fail</td>
+<td style="text-align: right;">fail</td>
+<td style="text-align: right;">report</td>
+</tr>
+</tbody>
+</table>
+<p>Assert an unknown alias carrying <code>memoryMapRef</code> produces
+  <code>BUS_MEMORY_MAP_UNSUPPORTED</code> and blocks before <code>generateAll</code> constructs a
+  staging result.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run the focused tests and confirm no gate exists</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusConformanceService.test.ts<span class="w"> </span>src/test/suite/generator/IpCoreScaffolder.test.ts<span class="w"> </span>src/test/suite/services/GenerationEngine.test.ts
+</code></pre></div>
+<p>Expected: FAIL because generation currently proceeds after schema validation.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement one service adapter and issue conversion</strong></li>
+</ul>
+<p>Keep policy out of the pure resolver. Convert each
+  <code>BusConformanceDiagnostic</code> to <code>IpcraftIssue</code> with <code>source: 'protocol'</code>, and
+  expose explicit predicates:</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">const</span><span class="w"> </span><span class="nx">blocksGeneration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">report</span><span class="o">:</span><span class="w"> </span><span class="kt">ConformanceReport</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="p">=&gt;</span>
+<span class="w">  </span><span class="nx">report</span><span class="p">.</span><span class="nx">hasKnownErrors</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">report</span><span class="p">.</span><span class="nx">hasUnresolved</span><span class="p">;</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">const</span><span class="w"> </span><span class="nx">blocksImportWrite</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">report</span><span class="o">:</span><span class="w"> </span><span class="kt">ConformanceReport</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">report</span><span class="p">.</span><span class="nx">hasKnownErrors</span><span class="p">;</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Gate the scaffolder before resolving memory maps or templates</strong></li>
+</ul>
+<p>In <code>generateAll</code>, finish merging the runtime bus library, validate the loaded
+  IP, and return a failure containing structured issues before
+  <code>resolveMemoryMaps</code>, <code>buildTemplateContext</code>, dry-run staging, or any filesystem
+  output. Ensure <code>GenerationEngine</code> and <code>IpCoreGenerateHandler</code> forward issues
+  in <code>generateResult</code> instead of flattening them to one opaque string.</p>
+<ul>
+<li>[ ] <strong>Step 5: Add protocol results to the explicit checker</strong></li>
+</ul>
+<p>Run conformance before HDL/vendor cross-checks, adapt existing findings into
+  <code>IpcraftIssue</code>, and return one ordered issue list. Deduplicate by
+  <code>code + JSON.stringify(path) + source</code>; do not parse dotted paths.</p>
+<ul>
+<li>[ ] <strong>Step 6: Gate command imports and preview saves</strong></li>
+</ul>
+<p>Parse the proposed YAML in memory, load the same runtime contract library for
+  the source directory, then apply import policy before calling
+  <code>writeImportedFile</code>. Known errors show the diagnostics and write neither
+  <code>.ip.yml</code> nor companion <code>.mm.yml</code>. Unresolved cases write and display warnings.
+  Preview messages carry the report so the webview can disable Save without a
+  second protocol implementation.</p>
+<ul>
+<li>[ ] <strong>Step 7: Verify no partial-output path remains</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusConformanceService.test.ts<span class="w"> </span>src/test/suite/generator/IpCoreScaffolder.test.ts<span class="w"> </span>src/test/suite/services/GenerationEngine.test.ts<span class="w"> </span>src/test/suite/commands/ConsistencyCheckCommands.test.ts<span class="w"> </span>src/test/suite/commands/ImportCommands.test.ts<span class="w"> </span>src/test/suite/providers/IpCoreSourcePreviewProvider.test.ts
+</code></pre></div>
+<p>Expected: known-invalid import/generation tests assert zero write calls;
+  unresolved import asserts one atomic IP write and warning; generation remains
+  blocked.</p>
+<ul>
+<li>[ ] <strong>Step 8: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and inspect every call to <code>writeImportedFile</code>,
+  <code>generateAll</code>, and staging creation to confirm validation precedes mutation.</p>
+<hr />
+<h3 id="task-8-replace-fragmented-validation-ui-with-one-actionable-issues-panel">Task 8: Replace fragmented validation UI with one actionable Issues panel<a class="headerlink" href="#task-8-replace-fragmented-validation-ui-with-one-actionable-issues-panel" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/webview/ipcore/types/issues.ts</code></li>
+<li>Create: <code>src/webview/ipcore/hooks/useIssuesSession.ts</code></li>
+<li>Create: <code>src/webview/ipcore/components/canvas/IssuesPanel.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useCanvasValidation.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useConsistencySession.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/types/consistency.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/components/IpCoreShell.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/IpCoreRightPanel.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/IpCoreToolbar.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/IpBlockCanvas.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/CanvasBusBundle.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/CanvasBusSubPort.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/IpCoreApp.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useIpCoreBridge.ts</code></li>
+<li>Create: <code>src/test/suite/webview/issues.test.ts</code></li>
+<li>Test: <code>src/test/suite/webview/useCanvasValidation.test.ts</code></li>
+<li>Create: <code>src/test/suite/components/IssuesPanel.test.tsx</code></li>
+<li>Create: <code>src/test/suite/components/IpCoreToolbar.test.tsx</code></li>
+<li>Create: <code>src/test/suite/components/IpCoreShell.test.tsx</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: structured <code>IpcraftIssue[]</code> from Task 7 and immediate local schema,
+  reference, and protocol issues.</li>
+<li>Produces:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">IssueFocusRequest</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="p">)[];</span>
+<span class="w">  </span><span class="nx">nonce</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">issueKey</span><span class="p">(</span><span class="nx">issue</span><span class="o">:</span><span class="w"> </span><span class="kt">IpcraftIssue</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">issuesToCanvasAnnotations</span><span class="p">(</span><span class="nx">issues</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">IpcraftIssue</span><span class="p">[])</span><span class="o">:</span><span class="w"> </span><span class="nx">CanvasAnnotations</span><span class="p">;</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 1: Write failing projection and panel tests</strong></li>
+</ul>
+<p>Assert protocol paths map <code>['busInterfaces', 1]</code> to <code>bus:1</code> and
+  <code>['busInterfaces', 1, 'portWidthOverrides', 'empty']</code> to both <code>bus:1</code> and the
+  logical <code>empty</code> subport. Assert grouping order <code>Schema</code>, <code>Protocol</code>,
+  <code>References</code>, <code>HDL consistency</code>, <code>Vendor artifact consistency</code>; duplicate
+  keys collapse; error and warning counts remain distinct.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run UI tests and confirm the Issues components are absent</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/webview/issues.test.ts<span class="w"> </span>src/test/suite/components/IssuesPanel.test.tsx
+</code></pre></div>
+<p>Expected: FAIL on missing module/components.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement the pure UI issue adapters</strong></li>
+</ul>
+<p>Preserve source paths as arrays. Convert existing reference errors and
+  consistency findings once at their boundary, then merge them with immediate
+  protocol results. Deduplicate with:</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">const</span><span class="w"> </span><span class="nx">issueKey</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="nx">issue</span><span class="o">:</span><span class="w"> </span><span class="kt">IpcraftIssue</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="p">=&gt;</span>
+<span class="w">  </span><span class="sb">`</span><span class="si">${</span><span class="nx">issue</span><span class="p">.</span><span class="nx">source</span><span class="si">}</span><span class="sb">|</span><span class="si">${</span><span class="nx">issue</span><span class="p">.</span><span class="nx">code</span><span class="si">}</span><span class="sb">|</span><span class="si">${</span><span class="nb">JSON</span><span class="p">.</span><span class="nx">stringify</span><span class="p">(</span><span class="nx">issue</span><span class="p">.</span><span class="nx">path</span><span class="p">)</span><span class="si">}</span><span class="sb">`</span><span class="p">;</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 4: Build the Issues panel and selection behavior</strong></li>
+</ul>
+<p>Replace the footer labeled <code>Reference Validation Errors</code> and the separate
+  consistency overlay with <code>IssuesPanel</code>. Clicking a row closes competing
+  overlays, selects the canvas element, expands a bus when needed, and publishes
+  an <code>IssueFocusRequest</code>. Keep staging overlay precedence; Issues occupies the
+  right slot when explicitly opened or when generation is blocked.</p>
+<ul>
+<li>[ ] <strong>Step 5: Add toolbar counts and blocked-generation behavior</strong></li>
+</ul>
+<p>Show separate error/warning totals. When <code>generateResult.success === false</code>
+  includes issues, open the panel and focus the first error, falling back to the
+  first warning. Keep auto consistency checks silent: update counts without
+  opening the panel.</p>
+<ul>
+<li>[ ] <strong>Step 6: Annotate bundles and logical subports from the same issues</strong></li>
+</ul>
+<p>Remove protocol-specific warning construction from <code>useCanvasValidation</code> once
+  the shared validator supplies it. Merge issue annotations with remaining local
+  structural annotations, preserving existing canvas dot/tool-tip rendering.</p>
+<ul>
+<li>[ ] <strong>Step 7: Gate import-preview Save in the shell</strong></li>
+</ul>
+<p>Add <code>importSaveBlocked</code> and <code>onOpenIssues</code> props. Disable <code>Save as .ip.yml</code>
+  only for known errors; keep it enabled for unresolved warnings and add an
+  accessible title explaining the warning state.</p>
+<ul>
+<li>[ ] <strong>Step 8: Verify the unified UI</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/webview/issues.test.ts<span class="w"> </span>src/test/suite/webview/useCanvasValidation.test.ts<span class="w"> </span>src/test/suite/components/IssuesPanel.test.tsx<span class="w"> </span>src/test/suite/components/IpCoreToolbar.test.tsx<span class="w"> </span>src/test/suite/components/IpCoreShell.test.tsx
+npm<span class="w"> </span>run<span class="w"> </span>compile
+</code></pre></div>
+<p>Expected: one issue model drives counts, panel rows, canvas markers, preview
+  save state, and blocked-generation focus.</p>
+<ul>
+<li>[ ] <strong>Step 9: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>; verify <code>IpCoreApp</code>, <code>IpCoreShell</code>, and
+  <code>IpBlockCanvas</code> remain composition-focused and issue transformation lives in
+  the hook/type modules.</p>
+<hr />
+<h3 id="task-9-add-contract-aware-bus-editing-and-atomic-derived-width-cleanup">Task 9: Add contract-aware bus editing and atomic derived-width cleanup<a class="headerlink" href="#task-9-add-contract-aware-bus-editing-and-atomic-derived-width-cleanup" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/webview/ipcore/hooks/useBusContractEditor.ts</code></li>
+<li>Create: <code>src/webview/ipcore/components/canvas/inspector/buses/BusContractFields.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/CanvasInspector.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/BusPanel.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/ConduitFields.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useIpCoreState.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/IpCoreApp.tsx</code></li>
+<li>Create: <code>src/test/suite/webview/useBusContractEditor.test.ts</code></li>
+<li>Test: <code>src/test/suite/webview/useIpCoreState.test.ts</code></li>
+<li>Modify: <code>src/test/suite/components/CanvasInspector.ConduitPanel.test.tsx</code></li>
+<li>Create: <code>src/test/suite/components/CanvasInspector.BusContractFields.test.tsx</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: <code>BusInterfaceResolution</code>, contract metadata, <code>IssueFocusRequest</code>, and
+  existing <code>BatchUpdate</code>.</li>
+<li>Produces:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">EditableContractField</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="p">)[];</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">boolean</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">error?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ReadonlyContractField</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">formula</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">resolvedValue?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">state</span><span class="o">:</span><span class="w"> </span><span class="kt">ResolutionState</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">BusContractMutation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="nb">Array</span><span class="o">&lt;</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">,</span><span class="w"> </span><span class="nx">unknown</span><span class="p">];</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">BusContractEditModel</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">rootWidths</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">EditableContractField</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">properties</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">EditableContractField</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">derivedWidths</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">ReadonlyContractField</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">fixedWidths</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">ReadonlyContractField</span><span class="p">[];</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">buildRootWidthMutations</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">busIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">portName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">resolution</span><span class="o">:</span><span class="w"> </span><span class="kt">BusInterfaceResolution</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">BusContractMutation</span><span class="p">[];</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 1: Write failing editor-model tests</strong></li>
+</ul>
+<p>For AXI4-Stream, assert <code>TDATA</code> is editable, <code>TKEEP</code> displays
+  <code>TDATA / 8 = 8</code> read-only, and editing <code>TDATA</code> from 32 to 64 returns one batch:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">mutations</span><span class="p">).</span><span class="nx">toEqual</span><span class="p">([</span>
+<span class="w">  </span><span class="p">[[</span><span class="s1">&#39;busInterfaces&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;portWidthOverrides&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;TDATA&#39;</span><span class="p">],</span><span class="w"> </span><span class="mf">64</span><span class="p">],</span>
+<span class="w">  </span><span class="p">[[</span><span class="s1">&#39;busInterfaces&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;portWidthOverrides&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;TKEEP&#39;</span><span class="p">],</span><span class="w"> </span><span class="kc">undefined</span><span class="p">],</span>
+<span class="w">  </span><span class="p">[[</span><span class="s1">&#39;busInterfaces&#39;</span><span class="p">,</span><span class="w"> </span><span class="mf">0</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;portWidthOverrides&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;TSTRB&#39;</span><span class="p">],</span><span class="w"> </span><span class="kc">undefined</span><span class="p">],</span>
+<span class="p">]);</span>
+</code></pre></div>
+<p>Assert load alone preserves matching explicit derived overrides.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run focused tests and confirm no contract editor exists</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/webview/useBusContractEditor.test.ts<span class="w"> </span>src/test/suite/components/CanvasInspector.BusContractFields.test.tsx
+</code></pre></div>
+<p>Expected: FAIL on missing editor model/component.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement the pure edit model and deterministic mutations</strong></li>
+</ul>
+<p>Build fields from width policies and property declarations. On a root edit,
+  always delete every affected explicit derived override; never rewrite it to a
+  new redundant number and never materialize an omitted derived value.</p>
+<ul>
+<li>[ ] <strong>Step 4: Render root, semantic, derived, and fixed fields</strong></li>
+</ul>
+<p>Use existing inspector controls. Show formula and effective value for derived
+  fields, expected/actual text for invalid editable fields, and no edit handler
+  for derived/fixed values. Render Avalon-ST <code>dataBitsPerSymbol</code>,
+  <code>symbolsPerBeat</code>, <code>readyLatency</code>, and <code>maxChannel</code> under Configuration.</p>
+<ul>
+<li>[ ] <strong>Step 5: Apply coupled edits with <code>updateIpCoreBatch</code></strong></li>
+</ul>
+<p>Wire <code>BusContractFields</code> through the existing <code>batchUpdateIpCore</code> callback in
+  <code>IpCoreApp</code>. Add a state test proving one <code>pushUndo</code>, one state transition, and
+  one debounced outbound update for the mutation batch.</p>
+<ul>
+<li>[ ] <strong>Step 6: Focus inspector fields from issue paths</strong></li>
+</ul>
+<p>Map the final path segments to stable field IDs such as
+  <code>bus-0-property-dataBitsPerSymbol</code> and <code>bus-0-width-TDATA</code>. On a new
+  <code>IssueFocusRequest.nonce</code>, call <code>focus()</code> and <code>scrollIntoView({ block:
+'nearest' })</code> after the selected inspector renders.</p>
+<ul>
+<li>[ ] <strong>Step 7: Verify editor behavior</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/webview/useBusContractEditor.test.ts<span class="w"> </span>src/test/suite/webview/useIpCoreState.test.ts<span class="w"> </span>src/test/suite/components/CanvasInspector.BusContractFields.test.tsx<span class="w"> </span>src/test/suite/components/CanvasInspector.ConduitPanel.test.tsx
+</code></pre></div>
+<p>Expected: root edits are atomic, derived overrides are deleted
+  deterministically, and issue focus reaches the correct field.</p>
+<ul>
+<li>[ ] <strong>Step 8: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>; inspect YAML mutation paths and confirm no
+  <code>sendUpdate</code> loop or new <code>__op</code> was introduced.</p>
+<hr />
+<h3 id="task-10-preserve-avalon-st-properties-through-_hwtcl-import-and-export">Task 10: Preserve Avalon-ST properties through <code>_hw.tcl</code> import and export<a class="headerlink" href="#task-10-preserve-avalon-st-properties-through-_hwtcl-import-and-export" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/parser/HwTclParser.ts</code></li>
+<li>Modify: <code>src/generator/resolvers/bus.ts</code></li>
+<li>Modify: <code>src/generator/templates/altera_hw_tcl.j2</code></li>
+<li>Modify: <code>src/test/suite/parser/HwTclParser.test.ts</code></li>
+<li>Modify: <code>src/test/suite/parser/HwTclParser.altera.test.ts</code></li>
+<li>Modify: <code>src/test/suite/generator/resolvers/bus.test.ts</code></li>
+<li>Modify: <code>src/test/integration/roundtrip.test.ts</code></li>
+<li>Modify: <code>src/test/integration/snapshots.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: canonical contract lookup and resolved Avalon-ST properties.</li>
+<li>
+<p>Produces: parser output with canonical <code>mode: source | sink</code>, <code>endianness</code>, and
+  <code>interfaceProperties</code>; template context with a deterministic ordered property
+  list.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing parser cases for current and legacy spellings</strong></p>
+</li>
+</ul>
+<p>Parse this fixture and assert the canonical <code>.ip.yml</code> shape:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">add_interface</span><span class="w"> </span>stream<span class="w"> </span>avalon_streaming<span class="w"> </span>start
+<span class="nv">set_interface_property</span><span class="w"> </span>stream<span class="w"> </span>dataBitsPerSymbol<span class="w"> </span><span class="mi">1</span>
+<span class="nv">set_interface_property</span><span class="w"> </span>stream<span class="w"> </span>symbolsPerBeat<span class="w"> </span><span class="mi">5</span>
+<span class="nv">set_interface_property</span><span class="w"> </span>stream<span class="w"> </span>readyLatency<span class="w"> </span><span class="mi">0</span>
+<span class="nv">set_interface_property</span><span class="w"> </span>stream<span class="w"> </span>firstSymbolInHighOrderBits<span class="w"> </span>true
+<span class="nv">add_interface_port</span><span class="w"> </span>stream<span class="w"> </span>stream_data<span class="w"> </span>data<span class="w"> </span>Output<span class="w"> </span><span class="mi">5</span>
+</code></pre></div>
+<p>Expected: <code>mode: source</code>, <code>endianness: big</code>, and
+  <code>interfaceProperties: { dataBitsPerSymbol: 1, symbolsPerBeat: 5,
+readyLatency: 0 }</code>. Repeat with legacy <code>bitsPerSymbol</code>. Add a conflict case
+  where both spellings differ and parsing returns a source-located error.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run parser tests and confirm properties are currently dropped</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/parser/HwTclParser.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.altera.test.ts
+</code></pre></div>
+<p>Expected: FAIL on missing <code>interfaceProperties</code> and canonical streaming mode.</p>
+<ul>
+<li>[ ] <strong>Step 3: Implement contract-driven property import</strong></li>
+</ul>
+<p>Remove the webview lookup dependency if any remains. Read only properties
+  declared by the matched contract, coerce declared integer/boolean values, map
+  <code>bitsPerSymbol</code> to <code>dataBitsPerSymbol</code>, and map
+  <code>firstSymbolInHighOrderBits</code> solely to <code>endianness</code>. Derive omitted
+  <code>symbolsPerBeat</code> only when data width divides by symbol width.</p>
+<ul>
+<li>[ ] <strong>Step 4: Emit canonical properties in Platform Designer Tcl</strong></li>
+</ul>
+<p>Project resolved properties as an ordered array and render:</p>
+<div class="highlight"><pre><span></span><code>{% for prop in iface.interface_properties %}
+set_interface_property {{ iface.name }} {{ prop.name }} {{ prop.tcl_value }}
+{% endfor %}
+set_interface_property {{ iface.name }} firstSymbolInHighOrderBits {% if iface.endianness == &#39;big&#39; %}true{% else %}false{% endif %}
+</code></pre></div>
+<p>Do not emit <code>bitsPerSymbol</code>. Preserve symbolic parameter references in Tcl
+  form where supported.</p>
+<ul>
+<li>[ ] <strong>Step 5: Add one-bit-symbol round-trip coverage</strong></li>
+</ul>
+<p>Import <code>_hw.tcl</code> -&gt; generate <code>.ip.yml</code> -&gt; regenerate <code>_hw.tcl</code> -&gt; re-import,
+  then assert <code>data=5</code>, <code>dataBitsPerSymbol=1</code>, <code>symbolsPerBeat=5</code>,
+  <code>readyLatency=0</code>, and <code>endianness=big</code> remain unchanged.</p>
+<ul>
+<li>[ ] <strong>Step 6: Verify parser, generator, and snapshots</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/parser/HwTclParser.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.altera.test.ts<span class="w"> </span>src/test/suite/generator/resolvers/bus.test.ts
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:snapshots<span class="w"> </span>--<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: unit and snapshot tests pass with current-property spelling only.</p>
+<ul>
+<li>[ ] <strong>Step 7: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>; inspect that <code>firstSymbolInHighOrderBits</code> never appears
+  as an <code>.ip.yml</code> <code>interfaceProperties</code> key.</p>
+<hr />
+<h3 id="task-11-generate-avalon-st-endianness-in-symbol-sized-lanes">Task 11: Generate Avalon-ST endianness in symbol-sized lanes<a class="headerlink" href="#task-11-generate-avalon-st-endianness-in-symbol-sized-lanes" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/generator/resolvers/bus.ts</code></li>
+<li>Modify: <code>src/generator/contract/template_context.schema.json</code></li>
+<li>Generate: <code>src/generator/contract/templateContext.types.ts</code></li>
+<li>Modify: <code>src/generator/templates/top.vhdl.j2</code></li>
+<li>Modify: <code>src/generator/templates/top.sv.j2</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useCanvasValidation.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/BusPanel.tsx</code></li>
+<li>Preserve: <code>src/webview/ipcore/utils/portEndianness.ts</code></li>
+<li>Modify: <code>src/test/suite/generator/resolvers/bus.test.ts</code></li>
+<li>Modify: <code>src/test/suite/webview/useCanvasValidation.test.ts</code></li>
+<li>Modify: <code>src/test/suite/components/CanvasInspector.ConduitPanel.test.tsx</code></li>
+<li>Modify: <code>src/test/integration/endianness.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: resolved <code>dataBitsPerSymbol</code> and normalized port roles.</li>
+<li>Produces template entries with explicit lane semantics:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">EndianSwapPort</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">internal_name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">direction</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">swap_kind</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;lane&#39;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">&#39;bit&#39;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">lane_width</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">is_parameterized</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 1: Write failing resolver and UI cases for a five-bit stream</strong></li>
+</ul>
+<p>Resolve a big-endian Avalon-ST source with <code>data=5</code>,
+  <code>dataBitsPerSymbol=1</code>, and <code>symbolsPerBeat=5</code>. Assert its data port has
+  <code>swap_kind: 'lane'</code>, <code>lane_width: 1</code>, and <code>needs_swap: true</code>. Assert webview
+  validation emits no byte-multiple warning and the bus endianness selector is
+  enabled. Retain the existing warning/disabled behavior for a five-bit
+  standalone port.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run focused tests and confirm byte-only behavior fails</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/resolvers/bus.test.ts<span class="w"> </span>src/test/suite/webview/useCanvasValidation.test.ts<span class="w"> </span>src/test/suite/components/CanvasInspector.ConduitPanel.test.tsx
+</code></pre></div>
+<p>Expected: FAIL because <code>needsByteSwap</code> rejects width 5.</p>
+<ul>
+<li>[ ] <strong>Step 3: Replace byte-only bus swap metadata</strong></li>
+</ul>
+<p>Keep raw standalone ports at <code>lane_width: 8</code>. For interface data roles, use
+  <code>8</code> for AXI/Avalon-MM and resolved <code>dataBitsPerSymbol</code> for Avalon-ST. Require
+  <code>width % laneWidth === 0</code> and more than one lane. Byte qualifiers retain
+  one-bit lane reversal aligned to their data lanes.</p>
+<ul>
+<li>[ ] <strong>Step 4: Render generic lane-reversal loops</strong></li>
+</ul>
+<p>In both top templates, map destination lane <code>i</code> to source lane
+  <code>laneCount - 1 - i</code> using <code>lane_width</code>. Fixed and parameterized variants must
+  avoid a <code>/ 8</code> assertion for symbol-lane swaps. Keep existing generated
+  <code>swap_bytes_&lt;width&gt;</code> helpers only for fixed eight-bit lane swaps if they remain
+  simpler than the generic loop.</p>
+<ul>
+<li>[ ] <strong>Step 5: Extend the template-context schema and regenerate types</strong></li>
+</ul>
+<p>Replace the byte/bit-only enum with lane/bit and require <code>lane_width</code> for lane
+  swaps. Update descriptions, run type generation, and fix compile errors rather
+  than hand-editing <code>templateContext.types.ts</code>.</p>
+<ul>
+<li>[ ] <strong>Step 6: Add VHDL and SystemVerilog integration fixtures</strong></li>
+</ul>
+<p>Extend <code>src/test/integration/endianness.test.ts</code> with the five-bit stream.
+  Assert generated RTL contains five lane assignments in reverse order, contains
+  no byte-alignment guard for that port, and compiles/elaborates under the
+  suite's available GHDL/Icarus gates.</p>
+<ul>
+<li>[ ] <strong>Step 7: Verify endianness behavior</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>generate-types
+npm<span class="w"> </span>run<span class="w"> </span>compile
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/resolvers/bus.test.ts<span class="w"> </span>src/test/suite/webview/useCanvasValidation.test.ts<span class="w"> </span>src/test/suite/components/CanvasInspector.ConduitPanel.test.tsx
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.integration.js<span class="w"> </span>src/test/integration/endianness.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 8: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>; confirm <code>portEndianness.ts</code> stayed byte-oriented and
+  only contract-resolved bus data gained symbol lanes.</p>
+<hr />
+<h3 id="task-12-preserve-avalon-st-identity-and-properties-in-custom-ip-xact">Task 12: Preserve Avalon-ST identity and properties in custom IP-XACT<a class="headerlink" href="#task-12-preserve-avalon-st-identity-and-properties-in-custom-ip-xact" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/generator/VivadoComponentXmlGenerator.ts</code></li>
+<li>Modify: <code>src/generator/templates/amd_component_xml.j2</code></li>
+<li>Modify: <code>src/generator/VivadoBusDefInstaller.ts</code></li>
+<li>Modify: <code>src/parser/ComponentXmlParser.ts</code></li>
+<li>Modify: <code>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts</code></li>
+<li>Modify: <code>src/test/suite/parser/ComponentXmlParser.test.ts</code></li>
+<li>Modify: <code>src/test/integration/roundtrip.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: canonical Avalon-ST contract, resolved properties, and existing
+  custom bus-definition/abstraction-definition generation.</li>
+<li>
+<p>Produces: standard IP-XACT bus-interface parameters plus deterministic IPCraft
+  vendor metadata in namespace <code>urn:ipcraft:interface-contract:1</code>.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Write failing custom Avalon-ST export tests</strong></p>
+</li>
+</ul>
+<p>Generate <code>component.xml</code> for the five-bit, one-bit-symbol stream and assert:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;spirit:vendor=&quot;ipcraft&quot;&#39;</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;spirit:name=&quot;avalon_st&quot;&#39;</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">not</span><span class="p">.</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;spirit:name=&quot;axis&quot;&#39;</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;xmlns:ipcraft=&quot;urn:ipcraft:interface-contract:1&quot;&#39;</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;&lt;ipcraft:property name=&quot;dataBitsPerSymbol&quot; value=&quot;1&quot;&#39;</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">&#39;&lt;ipcraft:property name=&quot;symbolsPerBeat&quot; value=&quot;5&quot;&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>Assert bundled bus/abstraction files are generated and physical ports are not
+  padded or relabeled as AXI4-Stream.</p>
+<ul>
+<li>[ ] <strong>Step 2: Write failing import and conflict tests</strong></li>
+</ul>
+<p>Parse the exported XML and assert canonical properties/endianness return. Add
+  a fixture where a standard IP-XACT property differs from the mirrored IPCraft
+  property and assert a blocking diagnostic rather than precedence guessing.</p>
+<ul>
+<li>[ ] <strong>Step 3: Run focused XML tests and confirm metadata is absent</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts
+</code></pre></div>
+<p>Expected: FAIL on missing parameters/vendor extension or incorrect identity.</p>
+<ul>
+<li>[ ] <strong>Step 4: Extend custom bus artifact generation</strong></li>
+</ul>
+<p>Treat canonical Avalon-ST as custom for AMD packaging even though it is a
+  built-in IPCraft contract. Generate its bus definition and abstraction
+  definition once per VLNV. Set IP-XACT addressability from <code>interfaceKind</code>, not
+  from the bus name.</p>
+<ul>
+<li>[ ] <strong>Step 5: Emit deterministic standard and mirrored properties</strong></li>
+</ul>
+<p>Sort canonical property names lexicographically. Emit standard bus-interface
+  parameters where the current IP-XACT writer supports them, with
+  <code>firstSymbolInHighOrderBits</code> derived from <code>endianness</code>. Mirror contract version,
+  canonical <code>endianness</code>, and the complete canonical property map as:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&lt;ipcraft:interfaceContract</span><span class="w"> </span><span class="na">version=</span><span class="s">&quot;1&quot;</span><span class="nt">&gt;</span>
+<span class="w">  </span><span class="nt">&lt;ipcraft:property</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;dataBitsPerSymbol&quot;</span><span class="w"> </span><span class="na">value=</span><span class="s">&quot;1&quot;</span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;ipcraft:property</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;endianness&quot;</span><span class="w"> </span><span class="na">value=</span><span class="s">&quot;big&quot;</span><span class="nt">/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;ipcraft:property</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;symbolsPerBeat&quot;</span><span class="w"> </span><span class="na">value=</span><span class="s">&quot;5&quot;</span><span class="nt">/&gt;</span>
+<span class="nt">&lt;/ipcraft:interfaceContract&gt;</span>
+</code></pre></div>
+<ul>
+<li>[ ] <strong>Step 6: Import standard parameters and verify the mirror</strong></li>
+</ul>
+<p>Map standard <code>firstSymbolInHighOrderBits</code> back to canonical <code>endianness</code> and
+  standard semantic parameters to <code>interfaceProperties</code>. Use the mirror to
+  recover ignored parameters, but report any standard/mirror disagreement as a
+  known error with an XML source location.</p>
+<ul>
+<li>[ ] <strong>Step 7: Add full XML round-trip coverage</strong></li>
+</ul>
+<p>Extend <code>roundtrip.test.ts</code>:</p>
+<div class="highlight"><pre><span></span><code>.ip.yml Avalon-ST -&gt; component.xml + custom bus files -&gt; parsed .ip.yml
+</code></pre></div>
+<p>Assert VLNV, mode, data width, symbol properties, ready latency, channel
+  maximum, and endianness are identical.</p>
+<ul>
+<li>[ ] <strong>Step 8: Verify IP-XACT output and re-import</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.integration.js<span class="w"> </span>src/test/integration/roundtrip.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: custom Avalon-ST remains custom, round trips losslessly, and never
+  appears as AXI4-Stream.</p>
+<ul>
+<li>[ ] <strong>Step 9: Review checkpoint</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>; inspect XML ordering snapshots and ensure one canonical
+  metadata representation is emitted.</p>
+<hr />
+<h3 id="task-13-migrate-examples-finish-browser-coverage-and-activate-enforcement">Task 13: Migrate examples, finish browser coverage, and activate enforcement<a class="headerlink" href="#task-13-migrate-examples-finish-browser-coverage-and-activate-enforcement" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify as diagnostics require: <code>ipcraft-spec/examples/**/*.ip.yml</code></li>
+<li>Modify: <code>ipcraft-spec/examples/comprehensive_avalon/comprehensive_avalon.ip.yml</code></li>
+<li>Modify: <code>ipcraft-spec/examples/comprehensive_avalon/README.md</code></li>
+<li>Modify: <code>ipcraft-spec/examples/comprehensive_axi/README.md</code></li>
+<li>Modify: <code>CHANGELOG.md</code></li>
+<li>Modify or create: <code>src/test/suite/services/AllExamplesConformance.test.ts</code></li>
+<li>Modify or create: <code>src/test/browser/ipcore-issues.spec.ts</code></li>
+<li>Modify: documentation/snapshot fixtures affected by canonical modes and ports</li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: the complete validator, UI, importer, and generator behavior from
+  Tasks 1-12.</li>
+<li>
+<p>Produces: enforcement enabled for all shipped examples and end-to-end evidence
+  for the user-visible workflow.</p>
+</li>
+<li>
+<p>[ ] <strong>Step 1: Add an all-examples audit test before editing fixtures</strong></p>
+</li>
+</ul>
+<p>Recursively load every shipped <code>.ip.yml</code>, resolve its effective bus library,
+  and print diagnostics grouped by file. Fail on known errors or unresolved
+  generation constraints. Explicitly assert the legacy comprehensive Avalon
+  channel derives <code>maxChannel: 3</code> without rewriting the YAML.</p>
+<ul>
+<li>[ ] <strong>Step 2: Run the audit and record each intentional migration</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/AllExamplesConformance.test.ts
+</code></pre></div>
+<p>Expected: any failures identify exact array paths. Change only examples proven
+  invalid by the contract; do not normalize unrelated formatting.</p>
+<ul>
+<li>[ ] <strong>Step 3: Update examples and documentation deliberately</strong></li>
+</ul>
+<p>Add explicit Avalon-ST properties where legacy derivation is ambiguous,
+  convert new/example streaming modes to <code>source</code>/<code>sink</code>, and correct invalid
+  derived overrides. Document the observable Avalon-MM canvas port/optionality
+  changes and the Avalon-ST generated-RTL lane-order change in <code>CHANGELOG.md</code>.</p>
+<ul>
+<li>[ ] <strong>Step 4: Add browser coverage for the complete error workflow</strong></li>
+</ul>
+<p>Inject invalid AXI4-Stream YAML through <code>window.__RENDER__</code>, then assert the
+  canvas bundle marker, subport marker, toolbar error count, grouped Protocol
+  issue, issue-click selection/focus, and blocked-generation panel behavior.
+  Add an unresolved-import preview case where Save remains enabled with a
+  warning.</p>
+<ul>
+<li>[ ] <strong>Step 5: Run the complete focused test matrix</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>generate-types
+npm<span class="w"> </span>run<span class="w"> </span>compile
+npm<span class="w"> </span>run<span class="w"> </span>type-check
+npm<span class="w"> </span>run<span class="w"> </span>lint
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusDefinitionSchema.test.ts<span class="w"> </span>src/test/suite/services/BuiltinBusContracts.test.ts<span class="w"> </span>src/test/suite/shared/busContractNormalize.test.ts<span class="w"> </span>src/test/suite/shared/busContractCanonicalize.test.ts<span class="w"> </span>src/test/suite/shared/busContractResolve.test.ts<span class="w"> </span>src/test/suite/shared/busConformance.test.ts<span class="w"> </span>src/test/suite/shared/busContractMigration.characterization.test.ts<span class="w"> </span>src/test/suite/services/AllExamplesConformance.test.ts
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>src/test/browser/ipcore-issues.spec.ts
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:hdl
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:quartus
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:vivado
+</code></pre></div>
+<p>Expected: zero compile/type/lint errors; all unit/browser suites pass; available
+  HDL/vendor integration gates pass or report only their repository-defined tool
+  skip condition.</p>
+<ul>
+<li>[ ] <strong>Step 6: Run repository-wide regression checks</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:unit
+git<span class="w"> </span>diff<span class="w"> </span>--check
+git<span class="w"> </span>status<span class="w"> </span>--short
+</code></pre></div>
+<p>Expected: unit suite passes, no whitespace errors, and the status contains only
+  intentional source, schema, generated type, documentation, fixture, and
+  snapshot changes.</p>
+<ul>
+<li>[ ] <strong>Step 7: Final review checkpoint</strong></li>
+</ul>
+<p>Present the full diff and verification outputs to the developer. Do not stage,
+  commit, or push; let the developer decide integration and commit boundaries.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
