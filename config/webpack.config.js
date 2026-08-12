@@ -10,11 +10,18 @@ const commonResolve = {
   extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
 };
 
+const typescriptLoader = {
+  loader: "ts-loader",
+  options: {
+    onlyCompileBundledFiles: true,
+  },
+};
+
 const extensionModuleRules = {
   rules: [
     {
       test: /\.tsx?$/,
-      use: "ts-loader",
+      use: typescriptLoader,
       exclude: /node_modules/,
     },
     {
@@ -28,7 +35,7 @@ const webviewModuleRules = {
   rules: [
     {
       test: /\.tsx?$/,
-      use: "ts-loader",
+      use: typescriptLoader,
       exclude: /node_modules/,
     },
     {
