@@ -1,5 +1,24 @@
-import { summarize } from '../../../commands/ConsistencyCheckCommands';
+import * as vscode from 'vscode';
+import { runConsistencyCheck, summarize } from '../../../commands/ConsistencyCheckCommands';
 import type { HdlCrossCheckFinding } from '../../../generator/validation/hdlCrossCheck';
+import { loadIpCoreData } from '../../../generator/loadIpCore';
+import {
+  crossCheckIpCoreAgainstTopLevelHdl,
+  crossCheckIpCoreAgainstVendor,
+} from '../../../generator/validation/hdlCrossCheck';
+import { loadRuntimeBusLibrary } from '../../../services/loadRuntimeBusLibrary';
+import { checkBusConformance } from '../../../shared/busConformance';
+import type { ResourceRoots } from '../../../services/ResourceRoots';
+
+jest.mock('../../../generator/loadIpCore');
+jest.mock('../../../generator/validation/hdlCrossCheck', () => ({
+  crossCheckIpCoreAgainstTopLevelHdl: jest.fn(),
+  crossCheckIpCoreAgainstVendor: jest.fn(),
+}));
+jest.mock('../../../services/loadRuntimeBusLibrary');
+jest.mock('../../../shared/busConformance', () => ({
+  checkBusConformance: jest.fn(),
+}));
 
 function finding(overrides: Partial<HdlCrossCheckFinding> = {}): HdlCrossCheckFinding {
   return {
@@ -51,5 +70,37 @@ describe('summarize', () => {
       finding({ kind: 'top-level-ambiguity', severity: 'amber' }),
     ]);
     expect(summary).toEqual({ added: 1, removed: 1, changed: 1, ambiguous: 1 });
+  });
+});
+
+describe('runConsistencyCheck protocol boundary', () => {
+  it('reports protocol conformance before implementation findings', async () => {
+    const protocolIssue = {
+      code: 'BUS_PROPERTY_RANGE',
+      severity: 'error' as const,
+      source: 'protocol' as const,
+      path: ['busInterfaces', 0, 'interfaceProperties', 'readyLatency'],
+      message: 'readyLatency is outside its allowed range.',
+    };
+    (loadIpCoreData as jest.Mock).mockResolvedValue({
+      vlnv: { name: 'example' },
+      busInterfaces: [],
+    });
+    (loadRuntimeBusLibrary as jest.Mock).mockResolvedValue({ contracts: [] });
+    (checkBusConformance as jest.Mock).mockReturnValue({
+      issues: [protocolIssue],
+      hasKnownErrors: true,
+      hasUnresolved: false,
+    });
+    (crossCheckIpCoreAgainstTopLevelHdl as jest.Mock).mockResolvedValue([]);
+    (crossCheckIpCoreAgainstVendor as jest.Mock).mockResolvedValue([]);
+
+    const result = await runConsistencyCheck(
+      { fsPath: '/workspace/example.ip.yml' } as vscode.Uri,
+      {} as ResourceRoots
+    );
+
+    expect(result.issues).toEqual([protocolIssue]);
+    expect(result.summary).toEqual({ added: 0, removed: 0, changed: 0, ambiguous: 0 });
   });
 });

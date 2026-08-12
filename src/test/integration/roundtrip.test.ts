@@ -23,11 +23,28 @@
 
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as jsYaml from 'js-yaml';
 import { generateFixtures, xilinxFixtures, alteraFixtures, hwTclFiles, Fixture } from './generator';
-import { parseComponentXmlText } from '../../parser/ComponentXmlParser';
-import { parseHwTclFile } from '../../parser/HwTclParser';
-import { normalizeBusType } from '../../generator/registerProcessor';
+import { parseComponentXmlText as parseComponentXmlTextImpl } from '../../parser/ComponentXmlParser';
+import { parseHwTclFile as parseHwTclFileImpl } from '../../parser/HwTclParser';
+import { normalizeBusType as normalizeBusTypeImpl } from '../../generator/registerProcessor';
+import { builtinBusLibrary } from '../helpers/busLibrary';
+import {
+  generateComponentXml,
+  generateCustomBusDefs,
+} from '../../generator/VivadoComponentXmlGenerator';
+import { IpCoreScaffolder } from '../../generator/IpCoreScaffolder';
+import { TemplateLoader } from '../../generator/TemplateLoader';
+import { devResourceRoots } from '../../services/ResourceRoots';
+import { Logger } from '../../utils/Logger';
+import type { BusInterfaceDef, IpCoreData } from '../../generator/types';
+
+const parseComponentXmlText = (text: string) =>
+  parseComponentXmlTextImpl(text, { busLibrary: builtinBusLibrary() });
+const parseHwTclFile = (filePath: string) =>
+  parseHwTclFileImpl(filePath, { busLibrary: builtinBusLibrary() });
+const normalizeBusType = (type: string) => normalizeBusTypeImpl(type, builtinBusLibrary());
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,6 +94,15 @@ function filterBusByTypes(busInterfaces: unknown[], allowed: Set<string>): strin
 function loadOriginalYaml(yamlPath: string): Record<string, unknown> {
   const raw = fs.readFileSync(yamlPath, 'utf8');
   return (jsYaml.load(raw) as Record<string, unknown>) ?? {};
+}
+
+function findBusInterface(ipCore: Record<string, unknown>, name: string): BusInterfaceDef {
+  const interfaces = (ipCore.busInterfaces ?? []) as BusInterfaceDef[];
+  const busInterface = interfaces.find((candidate) => candidate.name === name);
+  if (!busInterface) {
+    throw new Error(`Expected bus interface '${name}' in parsed IP core.`);
+  }
+  return busInterface;
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +261,54 @@ describe('Vivado component.xml round-trip', () => {
       throw new Error(`component.xml memory-map round-trip failures:\n\n${failures.join('\n\n')}`);
     }
   });
+
+  it('preserves complete Avalon-ST contract semantics and bundles its custom bus files', async () => {
+    const library = builtinBusLibrary();
+    const original: IpCoreData = {
+      vlnv: { vendor: 'acme.com', library: 'ip', name: 'stream_bridge', version: '1.0.0' },
+      busInterfaces: [
+        {
+          name: 'stream',
+          type: 'ipcraft:busif:avalon_st:1.0',
+          mode: 'source',
+          physicalPrefix: 'stream_',
+          endianness: 'big',
+          useOptionalPorts: ['ready', 'channel'],
+          portWidthOverrides: { data: 5, channel: 3 },
+          interfaceProperties: {
+            dataBitsPerSymbol: 1,
+            symbolsPerBeat: 5,
+            readyLatency: 0,
+            maxChannel: 7,
+          },
+        },
+      ],
+    };
+
+    const xml = await generateComponentXml(original, {}, { busLibrary: library });
+    const customFiles = generateCustomBusDefs(original, library);
+    const parsed = jsYaml.load(
+      parseComponentXmlTextImpl(xml, { busLibrary: library }).ipYamlText
+    ) as Record<string, unknown>;
+    const stream = findBusInterface(parsed, 'stream');
+
+    expect(Object.keys(customFiles).sort()).toEqual([
+      'busdef/avalon_st.xml',
+      'busdef/avalon_st_rtl.xml',
+    ]);
+    expect(stream).toMatchObject({
+      type: 'ipcraft:busif:avalon_st:1.0',
+      mode: 'source',
+      endianness: 'big',
+      portWidthOverrides: { data: 5, channel: 3 },
+      interfaceProperties: {
+        dataBitsPerSymbol: 1,
+        symbolsPerBeat: 5,
+        readyLatency: 0,
+        maxChannel: 7,
+      },
+    });
+  });
 });
 
 /**
@@ -361,6 +435,75 @@ describe('Quartus hw.tcl round-trip', () => {
 
     if (failures.length > 0) {
       throw new Error(`hw.tcl MM bus round-trip failures:\n\n${failures.join('\n\n')}`);
+    }
+  });
+
+  it('preserves one-bit Avalon-ST symbols through import, regeneration, and re-import', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-avst-roundtrip-'));
+    const inputTcl = path.join(tempDir, 'stream_core_hw.tcl');
+    const parsedYaml = path.join(tempDir, 'stream_core.ip.yml');
+    const regeneratedTcl = path.join(tempDir, 'regenerated_hw.tcl');
+    fs.writeFileSync(
+      inputTcl,
+      `set_module_property NAME stream_core
+add_interface stream avalon_streaming start
+set_interface_property stream dataBitsPerSymbol 1
+set_interface_property stream symbolsPerBeat 5
+set_interface_property stream readyLatency 0
+set_interface_property stream firstSymbolInHighOrderBits true
+add_interface_port stream stream_data data Output 5
+add_interface_port stream stream_valid valid Output 1
+`
+    );
+
+    try {
+      const firstImport = await parseHwTclFile(inputTcl);
+      fs.writeFileSync(parsedYaml, firstImport.yamlText);
+      const repoRoot = path.resolve(__dirname, '../../..');
+      const roots = devResourceRoots(repoRoot);
+      const logger = {
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+        debug: () => {},
+      } as unknown as Logger;
+      const scaffolder = new IpCoreScaffolder(
+        logger,
+        new TemplateLoader(logger, path.join(repoRoot, 'src/generator/templates')),
+        roots
+      );
+      const generation = await scaffolder.generateAll(parsedYaml, tempDir, {
+        targets: ['quartus'],
+        includeVhdl: false,
+        includeRegs: false,
+        includeTestbench: false,
+        dryRun: true,
+      });
+      expect(generation.success).toBe(true);
+      const hwTcl = Object.entries(generation.generatedContents ?? {}).find(([name]) =>
+        name.endsWith('_hw.tcl')
+      )?.[1];
+      expect(hwTcl).toBeDefined();
+      fs.writeFileSync(regeneratedTcl, hwTcl!);
+
+      const secondImport = jsYaml.load((await parseHwTclFile(regeneratedTcl)).yamlText) as Record<
+        string,
+        unknown
+      >;
+      const stream = findBusInterface(secondImport, 'stream');
+      expect(stream).toMatchObject({
+        type: 'ipcraft:busif:avalon_st:1.0',
+        mode: 'source',
+        endianness: 'big',
+        portWidthOverrides: { data: 5 },
+        interfaceProperties: {
+          dataBitsPerSymbol: 1,
+          symbolsPerBeat: 5,
+          readyLatency: 0,
+        },
+      });
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
     }
   });
 });

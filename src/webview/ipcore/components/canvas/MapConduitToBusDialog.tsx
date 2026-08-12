@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ConduitPort } from '../../../types/ipCore';
-import type { BusPortDef } from '../../data/busDefinitions';
+import { isAssociatedPort, type BusPortDef } from '../../utils/busLibrary';
 import type { MapConduitToBusOptions } from '../../hooks/useGroupPorts';
 
 export type { MapConduitToBusOptions as MapConduitToBusResult } from '../../hooks/useGroupPorts';
@@ -122,7 +122,7 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
   onCancel,
 }) => {
   const [mode, setMode] = useState<'slave' | 'master'>('slave');
-  const assignableDefs = libraryPortDefs.filter((d) => !d.role);
+  const assignableDefs = libraryPortDefs.filter((port) => !isAssociatedPort(port));
 
   const [assignments, setAssignments] = useState<Record<string, string>>(() => {
     const seeded: Record<string, string> = {};

@@ -26,15 +26,88 @@ jest.mock('../../../utils/Logger', () => {
 
 // Mock BusLibraryService
 jest.mock('../../../services/BusLibraryService', () => {
+  const { normalizeBusLibrary } = jest.requireActual('../../../shared/busContracts');
+  const builtin = {
+    sources: [
+      {
+        sourceFile: '/builtin/axi4l.yml',
+        sourceKind: 'builtin',
+        definitions: {
+          AXI4L: {
+            busType: {
+              vendor: 'ipcraft',
+              library: 'busif',
+              name: 'axi4_lite',
+              version: '1.0',
+            },
+            ports: [{ name: 'AWADDR', presence: 'required' }],
+          },
+        },
+      },
+    ],
+    diagnostics: [],
+  };
   return {
     BusLibraryService: jest.fn().mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({
-        AXI4L: { ports: [{ name: 'AWADDR', presence: 'required' }] },
-      }),
+      loadDefaultSources: jest.fn().mockResolvedValue(builtin),
+      loadFromUserPaths: jest.fn().mockResolvedValue({ sources: [], diagnostics: [] }),
+      loadFromDirectories: jest.fn().mockResolvedValue({ sources: [], diagnostics: [] }),
+      loadRecord: jest.fn((definitions, sourceFile, sourceKind) => ({
+        sources: [{ definitions, sourceFile, sourceKind }],
+        diagnostics: [],
+      })),
+      normalizeSources: jest.fn((...loads) =>
+        normalizeBusLibrary(loads.flatMap((load: { sources: unknown[] }) => load.sources))
+      ),
       clearCache: jest.fn(),
     })),
   };
 });
+
+function createBusLibraryServiceMock(
+  defaultDefinitions: Record<string, unknown> = {},
+  directoryDefinitions: Record<string, unknown> = {},
+  loadFromUserPaths = jest.fn().mockResolvedValue({ sources: [], diagnostics: [] })
+) {
+  const { normalizeBusLibrary } = jest.requireActual('../../../shared/busContracts');
+  const asLoad = (
+    definitions: Record<string, unknown>,
+    sourceKind: string,
+    sourceFile: string
+  ) => ({
+    sources: Object.keys(definitions).length > 0 ? [{ definitions, sourceKind, sourceFile }] : [],
+    diagnostics: [],
+  });
+  return {
+    loadDefaultSources: jest
+      .fn()
+      .mockResolvedValue(asLoad(defaultDefinitions, 'builtin', '/builtin/test.yml')),
+    loadFromDirectories: jest
+      .fn()
+      .mockResolvedValue(asLoad(directoryDefinitions, 'ipLocal', '/ip/custom.yml')),
+    loadFromUserPaths,
+    loadRecord: jest.fn((definitions, sourceFile, sourceKind) =>
+      asLoad(definitions, sourceKind, sourceFile)
+    ),
+    normalizeSources: jest.fn((...loads) =>
+      normalizeBusLibrary(loads.flatMap((load: { sources: unknown[] }) => load.sources))
+    ),
+    clearCache: jest.fn(),
+  };
+}
+
+function builtinBusSources() {
+  const dir = path.resolve(__dirname, '../../../../ipcraft-spec/bus_definitions');
+  return fs2
+    .readdirSync(dir)
+    .filter((name) => name.endsWith('.yml'))
+    .sort()
+    .map((name) => ({
+      sourceFile: path.join(dir, name),
+      sourceKind: 'builtin',
+      definitions: yaml.load(fs2.readFileSync(path.join(dir, name), 'utf8')),
+    }));
+}
 
 // Mock fs/promises for writing, but keep readFile for fixtures
 jest.mock('fs/promises', () => {
@@ -75,8 +148,19 @@ describe('IpCoreScaffolder', () => {
     // resetMocks: true in jest.config resets all mock implementations before each test.
     // Re-apply the BusLibraryService mock implementation before constructing the scaffolder.
     (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({
-        AXI4L: { ports: [{ name: 'AWADDR', presence: 'required' }] },
+      loadDefaultSources: jest.fn().mockResolvedValue({
+        sources: builtinBusSources(),
+        diagnostics: [],
+      }),
+      loadFromUserPaths: jest.fn().mockResolvedValue({ sources: [], diagnostics: [] }),
+      loadFromDirectories: jest.fn().mockResolvedValue({ sources: [], diagnostics: [] }),
+      loadRecord: jest.fn((definitions, sourceFile, sourceKind) => ({
+        sources: [{ definitions, sourceFile, sourceKind }],
+        diagnostics: [],
+      })),
+      normalizeSources: jest.fn((...loads) => {
+        const { normalizeBusLibrary } = jest.requireActual('../../../shared/busContracts');
+        return normalizeBusLibrary(loads.flatMap((load: { sources: unknown[] }) => load.sources));
       }),
       clearCache: jest.fn(),
     }));
@@ -91,6 +175,38 @@ describe('IpCoreScaffolder', () => {
     mockWorkspaceScan.mockResolvedValue({ library: {}, files: [], count: 0 });
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     jest.clearAllMocks();
+  });
+
+  it('propagates a 64-bit memory-mapped contract width into register packages', async () => {
+    const sourceText = [
+      'vlnv:',
+      '  vendor: acme',
+      '  library: ip',
+      '  name: wide_regs',
+      "  version: '1.0'",
+      'busInterfaces:',
+      '  - name: s_axi',
+      '    type: AXI4L',
+      '    mode: slave',
+      '    physicalPrefix: s_axi_',
+      '    portWidthOverrides:',
+      '      WDATA: 64',
+      '      RDATA: 64',
+      '',
+    ].join('\n');
+
+    const result = await scaffolder.generateAll('/tmp/wide_regs.ip.yml', '/tmp/wide-regs', {
+      sourceText,
+      scaffoldPack: 'builtin-ipcraft',
+      includeRegs: true,
+      dryRun: true,
+    });
+
+    expect(result.success).toBe(true);
+    const pkg = Object.entries(result.generatedContents ?? {}).find(([name]) =>
+      name.endsWith('_pkg.vhd')
+    )?.[1];
+    expect(pkg).toContain('constant C_DATA_WIDTH : natural := 64;');
   });
 
   it('applies configured indentation only to generated source file types', async () => {
@@ -783,10 +899,9 @@ describe('IpCoreScaffolder', () => {
         yaml.load(fs2.readFileSync(path.join(busDir, fileName), 'utf8')) as object
       );
     }
-    (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue(mergedBusLibrary),
-      clearCache: jest.fn(),
-    }));
+    (BusLibraryService as jest.Mock).mockImplementation(() =>
+      createBusLibraryServiceMock(mergedBusLibrary)
+    );
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
     const inputPath = path.resolve(
@@ -805,10 +920,10 @@ describe('IpCoreScaffolder', () => {
     const topSv = result.generatedContents?.['rtl/comprehensive_avalon.sv'];
     expect(topSv).toBeDefined();
     expect(topSv).not.toMatch(/for\s*\(\s*genvar\b/);
-    expect(topSv).toMatch(/genvar byte_idx_aso_data;\s*\n\s*generate/);
+    expect(topSv).toMatch(/genvar lane_idx_aso_data;\s*\n\s*generate/);
     expect(topSv).toContain(
-      'for (byte_idx_aso_data = 0; byte_idx_aso_data < $bits(aso_data) / 8; ' +
-        'byte_idx_aso_data = byte_idx_aso_data + 1) begin : gen_swap_aso_data'
+      'for (lane_idx_aso_data = 0; lane_idx_aso_data < $bits(aso_data) / 8; ' +
+        'lane_idx_aso_data = lane_idx_aso_data + 1) begin : gen_swap_aso_data'
     );
   });
 
@@ -2294,19 +2409,20 @@ describe('IpCoreScaffolder', () => {
 
   it('generates _hw.tcl with parameterized conduit interfaces correctly', async () => {
     // BusLibraryService mock returns xcvr bus definition with string-width ports
-    (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
-      loadFromDirectories: jest.fn().mockResolvedValue({
-        Xcvr: {
-          busType: { vendor: 'user', library: 'busif', name: 'xcvr', version: '1.0' },
-          ports: [
-            { name: 'tx_data', presence: 'required', direction: 'out', width: 'XCVR_DW' },
-            { name: 'tx_k', presence: 'required', direction: 'out', width: 'XCVR_KW' },
-          ],
-        },
-      }),
-      clearCache: jest.fn(),
-    }));
+    (BusLibraryService as jest.Mock).mockImplementation(() =>
+      createBusLibraryServiceMock(
+        {},
+        {
+          Xcvr: {
+            busType: { vendor: 'user', library: 'busif', name: 'xcvr', version: '1.0' },
+            ports: [
+              { name: 'tx_data', presence: 'required', direction: 'out', width: 'XCVR_DW' },
+              { name: 'tx_k', presence: 'required', direction: 'out', width: 'XCVR_KW' },
+            ],
+          },
+        }
+      )
+    );
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
     const inputPath = path.resolve(__dirname, '../../fixtures/xcvr-ipcore.yml');
@@ -2358,11 +2474,7 @@ describe('IpCoreScaffolder', () => {
 
   it('places arithmetic expression user ports in the elaborate proc (Rb_ByteEna pattern)', async () => {
     // No custom bus library needed — this IP has no bus interfaces.
-    (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
-      loadFromDirectories: jest.fn().mockResolvedValue({}),
-      clearCache: jest.fn(),
-    }));
+    (BusLibraryService as jest.Mock).mockImplementation(() => createBusLibraryServiceMock());
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
     const inputPath = path.resolve(__dirname, '../../fixtures/expr-ipcore.yml');
@@ -2404,12 +2516,10 @@ describe('IpCoreScaffolder', () => {
     (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
       get: (_key: string, defaultValue?: unknown) => defaultValue,
     });
-    const loadFromUserPaths = jest.fn().mockResolvedValue({});
-    (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
-      loadFromUserPaths,
-      clearCache: jest.fn(),
-    }));
+    const loadFromUserPaths = jest.fn().mockResolvedValue({ sources: [], diagnostics: [] });
+    (BusLibraryService as jest.Mock).mockImplementation(() =>
+      createBusLibraryServiceMock({}, {}, loadFromUserPaths)
+    );
     mockVivadoPathExists.mockResolvedValue(true);
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
@@ -2431,12 +2541,10 @@ describe('IpCoreScaffolder', () => {
       get: (key: string, defaultValue?: unknown) =>
         key === 'vivado.pinnedVersion' ? '2023.1' : defaultValue,
     });
-    const loadFromUserPaths = jest.fn().mockResolvedValue({});
-    (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
-      loadFromUserPaths,
-      clearCache: jest.fn(),
-    }));
+    const loadFromUserPaths = jest.fn().mockResolvedValue({ sources: [], diagnostics: [] });
+    (BusLibraryService as jest.Mock).mockImplementation(() =>
+      createBusLibraryServiceMock({}, {}, loadFromUserPaths)
+    );
     mockVivadoPathExists.mockResolvedValue(true);
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
@@ -2462,12 +2570,10 @@ describe('IpCoreScaffolder', () => {
     (vscode.workspace.getConfiguration as jest.Mock).mockReturnValue({
       get: (_key: string, defaultValue?: unknown) => defaultValue,
     });
-    const loadFromUserPaths = jest.fn().mockResolvedValue({});
-    (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({}),
-      loadFromUserPaths,
-      clearCache: jest.fn(),
-    }));
+    const loadFromUserPaths = jest.fn().mockResolvedValue({ sources: [], diagnostics: [] });
+    (BusLibraryService as jest.Mock).mockImplementation(() =>
+      createBusLibraryServiceMock({}, {}, loadFromUserPaths)
+    );
     mockVivadoPathExists.mockResolvedValue(false);
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
@@ -2519,11 +2625,7 @@ describe('IpCoreScaffolder', () => {
       };
       mockWorkspaceScan.mockResolvedValue({ library: workspaceBusDef, files: [], count: 1 });
 
-      (BusLibraryService as jest.Mock).mockImplementation(() => ({
-        loadDefaultLibrary: jest.fn().mockResolvedValue({}),
-        loadFromUserPaths: jest.fn().mockResolvedValue({}),
-        clearCache: jest.fn(),
-      }));
+      (BusLibraryService as jest.Mock).mockImplementation(() => createBusLibraryServiceMock());
       scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
       const result = await scaffolder.generateAll(inputPath, '/tmp/ws-bus-out', {

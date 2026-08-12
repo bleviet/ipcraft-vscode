@@ -16,6 +16,7 @@ import {
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
+import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
 
 const logger = new Logger('HdlCrossCheckCommands');
 
@@ -36,7 +37,13 @@ export async function runHdlCrossCheck(
   resourceRoots: ResourceRoots
 ): Promise<HdlCrossCheckFinding[]> {
   const ipCoreData = await loadIpCoreData(ipCoreUri.fsPath, resourceRoots);
-  return crossCheckIpCoreAgainstHdl(ipCoreData, path.dirname(ipCoreUri.fsPath));
+  const busLibrary = await loadRuntimeBusLibrary(
+    logger,
+    resourceRoots,
+    ipCoreUri,
+    ipCoreData as Record<string, unknown>
+  );
+  return crossCheckIpCoreAgainstHdl(ipCoreData, path.dirname(ipCoreUri.fsPath), busLibrary);
 }
 
 export function registerHdlCrossCheckCommands(

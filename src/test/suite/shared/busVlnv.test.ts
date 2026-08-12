@@ -1,4 +1,8 @@
-import { busSupportsMemoryMap, BUS_VLNV } from '../../../shared/busVlnv';
+import { busSupportsMemoryMap as supportsMemoryMap, BUS_VLNV } from '../../../shared/busVlnv';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
+
+const busSupportsMemoryMap = (type: string, mode: string) =>
+  supportsMemoryMap(type, mode, builtinBusLibrary());
 
 describe('busSupportsMemoryMap', () => {
   describe('Avalon-MM (memory-mapped)', () => {

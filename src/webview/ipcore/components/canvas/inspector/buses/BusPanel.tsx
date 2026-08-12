@@ -3,19 +3,32 @@ import type { BusInterface, IpCore } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
 import { validateUniqueName, validateVhdlIdentifier } from '../../../../../shared/utils/validation';
 import { busSupportsMemoryMap } from '../../../../../../shared/busVlnv';
-import { isConduitType, lookupBusDef } from '../../../../data/busDefinitions';
+import { isConduitType, lookupBusDef } from '../../../../utils/busLibrary';
+import {
+  normalizeBusLibrary,
+  type NormalizedBusLibrary,
+} from '../../../../../../shared/busContracts';
+import type { Parameter } from '../../../../../../domain/ipcore.types';
+import type { BatchUpdate } from '../../../../hooks/useGroupPorts';
+import type { IssueFocusRequest } from '../../../../types/issues';
+import { useBusContractEditor } from '../../../../hooks/useBusContractEditor';
 import { PropField, PropSelect, Section } from '../controls/InspectorFields';
 import { BusTypeField, MemoryMapField } from '../controls/BusTypeFields';
 import { BUS_ENDIANNESS_OPTS, BUS_MODE_OPTS, normalizeBusMode } from '../inspectorMetadata';
-import { ArraySection, PortWidthOverridesSection } from './ConduitFields';
+import { ArraySection } from './ConduitFields';
 import { ConduitPanel } from './ConduitPanel';
+import { BusContractFields } from './BusContractFields';
+
+const EMPTY_BUS_LIBRARY = normalizeBusLibrary([]);
 
 export interface BusPanelProps {
   bus: BusInterface;
   index: number;
   ipCore: IpCore;
-  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
+  imports?: { busLibrary?: NormalizedBusLibrary; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
+  batchUpdate?: BatchUpdate;
+  issueFocusRequest?: IssueFocusRequest | null;
 }
 
 /** Returns true if the bus interface is a custom (user-defined) interface that should
@@ -25,17 +38,38 @@ export interface BusPanelProps {
  *  - Inline conduit ports are defined
  *  - Bus type is not a built-in protocol (e.g. user:busif:xcvr:1.0)
  */
-function isCustomBusInterface(bus: BusInterface): boolean {
+function isCustomBusInterface(
+  bus: BusInterface,
+  busLibrary: NormalizedBusLibrary | undefined
+): boolean {
   return (
     bus.mode === 'conduit' ||
-    isConduitType(bus.type) ||
+    isConduitType(bus.type, busLibrary) ||
     (bus.conduitPorts?.length ?? 0) > 0 ||
-    lookupBusDef(bus.type) === null
+    lookupBusDef(bus.type, busLibrary) === null
   );
 }
 
-export const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports, onUpdate }) => {
-  if (isCustomBusInterface(bus)) {
+export const BusPanel: React.FC<BusPanelProps> = ({
+  bus,
+  index,
+  ipCore,
+  imports,
+  onUpdate,
+  batchUpdate,
+  issueFocusRequest,
+}) => {
+  const fallbackBatch: BatchUpdate = (mutations) => {
+    mutations.forEach(([path, value]) => onUpdate(path, value));
+  };
+  const contractEditor = useBusContractEditor({
+    bus: bus as unknown as import('../../../../../../domain/ipcore.types').BusInterface,
+    busIndex: index,
+    parameters: (ipCore.parameters ?? []) as unknown as Parameter[],
+    busLibrary: imports?.busLibrary ?? EMPTY_BUS_LIBRARY,
+    batchUpdate: batchUpdate ?? fallbackBatch,
+  });
+  if (isCustomBusInterface(bus, imports?.busLibrary)) {
     return (
       <ConduitPanel bus={bus} index={index} ipCore={ipCore} imports={imports} onUpdate={onUpdate} />
     );
@@ -76,7 +110,10 @@ export const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports,
     | null;
   const isArray = (arrayDef?.count ?? 0) > 1;
   const hasPrefixPattern = isArray && !!arrayDef?.physicalPrefixPattern;
-  const canHaveMemoryMap = !isArray && busSupportsMemoryMap(bus.type, bus.mode);
+  const canHaveMemoryMap =
+    !isArray &&
+    !!imports?.busLibrary &&
+    busSupportsMemoryMap(bus.type, bus.mode, imports.busLibrary);
 
   // The import path shown for this interface's map entry (per-interface, not global).
   const currentMapImportPath: string | null = (() => {
@@ -247,9 +284,9 @@ export const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports,
         )}
       </Section>
       <ArraySection bus={bus} busIndex={index} onUpdate={onUpdate} />
-      <PortWidthOverridesSection
-        bus={bus}
+      <BusContractFields
         busIndex={index}
+        model={contractEditor.model}
         paramNames={((ipCore.parameters ?? []) as unknown as Array<{ name: string }>).map(
           (p) => p.name
         )}
@@ -267,7 +304,9 @@ export const BusPanel: React.FC<BusPanelProps> = ({ bus, index, ipCore, imports,
           }
           return acc;
         }, {})}
-        onUpdate={onUpdate}
+        focusRequest={issueFocusRequest}
+        onRootWidthChange={contractEditor.updateRootWidth}
+        onPropertyChange={contractEditor.updateProperty}
       />
     </>
   );

@@ -1,7 +1,11 @@
-import { isConduitType } from '../../../../data/busDefinitions';
+import type { NormalizedBusLibrary } from '../../../../../../shared/busContracts';
+import { isConduitType } from '../../../../utils/busLibrary';
 
-export function conduitTypeName(busType: string): string {
-  if (isConduitType(busType)) {
+export function conduitTypeName(
+  busType: string,
+  busLibrary: NormalizedBusLibrary | undefined
+): string {
+  if (isConduitType(busType, busLibrary)) {
     return '';
   }
   if (!busType.startsWith('user:busif:')) {

@@ -61,6 +61,13 @@ If the file changed after the webview's starting version, the host rejects the
 stale edit and sends the current document back. This prevents two updates from
 silently overwriting each other.
 
+Asynchronous conformance and generation results also carry `sourceRevision`,
+which compares the exact source text before applying a result. This correlation
+guard is intentionally separate from the V-3/V-4 document revision protocol:
+it neither advances nor filters document versions. The full-text comparison is
+a deliberate per-result cost and should be considered if this mechanism is
+extended to larger or more frequent payloads.
+
 See [YAML data flow](../concepts/yaml-data-flow.md) for the paired webview logic.
 
 ## Commands
@@ -94,6 +101,21 @@ Importers under `src/parser/` convert existing files into IPCraft documents:
 
 Import results still require user review because source formats do not always
 contain design intent.
+
+### Vendor format boundary review
+
+`ComponentXmlParser`, `HwTclParser`, and `VivadoComponentXmlGenerator` exceed
+the general module-size review threshold because each owns one ordered vendor
+format transformation: IP-XACT traversal, Tcl command traversal, or IP-XACT
+document assembly. Their syntax handling and source-order-dependent control
+flow remain local so the format can be read and reviewed in execution order.
+Format-independent policy and transformations are kept in focused shared
+modules, including contract property import and observed-port reconciliation.
+
+The extraction rule is: logic with a second consumer belongs in
+`src/shared/busContracts/` when it neither reads nor emits XML/Tcl syntax nor
+depends on vendor source ordering. This makes the size exception a cohesion
+decision, not an exemption from future extraction.
 
 ## External tools
 

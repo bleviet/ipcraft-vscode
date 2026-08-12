@@ -3,7 +3,7 @@ import { EditorPanel } from './layout/EditorPanel';
 import { LibraryPalette } from './canvas/LibraryPalette';
 import { IpCoreToolbar, type IpCoreToolbarProps } from './IpCoreToolbar';
 import { vscode } from '../../vscode';
-import type { ValidationError } from '../hooks/useIpCoreState';
+import type { NormalizedBusLibrary } from '../../../shared/busContracts';
 
 interface IpCoreShellProps {
   fileName: string;
@@ -13,12 +13,16 @@ interface IpCoreShellProps {
   duplicatePrefixes: string[];
   parseError: string | null;
   hasIpCore: boolean;
-  busLibrary?: Record<string, unknown>;
+  busLibrary?: NormalizedBusLibrary;
   editorPanelProps: Omit<React.ComponentProps<typeof EditorPanel>, 'ipCore'> & {
     ipCore: React.ComponentProps<typeof EditorPanel>['ipCore'];
   };
   rightPanel: React.ReactNode;
-  validationErrors: ValidationError[];
+  importIssues: {
+    saveBlocked: boolean;
+    hasWarnings: boolean;
+    onOpen: () => void;
+  };
   toast: string | null;
 }
 
@@ -41,7 +45,7 @@ export const IpCoreShell: React.FC<IpCoreShellProps> = ({
   busLibrary,
   editorPanelProps,
   rightPanel,
-  validationErrors,
+  importIssues,
   toast,
 }) => {
   return (
@@ -94,11 +98,23 @@ export const IpCoreShell: React.FC<IpCoreShellProps> = ({
             className="canvas-view-toggle"
             style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}
             onClick={() => vscode?.postMessage({ type: 'saveAsIpYml' })}
-            title="Write parsed result to .ip.yml and open in the full editor"
+            disabled={importIssues.saveBlocked}
+            title={
+              importIssues.saveBlocked
+                ? 'Resolve bus conformance errors before saving this import'
+                : importIssues.hasWarnings
+                  ? 'Save with unresolved bus warnings; open Issues to review'
+                  : 'Write parsed result to .ip.yml and open in the full editor'
+            }
           >
             <span className="codicon codicon-save" />
             <span>Save as .ip.yml</span>
           </button>
+          {(importIssues.saveBlocked || importIssues.hasWarnings) && (
+            <button type="button" className="canvas-view-toggle" onClick={importIssues.onOpen}>
+              Open Issues
+            </button>
+          )}
         </div>
       )}
 
@@ -164,24 +180,6 @@ export const IpCoreShell: React.FC<IpCoreShellProps> = ({
           </>
         )}
       </div>
-
-      {/* Validation errors panel */}
-      {validationErrors.length > 0 && (
-        <div
-          className="p-2"
-          style={{
-            borderTop: '1px solid var(--vscode-panel-border)',
-            background: 'var(--vscode-inputValidation-warningBackground)',
-          }}
-        >
-          <p className="text-sm font-semibold mb-1">Reference Validation Errors:</p>
-          <ul className="text-xs list-disc list-inside">
-            {validationErrors.map((error, idx) => (
-              <li key={idx}>{error.message}</li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       {/* Toast notification */}
       {toast && (

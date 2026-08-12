@@ -249,9 +249,17 @@ export interface UserPort {
    */
   internal_name?: string;
   /**
-   * Reflow kind for a big-endian port: 'byte' reverses byte lanes, 'bit' reverses individual bits.
+   * Reflow kind for a big-endian port: 'lane' reverses lane_width-bit lanes, 'bit' reverses individual bits.
    */
-  swap_kind?: 'byte' | 'bit';
+  swap_kind?: 'lane' | 'bit';
+  /**
+   * Width of one ordering lane in bits; standalone ports use eight-bit lanes.
+   */
+  lane_width?: number | string;
+  /**
+   * Standalone ports use byte lanes for endianness reflow.
+   */
+  lane_kind?: 'byte';
 }
 export interface InterruptPort {
   name: string;
@@ -283,9 +291,17 @@ export interface BusPort {
    */
   internal_name?: string;
   /**
-   * 'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (WSTRB/TKEEP/byteenable).
+   * 'lane' reverses lane_width-bit data lanes; 'bit' reverses individual qualifier bits.
    */
-  swap_kind?: 'byte' | 'bit';
+  swap_kind?: 'lane' | 'bit';
+  /**
+   * Width of one ordering lane in bits. Avalon-ST data uses dataBitsPerSymbol.
+   */
+  lane_width?: number | string;
+  /**
+   * Semantic lane kind resolved from the bus contract; byte lanes are eight bits and symbol lanes use the contract's dataBitsPerSymbol.
+   */
+  lane_kind?: 'byte' | 'symbol';
 }
 export interface SecondaryBusInterface {
   name: string;
@@ -415,7 +431,11 @@ export interface EndianSwapPort {
   width: number;
   is_parameterized: boolean;
   /**
-   * 'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (byte-qualifier masks).
+   * 'lane' reverses lane_width-bit payload lanes; 'bit' reverses qualifier bits.
    */
-  swap_kind: 'byte' | 'bit';
+  swap_kind: 'lane' | 'bit';
+  /**
+   * Width of one ordering lane in bits.
+   */
+  lane_width: number | string;
 }

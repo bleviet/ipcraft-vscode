@@ -251,6 +251,9 @@ describe('YamlValidator', () => {
       const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
       expect(result.valid).toBe(false);
       expect(result.error).toContain('simulation.engine');
+      expect(result.details).toContainEqual(
+        expect.objectContaining({ path: ['simulation', 'engine'], keyword: 'enum' })
+      );
     });
 
     it('rejects unknown simulation.framework', () => {

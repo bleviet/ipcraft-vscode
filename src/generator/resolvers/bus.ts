@@ -3,13 +3,20 @@ import {
   expandBusInterfaces,
   checkDuplicatePhysicalPrefixes,
   getActiveBusPortsFromDefinition,
-  normalizeBusType,
   resolveStringWidth,
   buildParameterizedPortTypes,
 } from '../registerProcessor';
 import type { BusInterfaceDef, BusPortDefinition } from '../types';
 import { parse, serialize, widthExprUsesMathReal } from '../../shared/widthExprAst';
 import { buildInterruptPorts } from './interrupts';
+import { busSupportsMemoryMap } from '../../shared/busVlnv';
+import {
+  canonicalizeBusType,
+  BYTE_LANE_WIDTH,
+  resolveBusInterface,
+  resolveDataLane,
+} from '../../shared/busContracts';
+import type { BusInterface, Parameter } from '../../domain/ipcore.types';
 
 function getString(value: unknown): string {
   if (value === null || value === undefined) {
@@ -79,22 +86,31 @@ interface TemplatePort extends Record<string, unknown> {
   logical_name?: string;
   role?: string;
   needs_swap?: boolean;
-  /** 'byte' reverses byte lanes (data payload); 'bit' reverses individual bits, one per
-   *  byte lane (WSTRB/TKEEP/byteenable), so the mask stays aligned with the swapped bytes. */
-  swap_kind?: 'byte' | 'bit';
+  /** 'lane' reverses fixed-width lanes; 'bit' reverses individual qualifier bits. */
+  swap_kind?: 'lane' | 'bit';
+  lane_width?: number | string;
+  lane_kind?: 'byte' | 'symbol';
 }
 
-/** A data payload is byte-swappable only when it is a fixed vector of whole bytes. */
-function needsByteSwap(
+/** A payload is swappable when it contains at least two complete lanes. */
+function needsLaneSwap(
   endianness: string | undefined,
   width: number | string | null,
+  laneWidth: number | string,
   direction: string,
   isParameterized = false
 ): boolean {
   return (
     endianness === 'big' &&
     (direction === 'in' || direction === 'out') &&
-    (isParameterized || (typeof width === 'number' && width > 1 && width % 8 === 0))
+    (isParameterized ||
+      typeof width === 'string' ||
+      typeof laneWidth === 'string' ||
+      (typeof width === 'number' &&
+        typeof laneWidth === 'number' &&
+        laneWidth > 0 &&
+        width > laneWidth &&
+        width % laneWidth === 0))
   );
 }
 
@@ -114,24 +130,20 @@ function needsBitReverse(
 }
 
 function resolvePortsForInterface(
-  libraryKey: string,
   ifaceType: string,
-  busDefinitions: ResolverInput['busDefinitions']
+  busLibrary: ResolverInput['busLibrary'],
+  resolution?: ReturnType<typeof resolveBusInterface>
 ): BusPortDefinition[] {
-  const knownPorts = libraryKey ? busDefinitions[libraryKey]?.ports : undefined;
-  if (knownPorts) {
-    return knownPorts;
-  }
-  for (const def of Object.values(busDefinitions)) {
-    const bt = (def as { busType?: Record<string, string> }).busType;
-    if (!bt?.vendor || !bt.library || !bt.name || !bt.version) {
-      continue;
-    }
-    if (`${bt.vendor}:${bt.library}:${bt.name}:${bt.version}` === ifaceType) {
-      return def.ports ?? [];
-    }
-  }
-  return [];
+  const match = canonicalizeBusType(ifaceType, busLibrary);
+  return (match?.contract.ports ?? []).map((port) => ({
+    name: port.name,
+    width: resolution?.portWidths[port.name]?.expression
+      ? serialize(resolution.portWidths[port.name].expression!, 'systemverilog').code
+      : (resolution?.portWidths[port.name]?.value ?? port.width),
+    direction: port.direction,
+    presence: port.presence,
+    ...(port.role === 'data' || port.role === 'byteQualifier' ? { role: port.role } : {}),
+  }));
 }
 
 /** Compute user ports (custom `ports:` entries) with HDL type strings and TCL widths. */
@@ -178,8 +190,10 @@ export function buildUserPorts(
         endianness,
         // The concrete width is unknown until elaboration. Always emit the generic
         // reflow for a directional big-endian port; the HDL asserts byte alignment.
-        needs_swap: needsByteSwap(endianness, numericDefault, direction, true),
-        swap_kind: 'byte' as const,
+        needs_swap: needsLaneSwap(endianness, numericDefault, BYTE_LANE_WIDTH, direction, true),
+        swap_kind: 'lane' as const,
+        lane_width: BYTE_LANE_WIDTH,
+        lane_kind: 'byte' as const,
       };
     }
 
@@ -196,8 +210,10 @@ export function buildUserPorts(
       default_width: null,
       tcl_width: toTclWidth(width, null, paramNames),
       endianness,
-      needs_swap: needsByteSwap(endianness, width, direction),
-      swap_kind: 'byte' as const,
+      needs_swap: needsLaneSwap(endianness, width, BYTE_LANE_WIDTH, direction),
+      swap_kind: 'lane' as const,
+      lane_width: BYTE_LANE_WIDTH,
+      lane_kind: 'byte' as const,
     };
   });
 }
@@ -206,8 +222,8 @@ export const busResolver: ContextResolver = {
   name: 'bus',
 
   resolve(input: ResolverInput): Record<string, unknown> {
-    const { ipCore, busDefinitions, registry } = input;
-    const prefixError = checkDuplicatePhysicalPrefixes(ipCore);
+    const { ipCore, busLibrary } = input;
+    const prefixError = checkDuplicatePhysicalPrefixes(ipCore, busLibrary);
     if (prefixError) {
       throw new Error(prefixError);
     }
@@ -230,10 +246,8 @@ export const busResolver: ContextResolver = {
     }> = [];
 
     if (expandedBusInterfaces.length > 0) {
-      primaryMemoryMappedIndex = expandedBusInterfaces.findIndex(
-        (iface) =>
-          (iface.mode ?? '').toLowerCase() === 'slave' &&
-          registry.isMemoryMapped(normalizeBusType(getString(iface.type)).templateType)
+      primaryMemoryMappedIndex = expandedBusInterfaces.findIndex((iface) =>
+        busSupportsMemoryMap(getString(iface.type), getString(iface.mode), busLibrary)
       );
       // Preserve the public template-context convention: the memory-mapped slave is
       // primary when present, otherwise the first interface is primary. Top/core
@@ -242,18 +256,52 @@ export const busResolver: ContextResolver = {
       busPrefix = normalizePrefix(expandedBusInterfaces[primaryIndex].physicalPrefix ?? '');
 
       expandedBusInterfaces.forEach((iface, index) => {
-        const busTypeInfo = normalizeBusType(getString(iface.type));
+        const contractResolution = resolveBusInterface({
+          busInterface: iface as unknown as BusInterface,
+          busIndex: index,
+          parameters: (ipCore.parameters ?? []) as unknown as Parameter[],
+          library: busLibrary,
+        });
+        const interfaceProperties = Object.keys(
+          contractResolution.match?.contract.interfaceProperties ?? {}
+        )
+          .sort()
+          .flatMap((name) => {
+            const property = contractResolution.properties[name];
+            if (property?.value === undefined) {
+              return [];
+            }
+            return [
+              {
+                name,
+                value: property.value,
+                tcl_value:
+                  typeof property.value === 'boolean'
+                    ? property.value
+                      ? 'true'
+                      : 'false'
+                    : String(property.value),
+              },
+            ];
+          });
+        (iface as BusInterfaceDef & Record<string, unknown>).interface_properties =
+          interfaceProperties;
+        const contract = contractResolution.match?.contract;
+        const isConsumer = contract
+          ? contractResolution.normalizedMode === contract.modePolicy.consumer
+          : iface.mode === 'slave' || iface.mode === 'sink' || iface.mode === 'conduit';
+        (iface as BusInterfaceDef & Record<string, unknown>).normalized_mode =
+          contractResolution.normalizedMode ?? iface.mode;
+        (iface as BusInterfaceDef & Record<string, unknown>).is_consumer = isConsumer;
+        (iface as BusInterfaceDef & Record<string, unknown>).altera_end_type =
+          contract?.interfaceKind === 'conduit' || isConsumer ? 'end' : 'start';
         const conduitPorts = iface.conduitPorts as
           | Array<{ name: string; width?: number | string; direction?: string; presence?: string }>
           | undefined;
         const busPortDefs =
           conduitPorts && conduitPorts.length > 0
             ? conduitPorts
-            : resolvePortsForInterface(
-                busTypeInfo.libraryKey,
-                getString(iface.type),
-                busDefinitions
-              );
+            : resolvePortsForInterface(getString(iface.type), busLibrary, contractResolution);
 
         const activePorts = getActiveBusPortsFromDefinition(
           busPortDefs,
@@ -265,22 +313,31 @@ export const busResolver: ContextResolver = {
             | { name: string; value?: number | string; data_type?: string }[]
             | undefined,
           iface.portNameOverrides,
-          iface.absentPorts
+          iface.absentPorts,
+          Object.fromEntries(
+            contractResolution.activePorts.flatMap((port) =>
+              port.effectiveDirection ? [[port.name, port.effectiveDirection]] : []
+            )
+          )
         ) as unknown as (TemplatePort & Record<string, unknown>)[];
 
         const ifaceEndianness = iface.endianness === 'big' ? 'big' : 'little';
+        const dataLane = resolveDataLane(contractResolution, iface);
         activePorts.forEach((port) => {
           port.tcl_width = toTclWidth(port.width, port.width_expr, parameterNames);
           if (port.role === 'data') {
-            // Data payload: reverse whole byte lanes.
+            // Data payload: AXI/Avalon-MM use bytes; Avalon-ST uses declared symbols.
             port.endianness = ifaceEndianness;
-            port.needs_swap = needsByteSwap(
+            port.needs_swap = needsLaneSwap(
               ifaceEndianness,
               port.width,
+              dataLane.width,
               port.direction,
               port.is_parameterized
             );
-            port.swap_kind = 'byte';
+            port.swap_kind = 'lane';
+            port.lane_width = dataLane.width;
+            port.lane_kind = dataLane.kind;
           } else if (port.role === 'byteQualifier') {
             // Per-byte mask (WSTRB/TKEEP/byteenable): reverse bits so each mask bit stays
             // aligned with the byte lane it gates after the data byte swap.
@@ -292,6 +349,7 @@ export const busResolver: ContextResolver = {
               port.is_parameterized
             );
             port.swap_kind = 'bit';
+            port.lane_width = 1;
           }
         });
         (iface as BusInterfaceDef & Record<string, unknown>).ports = activePorts;
@@ -356,7 +414,7 @@ export const busResolver: ContextResolver = {
     // width-generic reflow loop at the top level (see package.vhdl.j2/pkg.sv.j2, top.*.j2).
     const interruptPorts = buildInterruptPorts(
       ipCore,
-      registry,
+      busLibrary,
       expandedBusInterfaces,
       primaryMemoryMappedIndex
     );
@@ -373,7 +431,7 @@ export const busResolver: ContextResolver = {
         .filter(Boolean)
         .map((name) => String(name).toLowerCase())
     );
-    const endianSwapPorts = allTemplatePorts
+    const swappablePorts = allTemplatePorts
       .filter((port) => port.needs_swap === true)
       .map((port) => {
         const baseName = `${port.name}_be`;
@@ -393,18 +451,26 @@ export const busResolver: ContextResolver = {
           direction: port.direction,
           width: port.width,
           is_parameterized: port.is_parameterized,
-          swap_kind: port.swap_kind ?? 'byte',
+          swap_kind: port.swap_kind ?? 'lane',
+          lane_width: port.lane_width ?? BYTE_LANE_WIDTH,
+          lane_kind: port.lane_kind ?? 'byte',
         };
       });
     // Only fixed-width byte swaps use a swap_bytes_<width>() function; bit reversals and
     // parameterized byte swaps are emitted inline as generate loops.
     const endianSwapWidths = [
       ...new Set(
-        endianSwapPorts
-          .filter((port) => port.swap_kind === 'byte' && port.is_parameterized !== true)
+        swappablePorts
+          .filter(
+            (port) =>
+              port.swap_kind === 'lane' &&
+              port.lane_kind === 'byte' &&
+              port.is_parameterized !== true
+          )
           .map((port) => port.width as number)
       ),
     ].sort((a, b) => a - b);
+    const endianSwapPorts = swappablePorts.map(({ lane_kind: _laneKind, ...port }) => port);
 
     return {
       bus_prefix: expandedBusInterfaces.length > 0 ? busPrefix : 's_axi',

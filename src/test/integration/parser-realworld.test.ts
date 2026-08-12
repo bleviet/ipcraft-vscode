@@ -46,8 +46,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as jsYaml from 'js-yaml';
-import { parseHwTclContent } from '../../parser/HwTclParser';
-import { parseComponentXmlText } from '../../parser/ComponentXmlParser';
+import { parseHwTclContent as parseHwTclContentImpl } from '../../parser/HwTclParser';
+import { parseComponentXmlText as parseComponentXmlTextImpl } from '../../parser/ComponentXmlParser';
+import { builtinBusLibrary } from '../helpers/busLibrary';
+
+const parseHwTclContent = (content: string, filePath: string) =>
+  parseHwTclContentImpl(content, filePath, { busLibrary: builtinBusLibrary() });
+const parseComponentXmlText = (content: string) =>
+  parseComponentXmlTextImpl(content, { busLibrary: builtinBusLibrary() });
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { fetchFixtures, FIXTURE_ROOT } = require('../../../scripts/fetchFixtures.js') as {

@@ -93,7 +93,7 @@ architecture rtl of {{ entity_name }} is
 {% endif %}
 {% if has_endian_swap %}
 
-    -- Big-endian intermediate signals (byte-swapped view for internal logic)
+    -- Big-endian intermediate signals (lane-reversed view for internal logic)
 {% for port in endian_swap_ports %}
   signal {{ port.internal_name }} : {{ port.type }};
 {% endfor %}
@@ -102,7 +102,7 @@ architecture rtl of {{ entity_name }} is
 begin
 {% if has_endian_swap %}
 
-    -- Endianness: reflow big-endian data ports (byte reversal) and their byte-qualifier
+    -- Endianness: reflow big-endian data ports (lane reversal) and their byte-qualifier
     -- masks (bit reversal) between the external ports and the internal `_be` view.
 {% for port in endian_swap_ports %}
 {% if port.swap_kind == 'bit' %}
@@ -115,19 +115,19 @@ begin
       {{ port.name }}(bit_idx) <= {{ port.internal_name }}({{ port.name }}'length - 1 - bit_idx);
     end generate;
 {% endif %}
-{% elif port.is_parameterized %}
-    assert ({{ port.name }}'length mod 8) = 0
-      report "{{ port.name }}: big-endian byte swap requires a width that is a multiple of 8 bits"
+{% elif port.is_parameterized or port.lane_width != 8 %}
+    assert ({{ port.name }}'length mod {{ port.lane_width }}) = 0 and {{ port.name }}'length > {{ port.lane_width }}
+      report "{{ port.name }}: big-endian lane swap requires at least two complete {{ port.lane_width }}-bit lanes"
       severity failure;
 {% if port.direction == 'in' %}
-    gen_swap_{{ port.name }} : for byte_idx in 0 to ({{ port.name }}'length / 8) - 1 generate
-      {{ port.internal_name }}((byte_idx + 1) * 8 - 1 downto byte_idx * 8) <=
-        {{ port.name }}({{ port.name }}'length - byte_idx * 8 - 1 downto {{ port.name }}'length - (byte_idx + 1) * 8);
+    gen_swap_{{ port.name }} : for lane_idx in 0 to ({{ port.name }}'length / {{ port.lane_width }}) - 1 generate
+      {{ port.internal_name }}((lane_idx + 1) * {{ port.lane_width }} - 1 downto lane_idx * {{ port.lane_width }}) <=
+        {{ port.name }}({{ port.name }}'length - lane_idx * {{ port.lane_width }} - 1 downto {{ port.name }}'length - (lane_idx + 1) * {{ port.lane_width }});
     end generate;
 {% else %}
-    gen_swap_{{ port.name }} : for byte_idx in 0 to ({{ port.name }}'length / 8) - 1 generate
-      {{ port.name }}((byte_idx + 1) * 8 - 1 downto byte_idx * 8) <=
-        {{ port.internal_name }}({{ port.name }}'length - byte_idx * 8 - 1 downto {{ port.name }}'length - (byte_idx + 1) * 8);
+    gen_swap_{{ port.name }} : for lane_idx in 0 to ({{ port.name }}'length / {{ port.lane_width }}) - 1 generate
+      {{ port.name }}((lane_idx + 1) * {{ port.lane_width }} - 1 downto lane_idx * {{ port.lane_width }}) <=
+        {{ port.internal_name }}({{ port.name }}'length - lane_idx * {{ port.lane_width }} - 1 downto {{ port.name }}'length - (lane_idx + 1) * {{ port.lane_width }});
     end generate;
 {% endif %}
 {% else %}

@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Bus interfaces are now checked against one canonical contract library across the editor, importers, consistency checks, and generators. The Issues panel groups protocol errors and warnings, links them to the affected canvas signal and Inspector field, and blocks generation when a known error or unresolved generation constraint remains.
+
+### Changed
+
+- Avalon-MM now uses its canonical logical port set and optionality in the canvas and generated artifacts. Legacy aliases are accepted only at the document boundary and resolve to the canonical IPCraft VLNV.
+- Avalon-ST uses `source` and `sink` modes and preserves `dataBitsPerSymbol`, `symbolsPerBeat`, `readyLatency`, `maxChannel`, and endianness through Platform Designer Tcl and custom IP-XACT. Big-endian generated RTL reverses Avalon-ST data in symbol-sized lanes; AXI, Avalon-MM, and standalone ports retain eight-bit lanes.
+
 ## [1.0.0] - 2026-08-09
 
 ### Added

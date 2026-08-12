@@ -1,4 +1,4 @@
-import { lookupBusDef, type BusPortDef } from '../data/busDefinitions';
+import { isAssociatedPort, type BusPortDef } from './busLibrary';
 import { BUS_VLNV } from '../../../shared/busVlnv';
 
 export interface ProtocolMatch {
@@ -10,6 +10,8 @@ export interface ProtocolMatch {
   detectedPrefix: string;
   matchedPortNames: string[];
 }
+
+export type BusDefinitionLookup = (type: string) => BusPortDef[] | null;
 
 interface ProtocolSpec {
   busType: string;
@@ -59,7 +61,8 @@ const PROTOCOL_SPECS: readonly ProtocolSpec[] = [
  * Full directional enforcement is done in inferPortAssignments().
  */
 export function matchPorts(
-  ports: Array<{ name: string; direction: 'in' | 'out' | 'inout' }>
+  ports: Array<{ name: string; direction: 'in' | 'out' | 'inout' }>,
+  busDefs: BusDefinitionLookup
 ): ProtocolMatch[] {
   const portMap = new Map<string, { name: string; direction: 'in' | 'out' | 'inout' }>();
   for (const p of ports) {
@@ -69,12 +72,12 @@ export function matchPorts(
   const results: ProtocolMatch[] = [];
 
   for (const spec of PROTOCOL_SPECS) {
-    const portDefs = lookupBusDef(spec.busType);
+    const portDefs = busDefs(spec.busType);
     if (!portDefs) {
       continue;
     }
 
-    const signalDefs = portDefs.filter((d) => !d.role);
+    const signalDefs = portDefs.filter((port) => !isAssociatedPort(port));
     const totalRequired = signalDefs.filter((d) => d.presence === 'required').length;
     if (totalRequired === 0) {
       continue;
@@ -173,9 +176,10 @@ export function matchPorts(
  */
 export function inferPrefixAndMode(
   ports: Array<{ name: string; direction: 'in' | 'out' | 'inout' }>,
-  busType: string
+  busType: string,
+  busDefs: BusDefinitionLookup
 ): { prefix: string; mode: 'slave' | 'master' } | null {
-  const matches = matchPorts(ports);
+  const matches = matchPorts(ports, busDefs);
   const match = matches.find((m) => m.busType === busType);
   if (!match) {
     return null;
@@ -226,14 +230,15 @@ export function inferPortAssignments(
   ports: Array<{ name: string; direction: 'in' | 'out' | 'inout' }>,
   busType: string,
   mode: 'slave' | 'master',
-  prefix: string
+  prefix: string,
+  busDefs: BusDefinitionLookup
 ): SignalAssignment[] {
-  const portDefs = lookupBusDef(busType);
+  const portDefs = busDefs(busType);
   if (!portDefs) {
     return [];
   }
 
-  const signalDefs = portDefs.filter((d) => !d.role);
+  const signalDefs = portDefs.filter((port) => !isAssociatedPort(port));
   const portMap = new Map<string, { name: string; direction: 'in' | 'out' | 'inout' }>();
   for (const p of ports) {
     portMap.set(p.name.toLowerCase(), p);
@@ -268,8 +273,12 @@ export function inferPortAssignments(
 }
 
 /** Returns all known standard protocol types, in display order. */
-export function getAllProtocols(): ReadonlyArray<{ busType: string; label: string }> {
-  return PROTOCOL_SPECS.map(({ busType, label }) => ({ busType, label }));
+export function getAllProtocols(
+  busDefs: BusDefinitionLookup
+): ReadonlyArray<{ busType: string; label: string }> {
+  return PROTOCOL_SPECS.filter((spec) => busDefs(spec.busType) !== null).map(
+    ({ busType, label }) => ({ busType, label })
+  );
 }
 
 /**

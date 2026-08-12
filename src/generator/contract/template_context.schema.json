@@ -488,8 +488,17 @@
         },
         "swap_kind": {
           "type": "string",
-          "enum": ["byte", "bit"],
-          "description": "Reflow kind for a big-endian port: 'byte' reverses byte lanes, 'bit' reverses individual bits."
+          "enum": ["lane", "bit"],
+          "description": "Reflow kind for a big-endian port: 'lane' reverses lane_width-bit lanes, 'bit' reverses individual bits."
+        },
+        "lane_width": {
+          "type": ["number", "string"],
+          "description": "Width of one ordering lane in bits; standalone ports use eight-bit lanes."
+        },
+        "lane_kind": {
+          "type": "string",
+          "const": "byte",
+          "description": "Standalone ports use byte lanes for endianness reflow."
         }
       }
     },
@@ -532,8 +541,17 @@
         },
         "swap_kind": {
           "type": "string",
-          "enum": ["byte", "bit"],
-          "description": "'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (WSTRB/TKEEP/byteenable)."
+          "enum": ["lane", "bit"],
+          "description": "'lane' reverses lane_width-bit data lanes; 'bit' reverses individual qualifier bits."
+        },
+        "lane_width": {
+          "type": ["number", "string"],
+          "description": "Width of one ordering lane in bits. Avalon-ST data uses dataBitsPerSymbol."
+        },
+        "lane_kind": {
+          "type": "string",
+          "enum": ["byte", "symbol"],
+          "description": "Semantic lane kind resolved from the bus contract; byte lanes are eight bits and symbol lanes use the contract's dataBitsPerSymbol."
         }
       }
     },
@@ -547,6 +565,7 @@
         "width",
         "is_parameterized",
         "swap_kind",
+        "lane_width",
         "internal_name"
       ],
       "additionalProperties": false,
@@ -564,8 +583,12 @@
         "is_parameterized": { "type": "boolean" },
         "swap_kind": {
           "type": "string",
-          "enum": ["byte", "bit"],
-          "description": "'byte' reverses whole byte lanes (data payload); 'bit' reverses individual bits, one per byte lane (byte-qualifier masks)."
+          "enum": ["lane", "bit"],
+          "description": "'lane' reverses lane_width-bit payload lanes; 'bit' reverses qualifier bits."
+        },
+        "lane_width": {
+          "type": ["number", "string"],
+          "description": "Width of one ordering lane in bits."
         }
       }
     },

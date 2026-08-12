@@ -2,7 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { BUS_VLNV } from '../shared/busVlnv';
-import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
+import { canonicalizeBusType, type NormalizedBusLibrary } from '../shared/busContracts';
 import { collapseVhdlFunctionCallsInExpr, stripRedundantOuterParens } from '../shared/widthExprAst';
 
 export interface ParsedPort {
@@ -24,6 +24,7 @@ export interface ParseOptions {
   version?: string;
   detectBus?: boolean;
   outputDir?: string;
+  busLibrary?: NormalizedBusLibrary;
 }
 
 export interface ParseResult {
@@ -51,7 +52,9 @@ export async function parseVhdlFile(
   const clockReset = classifyClocksResets(ports);
 
   const detectBus = options.detectBus !== false;
-  const busDetection = detectBus ? detectBusInterfaces(ports, clockReset) : null;
+  const busDetection = detectBus
+    ? detectBusInterfaces(ports, clockReset, options.busLibrary)
+    : null;
 
   const excludedNames = new Set<string>();
   if (busDetection) {
@@ -696,7 +699,11 @@ function findOccurrences(name: string, sigName: string): number[] {
 
 export function detectBusInterfaces(
   ports: ParsedPort[],
-  clockReset: { clocks: Array<{ name: string }>; resets: Array<{ name: string; polarity: string }> }
+  clockReset: {
+    clocks: Array<{ name: string }>;
+    resets: Array<{ name: string; polarity: string }>;
+  },
+  busLibrary?: NormalizedBusLibrary
 ): {
   busInterfaces: Array<{
     name: string;
@@ -928,12 +935,17 @@ export function detectBusInterfaces(
     // Canonical logical-name casing (uppercase for AXI, lowercase for Avalon) comes from
     // the shared bus definitions the generator itself resolves against, so overrides key
     // exactly the way registerProcessor.ts looks them up.
-    const canonDef = lookupBusDef(busDef.id);
+    const canonDef = busLibrary
+      ? canonicalizeBusType(busDef.id, busLibrary)?.contract.ports
+      : undefined;
     const canonByLower = new Map<string, string>(
       (canonDef ?? []).map((d) => [d.name.toLowerCase(), d.name])
     );
     const canonicalKey = (sigName: string): string =>
-      canonByLower.get(sigName) ?? sigName.toUpperCase();
+      canonByLower.get(sigName) ??
+      (busDef.id === BUS_VLNV.AVALON_MM || busDef.id === BUS_VLNV.AVALON_ST
+        ? sigName
+        : sigName.toUpperCase());
 
     const portWidthOverrides: Record<string, string | number> = {};
     const portNameOverrides: Record<string, string> = {};

@@ -11,7 +11,8 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { Logger } from '../utils/Logger';
-import { BusLibraryService } from './BusLibraryService';
+import { BusLibraryService, type LoadedBusDefinitionSources } from './BusLibraryService';
+import type { NormalizedBusLibrary } from '../shared/busContracts';
 import { getWorkspaceBusDefinitionScanner } from './WorkspaceBusDefinitionScanner';
 import { resolveMemoryMapImports } from './imports/resolveMemoryMapImports';
 import { getVivadoInterfaceCacheDir, pathExists } from './VivadoInterfaceScanner';
@@ -21,7 +22,7 @@ import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 export interface ResolvedImports {
   memoryMaps?: Record<string, unknown>[];
   fileSets?: Record<string, unknown>[];
-  busLibrary?: Record<string, unknown>;
+  busLibrary?: NormalizedBusLibrary;
 }
 
 export interface IpCoreDataNode {
@@ -35,12 +36,16 @@ export interface IpCoreDataNode {
 
 export class ImportResolver {
   private readonly logger: Logger;
-  private busLibraryCache: Map<string, Record<string, unknown>> = new Map();
+  private busLibraryCache: Map<string, LoadedBusDefinitionSources> = new Map();
   private busLibraryService: BusLibraryService;
 
-  constructor(logger: Logger, busDefinitionsDir: string) {
+  constructor(logger: Logger, busDefinitionsDir: string, busDefinitionSchemaPath?: string) {
     this.logger = logger;
-    this.busLibraryService = new BusLibraryService(logger, busDefinitionsDir);
+    this.busLibraryService = new BusLibraryService(
+      logger,
+      busDefinitionsDir,
+      busDefinitionSchemaPath
+    );
   }
 
   /**
@@ -57,22 +62,19 @@ export class ImportResolver {
   ): Promise<ResolvedImports> {
     const resolved: ResolvedImports = {};
 
-    // Resolve bus library - first try explicit path, then fall back to default
+    let ipLocal: LoadedBusDefinitionSources | undefined;
     if (ipCoreData.useBusLibrary) {
       try {
-        resolved.busLibrary = await this.resolveBusLibrary(ipCoreData.useBusLibrary, baseDir);
+        ipLocal = await this.resolveBusLibrary(ipCoreData.useBusLibrary, baseDir);
       } catch (busError) {
         this.logger.warn(
           `Could not load bus library from '${String(ipCoreData.useBusLibrary)}' ` +
             `(resolved to: ${path.resolve(baseDir, String(ipCoreData.useBusLibrary))}). ` +
             `Falling back to default bus library. Reason: ${(busError as Error).message}`
         );
-        resolved.busLibrary = await this.loadDefaultBusLibrary(resourceUri);
       }
-    } else {
-      // Load default bus library from Python backend
-      resolved.busLibrary = await this.loadDefaultBusLibrary(resourceUri);
     }
+    resolved.busLibrary = await this.loadDefaultBusLibrary(resourceUri, ipLocal);
 
     // Resolve memory map imports
     if (ipCoreData.memoryMaps) {
@@ -110,10 +112,11 @@ export class ImportResolver {
    * metadata exists) selects that version's machine-wide cache.
    * Returns the library in the format expected by the UI: { [key]: { ports: [...] } }
    */
-  private async loadDefaultBusLibrary(resourceUri: vscode.Uri): Promise<Record<string, unknown>> {
-    const library = await this.busLibraryService.loadDefaultLibrary();
-    const count = library ? Object.keys(library).length : 0;
-    this.logger.info(`Loaded ${count} bus types from local library`);
+  private async loadDefaultBusLibrary(
+    resourceUri: vscode.Uri,
+    ipLocal?: LoadedBusDefinitionSources
+  ): Promise<NormalizedBusLibrary> {
+    const builtin = await this.busLibraryService.loadDefaultSources();
 
     const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, resourceUri);
     const userPaths = [...config.get<string[]>('busLibraryPaths', [])];
@@ -124,11 +127,9 @@ export class ImportResolver {
     }
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-    let merged: Record<string, unknown> = { ...library };
-
+    let configured: LoadedBusDefinitionSources = { sources: [], diagnostics: [] };
     if (userPaths.length > 0) {
-      const userLibrary = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);
-      merged = { ...merged, ...userLibrary };
+      configured = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);
     }
 
     // Merge workspace-discovered bus definitions (tagged `source: 'workspace'`),
@@ -143,11 +144,48 @@ export class ImportResolver {
     // fires `onDidScan` on completion; `IpCoreEditorProvider` is subscribed
     // to that event and refreshes the webview once results are in.
     const workspaceResult = getWorkspaceBusDefinitionScanner().peekAndScanInBackground();
+    const workspaceLoads: LoadedBusDefinitionSources[] = [];
     if (workspaceResult.count > 0) {
-      merged = { ...merged, ...workspaceResult.library };
+      const assignedKeys = new Set<string>();
+      for (const file of workspaceResult.files) {
+        const definitions = Object.fromEntries(
+          file.busTypes
+            .filter((key) => workspaceResult.library[key] !== undefined)
+            .map((key) => {
+              assignedKeys.add(key);
+              return [key, workspaceResult.library[key]];
+            })
+        );
+        if (Object.keys(definitions).length > 0) {
+          workspaceLoads.push(
+            this.busLibraryService.loadRecord(definitions, file.uri.fsPath, 'workspace')
+          );
+        }
+      }
+      const unassigned = Object.fromEntries(
+        Object.entries(workspaceResult.library).filter(([key]) => !assignedKeys.has(key))
+      );
+      if (Object.keys(unassigned).length > 0) {
+        workspaceLoads.push(
+          this.busLibraryService.loadRecord(unassigned, 'workspace://discovered', 'workspace')
+        );
+      }
     }
-
-    return merged;
+    const library = this.busLibraryService.normalizeSources(
+      builtin,
+      ...workspaceLoads,
+      configured,
+      ...(ipLocal ? [ipLocal] : [])
+    );
+    for (const diagnostic of library.diagnostics) {
+      if (diagnostic.severity === 'warning') {
+        this.logger.warn(`${diagnostic.sourceFile}: ${diagnostic.message}`);
+      }
+    }
+    this.logger.info(
+      `Loaded ${Object.keys(library.definitions).length} bus types from local library`
+    );
+    return library;
   }
 
   private async readYamlFile(absolutePath: string): Promise<unknown> {
@@ -244,13 +282,16 @@ export class ImportResolver {
    * @param baseDir Base directory for resolution
    * @returns Parsed bus library data
    */
-  async resolveBusLibrary(libraryPath: string, baseDir: string): Promise<Record<string, unknown>> {
+  async resolveBusLibrary(
+    libraryPath: string,
+    baseDir: string
+  ): Promise<LoadedBusDefinitionSources> {
     const absolutePath = path.resolve(baseDir, libraryPath);
 
     // Check cache
     if (this.busLibraryCache.has(absolutePath)) {
       this.logger.info(`Using cached bus library: ${absolutePath}`);
-      return this.busLibraryCache.get(absolutePath) as Record<string, unknown>;
+      return this.busLibraryCache.get(absolutePath) as LoadedBusDefinitionSources;
     }
 
     this.logger.info(`Loading bus library: ${absolutePath}`);
@@ -258,54 +299,22 @@ export class ImportResolver {
     try {
       // Check if the path is a directory
       const stat = await vscode.workspace.fs.stat(vscode.Uri.file(absolutePath));
-      let parsed: Record<string, unknown>;
+      let loaded: LoadedBusDefinitionSources;
       if (stat.type === vscode.FileType.Directory) {
-        parsed = await this.resolveBusLibraryDirectory(absolutePath);
+        loaded = await this.busLibraryService.loadFromDirectories([absolutePath], 'ipLocal');
       } else {
-        parsed = (await this.readYamlFile(absolutePath)) as Record<string, unknown>;
+        const parsed = (await this.readYamlFile(absolutePath)) as Record<string, unknown>;
+        loaded = this.busLibraryService.loadRecord(parsed, absolutePath, 'ipLocal');
       }
 
-      this.busLibraryCache.set(absolutePath, parsed);
-      return parsed;
+      this.busLibraryCache.set(absolutePath, loaded);
+      return loaded;
     } catch (error) {
       this.logger.error(`Failed to load bus library: ${libraryPath}`, error as Error);
       throw new Error(
         `Failed to load bus library from ${libraryPath}: ${(error as Error).message}`
       );
     }
-  }
-
-  /**
-   * Load and merge all .yml files from a directory into a single bus library object.
-   */
-  private async resolveBusLibraryDirectory(dirPath: string): Promise<Record<string, unknown>> {
-    const dirUri = vscode.Uri.file(dirPath);
-    let entries: [string, vscode.FileType][];
-    try {
-      entries = await vscode.workspace.fs.readDirectory(dirUri);
-    } catch {
-      this.logger.warn(`Custom bus library directory not found: ${dirPath}`);
-      return {};
-    }
-
-    const ymlFiles = entries
-      .filter(([name, type]) => type === vscode.FileType.File && name.endsWith('.yml'))
-      .map(([name]) => name)
-      .sort();
-
-    const merged: Record<string, unknown> = {};
-    for (const fileName of ymlFiles) {
-      try {
-        const filePath = path.join(dirPath, fileName);
-        const parsed = (await this.readYamlFile(filePath)) as Record<string, unknown>;
-        Object.assign(merged, parsed);
-      } catch (err) {
-        this.logger.warn(`Skipping unreadable bus definition file: ${fileName}`);
-      }
-    }
-
-    this.logger.info(`Loaded ${ymlFiles.length} custom bus definition(s) from ${dirPath}`);
-    return merged;
   }
 
   /**

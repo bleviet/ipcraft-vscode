@@ -3,6 +3,9 @@ import { normalizeIpCoreData } from '../../../../generator/registerProcessor';
 import { BUS_REGISTRY } from '../../../../generator/buses/builtin';
 import type { ResolverInput } from '../../../../generator/resolvers/types';
 import type { BusDefinitions } from '../../../../generator/types';
+import { builtinBusLibrary } from '../../../helpers/busLibrary';
+import { normalizeBusLibrary, type NormalizedBusLibrary } from '../../../../shared/busContracts';
+import type { BusDefinitionFile } from '../../../../domain/busDefinition.types';
 
 const AXI4_LITE_DEF: BusDefinitions = {
   AXI4_LITE: {
@@ -32,17 +35,117 @@ const AXI_STREAM_DEF: BusDefinitions = {
 
 function makeInput(
   raw: Record<string, unknown>,
-  busDefinitions: BusDefinitions = {}
+  busDefinitions: BusDefinitions = {},
+  busLibrary: NormalizedBusLibrary = builtinBusLibrary()
 ): ResolverInput {
   return {
     ipCore: normalizeIpCoreData(raw),
     registers: [],
     busDefinitions,
+    busLibrary,
     registry: BUS_REGISTRY,
   };
 }
 
+function customModeLibrary(): NormalizedBusLibrary {
+  const definitions: BusDefinitionFile = {
+    CUSTOM: {
+      busType: { vendor: 'acme', library: 'busif', name: 'custom', version: '1.0' },
+      contract: {
+        version: 1,
+        interfaceKind: 'streaming',
+        modePolicy: { producer: 'initiator', consumer: 'target', aliases: {} },
+        interfaceProperties: {},
+        constraints: [],
+      },
+      ports: [
+        {
+          name: 'payload',
+          width: 8,
+          direction: 'out',
+          presence: 'required',
+          role: 'data',
+          widthPolicy: 'root',
+        },
+      ],
+    },
+  };
+  return normalizeBusLibrary([
+    { sourceFile: '/workspace/custom.yml', sourceKind: 'workspace', definitions },
+  ]);
+}
+
+function customSymbolLaneLibrary(): NormalizedBusLibrary {
+  const definitions: BusDefinitionFile = {
+    CUSTOM_SYMBOL_STREAM: {
+      busType: {
+        vendor: 'acme',
+        library: 'busif',
+        name: 'custom_symbol_stream',
+        version: '1.0',
+      },
+      contract: {
+        version: 1,
+        interfaceKind: 'streaming',
+        modePolicy: { producer: 'source', consumer: 'sink', aliases: {} },
+        interfaceProperties: {
+          dataBitsPerSymbol: { type: 'integer', minimum: 1 },
+        },
+        constraints: [],
+      },
+      ports: [
+        {
+          name: 'payload',
+          width: 5,
+          direction: 'out',
+          presence: 'required',
+          role: 'data',
+          widthPolicy: 'root',
+        },
+      ],
+    },
+  };
+  return normalizeBusLibrary([
+    { sourceFile: '/workspace/custom-symbol.yml', sourceKind: 'workspace', definitions },
+  ]);
+}
+
 describe('busResolver endianness', () => {
+  it('uses a custom contract mode policy for direction and Quartus endpoint metadata', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          busInterfaces: [
+            {
+              name: 'custom_target',
+              type: 'acme:busif:custom:1.0',
+              mode: 'target',
+              physicalPrefix: 'custom_',
+            },
+          ],
+        },
+        {},
+        customModeLibrary()
+      )
+    );
+
+    expect(result.bus_ports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ logical_name: 'payload', direction: 'in' }),
+      ])
+    );
+    expect(result.expanded_bus_interfaces).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'custom_target',
+          normalized_mode: 'target',
+          is_consumer: true,
+          altera_end_type: 'end',
+        }),
+      ])
+    );
+  });
+
   it('marks no ports for swap when no interfaces are big-endian', () => {
     const result = busResolver.resolve(
       makeInput(
@@ -70,8 +173,8 @@ describe('busResolver endianness', () => {
     const byName = Object.fromEntries(swapPorts.map((p) => [p.name, p.swap_kind]));
     // Data payload byte-reversed; the WSTRB mask bit-reversed in lockstep.
     expect(byName).toEqual({
-      s_axi_wdata: 'byte',
-      s_axi_rdata: 'byte',
+      s_axi_wdata: 'lane',
+      s_axi_rdata: 'lane',
       s_axi_wstrb: 'bit',
     });
     // Only fixed-width byte swaps need a swap_bytes_<width>() helper; WSTRB is a bit reversal.
@@ -140,13 +243,15 @@ describe('busResolver endianness', () => {
       name: string;
       is_parameterized: boolean;
       swap_kind: string;
+      lane_width: number | string;
     }>;
     const byName = Object.fromEntries(swapPorts.map((p) => [p.name, p]));
     // Parameterized data ports byte-swap via a width-generic generate loop, so they
     // contribute no fixed-width swap_bytes_<N>() helper.
     expect(byName['s_axi_wdata'].is_parameterized).toBe(true);
     expect(byName['s_axi_rdata'].is_parameterized).toBe(true);
-    expect(byName['s_axi_wdata'].swap_kind).toBe('byte');
+    expect(byName['s_axi_wdata'].swap_kind).toBe('lane');
+    expect(byName['s_axi_wdata'].lane_width).toBe(8);
     // WSTRB (byteQualifier) is a fixed 4-bit mask, reversed as bits — never a swap_bytes helper.
     expect(byName['s_axi_wstrb'].swap_kind).toBe('bit');
     expect(result.endian_swap_widths).toEqual([]);
@@ -163,7 +268,7 @@ describe('busResolver endianness', () => {
               type: 'AXI4L',
               mode: 'slave',
               endianness: 'big',
-              portWidthOverrides: { WDATA: 'DATA_WIDTH', WSTRB: 'DATA_WIDTH' },
+              portWidthOverrides: { WDATA: 'DATA_WIDTH', RDATA: 'DATA_WIDTH' },
             },
           ],
         },
@@ -231,6 +336,7 @@ describe('buildUserPorts endianness', () => {
       paramNames
     );
     expect(ports[0].needs_swap).toBe(true);
+    expect(ports[0].lane_kind).toBe('byte');
   });
 
   it('does not swap a big-endian port whose width is not a multiple of 8', () => {
@@ -263,7 +369,71 @@ describe('buildUserPorts endianness', () => {
     );
     expect(ports[0].is_parameterized).toBe(true);
     expect(ports[0].needs_swap).toBe(true);
-    expect(ports[0].swap_kind).toBe('byte');
+    expect(ports[0].swap_kind).toBe('lane');
+    expect(ports[0].lane_width).toBe(8);
+    expect(ports[0].lane_kind).toBe('byte');
+  });
+
+  it('reverses a five-bit Avalon-ST payload in one-bit symbol lanes', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        busInterfaces: [
+          {
+            name: 'stream',
+            type: 'ipcraft:busif:avalon_st:1.0',
+            mode: 'source',
+            physicalPrefix: 'stream_',
+            endianness: 'big',
+            portWidthOverrides: { data: 5 },
+            interfaceProperties: { dataBitsPerSymbol: 1, symbolsPerBeat: 5 },
+          },
+        ],
+      })
+    );
+
+    expect(result.endian_swap_ports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'stream_data',
+          width: 5,
+          swap_kind: 'lane',
+          lane_width: 1,
+        }),
+      ])
+    );
+    expect(
+      (result.bus_ports as Array<Record<string, unknown>>).find(
+        (port) => port.logical_name === 'data'
+      )
+    ).toEqual(expect.objectContaining({ needs_swap: true, lane_width: 1 }));
+  });
+
+  it('derives symbol-sized endian lanes from custom contract metadata', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          busInterfaces: [
+            {
+              name: 'stream',
+              type: 'acme:busif:custom_symbol_stream:1.0',
+              mode: 'source',
+              physicalPrefix: 'stream_',
+              endianness: 'big',
+              portWidthOverrides: { payload: 5 },
+              interfaceProperties: { dataBitsPerSymbol: 1 },
+            },
+          ],
+        },
+        {},
+        customSymbolLaneLibrary()
+      )
+    );
+
+    expect(
+      (result.bus_ports as Array<Record<string, unknown>>).find(
+        (port) => port.logical_name === 'payload'
+      )
+    ).toEqual(expect.objectContaining({ needs_swap: true, lane_width: 1 }));
   });
 
   it('does not gate a parameterized swap on the parameter default width', () => {

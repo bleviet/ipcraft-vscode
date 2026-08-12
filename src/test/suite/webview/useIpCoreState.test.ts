@@ -145,5 +145,19 @@ describe('useIpCoreState', () => {
 
       expect(result.current.getValidationErrors()).toHaveLength(0);
     });
+
+    it('defers memory-map protocol validation until the bus library arrives', () => {
+      const { result } = renderHook(() => useIpCoreState());
+      act(() =>
+        result.current.updateFromYaml(
+          'busInterfaces:\n  - name: S_AXI\n    type: axi4_lite\n    mode: slave\n    memoryMapRef: REGS\nmemoryMaps:\n  - name: REGS\n',
+          'x.ip.yml'
+        )
+      );
+
+      expect(result.current.getValidationErrors()).not.toContainEqual(
+        expect.objectContaining({ field: 'memoryMapRef', entityName: 'S_AXI' })
+      );
+    });
   });
 });

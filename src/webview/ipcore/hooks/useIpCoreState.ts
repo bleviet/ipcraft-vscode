@@ -2,28 +2,27 @@ import { useState, useCallback } from 'react';
 import * as yaml from 'yaml';
 import { applyPathEdits, applyPathDeletes } from '../../../yamledit';
 import { busSupportsMemoryMap } from '../../../shared/busVlnv';
+import type { NormalizedBusLibrary } from '../../../shared/busContracts';
+
+export interface IpCoreImports {
+  memoryMaps?: Record<string, unknown>[];
+  fileSets?: Record<string, unknown>[];
+  busLibrary?: NormalizedBusLibrary;
+}
 
 export interface IpCoreState {
   ipCore: Record<string, unknown> | null;
   rawYaml: string;
   parseError: string | null;
   fileName: string;
-  imports: {
-    memoryMaps?: Record<string, unknown>[];
-    fileSets?: Record<string, unknown>[];
-    busLibrary?: Record<string, unknown>;
-  };
+  imports: IpCoreImports;
 }
 
 export interface UpdateMessage {
   type: 'update';
   text: string;
   fileName: string;
-  imports?: {
-    memoryMaps?: Record<string, unknown>[];
-    fileSets?: Record<string, unknown>[];
-    busLibrary?: Record<string, unknown>;
-  };
+  imports?: IpCoreImports;
 }
 
 export interface ValidationError {
@@ -68,35 +67,32 @@ export function useIpCoreState() {
    * Update state from YAML text
    * Called when extension sends new document content
    */
-  const updateFromYaml = useCallback(
-    (text: string, fileName: string, imports?: Record<string, unknown>) => {
-      try {
-        const parsed = yaml.parse(text) as unknown;
+  const updateFromYaml = useCallback((text: string, fileName: string, imports?: IpCoreImports) => {
+    try {
+      const parsed = yaml.parse(text) as unknown;
 
-        if (!parsed || typeof parsed !== 'object') {
-          throw new Error('Invalid YAML: must be an object');
-        }
-
-        const data = aliasBusInterfaces(parsed as Record<string, unknown>);
-
-        setState({
-          ipCore: data,
-          rawYaml: text,
-          parseError: null,
-          fileName,
-          imports: imports ?? {},
-        });
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          rawYaml: text,
-          parseError: (error as Error).message,
-          fileName,
-        }));
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid YAML: must be an object');
       }
-    },
-    []
-  );
+
+      const data = aliasBusInterfaces(parsed as Record<string, unknown>);
+
+      setState({
+        ipCore: data,
+        rawYaml: text,
+        parseError: null,
+        fileName,
+        imports: imports ?? {},
+      });
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        rawYaml: text,
+        parseError: (error as Error).message,
+        fileName,
+      }));
+    }
+  }, []);
 
   /**
    * Update IP core data at a specific path
@@ -224,7 +220,14 @@ export function useIpCoreState() {
               entityName: String(bus.name),
               field: 'memoryMapRef',
             });
-          } else if (!busSupportsMemoryMap(String(bus.type ?? ''), String(bus.mode ?? ''))) {
+          } else if (
+            state.imports.busLibrary &&
+            !busSupportsMemoryMap(
+              String(bus.type ?? ''),
+              String(bus.mode ?? ''),
+              state.imports.busLibrary
+            )
+          ) {
             errors.push({
               message: `Bus interface '${String(bus.name)}' of type '${String(bus.type)}' in '${String(bus.mode)}' mode does not support memory map references`,
               section: 'busInterfaces',

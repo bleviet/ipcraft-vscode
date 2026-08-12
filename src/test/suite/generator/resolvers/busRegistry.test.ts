@@ -1,4 +1,9 @@
-import { BUS_REGISTRY } from '../../../../generator/buses/builtin';
+import { BUS_REGISTRY as registry } from '../../../../generator/buses/builtin';
+import { builtinBusLibrary } from '../../../helpers/busLibrary';
+
+const BUS_REGISTRY = {
+  normalize: (type: string) => registry.normalize(type, builtinBusLibrary()),
+};
 
 describe('BusRuleRegistry', () => {
   describe('normalize — VLNV strings', () => {
@@ -60,15 +65,6 @@ describe('BusRuleRegistry', () => {
 
     it('returns custom for unknown alias', () => {
       expect(BUS_REGISTRY.normalize('UNKNOWN_BUS').templateType).toBe('custom');
-    });
-  });
-
-  describe('isMemoryMapped', () => {
-    it.each(['axil', 'axi4', 'avmm'])('%s is memory-mapped', (t) => {
-      expect(BUS_REGISTRY.isMemoryMapped(t)).toBe(true);
-    });
-    it.each(['axis', 'avst', 'custom', 'conduit'])('%s is not memory-mapped', (t) => {
-      expect(BUS_REGISTRY.isMemoryMapped(t)).toBe(false);
     });
   });
 });

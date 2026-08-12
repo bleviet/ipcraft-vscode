@@ -12,9 +12,11 @@
 //    that already existed for the parent bus interface.
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import { builtinBusLibrary } from '../helpers/busLibrary';
 
 test.describe('Bus sub-port click/select/toggle (issue #40)', () => {
   const harnessPath = `file://${path.resolve(__dirname, 'ipcore.html')}`;
+  const busLibrary = builtinBusLibrary();
 
   const ipCoreYaml = `
 vlnv:
@@ -48,10 +50,21 @@ busInterfaces:
     await readyPromise;
 
     await page.evaluate(
-      ({ yaml: y, fileName: fn }: { yaml: string; fileName: string }) => {
-        window.postMessage({ type: 'update', text: y, fileName: fn }, '*');
+      ({
+        yaml: y,
+        fileName: fn,
+        library,
+      }: {
+        yaml: string;
+        fileName: string;
+        library: unknown;
+      }) => {
+        window.postMessage(
+          { type: 'update', text: y, fileName: fn, imports: { busLibrary: library } },
+          '*'
+        );
       },
-      { yaml, fileName }
+      { yaml, fileName, library: busLibrary }
     );
 
     await page.waitForTimeout(500);

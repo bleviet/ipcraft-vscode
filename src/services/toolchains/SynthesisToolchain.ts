@@ -4,6 +4,7 @@ import type { BusDefinitions, IpCoreData } from '../../generator/types';
 import type { NormalizedMemoryMap } from '../../domain/internal.types';
 import type { TemplateLoader } from '../../generator/TemplateLoader';
 import type { LaunchableTool } from './LaunchableTool';
+import type { NormalizedBusLibrary } from '../../shared/busContracts';
 
 /** Context passed to each toolchain's scaffold() method. */
 export interface ScaffoldContext {
@@ -12,6 +13,7 @@ export interface ScaffoldContext {
   templates: TemplateLoader;
   ipCoreData: IpCoreData;
   busDefinitions: BusDefinitions;
+  busLibrary: NormalizedBusLibrary;
   isSv: boolean;
   /** Resolved memory maps from the IP's `.mm.yml`, for vendor packaging that emits register definitions. */
   memoryMaps: NormalizedMemoryMap[];

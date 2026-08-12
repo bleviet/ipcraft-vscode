@@ -1,11 +1,19 @@
 import * as fs from 'fs/promises';
 import * as yaml from 'js-yaml';
 import { DOMParser } from '@xmldom/xmldom';
-import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
+import {
+  canonicalizeBusType,
+  importVendorContractMetadata,
+  isDeclarativeContract,
+  reconcileObservedBusPorts,
+  type CanonicalBusMatch,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
 import { BUS_VLNV } from '../shared/busVlnv';
 
 // IP-XACT 1685-2009 namespace
 const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
+const IPCRAFT_CONTRACT_NS = 'urn:ipcraft:interface-contract:1';
 
 // Canonical IPCraft VLNV bus type identifiers — match what the canvas drag-and-drop writes.
 const AXIMM_BUS_FULL = BUS_VLNV.AXI4_FULL;
@@ -13,6 +21,7 @@ const AXIMM_BUS_LITE = BUS_VLNV.AXI4_LITE;
 const AXIS_BUS = BUS_VLNV.AXI_STREAM;
 
 export interface ComponentXmlParseOptions {
+  busLibrary: NormalizedBusLibrary;
   library?: string;
 }
 
@@ -73,12 +82,10 @@ function attr(element: Element, ns: string, attrName: string): string {
 function logicalPortNames(busIfEl: Element): Set<string> {
   const names = new Set<string>();
   for (const portMap of childEls(childEl(busIfEl, 'portMaps') ?? busIfEl, 'portMap')) {
-    const logPort = childEl(portMap, 'logicalPort');
-    if (logPort) {
-      const n = text(logPort, 'name');
-      if (n) {
-        names.add(n.toUpperCase());
-      }
+    const logicalPort = childEl(portMap, 'logicalPort');
+    const name = logicalPort ? text(logicalPort, 'name') : '';
+    if (name) {
+      names.add(name.toUpperCase());
     }
   }
   return names;
@@ -134,6 +141,30 @@ function extractPortMap(
   return result;
 }
 
+function extractObservedPortMap(
+  busIfEl: Element,
+  modelPortAttrs: Map<string, { direction: 'in' | 'out'; width: number }>
+) {
+  const portMapsEl = childEl(busIfEl, 'portMaps');
+  if (!portMapsEl) {
+    return [];
+  }
+  return childEls(portMapsEl, 'portMap').flatMap((portMap) => {
+    const logicalName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
+    const physicalName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
+    if (!logicalName || !physicalName) {
+      return [];
+    }
+    return [
+      {
+        logicalName,
+        physicalName,
+        width: modelPortAttrs.get(physicalName)?.width,
+      },
+    ];
+  });
+}
+
 /** Derive the best common physical prefix for a bus interface. */
 function extractPhysicalPrefix(portNames: string[]): string | undefined {
   if (portNames.length === 0) {
@@ -176,13 +207,63 @@ function getBusIfParam(busIfEl: Element, paramName: string): string | undefined 
   return undefined;
 }
 
+function getMirroredContractProperties(busIfEl: Element): Map<string, string> | undefined {
+  const result = new Map<string, string>();
+  const contract = busIfEl.getElementsByTagNameNS(IPCRAFT_CONTRACT_NS, 'interfaceContract')[0] as
+    | Element
+    | undefined;
+  if (contract?.getAttribute('version') !== '1') {
+    return undefined;
+  }
+  for (const property of Array.from(
+    contract.getElementsByTagNameNS(IPCRAFT_CONTRACT_NS, 'property')
+  )) {
+    const name = property.getAttribute('name') ?? '';
+    if (name) {
+      result.set(name, property.getAttribute('value') ?? '');
+    }
+  }
+  return result;
+}
+
+function readContractMetadata(
+  busIfEl: Element,
+  ifName: string,
+  match: CanonicalBusMatch | null
+): {
+  interfaceProperties?: Record<string, number | boolean | string>;
+  endianness?: 'little' | 'big';
+} {
+  if (!isDeclarativeContract(match?.contract)) {
+    return {};
+  }
+  const location = `component.xml busInterfaces.${ifName}`;
+  const rawProperties = new Map<string, string>();
+  for (const name of Object.keys(match.contract.interfaceProperties)) {
+    const value = getBusIfParam(busIfEl, name);
+    if (value !== undefined) {
+      rawProperties.set(name, value);
+    }
+  }
+  const ordering = getBusIfParam(busIfEl, 'firstSymbolInHighOrderBits');
+  if (ordering !== undefined) {
+    rawProperties.set('firstSymbolInHighOrderBits', ordering);
+  }
+  return importVendorContractMetadata({
+    contract: match.contract,
+    rawProperties,
+    mirroredProperties: getMirroredContractProperties(busIfEl),
+    location,
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 export async function parseComponentXmlFile(
   filePath: string,
-  options: ComponentXmlParseOptions = {}
+  options: ComponentXmlParseOptions
 ): Promise<ComponentXmlParseResult> {
   const xmlText = await fs.readFile(filePath, 'utf-8');
   return parseComponentXmlText(xmlText, options);
@@ -218,7 +299,7 @@ function normalizeXmlProlog(xmlText: string): string {
 
 export function parseComponentXmlText(
   xmlText: string,
-  options: ComponentXmlParseOptions = {}
+  options: ComponentXmlParseOptions
 ): ComponentXmlParseResult {
   const parser = new DOMParser();
   const doc = parser.parseFromString(normalizeXmlProlog(xmlText), 'text/xml');
@@ -323,8 +404,10 @@ export function parseComponentXmlText(
     associatedReset?: string;
     memoryMapRef?: string;
     useOptionalPorts?: string[];
-    portWidthOverrides?: Record<string, number>;
+    portWidthOverrides?: Record<string, number | string>;
     portNameOverrides?: Record<string, string>;
+    interfaceProperties?: Record<string, number | boolean | string>;
+    endianness?: 'little' | 'big';
   }
   // Build a lookup of physical port name → direction/width from spirit:model/spirit:ports.
   // Used to annotate rawPortMaps for unknown bus types so the generator can emit
@@ -371,12 +454,12 @@ export function parseComponentXmlText(
 
     const ifName = text(busIf, 'name');
     const isSlave = !!busIf.getElementsByTagNameNS(SPIRIT_NS, 'slave')[0];
-    const mode = isSlave ? 'slave' : 'master';
 
     // Bus type determination
     let busType: string;
     let busTypeVlnv: BusIfEntry['busTypeVlnv'];
     let rawPortMaps: BusIfEntry['rawPortMaps'];
+    let contractMatch: CanonicalBusMatch | null = null;
     if (btName === 'aximm') {
       const logPorts = logicalPortNames(busIf);
       // AXI4-Full has ARLEN (burst length); AXI4-Lite does not
@@ -390,13 +473,25 @@ export function parseComponentXmlText(
       const btVendor = attr(busTypeEl, SPIRIT_NS, 'vendor') || 'user.org';
       const btLibrary = attr(busTypeEl, SPIRIT_NS, 'library') || 'user';
       const btVersion = attr(busTypeEl, SPIRIT_NS, 'version') || '1.0';
-      busType = `${btVendor}:${btLibrary}:${btName}:${btVersion}`;
-      busTypeVlnv = { vendor: btVendor, library: btLibrary, name: btName, version: btVersion };
-      const portMapEntries = extractPortMap(busIf, modelPortAttrs);
-      if (portMapEntries.length > 0) {
-        rawPortMaps = portMapEntries;
+      const importedVlnv = `${btVendor}:${btLibrary}:${btName}:${btVersion}`;
+      contractMatch = canonicalizeBusType(importedVlnv, options.busLibrary);
+      busType = contractMatch?.canonicalVlnv ?? importedVlnv;
+      if (!contractMatch) {
+        busTypeVlnv = { vendor: btVendor, library: btLibrary, name: btName, version: btVersion };
+        const portMapEntries = extractPortMap(busIf, modelPortAttrs);
+        if (portMapEntries.length > 0) {
+          rawPortMaps = portMapEntries;
+        }
       }
     }
+    contractMatch ??= canonicalizeBusType(busType, options.busLibrary);
+    const mode = contractMatch
+      ? isSlave
+        ? contractMatch.contract.modePolicy.consumer
+        : contractMatch.contract.modePolicy.producer
+      : isSlave
+        ? 'slave'
+        : 'master';
 
     // Physical prefix
     const phyPorts = physicalPortNames(busIf);
@@ -423,6 +518,7 @@ export function parseComponentXmlText(
       type: busType,
       mode,
     };
+    Object.assign(entry, readContractMetadata(busIf, ifName, contractMatch));
     if (busTypeVlnv) {
       entry.busTypeVlnv = busTypeVlnv;
     }
@@ -444,78 +540,16 @@ export function parseComponentXmlText(
       entry.memoryMapRef = memoryMapRef;
     }
 
-    // Optional ports detection
-    const busDef = lookupBusDef(busType);
+    const busDef = canonicalizeBusType(busType, options.busLibrary)?.contract.ports;
     if (busDef) {
-      const logPorts = logicalPortNames(busIf);
-      const useOptionalPorts = busDef
-        .filter((def) => def.presence === 'optional' && logPorts.has(def.name.toUpperCase()))
-        .map((def) => def.name);
-      if (useOptionalPorts.length > 0) {
-        entry.useOptionalPorts = useOptionalPorts;
-      }
-
-      // Extract portWidthOverrides: where the actual port width in <spirit:ports>
-      // differs from the bus-definition default, record the actual width so the
-      // generator reproduces the original port sizes faithfully on re-export.
-      const defaultWidths = new Map(
-        busDef
-          .filter((def): def is typeof def & { width: number } => typeof def.width === 'number')
-          .map((def) => [def.name.toUpperCase(), def.width])
+      Object.assign(
+        entry,
+        reconcileObservedBusPorts(
+          busDef,
+          extractObservedPortMap(busIf, modelPortAttrs),
+          physicalPrefix ?? ''
+        )
       );
-      if (defaultWidths.size > 0) {
-        const portMapsEl = childEl(busIf, 'portMaps');
-        if (portMapsEl) {
-          const portWidthOverrides: Record<string, number> = {};
-          for (const portMap of childEls(portMapsEl, 'portMap')) {
-            const logName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
-            const physName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
-            if (!logName || !physName) {
-              continue;
-            }
-            const attrs = modelPortAttrs.get(physName);
-            if (!attrs) {
-              continue;
-            }
-            const defaultWidth = defaultWidths.get(logName.toUpperCase());
-            if (defaultWidth !== undefined && attrs.width !== defaultWidth) {
-              portWidthOverrides[logName] = attrs.width;
-            }
-          }
-          if (Object.keys(portWidthOverrides).length > 0) {
-            entry.portWidthOverrides = portWidthOverrides;
-          }
-        }
-      }
-
-      // Extract portNameOverrides: physicalPrefix + the logical name's lowercase form
-      // doesn't always reconstruct the original physical port name (e.g. multiple
-      // interfaces of the same protocol sharing one prefix but distinguished by a
-      // renamed suffix). Recording the actual observed suffix keeps physicalPrefix +
-      // portNameOverrides losslessly reconstructing the original physical names on
-      // re-export. With no common prefix, the suffix is the whole physical name.
-      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
-      const portMapsEl = childEl(busIf, 'portMaps');
-      if (portMapsEl) {
-        const prefix = physicalPrefix ?? '';
-        const portNameOverrides: Record<string, string> = {};
-        for (const portMap of childEls(portMapsEl, 'portMap')) {
-          const logName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
-          const physName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
-          if (!logName || !physName) {
-            continue;
-          }
-          const suffix = physName.startsWith(prefix) ? physName.slice(prefix.length) : physName;
-          if (suffix !== logName.toLowerCase()) {
-            const def = defByUpper.get(logName.toUpperCase());
-            const canonicalKey = def ? def.name : logName;
-            portNameOverrides[canonicalKey] = suffix;
-          }
-        }
-        if (Object.keys(portNameOverrides).length > 0) {
-          entry.portNameOverrides = portNameOverrides;
-        }
-      }
     }
 
     busInterfaces.push(entry);

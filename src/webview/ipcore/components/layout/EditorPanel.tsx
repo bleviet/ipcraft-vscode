@@ -5,10 +5,12 @@ import { IpBlockCanvas } from '../canvas/IpBlockCanvas';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
 import type { CanvasAnnotations } from '../../hooks/useCanvasValidation';
+import type { NormalizedBusLibrary } from '../../../../shared/busContracts';
+import type { IssueFocusRequest } from '../../types/issues';
 
 interface EditorPanelProps {
   ipCore: IpCore | null;
-  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
+  imports?: { busLibrary?: NormalizedBusLibrary; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
   isFocused?: boolean;
   onFocus?: () => void;
@@ -26,7 +28,8 @@ interface EditorPanelProps {
   suggestionChips?: SuggestionChip[];
   onDismissSelection?: () => void;
   onDismissSuggestion?: (chipId: string) => void;
-  consistencyAnnotations?: CanvasAnnotations;
+  issueAnnotations?: CanvasAnnotations;
+  issueFocusRequest?: IssueFocusRequest | null;
 }
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -49,7 +52,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   suggestionChips,
   onDismissSelection,
   onDismissSuggestion,
-  consistencyAnnotations,
+  issueAnnotations,
+  issueFocusRequest,
 }) => {
   if (!ipCore) {
     return (
@@ -82,14 +86,15 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         onDragOver={onCanvasDragOver}
         onDrop={onCanvasDrop}
         onRemove={onCanvasRemove}
-        busLibrary={imports.busLibrary as Record<string, unknown> | undefined}
+        busLibrary={imports.busLibrary}
         multiSelectedIds={multiSelectedIds}
         onShiftSelect={onShiftSelect}
         batchUpdate={batchUpdate}
         suggestionChips={suggestionChips}
         onDismissSelection={onDismissSelection}
         onDismissSuggestion={onDismissSuggestion}
-        consistencyAnnotations={consistencyAnnotations}
+        issueAnnotations={issueAnnotations}
+        issueFocusRequest={issueFocusRequest}
       />
     </div>
   );

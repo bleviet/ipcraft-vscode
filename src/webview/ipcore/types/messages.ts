@@ -1,6 +1,8 @@
 import type { PackSummary, RegisteredToolchain } from '../components/IpCoreToolbar';
 import type { StagingStartMessage } from '../hooks/useStagingSession';
 import type { ConsistencyResultMessage } from '../hooks/useConsistencySession';
+import type { NormalizedBusLibrary } from '../../../shared/busContracts';
+import type { IpCoreHostMessage } from '../../../shared/messages/ipCore';
 
 /**
  * Discriminated union of every message the extension host sends to the IP
@@ -15,7 +17,7 @@ export interface IpCoreUpdateMessage {
   imports?: {
     memoryMaps?: Record<string, unknown>[];
     fileSets?: Record<string, unknown>[];
-    busLibrary?: Record<string, unknown>;
+    busLibrary?: NormalizedBusLibrary;
   };
   hasComponentXml?: boolean;
   hasHwTcl?: boolean;
@@ -32,6 +34,11 @@ export interface IpCoreUpdateMessage {
   forceResync?: boolean;
 }
 
+export type IpCoreConformanceResultMessage = Extract<
+  IpCoreHostMessage,
+  { type: 'conformanceResult' }
+>;
+
 export type IpCoreStagingStartMessage = StagingStartMessage & { type: 'stagingStart' };
 
 export interface IpCoreStagingFileMergedMessage {
@@ -43,8 +50,12 @@ export type IpCoreConsistencyResultMessage = ConsistencyResultMessage & {
   type: 'consistencyResult';
 };
 
+export type IpCoreGenerateResultMessage = Extract<IpCoreHostMessage, { type: 'generateResult' }>;
+
 export type ExtensionToWebviewMessage =
   | IpCoreUpdateMessage
+  | IpCoreConformanceResultMessage
   | IpCoreStagingStartMessage
   | IpCoreStagingFileMergedMessage
-  | IpCoreConsistencyResultMessage;
+  | IpCoreConsistencyResultMessage
+  | IpCoreGenerateResultMessage;

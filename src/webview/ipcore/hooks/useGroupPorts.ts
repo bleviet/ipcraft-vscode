@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import type { IpCore, BusInterface, ConduitPort, Port } from '../../types/ipCore';
-import { lookupBusDef, isConduitType } from '../data/busDefinitions';
-import type { BusPortDef } from '../data/busDefinitions';
+import type { BusPortDef } from '../utils/busLibrary';
 import { BUS_VLNV } from '../../../shared/busVlnv';
 
 export type BatchUpdate = (mutations: Array<[Array<string | number>, unknown]>) => void;
@@ -207,7 +206,7 @@ export function useGroupPorts(
       const existingPorts: Port[] = [...(ipCore.ports ?? [])];
       const restoredPorts: Port[] = [];
 
-      if (isConduitType(bus.type) || bus.mode === 'conduit' || bus.conduitPorts?.length) {
+      if (bus.mode === 'conduit' || bus.conduitPorts?.length || busDefs?.(bus.type)?.length === 0) {
         // ── Conduit: restore conduitPorts as individual ports ──
         const conduitPorts = bus.conduitPorts ?? [];
         for (const cp of conduitPorts) {
@@ -219,7 +218,7 @@ export function useGroupPorts(
         }
       } else {
         // ── Standard protocol: reconstruct ports from signal definitions ──
-        const signalDefs: BusPortDef[] | null = (busDefs ?? lookupBusDef)(bus.type);
+        const signalDefs: BusPortDef[] | null = busDefs?.(bus.type) ?? null;
         if (signalDefs) {
           const prefix = bus.physicalPrefix ?? '';
           const widthOverrides =
@@ -233,7 +232,7 @@ export function useGroupPorts(
 
           for (const def of signalDefs) {
             // Skip clock/reset-role signals — they live in their own arrays
-            if (def.role) {
+            if (def.role === 'clock' || def.role === 'reset') {
               continue;
             }
             // Skip optional signals that were not explicitly activated

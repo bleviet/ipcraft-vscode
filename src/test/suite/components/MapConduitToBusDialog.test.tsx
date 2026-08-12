@@ -4,13 +4,13 @@ import {
   MapConduitToBusDialog,
   type MapConduitToBusResult,
 } from '../../../webview/ipcore/components/canvas/MapConduitToBusDialog';
-import type { BusPortDef } from '../../../webview/ipcore/data/busDefinitions';
+import type { BusPortDef } from '../../../webview/ipcore/utils/busLibrary';
 import type { ConduitPort } from '../../../webview/types/ipCore';
 
 const FIFO_WRITE_PORTS: BusPortDef[] = [
-  { name: 'WR_DATA', direction: 'out', presence: 'required' },
-  { name: 'WR_EN', width: 1, direction: 'out', presence: 'required' },
-  { name: 'FULL', width: 1, direction: 'in', presence: 'optional' },
+  { name: 'WR_DATA', direction: 'out', presence: 'required', role: 'data' },
+  { name: 'WR_EN', width: 1, direction: 'out', presence: 'required', role: 'control' },
+  { name: 'FULL', width: 1, direction: 'in', presence: 'optional', role: 'control' },
 ];
 
 const CONDUIT_PORTS: ConduitPort[] = [
@@ -107,7 +107,9 @@ describe('MapConduitToBusDialog', () => {
 
   it('confirms with no overrides when only optional ports exist and none are assigned', () => {
     const { onConfirm } = renderDialog({
-      libraryPortDefs: [{ name: 'FULL', width: 1, direction: 'in', presence: 'optional' }],
+      libraryPortDefs: [
+        { name: 'FULL', width: 1, direction: 'in', presence: 'optional', role: 'control' },
+      ],
     });
     expect(screen.getByText('Confirm')).not.toBeDisabled();
     fireEvent.click(screen.getByText('Confirm'));

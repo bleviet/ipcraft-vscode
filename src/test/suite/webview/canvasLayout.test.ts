@@ -137,7 +137,14 @@ describe('computeLayout', () => {
         },
       ],
     });
-    const layout = computeLayout(ip);
+    const layout = computeLayout(
+      ip,
+      new Set(),
+      () => null,
+      undefined,
+      undefined,
+      () => 'AXI4-Lite'
+    );
 
     const slaveBus = layout.ports.find((p) => p.label === 's_axi');
     const masterBus = layout.ports.find((p) => p.label === 'm_axi');
@@ -150,6 +157,45 @@ describe('computeLayout', () => {
     expect(slaveBus!.protocol).toBe('AXI4-Lite');
     expect(slaveBus!.mode).toBe('S');
     expect(masterBus!.mode).toBe('M');
+  });
+
+  it('does not infer a protocol label from a type-name substring', () => {
+    const layout = computeLayout(
+      makeIpCore({
+        busInterfaces: [
+          {
+            name: 'telemetry',
+            type: 'acme:busif:avalon_st_bridge:1.0',
+            mode: 'sink',
+            physicalPrefix: 'telemetry_',
+          },
+        ],
+      })
+    );
+
+    expect(layout.ports.find((port) => port.id === 'bus:0')?.protocol).toBe('Avalon-St-Bridge');
+  });
+
+  it('uses contract mode classification for custom consumer names', () => {
+    const ip = makeIpCore({
+      busInterfaces: [
+        {
+          name: 'custom_target',
+          type: 'acme:busif:custom:1.0',
+          mode: 'target',
+          physicalPrefix: 'custom_',
+        },
+      ],
+    });
+    const layout = computeLayout(
+      ip,
+      new Set(),
+      () => null,
+      undefined,
+      () => true
+    );
+
+    expect(layout.ports.find((port) => port.label === 'custom_target')?.side).toBe('left');
   });
 
   it('places input ports on the left, output on the right', () => {
@@ -364,7 +410,14 @@ describe('computeLayout', () => {
         },
       ],
     });
-    const layout = computeLayout(ip);
+    const layout = computeLayout(
+      ip,
+      new Set(),
+      () => null,
+      undefined,
+      undefined,
+      () => 'AXI-Stream'
+    );
 
     const sinkBus = layout.ports.find((p) => p.label === 'axis_in');
     const sourceBus = layout.ports.find((p) => p.label === 'axis_out');

@@ -5,6 +5,11 @@ import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImp
 import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
 import { BUS_REGISTRY } from './buses/builtin';
+import {
+  canonicalizeBusType,
+  normalizeInterfaceMode,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
 
 import { evalWidthExpr } from '../shared/evalWidthExpr';
 import { parse, serialize, containsParamRef } from '../shared/widthExprAst';
@@ -122,31 +127,41 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
   return normalizeIpCore(raw) as unknown as IpCoreData;
 }
 
-export function normalizeBusType(typeName: string): BusTypeInfo {
-  return BUS_REGISTRY.normalize(typeName);
+export function normalizeBusType(typeName: string, library: NormalizedBusLibrary): BusTypeInfo {
+  return BUS_REGISTRY.normalize(typeName, library);
 }
 
-export function getBusTypeForTemplate(ipCore: IpCoreData): string {
-  let firstSlave: string | undefined;
+export function getBusTypeForTemplate(ipCore: IpCoreData, library: NormalizedBusLibrary): string {
+  let firstConsumer: string | undefined;
   for (const bus of ipCore.busInterfaces ?? []) {
-    if ((bus.mode ?? '').toLowerCase() === 'slave') {
-      const templateType = normalizeBusType(getString(bus.type)).templateType;
-      firstSlave ??= templateType;
-      if (BUS_REGISTRY.isMemoryMapped(templateType)) {
+    const match = canonicalizeBusType(getString(bus.type), library);
+    const contract = match?.contract;
+    if (!contract) {
+      continue;
+    }
+    if (contract.modePolicy.consumer === normalizeInterfaceMode(contract, getString(bus.mode))) {
+      const templateType = normalizeBusType(getString(bus.type), library).templateType;
+      firstConsumer ??= templateType;
+      if (contract.interfaceKind === 'memoryMapped') {
         return templateType;
       }
     }
   }
-  return firstSlave ?? 'axil';
+  return firstConsumer ?? 'axil';
 }
 
-export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
+export function hasMemoryMappedSlaveInterface(
+  ipCore: IpCoreData,
+  library: NormalizedBusLibrary
+): boolean {
   for (const bus of ipCore.busInterfaces ?? []) {
-    if ((bus.mode ?? '').toLowerCase() === 'slave') {
-      const templateType = normalizeBusType(getString(bus.type)).templateType;
-      if (BUS_REGISTRY.isMemoryMapped(templateType)) {
-        return true;
-      }
+    const match = canonicalizeBusType(getString(bus.type), library);
+    if (
+      match?.contract.interfaceKind === 'memoryMapped' &&
+      normalizeInterfaceMode(match.contract, getString(bus.mode)) ===
+        match.contract.modePolicy.consumer
+    ) {
+      return true;
     }
   }
   return false;
@@ -162,9 +177,12 @@ export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
  * falls back to the legacy raw-prefix comparison for that pair.
  * Returns a descriptive error string on collision, or null when there is none.
  */
-export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | null {
+export function checkDuplicatePhysicalPrefixes(
+  ipCore: IpCoreData,
+  library: NormalizedBusLibrary
+): string | null {
   const expanded = expandBusInterfaces(ipCore).filter((iface) => Boolean(iface.physicalPrefix));
-  const nameSets = expanded.map((iface) => reconstructBusPortNameSet(iface));
+  const nameSets = expanded.map((iface) => reconstructBusPortNameSet(iface, library));
   const duplicates: string[] = [];
 
   for (let i = 0; i < expanded.length; i++) {
@@ -222,6 +240,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           physicalPrefix: String(prefixPattern).replace('{index}', String(idx)),
           useOptionalPorts: iface.useOptionalPorts ?? [],
           portWidthOverrides: iface.portWidthOverrides ?? {},
+          interfaceProperties: iface.interfaceProperties,
           portNameOverrides: iface.portNameOverrides,
           absentPorts: iface.absentPorts,
           conduitPorts: iface.conduitPorts ?? [],
@@ -243,6 +262,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       physicalPrefix: iface.physicalPrefix ?? defaultPrefix,
       useOptionalPorts: iface.useOptionalPorts ?? [],
       portWidthOverrides: iface.portWidthOverrides ?? {},
+      interfaceProperties: iface.interfaceProperties,
       portNameOverrides: iface.portNameOverrides,
       absentPorts: iface.absentPorts,
       conduitPorts: iface.conduitPorts ?? [],
@@ -284,7 +304,8 @@ export function getActiveBusPortsFromDefinition(
   portWidthOverrides: Record<string, number | string>,
   parameters?: Array<{ name: string; value?: number | string; data_type?: string }>,
   portNameOverrides?: Record<string, string>,
-  absentPorts?: string[]
+  absentPorts?: string[],
+  effectiveDirections?: Readonly<Record<string, 'in' | 'out'>>
 ): Array<Record<string, unknown>> {
   const optionalSet = new Set(useOptionalPorts || []);
   const absentSet = new Set((absentPorts ?? []).map((n) => n.toUpperCase()));
@@ -317,8 +338,8 @@ export function getActiveBusPortsFromDefinition(
       return;
     }
 
-    let direction = port.direction ?? 'in';
-    if (mode === 'slave' || mode === 'sink') {
+    let direction = effectiveDirections?.[logicalName] ?? port.direction ?? 'in';
+    if (!effectiveDirections?.[logicalName] && (mode === 'slave' || mode === 'sink')) {
       direction = direction === 'out' ? 'in' : direction === 'in' ? 'out' : direction;
     }
 
@@ -342,15 +363,6 @@ export function getActiveBusPortsFromDefinition(
       const resolved = resolveStringWidth(width, paramDefaults);
       width = resolved.numeric;
       widthExpr = resolved.expr;
-    }
-
-    // WSTRB width is DATA_WIDTH/8. The YAML convention stores only the data-width
-    // parameter name (e.g. "AxiDataWidth_g") so the parser can strip "/8" without
-    // losing the parameter reference. Re-apply "/8" here so that widthExpr, width,
-    // tcl_width, and all generated outputs are all consistent and correct.
-    if (logicalName === 'WSTRB' && widthExpr !== null) {
-      widthExpr = `${widthExpr}/8`;
-      width = evalWidthExpr(widthExpr, paramDefaults) ?? 1;
     }
 
     const numWidth = Number(width);

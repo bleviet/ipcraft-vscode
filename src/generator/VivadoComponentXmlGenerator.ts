@@ -2,13 +2,26 @@ import {
   evalWidthExpr,
   getActiveBusPortsFromDefinition,
   expandBusInterfaces,
-  normalizeBusType,
 } from './registerProcessor';
 import { parse, serialize, IPXACT_UNSUPPORTED } from '../shared/widthExprAst';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { resolveFileSetRtlFiles } from '../utils/compilationOrder';
 import { parseVlnv, isValidVlnv } from '../utils/vlnv';
-import { BUS_VLNV } from '../shared/busVlnv';
+import {
+  dataLaneKind,
+  isDeclarativeContract,
+  resolveBusInterface,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
+import { resolveVivadoBusType } from './VivadoBusTypes';
+import { findCustomBusDef } from './VivadoCustomBusDefinitions';
+export {
+  generateCustomBusDefs,
+  renderAbstractionDefinitionXml,
+  renderBusDefinitionXml,
+} from './VivadoCustomBusDefinitions';
+export type { CustomBusInfo } from './VivadoCustomBusDefinitions';
+import type { BusInterface, Parameter } from '../domain/ipcore.types';
 import type {
   NormalizedAddressBlock,
   NormalizedField,
@@ -24,49 +37,11 @@ import type {
   SubcoreRef,
 } from './types';
 
-// ── Custom bus definition support ─────────────────────────────────────────────
-
-export interface CustomBusInfo {
-  vendor: string;
-  library: string;
-  name: string;
-  version: string;
-  description: string;
-  ports: BusPortDefinition[];
-  /** 'vivado' when this definition came from a local Vivado install scan rather than
-   *  a user-authored custom bus definition — see BusDefinition.source. */
-  source?: string;
-}
-
-function findCustomBusDef(ifaceType: string, busDefinitions: BusDefinitions): CustomBusInfo | null {
-  if (resolveVivadoBusType(ifaceType)) {
-    return null;
-  }
-  for (const def of Object.values(busDefinitions)) {
-    const bt = def.busType;
-    if (!bt?.vendor || !bt.library || !bt.name || !bt.version) {
-      continue;
-    }
-    const vlnv = `${bt.vendor}:${bt.library}:${bt.name}:${bt.version}`;
-    if (vlnv === ifaceType) {
-      return {
-        vendor: bt.vendor,
-        library: bt.library,
-        name: bt.name,
-        version: bt.version,
-        description: bt.description ?? '',
-        ports: def.ports ?? [],
-        source: def.source,
-      };
-    }
-  }
-  return null;
-}
-
 function busDefPortMaps(
   ports: BusPortDefinition[],
   iface: BusInterfaceDef,
-  mode: string
+  mode: string,
+  effectiveDirections?: Readonly<Record<string, 'in' | 'out'>>
 ): string[] {
   const activePorts = getActiveBusPortsFromDefinition(
     ports,
@@ -76,7 +51,8 @@ function busDefPortMaps(
     iface.portWidthOverrides ?? {},
     undefined,
     iface.portNameOverrides,
-    iface.absentPorts
+    iface.absentPorts,
+    effectiveDirections
   );
   if (activePorts.length === 0) {
     return [];
@@ -94,184 +70,6 @@ function busDefPortMaps(
   }
   lines.push('      </spirit:portMaps>');
   return lines;
-}
-
-export function renderBusDefinitionXml(busInfo: CustomBusInfo): string {
-  const lines = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<spirit:busDefinition',
-    '  xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"',
-    '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">',
-    `  <spirit:vendor>${x(busInfo.vendor)}</spirit:vendor>`,
-    `  <spirit:library>${x(busInfo.library)}</spirit:library>`,
-    `  <spirit:name>${x(busInfo.name)}</spirit:name>`,
-    `  <spirit:version>${x(busInfo.version)}</spirit:version>`,
-    '  <spirit:directConnection>false</spirit:directConnection>',
-    '  <spirit:isAddressable>false</spirit:isAddressable>',
-  ];
-  if (busInfo.description) {
-    lines.push(`  <spirit:description>${x(busInfo.description)}</spirit:description>`);
-  }
-  lines.push('</spirit:busDefinition>');
-  return lines.join('\n');
-}
-
-export function renderAbstractionDefinitionXml(busInfo: CustomBusInfo): string {
-  const lines = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<spirit:abstractionDefinition',
-    '  xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"',
-    '  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">',
-    `  <spirit:vendor>${x(busInfo.vendor)}</spirit:vendor>`,
-    `  <spirit:library>${x(busInfo.library)}</spirit:library>`,
-    `  <spirit:name>${x(busInfo.name)}_rtl</spirit:name>`,
-    `  <spirit:version>${x(busInfo.version)}</spirit:version>`,
-    `  <spirit:busType spirit:vendor="${x(busInfo.vendor)}" spirit:library="${x(busInfo.library)}" spirit:name="${x(busInfo.name)}" spirit:version="${x(busInfo.version)}"/>`,
-    '  <spirit:ports>',
-  ];
-
-  for (const port of busInfo.ports) {
-    const logicalName = String(port.name);
-    if (['ACLK', 'ARESETn', 'clk', 'reset'].includes(logicalName)) {
-      continue;
-    }
-    const presence = port.presence ?? 'required';
-    const masterDir = port.direction ?? 'out';
-    const slaveDir = masterDir === 'out' ? 'in' : 'out';
-    const width = port.width ?? 1;
-
-    lines.push('    <spirit:port>');
-    lines.push(`      <spirit:logicalName>${x(logicalName)}</spirit:logicalName>`);
-    lines.push('      <spirit:wire>');
-    lines.push('        <spirit:onMaster>');
-    lines.push(`          <spirit:presence>${x(presence)}</spirit:presence>`);
-    lines.push(`          <spirit:width>${width}</spirit:width>`);
-    lines.push(`          <spirit:direction>${x(masterDir)}</spirit:direction>`);
-    lines.push('        </spirit:onMaster>');
-    lines.push('        <spirit:onSlave>');
-    lines.push(`          <spirit:presence>${x(presence)}</spirit:presence>`);
-    lines.push(`          <spirit:width>${width}</spirit:width>`);
-    lines.push(`          <spirit:direction>${x(slaveDir)}</spirit:direction>`);
-    lines.push('        </spirit:onSlave>');
-    lines.push('      </spirit:wire>');
-    lines.push('    </spirit:port>');
-  }
-
-  lines.push('  </spirit:ports>');
-  lines.push('</spirit:abstractionDefinition>');
-  return lines.join('\n');
-}
-
-/**
- * Generate busDefinition and abstractionDefinition XML files for any custom
- * (non-standard) bus interfaces referenced by the IP core. Returns a map of
- * relative paths → file contents, intended to be placed inside the amd/ output
- * directory alongside component.xml.
- */
-export function generateCustomBusDefs(
-  ipCore: IpCoreData,
-  busDefinitions: BusDefinitions
-): Record<string, string> {
-  const files: Record<string, string> = {};
-  const seen = new Set<string>();
-
-  // Build parameter defaults map so string port widths can be resolved to numbers
-  const paramDefaults: Record<string, number> = {};
-  for (const p of ipCore.parameters ?? []) {
-    if (p.name && typeof p.value === 'number') {
-      paramDefaults[String(p.name)] = p.value;
-    }
-  }
-
-  for (const iface of ipCore.busInterfaces ?? []) {
-    const ifaceType = String(iface.type ?? '');
-    if (seen.has(ifaceType)) {
-      continue;
-    }
-    seen.add(ifaceType);
-    const custom = findCustomBusDef(ifaceType, busDefinitions);
-    // Vivado-discovered interfaces (e.g. fifo_write) already ship their own
-    // busDefinition/abstractionDefinition XML inside the Vivado install — only
-    // user-authored custom interfaces need IPCraft to generate and bundle one.
-    if (!custom || custom.source === 'vivado') {
-      continue;
-    }
-
-    // Resolve any parameter-name widths to their numeric defaults so the
-    // generated Vivado XML contains concrete numbers, not raw parameter strings.
-    const resolvedPorts = custom.ports.map((p) => ({
-      ...p,
-      width: typeof p.width === 'string' ? (paramDefaults[p.width] ?? 1) : (p.width ?? 1),
-    }));
-    const customResolved: CustomBusInfo = { ...custom, ports: resolvedPorts };
-
-    files[`busdef/${custom.name}.xml`] = renderBusDefinitionXml(customResolved);
-    files[`busdef/${custom.name}_rtl.xml`] = renderAbstractionDefinitionXml(customResolved);
-  }
-
-  return files;
-}
-
-// ── Vivado bus type mapping ───────────────────────────────────────────────────
-
-interface VivadoBusTypeInfo {
-  vendor: string;
-  library: string;
-  name: string;
-  abstraction: string;
-  protocol?: string;
-  libraryKey: string;
-}
-
-const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
-  [BUS_VLNV.AXI4_LITE]: {
-    vendor: 'xilinx.com',
-    library: 'interface',
-    name: 'aximm',
-    abstraction: 'aximm_rtl',
-    protocol: 'AXI4LITE',
-    libraryKey: 'AXI4_LITE',
-  },
-  [BUS_VLNV.AXI4_FULL]: {
-    vendor: 'xilinx.com',
-    library: 'interface',
-    name: 'aximm',
-    abstraction: 'aximm_rtl',
-    protocol: 'AXI4',
-    libraryKey: 'AXI4_FULL',
-  },
-  [BUS_VLNV.AXI_STREAM]: {
-    vendor: 'xilinx.com',
-    library: 'interface',
-    name: 'axis',
-    abstraction: 'axis_rtl',
-    libraryKey: 'AXI_STREAM',
-  },
-  [BUS_VLNV.AVALON_MM]: {
-    vendor: 'xilinx.com',
-    library: 'interface',
-    name: 'avalon',
-    abstraction: 'avalon_rtl',
-    libraryKey: 'AVALON_MEMORY_MAPPED',
-  },
-};
-
-/**
- * Resolves an interface type string (short alias, VLNV, or full VLNV) to a
- * VivadoBusTypeInfo entry. Falls back to normalizeBusType() alias resolution so
- * that short tokens produced by the parser (e.g. 'AXI4L', 'AXI4F', 'AXI4S')
- * map correctly even if not listed as explicit keys in IPCRAFT_TO_VIVADO.
- */
-function resolveVivadoBusType(ifaceType: string): VivadoBusTypeInfo | undefined {
-  const direct = IPCRAFT_TO_VIVADO[ifaceType];
-  if (direct) {
-    return direct;
-  }
-  const { libraryKey } = normalizeBusType(ifaceType);
-  if (!libraryKey) {
-    return undefined;
-  }
-  return Object.values(IPCRAFT_TO_VIVADO).find((v) => v.libraryKey === libraryKey);
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -297,6 +95,7 @@ export interface ComponentXmlOptions {
    * fallback preserves the fileSets' declared order unchanged.
    */
   ipCoreDir?: string;
+  busLibrary: NormalizedBusLibrary;
 }
 
 /**
@@ -318,7 +117,7 @@ export function crc32Hex(content: string): string {
 export async function generateComponentXml(
   ipCore: IpCoreData,
   busDefinitions: BusDefinitions,
-  options: ComponentXmlOptions = {}
+  options: ComponentXmlOptions
 ): Promise<string> {
   const {
     filePathPrefix = '../',
@@ -330,6 +129,7 @@ export async function generateComponentXml(
     isSv = false,
     memoryMaps,
     ipCoreDir,
+    busLibrary,
   } = options;
 
   const vendor = String(ipCore.vlnv?.vendor ?? 'user');
@@ -368,6 +168,7 @@ export async function generateComponentXml(
   lines.push('<?xml version="1.0" encoding="UTF-8"?>');
   lines.push('<spirit:component xmlns:xilinx="http://www.xilinx.com"');
   lines.push('  xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"');
+  lines.push('  xmlns:ipcraft="urn:ipcraft:interface-contract:1"');
   lines.push('  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">');
 
   lines.push(`  <spirit:vendor>${x(vendor)}</spirit:vendor>`);
@@ -382,7 +183,7 @@ export async function generateComponentXml(
   const busIfLines: string[] = [];
 
   for (const iface of busInterfaces) {
-    busIfLines.push(...renderBusInterface(iface, busDefinitions));
+    busIfLines.push(...renderBusInterface(iface, busDefinitions, busLibrary, parameters));
   }
 
   for (const clock of clocks) {
@@ -441,6 +242,7 @@ export async function generateComponentXml(
       userPorts,
       interrupts,
       busDefinitions,
+      busLibrary,
       isSv,
       parameters
     )
@@ -494,13 +296,24 @@ export async function generateComponentXml(
 
 // ── Render helpers ────────────────────────────────────────────────────────────
 
-function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitions): string[] {
+function renderBusInterface(
+  iface: BusInterfaceDef,
+  busDefinitions: BusDefinitions,
+  busLibrary: NormalizedBusLibrary,
+  parameters: ParameterDef[]
+): string[] {
   const ifaceName = String(iface.name ?? '');
   const ifaceType = String(iface.type ?? '');
   const mode = String(iface.mode ?? 'slave').toLowerCase();
 
-  const vivadoType = resolveVivadoBusType(ifaceType);
-  const customBus = vivadoType ? null : findCustomBusDef(ifaceType, busDefinitions);
+  const vivadoType = resolveVivadoBusType(ifaceType, busLibrary);
+  const customBus = vivadoType ? null : findCustomBusDef(ifaceType, busLibrary);
+  const contractResolution = resolveBusInterface({
+    busInterface: iface as unknown as BusInterface,
+    busIndex: 0,
+    parameters: parameters as unknown as Parameter[],
+    library: busLibrary,
+  });
 
   const lines: string[] = [];
   lines.push('    <spirit:busInterface>');
@@ -545,7 +358,17 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
   // A slave that exposes a memory map must reference it here, otherwise Vivado
   // reports the map as orphaned (IP_Flow 19-1980). The referenced name matches
   // the <spirit:memoryMap><spirit:name> emitted in renderMemoryMaps.
-  const xmlMode = modeToXmlTag(mode);
+  const contract = contractResolution.match?.contract;
+  const xmlMode = contract
+    ? contractResolution.normalizedMode === contract.modePolicy.producer
+      ? 'master'
+      : 'slave'
+    : modeToXmlTag(mode);
+  const effectiveDirections = Object.fromEntries(
+    contractResolution.activePorts.flatMap((port) =>
+      port.effectiveDirection ? [[port.name, port.effectiveDirection]] : []
+    )
+  );
   const memoryMapRef = typeof iface.memoryMapRef === 'string' ? iface.memoryMapRef : undefined;
   if (xmlMode === 'slave' && memoryMapRef) {
     lines.push('      <spirit:slave>');
@@ -559,7 +382,7 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
   if (vivadoType) {
     const busDef = busDefinitions[vivadoType.libraryKey];
     if (busDef?.ports) {
-      lines.push(...busDefPortMaps(busDef.ports, iface, mode));
+      lines.push(...busDefPortMaps(busDef.ports, iface, mode, effectiveDirections));
     }
   } else if (iface.conduitPorts && (iface.conduitPorts as unknown[]).length > 0) {
     // Ports already authored directly on the interface take priority over a
@@ -568,9 +391,11 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     // HDL, and a library match alone doesn't tell us how to remap them to the
     // library's official logical names. Silently switching here would produce a
     // component.xml with physical names that don't exist on the actual entity.
-    lines.push(...busDefPortMaps(iface.conduitPorts as BusPortDefinition[], iface, mode));
+    lines.push(
+      ...busDefPortMaps(iface.conduitPorts as BusPortDefinition[], iface, mode, effectiveDirections)
+    );
   } else if (customBus) {
-    lines.push(...busDefPortMaps(customBus.ports, iface, mode));
+    lines.push(...busDefPortMaps(customBus.ports, iface, mode, effectiveDirections));
   } else {
     const rawPortMaps = iface.rawPortMaps as
       | Array<{ logical: string; physical: string }>
@@ -591,17 +416,68 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     }
   }
 
-  // PROTOCOL parameter for AXI4/AXI4LITE
-  if (vivadoType?.protocol) {
+  const hasSymbolSemantics = dataLaneKind(contract) === 'symbol';
+  const semanticProperties = Object.keys(
+    contractResolution.match?.contract.interfaceProperties ?? {}
+  )
+    .sort()
+    .flatMap((name) => {
+      const value = contractResolution.properties[name]?.value;
+      return value === undefined ? [] : [{ name, value }];
+    });
+  const authoredProperties = iface.interfaceProperties ?? {};
+  const mirroredSemanticProperties = semanticProperties.filter((property) =>
+    Object.prototype.hasOwnProperty.call(authoredProperties, property.name)
+  );
+  const mirrorsContract = isDeclarativeContract(contract) && customBus !== null;
+
+  // Standard bus-interface parameters.
+  if (vivadoType?.protocol || semanticProperties.length > 0 || hasSymbolSemantics) {
     const ifaceUpper = ifaceName.toUpperCase();
     lines.push('      <spirit:parameters>');
-    lines.push('        <spirit:parameter>');
-    lines.push('          <spirit:name>PROTOCOL</spirit:name>');
-    lines.push(
-      `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(ifaceUpper)}.PROTOCOL">${x(vivadoType.protocol)}</spirit:value>`
-    );
-    lines.push('        </spirit:parameter>');
+    if (vivadoType?.protocol) {
+      lines.push('        <spirit:parameter>');
+      lines.push('          <spirit:name>PROTOCOL</spirit:name>');
+      lines.push(
+        `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(ifaceUpper)}.PROTOCOL">${x(vivadoType.protocol)}</spirit:value>`
+      );
+      lines.push('        </spirit:parameter>');
+    }
+    for (const property of semanticProperties) {
+      lines.push('        <spirit:parameter>');
+      lines.push(`          <spirit:name>${x(property.name)}</spirit:name>`);
+      lines.push(
+        `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(ifaceUpper)}.${x(property.name)}">${x(String(property.value))}</spirit:value>`
+      );
+      lines.push('        </spirit:parameter>');
+    }
+    if (hasSymbolSemantics) {
+      lines.push('        <spirit:parameter>');
+      lines.push('          <spirit:name>firstSymbolInHighOrderBits</spirit:name>');
+      lines.push(
+        `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(ifaceUpper)}.firstSymbolInHighOrderBits">${iface.endianness === 'big' ? 'true' : 'false'}</spirit:value>`
+      );
+      lines.push('        </spirit:parameter>');
+    }
     lines.push('      </spirit:parameters>');
+  }
+
+  if (mirrorsContract) {
+    const mirrored = [
+      ...mirroredSemanticProperties,
+      ...(iface.endianness === 'little' || iface.endianness === 'big'
+        ? [{ name: 'endianness', value: iface.endianness }]
+        : []),
+    ].sort((left, right) => left.name.localeCompare(right.name));
+    lines.push('      <spirit:vendorExtensions>');
+    lines.push('        <ipcraft:interfaceContract version="1">');
+    for (const property of mirrored) {
+      lines.push(
+        `          <ipcraft:property name="${x(property.name)}" value="${x(String(property.value))}" />`
+      );
+    }
+    lines.push('        </ipcraft:interfaceContract>');
+    lines.push('      </spirit:vendorExtensions>');
   }
 
   lines.push('    </spirit:busInterface>');
@@ -1132,6 +1008,7 @@ function renderPorts(
   userPorts: Array<{ name?: string; direction?: string; width?: number | string }>,
   interrupts: Array<{ name: string; direction: string }>,
   busDefinitions: BusDefinitions,
+  busLibrary: NormalizedBusLibrary,
   isSv = false,
   parameters: Array<{ name?: string; value?: unknown; defaultValue?: unknown }> = []
 ): string[] {
@@ -1155,10 +1032,10 @@ function renderPorts(
   for (const iface of busInterfaces) {
     const ifaceType = String(iface.type ?? '');
     const mode = String(iface.mode ?? 'slave').toLowerCase();
-    const vivadoType = resolveVivadoBusType(ifaceType);
+    const vivadoType = resolveVivadoBusType(ifaceType, busLibrary);
     const sourcePorts: BusPortDefinition[] | undefined = vivadoType
       ? busDefinitions[vivadoType.libraryKey]?.ports
-      : findCustomBusDef(ifaceType, busDefinitions)?.ports;
+      : findCustomBusDef(ifaceType, busLibrary)?.ports;
 
     if (!sourcePorts) {
       // Unknown bus type with preserved rawPortMaps: emit physical ports directly
@@ -1179,8 +1056,27 @@ function renderPorts(
           value: typeof v === 'number' || typeof v === 'string' ? v : undefined,
         };
       });
-    // Each interface uses only its own portWidthOverrides; sibling interfaces are independent.
-    const effectiveOverrides: Record<string, number | string> = iface.portWidthOverrides ?? {};
+    const contractResolution = resolveBusInterface({
+      busInterface: iface as unknown as BusInterface,
+      busIndex: 0,
+      parameters: parameters as unknown as Parameter[],
+      library: busLibrary,
+    });
+    // Preserve authored root expressions, but project concrete fixed/derived widths from the
+    // canonical resolver so IP-XACT model ports cannot disagree with generated HDL.
+    const effectiveOverrides: Record<string, number | string> = {
+      ...(iface.portWidthOverrides ?? {}),
+    };
+    for (const port of contractResolution.activePorts) {
+      if (port.widthPolicy === 'root') {
+        continue;
+      }
+      if (port.effectiveWidth.expression) {
+        effectiveOverrides[port.name] = serialize(port.effectiveWidth.expression, 'canonical').code;
+      } else if (port.effectiveWidth.value !== undefined) {
+        effectiveOverrides[port.name] = port.effectiveWidth.value;
+      }
+    }
     const activePorts = getActiveBusPortsFromDefinition(
       sourcePorts,
       iface.useOptionalPorts ?? [],
@@ -1189,7 +1085,12 @@ function renderPorts(
       effectiveOverrides,
       typedParams,
       iface.portNameOverrides,
-      iface.absentPorts
+      iface.absentPorts,
+      Object.fromEntries(
+        contractResolution.activePorts.flatMap((port) =>
+          port.effectiveDirection ? [[port.name, port.effectiveDirection]] : []
+        )
+      )
     );
     for (const port of activePorts) {
       portLines.push(

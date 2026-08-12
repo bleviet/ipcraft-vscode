@@ -1,5 +1,5 @@
 import type { IpCore, BusInterface } from '../../../types/ipCore';
-import type { BusPortDef } from '../../data/busDefinitions';
+import type { BusPortDef } from '../../utils/busLibrary';
 
 // --- Constants ---
 
@@ -195,30 +195,13 @@ function formatWidth(w: number | string | undefined): string {
 }
 
 function busProtocolShortName(busType: string): string {
-  const lower = busType.toLowerCase();
-  if (lower.includes('axi4_lite') || lower.includes('axi4-lite')) {
-    return 'AXI4-Lite';
-  }
-  if (lower.includes('axi4_full') || lower.includes('axi4-full') || lower.includes('axi4.')) {
-    return 'AXI4';
-  }
-  if (lower.includes('axi_stream') || lower.includes('axi-stream') || lower.includes('axi4s')) {
-    return 'AXI-Stream';
-  }
-  if (lower.includes('avalon_mm') || lower.includes('avalon-mm')) {
-    return 'Avalon-MM';
-  }
-  if (lower.includes('avalon_st') || lower.includes('avalon-st')) {
-    return 'Avalon-ST';
-  }
-  if (lower.includes('conduit')) {
-    return 'Custom';
-  }
-  // Fallback: extract the name segment from VLNV (vendor:library:name:version)
   const parts = busType.split(':');
   const name = parts.length >= 3 ? parts[2] : (parts[parts.length - 1] ?? busType);
-  const clean = name.replace(/_/g, '-');
-  return clean.length <= 4 ? clean.toUpperCase() : clean.charAt(0).toUpperCase() + clean.slice(1);
+  return name
+    .split(/[_-]/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('-');
 }
 
 function modeLabel(mode: string): string {
@@ -237,7 +220,14 @@ function modeLabel(mode: string): string {
 }
 
 /** Returns true if this interface belongs on the left side (slave/sink/conduit) */
-function isLeftSide(bus: BusInterface): boolean {
+function isLeftSide(
+  bus: BusInterface,
+  isContractConsumer?: (bus: BusInterface) => boolean | undefined
+): boolean {
+  const contractConsumer = isContractConsumer?.(bus);
+  if (contractConsumer !== undefined) {
+    return contractConsumer;
+  }
   return bus.mode === 'slave' || bus.mode === 'sink' || bus.mode === 'conduit';
 }
 
@@ -327,7 +317,9 @@ export function computeLayout(
   ipCore: IpCore,
   expandedBusIds: Set<string> = new Set(),
   busPortLookup: (busType: string) => BusPortDef[] | null = () => null,
-  description?: string
+  description?: string,
+  isContractConsumer?: (bus: BusInterface) => boolean | undefined,
+  protocolLabel?: (busType: string) => string | undefined
 ): CanvasLayout {
   const clocks = ipCore.clocks ?? [];
   const resets = ipCore.resets ?? [];
@@ -444,7 +436,7 @@ export function computeLayout(
 
   // Bus interfaces -> left (slave/sink/conduit) or right (master/source)
   buses.forEach((b, i) => {
-    if (isLeftSide(b)) {
+    if (isLeftSide(b, isContractConsumer)) {
       leftItems.push({ kind: 'bus', index: i, data: b });
     } else {
       rightItems.push({ kind: 'bus', index: i, data: b });
@@ -576,7 +568,8 @@ export function computeLayout(
               : 'LEVEL_HIGH';
           break;
         case 'bus': {
-          protocol = busProtocolShortName(String(d.type ?? ''));
+          const busType = String(d.type ?? '');
+          protocol = protocolLabel?.(busType) ?? busProtocolShortName(busType);
           mode = modeLabel(String(d.mode ?? ''));
           widthLabel = '';
           domainIdx = busDomainIdx(d);

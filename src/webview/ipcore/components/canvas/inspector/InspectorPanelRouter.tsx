@@ -1,4 +1,6 @@
 import React from 'react';
+import type { NormalizedBusLibrary } from '../../../../../shared/busContracts';
+import type { IssueFocusRequest } from '../../../types/issues';
 import type { BusInterface, Clock, Interrupt, IpCore, Port, Reset } from '../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../types/editor';
 import type { CanvasElement } from '../../../hooks/useCanvasSelection';
@@ -14,9 +16,10 @@ import { ClockPanel, InterruptPanel, PortPanel, ResetPanel } from './signals/Sig
 interface InspectorPanelRouterProps {
   element: CanvasElement;
   ipCore: IpCore;
-  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
+  imports?: { busLibrary?: NormalizedBusLibrary; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
   batchUpdate?: BatchUpdate;
+  issueFocusRequest?: IssueFocusRequest | null;
   onSelectElement?: (id: string) => void;
 }
 
@@ -26,6 +29,7 @@ export const InspectorPanelRouter: React.FC<InspectorPanelRouterProps> = ({
   imports,
   onUpdate,
   batchUpdate,
+  issueFocusRequest,
   onSelectElement,
 }) => {
   switch (element.kind) {
@@ -88,6 +92,8 @@ export const InspectorPanelRouter: React.FC<InspectorPanelRouterProps> = ({
           ipCore={ipCore}
           imports={imports}
           onUpdate={onUpdate}
+          batchUpdate={batchUpdate}
+          issueFocusRequest={issueFocusRequest}
         />
       ) : (
         <EmptyState label="Bus interface not found" />
@@ -116,6 +122,7 @@ export const InspectorPanelRouter: React.FC<InspectorPanelRouterProps> = ({
           interrupt={interrupt}
           index={element.index}
           ipCore={ipCore}
+          busLibrary={imports?.busLibrary}
           onUpdate={onUpdate}
         />
       ) : (

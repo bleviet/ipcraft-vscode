@@ -5,6 +5,7 @@ import { validateUniqueName, validateVhdlIdentifier } from '../../../../../share
 import type { BatchUpdate } from '../../../../hooks/useGroupPorts';
 import { portEndiannessApplies } from '../../../../utils/portEndianness';
 import { busSupportsInterruptAssociation } from '../../../../../../shared/busVlnv';
+import type { NormalizedBusLibrary } from '../../../../../../shared/busContracts';
 import { applyBulkUpdate, type Mutation } from '../parameters/PlacementControls';
 import { PropField, PropSelect, PropWidthField, Section } from '../controls/InspectorFields';
 import {
@@ -281,6 +282,7 @@ interface InterruptPanelProps {
   interrupt: Interrupt;
   index: number;
   ipCore: IpCore;
+  busLibrary?: NormalizedBusLibrary;
   onUpdate: YamlUpdateHandler;
 }
 
@@ -300,12 +302,13 @@ export const InterruptPanel: React.FC<InterruptPanelProps> = ({
   interrupt,
   index,
   ipCore,
+  busLibrary,
   onUpdate,
 }) => {
   const interrupts = ipCore.interrupts ?? [];
   const existingNames = interrupts.map((irq) => irq.name).filter((_, i) => i !== index);
   const busOptions = (ipCore.busInterfaces ?? [])
-    .filter(busSupportsInterruptAssociation)
+    .filter((bus) => busLibrary && busSupportsInterruptAssociation(bus, busLibrary))
     .map((bus) => ({ value: bus.name, label: bus.name }));
   const clockOptions = (ipCore.clocks ?? []).map((clock) => ({
     value: clock.name,

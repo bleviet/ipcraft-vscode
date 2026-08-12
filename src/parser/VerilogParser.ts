@@ -37,7 +37,8 @@ export async function parseVerilogFile(
   const ports = extractPorts(cleaned);
 
   const clockReset = classifyClocksResets(ports);
-  const busDetection = options.detectBus !== false ? detectBusInterfaces(ports, clockReset) : null;
+  const busDetection =
+    options.detectBus !== false ? detectBusInterfaces(ports, clockReset, options.busLibrary) : null;
 
   const excludedNames = new Set<string>();
   busDetection?.busPortNames.forEach((n) => excludedNames.add(n));

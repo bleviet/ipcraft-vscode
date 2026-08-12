@@ -408,6 +408,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
     const bus = b as Record<string, unknown>;
     const useOptionalPorts = bus.use_optional_ports ?? bus.useOptionalPorts ?? [];
     const portWidthOverrides = bus.port_width_overrides ?? bus.portWidthOverrides ?? {};
+    const interfaceProperties = bus.interfaceProperties;
     const portNameOverrides = bus.port_name_overrides ?? bus.portNameOverrides;
     const absentPorts = bus.absent_ports ?? bus.absentPorts;
     const conduitPorts = bus.conduit_ports ?? bus.conduitPorts;
@@ -427,6 +428,11 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
             ),
       useOptionalPorts,
       portWidthOverrides,
+      ...(interfaceProperties &&
+      typeof interfaceProperties === 'object' &&
+      !Array.isArray(interfaceProperties)
+        ? { interfaceProperties }
+        : {}),
       portNameOverrides,
       absentPorts,
       conduitPorts,

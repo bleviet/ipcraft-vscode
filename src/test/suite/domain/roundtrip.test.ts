@@ -293,3 +293,43 @@ busInterfaces:
     ).toBeUndefined();
   });
 });
+
+describe('parseIpCore interface property handling', () => {
+  it('round-trips concrete and parameterized interface properties', () => {
+    const parsed = parseIpCore(`
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: stream
+    type: ipcraft:busif:avalon_st:1.0
+    mode: source
+    interfaceProperties:
+      dataBitsPerSymbol: 1
+      symbolsPerBeat: DATA_WIDTH
+`);
+
+    const serialized = serializeIpCore(parsed) as {
+      busInterfaces: Array<Record<string, unknown>>;
+    };
+
+    expect(serialized.busInterfaces[0].interfaceProperties).toEqual({
+      dataBitsPerSymbol: 1,
+      symbolsPerBeat: 'DATA_WIDTH',
+    });
+  });
+
+  it('does not materialize an interface property map when it is absent', () => {
+    const parsed = parseIpCore(`
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: stream
+    type: ipcraft:busif:axi_stream:1.0
+    mode: master
+`);
+
+    expect(parsed.busInterfaces?.[0]?.interfaceProperties).toBeUndefined();
+    const serialized = serializeIpCore(parsed) as {
+      busInterfaces: Array<Record<string, unknown>>;
+    };
+    expect(serialized.busInterfaces[0].interfaceProperties).toBeUndefined();
+  });
+});

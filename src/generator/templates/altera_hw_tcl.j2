@@ -116,7 +116,7 @@ add_interface_port {{ rst.name }} {{ rst.name }} {% if rst.active_high %}reset{%
 # -----------------------------------------------------------------------------
 {% for iface in expanded_bus_interfaces %}
 {% set altera_type = iface.altera_type %}
-{% set end_type = 'end' if (altera_type == 'conduit' or iface.mode in ['slave', 'sink']) else 'start' %}
+{% set end_type = iface.altera_end_type %}
 
 # Interface: {{ iface.name }} ({{ iface.type }})
 add_interface {{ iface.name }} {{ altera_type }} {{ end_type }}
@@ -143,6 +143,9 @@ set_interface_property {{ iface.name }} addressUnits {{ "WORDS" if addr_port_wid
 {% set readdatavalid_port = (iface.ports | selectattr('logical_name', 'equalto', 'readdatavalid') | list) %}
 set_interface_property {{ iface.name }} maximumPendingReadTransactions {% if readdatavalid_port | length > 0 %}1{% else %}0{% endif %}
 {% elif altera_type == 'avalon_streaming' %}
+{% for prop in iface.interface_properties %}
+set_interface_property {{ iface.name }} {{ prop.name }} {{ prop.tcl_value }}
+{% endfor %}
 set_interface_property {{ iface.name }} firstSymbolInHighOrderBits {% if iface.endianness == 'big' %}true{% else %}false{% endif %}
 {% endif %}
 

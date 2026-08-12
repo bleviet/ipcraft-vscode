@@ -19,10 +19,14 @@ import { spawnSync } from 'child_process';
 import { generateFixtures, Fixture } from './generator';
 import { guardTier1, toolOnPath } from './tier';
 import {
-  hasMemoryMappedSlaveInterface,
+  hasMemoryMappedSlaveInterface as hasMemoryMappedSlaveInterfaceImpl,
   resolveMemoryMaps,
 } from '../../generator/registerProcessor';
 import type { IpCoreData } from '../../generator/types';
+import { builtinBusLibrary } from '../helpers/busLibrary';
+
+const hasMemoryMappedSlaveInterface = (core: IpCoreData) =>
+  hasMemoryMappedSlaveInterfaceImpl(core, builtinBusLibrary());
 
 let allFixtures: Fixture[] = [];
 

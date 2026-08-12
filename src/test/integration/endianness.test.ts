@@ -36,7 +36,7 @@ scaffold_pack: builtin-ipcraft
 parameters:
 - name: BUS_DATA_WIDTH
   dataType: integer
-  value: 8
+  value: 32
 clocks:
 - name: clk
   direction: in
@@ -58,8 +58,7 @@ busInterfaces:
     AWADDR: 8
     ARADDR: 8
     WDATA: BUS_DATA_WIDTH
-    RDATA: 32
-    WSTRB: BUS_DATA_WIDTH
+    RDATA: BUS_DATA_WIDTH
 - name: m_axis
   type: ipcraft:busif:axi_stream:1.0
   mode: master
@@ -157,6 +156,27 @@ busInterfaces:
   associatedReset: reset_n
 `;
 
+const FIVE_BIT_AVALON_ST_YAML = `
+vlnv:
+  vendor: ipcraft
+  library: test
+  name: five_bit_avalon_st
+  version: 1.0.0
+scaffold_pack: builtin-ipcraft
+busInterfaces:
+- name: symbol_stream
+  type: ipcraft:busif:avalon_st:1.0
+  mode: source
+  physicalPrefix: symbol_stream_
+  endianness: big
+  portWidthOverrides:
+    data: 5
+  interfaceProperties:
+    dataBitsPerSymbol: 1
+    symbolsPerBeat: 5
+    readyLatency: 0
+`;
+
 async function generate(
   hdlLanguage: 'vhdl' | 'systemverilog',
   yaml: string = IP_YAML,
@@ -195,6 +215,20 @@ async function generate(
 }
 
 describe('Endianness code generation (issue #138)', () => {
+  it('reverses a five-bit Avalon-ST payload in one-bit lanes without a byte guard', async () => {
+    const vhdl = await generate('vhdl', FIVE_BIT_AVALON_ST_YAML);
+    const vhdlTop = fs.readFileSync(path.join(vhdl.rtlDir, 'five_bit_avalon_st.vhd'), 'utf8');
+    expect(vhdlTop).toContain("symbol_stream_data'length / 1");
+    expect(vhdlTop).toContain('lane_idx * 1');
+    expect(vhdlTop).not.toContain("symbol_stream_data'length mod 8");
+
+    const systemVerilog = await generate('systemverilog', FIVE_BIT_AVALON_ST_YAML);
+    const svTop = fs.readFileSync(path.join(systemVerilog.rtlDir, 'five_bit_avalon_st.sv'), 'utf8');
+    expect(svTop).toContain('$bits(symbol_stream_data) / 1');
+    expect(svTop).toContain('lane_idx_symbol_stream_data * 1 +: 1');
+    expect(svTop).not.toContain('$bits(symbol_stream_data) % 8');
+  });
+
   it('VHDL: wires _be intermediates and swap_bytes_32 through the top level, and stays out of the core/bus wrapper', async () => {
     const { rtlDir } = await generate('vhdl');
 

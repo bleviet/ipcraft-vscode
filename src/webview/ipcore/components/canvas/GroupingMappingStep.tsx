@@ -6,8 +6,9 @@ import {
   inferPrefixAndMode,
   portSuffix,
   type SignalAssignment,
+  type BusDefinitionLookup,
 } from '../../utils/protocolMatcher';
-import { lookupBusDef } from '../../data/busDefinitions';
+import { isAssociatedPort } from '../../utils/busLibrary';
 
 interface GroupingMappingStepProps {
   ipCore: IpCore;
@@ -27,6 +28,7 @@ interface GroupingMappingStepProps {
    * unassign a signal that the bus already owns.
    */
   existingPortAssignments?: Record<string, string>;
+  busDefs: BusDefinitionLookup;
 }
 
 /** SignalAssignment extended with a lock flag for the "add to existing bus" flow. */
@@ -141,6 +143,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
   initialPrefix,
   initialMode,
   existingPortAssignments,
+  busDefs,
 }) => {
   const selectedPorts: Port[] = useMemo(
     () => selectedPortIndices.map((i) => ipCore.ports?.[i]).filter(Boolean) as Port[],
@@ -153,8 +156,8 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
   );
 
   const inferred = useMemo(
-    () => inferPrefixAndMode(portsAsInput, busType),
-    [portsAsInput, busType]
+    () => inferPrefixAndMode(portsAsInput, busType, busDefs),
+    [portsAsInput, busType, busDefs]
   );
 
   const [interfaceName, setInterfaceName] = useState(() => {
@@ -181,7 +184,8 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
         current.map((p) => ({ name: p.name, direction: p.direction })),
         busType,
         currentMode,
-        currentPrefix
+        currentPrefix,
+        busDefs
       );
 
       // Overlay locked rows from the existing bus interface: any signal that is
@@ -202,7 +206,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
         })
       );
     },
-    [busType, selectedPortIndices, ipCore.ports, existingPortAssignments]
+    [busType, selectedPortIndices, ipCore.ports, existingPortAssignments, busDefs]
   );
 
   // Initial compute — intentionally runs only on mount
@@ -253,8 +257,9 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     (a) => !a.isLocked && a.presence === 'required' && !a.assignedPort
   );
 
-  const portDefs = lookupBusDef(busType);
-  const hasAnyAssignableSignals = (portDefs?.filter((d) => !d.role).length ?? 0) > 0;
+  const portDefs = busDefs(busType);
+  const hasAnyAssignableSignals =
+    (portDefs?.filter((port) => !isAssociatedPort(port)).length ?? 0) > 0;
 
   const handleConfirm = () => {
     const portNameOverrides: Record<string, string> = {};

@@ -9,6 +9,7 @@ import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
 import { normalizeBusType } from '../../generator/registerProcessor';
+import type { NormalizedBusLibrary } from '../../shared/busContracts';
 import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
 import {
@@ -149,11 +150,14 @@ const TEMPLATE_TYPE_TO_ALTERA: Record<string, string> = {
   avst: 'avalon_streaming',
 };
 
-export function mapBusTypeToAltera(typeName: string | undefined): string {
+export function mapBusTypeToAltera(
+  typeName: string | undefined,
+  library: NormalizedBusLibrary
+): string {
   if (!typeName) {
     return 'conduit';
   }
-  const info = normalizeBusType(typeName);
+  const info = normalizeBusType(typeName, library);
   return TEMPLATE_TYPE_TO_ALTERA[info.templateType] ?? 'conduit';
 }
 
@@ -344,7 +348,7 @@ export class QuartusToolchain implements SynthesisToolchain {
   }
 
   async scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Promise<Record<string, string>> {
-    const { name, templateContext, templates, ipCoreData, isSv } = ctx;
+    const { name, templateContext, templates, ipCoreData, isSv, busLibrary } = ctx;
     const files: Record<string, string> = {};
 
     // Inject altera_type onto each expanded bus interface so the _hw.tcl
@@ -355,7 +359,8 @@ export class QuartusToolchain implements SynthesisToolchain {
     if (Array.isArray(expanded)) {
       for (const iface of expanded) {
         iface.altera_type = mapBusTypeToAltera(
-          typeof iface.type === 'string' ? iface.type : undefined
+          typeof iface.type === 'string' ? iface.type : undefined,
+          busLibrary
         );
       }
     }

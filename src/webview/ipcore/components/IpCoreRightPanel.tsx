@@ -1,20 +1,21 @@
 import React from 'react';
+import type { NormalizedBusLibrary } from '../../../shared/busContracts';
 import { CanvasInspector } from './canvas/CanvasInspector';
 import { StagingOverlay } from './canvas/StagingOverlay';
-import { ConsistencyOverlay } from './canvas/ConsistencyOverlay';
 import type { useStagingSession } from '../hooks/useStagingSession';
-import type { useConsistencySession } from '../hooks/useConsistencySession';
 import type { CanvasElement } from '../hooks/useCanvasSelection';
 import type { IpCore } from '../../types/ipCore';
 import type { YamlUpdateHandler } from '../../types/editor';
 import type { BatchUpdate } from '../hooks/useGroupPorts';
+import type { useIssuesSession } from '../hooks/useIssuesSession';
+import { IssuesPanel } from './canvas/IssuesPanel';
 
 interface IpCoreRightPanelProps {
   staging: ReturnType<typeof useStagingSession>;
-  consistency: ReturnType<typeof useConsistencySession>;
+  issues: ReturnType<typeof useIssuesSession>;
   canvasSelected: CanvasElement | null;
   ipCore: IpCore | null;
-  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
+  imports?: { busLibrary?: NormalizedBusLibrary; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
   batchUpdate: BatchUpdate;
   onCloseInspector: () => void;
@@ -30,7 +31,7 @@ interface IpCoreRightPanelProps {
  */
 export const IpCoreRightPanel: React.FC<IpCoreRightPanelProps> = ({
   staging,
-  consistency,
+  issues,
   canvasSelected,
   ipCore,
   imports,
@@ -57,19 +58,15 @@ export const IpCoreRightPanel: React.FC<IpCoreRightPanelProps> = ({
     );
   }
 
-  if (consistency.showConsistencyOverlay && consistency.consistencyResult) {
+  if (issues.showIssues) {
     return (
-      <ConsistencyOverlay
-        findings={consistency.consistencyResult.findings}
-        summary={consistency.consistencyResult.summary}
-        ignoredKeys={consistency.ignoredConsistencyKeys}
-        onIgnore={consistency.handleIgnoreConsistencyFinding}
-        onAdopt={consistency.handleAdoptConsistencyFinding}
-        onSelectElement={consistency.handleSelectConsistencyElement}
-        onRegenerate={consistency.handleRegenerateFromConsistency}
-        onRecheck={consistency.handleCheckConsistency}
-        isChecking={consistency.consistencyChecking}
-        onClose={() => consistency.setShowConsistencyOverlay(false)}
+      <IssuesPanel
+        issues={issues.issues}
+        onSelect={(issue) => {
+          issues.focusIssue(issue);
+          issues.setShowIssues(false);
+        }}
+        onClose={() => issues.setShowIssues(false)}
       />
     );
   }
@@ -82,6 +79,7 @@ export const IpCoreRightPanel: React.FC<IpCoreRightPanelProps> = ({
         imports={imports}
         onUpdate={onUpdate}
         batchUpdate={batchUpdate}
+        issueFocusRequest={issues.focusRequest}
         onClose={onCloseInspector}
         onDelete={onDeleteInspector}
         onUngroup={onUngroupInspector}

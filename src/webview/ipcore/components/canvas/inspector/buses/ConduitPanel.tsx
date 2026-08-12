@@ -2,7 +2,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import type { BusInterface, ConduitPort } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
 import { validateUniqueName, validateVhdlIdentifier } from '../../../../../shared/utils/validation';
-import { lookupBusDefFromLibrary } from '../../../../data/busDefinitions';
+import { lookupBusDef } from '../../../../utils/busLibrary';
 import { MapConduitToBusDialog, type MapConduitToBusResult } from '../../MapConduitToBusDialog';
 import { applyMapConduitToKnownBus } from '../../../../hooks/useGroupPorts';
 import { InterfaceTypeField } from '../controls/BusTypeFields';
@@ -62,7 +62,8 @@ export const ConduitPanel: React.FC<BusPanelProps> = ({
   const clockOpts = clocks.map((c) => ({ value: c.name, label: c.name }));
   const resetOpts = resets.map((r) => ({ value: r.name, label: r.name }));
 
-  const typeName = conduitTypeName(bus.type);
+  const busLibrary = imports?.busLibrary;
+  const typeName = conduitTypeName(bus.type, busLibrary);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   // If the bus type is already present in the loaded bus library (built-in, saved
@@ -71,8 +72,7 @@ export const ConduitPanel: React.FC<BusPanelProps> = ({
   // standard Port Widths flow used by other known bus types. If conduitPorts already
   // has data, keep showing it as-is (it's presumably already wired to real HDL) and
   // offer a "Map Signals" action instead of silently reinterpreting it.
-  const busLibrary = imports?.busLibrary as Record<string, unknown> | undefined;
-  const libraryPortDefs = busLibrary ? lookupBusDefFromLibrary(bus.type, busLibrary) : null;
+  const libraryPortDefs = lookupBusDef(bus.type, busLibrary);
   const existingConduitPorts = bus.conduitPorts ?? [];
   const hasOwnConduitPorts = existingConduitPorts.length > 0;
   const [showMappingDialog, setShowMappingDialog] = useState(false);

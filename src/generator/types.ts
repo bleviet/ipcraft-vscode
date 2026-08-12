@@ -204,6 +204,8 @@ export interface GenerateResult {
   count?: number;
   busType?: string;
   error?: string;
+  /** Structured diagnostics when generation is blocked before output construction. */
+  issues?: readonly import('../shared/issues').IpcraftIssue[];
 }
 
 export type BusPortDefinition = {
@@ -228,6 +230,9 @@ export type BusDefinition = {
     description?: string;
   };
   ports?: BusPortDefinition[];
+  contract?: {
+    interfaceKind?: 'memoryMapped' | 'streaming' | 'conduit';
+  };
   /** Set to 'vivado' for interfaces discovered from a local Vivado install (e.g. fifo_write) —
    *  Vivado already ships busDefinition/abstractionDefinition XML for these, so IPCraft must
    *  not bundle a duplicate copy when packaging. Absent for user-authored custom interfaces. */
@@ -266,6 +271,8 @@ export interface BusInterfaceDef {
   physicalPrefix?: string | null;
   useOptionalPorts?: string[];
   portWidthOverrides?: Record<string, number | string>;
+  /** Semantic properties validated by the resolved bus contract. */
+  interfaceProperties?: Record<string, number | string | boolean>;
   portNameOverrides?: Record<string, string>;
   /** Logical port names (uppercase) absent from the user's HDL source — skipped in generation. */
   absentPorts?: string[];
@@ -273,7 +280,7 @@ export interface BusInterfaceDef {
   associatedReset?: string;
   /** Name of the memory map this (slave) interface exposes — matches a map's `name`. */
   memoryMapRef?: string;
-  /** Byte order for this interface's data port(s). Little-endian is the default. */
+  /** Lane order for this interface's data port(s). Avalon-ST uses symbol lanes. */
   endianness?: 'little' | 'big';
   array?: BusInterfaceArrayDef;
   /** User-defined signals for conduit (custom) interfaces. */
