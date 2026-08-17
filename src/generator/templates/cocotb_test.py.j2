@@ -85,36 +85,53 @@ class AvalonTransport:
 
     def __init__(self, dut):
         self.dut = dut
-        self.supports_byte_enable = hasattr(dut, "{{ bus_prefix }}_byteenable")
+        self.address_signal = getattr(dut, "{{ avmm_signals.address.name }}")
+        self.write_data_signal = getattr(dut, "{{ avmm_signals.write_data.name }}")
+        self.read_data_signal = getattr(dut, "{{ avmm_signals.read_data.name }}")
+        self.byte_enable = getattr(dut, "{{ avmm_signals.byte_enable.name }}", None)
+        self.byte_enable_active_low = {{ "True" if avmm_signals.byte_enable.active_low else "False" }}
+        self.write_signal = getattr(dut, "{{ avmm_signals.write.name }}")
+        self.write_asserted = {{ avmm_signals.write.asserted }}
+        self.write_deasserted = {{ avmm_signals.write.deasserted }}
+        self.read_signal = getattr(dut, "{{ avmm_signals.read.name }}")
+        self.read_asserted = {{ avmm_signals.read.asserted }}
+        self.read_deasserted = {{ avmm_signals.read.deasserted }}
+        self.wait_request = getattr(dut, "{{ avmm_signals.wait_request.name }}", None)
+        self.wait_request_asserted = {{ avmm_signals.wait_request.asserted }}
+        self.read_data_valid = getattr(dut, "{{ avmm_signals.read_data_valid.name }}", None)
+        self.read_data_valid_asserted = {{ avmm_signals.read_data_valid.asserted }}
+        self.supports_byte_enable = self.byte_enable is not None
 
     async def write(self, addr, value, byte_enable=_FULL_BYTE_ENABLE):
-        self.dut.{{ bus_prefix }}_address.value = addr
-        self.dut.{{ bus_prefix }}_writedata.value = value
-        if hasattr(self.dut, "{{ bus_prefix }}_byteenable"):
-            self.dut.{{ bus_prefix }}_byteenable.value = byte_enable
+        self.address_signal.value = addr
+        self.write_data_signal.value = value
+        if self.byte_enable is not None:
+            self.byte_enable.value = (
+                _FULL_BYTE_ENABLE ^ byte_enable if self.byte_enable_active_low else byte_enable
+            )
         else:
             assert byte_enable == _FULL_BYTE_ENABLE, "Avalon-MM byteenable is not connected"
-        self.dut.{{ bus_prefix }}_write.value = 1
+        self.write_signal.value = self.write_asserted
         await RisingEdge(self.dut.{{ clock_port }})
-        if hasattr(self.dut, "{{ bus_prefix }}_waitrequest"):
-            while self.dut.{{ bus_prefix }}_waitrequest.value:
+        if self.wait_request is not None:
+            while self.wait_request.value == self.wait_request_asserted:
                 await RisingEdge(self.dut.{{ clock_port }})
-        self.dut.{{ bus_prefix }}_write.value = 0
+        self.write_signal.value = self.write_deasserted
 
     async def read(self, addr):
-        self.dut.{{ bus_prefix }}_address.value = addr
-        self.dut.{{ bus_prefix }}_read.value = 1
+        self.address_signal.value = addr
+        self.read_signal.value = self.read_asserted
         await RisingEdge(self.dut.{{ clock_port }})
-        if hasattr(self.dut, "{{ bus_prefix }}_waitrequest"):
-            while self.dut.{{ bus_prefix }}_waitrequest.value:
+        if self.wait_request is not None:
+            while self.wait_request.value == self.wait_request_asserted:
                 await RisingEdge(self.dut.{{ clock_port }})
-        self.dut.{{ bus_prefix }}_read.value = 0
-        if hasattr(self.dut, "{{ bus_prefix }}_readdatavalid"):
-            while not self.dut.{{ bus_prefix }}_readdatavalid.value:
+        self.read_signal.value = self.read_deasserted
+        if self.read_data_valid is not None:
+            while self.read_data_valid.value != self.read_data_valid_asserted:
                 await RisingEdge(self.dut.{{ clock_port }})
         else:
             await RisingEdge(self.dut.{{ clock_port }})
-        return self.dut.{{ bus_prefix }}_readdata.value
+        return self.read_data_signal.value
 {% endif %}
 
 
