@@ -12,6 +12,7 @@
 //    that already existed for the parent bus interface.
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import * as yaml from 'js-yaml';
 import { builtinBusLibrary } from '../helpers/busLibrary';
 
 test.describe('Bus sub-port click/select/toggle (issue #40)', () => {
@@ -180,5 +181,120 @@ busInterfaces:
     await expect(page.locator('[data-port-id="port:0"]')).toHaveCount(0);
     // TLAST must be untouched — still active.
     await expect(tlastRow).toHaveClass(/canvas-bus-subport--active/);
+  });
+
+  test('polarity active low keeps canonical bus ports, derived names, and sibling state', async ({
+    page,
+  }) => {
+    const polarityYaml = `
+vlnv:
+  vendor: test.com
+  library: smoke
+  name: polarity_test_core
+  version: 1.0.0
+busInterfaces:
+  - name: CONTROL
+    type: AVMM
+    mode: master
+    physicalPrefix: avs_
+    useOptionalPorts:
+      - write
+      - waitrequest
+    portNameOverrides:
+      write: imported_write_signal
+  - name: CONTROL_PEER
+    type: AVMM
+    mode: master
+    physicalPrefix: peer_
+    useOptionalPorts:
+      - read
+`;
+    await setupIpCore(page, polarityYaml, 'polarity_test_core.ip.yml');
+    await expandBus(page);
+
+    const canonicalRow = (name: string) =>
+      page.locator('.canvas-bus-subport', {
+        has: page.locator('.canvas-bus-subport__logical', {
+          hasText: new RegExp(`^${name}\\b`),
+        }),
+      });
+    const readRow = canonicalRow('read');
+    const writeRow = canonicalRow('write');
+    const waitrequestRow = canonicalRow('waitrequest');
+
+    await expect(readRow).toHaveCount(1);
+    await expect(readRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('H');
+    await expect(readRow.locator('.canvas-bus-subport__label')).toHaveText('avs_read');
+    await expect(writeRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('H');
+    await expect(writeRow.locator('.canvas-bus-subport__label')).toHaveText(
+      'avs_imported_write_signal'
+    );
+    await expect(waitrequestRow).toHaveClass(/canvas-bus-subport--active/);
+
+    const readLogical = readRow.locator('.canvas-bus-subport__logical');
+    await readLogical.click();
+    await expect(readRow).toHaveClass(/canvas-bus-subport--selected/);
+
+    const readPolarity = page.getByRole('combobox', { name: 'read polarity' });
+    await expect(readPolarity).toHaveValue('default');
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+      (window as any).__polarity_update_count = 0;
+      window.addEventListener('vscode-post-message', (event: Event) => {
+        if ((event as CustomEvent).detail?.type === 'update') {
+          (window as any).__polarity_update_count += 1;
+        }
+      });
+    });
+    await readPolarity.selectOption('activeLow');
+    await page.waitForFunction(() => (window as any).__last_message?.type === 'update');
+    await page.waitForTimeout(100);
+    expect(await page.evaluate(() => (window as any).__polarity_update_count)).toBe(1);
+    await expect(readRow).toHaveClass(/canvas-bus-subport--inactive/);
+    await expect(readRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('L');
+    await expect(readRow.locator('.canvas-bus-subport__label')).toHaveText('avs_read_n');
+    await expect(writeRow.locator('.canvas-bus-subport__label')).toHaveText(
+      'avs_imported_write_signal'
+    );
+
+    const writePolarity = page.getByRole('combobox', { name: 'write polarity' });
+    await writePolarity.selectOption('activeLow');
+    await expect(writeRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('L');
+    await expect(writeRow.locator('.canvas-bus-subport__label')).toHaveText(
+      'avs_imported_write_signal'
+    );
+    await writePolarity.selectOption('activeHigh');
+    await expect(writeRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('H');
+    await expect(writeRow.locator('.canvas-bus-subport__label')).toHaveText(
+      'avs_imported_write_signal'
+    );
+
+    await page.evaluate(() => {
+      (window as any).__last_message = null;
+    });
+    await readLogical.dblclick();
+    await expect(readRow).toHaveClass(/canvas-bus-subport--active/);
+    await expect(writeRow).toHaveClass(/canvas-bus-subport--active/);
+    await expect(waitrequestRow).toHaveClass(/canvas-bus-subport--active/);
+    await page.waitForFunction(() => (window as any).__last_message?.type === 'update');
+
+    const lastMessage = await page.evaluate(() => (window as any).__last_message);
+    const emitted = yaml.load(lastMessage.text) as any;
+    expect(emitted.busInterfaces[0].useOptionalPorts).toEqual(['write', 'waitrequest', 'read']);
+    expect(emitted.busInterfaces[0].portPolarityOverrides).toEqual({
+      read: 'activeLow',
+      write: 'activeHigh',
+    });
+    expect(emitted.busInterfaces[0].portNameOverrides).toEqual({
+      write: 'imported_write_signal',
+    });
+    expect(emitted.busInterfaces[0].useOptionalPorts).not.toContain('read_n');
+    expect(emitted.busInterfaces[1]).toEqual({
+      name: 'CONTROL_PEER',
+      type: 'AVMM',
+      mode: 'master',
+      physicalPrefix: 'peer_',
+      useOptionalPorts: ['read'],
+    });
   });
 });

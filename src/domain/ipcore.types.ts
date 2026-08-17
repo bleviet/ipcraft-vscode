@@ -669,6 +669,18 @@ export interface BusInterface {
   memoryMapRef?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;
+  /**
+   * Physical port-name overrides keyed by canonical bus port name.
+   */
+  portNameOverrides?: {
+    [k: string]: string;
+  };
+  /**
+   * Per-port assertion polarity overrides keyed by canonical bus port name.
+   */
+  portPolarityOverrides?: {
+    [k: string]: 'activeHigh' | 'activeLow';
+  };
   interfaceProperties?: Interfaceproperties;
   absentPorts?: AbsentPorts;
   /**

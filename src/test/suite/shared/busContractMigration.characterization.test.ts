@@ -1,4 +1,4 @@
-import { canonicalizeBusType } from '../../../shared/busContracts';
+import { canonicalizeBusInterfacePorts, canonicalizeBusType } from '../../../shared/busContracts';
 import { BUS_VLNV } from '../../../shared/busVlnv';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
 
@@ -176,34 +176,53 @@ describe('bus contract migration characterization', () => {
       'read',
       'write',
       'byteenable',
-      'byteenable_n',
       'debugaccess',
       'lock',
       'writedata',
       'readdata',
       'readdatavalid',
-      'readdatavalid_n',
       'writeresponsevalid',
       'waitrequest',
-      'waitrequest_n',
       'response',
       'burstcount',
       'beginbursttransfer',
-      'read_n',
-      'write_n',
     ]);
     expect(LEGACY_AVALON_MM_PORT_NAMES.filter((name) => !canonical.includes(name))).toEqual([
       'chipselect',
     ]);
     expect(canonical.filter((name) => !LEGACY_AVALON_MM_PORT_NAMES.includes(name))).toEqual([
-      'byteenable_n',
       'debugaccess',
       'lock',
-      'readdatavalid_n',
       'writeresponsevalid',
-      'waitrequest_n',
-      'read_n',
-      'write_n',
     ]);
+  });
+
+  it('canonicalizes each legacy Avalon-MM polarity role to one port identity', () => {
+    const contract = library.definitions.AVALON_MEMORY_MAPPED;
+    const result = canonicalizeBusInterfacePorts(
+      contract,
+      {
+        name: 'avalon',
+        type: contract.canonicalVlnv,
+        mode: 'master',
+        useOptionalPorts: ['byteenable_n', 'readdatavalid_n', 'waitrequest_n', 'read_n', 'write_n'],
+      },
+      0
+    );
+
+    expect(result.busInterface.useOptionalPorts).toEqual([
+      'byteenable',
+      'readdatavalid',
+      'waitrequest',
+      'read',
+      'write',
+    ]);
+    expect(result.busInterface.portPolarityOverrides).toEqual({
+      byteenable: 'activeLow',
+      readdatavalid: 'activeLow',
+      waitrequest: 'activeLow',
+      read: 'activeLow',
+      write: 'activeLow',
+    });
   });
 });

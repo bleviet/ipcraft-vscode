@@ -1,7 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import type { IssueFocusRequest } from '../../../../types/issues';
-import type { BusContractEditModel } from '../../../../hooks/useBusContractEditor';
-import { PropCheckbox, PropField, PropWidthField, Section } from '../controls/InspectorFields';
+import type {
+  BusContractEditModel,
+  PolaritySelection,
+} from '../../../../hooks/useBusContractEditor';
+import {
+  PropCheckbox,
+  PropField,
+  PropSelect,
+  PropWidthField,
+  Section,
+} from '../controls/InspectorFields';
 
 interface BusContractFieldsProps {
   busIndex: number;
@@ -11,9 +20,10 @@ interface BusContractFieldsProps {
   focusRequest?: IssueFocusRequest | null;
   onRootWidthChange: (name: string, value: number | string) => void;
   onPropertyChange: (name: string, value: number | string | boolean) => void;
+  onPolarityChange: (name: string, value: PolaritySelection) => void;
 }
 
-const fieldId = (busIndex: number, kind: 'width' | 'property', name: string): string =>
+const fieldId = (busIndex: number, kind: 'width' | 'property' | 'polarity', name: string): string =>
   `bus-${busIndex}-${kind}-${name}`;
 
 export const BusContractFields: React.FC<BusContractFieldsProps> = ({
@@ -24,6 +34,7 @@ export const BusContractFields: React.FC<BusContractFieldsProps> = ({
   focusRequest,
   onRootWidthChange,
   onPropertyChange,
+  onPolarityChange,
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +43,12 @@ export const BusContractFields: React.FC<BusContractFieldsProps> = ({
     if (targetIndex !== busIndex || typeof name !== 'string') {
       return;
     }
-    const kind = section === 'interfaceProperties' ? 'property' : 'width';
+    const kind =
+      section === 'interfaceProperties'
+        ? 'property'
+        : section === 'portPolarityOverrides'
+          ? 'polarity'
+          : 'width';
     const wrapper = rootRef.current?.querySelector<HTMLElement>(
       `#${fieldId(busIndex, kind, name)}`
     );
@@ -102,6 +118,33 @@ export const BusContractFields: React.FC<BusContractFieldsProps> = ({
                   mono
                 />
               )}
+            </div>
+          ))}
+        </Section>
+      )}
+      {model.polarities.length > 0 && (
+        <Section title="Port Polarity">
+          {model.polarities.map((field) => (
+            <div id={fieldId(busIndex, 'polarity', field.name)} key={field.name}>
+              <PropSelect
+                label={`${field.name} polarity`}
+                value={field.value}
+                options={[
+                  {
+                    value: 'default',
+                    label: `Default (${field.defaultValue === 'activeLow' ? 'Active low' : 'Active high'})`,
+                  },
+                  { value: 'activeHigh', label: 'Active high' },
+                  { value: 'activeLow', label: 'Active low' },
+                ]}
+                onSave={(value) => onPolarityChange(field.name, value as PolaritySelection)}
+              />
+              {!field.active && (
+                <div className="ci-field__hint">
+                  Inactive; this setting is preserved when activated.
+                </div>
+              )}
+              {field.error && <div className="ci-field__error">{field.error}</div>}
             </div>
           ))}
         </Section>

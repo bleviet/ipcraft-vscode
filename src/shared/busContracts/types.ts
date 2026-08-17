@@ -10,6 +10,18 @@ export type DocumentPath = readonly (string | number)[];
 export type InterfaceKind = 'memoryMapped' | 'streaming' | 'conduit';
 export type CanonicalPortRole = 'clock' | 'reset' | 'data' | 'byteQualifier' | 'control';
 
+export type PortPolarity = 'activeHigh' | 'activeLow';
+
+export interface BusPortPolarity {
+  default: PortPolarity;
+  roles: Record<PortPolarity, string>;
+}
+
+export interface NormalizedPortPolarity {
+  default: PortPolarity;
+  roles: Readonly<Record<PortPolarity, string>>;
+}
+
 export interface BusDefinitionSource {
   sourceFile: string;
   sourceKind: 'builtin' | 'workspace' | 'configured' | 'ipLocal';
@@ -119,9 +131,25 @@ export interface NormalizedBusPort {
   direction?: 'in' | 'out';
   presence: 'required' | 'optional';
   role: CanonicalPortRole;
+  polarity?: NormalizedPortPolarity;
   widthPolicy: 'root' | 'derived' | 'fixed';
   derivedWidth?: NormalizedDerivedWidth;
   overrideConstraintRuleId?: string;
+}
+
+export interface MatchedBusPortRole {
+  port: NormalizedBusPort;
+  polarity?: PortPolarity;
+}
+
+export type BusInterfacePortMutation = readonly [
+  path: readonly (string | number)[],
+  value: unknown,
+];
+
+export interface CanonicalizedBusInterface {
+  busInterface: BusInterface;
+  mutations: readonly BusInterfacePortMutation[];
 }
 
 export interface NormalizedPropertyDeclaration {
@@ -182,12 +210,17 @@ export type ResolvedSemanticValue =
     };
 
 export interface ResolvedBusPort extends NormalizedBusPort {
+  effectivePolarity?: PortPolarity;
+  interfaceRole: string;
+  physicalSuffix: string;
+  needsPolarityInversion: boolean;
   effectiveDirection?: 'in' | 'out';
   effectiveWidth: ResolvedNumericValue;
 }
 
 export interface BusInterfaceResolution {
   match: CanonicalBusMatch | null;
+  canonicalBusInterface: BusInterface | null;
   normalizedMode: string | null;
   authoredPortWidths: Readonly<Record<string, number | string>>;
   authoredProperties: Readonly<Record<string, number | string | boolean>>;

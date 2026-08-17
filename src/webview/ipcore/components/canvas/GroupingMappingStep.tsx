@@ -9,6 +9,7 @@ import {
   type BusDefinitionLookup,
 } from '../../utils/protocolMatcher';
 import { isAssociatedPort } from '../../utils/busLibrary';
+import type { PortPolarity } from '../../../../shared/busContracts';
 
 interface GroupingMappingStepProps {
   ipCore: IpCore;
@@ -246,8 +247,27 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
         }
         const port = portName ? (selectedPorts.find((p) => p.name === portName) ?? null) : null;
         const suffix = port ? portSuffix(port.name, prefix) : '';
-        const hasSuffixMismatch = port !== null && suffix !== logicalName.toLowerCase();
+        const hasSuffixMismatch = port !== null && suffix !== a.roleSuffix;
         return { ...a, assignedPort: port, hasSuffixMismatch };
+      })
+    );
+  };
+
+  const handlePolarityChange = (logicalName: string, polarity: PortPolarity) => {
+    setAssignments((prev) =>
+      prev.map((a) => {
+        if (a.logicalName !== logicalName || a.isLocked || !a.defaultPolarity) {
+          return a;
+        }
+        const def = busDefs(busType)?.find((port) => port.name === logicalName);
+        const roleSuffix = def?.polarity?.roles[polarity] ?? a.roleSuffix;
+        const suffix = a.assignedPort ? portSuffix(a.assignedPort.name, prefix) : '';
+        return {
+          ...a,
+          polarity,
+          roleSuffix,
+          hasSuffixMismatch: a.assignedPort !== null && suffix !== roleSuffix,
+        };
       })
     );
   };
@@ -264,6 +284,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
   const handleConfirm = () => {
     const portNameOverrides: Record<string, string> = {};
     const portWidthOverrides: Record<string, number | string> = {};
+    const portPolarityOverrides: Record<string, PortPolarity> = {};
     const useOptionalPorts: string[] = [];
     const assignedPortIndices: number[] = [];
 
@@ -278,6 +299,9 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       }
       if (a.hasSuffixMismatch) {
         portNameOverrides[a.logicalName] = portSuffix(a.assignedPort.name, prefix);
+      }
+      if (a.defaultPolarity && a.polarity && a.polarity !== a.defaultPolarity) {
+        portPolarityOverrides[a.logicalName] = a.polarity;
       }
       if (a.presence === 'optional') {
         useOptionalPorts.push(a.logicalName);
@@ -298,6 +322,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       portNameOverrides: Object.keys(portNameOverrides).length > 0 ? portNameOverrides : undefined,
       portWidthOverrides:
         Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
+      ...(Object.keys(portPolarityOverrides).length > 0 ? { portPolarityOverrides } : {}),
       useOptionalPorts: useOptionalPorts.length > 0 ? useOptionalPorts : undefined,
       associatedClock: associatedClock || null,
       associatedReset: associatedReset || null,
@@ -406,6 +431,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
               <tr>
                 <th style={STYLE.thCell}>Logical</th>
                 <th style={STYLE.thCell}>Assigned Port</th>
+                <th style={STYLE.thCell}>Polarity</th>
                 <th style={STYLE.thCell}>Dir</th>
                 <th style={STYLE.thCell}>Req</th>
               </tr>
@@ -491,6 +517,24 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
                               </span>
                             )}
                           </>
+                        )}
+                      </td>
+                      <td style={STYLE.tdCell}>
+                        {a.defaultPolarity ? (
+                          <select
+                            aria-label={`${a.logicalName} polarity`}
+                            style={{ ...STYLE.select, flex: undefined, width: '100%' }}
+                            value={a.polarity}
+                            disabled={a.isLocked}
+                            onChange={(e) =>
+                              handlePolarityChange(a.logicalName, e.target.value as PortPolarity)
+                            }
+                          >
+                            <option value="activeHigh">Active high</option>
+                            <option value="activeLow">Active low</option>
+                          </select>
+                        ) : (
+                          '—'
                         )}
                       </td>
                       <td style={{ ...STYLE.tdCell, opacity: 0.7 }}>{a.expectedDir ?? '—'}</td>

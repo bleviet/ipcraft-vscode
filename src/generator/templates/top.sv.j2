@@ -59,10 +59,10 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
 {% set core_bus_interfaces = expanded_bus_interfaces %}
 {% set core_bus_ports = bus_ports %}
 {% endif %}
-{# Instantiate the bus-agnostic core whenever it carries logic: any memory-mapped IP, or —
-   for an IP with no memory-mapped slave — when a big-endian swap needs a core to reflow
+{# Instantiate the bus-agnostic core whenever it carries logic: any memory-mapped IP, or
+   for an IP with no memory-mapped slave when a boundary transform needs a core to wire
    through. #}
-{% set instantiate_core = has_memory_mapped_slave or has_endian_swap %}
+{% set instantiate_core = has_memory_mapped_slave or has_boundary_transform %}
 {% if has_memory_mapped_slave and (sw_registers | length > 0 or has_regs_in) %}
 
   // Internal register signals
@@ -73,30 +73,29 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
   regs_hw2sw_t regs_hw2sw;
 {% endif %}
 {% endif %}
-{% if has_endian_swap %}
+{% if has_boundary_transform %}
 
-  // Big-endian intermediate signals (lane-reversed view for internal logic)
-{% for port in endian_swap_ports %}
+  // Canonical active-high, little-endian signals for internal logic
+{% for port in boundary_transform_ports %}
   {{ port.sv_type }} {{ port.internal_name }};
 {% endfor %}
 {% endif %}
-{% if has_endian_swap %}
+{% if has_boundary_transform %}
 
-  // Endianness: reflow big-endian data ports (lane reversal) and their byte-qualifier
-  // masks (bit reversal) between the external ports and the internal `_be` view.
-{% for port in endian_swap_ports %}
+  // Reflow endianness and polarity once at the external HDL boundary.
+{% for port in boundary_transform_ports %}
 {% if port.swap_kind == 'bit' %}
   genvar bit_idx_{{ port.name }};
   generate
   for (bit_idx_{{ port.name }} = 0; bit_idx_{{ port.name }} < $bits({{ port.name }}); bit_idx_{{ port.name }} = bit_idx_{{ port.name }} + 1) begin : gen_swap_{{ port.name }}
 {% if port.direction == 'in' %}
-    assign {{ port.internal_name }}[bit_idx_{{ port.name }}] = {{ port.name }}[$bits({{ port.name }}) - 1 - bit_idx_{{ port.name }}];
+    assign {{ port.internal_name }}[bit_idx_{{ port.name }}] = {{ "~" if port.invert else "" }}{{ port.name }}[$bits({{ port.name }}) - 1 - bit_idx_{{ port.name }}];
 {% else %}
-    assign {{ port.name }}[bit_idx_{{ port.name }}] = {{ port.internal_name }}[$bits({{ port.name }}) - 1 - bit_idx_{{ port.name }}];
+    assign {{ port.name }}[bit_idx_{{ port.name }}] = {{ "~" if port.invert else "" }}{{ port.internal_name }}[$bits({{ port.name }}) - 1 - bit_idx_{{ port.name }}];
 {% endif %}
   end
   endgenerate
-{% elif port.is_parameterized or port.lane_width != 8 %}
+{% elif port.swap_kind == 'lane' and (port.is_parameterized or port.lane_width != 8) %}
   initial begin : check_swap_{{ port.name }}_width
     assert (($bits({{ port.name }}) % {{ port.lane_width }}) == 0 && $bits({{ port.name }}) > {{ port.lane_width }})
       else $fatal(1, "{{ port.name }}: big-endian lane swap requires at least two complete {{ port.lane_width }}-bit lanes");
@@ -105,18 +104,22 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
   generate
   for (lane_idx_{{ port.name }} = 0; lane_idx_{{ port.name }} < $bits({{ port.name }}) / {{ port.lane_width }}; lane_idx_{{ port.name }} = lane_idx_{{ port.name }} + 1) begin : gen_swap_{{ port.name }}
 {% if port.direction == 'in' %}
-    assign {{ port.internal_name }}[lane_idx_{{ port.name }} * {{ port.lane_width }} +: {{ port.lane_width }}] = {{ port.name }}[$bits({{ port.name }}) - lane_idx_{{ port.name }} * {{ port.lane_width }} - 1 -: {{ port.lane_width }}];
+    assign {{ port.internal_name }}[lane_idx_{{ port.name }} * {{ port.lane_width }} +: {{ port.lane_width }}] = {{ "~" if port.invert else "" }}{{ port.name }}[$bits({{ port.name }}) - lane_idx_{{ port.name }} * {{ port.lane_width }} - 1 -: {{ port.lane_width }}];
 {% else %}
-    assign {{ port.name }}[lane_idx_{{ port.name }} * {{ port.lane_width }} +: {{ port.lane_width }}] = {{ port.internal_name }}[$bits({{ port.name }}) - lane_idx_{{ port.name }} * {{ port.lane_width }} - 1 -: {{ port.lane_width }}];
+    assign {{ port.name }}[lane_idx_{{ port.name }} * {{ port.lane_width }} +: {{ port.lane_width }}] = {{ "~" if port.invert else "" }}{{ port.internal_name }}[$bits({{ port.name }}) - lane_idx_{{ port.name }} * {{ port.lane_width }} - 1 -: {{ port.lane_width }}];
 {% endif %}
   end
   endgenerate
-{% else %}
+{% elif port.swap_kind == 'lane' %}
 {% if port.direction == 'in' %}
-  assign {{ port.internal_name }} = swap_bytes_{{ port.width }}({{ port.name }});
+  assign {{ port.internal_name }} = {{ "~" if port.invert else "" }}swap_bytes_{{ port.width }}({{ port.name }});
 {% else %}
-  assign {{ port.name }} = swap_bytes_{{ port.width }}({{ port.internal_name }});
+  assign {{ port.name }} = {{ "~" if port.invert else "" }}swap_bytes_{{ port.width }}({{ port.internal_name }});
 {% endif %}
+{% elif port.direction == 'in' %}
+  assign {{ port.internal_name }} = {{ "~" if port.invert else "" }}{{ port.name }};
+{% else %}
+  assign {{ port.name }} = {{ "~" if port.invert else "" }}{{ port.internal_name }};
 {% endif %}
 {% endfor %}
 {% endif %}
@@ -135,7 +138,7 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
     .rst ({% if reset_active_high %}{{ reset_port }}{% else %}~{{ reset_port }}{% endif %}){% if bus_ports | length or sw_registers | length > 0 or has_regs_in %},{% endif %}
 
 {% for port in bus_ports %}
-    .{{ "%-14s"|format(port.name) }}({{ port.internal_name if port.needs_swap else port.name }}){{ "," if not loop.last or sw_registers | length > 0 or has_regs_in else "" }}
+    .{{ "%-14s"|format(port.name) }}({{ port.internal_name if port.needs_swap or port.needs_polarity_inversion else port.name }}){{ "," if not loop.last or sw_registers | length > 0 or has_regs_in else "" }}
 {% endfor %}
 {% if sw_registers | length > 0 %}
     .regs_out (regs_sw2hw){{ "," if has_regs_in else "" }}
@@ -168,7 +171,7 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
 
     // {{ iface.name }}
 {% for port in iface.ports %}
-    .{{ "%-14s"|format(port.name) }}({{ port.internal_name if port.needs_swap else port.name }}){{ "," if not loop.last or not iface_loop.last or user_ports | length > 0 or interrupt_ports | length > 0 else "" }}
+    .{{ "%-14s"|format(port.name) }}({{ port.internal_name if port.needs_swap or port.needs_polarity_inversion else port.name }}){{ "," if not loop.last or not iface_loop.last or user_ports | length > 0 or interrupt_ports | length > 0 else "" }}
 {% endfor %}
 {% endfor %}
 {% endif %}

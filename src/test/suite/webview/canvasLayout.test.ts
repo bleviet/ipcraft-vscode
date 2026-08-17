@@ -7,7 +7,10 @@ import {
   BLOCK_WIDTH,
   AUTHOR_ROW_HEIGHT,
 } from '../../../webview/ipcore/components/canvas/canvasLayout';
+import { resolveBusInterface } from '../../../shared/busContracts';
 import type { IpCore } from '../../../webview/types/ipCore';
+import { lookupBusDef } from '../../../webview/ipcore/utils/busLibrary';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 function makeIpCore(overrides: Partial<IpCore> = {}): IpCore {
   return {
@@ -289,6 +292,87 @@ describe('computeLayout', () => {
     // IDs are index-based so they survive name collisions
     expect(subIds).toContain('bus:0:cp:0');
     expect(subIds).toContain('bus:0:cp:1');
+  });
+
+  it('lays out one canonical sub-port with effective polarity and derived physical suffix', () => {
+    const library = builtinBusLibrary();
+    const ip = makeIpCore({
+      busInterfaces: [
+        {
+          name: 'control',
+          type: 'AVMM',
+          mode: 'master',
+          physicalPrefix: 'avs_',
+          useOptionalPorts: ['read', 'write'],
+          portPolarityOverrides: { read: 'activeLow' },
+        },
+      ],
+    });
+    const layout = computeLayout(
+      ip,
+      new Set(['bus:0']),
+      (type) => lookupBusDef(type, library),
+      undefined,
+      undefined,
+      undefined,
+      (bus, busIndex) =>
+        resolveBusInterface({
+          busInterface: bus as unknown as import('../../../domain/ipcore.types').BusInterface,
+          busIndex,
+          parameters: [],
+          library,
+        })
+    );
+
+    const readPorts = layout.subPorts.filter((port) => port.name.startsWith('read'));
+    expect(readPorts.filter((port) => port.name === 'read')).toHaveLength(1);
+    expect(readPorts.some((port) => port.name === 'read_n')).toBe(false);
+    expect(readPorts.find((port) => port.name === 'read')).toMatchObject({
+      polarity: 'activeLow',
+      polarityConfigurable: true,
+      physicalSuffix: 'read_n',
+      active: true,
+    });
+    expect(layout.subPorts.find((port) => port.name === 'write')).toMatchObject({
+      polarity: 'activeHigh',
+      polarityConfigurable: true,
+      physicalSuffix: 'write',
+      active: true,
+    });
+  });
+
+  it('preserves a literal physical suffix across polarity changes', () => {
+    const library = builtinBusLibrary();
+    const bus = {
+      name: 'control',
+      type: 'AVMM',
+      mode: 'master' as const,
+      physicalPrefix: 'avs_',
+      useOptionalPorts: ['read'],
+      portPolarityOverrides: { read: 'activeLow' as const },
+      portNameOverrides: { read: 'imported_read_signal' },
+    };
+    const ip = makeIpCore({ busInterfaces: [bus] });
+    const layout = computeLayout(
+      ip,
+      new Set(['bus:0']),
+      (type) => lookupBusDef(type, library),
+      undefined,
+      undefined,
+      undefined,
+      (currentBus, busIndex) =>
+        resolveBusInterface({
+          busInterface:
+            currentBus as unknown as import('../../../domain/ipcore.types').BusInterface,
+          busIndex,
+          parameters: [],
+          library,
+        })
+    );
+
+    expect(layout.subPorts.find((port) => port.name === 'read')?.physicalSuffix).toBe(
+      'imported_read_signal'
+    );
   });
 
   it('port Y positions are not shifted by a description section', () => {

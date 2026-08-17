@@ -1,6 +1,10 @@
 import type { BusDefinitionFile, BusType } from '../../../domain/busDefinition.types';
 import { normalizeBusLibrary } from '../../../shared/busContracts';
-import { listBuiltinBusTypes, listLibraryBusTypes } from '../../../webview/ipcore/utils/busLibrary';
+import {
+  listBuiltinBusTypes,
+  listLibraryBusTypes,
+  portNameCandidates,
+} from '../../../webview/ipcore/utils/busLibrary';
 
 function definition(busType: BusType, sourceKind: 'builtin' | 'workspace') {
   const definitions = {
@@ -24,6 +28,23 @@ function definition(busType: BusType, sourceKind: 'builtin' | 'workspace') {
 }
 
 describe('bus library presentation', () => {
+  it('lists declared polarity roles with the contract default first', () => {
+    expect(
+      portNameCandidates({
+        name: 'read',
+        presence: 'optional',
+        role: 'control',
+        polarity: {
+          default: 'activeHigh',
+          roles: { activeHigh: 'read', activeLow: 'read_n' },
+        },
+      })
+    ).toEqual([
+      { suffix: 'read', roleSuffix: 'read', polarity: 'activeHigh', isDefaultRole: true },
+      { suffix: 'read_n', roleSuffix: 'read_n', polarity: 'activeLow' },
+    ]);
+  });
+
   it('classifies definitions by source metadata instead of canonical VLNV allowlists', () => {
     const library = normalizeBusLibrary([
       definition(

@@ -3,9 +3,11 @@ import type { BusInterface, Parameter } from '../../../domain/ipcore.types';
 import type { DerivedOperation } from '../../../domain/busDefinition.types';
 import {
   operationReferences,
+  resolveEffectivePortPolarity,
   resolveBusInterface,
   type BusInterfaceResolution,
   type NormalizedBusLibrary,
+  type PortPolarity,
   type ResolutionState,
 } from '../../../shared/busContracts';
 import type { BatchUpdate } from './useGroupPorts';
@@ -24,6 +26,16 @@ export interface ReadonlyContractField {
   state: ResolutionState;
 }
 
+export interface EditablePolarityField {
+  name: string;
+  value: PolaritySelection;
+  defaultValue: PortPolarity;
+  active: boolean;
+  error?: string;
+}
+
+export type PolaritySelection = 'default' | PortPolarity;
+
 export type BusContractMutation = [Array<string | number>, unknown];
 
 export interface BusContractEditModel {
@@ -31,6 +43,7 @@ export interface BusContractEditModel {
   properties: readonly EditableContractField[];
   derivedWidths: readonly ReadonlyContractField[];
   fixedWidths: readonly ReadonlyContractField[];
+  polarities: readonly EditablePolarityField[];
 }
 
 function operationFormula(operation: DerivedOperation): string {
@@ -56,7 +69,7 @@ function operationFormula(operation: DerivedOperation): string {
 
 function diagnosticFor(
   resolution: BusInterfaceResolution,
-  section: 'portWidthOverrides' | 'interfaceProperties',
+  section: 'portWidthOverrides' | 'interfaceProperties' | 'portPolarityOverrides',
   name: string
 ): string | undefined {
   return resolution.diagnostics.find(
@@ -70,8 +83,22 @@ export function buildBusContractEditModel(
 ): BusContractEditModel {
   const contract = resolution.match?.contract;
   if (!contract) {
-    return { rootWidths: [], properties: [], derivedWidths: [], fixedWidths: [] };
+    return { rootWidths: [], properties: [], derivedWidths: [], fixedWidths: [], polarities: [] };
   }
+  const busInterface = resolution.canonicalBusInterface;
+  const activePortNames = new Set(resolution.activePorts.map((port) => port.name));
+  const authoredPolarity = (name: string): { found: boolean; value?: PortPolarity } => {
+    let found = false;
+    let value: PortPolarity | undefined;
+    for (const [key, candidate] of Object.entries(busInterface?.portPolarityOverrides ?? {})) {
+      if (key.toLowerCase() !== name.toLowerCase()) {
+        continue;
+      }
+      found = true;
+      value = candidate === 'activeHigh' || candidate === 'activeLow' ? candidate : undefined;
+    }
+    return { found, value };
+  };
   const readonlyField = (name: string, formula: string): ReadonlyContractField => {
     const value = resolution.portWidths[name];
     return { name, formula, resolvedValue: value?.value, state: value?.state ?? 'unresolved' };
@@ -100,6 +127,22 @@ export function buildBusContractEditModel(
     fixedWidths: contract.ports
       .filter((port) => port.widthPolicy === 'fixed')
       .map((port) => readonlyField(port.name, `fixed ${port.width ?? 1}`)),
+    polarities: busInterface
+      ? contract.ports
+          .filter((port) => port.polarity !== undefined)
+          .map((port) => {
+            const authored = authoredPolarity(port.name);
+            return {
+              name: port.name,
+              value: authored.found
+                ? (authored.value ?? resolveEffectivePortPolarity(port, busInterface)!)
+                : 'default',
+              defaultValue: port.polarity!.default,
+              active: activePortNames.has(port.name),
+              error: diagnosticFor(resolution, 'portPolarityOverrides', port.name),
+            };
+          })
+      : [],
   };
 }
 
@@ -187,5 +230,29 @@ export function useBusContractEditor(options: {
       batchUpdate([[['busInterfaces', busIndex, 'interfaceProperties', name], value]]),
     [batchUpdate, busIndex]
   );
-  return { resolution, model, updateRootWidth, updateProperty };
+  const updatePolarity = useCallback(
+    (name: string, value: PolaritySelection) => {
+      const field = model.polarities.find((candidate) => candidate.name === name);
+      if (!field) {
+        return;
+      }
+      const updated = { ...(resolution.canonicalBusInterface?.portPolarityOverrides ?? {}) };
+      for (const key of Object.keys(updated)) {
+        if (key.toLowerCase() === name.toLowerCase()) {
+          delete updated[key];
+        }
+      }
+      if (value !== 'default') {
+        updated[name] = value;
+      }
+      batchUpdate([
+        [
+          ['busInterfaces', busIndex, 'portPolarityOverrides'],
+          Object.keys(updated).length > 0 ? updated : undefined,
+        ],
+      ]);
+    },
+    [batchUpdate, busIndex, model.polarities, resolution.canonicalBusInterface]
+  );
+  return { resolution, model, updateRootWidth, updateProperty, updatePolarity };
 }

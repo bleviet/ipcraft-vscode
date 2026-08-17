@@ -76,6 +76,84 @@ describe('resolveBusInterface width states', () => {
 });
 
 describe('resolveBusInterface policies and properties', () => {
+  it('resolves legacy polarity roles through one canonical active port', () => {
+    const result = resolve({
+      name: 'avalon',
+      type: 'AVMM',
+      mode: 'master',
+      useOptionalPorts: ['read_n'],
+    });
+
+    expect(result.canonicalBusInterface?.useOptionalPorts).toEqual(['read']);
+    expect(result.activePorts.filter((port) => port.name === 'read')).toEqual([
+      expect.objectContaining({
+        effectivePolarity: 'activeLow',
+        interfaceRole: 'read_n',
+        physicalSuffix: 'read_n',
+      }),
+    ]);
+  });
+
+  it('accepts an inactive capable polarity override', () => {
+    const result = resolve({
+      name: 'avalon',
+      type: 'AVMM',
+      mode: 'master',
+      portPolarityOverrides: { read: 'activeLow' },
+    });
+
+    expect(result.diagnostics).not.toContainEqual(
+      expect.objectContaining({ code: 'BUS_PORT_POLARITY_OVERRIDE' })
+    );
+  });
+
+  it('diagnoses unknown and incapable polarity overrides at their authored paths', () => {
+    const result = resolve({
+      name: 'avalon',
+      type: 'AVMM',
+      mode: 'master',
+      portPolarityOverrides: { missing: 'activeLow', address: 'activeLow' },
+    });
+
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'BUS_PORT_POLARITY_OVERRIDE',
+          path: ['busInterfaces', 0, 'portPolarityOverrides', 'missing'],
+        }),
+        expect.objectContaining({
+          code: 'BUS_PORT_POLARITY_OVERRIDE',
+          path: ['busInterfaces', 0, 'portPolarityOverrides', 'address'],
+        }),
+      ])
+    );
+  });
+
+  it('retains an invalid explicit override under its canonical key and falls back to the default', () => {
+    const result = resolve({
+      name: 'avalon',
+      type: 'AVMM',
+      mode: 'master',
+      useOptionalPorts: ['read_n'],
+      portPolarityOverrides: {
+        READ: 'invalid',
+      } as unknown as NonNullable<BusInterface['portPolarityOverrides']>,
+    });
+
+    expect(result.canonicalBusInterface?.portPolarityOverrides).toEqual({ read: 'invalid' });
+    expect(result.activePorts.find((port) => port.name === 'read')).toMatchObject({
+      effectivePolarity: 'activeHigh',
+      interfaceRole: 'read',
+      physicalSuffix: 'read_n',
+    });
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'BUS_PORT_POLARITY_OVERRIDE',
+        path: ['busInterfaces', 0, 'portPolarityOverrides', 'read'],
+      })
+    );
+  });
+
   it('accepts a compatible derived override and rejects an incompatible one', () => {
     const compatible = resolve({
       name: 'stream',

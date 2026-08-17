@@ -1,9 +1,14 @@
+import { act, renderHook } from '@testing-library/react';
 import { resolveBusInterface } from '../../../shared/busContracts';
 import {
   buildBusContractEditModel,
   buildRootWidthMutations,
+  useBusContractEditor,
 } from '../../../webview/ipcore/hooks/useBusContractEditor';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
+import type { BusInterface } from '../../../domain/ipcore.types';
+import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
+import { normalizeBusLibrary } from '../../../shared/busContracts';
 
 describe('bus contract editor model', () => {
   const resolution = resolveBusInterface({
@@ -59,5 +64,199 @@ describe('bus contract editor model', () => {
   it('does not create cleanup mutations merely by loading matching overrides', () => {
     expect(resolution.diagnostics).toEqual([]);
     expect(resolution.portWidths.TKEEP.value).toBe(8);
+  });
+
+  it('derives configurable polarity fields from contract metadata for active and inactive ports', () => {
+    const polarityResolution = resolveBusInterface({
+      busInterface: {
+        name: 'control',
+        type: 'AVMM',
+        mode: 'master',
+        useOptionalPorts: ['read'],
+        portPolarityOverrides: { write: 'activeLow' },
+      },
+      busIndex: 0,
+      parameters: [],
+      library: builtinBusLibrary(),
+    });
+
+    const fields = buildBusContractEditModel(0, polarityResolution).polarities;
+
+    expect(fields).toEqual(
+      expect.arrayContaining([
+        {
+          name: 'read',
+          value: 'default',
+          defaultValue: 'activeHigh',
+          active: true,
+          error: undefined,
+        },
+        {
+          name: 'write',
+          value: 'activeLow',
+          defaultValue: 'activeHigh',
+          active: false,
+          error: undefined,
+        },
+      ])
+    );
+    expect(fields.some((field) => field.name === 'address')).toBe(false);
+  });
+
+  it('distinguishes an explicit default-equal override from inherited contract default', () => {
+    const explicitDefault = resolveBusInterface({
+      busInterface: {
+        name: 'control',
+        type: 'AVMM',
+        mode: 'master',
+        portPolarityOverrides: { read: 'activeHigh' },
+      },
+      busIndex: 0,
+      parameters: [],
+      library: builtinBusLibrary(),
+    });
+
+    expect(
+      buildBusContractEditModel(0, explicitDefault).polarities.find(
+        (field) => field.name === 'read'
+      )
+    ).toMatchObject({
+      value: 'activeHigh',
+      defaultValue: 'activeHigh',
+    });
+  });
+
+  it('represents inheritance independently for a contract whose default is active low', () => {
+    const definitions: BusDefinitionFile = {
+      ACTIVE_LOW_DEFAULT: {
+        busType: { vendor: 'acme', library: 'busif', name: 'low_default', version: '1.0' },
+        contract: {
+          version: 1,
+          interfaceKind: 'streaming',
+          modePolicy: { producer: 'source', consumer: 'sink', aliases: {} },
+          interfaceProperties: {},
+          constraints: [],
+        },
+        ports: [
+          {
+            name: 'request',
+            width: 1,
+            direction: 'out',
+            presence: 'required',
+            role: 'control',
+            widthPolicy: 'fixed',
+            polarity: {
+              default: 'activeLow',
+              roles: { activeHigh: 'request', activeLow: 'request_n' },
+            },
+          },
+        ],
+      },
+    };
+    const library = normalizeBusLibrary([
+      { sourceFile: '/workspace/low-default.yml', sourceKind: 'workspace', definitions },
+    ]);
+    const inherited = resolveBusInterface({
+      busInterface: {
+        name: 'control',
+        type: 'acme:busif:low_default:1.0',
+        mode: 'source',
+      },
+      busIndex: 0,
+      parameters: [],
+      library,
+    });
+    const explicit = resolveBusInterface({
+      busInterface: {
+        name: 'control',
+        type: 'acme:busif:low_default:1.0',
+        mode: 'source',
+        portPolarityOverrides: { request: 'activeLow' },
+      },
+      busIndex: 0,
+      parameters: [],
+      library,
+    });
+
+    expect(buildBusContractEditModel(0, inherited).polarities[0]).toMatchObject({
+      value: 'default',
+      defaultValue: 'activeLow',
+    });
+    expect(inherited.activePorts[0].effectivePolarity).toBe('activeLow');
+    expect(buildBusContractEditModel(0, explicit).polarities[0]).toMatchObject({
+      value: 'activeLow',
+      defaultValue: 'activeLow',
+    });
+  });
+
+  it('writes explicit polarity choices and removes the empty map through Default', () => {
+    const batchUpdate = jest.fn();
+    const bus: BusInterface = {
+      name: 'control',
+      type: 'AVMM',
+      mode: 'master',
+      useOptionalPorts: ['read'],
+    };
+    const { result, rerender } = renderHook(
+      ({ currentBus }) =>
+        useBusContractEditor({
+          bus: currentBus,
+          busIndex: 1,
+          parameters: [],
+          busLibrary: builtinBusLibrary(),
+          batchUpdate,
+        }),
+      { initialProps: { currentBus: bus } }
+    );
+
+    act(() => result.current.updatePolarity('read', 'activeHigh'));
+    expect(batchUpdate).toHaveBeenLastCalledWith([
+      [['busInterfaces', 1, 'portPolarityOverrides'], { read: 'activeHigh' }],
+    ]);
+
+    act(() => result.current.updatePolarity('read', 'activeLow'));
+    expect(batchUpdate).toHaveBeenLastCalledWith([
+      [['busInterfaces', 1, 'portPolarityOverrides'], { read: 'activeLow' }],
+    ]);
+
+    rerender({
+      currentBus: {
+        ...bus,
+        portPolarityOverrides: { read: 'activeLow' as const },
+      },
+    });
+    act(() => result.current.updatePolarity('read', 'default'));
+    expect(batchUpdate).toHaveBeenLastCalledWith([
+      [['busInterfaces', 1, 'portPolarityOverrides'], undefined],
+    ]);
+  });
+
+  it('removes every matching case variant while preserving unrelated overrides', () => {
+    const batchUpdate = jest.fn();
+    const bus: BusInterface = {
+      name: 'control',
+      type: 'AVMM',
+      mode: 'master',
+      portPolarityOverrides: {
+        READ: 'activeHigh',
+        write: 'activeLow',
+        read: 'activeLow',
+      },
+    };
+    const { result } = renderHook(() =>
+      useBusContractEditor({
+        bus,
+        busIndex: 0,
+        parameters: [],
+        busLibrary: builtinBusLibrary(),
+        batchUpdate,
+      })
+    );
+
+    act(() => result.current.updatePolarity('read', 'default'));
+
+    expect(batchUpdate).toHaveBeenCalledWith([
+      [['busInterfaces', 0, 'portPolarityOverrides'], { write: 'activeLow' }],
+    ]);
   });
 });

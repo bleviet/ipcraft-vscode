@@ -94,6 +94,33 @@ function normalizeEntry(
     ports.push(normalized);
   });
 
+  const portRoleOwners = new Map<string, string>();
+  for (const port of ports) {
+    portRoleOwners.set(port.name.toLowerCase(), port.name);
+  }
+  entry.ports.forEach((port, index) => {
+    const normalized = ports.find((candidate) => candidate.name === port.name);
+    if (!normalized?.polarity) {
+      return;
+    }
+    for (const role of ['activeHigh', 'activeLow'] as const) {
+      const name = normalized.polarity.roles[role];
+      const owner = portRoleOwners.get(name.toLowerCase());
+      if (owner !== undefined && owner !== normalized.name) {
+        diagnostic(
+          diagnostics,
+          source.sourceFile,
+          'BUS_DEF_PORT_ROLE_COLLISION',
+          'error',
+          [key, 'ports', index, 'polarity', 'roles', role],
+          `Port polarity role '${name}' collides with '${owner}'.`
+        );
+        continue;
+      }
+      portRoleOwners.set(name.toLowerCase(), normalized.name);
+    }
+  });
+
   const properties: Record<string, NormalizedPropertyDeclaration> = {};
   for (const [name, declaration] of Object.entries(entry.contract?.interfaceProperties ?? {})) {
     const normalized = normalizeProperty(declaration);

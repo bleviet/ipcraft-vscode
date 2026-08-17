@@ -387,6 +387,34 @@ describe('crossCheckIpCoreAgainstTopLevelHdl — bus-interface signal diffing (i
     expect(findings[0].severity).toBe('red');
     expect(findings[0].message).toContain('avs_readdata');
   });
+
+  it('accepts the resolved active-low physical name and never requires the inactive role', async () => {
+    const ipCore = avmmIpCore({
+      busInterfaces: [
+        {
+          name: 'S_AVMM',
+          type: 'AVMM',
+          mode: 'slave',
+          physicalPrefix: 'avs_',
+          useOptionalPorts: ['byteenable'],
+          portPolarityOverrides: { byteenable: 'activeLow' },
+        },
+      ],
+    });
+    const hdl = [
+      'entity core is',
+      '  port (',
+      '    clk : in std_logic;',
+      '    rst : in std_logic;',
+      '    avs_byteenable_n : in std_logic_vector(3 downto 0)',
+      '  );',
+      'end entity core;',
+    ].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', makeReader(hdl));
+
+    expect(findings).toEqual([]);
+  });
 });
 
 describe('crossCheckIpCoreAgainstVendor — _hw.tcl (Intel Platform Designer)', () => {

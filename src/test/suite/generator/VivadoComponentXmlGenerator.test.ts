@@ -204,6 +204,116 @@ describe('generateComponentXml', () => {
     });
   });
 
+  describe('Avalon-MM polarity port maps', () => {
+    const avmmDefinitions: BusDefinitions = {
+      AVALON_MEMORY_MAPPED: {
+        ports: [
+          {
+            name: 'write',
+            width: 1,
+            direction: 'out',
+            presence: 'optional',
+          },
+          {
+            name: 'byteenable',
+            width: 4,
+            direction: 'out',
+            presence: 'optional',
+            role: 'byteQualifier',
+          },
+        ],
+      },
+    };
+
+    function importedAvalon(logicalRole: string, physicalName: string): IpCoreData {
+      const source = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>acme</spirit:vendor><spirit:library>ip</spirit:library>
+  <spirit:name>polarity_core</spirit:name><spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces><spirit:busInterface>
+    <spirit:name>avs</spirit:name>
+    <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0"/>
+    <spirit:slave/>
+    <spirit:portMaps>
+      <spirit:portMap>
+        <spirit:logicalPort><spirit:name>${logicalRole}</spirit:name></spirit:logicalPort>
+        <spirit:physicalPort><spirit:name>${physicalName}</spirit:name></spirit:physicalPort>
+      </spirit:portMap>
+      <spirit:portMap>
+        <spirit:logicalPort><spirit:name>write</spirit:name></spirit:logicalPort>
+        <spirit:physicalPort><spirit:name>avs_write</spirit:name></spirit:physicalPort>
+      </spirit:portMap>
+    </spirit:portMaps>
+  </spirit:busInterface></spirit:busInterfaces>
+  <spirit:model><spirit:ports><spirit:port>
+    <spirit:name>${physicalName}</spirit:name><spirit:wire><spirit:direction>in</spirit:direction>
+    <spirit:vector><spirit:left>3</spirit:left><spirit:right>0</spirit:right></spirit:vector>
+    </spirit:wire>
+  </spirit:port><spirit:port>
+    <spirit:name>avs_write</spirit:name><spirit:wire><spirit:direction>in</spirit:direction></spirit:wire>
+  </spirit:port></spirit:ports></spirit:model>
+</spirit:component>`;
+      return yaml.load(
+        parseComponentXmlTextImpl(source, { busLibrary: builtinBusLibrary() }).ipYamlText
+      ) as IpCoreData;
+    }
+
+    it.each([
+      {
+        label: 'active-low semantic role with a positive-looking physical suffix',
+        logicalRole: 'byteenable_n',
+        physicalName: 'avs_byteenable',
+        polarity: 'activeLow',
+        nameOverride: 'byteenable',
+      },
+      {
+        label: 'active-high semantic role with an _n-looking physical suffix',
+        logicalRole: 'byteenable',
+        physicalName: 'avs_byteenable_n',
+        polarity: undefined,
+        nameOverride: 'byteenable_n',
+      },
+    ])(
+      'preserves $label across IP-XACT import, generation, and re-import',
+      async ({ logicalRole, physicalName, polarity, nameOverride }) => {
+        const imported = importedAvalon(logicalRole, physicalName);
+        expect(imported.busInterfaces?.[0]).toMatchObject({
+          physicalPrefix: 'avs_',
+          portNameOverrides: { byteenable: nameOverride },
+          ...(polarity ? { portPolarityOverrides: { byteenable: polarity } } : {}),
+        });
+        const generated = await generateComponentXmlImpl(imported, avmmDefinitions, {
+          busLibrary: builtinBusLibrary(),
+        });
+        const interfaceStart = generated.indexOf('<spirit:name>avs</spirit:name>');
+        const interfaceBlock = generated.slice(
+          interfaceStart,
+          generated.indexOf('</spirit:busInterface>', interfaceStart)
+        );
+
+        expect(interfaceBlock).toMatch(
+          new RegExp(
+            `<spirit:logicalPort>[\\s\\S]*?<spirit:name>${logicalRole}</spirit:name>[\\s\\S]*?` +
+              `<spirit:physicalPort>[\\s\\S]*?<spirit:name>${physicalName}</spirit:name>`
+          )
+        );
+        const reimported = yaml.load(
+          parseComponentXmlTextImpl(generated, { busLibrary: builtinBusLibrary() }).ipYamlText
+        ) as IpCoreData;
+        expect(reimported.busInterfaces?.[0]).toMatchObject({
+          portNameOverrides: { byteenable: nameOverride },
+          ...(polarity ? { portPolarityOverrides: { byteenable: polarity } } : {}),
+        });
+        expect(reimported.busInterfaces?.[0].useOptionalPorts).toEqual(
+          expect.arrayContaining(['byteenable', 'write'])
+        );
+        if (!polarity) {
+          expect(reimported.busInterfaces?.[0].portPolarityOverrides).toBeUndefined();
+        }
+      }
+    );
+  });
+
   describe('Avalon-ST contract metadata', () => {
     const avalonInterface: NonNullable<IpCoreData['busInterfaces']>[number] = {
       name: 'stream',
@@ -485,6 +595,19 @@ describe('generateComponentXml', () => {
         expect(block).toContain(`<spirit:name>${name}</spirit:name>`);
       }
       expect(block).not.toContain('s_axi_');
+
+      const modelStart = xml.indexOf('<spirit:model>');
+      const modelBlock = xml.slice(modelStart, xml.indexOf('</spirit:model>', modelStart));
+      const modelPort = (name: string): string => {
+        const start = modelBlock.indexOf(`<spirit:name>${name}</spirit:name>`);
+        return modelBlock.slice(start, modelBlock.indexOf('</spirit:port>', start));
+      };
+      expect(modelPort('fifo_wr_en')).toContain('<spirit:direction>out</spirit:direction>');
+      expect(modelPort('fifo_wr_data')).toContain('<spirit:direction>out</spirit:direction>');
+      expect(modelPort('fifo_wr_data')).toContain(
+        '<spirit:left spirit:format="long">7</spirit:left>'
+      );
+      expect(modelPort('fifo_almost_full')).toContain('<spirit:direction>in</spirit:direction>');
     });
 
     it('keeps using already-authored conduitPorts even when the type also matches a known busDefinitions entry', async () => {
@@ -1076,7 +1199,9 @@ describe('generateComponentXml', () => {
       const awaddrPort = extractPort(xml, 's_axi_awaddr');
       expect(awaddrPort).toContain('<spirit:direction>in</spirit:direction>');
       expect(awaddrPort).toContain('<spirit:vector>');
-      expect(awaddrPort).toContain('spirit:format="long">7<');
+      // The canonical resolver owns the generated HDL and vendor-artifact width;
+      // its AXI4-Lite default is 32, independent of stale legacy BUS_DEFS metadata.
+      expect(awaddrPort).toContain('spirit:format="long">31<');
       expect(awaddrPort).toContain('<spirit:typeName>std_logic_vector</spirit:typeName>');
     });
 
@@ -1850,6 +1975,79 @@ describe('generateCustomBusDefs', () => {
     );
     expect(dataBlock).toContain('<spirit:direction>out</spirit:direction>'); // onMaster
     expect(dataBlock).toContain('<spirit:direction>in</spirit:direction>'); // onSlave
+  });
+
+  it('declares every configured polarity role but maps only the selected interface role', async () => {
+    const definitions: BusDefinitionFile = {
+      POLARITY_BUS: {
+        busType: {
+          vendor: 'acme.com',
+          library: 'interface',
+          name: 'polarity_bus',
+          version: '1.0',
+        },
+        contract: {
+          version: 1,
+          interfaceKind: 'streaming',
+          modePolicy: { producer: 'source', consumer: 'sink', aliases: {} },
+          interfaceProperties: {},
+          constraints: [],
+        },
+        ports: [
+          {
+            name: 'request',
+            width: 1,
+            direction: 'out',
+            presence: 'required',
+            role: 'control',
+            widthPolicy: 'fixed',
+            polarity: {
+              default: 'activeHigh',
+              roles: { activeHigh: 'request', activeLow: 'request_n' },
+            },
+          },
+        ],
+      },
+    };
+    const library = normalizeBusLibrary([
+      {
+        sourceFile: '/workspace/polarity_bus.yml',
+        sourceKind: 'workspace',
+        definitions,
+      },
+    ]);
+    const ip: IpCoreData = {
+      ...IP_WITH_CUSTOM,
+      busInterfaces: [
+        {
+          name: 'requests',
+          type: 'acme.com:interface:polarity_bus:1.0',
+          mode: 'sink',
+          physicalPrefix: 'req_',
+          portNameOverrides: { request: 'request' },
+          portPolarityOverrides: { request: 'activeLow' },
+        },
+      ],
+    };
+
+    const files = generateCustomBusDefsCurrent(ip, library);
+    const abstraction = files['busdef/polarity_bus_rtl.xml'];
+    expect(abstraction).toContain('<spirit:logicalName>request</spirit:logicalName>');
+    expect(abstraction).toContain('<spirit:logicalName>request_n</spirit:logicalName>');
+
+    const component = await generateComponentXmlImpl(ip, definitions as BusDefinitions, {
+      busLibrary: library,
+    });
+    const interfaceStart = component.indexOf('<spirit:name>requests</spirit:name>');
+    const interfaceBlock = component.slice(
+      interfaceStart,
+      component.indexOf('</spirit:busInterface>', interfaceStart)
+    );
+    expect(interfaceBlock).toContain('<spirit:name>request_n</spirit:name>');
+    expect(interfaceBlock).toContain('<spirit:name>req_request</spirit:name>');
+    expect(interfaceBlock).not.toMatch(
+      /<spirit:logicalPort>\s*<spirit:name>request<\/spirit:name>/
+    );
   });
 
   it('deduplicates when the same custom type appears on multiple interfaces', async () => {

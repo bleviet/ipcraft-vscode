@@ -78,14 +78,17 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   const currentSuffix = subPort.physicalSuffix ?? subPort.name.toLowerCase();
   const physicalName = `${subPort.physicalPrefix}${currentSuffix}`;
   const physicalLabel = subPort.widthLabel ? `${physicalName}${subPort.widthLabel}` : physicalName;
+  const polarityLabel = subPort.polarity === 'activeLow' ? 'active low' : 'active high';
 
   const commitRename = useCallback(() => {
     if (abortRef.current) {
       return;
     }
-    onRename?.(subPort.id, renameValue);
+    if (renameValue !== currentSuffix) {
+      onRename?.(subPort.id, renameValue);
+    }
     setIsRenaming(false);
-  }, [onRename, subPort.id, renameValue]);
+  }, [currentSuffix, onRename, subPort.id, renameValue]);
 
   // A single click only selects — it never toggles the active state.
   const handleClick = (e: React.MouseEvent) => {
@@ -133,6 +136,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
       onContextMenu={handleContextMenu}
       style={{ cursor: isRenaming ? 'default' : 'pointer' }}
       role="button"
+      aria-label={`${subPort.name} signal${subPort.polarityConfigurable ? `, ${polarityLabel}` : ''}`}
     >
       {/* Stub line */}
       <line
@@ -176,6 +180,29 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
       >
         {logicalLabel}
       </text>
+
+      {subPort.polarityConfigurable && (
+        <g className="canvas-bus-subport__polarity">
+          <rect
+            x={subPort.x + (isLeft ? 6 : -18)}
+            y={subPort.y - 17}
+            width={12}
+            height={11}
+            rx={2}
+            className="canvas-bus-subport__polarity-badge-bg"
+          />
+          <text
+            x={subPort.x + (isLeft ? 12 : -12)}
+            y={subPort.y - 11.5}
+            textAnchor="middle"
+            dominantBaseline="central"
+            className="canvas-bus-subport__polarity-badge"
+          >
+            {subPort.polarity === 'activeLow' ? 'L' : 'H'}
+          </text>
+          <title>{subPort.polarity === 'activeLow' ? 'Active low' : 'Active high'}</title>
+        </g>
+      )}
 
       {/* Physical port name — outside on the stub; hidden while renaming */}
       {!isRenaming && (

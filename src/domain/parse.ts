@@ -121,6 +121,20 @@ function parseNumber(value: unknown, fallback = 0): number {
   return fallback;
 }
 
+function normalizePortPolarityOverrides(
+  value: unknown
+): Record<string, 'activeHigh' | 'activeLow'> | undefined {
+  const prototype =
+    value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? Reflect.getPrototypeOf(value)
+      : undefined;
+  if (prototype === undefined || (prototype !== Object.prototype && prototype !== null)) {
+    return undefined;
+  }
+
+  return value as Record<string, 'activeHigh' | 'activeLow'>;
+}
+
 function parseBits(bits: string): { offset: number; width: number } {
   if (!bits || typeof bits !== 'string') {
     return { offset: 0, width: 1 };
@@ -410,6 +424,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
     const portWidthOverrides = bus.port_width_overrides ?? bus.portWidthOverrides ?? {};
     const interfaceProperties = bus.interfaceProperties;
     const portNameOverrides = bus.port_name_overrides ?? bus.portNameOverrides;
+    const portPolarityOverrides = normalizePortPolarityOverrides(bus.portPolarityOverrides);
     const absentPorts = bus.absent_ports ?? bus.absentPorts;
     const conduitPorts = bus.conduit_ports ?? bus.conduitPorts;
 
@@ -434,6 +449,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
         ? { interfaceProperties }
         : {}),
       portNameOverrides,
+      ...(portPolarityOverrides ? { portPolarityOverrides } : {}),
       absentPorts,
       conduitPorts,
       associatedClock: String(bus.associatedClock ?? bus.associated_clock ?? ''),

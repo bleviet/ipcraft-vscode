@@ -1,4 +1,5 @@
 import { isAssociatedPort, type BusPortDef } from './busLibrary';
+import { portNameCandidates, type PortPolarity } from '../../../shared/busContracts';
 import { BUS_VLNV } from '../../../shared/busVlnv';
 
 export interface ProtocolMatch {
@@ -86,12 +87,14 @@ export function matchPorts(
     // Collect candidate prefixes from port names by stripping known signal suffixes.
     const candidatePrefixes = new Set<string>(['']);
     for (const def of signalDefs) {
-      const suffix = def.name.toLowerCase();
-      for (const [lower] of portMap) {
-        if (lower.endsWith(suffix) && lower.length > suffix.length) {
-          const prefix = lower.slice(0, lower.length - suffix.length);
-          if (prefix.endsWith('_')) {
-            candidatePrefixes.add(prefix);
+      for (const candidate of portNameCandidates(def)) {
+        const suffix = candidate.suffix.toLowerCase();
+        for (const [lower] of portMap) {
+          if (lower.endsWith(suffix) && lower.length > suffix.length) {
+            const prefix = lower.slice(0, lower.length - suffix.length);
+            if (prefix.endsWith('_')) {
+              candidatePrefixes.add(prefix);
+            }
           }
         }
       }
@@ -113,10 +116,16 @@ export function matchPorts(
       const matchedPortNames: string[] = [];
 
       for (const def of signalDefs) {
-        const port = portMap.get(prefix + def.name.toLowerCase());
-        if (!port) {
+        const match = portNameCandidates(def)
+          .map((candidate) => ({
+            candidate,
+            port: portMap.get(prefix + candidate.suffix.toLowerCase()),
+          }))
+          .find((candidate) => candidate.port !== undefined);
+        if (!match?.port) {
           continue;
         }
+        const port = match.port;
         matchedPortNames.push(port.name);
         if (def.presence === 'required') {
           requiredMatched++;
@@ -217,6 +226,12 @@ export interface SignalAssignment {
    * does not match logical_name.toLowerCase() — requires a portNameOverride.
    */
   hasSuffixMismatch: boolean;
+  /** Selected declared assertion polarity, when the contract defines roles. */
+  polarity?: PortPolarity;
+  /** Contract default used to decide whether a polarity override is required. */
+  defaultPolarity?: PortPolarity;
+  /** Physical suffix for the selected declared role. */
+  roleSuffix: string;
 }
 
 /**
@@ -246,18 +261,28 @@ export function inferPortAssignments(
 
   return signalDefs.map((def): SignalAssignment => {
     const expDir = expectedDirection(def, mode);
-    const canonicalKey = prefix + def.name.toLowerCase();
-    const exactMatch = portMap.get(canonicalKey);
+    const roleMatch = portNameCandidates(def)
+      .map((candidate) => ({
+        candidate,
+        port: portMap.get(prefix + candidate.suffix.toLowerCase()),
+      }))
+      .find((candidate) => candidate.port !== undefined);
 
-    // Exact name match — still verify direction
-    if (exactMatch) {
-      const dirOk = !expDir || exactMatch.direction === 'inout' || exactMatch.direction === expDir;
+    // Declared-role match — still verify direction. This is best-effort name
+    // inference only; the mapping UI keeps the selected polarity editable.
+    if (roleMatch?.port) {
+      const dirOk =
+        !expDir || roleMatch.port.direction === 'inout' || roleMatch.port.direction === expDir;
+      const roleSuffix = def.polarity ? roleMatch.candidate.roleSuffix : def.name.toLowerCase();
       return {
         logicalName: def.name,
-        assignedPort: dirOk ? exactMatch : null,
+        assignedPort: dirOk ? roleMatch.port : null,
         presence: def.presence,
         expectedDir: expDir,
-        hasSuffixMismatch: false,
+        hasSuffixMismatch: dirOk && portSuffix(roleMatch.port.name, prefix) !== roleSuffix,
+        ...(roleMatch.candidate.polarity ? { polarity: roleMatch.candidate.polarity } : {}),
+        ...(def.polarity ? { defaultPolarity: def.polarity.default } : {}),
+        roleSuffix,
       };
     }
 
@@ -268,6 +293,10 @@ export function inferPortAssignments(
       presence: def.presence,
       expectedDir: expDir,
       hasSuffixMismatch: false,
+      ...(def.polarity
+        ? { polarity: def.polarity.default, defaultPolarity: def.polarity.default }
+        : {}),
+      roleSuffix: def.polarity ? def.polarity.roles[def.polarity.default] : def.name.toLowerCase(),
     };
   });
 }
@@ -282,14 +311,14 @@ export function getAllProtocols(
 }
 
 /**
- * Returns the suffix of a port name relative to a prefix, used to detect
- * whether a portNameOverride is needed.
+ * Returns the literal suffix of a port name relative to a prefix, used to
+ * preserve physical spelling when deciding whether a portNameOverride is needed.
  */
 export function portSuffix(portName: string, prefix: string): string {
   const lower = portName.toLowerCase();
   const prefixLower = prefix.toLowerCase();
   if (lower.startsWith(prefixLower)) {
-    return lower.slice(prefixLower.length);
+    return portName.slice(prefix.length);
   }
-  return lower;
+  return portName;
 }

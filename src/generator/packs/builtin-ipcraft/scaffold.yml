@@ -8,16 +8,16 @@ fullGeneration: true
 
 files:
   # ── VHDL package (shared types) ────────────────────────────────────────────
-  # Also generated when a big-endian swap is present but there is no memory-mapped
-  # slave: the top and core still need the package for its swap_bytes_<N>() helpers.
+  # Also generated when a boundary transform is present without a memory-mapped
+  # slave: the top needs a core, and the VHDL core imports this package.
   - source: "package.vhdl.j2"
     target: "rtl/{{ name }}_pkg.vhd"
-    condition: "not is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
+    condition: "not is_systemverilog and (has_memory_mapped_slave or has_boundary_transform)"
 
   # ── SV package ─────────────────────────────────────────────────────────────
   - source: "pkg.sv.j2"
     target: "rtl/{{ name }}_pkg.sv"
-    condition: "is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
+    condition: "is_systemverilog and (has_memory_mapped_slave or has_boundary_transform)"
 
   # ── Register file ───────────────────────────────────────────────────────────
   - source: "register_file.vhdl.j2"
@@ -29,15 +29,15 @@ files:
     condition: "is_systemverilog and includeRegs and has_memory_mapped_slave"
 
   # ── Core logic stub (user-owned after first write) ──────────────────────────
-  # A big-endian IP with no memory-mapped slave still needs a core for the top to
-  # reflow the byte-swapped ports through.
+  # An IP with a boundary transform and no memory-mapped slave still needs a core
+  # for the top to wire the canonical internal port view through.
   - source: "core.vhdl.j2"
     target: "rtl/{{ name }}_core.vhd"
-    condition: "not is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
+    condition: "not is_systemverilog and (has_memory_mapped_slave or has_boundary_transform)"
 
   - source: "core.sv.j2"
     target: "rtl/{{ name }}_core.sv"
-    condition: "is_systemverilog and (has_memory_mapped_slave or has_endian_swap)"
+    condition: "is_systemverilog and (has_memory_mapped_slave or has_boundary_transform)"
 
   # ── Bus wrapper ─────────────────────────────────────────────────────────────
   - source: "bus_{{ bus_type }}.vhdl.j2"

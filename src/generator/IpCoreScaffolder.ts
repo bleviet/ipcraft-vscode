@@ -198,6 +198,8 @@ export class IpCoreScaffolder {
             has_endian_swap: false,
             endian_swap_ports: [],
             endian_swap_widths: [],
+            has_boundary_transform: false,
+            boundary_transform_ports: [],
           };
 
       if (includeVhdl) {

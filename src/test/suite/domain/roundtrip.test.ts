@@ -333,3 +333,24 @@ busInterfaces:
     expect(serialized.busInterfaces[0].interfaceProperties).toBeUndefined();
   });
 });
+
+describe('parseIpCore port polarity override handling', () => {
+  it('round-trips a valid camelCase port polarity override map', () => {
+    const parsed = parseIpCore(`
+vlnv: foo:bar:baz:1.0
+busInterfaces:
+  - name: avs
+    type: xilinx.com:interface:avalon:1.0
+    mode: slave
+    portPolarityOverrides:
+      read: activeLow
+`);
+
+    expect(parsed.busInterfaces?.[0]?.portPolarityOverrides).toEqual({ read: 'activeLow' });
+
+    const serialized = serializeIpCore(parsed) as {
+      busInterfaces: Array<Record<string, unknown>>;
+    };
+    expect(serialized.busInterfaces[0].portPolarityOverrides).toEqual({ read: 'activeLow' });
+  });
+});

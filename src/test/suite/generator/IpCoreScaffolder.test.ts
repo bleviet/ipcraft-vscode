@@ -2503,12 +2503,12 @@ describe('IpCoreScaffolder', () => {
     // elaborate proc must contain add_interface_port with the TCL expression for width = N/8
     expect(tclContent).toContain('proc elaborate {');
     expect(tclContent).toContain(
-      'add_interface_port Rb_ByteEna Rb_ByteEna rb_byteena Output [expr [get_parameter_value AXIDATAWIDTH_G]/8]'
+      'add_interface_port Rb_ByteEna Rb_ByteEna Rb_ByteEna Output [expr [get_parameter_value AXIDATAWIDTH_G]/8]'
     );
 
     // Simple param reference: Rb_WrData width = AxiDataWidth_g → [get_parameter_value AXIDATAWIDTH_G]
     expect(tclContent).toContain(
-      'add_interface_port Rb_WrData Rb_WrData rb_wrdata Output [get_parameter_value AXIDATAWIDTH_G]'
+      'add_interface_port Rb_WrData Rb_WrData Rb_WrData Output [get_parameter_value AXIDATAWIDTH_G]'
     );
   });
 

@@ -194,6 +194,24 @@ describe('HwTclParser', () => {
       expect(sink1.portNameOverrides).toEqual({ valid: 'valid_1_i', data: 'data_1_i' });
     });
 
+    it('preserves logical polarity and literal physical suffix independently', () => {
+      const tcl = `
+        add_interface avs avalon end
+        add_interface_port avs avs_byteenable byteenable_n Input 2
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.busInterfaces[0]).toMatchObject({
+        physicalPrefix: 'avs_',
+        useOptionalPorts: ['byteenable'],
+        portWidthOverrides: { byteenable: 2 },
+        portNameOverrides: { byteenable: 'byteenable' },
+        portPolarityOverrides: { byteenable: 'activeLow' },
+      });
+    });
+
     it('maps start mode to master', () => {
       const tcl = `
         add_interface m_axi axi4lite start

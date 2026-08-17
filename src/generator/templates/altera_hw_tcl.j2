@@ -152,7 +152,7 @@ set_interface_property {{ iface.name }} firstSymbolInHighOrderBits {% if iface.e
 # Ports
 {% for port in iface.ports %}
 {% if not port.is_parameterized %}
-add_interface_port {{ iface.name }} {{ port.name }} {{ port.logical_name | lower }} {{ 'Input' if port.direction == 'in'
+add_interface_port {{ iface.name }} {{ port.name }} {{ port.interface_role }} {{ 'Input' if port.direction == 'in'
 else 'Output' }} {{ port.width }}
 {% endif %}
 {% endfor %}
@@ -200,7 +200,7 @@ add_interface_port {{ intr.name }} {{ intr.name }} irq {{ 'Input' if intr.direct
 # -----------------------------------------------------------------------------
 proc elaborate {} {
 {% for ep in elaborate_port_widths %}
-    add_interface_port {{ ep.iface_name }} {{ ep.port_name }} {{ ep.logical_name | lower }} {{ 'Input' if ep.direction == 'in' else 'Output' }} {{ ep.tcl_width }}
+    add_interface_port {{ ep.iface_name }} {{ ep.port_name }} {{ ep.interface_role }} {{ 'Input' if ep.direction == 'in' else 'Output' }} {{ ep.tcl_width }}
 {% endfor %}
 }
 {% endif %}

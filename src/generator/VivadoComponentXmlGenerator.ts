@@ -2,6 +2,7 @@ import {
   evalWidthExpr,
   getActiveBusPortsFromDefinition,
   expandBusInterfaces,
+  projectResolvedBusPorts,
 } from './registerProcessor';
 import { parse, serialize, IPXACT_UNSUPPORTED } from '../shared/widthExprAst';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
@@ -11,6 +12,7 @@ import {
   dataLaneKind,
   isDeclarativeContract,
   resolveBusInterface,
+  resolveDataLane,
   type NormalizedBusLibrary,
 } from '../shared/busContracts';
 import { resolveVivadoBusType } from './VivadoBusTypes';
@@ -34,8 +36,28 @@ import type {
   BusPortDefinition,
   IpCoreData,
   ParameterDef,
+  ProjectedBusPort,
   SubcoreRef,
 } from './types';
+
+function projectedPortMaps(activePorts: readonly ProjectedBusPort[]): string[] {
+  if (activePorts.length === 0) {
+    return [];
+  }
+  const lines: string[] = ['      <spirit:portMaps>'];
+  for (const port of activePorts) {
+    lines.push('        <spirit:portMap>');
+    lines.push('          <spirit:logicalPort>');
+    lines.push(`            <spirit:name>${x(port.interfaceRole)}</spirit:name>`);
+    lines.push('          </spirit:logicalPort>');
+    lines.push('          <spirit:physicalPort>');
+    lines.push(`            <spirit:name>${x(port.name)}</spirit:name>`);
+    lines.push('          </spirit:physicalPort>');
+    lines.push('        </spirit:portMap>');
+  }
+  lines.push('      </spirit:portMaps>');
+  return lines;
+}
 
 function busDefPortMaps(
   ports: BusPortDefinition[],
@@ -298,7 +320,7 @@ export async function generateComponentXml(
 
 function renderBusInterface(
   iface: BusInterfaceDef,
-  busDefinitions: BusDefinitions,
+  _busDefinitions: BusDefinitions,
   busLibrary: NormalizedBusLibrary,
   parameters: ParameterDef[]
 ): string[] {
@@ -314,6 +336,14 @@ function renderBusInterface(
     parameters: parameters as unknown as Parameter[],
     library: busLibrary,
   });
+  const parameterDefaults = Object.fromEntries(
+    parameters.flatMap((parameter) =>
+      parameter.name && typeof parameter.value === 'number'
+        ? [[String(parameter.name), parameter.value]]
+        : []
+    )
+  );
+  const dataLane = resolveDataLane(contractResolution, iface);
 
   const lines: string[] = [];
   lines.push('    <spirit:busInterface>');
@@ -379,12 +409,7 @@ function renderBusInterface(
   }
 
   // portMaps
-  if (vivadoType) {
-    const busDef = busDefinitions[vivadoType.libraryKey];
-    if (busDef?.ports) {
-      lines.push(...busDefPortMaps(busDef.ports, iface, mode, effectiveDirections));
-    }
-  } else if (iface.conduitPorts && (iface.conduitPorts as unknown[]).length > 0) {
+  if (iface.conduitPorts && (iface.conduitPorts as unknown[]).length > 0) {
     // Ports already authored directly on the interface take priority over a
     // newly-discovered library match (e.g. from the Vivado interface catalog):
     // the user's physical port names are presumably already wired up in their real
@@ -394,8 +419,21 @@ function renderBusInterface(
     lines.push(
       ...busDefPortMaps(iface.conduitPorts as BusPortDefinition[], iface, mode, effectiveDirections)
     );
-  } else if (customBus) {
-    lines.push(...busDefPortMaps(customBus.ports, iface, mode, effectiveDirections));
+  } else if ((vivadoType || customBus) && contractResolution.match) {
+    lines.push(
+      ...projectedPortMaps(
+        projectResolvedBusPorts(
+          contractResolution.activePorts,
+          String(iface.physicalPrefix ?? ''),
+          parameterDefaults,
+          {
+            endianness: iface.endianness === 'big' ? 'big' : 'little',
+            laneWidth: dataLane.width,
+            laneKind: dataLane.kind,
+          }
+        )
+      )
+    );
   } else {
     const rawPortMaps = iface.rawPortMaps as
       | Array<{ logical: string; physical: string }>
@@ -1007,7 +1045,7 @@ function renderPorts(
   busInterfaces: BusInterfaceDef[],
   userPorts: Array<{ name?: string; direction?: string; width?: number | string }>,
   interrupts: Array<{ name: string; direction: string }>,
-  busDefinitions: BusDefinitions,
+  _busDefinitions: BusDefinitions,
   busLibrary: NormalizedBusLibrary,
   isSv = false,
   parameters: Array<{ name?: string; value?: unknown; defaultValue?: unknown }> = []
@@ -1030,23 +1068,6 @@ function renderPorts(
   }
 
   for (const iface of busInterfaces) {
-    const ifaceType = String(iface.type ?? '');
-    const mode = String(iface.mode ?? 'slave').toLowerCase();
-    const vivadoType = resolveVivadoBusType(ifaceType, busLibrary);
-    const sourcePorts: BusPortDefinition[] | undefined = vivadoType
-      ? busDefinitions[vivadoType.libraryKey]?.ports
-      : findCustomBusDef(ifaceType, busLibrary)?.ports;
-
-    if (!sourcePorts) {
-      // Unknown bus type with preserved rawPortMaps: emit physical ports directly
-      const rawPortMaps = iface.rawPortMaps;
-      if (rawPortMaps) {
-        for (const pm of rawPortMaps) {
-          portLines.push(...renderModelPort(pm.physical, pm.direction, pm.width, isSv));
-        }
-      }
-      continue;
-    }
     const typedParams = parameters
       .filter((p): p is { name: string; value?: number | string } => typeof p.name === 'string')
       .map((p) => {
@@ -1062,36 +1083,61 @@ function renderPorts(
       parameters: parameters as unknown as Parameter[],
       library: busLibrary,
     });
-    // Preserve authored root expressions, but project concrete fixed/derived widths from the
-    // canonical resolver so IP-XACT model ports cannot disagree with generated HDL.
-    const effectiveOverrides: Record<string, number | string> = {
-      ...(iface.portWidthOverrides ?? {}),
-    };
-    for (const port of contractResolution.activePorts) {
-      if (port.widthPolicy === 'root') {
-        continue;
+    // Authored conduits remain a separate literal projection. Their mapped physical
+    // ports still need matching model declarations, but must not pass through the
+    // canonical recognized-bus projection or acquire inferred polarity semantics.
+    if (iface.conduitPorts && iface.conduitPorts.length > 0) {
+      const conduitPorts = getActiveBusPortsFromDefinition(
+        iface.conduitPorts as BusPortDefinition[],
+        iface.useOptionalPorts ?? [],
+        String(iface.physicalPrefix ?? ''),
+        String(iface.mode ?? 'conduit').toLowerCase(),
+        iface.portWidthOverrides ?? {},
+        typedParams,
+        iface.portNameOverrides,
+        iface.absentPorts
+      );
+      for (const port of conduitPorts) {
+        portLines.push(
+          ...renderModelPort(
+            String(port.name),
+            String(port.direction),
+            Number(port.width),
+            isSv,
+            port.width_expr ? String(port.width_expr) : undefined,
+            paramNames
+          )
+        );
       }
-      if (port.effectiveWidth.expression) {
-        effectiveOverrides[port.name] = serialize(port.effectiveWidth.expression, 'canonical').code;
-      } else if (port.effectiveWidth.value !== undefined) {
-        effectiveOverrides[port.name] = port.effectiveWidth.value;
-      }
+      continue;
     }
-    const activePorts = getActiveBusPortsFromDefinition(
-      sourcePorts,
-      iface.useOptionalPorts ?? [],
-      String(iface.physicalPrefix ?? ''),
-      mode,
-      effectiveOverrides,
-      typedParams,
-      iface.portNameOverrides,
-      iface.absentPorts,
-      Object.fromEntries(
-        contractResolution.activePorts.flatMap((port) =>
-          port.effectiveDirection ? [[port.name, port.effectiveDirection]] : []
-        )
+    const parameterDefaults = Object.fromEntries(
+      typedParams.flatMap((parameter) =>
+        typeof parameter.value === 'number' ? [[parameter.name, parameter.value]] : []
       )
     );
+    const dataLane = resolveDataLane(contractResolution, iface);
+    const activePorts = projectResolvedBusPorts(
+      contractResolution.activePorts,
+      String(iface.physicalPrefix ?? ''),
+      parameterDefaults,
+      {
+        endianness: iface.endianness === 'big' ? 'big' : 'little',
+        laneWidth: dataLane.width,
+        laneKind: dataLane.kind,
+      }
+    ).map((port) => ({
+      name: port.name,
+      direction: port.direction,
+      width: port.width,
+      width_expr: port.widthExpr,
+    }));
+    if (activePorts.length === 0 && !contractResolution.match) {
+      for (const pm of iface.rawPortMaps ?? []) {
+        portLines.push(...renderModelPort(pm.physical, pm.direction, pm.width, isSv));
+      }
+      continue;
+    }
     for (const port of activePorts) {
       portLines.push(
         ...renderModelPort(

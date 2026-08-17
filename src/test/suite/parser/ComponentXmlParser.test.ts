@@ -447,6 +447,54 @@ describe('ComponentXmlParser', () => {
       expect(generatedXml).not.toContain('<spirit:name>tready</spirit:name>');
     });
 
+    it('preserves logical polarity and literal physical suffix independently', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>xilinx.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>avalon_polarity</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>AVS</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0"/>
+      <spirit:slave/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>byteenable</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>avs_byteenable_n</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>write</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>avs_write</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+  <spirit:model><spirit:ports>
+    <spirit:port>
+      <spirit:name>avs_byteenable_n</spirit:name>
+      <spirit:wire><spirit:direction>in</spirit:direction><spirit:vector><spirit:left>1</spirit:left><spirit:right>0</spirit:right></spirit:vector></spirit:wire>
+    </spirit:port>
+    <spirit:port>
+      <spirit:name>avs_write</spirit:name>
+      <spirit:wire><spirit:direction>in</spirit:direction></spirit:wire>
+    </spirit:port>
+  </spirit:ports></spirit:model>
+</spirit:component>`;
+      const doc = parseYaml(parseComponentXmlText(xml).ipYamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.busInterfaces[0]).toMatchObject({
+        physicalPrefix: 'avs_',
+        useOptionalPorts: ['write', 'byteenable'],
+        portWidthOverrides: { byteenable: 2 },
+        portNameOverrides: { byteenable: 'byteenable_n' },
+      });
+      expect(doc.busInterfaces[0].portPolarityOverrides).toBeUndefined();
+    });
+
     it('excludes clock/reset busInterfaces from busInterfaces list', () => {
       const { ipYamlText } = parseComponentXmlText(AXI4LITE_XML);
       const doc = parseYaml(ipYamlText) as {

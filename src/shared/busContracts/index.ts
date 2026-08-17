@@ -6,6 +6,7 @@ export * from './dataLanes';
 export * from './dependencies';
 export * from './normalize';
 export * from './observedPorts';
+export * from './polarity';
 export * from './resolve';
 export * from './types';
 export * from './validate';

@@ -35,6 +35,9 @@ export function findCustomBusDef(
         width: port.width,
         direction: port.direction,
         presence: port.presence,
+        interfaceRoles: port.polarity
+          ? [port.polarity.roles.activeHigh, port.polarity.roles.activeLow]
+          : [port.name],
         ...(port.role === 'data' || port.role === 'byteQualifier' ? { role: port.role } : {}),
       })),
       isAddressable: canonical.contract.interfaceKind === 'memoryMapped',
@@ -79,30 +82,33 @@ export function renderAbstractionDefinitionXml(busInfo: CustomBusInfo): string {
   ];
 
   for (const port of busInfo.ports) {
-    const logicalName = String(port.name);
-    if (['ACLK', 'ARESETn', 'clk', 'reset'].includes(logicalName)) {
+    const canonicalName = String(port.name);
+    if (['ACLK', 'ARESETn', 'clk', 'reset'].includes(canonicalName)) {
       continue;
     }
-    const presence = port.presence ?? 'required';
+    const interfaceRoles = port.interfaceRoles ?? [canonicalName];
+    const presence = interfaceRoles.length > 1 ? 'optional' : (port.presence ?? 'required');
     const masterDirection = port.direction ?? 'out';
     const slaveDirection = masterDirection === 'out' ? 'in' : 'out';
     const width = port.width ?? 1;
 
-    lines.push('    <spirit:port>');
-    lines.push(`      <spirit:logicalName>${escapeXml(logicalName)}</spirit:logicalName>`);
-    lines.push('      <spirit:wire>');
-    lines.push('        <spirit:onMaster>');
-    lines.push(`          <spirit:presence>${escapeXml(presence)}</spirit:presence>`);
-    lines.push(`          <spirit:width>${width}</spirit:width>`);
-    lines.push(`          <spirit:direction>${escapeXml(masterDirection)}</spirit:direction>`);
-    lines.push('        </spirit:onMaster>');
-    lines.push('        <spirit:onSlave>');
-    lines.push(`          <spirit:presence>${escapeXml(presence)}</spirit:presence>`);
-    lines.push(`          <spirit:width>${width}</spirit:width>`);
-    lines.push(`          <spirit:direction>${escapeXml(slaveDirection)}</spirit:direction>`);
-    lines.push('        </spirit:onSlave>');
-    lines.push('      </spirit:wire>');
-    lines.push('    </spirit:port>');
+    for (const logicalName of interfaceRoles) {
+      lines.push('    <spirit:port>');
+      lines.push(`      <spirit:logicalName>${escapeXml(logicalName)}</spirit:logicalName>`);
+      lines.push('      <spirit:wire>');
+      lines.push('        <spirit:onMaster>');
+      lines.push(`          <spirit:presence>${escapeXml(presence)}</spirit:presence>`);
+      lines.push(`          <spirit:width>${width}</spirit:width>`);
+      lines.push(`          <spirit:direction>${escapeXml(masterDirection)}</spirit:direction>`);
+      lines.push('        </spirit:onMaster>');
+      lines.push('        <spirit:onSlave>');
+      lines.push(`          <spirit:presence>${escapeXml(presence)}</spirit:presence>`);
+      lines.push(`          <spirit:width>${width}</spirit:width>`);
+      lines.push(`          <spirit:direction>${escapeXml(slaveDirection)}</spirit:direction>`);
+      lines.push('        </spirit:onSlave>');
+      lines.push('      </spirit:wire>');
+      lines.push('    </spirit:port>');
+    }
   }
 
   lines.push('  </spirit:ports>');

@@ -293,10 +293,18 @@ export interface BusContractPort {
   direction?: 'in' | 'out';
   presence?: 'required' | 'optional';
   role?: NonEmptyString;
+  polarity?: PortPolarity;
   widthPolicy?: 'root' | 'derived' | 'fixed';
   derivedWidth?: DerivedOperation;
   /**
    * Exact constraint ruleId used when an authored fixed/derived width conflicts with this port's contract width.
    */
   overrideConstraintRuleId?: string;
+}
+export interface PortPolarity {
+  default: 'activeHigh' | 'activeLow';
+  roles: {
+    activeHigh: NonEmptyString;
+    activeLow: NonEmptyString;
+  };
 }

@@ -1,5 +1,11 @@
 import type { IpCore, BusInterface } from '../../../types/ipCore';
 import type { BusPortDef } from '../../utils/busLibrary';
+import {
+  resolveEffectivePortPolarity,
+  resolvePhysicalSuffix,
+  type BusInterfaceResolution,
+  type PortPolarity,
+} from '../../../../shared/busContracts';
 
 // --- Constants ---
 
@@ -113,8 +119,12 @@ export interface LayoutSubPort {
   absent: boolean;
   /** Physical port prefix from the bus interface (e.g. `s_axi_`) */
   physicalPrefix: string;
-  /** Overridden physical suffix when portNameOverrides applies; falls back to name.toLowerCase() */
+  /** Literal override or contract-derived physical suffix for the effective role. */
   physicalSuffix?: string;
+  /** Effective assertion level for contract-configurable ports. */
+  polarity?: PortPolarity;
+  /** Whether the normalized contract permits choosing the assertion level. */
+  polarityConfigurable: boolean;
   /** Index into ipCore.clocks for this signal's clock domain, or -1 */
   clockDomainIdx: number;
 }
@@ -319,7 +329,8 @@ export function computeLayout(
   busPortLookup: (busType: string) => BusPortDef[] | null = () => null,
   description?: string,
   isContractConsumer?: (bus: BusInterface) => boolean | undefined,
-  protocolLabel?: (busType: string) => string | undefined
+  protocolLabel?: (busType: string) => string | undefined,
+  busResolutionLookup?: (bus: BusInterface, busIndex: number) => BusInterfaceResolution | null
 ): CanvasLayout {
   const clocks = ipCore.clocks ?? [];
   const resets = ipCore.resets ?? [];
@@ -655,16 +666,23 @@ export function computeLayout(
               absent: false,
               physicalPrefix: busData.physicalPrefix ?? '',
               physicalSuffix: cp.name,
+              polarityConfigurable: false,
               clockDomainIdx: domainIdx,
             });
           });
           currentY += PORT_PITCH * (1 + conduitPorts.length);
         } else {
-          const allPortDefs = busPortLookup(busData.type ?? '') ?? [];
-          const useOptional = busData.useOptionalPorts ?? [];
-          const overrides = busData.portWidthOverrides ?? {};
-          const nameOverrides = busData.portNameOverrides ?? {};
-          const absentPortsSet = new Set((busData.absentPorts ?? []).map((n) => n.toUpperCase()));
+          const resolution = busResolutionLookup?.(item.data as BusInterface, item.index) ?? null;
+          const resolvedBusData = resolution?.canonicalBusInterface ?? busData;
+          const allPortDefs =
+            resolution?.match?.contract.ports ?? busPortLookup(busData.type ?? '') ?? [];
+          const useOptional = resolvedBusData.useOptionalPorts ?? [];
+          const overrides = resolvedBusData.portWidthOverrides ?? {};
+          const nameOverrides = resolvedBusData.portNameOverrides ?? {};
+          const absentPortsSet = new Set(
+            (resolvedBusData.absentPorts ?? []).map((name) => name.toLowerCase())
+          );
+          const activePortNames = new Set(resolution?.activePorts.map((port) => port.name));
           const hasClock = !!busData.associatedClock;
           const hasReset = !!busData.associatedReset;
           // Directions in bus definitions are from the master perspective; flip for slave/sink.
@@ -685,11 +703,16 @@ export function computeLayout(
 
           visibleDefs.forEach((portDef, pi) => {
             const subY = y + PORT_PITCH * (pi + 1);
-            const rawWidth = overrides[portDef.name] ?? portDef.width;
+            const rawWidth =
+              resolution?.portWidths[portDef.name]?.value ??
+              overrides[portDef.name] ??
+              portDef.width;
             const widthLbl = formatWidth(rawWidth);
-            const isAbsent = absentPortsSet.has(portDef.name.toUpperCase());
-            const active =
-              !isAbsent && (portDef.presence === 'required' || useOptional.includes(portDef.name));
+            const isAbsent = absentPortsSet.has(portDef.name.toLowerCase());
+            const active = resolution
+              ? activePortNames.has(portDef.name)
+              : !isAbsent &&
+                (portDef.presence === 'required' || useOptional.includes(portDef.name));
 
             // For array interfaces, use the physicalPrefixPattern so the sub-port
             // physical name reflects the replicated naming (e.g. m_axis_ch{index}_tdata)
@@ -698,7 +721,17 @@ export function computeLayout(
                 ? busData.array.physicalPrefixPattern
                 : (busData.physicalPrefix ?? '');
 
-            const physicalSuffix = nameOverrides[portDef.name];
+            const normalizedPort = resolution?.match?.contract.ports.find(
+              (candidate) => candidate.name === portDef.name
+            );
+            const physicalSuffix =
+              resolution?.canonicalBusInterface && normalizedPort
+                ? resolvePhysicalSuffix(normalizedPort, resolution.canonicalBusInterface)
+                : nameOverrides[portDef.name];
+            const polarity =
+              resolution?.canonicalBusInterface && normalizedPort
+                ? resolveEffectivePortPolarity(normalizedPort, resolution.canonicalBusInterface)
+                : portDef.polarity?.default;
             const subPortDir = isMaster ? portDef.direction : flipDir(portDef.direction);
             layoutSubPorts.push({
               id: `bus:${item.index}:${portDef.name}`,
@@ -714,6 +747,8 @@ export function computeLayout(
               absent: isAbsent && portDef.presence === 'required',
               physicalPrefix: subPhysicalPrefix,
               ...(physicalSuffix !== undefined ? { physicalSuffix } : {}),
+              ...(polarity !== undefined ? { polarity } : {}),
+              polarityConfigurable: portDef.polarity !== undefined,
               clockDomainIdx: domainIdx,
             });
           });

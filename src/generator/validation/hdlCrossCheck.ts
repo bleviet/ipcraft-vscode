@@ -9,11 +9,17 @@ import {
   normalizeIpCoreData,
   expandBusInterfaces,
   getActiveBusPortsFromDefinition,
+  projectResolvedBusPorts,
 } from '../registerProcessor';
 import { reconstructBusPortNameSet } from '../../shared/busPortNameSet';
-import { canonicalizeBusType, type NormalizedBusLibrary } from '../../shared/busContracts';
+import {
+  resolveBusInterface,
+  resolveDataLane,
+  type NormalizedBusLibrary,
+} from '../../shared/busContracts';
 import { crossCheckMemoryMapsAgainstVendor } from './registerCrossCheck';
 import type { IpCoreData, ParameterDef, PortDef } from '../types';
+import type { BusInterface, Parameter } from '../../domain/ipcore.types';
 import {
   SEVERITY_BY_KIND,
   type HdlCrossCheckKind,
@@ -85,9 +91,9 @@ function collectAllHdlFiles(ipCoreData: IpCoreData): ManagedHdlFile[] {
 /**
  * Physical port names already accounted for by the .ip.yml's busInterfaces/interrupts, so they
  * must never be flagged extra-port just because they aren't literally in `ports`: bus interface
- * physical names are a generator-side reconstruction (physicalPrefix + portNameOverrides, mirrored
- * here via reconstructBusPortNameSet/expandBusInterfaces — the same formula the generator itself
- * uses), and an interrupt's `name` is its physical port name declared outside `ports` entirely.
+ * physical names come from the canonical interface resolver, exposed here via
+ * reconstructBusPortNameSet/expandBusInterfaces, and an interrupt's `name` is its physical port
+ * name declared outside `ports` entirely.
  * Conduit interfaces run their conduitPorts through the same getActiveBusPortsFromDefinition
  * reconstruction (mirroring VivadoComponentXmlGenerator's busDefPortMaps) rather than treating
  * conduitPorts[].name as already-final: a conduit can still declare its own physicalPrefix (e.g.
@@ -213,11 +219,10 @@ interface ExpectedBusPort {
 }
 
 /**
- * Reconstructs each recognized (non-conduit) bus interface's active physical ports — name,
- * direction, width — using the generator's own getActiveBusPortsFromDefinition (mirroring
- * registerProcessor.ts's expandBusInterfaces + per-interface expansion), so "expected" here is
- * exactly what the generator itself would emit. Conduit interfaces and unrecognized/custom bus
- * types (lookupBusDef returns null or an empty array) are skipped — their physical ports remain
+ * Projects each recognized (non-conduit) bus interface's resolver-owned active physical ports —
+ * name, direction, width — through projectResolvedBusPorts, so "expected" here is exactly what
+ * the generator itself would emit. Conduit interfaces and unrecognized/custom bus types are
+ * skipped — their physical ports remain
  * excluded from extra-port via collectAccountedForPortNames's conduitPorts/rawPortMaps fallback;
  * signal-by-signal diffing isn't possible without a known bus definition to diff against.
  *
@@ -230,6 +235,13 @@ function collectExpectedBusPorts(
   busLibrary: NormalizedBusLibrary
 ): ExpectedBusPort[] {
   const result: ExpectedBusPort[] = [];
+  const parameterDefaults = Object.fromEntries(
+    (ipCoreData.parameters ?? []).flatMap((parameter) =>
+      parameter.name && typeof parameter.value === 'number'
+        ? [[String(parameter.name), parameter.value]]
+        : []
+    )
+  );
   (ipCoreData.busInterfaces ?? []).forEach((rawIface, origIdx) => {
     const expanded = expandBusInterfaces({
       ...ipCoreData,
@@ -240,34 +252,32 @@ function collectExpectedBusPorts(
       if ((iface.mode ?? '').toLowerCase() === 'conduit') {
         continue;
       }
-      const match = canonicalizeBusType(iface.type ?? '', busLibrary);
-      if (!match || match.contract.ports.length === 0) {
+      const resolution = resolveBusInterface({
+        busInterface: iface as unknown as BusInterface,
+        busIndex: origIdx,
+        parameters: (ipCoreData.parameters ?? []) as unknown as Parameter[],
+        library: busLibrary,
+      });
+      if (!resolution.match || resolution.match.contract.ports.length === 0) {
         continue;
       }
-      const activePorts = getActiveBusPortsFromDefinition(
-        match.contract.ports.map((port) => ({
-          name: port.name,
-          width: port.width,
-          direction: port.direction,
-          presence: port.presence,
-          ...(port.role === 'data' || port.role === 'byteQualifier' ? { role: port.role } : {}),
-        })),
-        iface.useOptionalPorts ?? [],
+      const dataLane = resolveDataLane(resolution, iface);
+      const activePorts = projectResolvedBusPorts(
+        resolution.activePorts,
         iface.physicalPrefix ?? '',
-        iface.mode ?? '',
-        iface.portWidthOverrides ?? {},
-        ipCoreData.parameters as
-          | { name: string; value?: number | string; data_type?: string }[]
-          | undefined,
-        iface.portNameOverrides,
-        iface.absentPorts
+        parameterDefaults,
+        {
+          endianness: iface.endianness === 'big' ? 'big' : 'little',
+          laneWidth: dataLane.width,
+          laneKind: dataLane.kind,
+        }
       );
       for (const p of activePorts) {
         result.push({
           physicalName: String(p.name),
-          direction: typeof p.direction === 'string' ? p.direction : undefined,
+          direction: p.direction,
           width: Number(p.width),
-          logicalName: String(p.logical_name),
+          logicalName: p.canonicalName,
           ifaceName: iface.name ?? rawIface.name ?? '',
           ipYmlPath: ['busInterfaces', origIdx],
         });
@@ -286,7 +296,7 @@ function collectExpectedBusPorts(
  */
 /**
  * Reduces a bus interface's active ports to the same name-keyed ImplPort shape used for HDL/
- * vendor ports, so a vendor's own reconstructed bus interfaces (see collectExpectedBusPorts's
+ * vendor ports, so a vendor's own projected bus interfaces (see collectExpectedBusPorts's
  * docstring on vendorData below) can be diffed with the same diffBusPorts comparator used for
  * the .ip.yml side.
  */

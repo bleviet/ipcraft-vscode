@@ -5,6 +5,11 @@ import type {
   ResolvedBusPort,
   ResolvedNumericValue,
 } from './types';
+import {
+  resolveEffectivePortPolarity,
+  resolveInterfaceRole,
+  resolvePhysicalSuffix,
+} from './polarity';
 
 function reverseDirection(direction: 'in' | 'out' | undefined): 'in' | 'out' | undefined {
   if (direction === 'in') {
@@ -40,6 +45,10 @@ export function buildActivePorts(
       .filter((port) => isPortActive(port, busInterface))
       .map((port) => ({
         ...port,
+        effectivePolarity: resolveEffectivePortPolarity(port, busInterface),
+        interfaceRole: resolveInterfaceRole(port, busInterface),
+        physicalSuffix: resolvePhysicalSuffix(port, busInterface),
+        needsPolarityInversion: resolveEffectivePortPolarity(port, busInterface) === 'activeLow',
         effectiveDirection: consumer ? reverseDirection(port.direction) : port.direction,
         effectiveWidth: portWidths[port.name],
       }))

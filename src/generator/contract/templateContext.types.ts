@@ -11,7 +11,7 @@ export interface TemplateContext {
   /**
    * Semantic version of the template context contract.
    */
-  contract_version: '1.3.0';
+  contract_version: '1.4.0';
   name: string;
   entity_name: string;
   has_memory_mapped_slave: boolean;
@@ -72,6 +72,14 @@ export interface TemplateContext {
    * True when endian_swap_ports is non-empty; gates package import and the top-level `_be` reflow wiring.
    */
   has_endian_swap?: boolean;
+  /**
+   * Directional ports transformed once at the top-level HDL boundary for endian reflow, polarity inversion, or both.
+   */
+  boundary_transform_ports?: BoundaryTransformPort[];
+  /**
+   * True when boundary_transform_ports is non-empty; gates top-level intermediate signals and transform wiring.
+   */
+  has_boundary_transform?: boolean;
   vendor?: string;
   library?: string;
   version?: string;
@@ -270,6 +278,9 @@ export interface InterruptPort {
 }
 export interface BusPort {
   logical_name: string;
+  interface_role: string;
+  effective_polarity?: 'activeHigh' | 'activeLow';
+  physical_suffix: string;
   name: string;
   direction: string;
   sv_direction: string;
@@ -302,6 +313,10 @@ export interface BusPort {
    * Semantic lane kind resolved from the bus contract; byte lanes are eight bits and symbol lanes use the contract's dataBitsPerSymbol.
    */
   lane_kind?: 'byte' | 'symbol';
+  /**
+   * True when the selected external interface role is active-low and Task 7 must invert it at the HDL boundary.
+   */
+  needs_polarity_inversion: boolean;
 }
 export interface SecondaryBusInterface {
   name: string;
@@ -319,6 +334,9 @@ export interface ExpandedBusInterface {
   };
   portNameOverrides?: {
     [k: string]: string;
+  };
+  portPolarityOverrides?: {
+    [k: string]: 'activeHigh' | 'activeLow';
   };
   absentPorts?: string[];
   associatedClock?: string;
@@ -353,6 +371,7 @@ export interface ElaboratePortWidth {
   iface_name: string;
   port_name: string;
   logical_name: string;
+  interface_role: string;
   direction: string;
   tcl_width: string;
 }
@@ -438,4 +457,21 @@ export interface EndianSwapPort {
    * Width of one ordering lane in bits.
    */
   lane_width: number | string;
+}
+/**
+ * One directional port transformed through one collision-free intermediate signal at the top-level HDL boundary.
+ */
+export interface BoundaryTransformPort {
+  name: string;
+  internal_name: string;
+  direction: 'in' | 'out' | 'inout';
+  type: string;
+  sv_type: string;
+  width: number | string | null;
+  width_expr: string | null;
+  is_parameterized: boolean;
+  invert: boolean;
+  swap_kind?: 'lane' | 'bit';
+  lane_width?: number | string;
+  lane_kind?: 'byte' | 'symbol';
 }

@@ -5,7 +5,8 @@ import {
   type MapConduitToBusResult,
 } from '../../../webview/ipcore/components/canvas/MapConduitToBusDialog';
 import type { BusPortDef } from '../../../webview/ipcore/utils/busLibrary';
-import type { ConduitPort } from '../../../webview/types/ipCore';
+import { applyMapConduitToKnownBus } from '../../../webview/ipcore/hooks/useGroupPorts';
+import type { ConduitPort, IpCore } from '../../../webview/types/ipCore';
 
 const FIFO_WRITE_PORTS: BusPortDef[] = [
   { name: 'WR_DATA', direction: 'out', presence: 'required', role: 'data' },
@@ -17,6 +18,20 @@ const CONDUIT_PORTS: ConduitPort[] = [
   { name: 'fifo_wr_en', direction: 'out', width: 1 },
   { name: 'fifo_wr_data', direction: 'out', width: 8 },
   { name: 'fifo_almost_full', direction: 'in', width: 1 },
+];
+
+const POLARITY_PORTS: BusPortDef[] = [
+  {
+    name: 'read',
+    width: 1,
+    direction: 'out',
+    presence: 'required',
+    role: 'control',
+    polarity: {
+      default: 'activeHigh',
+      roles: { activeHigh: 'read', activeLow: 'read_n' },
+    },
+  },
 ];
 
 function renderDialog(overrides?: {
@@ -40,6 +55,101 @@ function renderDialog(overrides?: {
 }
 
 describe('MapConduitToBusDialog', () => {
+  it('keeps Confirm disabled after clearing an auto-matched required signal', () => {
+    const { onConfirm } = renderDialog({
+      conduitPorts: [{ name: 'read_n', direction: 'out', width: 1 }],
+      libraryPortDefs: POLARITY_PORTS,
+    });
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'master' } });
+    fireEvent.change(selects[1], { target: { value: '' } });
+
+    expect(screen.getByText('Confirm')).toBeDisabled();
+    fireEvent.click(screen.getByText('Confirm'));
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('keeps an unselected alternate polarity spelling as an unmapped conduit group', () => {
+    const onConfirm = jest.fn<void, [MapConduitToBusResult]>();
+    renderDialog({
+      conduitPorts: [
+        { name: 'read', direction: 'out', width: 1 },
+        { name: 'read_n', direction: 'out', width: 1 },
+      ],
+      libraryPortDefs: POLARITY_PORTS,
+      onConfirm,
+    });
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'master' } });
+    fireEvent.click(screen.getByText('Confirm'));
+
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: 'master',
+      portNameOverrides: {},
+      portWidthOverrides: { read: 1 },
+      unmappedConduitPorts: [{ name: 'read_n', direction: 'out', width: 1 }],
+      useOptionalPorts: [],
+    });
+
+    const converted = applyMapConduitToKnownBus(
+      {
+        busInterfaces: [
+          {
+            name: 'request',
+            type: 'acme:bus:request:1.0',
+            mode: 'conduit',
+            physicalPrefix: null,
+            conduitPorts: [
+              { name: 'read', direction: 'out', width: 1 },
+              { name: 'read_n', direction: 'out', width: 1 },
+            ],
+          },
+        ],
+      } as IpCore,
+      0,
+      onConfirm.mock.calls[0][0]
+    );
+    expect(converted[1].conduitPorts).toEqual([{ name: 'read_n', direction: 'out', width: 1 }]);
+  });
+
+  it('infers a declared active-low role without emitting a matching suffix override', () => {
+    const { onConfirm } = renderDialog({
+      conduitPorts: [{ name: 'read_n', direction: 'out', width: 1 }],
+      libraryPortDefs: POLARITY_PORTS,
+    });
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'master' } });
+
+    expect(screen.getByText('Confirm')).not.toBeDisabled();
+    fireEvent.click(screen.getByText('Confirm'));
+
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: 'master',
+      portNameOverrides: {},
+      portWidthOverrides: { read: 1 },
+      portPolarityOverrides: { read: 'activeLow' },
+      useOptionalPorts: [],
+    });
+  });
+
+  it('keeps a manually selected active-high polarity even when the physical spelling is low', () => {
+    const { onConfirm } = renderDialog({
+      conduitPorts: [{ name: 'read_n', direction: 'out', width: 1 }],
+      libraryPortDefs: POLARITY_PORTS,
+    });
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'master' } });
+    fireEvent.change(selects[2], { target: { value: 'activeHigh' } });
+    fireEvent.click(screen.getByText('Confirm'));
+
+    expect(onConfirm).toHaveBeenCalledWith({
+      mode: 'master',
+      portNameOverrides: { read: 'read_n' },
+      portWidthOverrides: { read: 1 },
+      useOptionalPorts: [],
+    });
+  });
+
   it('renders a row for every non-role logical port', () => {
     renderDialog();
     expect(screen.getByText('WR_DATA')).toBeInTheDocument();
@@ -79,6 +189,7 @@ describe('MapConduitToBusDialog', () => {
       mode: 'master',
       portNameOverrides: { WR_DATA: 'fifo_wr_data', WR_EN: 'fifo_wr_en' },
       portWidthOverrides: { WR_DATA: 8, WR_EN: 1 },
+      unmappedConduitPorts: [{ name: 'fifo_almost_full', direction: 'in', width: 1 }],
       useOptionalPorts: [],
     });
   });
@@ -116,6 +227,7 @@ describe('MapConduitToBusDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith({
       mode: 'slave',
       portNameOverrides: {},
+      unmappedConduitPorts: CONDUIT_PORTS,
       useOptionalPorts: [],
     });
   });
@@ -193,6 +305,7 @@ describe('MapConduitToBusDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith({
       mode: 'slave',
       portNameOverrides: {},
+      unmappedConduitPorts: CONDUIT_PORTS,
       useOptionalPorts: [],
     });
   });

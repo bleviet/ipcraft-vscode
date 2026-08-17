@@ -578,6 +578,8 @@ export interface BusInterface {
   /** Logical-signal-name → physical suffix overrides, used when physical port names
    *  deviate from the physicalPrefix + logicalName.toLowerCase() convention. */
   portNameOverrides?: Record<string, string>;
+  /** Per-port assertion polarity overrides keyed by canonical bus port name. */
+  portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
   /**
    * Logical port names (uppercase) that are required by the bus spec but absent from the
    * user's HDL source. Populated automatically by the VHDL parser; prevents the generator

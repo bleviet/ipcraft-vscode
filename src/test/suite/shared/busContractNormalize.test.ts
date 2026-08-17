@@ -204,6 +204,107 @@ describe('normalizeBusLibrary', () => {
     );
   });
 
+  it('excludes a port with duplicate polarity roles', () => {
+    const entry = makeEntry({
+      ports: [
+        {
+          name: 'data',
+          direction: 'out',
+          polarity: {
+            default: 'activeHigh',
+            roles: { activeHigh: 'data', activeLow: 'data' },
+          },
+        },
+      ],
+    });
+
+    const result = normalize({ TEST: entry });
+
+    expect(result.definitions.TEST).toBeUndefined();
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'BUS_DEF_INVALID_PORT_POLARITY',
+        path: ['TEST', 'ports', 0, 'polarity', 'roles', 'activeLow'],
+      })
+    );
+  });
+
+  it('excludes a polarity declaration missing the activeLow role', () => {
+    const entry = makeEntry({
+      ports: [
+        {
+          name: 'request',
+          direction: 'out',
+          polarity: {
+            default: 'activeHigh',
+            roles: { activeHigh: 'request' },
+          } as never,
+        },
+      ],
+    });
+
+    const result = normalize({ TEST: entry });
+
+    expect(result.definitions.TEST).toBeUndefined();
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'BUS_DEF_INVALID_PORT_POLARITY',
+        path: ['TEST', 'ports', 0, 'polarity', 'roles', 'activeLow'],
+      })
+    );
+  });
+
+  it('excludes a polarity role colliding with another port name case-insensitively', () => {
+    const entry = makeEntry({
+      ports: [
+        {
+          name: 'request',
+          direction: 'out',
+          polarity: {
+            default: 'activeHigh',
+            roles: { activeHigh: 'request', activeLow: 'request_n' },
+          },
+        },
+        { name: 'REQUEST_N', direction: 'out' },
+      ],
+    });
+
+    const result = normalize({ TEST: entry });
+
+    expect(result.definitions.TEST).toBeUndefined();
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'BUS_DEF_PORT_ROLE_COLLISION',
+        path: ['TEST', 'ports', 0, 'polarity', 'roles', 'activeLow'],
+      })
+    );
+  });
+
+  it('excludes polarity declared on an inout port', () => {
+    const entry = makeEntry({
+      ports: [
+        {
+          name: 'request',
+          direction: 'inout' as unknown as 'in',
+          polarity: {
+            default: 'activeHigh',
+            roles: { activeHigh: 'request', activeLow: 'request_n' },
+          },
+        },
+      ],
+    });
+
+    const result = normalize({ TEST: entry });
+
+    expect(result.definitions.TEST).toBeUndefined();
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'BUS_DEF_INVALID_PORT_POLARITY',
+        path: ['TEST', 'ports', 0, 'polarity'],
+      })
+    );
+  });
+
   it('excludes a port whose override diagnostic references an undeclared rule', () => {
     const entry = makeEntry({
       ports: [

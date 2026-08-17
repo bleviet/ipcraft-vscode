@@ -6,6 +6,30 @@ import Ajv from 'ajv';
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
 const SCHEMA_PATH = path.join(REPO_ROOT, 'ipcraft-spec', 'schemas', 'bus_definition.schema.json');
 
+const definitionWithPort = (port: unknown) => ({
+  TEST: {
+    busType: { vendor: 'acme', library: 'busif', name: 'test', version: '1.0' },
+    contract: {
+      version: 1,
+      interfaceKind: 'streaming',
+      modePolicy: { producer: 'source', consumer: 'sink', aliases: {} },
+      interfaceProperties: {},
+      constraints: [],
+    },
+    ports: [port],
+  },
+});
+
+const polarityPort = {
+  name: 'request',
+  direction: 'out',
+  presence: 'optional',
+  polarity: {
+    default: 'activeHigh',
+    roles: { activeHigh: 'request', activeLow: 'request_n' },
+  },
+};
+
 describe('bus definition schema', () => {
   const loadValidator = () => {
     const schema = JSON.parse(fs.readFileSync(SCHEMA_PATH, 'utf8'));
@@ -56,6 +80,41 @@ describe('bus definition schema', () => {
         },
       })
     ).toBe(true);
+  });
+
+  it('accepts a polarity declaration with both assertion roles', () => {
+    const validate = loadValidator();
+
+    expect(validate(definitionWithPort(polarityPort))).toBe(true);
+  });
+
+  it('rejects a polarity declaration missing an assertion role', () => {
+    const validate = loadValidator();
+
+    expect(
+      validate(
+        definitionWithPort({
+          ...polarityPort,
+          polarity: { default: 'activeHigh', roles: { activeHigh: 'request' } },
+        })
+      )
+    ).toBe(false);
+  });
+
+  it('rejects an unknown polarity default', () => {
+    const validate = loadValidator();
+
+    expect(
+      validate(
+        definitionWithPort({
+          ...polarityPort,
+          polarity: {
+            default: 'low',
+            roles: { activeHigh: 'request', activeLow: 'request_n' },
+          },
+        })
+      )
+    ).toBe(false);
   });
 
   it('accepts a legacy definition containing only bus metadata and ports', () => {

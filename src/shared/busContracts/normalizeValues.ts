@@ -8,6 +8,7 @@ import type {
   CanonicalPortRole,
   DocumentPath,
   NormalizedBusPort,
+  NormalizedPortPolarity,
   NormalizedPropertyDeclaration,
 } from './types';
 
@@ -46,6 +47,106 @@ export function addLibraryDiagnostic(
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0;
+}
+
+function normalizePolarity(
+  polarity: unknown,
+  port: BusContractPort,
+  key: string,
+  index: number,
+  sourceFile: string,
+  diagnostics: BusLibraryDiagnostic[]
+): NormalizedPortPolarity | null | undefined {
+  if (polarity === undefined) {
+    return undefined;
+  }
+  const path: DocumentPath = [key, 'ports', index, 'polarity'];
+  if (
+    (port.direction as unknown) === 'inout' ||
+    polarity === null ||
+    typeof polarity !== 'object' ||
+    Array.isArray(polarity)
+  ) {
+    addLibraryDiagnostic(
+      diagnostics,
+      sourceFile,
+      'BUS_DEF_INVALID_PORT_POLARITY',
+      'error',
+      path,
+      `Port '${port.name}' has an invalid polarity declaration.`
+    );
+    return null;
+  }
+  const declaration = polarity as {
+    default?: unknown;
+    roles?: { activeHigh?: unknown; activeLow?: unknown };
+  };
+  if (declaration.default !== 'activeHigh' && declaration.default !== 'activeLow') {
+    addLibraryDiagnostic(
+      diagnostics,
+      sourceFile,
+      'BUS_DEF_INVALID_PORT_POLARITY',
+      'error',
+      [...path, 'default'],
+      `Port '${port.name}' has an invalid polarity declaration.`
+    );
+    return null;
+  }
+  if (
+    declaration.roles === null ||
+    typeof declaration.roles !== 'object' ||
+    Array.isArray(declaration.roles)
+  ) {
+    addLibraryDiagnostic(
+      diagnostics,
+      sourceFile,
+      'BUS_DEF_INVALID_PORT_POLARITY',
+      'error',
+      [...path, 'roles'],
+      `Port '${port.name}' has an invalid polarity declaration.`
+    );
+    return null;
+  }
+  if (!isNonEmptyString(declaration.roles.activeHigh)) {
+    addLibraryDiagnostic(
+      diagnostics,
+      sourceFile,
+      'BUS_DEF_INVALID_PORT_POLARITY',
+      'error',
+      [...path, 'roles', 'activeHigh'],
+      `Port '${port.name}' has an invalid polarity declaration.`
+    );
+    return null;
+  }
+  if (!isNonEmptyString(declaration.roles.activeLow)) {
+    addLibraryDiagnostic(
+      diagnostics,
+      sourceFile,
+      'BUS_DEF_INVALID_PORT_POLARITY',
+      'error',
+      [...path, 'roles', 'activeLow'],
+      `Port '${port.name}' has an invalid polarity declaration.`
+    );
+    return null;
+  }
+  if (declaration.roles.activeHigh.toLowerCase() === declaration.roles.activeLow.toLowerCase()) {
+    addLibraryDiagnostic(
+      diagnostics,
+      sourceFile,
+      'BUS_DEF_INVALID_PORT_POLARITY',
+      'error',
+      [...path, 'roles', 'activeLow'],
+      `Port '${port.name}' must declare distinct activeHigh and activeLow roles.`
+    );
+    return null;
+  }
+  return cloneAndFreeze({
+    default: declaration.default,
+    roles: {
+      activeHigh: declaration.roles.activeHigh,
+      activeLow: declaration.roles.activeLow,
+    },
+  });
 }
 
 export function canonicalVlnv(entry: BusDefinitionEntry): string | null {
@@ -89,6 +190,11 @@ export function normalizePort(
       [key, 'ports', index, 'name'],
       'Bus port names must be non-empty strings.'
     );
+    return null;
+  }
+
+  const polarity = normalizePolarity(port.polarity, port, key, index, sourceFile, diagnostics);
+  if (port.polarity !== undefined && !polarity) {
     return null;
   }
 
@@ -138,6 +244,7 @@ export function normalizePort(
     ...(port.direction !== undefined ? { direction: port.direction } : {}),
     presence: port.presence ?? 'required',
     role,
+    ...(polarity ? { polarity } : {}),
     widthPolicy,
     ...(port.derivedWidth ? { derivedWidth: port.derivedWidth } : {}),
     ...(port.overrideConstraintRuleId

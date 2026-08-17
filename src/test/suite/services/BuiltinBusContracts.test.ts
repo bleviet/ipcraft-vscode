@@ -181,6 +181,19 @@ describe('built-in bus contracts', () => {
     }
   );
 
+  it('declares polarity only on canonical configurable Avalon-MM ports', () => {
+    const avalon = loadBuiltin('AVALON_MEMORY_MAPPED');
+
+    expect(avalon.ports.filter((port) => port.polarity).map((port) => port.name)).toEqual([
+      'read',
+      'write',
+      'byteenable',
+      'readdatavalid',
+      'waitrequest',
+    ]);
+    expect(avalon.ports.some((port) => port.name.endsWith('_n'))).toBe(false);
+  });
+
   it('declares Avalon-ST symbol semantics without duplicating endianness', () => {
     const properties = loadBuiltin('AVALON_STREAMING').contract?.interfaceProperties;
 

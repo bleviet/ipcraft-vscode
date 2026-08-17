@@ -109,6 +109,9 @@ export async function parseVerilogFile(
       if (bus.portNameOverrides && Object.keys(bus.portNameOverrides).length > 0) {
         entry.portNameOverrides = bus.portNameOverrides;
       }
+      if (bus.portPolarityOverrides && Object.keys(bus.portPolarityOverrides).length > 0) {
+        entry.portPolarityOverrides = bus.portPolarityOverrides;
+      }
       return entry;
     });
   }

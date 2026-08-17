@@ -1,13 +1,21 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { BusInterfaceDef, BusTypeInfo, IpCoreData } from './types';
+import type {
+  BusInterfaceDef,
+  BusPortProjectionMetadata,
+  BusTypeInfo,
+  IpCoreData,
+  ProjectedBusPort,
+} from './types';
 import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImports';
 import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
 import { BUS_REGISTRY } from './buses/builtin';
 import {
+  BYTE_LANE_WIDTH,
   canonicalizeBusType,
   normalizeInterfaceMode,
+  type ResolvedBusPort,
   type NormalizedBusLibrary,
 } from '../shared/busContracts';
 
@@ -242,6 +250,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           portWidthOverrides: iface.portWidthOverrides ?? {},
           interfaceProperties: iface.interfaceProperties,
           portNameOverrides: iface.portNameOverrides,
+          portPolarityOverrides: iface.portPolarityOverrides,
           absentPorts: iface.absentPorts,
           conduitPorts: iface.conduitPorts ?? [],
           associatedClock: iface.associatedClock,
@@ -264,6 +273,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       portWidthOverrides: iface.portWidthOverrides ?? {},
       interfaceProperties: iface.interfaceProperties,
       portNameOverrides: iface.portNameOverrides,
+      portPolarityOverrides: iface.portPolarityOverrides,
       absentPorts: iface.absentPorts,
       conduitPorts: iface.conduitPorts ?? [],
       associatedClock: iface.associatedClock,
@@ -288,6 +298,163 @@ export function getSvPortType(width: number, _logicalName: string): string {
     return 'logic';
   }
   return `logic [${width - 1}:0]`;
+}
+
+/** A payload is swappable when it contains at least two complete lanes. */
+export function needsLaneSwap(
+  endianness: 'little' | 'big',
+  width: number | string | null,
+  laneWidth: number | string,
+  direction: string,
+  isParameterized = false
+): boolean {
+  return (
+    endianness === 'big' &&
+    (direction === 'in' || direction === 'out') &&
+    (isParameterized ||
+      typeof width === 'string' ||
+      typeof laneWidth === 'string' ||
+      (typeof width === 'number' &&
+        typeof laneWidth === 'number' &&
+        laneWidth > 0 &&
+        width > laneWidth &&
+        width % laneWidth === 0))
+  );
+}
+
+/** A multi-bit or parameterized qualifier reverses one bit per payload lane. */
+export function needsBitReverse(
+  endianness: 'little' | 'big',
+  width: number | string | null,
+  direction: string,
+  isParameterized = false
+): boolean {
+  return (
+    endianness === 'big' &&
+    (direction === 'in' || direction === 'out') &&
+    (isParameterized || (typeof width === 'number' && width > 1))
+  );
+}
+
+function toTclWidthExpression(exprStr: string, parameterNames: readonly string[]): string {
+  const ast = parse(exprStr);
+  if (!ast) {
+    return exprStr;
+  }
+  const upperParameterNames = new Set(parameterNames.map((name) => name.toUpperCase()));
+  let hasParameter = false;
+  const converted = serialize(ast, 'tcl', {
+    paramRef: (name) => {
+      const upper = name.toUpperCase();
+      if (upperParameterNames.has(upper)) {
+        hasParameter = true;
+        return `[get_parameter_value ${upper}]`;
+      }
+      return name;
+    },
+  }).code;
+  if (!hasParameter) {
+    return exprStr;
+  }
+  return /^\[get_parameter_value [a-zA-Z0-9_]+\]$/.test(converted.trim())
+    ? converted
+    : `[expr ${converted}]`;
+}
+
+/**
+ * Project resolver-owned canonical ports into generator-facing physical ports.
+ * Canonical identity, vendor role, and literal physical suffix remain separate;
+ * callers must not reconstruct one from another.
+ */
+export function projectResolvedBusPorts(
+  ports: readonly ResolvedBusPort[],
+  physicalPrefix: string,
+  parameters: Readonly<Record<string, number>> = {},
+  metadata: BusPortProjectionMetadata = {
+    endianness: 'little',
+    laneWidth: BYTE_LANE_WIDTH,
+    laneKind: 'byte',
+  }
+): ProjectedBusPort[] {
+  const parameterNames = Object.keys(parameters);
+
+  return ports.flatMap((port) => {
+    if (port.role === 'clock' || port.role === 'reset') {
+      return [];
+    }
+    const direction = port.effectiveDirection ?? port.direction;
+    if (direction !== 'in' && direction !== 'out') {
+      return [];
+    }
+
+    const widthExpr =
+      port.effectiveWidth.expression && containsParamRef(port.effectiveWidth.expression)
+        ? serialize(port.effectiveWidth.expression, 'canonical').code
+        : null;
+    const evaluatedWidth =
+      port.effectiveWidth.value ??
+      (widthExpr ? evalWidthExpr(widthExpr, parameters) : undefined) ??
+      (typeof port.width === 'number' ? port.width : undefined) ??
+      1;
+    const portTypes = widthExpr
+      ? buildParameterizedPortTypes(widthExpr)
+      : {
+          type: getVhdlPortType(evaluatedWidth, port.name),
+          sv_type: getSvPortType(evaluatedWidth, port.name),
+        };
+    const projectionMetadata =
+      port.role === 'data'
+        ? {
+            role: port.role,
+            swapKind: 'lane' as const,
+            laneWidth: metadata.laneWidth,
+            laneKind: metadata.laneKind,
+            needsSwap: needsLaneSwap(
+              metadata.endianness,
+              evaluatedWidth,
+              metadata.laneWidth,
+              direction,
+              widthExpr !== null
+            ),
+          }
+        : port.role === 'byteQualifier'
+          ? {
+              role: port.role,
+              swapKind: 'bit' as const,
+              laneWidth: 1,
+              laneKind: metadata.laneKind,
+              needsSwap: needsBitReverse(
+                metadata.endianness,
+                evaluatedWidth,
+                direction,
+                widthExpr !== null
+              ),
+            }
+          : { needsSwap: false };
+
+    return [
+      {
+        canonicalName: port.name,
+        name: `${physicalPrefix}${port.physicalSuffix}`,
+        interfaceRole: port.interfaceRole,
+        ...(port.effectivePolarity ? { effectivePolarity: port.effectivePolarity } : {}),
+        physicalSuffix: port.physicalSuffix,
+        direction,
+        svDirection: direction === 'in' ? 'input' : 'output',
+        type: portTypes.type,
+        svType: portTypes.sv_type,
+        width: evaluatedWidth,
+        widthExpr,
+        isParameterized: widthExpr !== null,
+        tclWidth: widthExpr
+          ? toTclWidthExpression(widthExpr, parameterNames)
+          : String(evaluatedWidth),
+        endianness: metadata.endianness,
+        ...projectionMetadata,
+        needsPolarityInversion: port.needsPolarityInversion,
+      },
+    ];
+  });
 }
 
 export function getActiveBusPortsFromDefinition(

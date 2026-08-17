@@ -307,6 +307,7 @@ export const BusPanel: React.FC<BusPanelProps> = ({
         focusRequest={issueFocusRequest}
         onRootWidthChange={contractEditor.updateRootWidth}
         onPropertyChange={contractEditor.updateProperty}
+        onPolarityChange={contractEditor.updatePolarity}
       />
     </>
   );

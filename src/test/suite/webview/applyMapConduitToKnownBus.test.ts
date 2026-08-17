@@ -22,6 +22,52 @@ function makeIpCore(): IpCore {
 }
 
 describe('applyMapConduitToKnownBus', () => {
+  it('moves unmapped conduit signals into a separate conduit group during conversion', () => {
+    const ipCore = makeIpCore();
+    const result = applyMapConduitToKnownBus(ipCore, 0, {
+      mode: 'master',
+      portNameOverrides: {},
+      unmappedConduitPorts: [{ name: 'read_n', direction: 'out', width: 1 }],
+      useOptionalPorts: [],
+    });
+
+    expect(result).toHaveLength(2);
+    expect(result[0].conduitPorts).toBeNull();
+    expect(result[1]).toMatchObject({
+      name: 'fifo_write_unmapped',
+      mode: 'conduit',
+      conduitPorts: [{ name: 'read_n', direction: 'out', width: 1 }],
+    });
+  });
+
+  it('persists non-default port polarity selections under canonical names', () => {
+    const ipCore = makeIpCore();
+    const result = applyMapConduitToKnownBus(ipCore, 0, {
+      mode: 'master',
+      portNameOverrides: {},
+      portPolarityOverrides: { read: 'activeLow' },
+      useOptionalPorts: [],
+    });
+
+    expect((result[0] as unknown as Record<string, unknown>).portPolarityOverrides).toEqual({
+      read: 'activeLow',
+    });
+  });
+
+  it('omits empty polarity overrides', () => {
+    const ipCore = makeIpCore();
+    const result = applyMapConduitToKnownBus(ipCore, 0, {
+      mode: 'master',
+      portNameOverrides: {},
+      portPolarityOverrides: {},
+      useOptionalPorts: [],
+    });
+
+    expect('portPolarityOverrides' in (result[0] as unknown as Record<string, unknown>)).toBe(
+      false
+    );
+  });
+
   it('sets mode and portNameOverrides, and clears conduitPorts', () => {
     const ipCore = makeIpCore();
     const result = applyMapConduitToKnownBus(ipCore, 0, {

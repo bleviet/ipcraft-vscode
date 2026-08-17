@@ -5,6 +5,7 @@ import { evaluateContractConstraints } from './constraintEvaluation';
 import { deriveOperation, resolveToFixpoint, sameResolution } from './derivation';
 import { createParameterContext, expressionsEqual, resolveNumericValue } from './expression';
 import { resolveProperties } from './propertyResolution';
+import { canonicalizeBusInterfacePorts } from './polarity';
 import type {
   BusConformanceDiagnostic,
   BusDefinitionContract,
@@ -26,6 +27,7 @@ function freezeResolution(result: BusInterfaceResolution): BusInterfaceResolutio
 function emptyResolution(): BusInterfaceResolution {
   return freezeResolution({
     match: null,
+    canonicalBusInterface: null,
     normalizedMode: null,
     authoredPortWidths: {},
     authoredProperties: {},
@@ -90,6 +92,22 @@ function linkedOverrideDiagnostic(
   };
 }
 
+function polarityOverrideDiagnostic(
+  busInterface: BusInterface,
+  busIndex: number,
+  portName: string
+): BusConformanceDiagnostic {
+  return {
+    code: 'BUS_PORT_POLARITY_OVERRIDE',
+    ruleId: 'BUS_PORT_POLARITY_OVERRIDE',
+    severity: 'error',
+    state: 'invalid',
+    interfaceName: busInterface.name,
+    path: ['busInterfaces', busIndex, 'portPolarityOverrides', portName],
+    message: `Port polarity override '${portName}' is not declared by this bus contract.`,
+  };
+}
+
 export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfaceResolution {
   const match = canonicalizeBusType(input.busInterface.type, input.library);
   if (!match) {
@@ -97,22 +115,27 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
   }
 
   const { contract } = match;
+  const { busInterface: canonicalBusInterface } = canonicalizeBusInterfacePorts(
+    contract,
+    input.busInterface,
+    input.busIndex
+  );
   const diagnostics: BusConformanceDiagnostic[] = [];
-  const normalizedMode = normalizeInterfaceMode(contract, input.busInterface.mode);
+  const normalizedMode = normalizeInterfaceMode(contract, canonicalBusInterface.mode);
   if (!normalizedMode) {
     diagnostics.push({
       code: 'BUS_INTERFACE_MODE',
       ruleId: 'BUS_INTERFACE_MODE',
       severity: 'error',
       state: 'invalid',
-      interfaceName: input.busInterface.name,
+      interfaceName: canonicalBusInterface.name,
       path: ['busInterfaces', input.busIndex, 'mode'],
-      message: `Mode '${input.busInterface.mode}' is not declared by ${contract.canonicalVlnv}.`,
+      message: `Mode '${canonicalBusInterface.mode}' is not declared by ${contract.canonicalVlnv}.`,
     });
   }
 
   const context = createParameterContext(input.parameters);
-  const overrides = input.busInterface.portWidthOverrides ?? {};
+  const overrides = canonicalBusInterface.portWidthOverrides ?? {};
   const portWidths: Record<string, ResolvedNumericValue> = {};
 
   for (const port of contract.ports) {
@@ -125,7 +148,7 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
 
   const properties = resolveProperties(
     contract,
-    input.busInterface,
+    canonicalBusInterface,
     portWidths,
     context,
     input.busIndex,
@@ -151,7 +174,7 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
     if (port.widthPolicy === 'root') {
       continue;
     }
-    if (!isPortActive(port, input.busInterface)) {
+    if (!isPortActive(port, canonicalBusInterface)) {
       continue;
     }
     const expected = portWidths[port.name];
@@ -163,12 +186,12 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
       const code =
         port.widthPolicy === 'fixed' ? 'BUS_FIXED_WIDTH_OVERRIDE' : 'BUS_DERIVED_WIDTH_OVERRIDE';
       diagnostics.push(
-        policyDiagnostic(code, input.busInterface, input.busIndex, port.name, expected)
+        policyDiagnostic(code, canonicalBusInterface, input.busIndex, port.name, expected)
       );
       const linked = linkedOverrideDiagnostic(
         contract,
         port,
-        input.busInterface,
+        canonicalBusInterface,
         input.busIndex,
         expected
       );
@@ -179,7 +202,18 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
     portWidths[port.name] = authored;
   }
 
-  const activePorts = buildActivePorts(contract, input.busInterface, normalizedMode, portWidths);
+  for (const [portName, polarity] of Object.entries(
+    canonicalBusInterface.portPolarityOverrides ?? {}
+  )) {
+    const port = contract.ports.find(
+      (candidate) => candidate.name.toLowerCase() === portName.toLowerCase()
+    );
+    if (!port?.polarity || (polarity !== 'activeHigh' && polarity !== 'activeLow')) {
+      diagnostics.push(polarityOverrideDiagnostic(canonicalBusInterface, input.busIndex, portName));
+    }
+  }
+
+  const activePorts = buildActivePorts(contract, canonicalBusInterface, normalizedMode, portWidths);
   const activePortNames = new Set(activePorts.map((port) => port.name));
 
   for (const port of contract.ports) {
@@ -194,7 +228,7 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
         ruleId: 'BUS_PORT_WIDTH_INVALID',
         severity: 'error',
         state: 'invalid',
-        interfaceName: input.busInterface.name,
+        interfaceName: canonicalBusInterface.name,
         path: ['busInterfaces', input.busIndex, 'portWidthOverrides', port.name],
         message: width.reason ?? `Port '${port.name}' has an invalid width.`,
       });
@@ -204,7 +238,7 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
   diagnostics.push(
     ...evaluateContractConstraints({
       contract,
-      busInterface: input.busInterface,
+      busInterface: canonicalBusInterface,
       busIndex: input.busIndex,
       parameters: input.parameters,
       parameterContext: context,
@@ -216,9 +250,10 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
 
   return freezeResolution({
     match,
+    canonicalBusInterface,
     normalizedMode,
     authoredPortWidths: { ...overrides },
-    authoredProperties: { ...(input.busInterface.interfaceProperties ?? {}) },
+    authoredProperties: { ...(canonicalBusInterface.interfaceProperties ?? {}) },
     portWidths,
     properties,
     activePorts,

@@ -406,6 +406,7 @@ export function parseComponentXmlText(
     useOptionalPorts?: string[];
     portWidthOverrides?: Record<string, number | string>;
     portNameOverrides?: Record<string, string>;
+    portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
     interfaceProperties?: Record<string, number | boolean | string>;
     endianness?: 'little' | 'big';
   }

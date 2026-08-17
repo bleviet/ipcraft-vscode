@@ -30,4 +30,34 @@ describe('reconstructBusPortNameSet', () => {
       )
     ).toEqual(new Set(['custom_data', 'custom_valid']));
   });
+
+  it('uses the resolved physical suffix for an active-low canonical port', () => {
+    const names = reconstructBusPortNameSet(
+      {
+        type: 'AVMM',
+        physicalPrefix: 'avs_',
+        useOptionalPorts: ['byteenable'],
+        portPolarityOverrides: { byteenable: 'activeLow' },
+      },
+      builtinBusLibrary()
+    );
+
+    expect(names).toContain('avs_byteenable_n');
+    expect(names).not.toContain('avs_byteenable');
+  });
+
+  it('preserves a literal positive-looking physical suffix for an active-low role', () => {
+    const names = reconstructBusPortNameSet(
+      {
+        type: 'AVMM',
+        physicalPrefix: 'avs_',
+        useOptionalPorts: ['byteenable'],
+        portNameOverrides: { byteenable: 'byteenable' },
+        portPolarityOverrides: { byteenable: 'activeLow' },
+      },
+      builtinBusLibrary()
+    );
+
+    expect(names).toEqual(new Set(['avs_byteenable']));
+  });
 });
