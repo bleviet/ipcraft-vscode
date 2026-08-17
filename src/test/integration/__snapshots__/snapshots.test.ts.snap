@@ -14172,26 +14172,26 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>read_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_read</spirit:name>
+            <spirit:name>avs_read_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>write_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_write</spirit:name>
+            <spirit:name>avs_write_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>byteenable</spirit:name>
+            <spirit:name>byteenable_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_byteenable</spirit:name>
+            <spirit:name>avs_byteenable_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -14212,18 +14212,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>readdatavalid_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_readdatavalid</spirit:name>
+            <spirit:name>avs_readdatavalid_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>waitrequest_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_waitrequest</spirit:name>
+            <spirit:name>avs_waitrequest_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -14708,7 +14708,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_read</spirit:name>
+        <spirit:name>avs_read_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14721,7 +14721,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_write</spirit:name>
+        <spirit:name>avs_write_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14734,7 +14734,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_byteenable</spirit:name>
+        <spirit:name>avs_byteenable_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
@@ -14785,7 +14785,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_readdatavalid</spirit:name>
+        <spirit:name>avs_readdatavalid_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14798,7 +14798,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_waitrequest</spirit:name>
+        <spirit:name>avs_waitrequest_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15167,26 +15167,26 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>read_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_read</spirit:name>
+            <spirit:name>avs_read_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>write_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_write</spirit:name>
+            <spirit:name>avs_write_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>byteenable</spirit:name>
+            <spirit:name>byteenable_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_byteenable</spirit:name>
+            <spirit:name>avs_byteenable_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -15207,18 +15207,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>readdatavalid_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_readdatavalid</spirit:name>
+            <spirit:name>avs_readdatavalid_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>waitrequest_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_waitrequest</spirit:name>
+            <spirit:name>avs_waitrequest_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -15703,7 +15703,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_read</spirit:name>
+        <spirit:name>avs_read_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15716,7 +15716,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_write</spirit:name>
+        <spirit:name>avs_write_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15729,7 +15729,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_byteenable</spirit:name>
+        <spirit:name>avs_byteenable_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
@@ -15780,7 +15780,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_readdatavalid</spirit:name>
+        <spirit:name>avs_readdatavalid_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15793,7 +15793,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_waitrequest</spirit:name>
+        <spirit:name>avs_waitrequest_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -36562,13 +36562,13 @@ set_interface_property S_AVMM addressUnits BYTES
 set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
-add_interface_port S_AVMM avs_read read Input 1
-add_interface_port S_AVMM avs_write write Input 1
-add_interface_port S_AVMM avs_byteenable byteenable Input 4
+add_interface_port S_AVMM avs_read_n read_n Input 1
+add_interface_port S_AVMM avs_write_n write_n Input 1
+add_interface_port S_AVMM avs_byteenable_n byteenable_n Input 4
 add_interface_port S_AVMM avs_writedata writedata Input 32
 add_interface_port S_AVMM avs_readdata readdata Output 32
-add_interface_port S_AVMM avs_readdatavalid readdatavalid Output 1
-add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
+add_interface_port S_AVMM avs_readdatavalid_n readdatavalid_n Output 1
+add_interface_port S_AVMM avs_waitrequest_n waitrequest_n Output 1
 
 
 # Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
@@ -36780,13 +36780,13 @@ set_interface_property S_AVMM addressUnits BYTES
 set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
-add_interface_port S_AVMM avs_read read Input 1
-add_interface_port S_AVMM avs_write write Input 1
-add_interface_port S_AVMM avs_byteenable byteenable Input 4
+add_interface_port S_AVMM avs_read_n read_n Input 1
+add_interface_port S_AVMM avs_write_n write_n Input 1
+add_interface_port S_AVMM avs_byteenable_n byteenable_n Input 4
 add_interface_port S_AVMM avs_writedata writedata Input 32
 add_interface_port S_AVMM avs_readdata readdata Output 32
-add_interface_port S_AVMM avs_readdatavalid readdatavalid Output 1
-add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
+add_interface_port S_AVMM avs_readdatavalid_n readdatavalid_n Output 1
+add_interface_port S_AVMM avs_waitrequest_n waitrequest_n Output 1
 
 
 # Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
