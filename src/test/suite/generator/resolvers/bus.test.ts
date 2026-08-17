@@ -1,8 +1,21 @@
 import { busResolver, buildUserPorts } from '../../../../generator/resolvers/bus';
-import { normalizeIpCoreData } from '../../../../generator/registerProcessor';
+import {
+  normalizeIpCoreData,
+  projectResolvedBusPorts,
+} from '../../../../generator/registerProcessor';
 import { BUS_REGISTRY } from '../../../../generator/buses/builtin';
 import type { ResolverInput } from '../../../../generator/resolvers/types';
 import type { BusDefinitions } from '../../../../generator/types';
+import { builtinBusLibrary } from '../../../helpers/busLibrary';
+import {
+  normalizeBusLibrary,
+  resolveBusInterface,
+  resolveDataLane,
+  type NormalizedBusLibrary,
+} from '../../../../shared/busContracts';
+import type { BusDefinitionFile } from '../../../../domain/busDefinition.types';
+import type { BusInterface, Parameter } from '../../../../domain/ipcore.types';
+import type { ProjectedBusPort } from '../../../../generator/types';
 
 const AXI4_LITE_DEF: BusDefinitions = {
   AXI4_LITE: {
@@ -32,17 +45,117 @@ const AXI_STREAM_DEF: BusDefinitions = {
 
 function makeInput(
   raw: Record<string, unknown>,
-  busDefinitions: BusDefinitions = {}
+  busDefinitions: BusDefinitions = {},
+  busLibrary: NormalizedBusLibrary = builtinBusLibrary()
 ): ResolverInput {
   return {
     ipCore: normalizeIpCoreData(raw),
     registers: [],
     busDefinitions,
+    busLibrary,
     registry: BUS_REGISTRY,
   };
 }
 
+function customModeLibrary(): NormalizedBusLibrary {
+  const definitions: BusDefinitionFile = {
+    CUSTOM: {
+      busType: { vendor: 'acme', library: 'busif', name: 'custom', version: '1.0' },
+      contract: {
+        version: 1,
+        interfaceKind: 'streaming',
+        modePolicy: { producer: 'initiator', consumer: 'target', aliases: {} },
+        interfaceProperties: {},
+        constraints: [],
+      },
+      ports: [
+        {
+          name: 'payload',
+          width: 8,
+          direction: 'out',
+          presence: 'required',
+          role: 'data',
+          widthPolicy: 'root',
+        },
+      ],
+    },
+  };
+  return normalizeBusLibrary([
+    { sourceFile: '/workspace/custom.yml', sourceKind: 'workspace', definitions },
+  ]);
+}
+
+function customSymbolLaneLibrary(): NormalizedBusLibrary {
+  const definitions: BusDefinitionFile = {
+    CUSTOM_SYMBOL_STREAM: {
+      busType: {
+        vendor: 'acme',
+        library: 'busif',
+        name: 'custom_symbol_stream',
+        version: '1.0',
+      },
+      contract: {
+        version: 1,
+        interfaceKind: 'streaming',
+        modePolicy: { producer: 'source', consumer: 'sink', aliases: {} },
+        interfaceProperties: {
+          dataBitsPerSymbol: { type: 'integer', minimum: 1 },
+        },
+        constraints: [],
+      },
+      ports: [
+        {
+          name: 'payload',
+          width: 5,
+          direction: 'out',
+          presence: 'required',
+          role: 'data',
+          widthPolicy: 'root',
+        },
+      ],
+    },
+  };
+  return normalizeBusLibrary([
+    { sourceFile: '/workspace/custom-symbol.yml', sourceKind: 'workspace', definitions },
+  ]);
+}
+
 describe('busResolver endianness', () => {
+  it('uses a custom contract mode policy for direction and Quartus endpoint metadata', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          busInterfaces: [
+            {
+              name: 'custom_target',
+              type: 'acme:busif:custom:1.0',
+              mode: 'target',
+              physicalPrefix: 'custom_',
+            },
+          ],
+        },
+        {},
+        customModeLibrary()
+      )
+    );
+
+    expect(result.bus_ports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ logical_name: 'payload', direction: 'in' }),
+      ])
+    );
+    expect(result.expanded_bus_interfaces).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'custom_target',
+          normalized_mode: 'target',
+          is_consumer: true,
+          altera_end_type: 'end',
+        }),
+      ])
+    );
+  });
+
   it('marks no ports for swap when no interfaces are big-endian', () => {
     const result = busResolver.resolve(
       makeInput(
@@ -70,8 +183,8 @@ describe('busResolver endianness', () => {
     const byName = Object.fromEntries(swapPorts.map((p) => [p.name, p.swap_kind]));
     // Data payload byte-reversed; the WSTRB mask bit-reversed in lockstep.
     expect(byName).toEqual({
-      s_axi_wdata: 'byte',
-      s_axi_rdata: 'byte',
+      s_axi_wdata: 'lane',
+      s_axi_rdata: 'lane',
       s_axi_wstrb: 'bit',
     });
     // Only fixed-width byte swaps need a swap_bytes_<width>() helper; WSTRB is a bit reversal.
@@ -140,13 +253,15 @@ describe('busResolver endianness', () => {
       name: string;
       is_parameterized: boolean;
       swap_kind: string;
+      lane_width: number | string;
     }>;
     const byName = Object.fromEntries(swapPorts.map((p) => [p.name, p]));
     // Parameterized data ports byte-swap via a width-generic generate loop, so they
     // contribute no fixed-width swap_bytes_<N>() helper.
     expect(byName['s_axi_wdata'].is_parameterized).toBe(true);
     expect(byName['s_axi_rdata'].is_parameterized).toBe(true);
-    expect(byName['s_axi_wdata'].swap_kind).toBe('byte');
+    expect(byName['s_axi_wdata'].swap_kind).toBe('lane');
+    expect(byName['s_axi_wdata'].lane_width).toBe(8);
     // WSTRB (byteQualifier) is a fixed 4-bit mask, reversed as bits — never a swap_bytes helper.
     expect(byName['s_axi_wstrb'].swap_kind).toBe('bit');
     expect(result.endian_swap_widths).toEqual([]);
@@ -163,7 +278,7 @@ describe('busResolver endianness', () => {
               type: 'AXI4L',
               mode: 'slave',
               endianness: 'big',
-              portWidthOverrides: { WDATA: 'DATA_WIDTH', WSTRB: 'DATA_WIDTH' },
+              portWidthOverrides: { WDATA: 'DATA_WIDTH', RDATA: 'DATA_WIDTH' },
             },
           ],
         },
@@ -210,6 +325,53 @@ describe('busResolver endianness', () => {
       'data_be_2'
     );
   });
+
+  it('preserves explicit conduit endian reflow metadata in unified boundary planning', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        busInterfaces: [
+          {
+            name: 'custom_conduit',
+            type: 'acme:interface:conduit:1.0',
+            mode: 'conduit',
+            physicalPrefix: 'c_',
+            endianness: 'big',
+            conduitPorts: [
+              { name: 'payload', direction: 'in', width: 32, role: 'data' },
+              { name: 'qualifier', direction: 'out', width: 4, role: 'byteQualifier' },
+              { name: 'bidir', direction: 'inout', width: 32, role: 'data' },
+            ],
+          },
+        ],
+      })
+    );
+
+    expect(result.boundary_transform_ports).toEqual([
+      expect.objectContaining({
+        name: 'c_payload',
+        internal_name: 'c_payload_be',
+        direction: 'in',
+        invert: false,
+        swap_kind: 'lane',
+        lane_width: 8,
+      }),
+      expect.objectContaining({
+        name: 'c_qualifier',
+        internal_name: 'c_qualifier_be',
+        direction: 'out',
+        invert: false,
+        swap_kind: 'bit',
+        lane_width: 1,
+      }),
+    ]);
+    expect(result.has_boundary_transform).toBe(true);
+    expect(result.has_endian_swap).toBe(true);
+    expect(
+      (result.boundary_transform_ports as Array<{ name: string }>).some(
+        (port) => port.name === 'c_bidir'
+      )
+    ).toBe(false);
+  });
 });
 
 describe('buildUserPorts endianness', () => {
@@ -231,6 +393,7 @@ describe('buildUserPorts endianness', () => {
       paramNames
     );
     expect(ports[0].needs_swap).toBe(true);
+    expect(ports[0].lane_kind).toBe('byte');
   });
 
   it('does not swap a big-endian port whose width is not a multiple of 8', () => {
@@ -263,7 +426,71 @@ describe('buildUserPorts endianness', () => {
     );
     expect(ports[0].is_parameterized).toBe(true);
     expect(ports[0].needs_swap).toBe(true);
-    expect(ports[0].swap_kind).toBe('byte');
+    expect(ports[0].swap_kind).toBe('lane');
+    expect(ports[0].lane_width).toBe(8);
+    expect(ports[0].lane_kind).toBe('byte');
+  });
+
+  it('reverses a five-bit Avalon-ST payload in one-bit symbol lanes', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        busInterfaces: [
+          {
+            name: 'stream',
+            type: 'ipcraft:busif:avalon_st:1.0',
+            mode: 'source',
+            physicalPrefix: 'stream_',
+            endianness: 'big',
+            portWidthOverrides: { data: 5 },
+            interfaceProperties: { dataBitsPerSymbol: 1, symbolsPerBeat: 5 },
+          },
+        ],
+      })
+    );
+
+    expect(result.endian_swap_ports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'stream_data',
+          width: 5,
+          swap_kind: 'lane',
+          lane_width: 1,
+        }),
+      ])
+    );
+    expect(
+      (result.bus_ports as Array<Record<string, unknown>>).find(
+        (port) => port.logical_name === 'data'
+      )
+    ).toEqual(expect.objectContaining({ needs_swap: true, lane_width: 1 }));
+  });
+
+  it('derives symbol-sized endian lanes from custom contract metadata', () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          busInterfaces: [
+            {
+              name: 'stream',
+              type: 'acme:busif:custom_symbol_stream:1.0',
+              mode: 'source',
+              physicalPrefix: 'stream_',
+              endianness: 'big',
+              portWidthOverrides: { payload: 5 },
+              interfaceProperties: { dataBitsPerSymbol: 1 },
+            },
+          ],
+        },
+        {},
+        customSymbolLaneLibrary()
+      )
+    );
+
+    expect(
+      (result.bus_ports as Array<Record<string, unknown>>).find(
+        (port) => port.logical_name === 'payload'
+      )
+    ).toEqual(expect.objectContaining({ needs_swap: true, lane_width: 1 }));
   });
 
   it('does not gate a parameterized swap on the parameter default width', () => {
@@ -277,6 +504,258 @@ describe('buildUserPorts endianness', () => {
     expect(ports[0].width).toBe(12);
     expect(ports[0].is_parameterized).toBe(true);
     expect(ports[0].needs_swap).toBe(true);
+  });
+});
+
+describe('busResolver canonical port projection', () => {
+  function projectInterface(
+    raw: Record<string, unknown>,
+    busLibrary: NormalizedBusLibrary = builtinBusLibrary()
+  ): ProjectedBusPort[] {
+    const ipCore = normalizeIpCoreData(raw);
+    const iface = ipCore.busInterfaces?.[0] as BusInterface;
+    const parameters = (ipCore.parameters ?? []) as Parameter[];
+    const resolution = resolveBusInterface({
+      busInterface: iface,
+      busIndex: 0,
+      parameters,
+      library: busLibrary,
+    });
+    const dataLane = resolveDataLane(resolution, iface);
+    const parameterDefaults = Object.fromEntries(
+      parameters.flatMap((parameter) =>
+        parameter.name && typeof parameter.value === 'number'
+          ? [[parameter.name, parameter.value]]
+          : []
+      )
+    );
+    return projectResolvedBusPorts(
+      resolution.activePorts,
+      iface.physicalPrefix ?? '',
+      parameterDefaults,
+      {
+        endianness: iface.endianness === 'big' ? 'big' : 'little',
+        laneWidth: dataLane.width,
+        laneKind: dataLane.kind,
+      }
+    );
+  }
+
+  it('projects big-endian byte data and qualifier swap metadata before template adaptation', () => {
+    const projected = projectInterface({
+      busInterfaces: [
+        {
+          name: 's_axi',
+          type: 'AXI4L',
+          mode: 'slave',
+          physicalPrefix: 's_axi_',
+          endianness: 'big',
+        },
+      ],
+    });
+
+    expect(projected.find((port) => port.canonicalName === 'WDATA')).toMatchObject({
+      endianness: 'big',
+      needsSwap: true,
+      swapKind: 'lane',
+      laneWidth: 8,
+      laneKind: 'byte',
+    });
+    expect(projected.find((port) => port.canonicalName === 'WSTRB')).toMatchObject({
+      endianness: 'big',
+      needsSwap: true,
+      swapKind: 'bit',
+      laneWidth: 1,
+      laneKind: 'byte',
+    });
+  });
+
+  it('projects parameterized qualifier and symbol-lane metadata without default-width gating', () => {
+    const byteProjected = projectInterface({
+      parameters: [{ name: 'DATA_WIDTH', value: 8 }],
+      busInterfaces: [
+        {
+          name: 's_axi',
+          type: 'AXI4L',
+          mode: 'slave',
+          endianness: 'big',
+          portWidthOverrides: { WDATA: 'DATA_WIDTH', RDATA: 'DATA_WIDTH' },
+        },
+      ],
+    });
+    expect(byteProjected.find((port) => port.canonicalName === 'WSTRB')).toMatchObject({
+      width: 1,
+      widthExpr: 'DATA_WIDTH/8',
+      isParameterized: true,
+      endianness: 'big',
+      needsSwap: true,
+      swapKind: 'bit',
+      laneWidth: 1,
+      laneKind: 'byte',
+    });
+
+    const symbolProjected = projectInterface(
+      {
+        busInterfaces: [
+          {
+            name: 'symbols',
+            type: 'acme:busif:custom_symbol_stream:1.0',
+            mode: 'source',
+            endianness: 'big',
+            interfaceProperties: { dataBitsPerSymbol: 1 },
+          },
+        ],
+      },
+      customSymbolLaneLibrary()
+    );
+    expect(symbolProjected.find((port) => port.canonicalName === 'payload')).toMatchObject({
+      endianness: 'big',
+      needsSwap: true,
+      swapKind: 'lane',
+      laneWidth: 1,
+      laneKind: 'symbol',
+    });
+  });
+
+  it('keeps the interface role, physical suffix, polarity inversion, and parameterized width distinct', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        parameters: [{ name: 'DATA_WIDTH', value: 64 }],
+        busInterfaces: [
+          {
+            name: 's_avmm',
+            type: 'AVMM',
+            mode: 'slave',
+            physicalPrefix: 'avs_',
+            useOptionalPorts: ['writedata', 'byteenable'],
+            portWidthOverrides: { writedata: 'DATA_WIDTH' },
+            portPolarityOverrides: { byteenable: 'activeLow' },
+          },
+        ],
+      })
+    );
+
+    const byteenable = (result.bus_ports as Array<Record<string, unknown>>).find(
+      (port) => port.logical_name === 'byteenable'
+    );
+    expect(byteenable).toMatchObject({
+      logical_name: 'byteenable',
+      interface_role: 'byteenable_n',
+      effective_polarity: 'activeLow',
+      physical_suffix: 'byteenable_n',
+      name: 'avs_byteenable_n',
+      direction: 'in',
+      width: 8,
+      width_expr: 'DATA_WIDTH/8',
+      is_parameterized: true,
+      tcl_width: '[expr [get_parameter_value DATA_WIDTH]/8]',
+      needs_polarity_inversion: true,
+    });
+    expect(result.has_boundary_transform).toBe(true);
+    expect(result.boundary_transform_ports).toEqual([
+      {
+        name: 'avs_byteenable_n',
+        internal_name: 'avs_byteenable_n_inv',
+        direction: 'in',
+        type: 'std_logic_vector((DATA_WIDTH/8)-1 downto 0)',
+        sv_type: 'logic [(DATA_WIDTH/8)-1:0]',
+        width: 8,
+        width_expr: 'DATA_WIDTH/8',
+        is_parameterized: true,
+        invert: true,
+      },
+    ]);
+    expect(byteenable?.internal_name).toBe('avs_byteenable_n_inv');
+  });
+
+  it('shares one _be intermediate between endian reflow and polarity inversion', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        parameters: [{ name: 'DATA_WIDTH', value: 32 }],
+        busInterfaces: [
+          {
+            name: 's_avmm',
+            type: 'AVMM',
+            mode: 'slave',
+            physicalPrefix: 'avs_',
+            endianness: 'big',
+            useOptionalPorts: ['writedata', 'byteenable'],
+            portWidthOverrides: { writedata: 'DATA_WIDTH' },
+            portPolarityOverrides: { byteenable: 'activeLow' },
+          },
+        ],
+      })
+    );
+
+    expect(result.boundary_transform_ports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'avs_byteenable_n',
+          internal_name: 'avs_byteenable_n_be',
+          invert: true,
+          swap_kind: 'bit',
+        }),
+      ])
+    );
+    const matchingTransforms = (result.boundary_transform_ports as Array<{ name: string }>).filter(
+      (port) => port.name === 'avs_byteenable_n'
+    );
+    expect(matchingTransforms).toHaveLength(1);
+  });
+
+  it('reserves parameter identifiers when allocating an inversion signal', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        parameters: [{ name: 'AVS_READ_N_INV', value: 1 }],
+        busInterfaces: [
+          {
+            name: 's_avmm',
+            type: 'AVMM',
+            mode: 'slave',
+            physicalPrefix: 'avs_',
+            useOptionalPorts: ['read'],
+            portPolarityOverrides: { read: 'activeLow' },
+          },
+        ],
+      })
+    );
+
+    expect(result.boundary_transform_ports).toEqual([
+      expect.objectContaining({
+        name: 'avs_read_n',
+        internal_name: 'avs_read_n_inv_2',
+      }),
+    ]);
+  });
+
+  it('lets a literal physical suffix override win without changing the selected interface role', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        busInterfaces: [
+          {
+            name: 's_avmm',
+            type: 'AVMM',
+            mode: 'slave',
+            physicalPrefix: 'avs_',
+            useOptionalPorts: ['byteenable'],
+            portNameOverrides: { byteenable: 'byteenable' },
+            portPolarityOverrides: { byteenable: 'activeLow' },
+          },
+        ],
+      })
+    );
+
+    expect(
+      (result.bus_ports as Array<Record<string, unknown>>).find(
+        (port) => port.logical_name === 'byteenable'
+      )
+    ).toMatchObject({
+      interface_role: 'byteenable_n',
+      effective_polarity: 'activeLow',
+      physical_suffix: 'byteenable',
+      name: 'avs_byteenable',
+      needs_polarity_inversion: true,
+    });
   });
 });
 

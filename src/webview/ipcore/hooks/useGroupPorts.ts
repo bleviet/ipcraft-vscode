@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import type { IpCore, BusInterface, ConduitPort, Port } from '../../types/ipCore';
-import { lookupBusDef, isConduitType } from '../data/busDefinitions';
-import type { BusPortDef } from '../data/busDefinitions';
+import type { BusPortDef } from '../utils/busLibrary';
 import { BUS_VLNV } from '../../../shared/busVlnv';
 
 export type BatchUpdate = (mutations: Array<[Array<string | number>, unknown]>) => void;
@@ -10,6 +9,8 @@ export interface MapConduitToBusOptions {
   mode: 'slave' | 'master';
   portNameOverrides: Record<string, string>;
   portWidthOverrides?: Record<string, number | string>;
+  portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
+  unmappedConduitPorts?: ConduitPort[];
   useOptionalPorts: string[];
 }
 
@@ -17,8 +18,8 @@ export interface MapConduitToBusOptions {
  * Converts an already-authored conduit interface (free-form conduitPorts) into a
  * known-bus-type interface once its type resolves to a library definition (built-in,
  * saved custom, or discovered via the Vivado interface catalog scan): sets mode and
- * portNameOverrides/useOptionalPorts from the user's signal mapping, and clears
- * conduitPorts since the library definition is now the source of truth for ports.
+ * portNameOverrides/useOptionalPorts from the user's signal mapping. Any unused
+ * conduit signals remain in a separate conduit group so conversion never drops HDL.
  * Returns the updated busInterfaces array (does not mutate ipCore).
  */
 export function applyMapConduitToKnownBus(
@@ -30,6 +31,7 @@ export function applyMapConduitToKnownBus(
     BusInterface & {
       portNameOverrides?: Record<string, string>;
       portWidthOverrides?: Record<string, number | string>;
+      portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
       useOptionalPorts?: string[];
     }
   >;
@@ -49,10 +51,32 @@ export function applyMapConduitToKnownBus(
   if (opts.portWidthOverrides && Object.keys(opts.portWidthOverrides).length > 0) {
     updated.portWidthOverrides = opts.portWidthOverrides;
   }
+  if (opts.portPolarityOverrides && Object.keys(opts.portPolarityOverrides).length > 0) {
+    updated.portPolarityOverrides = opts.portPolarityOverrides;
+  }
   if (opts.useOptionalPorts.length > 0) {
     updated.useOptionalPorts = opts.useOptionalPorts;
   }
   buses[busIndex] = updated;
+  if (!opts.unmappedConduitPorts?.length) {
+    return buses;
+  }
+
+  const baseName = `${current.name}_unmapped`;
+  const existingNames = new Set(buses.map((bus) => bus.name));
+  let name = baseName;
+  let suffix = 1;
+  while (existingNames.has(name)) {
+    name = `${baseName}_${suffix++}`;
+  }
+  const unmappedBus: BusInterface = {
+    name,
+    type: BUS_VLNV.CONDUIT,
+    mode: 'conduit',
+    physicalPrefix: current.physicalPrefix,
+    conduitPorts: opts.unmappedConduitPorts,
+  };
+  buses.splice(busIndex + 1, 0, unmappedBus);
   return buses;
 }
 
@@ -64,6 +88,7 @@ export interface GroupAsStandardOptions {
   interfaceName: string;
   portNameOverrides?: Record<string, string>;
   portWidthOverrides?: Record<string, number | string>;
+  portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
   useOptionalPorts?: string[];
   associatedClock?: string | null;
   associatedReset?: string | null;
@@ -87,7 +112,10 @@ export function useGroupPorts(
 
       const filteredPorts = ports.filter((_, i) => !indexSet.has(i));
 
-      const newBus: BusInterface & { portNameOverrides?: Record<string, string> } = {
+      const newBus: BusInterface & {
+        portNameOverrides?: Record<string, string>;
+        portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
+      } = {
         name: opts.interfaceName,
         type: opts.busType,
         mode: opts.mode,
@@ -105,6 +133,9 @@ export function useGroupPorts(
       }
       if (opts.portWidthOverrides && Object.keys(opts.portWidthOverrides).length > 0) {
         newBus.portWidthOverrides = opts.portWidthOverrides;
+      }
+      if (opts.portPolarityOverrides && Object.keys(opts.portPolarityOverrides).length > 0) {
+        newBus.portPolarityOverrides = opts.portPolarityOverrides;
       }
       if (opts.useOptionalPorts && opts.useOptionalPorts.length > 0) {
         newBus.useOptionalPorts = opts.useOptionalPorts;
@@ -207,7 +238,7 @@ export function useGroupPorts(
       const existingPorts: Port[] = [...(ipCore.ports ?? [])];
       const restoredPorts: Port[] = [];
 
-      if (isConduitType(bus.type) || bus.mode === 'conduit' || bus.conduitPorts?.length) {
+      if (bus.mode === 'conduit' || bus.conduitPorts?.length || busDefs?.(bus.type)?.length === 0) {
         // ── Conduit: restore conduitPorts as individual ports ──
         const conduitPorts = bus.conduitPorts ?? [];
         for (const cp of conduitPorts) {
@@ -219,7 +250,7 @@ export function useGroupPorts(
         }
       } else {
         // ── Standard protocol: reconstruct ports from signal definitions ──
-        const signalDefs: BusPortDef[] | null = (busDefs ?? lookupBusDef)(bus.type);
+        const signalDefs: BusPortDef[] | null = busDefs?.(bus.type) ?? null;
         if (signalDefs) {
           const prefix = bus.physicalPrefix ?? '';
           const widthOverrides =
@@ -233,7 +264,7 @@ export function useGroupPorts(
 
           for (const def of signalDefs) {
             // Skip clock/reset-role signals — they live in their own arrays
-            if (def.role) {
+            if (def.role === 'clock' || def.role === 'reset') {
               continue;
             }
             // Skip optional signals that were not explicitly activated
@@ -313,6 +344,7 @@ export function useGroupPorts(
       type BusWithOverrides = BusInterface & {
         portNameOverrides?: Record<string, string>;
         portWidthOverrides?: Record<string, number | string>;
+        portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
         useOptionalPorts?: string[];
       };
 
@@ -325,6 +357,9 @@ export function useGroupPorts(
         portWidthOverrides: opts.portWidthOverrides
           ? { ...(existing.portWidthOverrides ?? {}), ...opts.portWidthOverrides }
           : existing.portWidthOverrides,
+        portPolarityOverrides: opts.portPolarityOverrides
+          ? { ...(existing.portPolarityOverrides ?? {}), ...opts.portPolarityOverrides }
+          : existing.portPolarityOverrides,
         useOptionalPorts:
           opts.useOptionalPorts && opts.useOptionalPorts.length > 0
             ? [...new Set([...(existing.useOptionalPorts ?? []), ...opts.useOptionalPorts])]

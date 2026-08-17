@@ -5,6 +5,11 @@ import { normalizeIpCoreData } from '../../../generator/registerProcessor';
 import { buildDisplayItems } from '../../../generator/resolvers/displayItems';
 import { buildGenerics } from '../../../generator/resolvers/generics';
 import { buildParameterLayout } from '../../../generator/resolvers/parameterLayout';
+import { busResolver } from '../../../generator/resolvers/bus';
+import { BUS_REGISTRY } from '../../../generator/buses/builtin';
+import { parseHwTclContent } from '../../../parser/HwTclParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
+import * as yaml from 'js-yaml';
 import { Logger } from '../../../utils/Logger';
 
 // Mock Logger to avoid VS Code dependencies
@@ -102,6 +107,145 @@ describe('TemplateLoader', () => {
     expect(result).toContain('set_interface_property irq associatedAddressablePoint ""');
     expect(result).toContain('set_interface_property irq associatedClock clk');
   });
+
+  it('preserves exact configured interface-role spelling for static and elaborated ports', () => {
+    const result = loader.render('altera_hw_tcl.j2', {
+      entity_name: 'role_spelling_core',
+      is_systemverilog: false,
+      has_memory_mapped_slave: false,
+      generics: [],
+      clock_port: 'clk',
+      reset_port: 'rst',
+      reset_associated_clock: 'clk',
+      reset_active_high: true,
+      secondary_clocks: [],
+      secondary_resets: [],
+      expanded_bus_interfaces: [
+        {
+          name: 'custom',
+          altera_type: 'conduit',
+          altera_end_type: 'end',
+          mode: 'conduit',
+          ports: [
+            {
+              name: 'custom_static',
+              interface_role: 'StaticRole',
+              direction: 'in',
+              width: 1,
+              is_parameterized: false,
+            },
+          ],
+        },
+      ],
+      user_ports: [],
+      interrupt_ports: [],
+      elaborate_port_widths: [
+        {
+          iface_name: 'custom',
+          port_name: 'custom_parameterized',
+          logical_name: 'parameterized',
+          interface_role: 'ParameterizedRole',
+          direction: 'out',
+          tcl_width: '[get_parameter_value WIDTH]',
+        },
+      ],
+      rtl_files: [],
+    });
+
+    expect(result).toContain('add_interface_port custom custom_static StaticRole Input 1');
+    expect(result).toContain(
+      'add_interface_port custom custom_parameterized ParameterizedRole Output [get_parameter_value WIDTH]'
+    );
+  });
+
+  it.each([
+    {
+      label: 'active-low interface role with a positive-looking physical suffix',
+      logicalRole: 'byteenable_n',
+      physicalName: 'avs_byteenable',
+      polarity: 'activeLow',
+      nameOverride: 'byteenable',
+    },
+    {
+      label: 'active-high interface role with an _n-looking physical suffix',
+      logicalRole: 'byteenable',
+      physicalName: 'avs_byteenable_n',
+      polarity: undefined,
+      nameOverride: 'byteenable_n',
+    },
+  ])(
+    'preserves $label across _hw.tcl import, generation, and re-import',
+    ({ logicalRole, physicalName, polarity, nameOverride }) => {
+      const source = [
+        'set_module_property NAME polarity_core',
+        'add_interface avs avalon end',
+        `add_interface_port avs ${physicalName} ${logicalRole} Input 4`,
+        'add_interface_port avs avs_write write Input 1',
+      ].join('\n');
+      const imported = yaml.load(
+        parseHwTclContent(source, '/tmp/polarity_core_hw.tcl', {
+          busLibrary: builtinBusLibrary(),
+        }).yamlText
+      ) as Record<string, unknown>;
+      const ipCore = normalizeIpCoreData(imported);
+      expect(ipCore.busInterfaces?.[0]).toMatchObject({
+        physicalPrefix: 'avs_',
+        portNameOverrides: { byteenable: nameOverride },
+        ...(polarity ? { portPolarityOverrides: { byteenable: polarity } } : {}),
+      });
+      const projected = busResolver.resolve({
+        ipCore,
+        registers: [],
+        busDefinitions: {},
+        busLibrary: builtinBusLibrary(),
+        registry: BUS_REGISTRY,
+      });
+      const generated = loader.render('altera_hw_tcl.j2', {
+        entity_name: 'polarity_core',
+        is_systemverilog: false,
+        has_memory_mapped_slave: true,
+        generics: [],
+        display_items: [],
+        clock_port: 'clk',
+        reset_port: 'rst',
+        reset_associated_clock: 'clk',
+        reset_active_high: true,
+        secondary_clocks: [],
+        secondary_resets: [],
+        user_ports: [],
+        interrupt_ports: [],
+        rtl_files: [],
+        ...projected,
+        expanded_bus_interfaces: (
+          projected.expanded_bus_interfaces as Array<Record<string, unknown>>
+        ).map((iface) => ({ ...iface, altera_type: 'avalon' })),
+      });
+
+      expect(generated).toContain(`add_interface_port avs ${physicalName} ${logicalRole} Input 4`);
+
+      const reimported = yaml.load(
+        parseHwTclContent(generated, '/tmp/generated_polarity_core_hw.tcl', {
+          busLibrary: builtinBusLibrary(),
+        }).yamlText
+      ) as {
+        busInterfaces: Array<{
+          useOptionalPorts?: string[];
+          portNameOverrides?: Record<string, string>;
+          portPolarityOverrides?: Record<string, string>;
+        }>;
+      };
+      expect(reimported.busInterfaces[0]).toMatchObject({
+        portNameOverrides: { byteenable: nameOverride },
+        ...(polarity ? { portPolarityOverrides: { byteenable: polarity } } : {}),
+      });
+      expect(reimported.busInterfaces[0].useOptionalPorts).toEqual(
+        expect.arrayContaining(['byteenable', 'write'])
+      );
+      if (!polarity) {
+        expect(reimported.busInterfaces[0].portPolarityOverrides).toBeUndefined();
+      }
+    }
+  );
 
   describe('altera_hw_tcl parameter GUI', () => {
     function renderParameters(ipCore: Record<string, unknown>): string {

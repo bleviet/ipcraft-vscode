@@ -25,9 +25,20 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { spawnSync } from 'child_process';
-import { generateComponentXml } from '../../generator/VivadoComponentXmlGenerator';
+import { generateComponentXml as generateComponentXmlImpl } from '../../generator/VivadoComponentXmlGenerator';
 import { resolveHwTclRtlFiles } from '../../services/toolchains/QuartusToolchain';
 import type { IpCoreData } from '../../generator/types';
+import { builtinBusLibrary } from '../helpers/busLibrary';
+
+const generateComponentXml = (
+  core: IpCoreData,
+  definitions: Record<string, never>,
+  options: Record<string, unknown>
+) =>
+  generateComponentXmlImpl(core, definitions, {
+    ...options,
+    busLibrary: builtinBusLibrary(),
+  });
 import { guardTier1, toolOnPath } from './tier';
 
 // package declared in weird_types.vhd, used by main_logic.vhd. Neither file name

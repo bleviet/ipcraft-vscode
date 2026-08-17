@@ -11,11 +11,13 @@ import {
   type ConsistencyInferredPort,
   type ConsistencySummary,
 } from '../types/consistency';
+import type { IpcraftIssue } from '../../../shared/issues';
 
 export interface ConsistencyResultMessage {
   auto?: boolean;
   error?: string;
   findings?: ConsistencyFinding[];
+  issues?: IpcraftIssue[];
   summary?: ConsistencySummary;
 }
 
@@ -42,6 +44,7 @@ export function useConsistencySession(opts: {
   // results overlay currently occupies the inspector's right slot.
   const [consistencyResult, setConsistencyResult] = useState<{
     findings: ConsistencyFinding[];
+    issues: IpcraftIssue[];
     summary: ConsistencySummary;
   } | null>(null);
   const [consistencyChecking, setConsistencyChecking] = useState(false);
@@ -126,6 +129,7 @@ export function useConsistencySession(opts: {
       }
       setConsistencyResult({
         findings: message.findings ?? [],
+        issues: message.issues ?? [],
         summary: message.summary ?? { added: 0, removed: 0, changed: 0, ambiguous: 0 },
       });
       setIgnoredConsistencyKeys(new Set());

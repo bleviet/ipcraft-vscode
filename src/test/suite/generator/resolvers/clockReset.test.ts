@@ -2,12 +2,14 @@ import { clockResetResolver } from '../../../../generator/resolvers/clockReset';
 import { normalizeIpCoreData } from '../../../../generator/registerProcessor';
 import { BUS_REGISTRY } from '../../../../generator/buses/builtin';
 import type { ResolverInput } from '../../../../generator/resolvers/types';
+import { normalizeBusLibrary } from '../../../../shared/busContracts';
 
 function makeInput(raw: Record<string, unknown>): ResolverInput {
   return {
     ipCore: normalizeIpCoreData(raw),
     registers: [],
     busDefinitions: {},
+    busLibrary: normalizeBusLibrary([]),
     registry: BUS_REGISTRY,
   };
 }

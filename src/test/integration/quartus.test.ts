@@ -107,6 +107,22 @@ it('generates at least one Altera fixture with _hw.tcl', () => {
   expect(alteras.length).toBeGreaterThan(0);
 });
 
+it('exports authored and derived Avalon-ST properties to Platform Designer', () => {
+  const fixture = alteras.find(
+    (candidate) => candidate.name === 'examples/comprehensive_avalon_vhdl'
+  );
+  expect(fixture).toBeDefined();
+  const [hwTclFile] = hwTclFiles(fixture!);
+  expect(hwTclFile).toBeDefined();
+  const tcl = fs.readFileSync(hwTclFile, 'utf8');
+
+  expect(tcl).toContain('set_interface_property SNK_ST dataBitsPerSymbol 1');
+  expect(tcl).toContain('set_interface_property SNK_ST symbolsPerBeat 16');
+  expect(tcl).toContain('set_interface_property SNK_ST readyLatency 0');
+  expect(tcl).toContain('add_interface_port SNK_ST asi_rx_bits data Input 16');
+  expect(tcl).toContain('add_interface_port SRC_ST aso_empty empty Output 3');
+});
+
 it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
   if (guardQuartusToolset()) {
     return;

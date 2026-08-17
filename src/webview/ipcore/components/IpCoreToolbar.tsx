@@ -441,7 +441,9 @@ export interface IpCoreToolbarProps {
   consistencyBadge: ConsistencyBadge;
   onCheckConsistency: () => void;
   onToggleConsistencyOverlay: () => void;
-  validationErrorCount: number;
+  issueErrorCount: number;
+  issueWarningCount: number;
+  onOpenIssues: () => void;
 }
 
 /**
@@ -469,7 +471,9 @@ export const IpCoreToolbar: React.FC<IpCoreToolbarProps> = ({
   consistencyBadge,
   onCheckConsistency,
   onToggleConsistencyOverlay,
-  validationErrorCount,
+  issueErrorCount,
+  issueWarningCount,
+  onOpenIssues,
 }) => (
   <div className="flex items-start gap-2">
     {/* Zone 1: History */}
@@ -691,10 +695,20 @@ export const IpCoreToolbar: React.FC<IpCoreToolbarProps> = ({
         command="fpga-ip-core.reportIssue"
       />
     </ToolbarGroup>
-    {validationErrorCount > 0 && (
-      <div className="text-sm" style={{ color: 'var(--vscode-errorForeground)' }}>
-        {validationErrorCount} validation error(s)
-      </div>
+    {(issueErrorCount > 0 || issueWarningCount > 0) && (
+      <button
+        type="button"
+        className="canvas-view-toggle"
+        onClick={onOpenIssues}
+        aria-label={`${issueErrorCount} errors, ${issueWarningCount} warnings`}
+        title="Open Issues"
+        style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '11px' }}
+      >
+        <span style={{ color: 'var(--vscode-errorForeground)' }}>{issueErrorCount} errors</span>
+        <span style={{ color: 'var(--vscode-editorWarning-foreground)' }}>
+          {issueWarningCount} warnings
+        </span>
+      </button>
     )}
   </div>
 );

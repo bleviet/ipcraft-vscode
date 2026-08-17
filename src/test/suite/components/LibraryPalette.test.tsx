@@ -1,14 +1,27 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { LibraryPalette } from '../../../webview/ipcore/components/canvas/LibraryPalette';
+import { normalizeBusLibrary } from '../../../shared/busContracts';
+import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
 
-const WORKSPACE_BUS_LIBRARY = {
+function workspaceLibrary(definitions: BusDefinitionFile) {
+  return normalizeBusLibrary([
+    { sourceFile: '/workspace/library.yml', sourceKind: 'workspace', definitions },
+  ]);
+}
+
+const WORKSPACE_BUS_LIBRARY = workspaceLibrary({
   CUSTOM_FIFO: {
-    busType: { vendor: 'xilinx.com', library: 'busif', name: 'custom_fifo', version: '1.0' },
-    source: 'workspace',
+    busType: {
+      vendor: 'xilinx.com',
+      library: 'busif',
+      name: 'custom_fifo',
+      version: '1.0',
+      displayName: 'Custom-Fifo',
+    },
     ports: [{ name: 'WR_EN', direction: 'out' }],
   },
-};
+});
 
 describe('LibraryPalette', () => {
   it('renders the built-in bus protocols with an IPCraft vendor badge', () => {
@@ -57,18 +70,28 @@ describe('LibraryPalette', () => {
   });
 
   it('disambiguates same-named interfaces that differ only by VLNV version, instead of looking like duplicates', () => {
-    const jtagVersions = {
+    const jtagVersions = workspaceLibrary({
       XILINX_COM_INTERFACE_JTAG_1_0: {
-        busType: { vendor: 'xilinx.com', library: 'interface', name: 'jtag', version: '1.0' },
-        source: 'vivado',
+        busType: {
+          vendor: 'xilinx.com',
+          library: 'interface',
+          name: 'jtag',
+          version: '1.0',
+          displayName: 'Jtag',
+        },
         ports: [{ name: 'TCK', direction: 'out' }],
       },
       XILINX_COM_INTERFACE_JTAG_2_0: {
-        busType: { vendor: 'xilinx.com', library: 'interface', name: 'jtag', version: '2.0' },
-        source: 'vivado',
+        busType: {
+          vendor: 'xilinx.com',
+          library: 'interface',
+          name: 'jtag',
+          version: '2.0',
+          displayName: 'Jtag',
+        },
         ports: [{ name: 'TCK', direction: 'out' }],
       },
-    };
+    });
     render(<LibraryPalette busLibrary={jtagVersions} />);
     expect(screen.queryByText('Jtag')).not.toBeInTheDocument();
     expect(screen.getByText('Jtag (v1.0)')).toBeInTheDocument();
@@ -76,18 +99,28 @@ describe('LibraryPalette', () => {
   });
 
   it('drops a true duplicate — the same VLNV discovered twice under different dict keys', () => {
-    const sameVlnvTwice = {
+    const sameVlnvTwice = workspaceLibrary({
       WORKSPACE_KEY: {
-        busType: { vendor: 'xilinx.com', library: 'interface', name: 'jtag', version: '1.0' },
-        source: 'workspace',
+        busType: {
+          vendor: 'xilinx.com',
+          library: 'interface',
+          name: 'jtag',
+          version: '1.0',
+          displayName: 'Jtag',
+        },
         ports: [{ name: 'TCK', direction: 'out' }],
       },
       VIVADO_KEY: {
-        busType: { vendor: 'xilinx.com', library: 'interface', name: 'jtag', version: '1.0' },
-        source: 'vivado',
+        busType: {
+          vendor: 'xilinx.com',
+          library: 'interface',
+          name: 'jtag',
+          version: '1.0',
+          displayName: 'Jtag',
+        },
         ports: [{ name: 'TCK', direction: 'out' }],
       },
-    };
+    });
     render(<LibraryPalette busLibrary={sameVlnvTwice} />);
     expect(screen.getAllByText('Jtag')).toHaveLength(1);
   });

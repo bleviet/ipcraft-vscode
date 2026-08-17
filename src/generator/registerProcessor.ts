@@ -1,14 +1,28 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import type { BusInterfaceDef, BusTypeInfo, IpCoreData } from './types';
+import type {
+  BusInterfaceDef,
+  BusPortProjectionMetadata,
+  IpCoreData,
+  ProjectedBusPort,
+} from './types';
 import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImports';
 import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
 import { BUS_REGISTRY } from './buses/builtin';
+import {
+  BYTE_LANE_WIDTH,
+  canonicalizeBusType,
+  isConsumerInterface,
+  isMemoryMappedConsumer,
+  type ResolvedBusPort,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
 
 import { evalWidthExpr } from '../shared/evalWidthExpr';
 import { parse, serialize, containsParamRef } from '../shared/widthExprAst';
 import { reconstructBusPortNameSet } from '../shared/busPortNameSet';
+import { buildPortSwapProjection } from './resolvers/endiannessPolicy';
 export { evalWidthExpr };
 
 /**
@@ -122,34 +136,38 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
   return normalizeIpCore(raw) as unknown as IpCoreData;
 }
 
-export function normalizeBusType(typeName: string): BusTypeInfo {
-  return BUS_REGISTRY.normalize(typeName);
-}
-
-export function getBusTypeForTemplate(ipCore: IpCoreData): string {
-  let firstSlave: string | undefined;
+export function getBusTypeForTemplate(ipCore: IpCoreData, library: NormalizedBusLibrary): string {
+  let firstConsumer: string | undefined;
   for (const bus of ipCore.busInterfaces ?? []) {
-    if ((bus.mode ?? '').toLowerCase() === 'slave') {
-      const templateType = normalizeBusType(getString(bus.type)).templateType;
-      firstSlave ??= templateType;
-      if (BUS_REGISTRY.isMemoryMapped(templateType)) {
+    const match = canonicalizeBusType(getString(bus.type), library);
+    const contract = match?.contract;
+    if (!contract) {
+      continue;
+    }
+    if (isConsumerInterface(contract, getString(bus.mode))) {
+      const templateType = BUS_REGISTRY.normalize(getString(bus.type), library).templateType;
+      firstConsumer ??= templateType;
+      if (contract.interfaceKind === 'memoryMapped') {
         return templateType;
       }
     }
   }
-  return firstSlave ?? 'axil';
+  return firstConsumer ?? 'axil';
 }
 
-export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
-  for (const bus of ipCore.busInterfaces ?? []) {
-    if ((bus.mode ?? '').toLowerCase() === 'slave') {
-      const templateType = normalizeBusType(getString(bus.type)).templateType;
-      if (BUS_REGISTRY.isMemoryMapped(templateType)) {
-        return true;
-      }
-    }
-  }
-  return false;
+/**
+ * True when any interface is a memory-mapped consumer, i.e. the core owns a
+ * register file reachable over a bus. The mode is resolved from the contract's
+ * declared mode policy rather than from a protocol-specific role name.
+ */
+export function hasMemoryMappedConsumerInterface(
+  ipCore: IpCoreData,
+  library: NormalizedBusLibrary
+): boolean {
+  return (ipCore.busInterfaces ?? []).some((bus) => {
+    const match = canonicalizeBusType(getString(bus.type), library);
+    return match !== null && isMemoryMappedConsumer(match.contract, getString(bus.mode));
+  });
 }
 
 /**
@@ -162,9 +180,12 @@ export function hasMemoryMappedSlaveInterface(ipCore: IpCoreData): boolean {
  * falls back to the legacy raw-prefix comparison for that pair.
  * Returns a descriptive error string on collision, or null when there is none.
  */
-export function checkDuplicatePhysicalPrefixes(ipCore: IpCoreData): string | null {
+export function checkDuplicatePhysicalPrefixes(
+  ipCore: IpCoreData,
+  library: NormalizedBusLibrary
+): string | null {
   const expanded = expandBusInterfaces(ipCore).filter((iface) => Boolean(iface.physicalPrefix));
-  const nameSets = expanded.map((iface) => reconstructBusPortNameSet(iface));
+  const nameSets = expanded.map((iface) => reconstructBusPortNameSet(iface, library));
   const duplicates: string[] = [];
 
   for (let i = 0; i < expanded.length; i++) {
@@ -222,7 +243,9 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
           physicalPrefix: String(prefixPattern).replace('{index}', String(idx)),
           useOptionalPorts: iface.useOptionalPorts ?? [],
           portWidthOverrides: iface.portWidthOverrides ?? {},
+          interfaceProperties: iface.interfaceProperties,
           portNameOverrides: iface.portNameOverrides,
+          portPolarityOverrides: iface.portPolarityOverrides,
           absentPorts: iface.absentPorts,
           conduitPorts: iface.conduitPorts ?? [],
           associatedClock: iface.associatedClock,
@@ -243,7 +266,9 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       physicalPrefix: iface.physicalPrefix ?? defaultPrefix,
       useOptionalPorts: iface.useOptionalPorts ?? [],
       portWidthOverrides: iface.portWidthOverrides ?? {},
+      interfaceProperties: iface.interfaceProperties,
       portNameOverrides: iface.portNameOverrides,
+      portPolarityOverrides: iface.portPolarityOverrides,
       absentPorts: iface.absentPorts,
       conduitPorts: iface.conduitPorts ?? [],
       associatedClock: iface.associatedClock,
@@ -270,6 +295,105 @@ export function getSvPortType(width: number, _logicalName: string): string {
   return `logic [${width - 1}:0]`;
 }
 
+function toTclWidthExpression(exprStr: string, parameterNames: readonly string[]): string {
+  const ast = parse(exprStr);
+  if (!ast) {
+    return exprStr;
+  }
+  const upperParameterNames = new Set(parameterNames.map((name) => name.toUpperCase()));
+  let hasParameter = false;
+  const converted = serialize(ast, 'tcl', {
+    paramRef: (name) => {
+      const upper = name.toUpperCase();
+      if (upperParameterNames.has(upper)) {
+        hasParameter = true;
+        return `[get_parameter_value ${upper}]`;
+      }
+      return name;
+    },
+  }).code;
+  if (!hasParameter) {
+    return exprStr;
+  }
+  return /^\[get_parameter_value [a-zA-Z0-9_]+\]$/.test(converted.trim())
+    ? converted
+    : `[expr ${converted}]`;
+}
+
+/**
+ * Project resolver-owned canonical ports into generator-facing physical ports.
+ * Canonical identity, vendor role, and literal physical suffix remain separate;
+ * callers must not reconstruct one from another.
+ */
+export function projectResolvedBusPorts(
+  ports: readonly ResolvedBusPort[],
+  physicalPrefix: string,
+  parameters: Readonly<Record<string, number>> = {},
+  metadata: BusPortProjectionMetadata = {
+    endianness: 'little',
+    laneWidth: BYTE_LANE_WIDTH,
+    laneKind: 'byte',
+  }
+): ProjectedBusPort[] {
+  const parameterNames = Object.keys(parameters);
+
+  return ports.flatMap((port) => {
+    if (port.role === 'clock' || port.role === 'reset') {
+      return [];
+    }
+    const direction = port.effectiveDirection ?? port.direction;
+    if (direction !== 'in' && direction !== 'out') {
+      return [];
+    }
+
+    const widthExpr =
+      port.effectiveWidth.expression && containsParamRef(port.effectiveWidth.expression)
+        ? serialize(port.effectiveWidth.expression, 'canonical').code
+        : null;
+    const evaluatedWidth =
+      port.effectiveWidth.value ??
+      (widthExpr ? evalWidthExpr(widthExpr, parameters) : undefined) ??
+      (typeof port.width === 'number' ? port.width : undefined) ??
+      1;
+    const portTypes = widthExpr
+      ? buildParameterizedPortTypes(widthExpr)
+      : {
+          type: getVhdlPortType(evaluatedWidth, port.name),
+          sv_type: getSvPortType(evaluatedWidth, port.name),
+        };
+    const projectionMetadata = buildPortSwapProjection(
+      port.role,
+      direction,
+      evaluatedWidth,
+      widthExpr !== null,
+      metadata
+    );
+
+    return [
+      {
+        canonicalName: port.name,
+        name: `${physicalPrefix}${port.physicalSuffix}`,
+        interfaceRole: port.interfaceRole,
+        ...(port.effectivePolarity ? { effectivePolarity: port.effectivePolarity } : {}),
+        physicalSuffix: port.physicalSuffix,
+        direction,
+        svDirection: direction === 'in' ? 'input' : 'output',
+        type: portTypes.type,
+        svType: portTypes.sv_type,
+        width: evaluatedWidth,
+        widthExpr,
+        isParameterized: widthExpr !== null,
+        tclWidth: widthExpr
+          ? toTclWidthExpression(widthExpr, parameterNames)
+          : String(evaluatedWidth),
+        endianness: metadata.endianness,
+        ...projectionMetadata,
+        needsPolarityInversion: port.needsPolarityInversion,
+      },
+    ];
+  });
+}
+
 export function getActiveBusPortsFromDefinition(
   ports: Array<{
     name: string;
@@ -284,7 +408,8 @@ export function getActiveBusPortsFromDefinition(
   portWidthOverrides: Record<string, number | string>,
   parameters?: Array<{ name: string; value?: number | string; data_type?: string }>,
   portNameOverrides?: Record<string, string>,
-  absentPorts?: string[]
+  absentPorts?: string[],
+  effectiveDirections?: Readonly<Record<string, 'in' | 'out'>>
 ): Array<Record<string, unknown>> {
   const optionalSet = new Set(useOptionalPorts || []);
   const absentSet = new Set((absentPorts ?? []).map((n) => n.toUpperCase()));
@@ -317,8 +442,8 @@ export function getActiveBusPortsFromDefinition(
       return;
     }
 
-    let direction = port.direction ?? 'in';
-    if (mode === 'slave' || mode === 'sink') {
+    let direction = effectiveDirections?.[logicalName] ?? port.direction ?? 'in';
+    if (!effectiveDirections?.[logicalName] && (mode === 'slave' || mode === 'sink')) {
       direction = direction === 'out' ? 'in' : direction === 'in' ? 'out' : direction;
     }
 
@@ -342,15 +467,6 @@ export function getActiveBusPortsFromDefinition(
       const resolved = resolveStringWidth(width, paramDefaults);
       width = resolved.numeric;
       widthExpr = resolved.expr;
-    }
-
-    // WSTRB width is DATA_WIDTH/8. The YAML convention stores only the data-width
-    // parameter name (e.g. "AxiDataWidth_g") so the parser can strip "/8" without
-    // losing the parameter reference. Re-apply "/8" here so that widthExpr, width,
-    // tcl_width, and all generated outputs are all consistent and correct.
-    if (logicalName === 'WSTRB' && widthExpr !== null) {
-      widthExpr = `${widthExpr}/8`;
-      width = evalWidthExpr(widthExpr, paramDefaults) ?? 1;
     }
 
     const numWidth = Number(width);

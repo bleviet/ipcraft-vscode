@@ -1,10 +1,10 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import type { IpCore } from '../../../types/ipCore';
+import type { BusInterface, IpCore } from '../../../types/ipCore';
 import { computeLayout } from './canvasLayout';
 import { RemoveZone } from './RemoveZone';
 import { useCanvasValidation, type CanvasAnnotations } from '../../hooks/useCanvasValidation';
-import { lookupBusDef, lookupBusDefFromLibrary, isConduitType } from '../../data/busDefinitions';
-import type { BusPortDef } from '../../data/busDefinitions';
+import { lookupBusDef, isAssociatedPort, isConduitType } from '../../utils/busLibrary';
+import type { BusPortDef } from '../../utils/busLibrary';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import { useGroupPorts } from '../../hooks/useGroupPorts';
@@ -16,8 +16,16 @@ import { useCanvasDropTarget } from '../../hooks/useCanvasDropTarget';
 import { useCanvasKeyboardCommands } from '../../hooks/useCanvasKeyboardCommands';
 import { IpBlockDiagram, type CanvasSearchMatches } from './IpBlockDiagram';
 import { CanvasHud } from './CanvasHud';
+import type { IssueFocusRequest } from '../../types/issues';
 import { PortMappingOverlay, type PendingPortDrop } from './PortMappingOverlay';
 import './canvas.css';
+import {
+  canonicalizeBusType,
+  matchBusPortRole,
+  normalizeInterfaceMode,
+  resolveBusInterface,
+  type NormalizedBusLibrary,
+} from '../../../../shared/busContracts';
 
 /** Distinct colours for clock domains when multiple clocks are defined */
 const CLOCK_DOMAIN_COLORS = [
@@ -45,7 +53,7 @@ interface IpBlockCanvasProps {
   /** Remove handler when a port is dropped to delete (Phase 4) */
   onRemove?: (kind: string, id: string) => void;
   /** Runtime bus library from imports (includes custom bus definitions) */
-  busLibrary?: Record<string, unknown>;
+  busLibrary?: NormalizedBusLibrary;
   /** IDs currently in the multi-selection set (for dashed ring rendering) */
   multiSelectedIds?: Set<string>;
   /** Shift+Click handler — toggles membership in multi-selection */
@@ -59,7 +67,8 @@ interface IpBlockCanvasProps {
   /** Called when a suggestion chip is dismissed */
   onDismissSuggestion?: (chipId: string) => void;
   /** Consistency-check findings projected onto canvas element ids, merged with validation dots */
-  consistencyAnnotations?: CanvasAnnotations;
+  issueAnnotations?: CanvasAnnotations;
+  issueFocusRequest?: IssueFocusRequest | null;
 }
 
 /**
@@ -90,7 +99,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   suggestionChips,
   onDismissSelection,
   onDismissSuggestion,
-  consistencyAnnotations,
+  issueAnnotations,
+  issueFocusRequest,
 }) => {
   // Pending port-drop onto a standard (protocol-defined) bus interface
   const [pendingPortDrop, setPendingPortDrop] = useState<PendingPortDrop | null>(null);
@@ -101,22 +111,73 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    const [collection, index, field] = issueFocusRequest?.path ?? [];
+    if (
+      collection === 'busInterfaces' &&
+      typeof index === 'number' &&
+      (field === 'portWidthOverrides' || field === 'portNameOverrides')
+    ) {
+      setExpandedBusIds((previous) => new Set(previous).add(`bus:${index}`));
+    }
+  }, [issueFocusRequest]);
+
   const busDefs = useMemo((): ((type: string) => BusPortDef[] | null) => {
     if (!busLibrary) {
-      return lookupBusDef;
+      return () => null;
     }
-    return (type: string) => {
-      const hardcoded = lookupBusDef(type);
-      if (hardcoded !== null) {
-        return hardcoded;
+    return (type: string) => lookupBusDef(type, busLibrary);
+  }, [busLibrary]);
+
+  const isContractConsumer = useMemo(() => {
+    if (!busLibrary) {
+      return undefined;
+    }
+    return (bus: BusInterface): boolean | undefined => {
+      const match = canonicalizeBusType(bus.type, busLibrary);
+      if (!match) {
+        return undefined;
       }
-      return lookupBusDefFromLibrary(type, busLibrary);
+      return (
+        normalizeInterfaceMode(match.contract, bus.mode) === match.contract.modePolicy.consumer
+      );
     };
   }, [busLibrary]);
 
+  const protocolLabel = useMemo(() => {
+    if (!busLibrary) {
+      return undefined;
+    }
+    return (busType: string): string | undefined =>
+      canonicalizeBusType(busType, busLibrary)?.contract.displayName;
+  }, [busLibrary]);
+
+  const busResolutionLookup = useMemo(() => {
+    if (!busLibrary) {
+      return undefined;
+    }
+    return (bus: BusInterface, busIndex: number) =>
+      resolveBusInterface({
+        busInterface: bus as unknown as import('../../../../domain/ipcore.types').BusInterface,
+        busIndex,
+        parameters: (ipCore.parameters ??
+          []) as unknown as import('../../../../domain/ipcore.types').Parameter[],
+        library: busLibrary,
+      });
+  }, [busLibrary, ipCore.parameters]);
+
   const layout = useMemo(
-    () => computeLayout(ipCore, expandedBusIds, busDefs, ipCore.description ?? undefined),
-    [ipCore, expandedBusIds, busDefs]
+    () =>
+      computeLayout(
+        ipCore,
+        expandedBusIds,
+        busDefs,
+        ipCore.description ?? undefined,
+        isContractConsumer,
+        protocolLabel,
+        busResolutionLookup
+      ),
+    [ipCore, expandedBusIds, busDefs, isContractConsumer, protocolLabel, busResolutionLookup]
   );
   const { ports, subPorts } = layout;
 
@@ -165,17 +226,17 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     handleDragEnd,
   } = useCanvasDropTarget({ onDragOver, onDrop, onRemove });
 
-  const validationAnnotations = useCanvasValidation(ipCore);
+  const validationAnnotations = useCanvasValidation(ipCore, busLibrary);
   const annotations = useMemo<CanvasAnnotations>(() => {
-    if (!consistencyAnnotations) {
+    if (!issueAnnotations) {
       return validationAnnotations;
     }
     const merged: CanvasAnnotations = { ...validationAnnotations };
-    for (const [id, list] of Object.entries(consistencyAnnotations)) {
+    for (const [id, list] of Object.entries(issueAnnotations)) {
       merged[id] = [...(merged[id] ?? []), ...list];
     }
     return merged;
-  }, [validationAnnotations, consistencyAnnotations]);
+  }, [validationAnnotations, issueAnnotations]);
 
   // Group ports hook — only instantiated when batchUpdate is available
   const noopBatch: BatchUpdate = useCallback(() => {}, []);
@@ -194,9 +255,9 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       // conduitPorts, or any type not in the built-in protocol catalog.
       const isCustom =
         bus.mode === 'conduit' ||
-        isConduitType(bus.type) ||
+        isConduitType(bus.type, busLibrary) ||
         (bus.conduitPorts?.length ?? 0) > 0 ||
-        lookupBusDef(bus.type) === null;
+        lookupBusDef(bus.type, busLibrary) === null;
 
       if (isCustom) {
         // Conduit / custom interface: add immediately, no dialog needed.
@@ -262,15 +323,24 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       }
       const busIndex = parseInt(parts[1], 10);
       const portName = parts.slice(2).join(':');
-      const bus = (ipCore.busInterfaces ?? [])[busIndex] as
-        | { useOptionalPorts?: string[] }
-        | undefined;
-      const current = bus?.useOptionalPorts ?? [];
-      if (!current.includes(portName)) {
-        onUpdate?.(['busInterfaces', busIndex, 'useOptionalPorts'], [...current, portName]);
+      const bus = (ipCore.busInterfaces ?? [])[busIndex];
+      if (!bus) {
+        return;
       }
+      const portDefs = busLibrary
+        ? (canonicalizeBusType(bus.type, busLibrary)?.contract.ports ?? [])
+        : [];
+      const canonicalName = matchBusPortRole(portDefs, portName)?.port.name ?? portName;
+      const current = (bus.useOptionalPorts ?? []).map(
+        (name) => matchBusPortRole(portDefs, name)?.port.name ?? name
+      );
+      const updated = [...new Set([...current, canonicalName])];
+      if (updated.length === current.length) {
+        return;
+      }
+      onUpdate?.(['busInterfaces', busIndex, 'useOptionalPorts'], updated);
     },
-    [ipCore, onUpdate]
+    [busLibrary, ipCore, onUpdate]
   );
 
   const handleSubPortDeactivate = useCallback(
@@ -281,17 +351,24 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       }
       const busIndex = parseInt(parts[1], 10);
       const portName = parts.slice(2).join(':');
-      const bus = (ipCore.busInterfaces ?? [])[busIndex] as
-        | { useOptionalPorts?: string[] }
-        | undefined;
-      const current = bus?.useOptionalPorts ?? [];
-      const updated = current.filter((p) => p !== portName);
+      const bus = (ipCore.busInterfaces ?? [])[busIndex];
+      if (!bus) {
+        return;
+      }
+      const portDefs = busLibrary
+        ? (canonicalizeBusType(bus.type, busLibrary)?.contract.ports ?? [])
+        : [];
+      const canonicalName = matchBusPortRole(portDefs, portName)?.port.name ?? portName;
+      const current = bus.useOptionalPorts ?? [];
+      const updated = current
+        .map((name) => matchBusPortRole(portDefs, name)?.port.name ?? name)
+        .filter((name) => name !== canonicalName);
       onUpdate?.(
         ['busInterfaces', busIndex, 'useOptionalPorts'],
         updated.length > 0 ? updated : undefined
       );
     },
-    [ipCore, onUpdate]
+    [busLibrary, ipCore, onUpdate]
   );
 
   const KIND_TO_ARRAY: Record<string, string> = {
@@ -480,7 +557,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
           const prefix = busData.physicalPrefix ?? '';
           const overrides = busData.portNameOverrides ?? {};
           const matched = busPortDefs.some((sig) => {
-            if (sig.role) {
+            if (isAssociatedPort(sig)) {
               return false;
             }
             const sigName = sig.name.toLowerCase();
@@ -494,10 +571,14 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       }
     }
 
-    // Expanded sub-ports: match by logical name or full physical name
+    // Expanded sub-ports: match by canonical name, visible interface role, or physical name
     for (const sp of subPorts) {
       const physical = sp.physicalPrefix + (sp.physicalSuffix ?? sp.name.toLowerCase());
-      if (sp.name.toLowerCase().includes(q) || physical.toLowerCase().includes(q)) {
+      if (
+        sp.name.toLowerCase().includes(q) ||
+        sp.interfaceRole.toLowerCase().includes(q) ||
+        physical.toLowerCase().includes(q)
+      ) {
         subPortIds.add(sp.id);
         portIds.add(sp.parentBusId);
       }
@@ -590,6 +671,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         searchInputRef={searchInputRef}
         showHelp={showHelp}
         onToggleHelp={() => setShowHelp((v) => !v)}
+        busDefs={busDefs}
       />
 
       {pendingPortDrop && (

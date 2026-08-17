@@ -3,12 +3,71 @@ import * as os from 'os';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { parseVhdlFile, extractVhdlInterface } from '../../../parser/VhdlParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 import {
   parse as parseWidthExpr,
   evaluate as evaluateWidthExpr,
 } from '../../../shared/widthExprAst';
 
 describe('VhdlParser', () => {
+  it('maps declared active-low Avalon scalar and vector roles to canonical names', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'avalon_low.vhd');
+    await fs.writeFile(
+      filePath,
+      `
+        entity avalon_low is
+          port (
+            address      : out std_logic_vector(7 downto 0);
+            read_n       : out std_logic;
+            write        : out std_logic;
+            byteenable_n : out std_logic_vector(3 downto 0)
+          );
+        end entity avalon_low;
+      `,
+      'utf8'
+    );
+
+    const parsed = yaml.load(
+      (await parseVhdlFile(filePath, { detectBus: true, busLibrary: builtinBusLibrary() })).yamlText
+    ) as { busInterfaces: Array<Record<string, unknown>> };
+
+    expect(parsed.busInterfaces).toHaveLength(1);
+    expect(parsed.busInterfaces[0].portPolarityOverrides).toEqual({
+      read: 'activeLow',
+      byteenable: 'activeLow',
+    });
+    expect(parsed.busInterfaces[0].portNameOverrides).toBeUndefined();
+  });
+
+  it('prefers the default declared role when both raw HDL polarity spellings exist', async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
+    const filePath = path.join(tempDir, 'avalon_ambiguous.vhd');
+    await fs.writeFile(
+      filePath,
+      `
+        entity avalon_ambiguous is
+          port (
+            address : out std_logic_vector(7 downto 0);
+            read    : out std_logic;
+            read_n  : out std_logic;
+            write   : out std_logic
+          );
+        end entity avalon_ambiguous;
+      `,
+      'utf8'
+    );
+
+    const parsed = yaml.load(
+      (await parseVhdlFile(filePath, { detectBus: true, busLibrary: builtinBusLibrary() })).yamlText
+    ) as { busInterfaces: Array<Record<string, unknown>>; ports: Array<{ name: string }> };
+
+    expect(parsed.busInterfaces[0].portPolarityOverrides).toBeUndefined();
+    expect(parsed.ports).toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'read_n' })])
+    );
+  });
+
   it('parses an entity with ports', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ipcraft-vhdl-'));
     const filePath = path.join(tempDir, 'my_module.vhd');
@@ -535,7 +594,10 @@ describe('VhdlParser', () => {
     `;
 
     await fs.writeFile(filePath, vhdl, 'utf8');
-    const result = await parseVhdlFile(filePath, { detectBus: true });
+    const result = await parseVhdlFile(filePath, {
+      detectBus: true,
+      busLibrary: builtinBusLibrary(),
+    });
     const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
 
     const ifaces = parsed.busInterfaces as Array<Record<string, unknown>>;
@@ -590,7 +652,10 @@ describe('VhdlParser', () => {
     `;
 
     await fs.writeFile(filePath, vhdl, 'utf8');
-    const result = await parseVhdlFile(filePath, { detectBus: true });
+    const result = await parseVhdlFile(filePath, {
+      detectBus: true,
+      busLibrary: builtinBusLibrary(),
+    });
     const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
 
     const ifaces = parsed.busInterfaces as Array<Record<string, unknown>>;
@@ -602,14 +667,27 @@ describe('VhdlParser', () => {
     // portNameOverrides maps uppercase logical name → actual physical suffix
     const nameOverrides = ifaces[0].portNameOverrides as Record<string, string>;
     expect(nameOverrides).toBeDefined();
-    expect(nameOverrides.AWADDR).toBe('AwAddr');
-    expect(nameOverrides.AWPROT).toBe('AwProt');
-    expect(nameOverrides.AWVALID).toBe('AwValid');
-    expect(nameOverrides.AWREADY).toBe('AwReady');
-    expect(nameOverrides.WDATA).toBe('WData');
-    expect(nameOverrides.WSTRB).toBe('WStrb');
-    expect(nameOverrides.ARADDR).toBe('ArAddr');
-    expect(nameOverrides.RDATA).toBe('RData');
+    expect(nameOverrides).toEqual({
+      AWADDR: 'AwAddr',
+      AWPROT: 'AwProt',
+      AWVALID: 'AwValid',
+      AWREADY: 'AwReady',
+      WDATA: 'WData',
+      WSTRB: 'WStrb',
+      WVALID: 'WValid',
+      WREADY: 'WReady',
+      BRESP: 'BResp',
+      BVALID: 'BValid',
+      BREADY: 'BReady',
+      ARADDR: 'ArAddr',
+      ARPROT: 'ArProt',
+      ARVALID: 'ArValid',
+      ARREADY: 'ArReady',
+      RDATA: 'RData',
+      RRESP: 'RResp',
+      RVALID: 'RValid',
+      RREADY: 'RReady',
+    });
   });
 
   it('warns when vector-type generics (std_logic_vector, bit_vector) are parsed and maps them to integer', async () => {

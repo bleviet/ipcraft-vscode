@@ -9011,6 +9011,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "avalon_peripheral_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -9130,6 +9131,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.symbolsPerBeat">4</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>avalon_st_source</spirit:name>
@@ -9178,6 +9205,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.symbolsPerBeat">4</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>clk</spirit:name>
@@ -9687,6 +9740,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "avalon_peripheral_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -9806,6 +9860,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.symbolsPerBeat">4</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>avalon_st_source</spirit:name>
@@ -9854,6 +9934,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.symbolsPerBeat">4</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>clk</spirit:name>
@@ -10363,6 +10469,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "axi_slave_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -11087,6 +11194,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "axi_slave_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -11811,6 +11919,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "basic_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -12027,6 +12136,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "basic_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -12243,6 +12353,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/basic_peripheral_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -13139,6 +13250,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/basic_peripheral_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -14035,6 +14147,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/comprehensive_avalon_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -14059,26 +14172,26 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>read_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_read</spirit:name>
+            <spirit:name>avs_read_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>write_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_write</spirit:name>
+            <spirit:name>avs_write_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>byteenable</spirit:name>
+            <spirit:name>byteenable_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_byteenable</spirit:name>
+            <spirit:name>avs_byteenable_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -14099,18 +14212,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>readdatavalid_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_readdatavalid</spirit:name>
+            <spirit:name>avs_readdatavalid_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>waitrequest_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_waitrequest</spirit:name>
+            <spirit:name>avs_waitrequest_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -14186,6 +14299,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.maxChannel">3</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.symbolsPerBeat">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.firstSymbolInHighOrderBits">true</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="endianness" value="big" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>SNK_ST</spirit:name>
@@ -14218,6 +14358,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.dataBitsPerSymbol">1</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.symbolsPerBeat">16</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="dataBitsPerSymbol" value="1" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>clk</spirit:name>
@@ -14541,7 +14708,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_read</spirit:name>
+        <spirit:name>avs_read_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14554,7 +14721,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_write</spirit:name>
+        <spirit:name>avs_write_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14567,7 +14734,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_byteenable</spirit:name>
+        <spirit:name>avs_byteenable_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
@@ -14618,7 +14785,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_readdatavalid</spirit:name>
+        <spirit:name>avs_readdatavalid_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14631,7 +14798,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_waitrequest</spirit:name>
+        <spirit:name>avs_waitrequest_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14975,6 +15142,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/comprehensive_avalon_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -14999,26 +15167,26 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>read_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_read</spirit:name>
+            <spirit:name>avs_read_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>write_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_write</spirit:name>
+            <spirit:name>avs_write_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>byteenable</spirit:name>
+            <spirit:name>byteenable_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_byteenable</spirit:name>
+            <spirit:name>avs_byteenable_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -15039,18 +15207,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>readdatavalid_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_readdatavalid</spirit:name>
+            <spirit:name>avs_readdatavalid_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>waitrequest_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_waitrequest</spirit:name>
+            <spirit:name>avs_waitrequest_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -15126,6 +15294,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.maxChannel">3</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.symbolsPerBeat">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.firstSymbolInHighOrderBits">true</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="endianness" value="big" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>SNK_ST</spirit:name>
@@ -15158,6 +15353,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.dataBitsPerSymbol">1</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.symbolsPerBeat">16</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="dataBitsPerSymbol" value="1" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>clk</spirit:name>
@@ -15481,7 +15703,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_read</spirit:name>
+        <spirit:name>avs_read_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15494,7 +15716,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_write</spirit:name>
+        <spirit:name>avs_write_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15507,7 +15729,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_byteenable</spirit:name>
+        <spirit:name>avs_byteenable_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
@@ -15558,7 +15780,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_readdatavalid</spirit:name>
+        <spirit:name>avs_readdatavalid_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15571,7 +15793,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_waitrequest</spirit:name>
+        <spirit:name>avs_waitrequest_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15915,6 +16137,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/comprehensive_axi_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -16217,18 +16440,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>BRESP</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_bresp</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>BID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_bid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>BRESP</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axi_bresp</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -17832,13 +18055,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>m_axi_bresp</spirit:name>
+        <spirit:name>m_axi_bid</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">1</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -17849,9 +18068,13 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>m_axi_bid</spirit:name>
+        <spirit:name>m_axi_bresp</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">1</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -18537,6 +18760,53 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>s_axis_tuser</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trace_data</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.DATA_W&apos;)) - 1)">31</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trace_valid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trigger</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -18810,6 +19080,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/comprehensive_axi_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -19112,18 +19383,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>BRESP</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_bresp</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>BID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_bid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>BRESP</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axi_bresp</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -20727,6 +20998,19 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>m_axi_bid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>m_axi_bresp</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -20737,19 +21021,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_bid</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -21442,6 +21713,53 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>dbg_trace_data</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.DATA_W&apos;)) - 1)">31</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trace_valid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trigger</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>i_gpio</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -21705,6 +22023,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/daq_controller_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -22852,6 +23171,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/daq_controller_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -23999,6 +24319,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/minimal_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -24117,6 +24438,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/minimal_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -24235,6 +24557,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/multi_interface_accelerator_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -25317,7 +25640,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">31</spirit:left>
+            <spirit:left spirit:format="long">15</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -25909,6 +26232,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/multi_interface_accelerator_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -26991,7 +27315,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">31</spirit:left>
+            <spirit:left spirit:format="long">15</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -27583,6 +27907,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/system_controller_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -30428,6 +30753,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/system_controller_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -33273,6 +33599,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/xcvr_loopback_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -33721,6 +34048,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/xcvr_loopback_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -34169,6 +34497,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "minimal_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -34287,6 +34616,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "minimal_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -35038,6 +35368,10 @@ set_interface_property avalon_st_sink CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_sink SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property avalon_st_sink dataBitsPerSymbol 8
+set_interface_property avalon_st_sink maxChannel 255
+set_interface_property avalon_st_sink readyLatency 0
+set_interface_property avalon_st_sink symbolsPerBeat 4
 set_interface_property avalon_st_sink firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_sink s_avst_data data Input 32
@@ -35058,6 +35392,10 @@ set_interface_property avalon_st_source CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_source SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property avalon_st_source dataBitsPerSymbol 8
+set_interface_property avalon_st_source maxChannel 255
+set_interface_property avalon_st_source readyLatency 0
+set_interface_property avalon_st_source symbolsPerBeat 4
 set_interface_property avalon_st_source firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_source m_avst_data data Output 32
@@ -35186,6 +35524,10 @@ set_interface_property avalon_st_sink CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_sink SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property avalon_st_sink dataBitsPerSymbol 8
+set_interface_property avalon_st_sink maxChannel 255
+set_interface_property avalon_st_sink readyLatency 0
+set_interface_property avalon_st_sink symbolsPerBeat 4
 set_interface_property avalon_st_sink firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_sink s_avst_data data Input 32
@@ -35206,6 +35548,10 @@ set_interface_property avalon_st_source CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_source SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property avalon_st_source dataBitsPerSymbol 8
+set_interface_property avalon_st_source maxChannel 255
+set_interface_property avalon_st_source readyLatency 0
+set_interface_property avalon_st_source symbolsPerBeat 4
 set_interface_property avalon_st_source firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_source m_avst_data data Output 32
@@ -35313,25 +35659,25 @@ set_interface_property s_axi_lite SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port s_axi_lite s_axil_awaddr awaddr Input 12
-add_interface_port s_axi_lite s_axil_awvalid awvalid Input 1
-add_interface_port s_axi_lite s_axil_awready awready Output 1
-add_interface_port s_axi_lite s_axil_awprot awprot Input 3
-add_interface_port s_axi_lite s_axil_wdata wdata Input 32
-add_interface_port s_axi_lite s_axil_wstrb wstrb Input 4
-add_interface_port s_axi_lite s_axil_wvalid wvalid Input 1
-add_interface_port s_axi_lite s_axil_wready wready Output 1
-add_interface_port s_axi_lite s_axil_bresp bresp Output 2
-add_interface_port s_axi_lite s_axil_bvalid bvalid Output 1
-add_interface_port s_axi_lite s_axil_bready bready Input 1
-add_interface_port s_axi_lite s_axil_araddr araddr Input 12
-add_interface_port s_axi_lite s_axil_arvalid arvalid Input 1
-add_interface_port s_axi_lite s_axil_arready arready Output 1
-add_interface_port s_axi_lite s_axil_arprot arprot Input 3
-add_interface_port s_axi_lite s_axil_rdata rdata Output 32
-add_interface_port s_axi_lite s_axil_rresp rresp Output 2
-add_interface_port s_axi_lite s_axil_rvalid rvalid Output 1
-add_interface_port s_axi_lite s_axil_rready rready Input 1
+add_interface_port s_axi_lite s_axil_awaddr AWADDR Input 12
+add_interface_port s_axi_lite s_axil_awvalid AWVALID Input 1
+add_interface_port s_axi_lite s_axil_awready AWREADY Output 1
+add_interface_port s_axi_lite s_axil_awprot AWPROT Input 3
+add_interface_port s_axi_lite s_axil_wdata WDATA Input 32
+add_interface_port s_axi_lite s_axil_wstrb WSTRB Input 4
+add_interface_port s_axi_lite s_axil_wvalid WVALID Input 1
+add_interface_port s_axi_lite s_axil_wready WREADY Output 1
+add_interface_port s_axi_lite s_axil_bresp BRESP Output 2
+add_interface_port s_axi_lite s_axil_bvalid BVALID Output 1
+add_interface_port s_axi_lite s_axil_bready BREADY Input 1
+add_interface_port s_axi_lite s_axil_araddr ARADDR Input 12
+add_interface_port s_axi_lite s_axil_arvalid ARVALID Input 1
+add_interface_port s_axi_lite s_axil_arready ARREADY Output 1
+add_interface_port s_axi_lite s_axil_arprot ARPROT Input 3
+add_interface_port s_axi_lite s_axil_rdata RDATA Output 32
+add_interface_port s_axi_lite s_axil_rresp RRESP Output 2
+add_interface_port s_axi_lite s_axil_rvalid RVALID Output 1
+add_interface_port s_axi_lite s_axil_rready RREADY Input 1
 
 
 
@@ -35432,25 +35778,25 @@ set_interface_property s_axi_lite SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port s_axi_lite s_axil_awaddr awaddr Input 12
-add_interface_port s_axi_lite s_axil_awvalid awvalid Input 1
-add_interface_port s_axi_lite s_axil_awready awready Output 1
-add_interface_port s_axi_lite s_axil_awprot awprot Input 3
-add_interface_port s_axi_lite s_axil_wdata wdata Input 32
-add_interface_port s_axi_lite s_axil_wstrb wstrb Input 4
-add_interface_port s_axi_lite s_axil_wvalid wvalid Input 1
-add_interface_port s_axi_lite s_axil_wready wready Output 1
-add_interface_port s_axi_lite s_axil_bresp bresp Output 2
-add_interface_port s_axi_lite s_axil_bvalid bvalid Output 1
-add_interface_port s_axi_lite s_axil_bready bready Input 1
-add_interface_port s_axi_lite s_axil_araddr araddr Input 12
-add_interface_port s_axi_lite s_axil_arvalid arvalid Input 1
-add_interface_port s_axi_lite s_axil_arready arready Output 1
-add_interface_port s_axi_lite s_axil_arprot arprot Input 3
-add_interface_port s_axi_lite s_axil_rdata rdata Output 32
-add_interface_port s_axi_lite s_axil_rresp rresp Output 2
-add_interface_port s_axi_lite s_axil_rvalid rvalid Output 1
-add_interface_port s_axi_lite s_axil_rready rready Input 1
+add_interface_port s_axi_lite s_axil_awaddr AWADDR Input 12
+add_interface_port s_axi_lite s_axil_awvalid AWVALID Input 1
+add_interface_port s_axi_lite s_axil_awready AWREADY Output 1
+add_interface_port s_axi_lite s_axil_awprot AWPROT Input 3
+add_interface_port s_axi_lite s_axil_wdata WDATA Input 32
+add_interface_port s_axi_lite s_axil_wstrb WSTRB Input 4
+add_interface_port s_axi_lite s_axil_wvalid WVALID Input 1
+add_interface_port s_axi_lite s_axil_wready WREADY Output 1
+add_interface_port s_axi_lite s_axil_bresp BRESP Output 2
+add_interface_port s_axi_lite s_axil_bvalid BVALID Output 1
+add_interface_port s_axi_lite s_axil_bready BREADY Input 1
+add_interface_port s_axi_lite s_axil_araddr ARADDR Input 12
+add_interface_port s_axi_lite s_axil_arvalid ARVALID Input 1
+add_interface_port s_axi_lite s_axil_arready ARREADY Output 1
+add_interface_port s_axi_lite s_axil_arprot ARPROT Input 3
+add_interface_port s_axi_lite s_axil_rdata RDATA Output 32
+add_interface_port s_axi_lite s_axil_rresp RRESP Output 2
+add_interface_port s_axi_lite s_axil_rvalid RVALID Output 1
+add_interface_port s_axi_lite s_axil_rready RREADY Input 1
 
 
 
@@ -35816,25 +36162,25 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 12
-add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
-add_interface_port S_AXI_LITE s_axil_awready awready Output 1
-add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
-add_interface_port S_AXI_LITE s_axil_wdata wdata Input 32
-add_interface_port S_AXI_LITE s_axil_wstrb wstrb Input 4
-add_interface_port S_AXI_LITE s_axil_wvalid wvalid Input 1
-add_interface_port S_AXI_LITE s_axil_wready wready Output 1
-add_interface_port S_AXI_LITE s_axil_bresp bresp Output 2
-add_interface_port S_AXI_LITE s_axil_bvalid bvalid Output 1
-add_interface_port S_AXI_LITE s_axil_bready bready Input 1
-add_interface_port S_AXI_LITE s_axil_araddr araddr Input 12
-add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
-add_interface_port S_AXI_LITE s_axil_arready arready Output 1
-add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
-add_interface_port S_AXI_LITE s_axil_rdata rdata Output 32
-add_interface_port S_AXI_LITE s_axil_rresp rresp Output 2
-add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
-add_interface_port S_AXI_LITE s_axil_rready rready Input 1
+add_interface_port S_AXI_LITE s_axil_awaddr AWADDR Input 12
+add_interface_port S_AXI_LITE s_axil_awvalid AWVALID Input 1
+add_interface_port S_AXI_LITE s_axil_awready AWREADY Output 1
+add_interface_port S_AXI_LITE s_axil_awprot AWPROT Input 3
+add_interface_port S_AXI_LITE s_axil_wdata WDATA Input 32
+add_interface_port S_AXI_LITE s_axil_wstrb WSTRB Input 4
+add_interface_port S_AXI_LITE s_axil_wvalid WVALID Input 1
+add_interface_port S_AXI_LITE s_axil_wready WREADY Output 1
+add_interface_port S_AXI_LITE s_axil_bresp BRESP Output 2
+add_interface_port S_AXI_LITE s_axil_bvalid BVALID Output 1
+add_interface_port S_AXI_LITE s_axil_bready BREADY Input 1
+add_interface_port S_AXI_LITE s_axil_araddr ARADDR Input 12
+add_interface_port S_AXI_LITE s_axil_arvalid ARVALID Input 1
+add_interface_port S_AXI_LITE s_axil_arready ARREADY Output 1
+add_interface_port S_AXI_LITE s_axil_arprot ARPROT Input 3
+add_interface_port S_AXI_LITE s_axil_rdata RDATA Output 32
+add_interface_port S_AXI_LITE s_axil_rresp RRESP Output 2
+add_interface_port S_AXI_LITE s_axil_rvalid RVALID Output 1
+add_interface_port S_AXI_LITE s_axil_rready RREADY Input 1
 
 
 # Conduit interface for user port: o_data
@@ -36043,25 +36389,25 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 12
-add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
-add_interface_port S_AXI_LITE s_axil_awready awready Output 1
-add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
-add_interface_port S_AXI_LITE s_axil_wdata wdata Input 32
-add_interface_port S_AXI_LITE s_axil_wstrb wstrb Input 4
-add_interface_port S_AXI_LITE s_axil_wvalid wvalid Input 1
-add_interface_port S_AXI_LITE s_axil_wready wready Output 1
-add_interface_port S_AXI_LITE s_axil_bresp bresp Output 2
-add_interface_port S_AXI_LITE s_axil_bvalid bvalid Output 1
-add_interface_port S_AXI_LITE s_axil_bready bready Input 1
-add_interface_port S_AXI_LITE s_axil_araddr araddr Input 12
-add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
-add_interface_port S_AXI_LITE s_axil_arready arready Output 1
-add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
-add_interface_port S_AXI_LITE s_axil_rdata rdata Output 32
-add_interface_port S_AXI_LITE s_axil_rresp rresp Output 2
-add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
-add_interface_port S_AXI_LITE s_axil_rready rready Input 1
+add_interface_port S_AXI_LITE s_axil_awaddr AWADDR Input 12
+add_interface_port S_AXI_LITE s_axil_awvalid AWVALID Input 1
+add_interface_port S_AXI_LITE s_axil_awready AWREADY Output 1
+add_interface_port S_AXI_LITE s_axil_awprot AWPROT Input 3
+add_interface_port S_AXI_LITE s_axil_wdata WDATA Input 32
+add_interface_port S_AXI_LITE s_axil_wstrb WSTRB Input 4
+add_interface_port S_AXI_LITE s_axil_wvalid WVALID Input 1
+add_interface_port S_AXI_LITE s_axil_wready WREADY Output 1
+add_interface_port S_AXI_LITE s_axil_bresp BRESP Output 2
+add_interface_port S_AXI_LITE s_axil_bvalid BVALID Output 1
+add_interface_port S_AXI_LITE s_axil_bready BREADY Input 1
+add_interface_port S_AXI_LITE s_axil_araddr ARADDR Input 12
+add_interface_port S_AXI_LITE s_axil_arvalid ARVALID Input 1
+add_interface_port S_AXI_LITE s_axil_arready ARREADY Output 1
+add_interface_port S_AXI_LITE s_axil_arprot ARPROT Input 3
+add_interface_port S_AXI_LITE s_axil_rdata RDATA Output 32
+add_interface_port S_AXI_LITE s_axil_rresp RRESP Output 2
+add_interface_port S_AXI_LITE s_axil_rvalid RVALID Output 1
+add_interface_port S_AXI_LITE s_axil_rready RREADY Input 1
 
 
 # Conduit interface for user port: o_data
@@ -36216,13 +36562,13 @@ set_interface_property S_AVMM addressUnits BYTES
 set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
-add_interface_port S_AVMM avs_read read Input 1
-add_interface_port S_AVMM avs_write write Input 1
-add_interface_port S_AVMM avs_byteenable byteenable Input 4
+add_interface_port S_AVMM avs_read_n read_n Input 1
+add_interface_port S_AVMM avs_write_n write_n Input 1
+add_interface_port S_AVMM avs_byteenable_n byteenable_n Input 4
 add_interface_port S_AVMM avs_writedata writedata Input 32
 add_interface_port S_AVMM avs_readdata readdata Output 32
-add_interface_port S_AVMM avs_readdatavalid readdatavalid Output 1
-add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
+add_interface_port S_AVMM avs_readdatavalid_n readdatavalid_n Output 1
+add_interface_port S_AVMM avs_waitrequest_n waitrequest_n Output 1
 
 
 # Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
@@ -36236,6 +36582,10 @@ set_interface_property SRC_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SRC_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property SRC_ST dataBitsPerSymbol 8
+set_interface_property SRC_ST maxChannel 3
+set_interface_property SRC_ST readyLatency 0
+set_interface_property SRC_ST symbolsPerBeat 8
 set_interface_property SRC_ST firstSymbolInHighOrderBits true
 # Ports
 add_interface_port SRC_ST aso_valid valid Output 1
@@ -36258,6 +36608,10 @@ set_interface_property SNK_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SNK_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property SNK_ST dataBitsPerSymbol 1
+set_interface_property SNK_ST maxChannel 255
+set_interface_property SNK_ST readyLatency 0
+set_interface_property SNK_ST symbolsPerBeat 16
 set_interface_property SNK_ST firstSymbolInHighOrderBits false
 # Ports
 add_interface_port SNK_ST asi_rx_bits data Input 16
@@ -36426,13 +36780,13 @@ set_interface_property S_AVMM addressUnits BYTES
 set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
-add_interface_port S_AVMM avs_read read Input 1
-add_interface_port S_AVMM avs_write write Input 1
-add_interface_port S_AVMM avs_byteenable byteenable Input 4
+add_interface_port S_AVMM avs_read_n read_n Input 1
+add_interface_port S_AVMM avs_write_n write_n Input 1
+add_interface_port S_AVMM avs_byteenable_n byteenable_n Input 4
 add_interface_port S_AVMM avs_writedata writedata Input 32
 add_interface_port S_AVMM avs_readdata readdata Output 32
-add_interface_port S_AVMM avs_readdatavalid readdatavalid Output 1
-add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
+add_interface_port S_AVMM avs_readdatavalid_n readdatavalid_n Output 1
+add_interface_port S_AVMM avs_waitrequest_n waitrequest_n Output 1
 
 
 # Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
@@ -36446,6 +36800,10 @@ set_interface_property SRC_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SRC_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property SRC_ST dataBitsPerSymbol 8
+set_interface_property SRC_ST maxChannel 3
+set_interface_property SRC_ST readyLatency 0
+set_interface_property SRC_ST symbolsPerBeat 8
 set_interface_property SRC_ST firstSymbolInHighOrderBits true
 # Ports
 add_interface_port SRC_ST aso_valid valid Output 1
@@ -36468,6 +36826,10 @@ set_interface_property SNK_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SNK_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property SNK_ST dataBitsPerSymbol 1
+set_interface_property SNK_ST maxChannel 255
+set_interface_property SNK_ST readyLatency 0
+set_interface_property SNK_ST symbolsPerBeat 16
 set_interface_property SNK_ST firstSymbolInHighOrderBits false
 # Ports
 add_interface_port SNK_ST asi_rx_bits data Input 16
@@ -36691,25 +37053,25 @@ set_interface_property S_AXI SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI s_axi_awaddr awaddr Input 16
-add_interface_port S_AXI s_axi_awvalid awvalid Input 1
-add_interface_port S_AXI s_axi_awready awready Output 1
-add_interface_port S_AXI s_axi_awprot awprot Input 3
-add_interface_port S_AXI s_axi_wdata wdata Input 32
-add_interface_port S_AXI s_axi_wstrb wstrb Input 4
-add_interface_port S_AXI s_axi_wvalid wvalid Input 1
-add_interface_port S_AXI s_axi_wready wready Output 1
-add_interface_port S_AXI s_axi_bresp bresp Output 2
-add_interface_port S_AXI s_axi_bvalid bvalid Output 1
-add_interface_port S_AXI s_axi_bready bready Input 1
-add_interface_port S_AXI s_axi_araddr araddr Input 16
-add_interface_port S_AXI s_axi_arvalid arvalid Input 1
-add_interface_port S_AXI s_axi_arready arready Output 1
-add_interface_port S_AXI s_axi_arprot arprot Input 3
-add_interface_port S_AXI s_axi_rdata rdata Output 32
-add_interface_port S_AXI s_axi_rresp rresp Output 2
-add_interface_port S_AXI s_axi_rvalid rvalid Output 1
-add_interface_port S_AXI s_axi_rready rready Input 1
+add_interface_port S_AXI s_axi_awaddr AWADDR Input 16
+add_interface_port S_AXI s_axi_awvalid AWVALID Input 1
+add_interface_port S_AXI s_axi_awready AWREADY Output 1
+add_interface_port S_AXI s_axi_awprot AWPROT Input 3
+add_interface_port S_AXI s_axi_wdata WDATA Input 32
+add_interface_port S_AXI s_axi_wstrb WSTRB Input 4
+add_interface_port S_AXI s_axi_wvalid WVALID Input 1
+add_interface_port S_AXI s_axi_wready WREADY Output 1
+add_interface_port S_AXI s_axi_bresp BRESP Output 2
+add_interface_port S_AXI s_axi_bvalid BVALID Output 1
+add_interface_port S_AXI s_axi_bready BREADY Input 1
+add_interface_port S_AXI s_axi_araddr ARADDR Input 16
+add_interface_port S_AXI s_axi_arvalid ARVALID Input 1
+add_interface_port S_AXI s_axi_arready ARREADY Output 1
+add_interface_port S_AXI s_axi_arprot ARPROT Input 3
+add_interface_port S_AXI s_axi_rdata RDATA Output 32
+add_interface_port S_AXI s_axi_rresp RRESP Output 2
+add_interface_port S_AXI s_axi_rvalid RVALID Output 1
+add_interface_port S_AXI s_axi_rready RREADY Input 1
 
 
 # Interface: M_AXI (ipcraft:busif:axi4_full:1.0)
@@ -36725,41 +37087,41 @@ set_interface_property M_AXI SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXI m_axi_awid awid Output 1
-add_interface_port M_AXI m_axi_awaddr awaddr Output 40
-add_interface_port M_AXI m_axi_awvalid awvalid Output 1
-add_interface_port M_AXI m_axi_awready awready Input 1
-add_interface_port M_AXI m_axi_awprot awprot Output 3
-add_interface_port M_AXI m_axi_awlen awlen Output 8
-add_interface_port M_AXI m_axi_awsize awsize Output 3
-add_interface_port M_AXI m_axi_awburst awburst Output 2
-add_interface_port M_AXI m_axi_awlock awlock Output 1
-add_interface_port M_AXI m_axi_awcache awcache Output 4
-add_interface_port M_AXI m_axi_wdata wdata Output 64
-add_interface_port M_AXI m_axi_wstrb wstrb Output 8
-add_interface_port M_AXI m_axi_wlast wlast Output 1
-add_interface_port M_AXI m_axi_wvalid wvalid Output 1
-add_interface_port M_AXI m_axi_wready wready Input 1
-add_interface_port M_AXI m_axi_bresp bresp Input 2
-add_interface_port M_AXI m_axi_bid bid Input 1
-add_interface_port M_AXI m_axi_bvalid bvalid Input 1
-add_interface_port M_AXI m_axi_bready bready Output 1
-add_interface_port M_AXI m_axi_arid arid Output 1
-add_interface_port M_AXI m_axi_araddr araddr Output 40
-add_interface_port M_AXI m_axi_arvalid arvalid Output 1
-add_interface_port M_AXI m_axi_arready arready Input 1
-add_interface_port M_AXI m_axi_arprot arprot Output 3
-add_interface_port M_AXI m_axi_arlen arlen Output 8
-add_interface_port M_AXI m_axi_arsize arsize Output 3
-add_interface_port M_AXI m_axi_arburst arburst Output 2
-add_interface_port M_AXI m_axi_arlock arlock Output 1
-add_interface_port M_AXI m_axi_arcache arcache Output 4
-add_interface_port M_AXI m_axi_rid rid Input 1
-add_interface_port M_AXI m_axi_rdata rdata Input 64
-add_interface_port M_AXI m_axi_rresp rresp Input 2
-add_interface_port M_AXI m_axi_rlast rlast Input 1
-add_interface_port M_AXI m_axi_rvalid rvalid Input 1
-add_interface_port M_AXI m_axi_rready rready Output 1
+add_interface_port M_AXI m_axi_awid AWID Output 1
+add_interface_port M_AXI m_axi_awaddr AWADDR Output 40
+add_interface_port M_AXI m_axi_awvalid AWVALID Output 1
+add_interface_port M_AXI m_axi_awready AWREADY Input 1
+add_interface_port M_AXI m_axi_awprot AWPROT Output 3
+add_interface_port M_AXI m_axi_awlen AWLEN Output 8
+add_interface_port M_AXI m_axi_awsize AWSIZE Output 3
+add_interface_port M_AXI m_axi_awburst AWBURST Output 2
+add_interface_port M_AXI m_axi_awlock AWLOCK Output 1
+add_interface_port M_AXI m_axi_awcache AWCACHE Output 4
+add_interface_port M_AXI m_axi_wdata WDATA Output 64
+add_interface_port M_AXI m_axi_wstrb WSTRB Output 8
+add_interface_port M_AXI m_axi_wlast WLAST Output 1
+add_interface_port M_AXI m_axi_wvalid WVALID Output 1
+add_interface_port M_AXI m_axi_wready WREADY Input 1
+add_interface_port M_AXI m_axi_bid BID Input 1
+add_interface_port M_AXI m_axi_bresp BRESP Input 2
+add_interface_port M_AXI m_axi_bvalid BVALID Input 1
+add_interface_port M_AXI m_axi_bready BREADY Output 1
+add_interface_port M_AXI m_axi_arid ARID Output 1
+add_interface_port M_AXI m_axi_araddr ARADDR Output 40
+add_interface_port M_AXI m_axi_arvalid ARVALID Output 1
+add_interface_port M_AXI m_axi_arready ARREADY Input 1
+add_interface_port M_AXI m_axi_arprot ARPROT Output 3
+add_interface_port M_AXI m_axi_arlen ARLEN Output 8
+add_interface_port M_AXI m_axi_arsize ARSIZE Output 3
+add_interface_port M_AXI m_axi_arburst ARBURST Output 2
+add_interface_port M_AXI m_axi_arlock ARLOCK Output 1
+add_interface_port M_AXI m_axi_arcache ARCACHE Output 4
+add_interface_port M_AXI m_axi_rid RID Input 1
+add_interface_port M_AXI m_axi_rdata RDATA Input 64
+add_interface_port M_AXI m_axi_rresp RRESP Input 2
+add_interface_port M_AXI m_axi_rlast RLAST Input 1
+add_interface_port M_AXI m_axi_rvalid RVALID Input 1
+add_interface_port M_AXI m_axi_rready RREADY Output 1
 
 
 # Interface: M_AXIS_CH1 (ipcraft:busif:axi_stream:1.0)
@@ -36775,15 +37137,15 @@ set_interface_property M_AXIS_CH1 SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH1 m_axis_ch1_tdata tdata Output 64
-add_interface_port M_AXIS_CH1 m_axis_ch1_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH1 m_axis_ch1_tready tready Input 1
-add_interface_port M_AXIS_CH1 m_axis_ch1_tstrb tstrb Output 8
-add_interface_port M_AXIS_CH1 m_axis_ch1_tkeep tkeep Output 8
-add_interface_port M_AXIS_CH1 m_axis_ch1_tlast tlast Output 1
-add_interface_port M_AXIS_CH1 m_axis_ch1_tid tid Output 8
-add_interface_port M_AXIS_CH1 m_axis_ch1_tdest tdest Output 4
-add_interface_port M_AXIS_CH1 m_axis_ch1_tuser tuser Output 4
+add_interface_port M_AXIS_CH1 m_axis_ch1_tdata TDATA Output 64
+add_interface_port M_AXIS_CH1 m_axis_ch1_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tready TREADY Input 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tstrb TSTRB Output 8
+add_interface_port M_AXIS_CH1 m_axis_ch1_tkeep TKEEP Output 8
+add_interface_port M_AXIS_CH1 m_axis_ch1_tlast TLAST Output 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tid TID Output 8
+add_interface_port M_AXIS_CH1 m_axis_ch1_tdest TDEST Output 4
+add_interface_port M_AXIS_CH1 m_axis_ch1_tuser TUSER Output 4
 
 
 # Interface: M_AXIS_CH2 (ipcraft:busif:axi_stream:1.0)
@@ -36799,15 +37161,15 @@ set_interface_property M_AXIS_CH2 SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH2 m_axis_ch2_tdata tdata Output 64
-add_interface_port M_AXIS_CH2 m_axis_ch2_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH2 m_axis_ch2_tready tready Input 1
-add_interface_port M_AXIS_CH2 m_axis_ch2_tstrb tstrb Output 8
-add_interface_port M_AXIS_CH2 m_axis_ch2_tkeep tkeep Output 8
-add_interface_port M_AXIS_CH2 m_axis_ch2_tlast tlast Output 1
-add_interface_port M_AXIS_CH2 m_axis_ch2_tid tid Output 8
-add_interface_port M_AXIS_CH2 m_axis_ch2_tdest tdest Output 4
-add_interface_port M_AXIS_CH2 m_axis_ch2_tuser tuser Output 4
+add_interface_port M_AXIS_CH2 m_axis_ch2_tdata TDATA Output 64
+add_interface_port M_AXIS_CH2 m_axis_ch2_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tready TREADY Input 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tstrb TSTRB Output 8
+add_interface_port M_AXIS_CH2 m_axis_ch2_tkeep TKEEP Output 8
+add_interface_port M_AXIS_CH2 m_axis_ch2_tlast TLAST Output 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tid TID Output 8
+add_interface_port M_AXIS_CH2 m_axis_ch2_tdest TDEST Output 4
+add_interface_port M_AXIS_CH2 m_axis_ch2_tuser TUSER Output 4
 
 
 # Interface: S_AXIS (ipcraft:busif:axi_stream:1.0)
@@ -36823,15 +37185,15 @@ set_interface_property S_AXIS SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXIS s_axis_tdata tdata Input 32
-add_interface_port S_AXIS s_axis_tvalid tvalid Input 1
-add_interface_port S_AXIS s_axis_tready tready Output 1
-add_interface_port S_AXIS s_axis_tstrb tstrb Input 4
-add_interface_port S_AXIS s_axis_tkeep tkeep Input 4
-add_interface_port S_AXIS s_axis_tlast tlast Input 1
-add_interface_port S_AXIS s_axis_tid tid Input 8
-add_interface_port S_AXIS s_axis_tdest tdest Input 4
-add_interface_port S_AXIS s_axis_tuser tuser Input 1
+add_interface_port S_AXIS s_axis_tdata TDATA Input 32
+add_interface_port S_AXIS s_axis_tvalid TVALID Input 1
+add_interface_port S_AXIS s_axis_tready TREADY Output 1
+add_interface_port S_AXIS s_axis_tstrb TSTRB Input 4
+add_interface_port S_AXIS s_axis_tkeep TKEEP Input 4
+add_interface_port S_AXIS s_axis_tlast TLAST Input 1
+add_interface_port S_AXIS s_axis_tid TID Input 8
+add_interface_port S_AXIS s_axis_tdest TDEST Input 4
+add_interface_port S_AXIS s_axis_tuser TUSER Input 1
 
 
 # Interface: DBG (ipcraft:busif:conduit:1.0)
@@ -37103,25 +37465,25 @@ set_interface_property S_AXI SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI s_axi_awaddr awaddr Input 16
-add_interface_port S_AXI s_axi_awvalid awvalid Input 1
-add_interface_port S_AXI s_axi_awready awready Output 1
-add_interface_port S_AXI s_axi_awprot awprot Input 3
-add_interface_port S_AXI s_axi_wdata wdata Input 32
-add_interface_port S_AXI s_axi_wstrb wstrb Input 4
-add_interface_port S_AXI s_axi_wvalid wvalid Input 1
-add_interface_port S_AXI s_axi_wready wready Output 1
-add_interface_port S_AXI s_axi_bresp bresp Output 2
-add_interface_port S_AXI s_axi_bvalid bvalid Output 1
-add_interface_port S_AXI s_axi_bready bready Input 1
-add_interface_port S_AXI s_axi_araddr araddr Input 16
-add_interface_port S_AXI s_axi_arvalid arvalid Input 1
-add_interface_port S_AXI s_axi_arready arready Output 1
-add_interface_port S_AXI s_axi_arprot arprot Input 3
-add_interface_port S_AXI s_axi_rdata rdata Output 32
-add_interface_port S_AXI s_axi_rresp rresp Output 2
-add_interface_port S_AXI s_axi_rvalid rvalid Output 1
-add_interface_port S_AXI s_axi_rready rready Input 1
+add_interface_port S_AXI s_axi_awaddr AWADDR Input 16
+add_interface_port S_AXI s_axi_awvalid AWVALID Input 1
+add_interface_port S_AXI s_axi_awready AWREADY Output 1
+add_interface_port S_AXI s_axi_awprot AWPROT Input 3
+add_interface_port S_AXI s_axi_wdata WDATA Input 32
+add_interface_port S_AXI s_axi_wstrb WSTRB Input 4
+add_interface_port S_AXI s_axi_wvalid WVALID Input 1
+add_interface_port S_AXI s_axi_wready WREADY Output 1
+add_interface_port S_AXI s_axi_bresp BRESP Output 2
+add_interface_port S_AXI s_axi_bvalid BVALID Output 1
+add_interface_port S_AXI s_axi_bready BREADY Input 1
+add_interface_port S_AXI s_axi_araddr ARADDR Input 16
+add_interface_port S_AXI s_axi_arvalid ARVALID Input 1
+add_interface_port S_AXI s_axi_arready ARREADY Output 1
+add_interface_port S_AXI s_axi_arprot ARPROT Input 3
+add_interface_port S_AXI s_axi_rdata RDATA Output 32
+add_interface_port S_AXI s_axi_rresp RRESP Output 2
+add_interface_port S_AXI s_axi_rvalid RVALID Output 1
+add_interface_port S_AXI s_axi_rready RREADY Input 1
 
 
 # Interface: M_AXI (ipcraft:busif:axi4_full:1.0)
@@ -37137,41 +37499,41 @@ set_interface_property M_AXI SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXI m_axi_awid awid Output 1
-add_interface_port M_AXI m_axi_awaddr awaddr Output 40
-add_interface_port M_AXI m_axi_awvalid awvalid Output 1
-add_interface_port M_AXI m_axi_awready awready Input 1
-add_interface_port M_AXI m_axi_awprot awprot Output 3
-add_interface_port M_AXI m_axi_awlen awlen Output 8
-add_interface_port M_AXI m_axi_awsize awsize Output 3
-add_interface_port M_AXI m_axi_awburst awburst Output 2
-add_interface_port M_AXI m_axi_awlock awlock Output 1
-add_interface_port M_AXI m_axi_awcache awcache Output 4
-add_interface_port M_AXI m_axi_wdata wdata Output 64
-add_interface_port M_AXI m_axi_wstrb wstrb Output 8
-add_interface_port M_AXI m_axi_wlast wlast Output 1
-add_interface_port M_AXI m_axi_wvalid wvalid Output 1
-add_interface_port M_AXI m_axi_wready wready Input 1
-add_interface_port M_AXI m_axi_bresp bresp Input 2
-add_interface_port M_AXI m_axi_bid bid Input 1
-add_interface_port M_AXI m_axi_bvalid bvalid Input 1
-add_interface_port M_AXI m_axi_bready bready Output 1
-add_interface_port M_AXI m_axi_arid arid Output 1
-add_interface_port M_AXI m_axi_araddr araddr Output 40
-add_interface_port M_AXI m_axi_arvalid arvalid Output 1
-add_interface_port M_AXI m_axi_arready arready Input 1
-add_interface_port M_AXI m_axi_arprot arprot Output 3
-add_interface_port M_AXI m_axi_arlen arlen Output 8
-add_interface_port M_AXI m_axi_arsize arsize Output 3
-add_interface_port M_AXI m_axi_arburst arburst Output 2
-add_interface_port M_AXI m_axi_arlock arlock Output 1
-add_interface_port M_AXI m_axi_arcache arcache Output 4
-add_interface_port M_AXI m_axi_rid rid Input 1
-add_interface_port M_AXI m_axi_rdata rdata Input 64
-add_interface_port M_AXI m_axi_rresp rresp Input 2
-add_interface_port M_AXI m_axi_rlast rlast Input 1
-add_interface_port M_AXI m_axi_rvalid rvalid Input 1
-add_interface_port M_AXI m_axi_rready rready Output 1
+add_interface_port M_AXI m_axi_awid AWID Output 1
+add_interface_port M_AXI m_axi_awaddr AWADDR Output 40
+add_interface_port M_AXI m_axi_awvalid AWVALID Output 1
+add_interface_port M_AXI m_axi_awready AWREADY Input 1
+add_interface_port M_AXI m_axi_awprot AWPROT Output 3
+add_interface_port M_AXI m_axi_awlen AWLEN Output 8
+add_interface_port M_AXI m_axi_awsize AWSIZE Output 3
+add_interface_port M_AXI m_axi_awburst AWBURST Output 2
+add_interface_port M_AXI m_axi_awlock AWLOCK Output 1
+add_interface_port M_AXI m_axi_awcache AWCACHE Output 4
+add_interface_port M_AXI m_axi_wdata WDATA Output 64
+add_interface_port M_AXI m_axi_wstrb WSTRB Output 8
+add_interface_port M_AXI m_axi_wlast WLAST Output 1
+add_interface_port M_AXI m_axi_wvalid WVALID Output 1
+add_interface_port M_AXI m_axi_wready WREADY Input 1
+add_interface_port M_AXI m_axi_bid BID Input 1
+add_interface_port M_AXI m_axi_bresp BRESP Input 2
+add_interface_port M_AXI m_axi_bvalid BVALID Input 1
+add_interface_port M_AXI m_axi_bready BREADY Output 1
+add_interface_port M_AXI m_axi_arid ARID Output 1
+add_interface_port M_AXI m_axi_araddr ARADDR Output 40
+add_interface_port M_AXI m_axi_arvalid ARVALID Output 1
+add_interface_port M_AXI m_axi_arready ARREADY Input 1
+add_interface_port M_AXI m_axi_arprot ARPROT Output 3
+add_interface_port M_AXI m_axi_arlen ARLEN Output 8
+add_interface_port M_AXI m_axi_arsize ARSIZE Output 3
+add_interface_port M_AXI m_axi_arburst ARBURST Output 2
+add_interface_port M_AXI m_axi_arlock ARLOCK Output 1
+add_interface_port M_AXI m_axi_arcache ARCACHE Output 4
+add_interface_port M_AXI m_axi_rid RID Input 1
+add_interface_port M_AXI m_axi_rdata RDATA Input 64
+add_interface_port M_AXI m_axi_rresp RRESP Input 2
+add_interface_port M_AXI m_axi_rlast RLAST Input 1
+add_interface_port M_AXI m_axi_rvalid RVALID Input 1
+add_interface_port M_AXI m_axi_rready RREADY Output 1
 
 
 # Interface: M_AXIS_CH1 (ipcraft:busif:axi_stream:1.0)
@@ -37187,15 +37549,15 @@ set_interface_property M_AXIS_CH1 SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH1 m_axis_ch1_tdata tdata Output 64
-add_interface_port M_AXIS_CH1 m_axis_ch1_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH1 m_axis_ch1_tready tready Input 1
-add_interface_port M_AXIS_CH1 m_axis_ch1_tstrb tstrb Output 8
-add_interface_port M_AXIS_CH1 m_axis_ch1_tkeep tkeep Output 8
-add_interface_port M_AXIS_CH1 m_axis_ch1_tlast tlast Output 1
-add_interface_port M_AXIS_CH1 m_axis_ch1_tid tid Output 8
-add_interface_port M_AXIS_CH1 m_axis_ch1_tdest tdest Output 4
-add_interface_port M_AXIS_CH1 m_axis_ch1_tuser tuser Output 4
+add_interface_port M_AXIS_CH1 m_axis_ch1_tdata TDATA Output 64
+add_interface_port M_AXIS_CH1 m_axis_ch1_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tready TREADY Input 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tstrb TSTRB Output 8
+add_interface_port M_AXIS_CH1 m_axis_ch1_tkeep TKEEP Output 8
+add_interface_port M_AXIS_CH1 m_axis_ch1_tlast TLAST Output 1
+add_interface_port M_AXIS_CH1 m_axis_ch1_tid TID Output 8
+add_interface_port M_AXIS_CH1 m_axis_ch1_tdest TDEST Output 4
+add_interface_port M_AXIS_CH1 m_axis_ch1_tuser TUSER Output 4
 
 
 # Interface: M_AXIS_CH2 (ipcraft:busif:axi_stream:1.0)
@@ -37211,15 +37573,15 @@ set_interface_property M_AXIS_CH2 SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH2 m_axis_ch2_tdata tdata Output 64
-add_interface_port M_AXIS_CH2 m_axis_ch2_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH2 m_axis_ch2_tready tready Input 1
-add_interface_port M_AXIS_CH2 m_axis_ch2_tstrb tstrb Output 8
-add_interface_port M_AXIS_CH2 m_axis_ch2_tkeep tkeep Output 8
-add_interface_port M_AXIS_CH2 m_axis_ch2_tlast tlast Output 1
-add_interface_port M_AXIS_CH2 m_axis_ch2_tid tid Output 8
-add_interface_port M_AXIS_CH2 m_axis_ch2_tdest tdest Output 4
-add_interface_port M_AXIS_CH2 m_axis_ch2_tuser tuser Output 4
+add_interface_port M_AXIS_CH2 m_axis_ch2_tdata TDATA Output 64
+add_interface_port M_AXIS_CH2 m_axis_ch2_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tready TREADY Input 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tstrb TSTRB Output 8
+add_interface_port M_AXIS_CH2 m_axis_ch2_tkeep TKEEP Output 8
+add_interface_port M_AXIS_CH2 m_axis_ch2_tlast TLAST Output 1
+add_interface_port M_AXIS_CH2 m_axis_ch2_tid TID Output 8
+add_interface_port M_AXIS_CH2 m_axis_ch2_tdest TDEST Output 4
+add_interface_port M_AXIS_CH2 m_axis_ch2_tuser TUSER Output 4
 
 
 # Interface: S_AXIS (ipcraft:busif:axi_stream:1.0)
@@ -37235,15 +37597,15 @@ set_interface_property S_AXIS SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXIS s_axis_tdata tdata Input 32
-add_interface_port S_AXIS s_axis_tvalid tvalid Input 1
-add_interface_port S_AXIS s_axis_tready tready Output 1
-add_interface_port S_AXIS s_axis_tstrb tstrb Input 4
-add_interface_port S_AXIS s_axis_tkeep tkeep Input 4
-add_interface_port S_AXIS s_axis_tlast tlast Input 1
-add_interface_port S_AXIS s_axis_tid tid Input 8
-add_interface_port S_AXIS s_axis_tdest tdest Input 4
-add_interface_port S_AXIS s_axis_tuser tuser Input 1
+add_interface_port S_AXIS s_axis_tdata TDATA Input 32
+add_interface_port S_AXIS s_axis_tvalid TVALID Input 1
+add_interface_port S_AXIS s_axis_tready TREADY Output 1
+add_interface_port S_AXIS s_axis_tstrb TSTRB Input 4
+add_interface_port S_AXIS s_axis_tkeep TKEEP Input 4
+add_interface_port S_AXIS s_axis_tlast TLAST Input 1
+add_interface_port S_AXIS s_axis_tid TID Input 8
+add_interface_port S_AXIS s_axis_tdest TDEST Input 4
+add_interface_port S_AXIS s_axis_tuser TUSER Input 1
 
 
 # Interface: DBG (ipcraft:busif:conduit:1.0)
@@ -37442,25 +37804,25 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 12
-add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
-add_interface_port S_AXI_LITE s_axil_awready awready Output 1
-add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
-add_interface_port S_AXI_LITE s_axil_wdata wdata Input 32
-add_interface_port S_AXI_LITE s_axil_wstrb wstrb Input 4
-add_interface_port S_AXI_LITE s_axil_wvalid wvalid Input 1
-add_interface_port S_AXI_LITE s_axil_wready wready Output 1
-add_interface_port S_AXI_LITE s_axil_bresp bresp Output 2
-add_interface_port S_AXI_LITE s_axil_bvalid bvalid Output 1
-add_interface_port S_AXI_LITE s_axil_bready bready Input 1
-add_interface_port S_AXI_LITE s_axil_araddr araddr Input 12
-add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
-add_interface_port S_AXI_LITE s_axil_arready arready Output 1
-add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
-add_interface_port S_AXI_LITE s_axil_rdata rdata Output 32
-add_interface_port S_AXI_LITE s_axil_rresp rresp Output 2
-add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
-add_interface_port S_AXI_LITE s_axil_rready rready Input 1
+add_interface_port S_AXI_LITE s_axil_awaddr AWADDR Input 12
+add_interface_port S_AXI_LITE s_axil_awvalid AWVALID Input 1
+add_interface_port S_AXI_LITE s_axil_awready AWREADY Output 1
+add_interface_port S_AXI_LITE s_axil_awprot AWPROT Input 3
+add_interface_port S_AXI_LITE s_axil_wdata WDATA Input 32
+add_interface_port S_AXI_LITE s_axil_wstrb WSTRB Input 4
+add_interface_port S_AXI_LITE s_axil_wvalid WVALID Input 1
+add_interface_port S_AXI_LITE s_axil_wready WREADY Output 1
+add_interface_port S_AXI_LITE s_axil_bresp BRESP Output 2
+add_interface_port S_AXI_LITE s_axil_bvalid BVALID Output 1
+add_interface_port S_AXI_LITE s_axil_bready BREADY Input 1
+add_interface_port S_AXI_LITE s_axil_araddr ARADDR Input 12
+add_interface_port S_AXI_LITE s_axil_arvalid ARVALID Input 1
+add_interface_port S_AXI_LITE s_axil_arready ARREADY Output 1
+add_interface_port S_AXI_LITE s_axil_arprot ARPROT Input 3
+add_interface_port S_AXI_LITE s_axil_rdata RDATA Output 32
+add_interface_port S_AXI_LITE s_axil_rresp RRESP Output 2
+add_interface_port S_AXI_LITE s_axil_rvalid RVALID Output 1
+add_interface_port S_AXI_LITE s_axil_rready RREADY Input 1
 
 
 
@@ -37570,25 +37932,25 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 12
-add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
-add_interface_port S_AXI_LITE s_axil_awready awready Output 1
-add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
-add_interface_port S_AXI_LITE s_axil_wdata wdata Input 32
-add_interface_port S_AXI_LITE s_axil_wstrb wstrb Input 4
-add_interface_port S_AXI_LITE s_axil_wvalid wvalid Input 1
-add_interface_port S_AXI_LITE s_axil_wready wready Output 1
-add_interface_port S_AXI_LITE s_axil_bresp bresp Output 2
-add_interface_port S_AXI_LITE s_axil_bvalid bvalid Output 1
-add_interface_port S_AXI_LITE s_axil_bready bready Input 1
-add_interface_port S_AXI_LITE s_axil_araddr araddr Input 12
-add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
-add_interface_port S_AXI_LITE s_axil_arready arready Output 1
-add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
-add_interface_port S_AXI_LITE s_axil_rdata rdata Output 32
-add_interface_port S_AXI_LITE s_axil_rresp rresp Output 2
-add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
-add_interface_port S_AXI_LITE s_axil_rready rready Input 1
+add_interface_port S_AXI_LITE s_axil_awaddr AWADDR Input 12
+add_interface_port S_AXI_LITE s_axil_awvalid AWVALID Input 1
+add_interface_port S_AXI_LITE s_axil_awready AWREADY Output 1
+add_interface_port S_AXI_LITE s_axil_awprot AWPROT Input 3
+add_interface_port S_AXI_LITE s_axil_wdata WDATA Input 32
+add_interface_port S_AXI_LITE s_axil_wstrb WSTRB Input 4
+add_interface_port S_AXI_LITE s_axil_wvalid WVALID Input 1
+add_interface_port S_AXI_LITE s_axil_wready WREADY Output 1
+add_interface_port S_AXI_LITE s_axil_bresp BRESP Output 2
+add_interface_port S_AXI_LITE s_axil_bvalid BVALID Output 1
+add_interface_port S_AXI_LITE s_axil_bready BREADY Input 1
+add_interface_port S_AXI_LITE s_axil_araddr ARADDR Input 12
+add_interface_port S_AXI_LITE s_axil_arvalid ARVALID Input 1
+add_interface_port S_AXI_LITE s_axil_arready ARREADY Output 1
+add_interface_port S_AXI_LITE s_axil_arprot ARPROT Input 3
+add_interface_port S_AXI_LITE s_axil_rdata RDATA Output 32
+add_interface_port S_AXI_LITE s_axil_rresp RRESP Output 2
+add_interface_port S_AXI_LITE s_axil_rvalid RVALID Output 1
+add_interface_port S_AXI_LITE s_axil_rready RREADY Input 1
 
 
 
@@ -37893,25 +38255,25 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI_LITE s_axi_awaddr awaddr Input 16
-add_interface_port S_AXI_LITE s_axi_awvalid awvalid Input 1
-add_interface_port S_AXI_LITE s_axi_awready awready Output 1
-add_interface_port S_AXI_LITE s_axi_awprot awprot Input 3
-add_interface_port S_AXI_LITE s_axi_wdata wdata Input 32
-add_interface_port S_AXI_LITE s_axi_wstrb wstrb Input 4
-add_interface_port S_AXI_LITE s_axi_wvalid wvalid Input 1
-add_interface_port S_AXI_LITE s_axi_wready wready Output 1
-add_interface_port S_AXI_LITE s_axi_bresp bresp Output 2
-add_interface_port S_AXI_LITE s_axi_bvalid bvalid Output 1
-add_interface_port S_AXI_LITE s_axi_bready bready Input 1
-add_interface_port S_AXI_LITE s_axi_araddr araddr Input 32
-add_interface_port S_AXI_LITE s_axi_arvalid arvalid Input 1
-add_interface_port S_AXI_LITE s_axi_arready arready Output 1
-add_interface_port S_AXI_LITE s_axi_arprot arprot Input 3
-add_interface_port S_AXI_LITE s_axi_rdata rdata Output 32
-add_interface_port S_AXI_LITE s_axi_rresp rresp Output 2
-add_interface_port S_AXI_LITE s_axi_rvalid rvalid Output 1
-add_interface_port S_AXI_LITE s_axi_rready rready Input 1
+add_interface_port S_AXI_LITE s_axi_awaddr AWADDR Input 16
+add_interface_port S_AXI_LITE s_axi_awvalid AWVALID Input 1
+add_interface_port S_AXI_LITE s_axi_awready AWREADY Output 1
+add_interface_port S_AXI_LITE s_axi_awprot AWPROT Input 3
+add_interface_port S_AXI_LITE s_axi_wdata WDATA Input 32
+add_interface_port S_AXI_LITE s_axi_wstrb WSTRB Input 4
+add_interface_port S_AXI_LITE s_axi_wvalid WVALID Input 1
+add_interface_port S_AXI_LITE s_axi_wready WREADY Output 1
+add_interface_port S_AXI_LITE s_axi_bresp BRESP Output 2
+add_interface_port S_AXI_LITE s_axi_bvalid BVALID Output 1
+add_interface_port S_AXI_LITE s_axi_bready BREADY Input 1
+add_interface_port S_AXI_LITE s_axi_araddr ARADDR Input 16
+add_interface_port S_AXI_LITE s_axi_arvalid ARVALID Input 1
+add_interface_port S_AXI_LITE s_axi_arready ARREADY Output 1
+add_interface_port S_AXI_LITE s_axi_arprot ARPROT Input 3
+add_interface_port S_AXI_LITE s_axi_rdata RDATA Output 32
+add_interface_port S_AXI_LITE s_axi_rresp RRESP Output 2
+add_interface_port S_AXI_LITE s_axi_rvalid RVALID Output 1
+add_interface_port S_AXI_LITE s_axi_rready RREADY Input 1
 
 
 # Interface: M_AXIS_CH0_OUT (ipcraft:busif:axi_stream:1.0)
@@ -37927,11 +38289,11 @@ set_interface_property M_AXIS_CH0_OUT SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tdata tdata Output 64
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tready tready Input 1
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tlast tlast Output 1
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tuser tuser Output 1
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tdata TDATA Output 64
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tready TREADY Input 1
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tlast TLAST Output 1
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tuser TUSER Output 1
 
 
 # Interface: M_AXIS_CH1_OUT (ipcraft:busif:axi_stream:1.0)
@@ -37947,11 +38309,11 @@ set_interface_property M_AXIS_CH1_OUT SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tdata tdata Output 64
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tready tready Input 1
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tlast tlast Output 1
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tuser tuser Output 1
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tdata TDATA Output 64
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tready TREADY Input 1
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tlast TLAST Output 1
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tuser TUSER Output 1
 
 
 # Interface: M_AXIS_CH2_OUT (ipcraft:busif:axi_stream:1.0)
@@ -37967,11 +38329,11 @@ set_interface_property M_AXIS_CH2_OUT SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tdata tdata Output 64
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tready tready Input 1
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tlast tlast Output 1
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tuser tuser Output 1
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tdata TDATA Output 64
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tready TREADY Input 1
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tlast TLAST Output 1
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tuser TUSER Output 1
 
 
 # Interface: M_AXIS_CH3_OUT (ipcraft:busif:axi_stream:1.0)
@@ -37987,11 +38349,11 @@ set_interface_property M_AXIS_CH3_OUT SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tdata tdata Output 64
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tready tready Input 1
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tlast tlast Output 1
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tuser tuser Output 1
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tdata TDATA Output 64
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tready TREADY Input 1
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tlast TLAST Output 1
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tuser TUSER Output 1
 
 
 # Interface: S_AXIS_IN (ipcraft:busif:axi_stream:1.0)
@@ -38007,9 +38369,9 @@ set_interface_property S_AXIS_IN SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXIS_IN s_axis_tdata tdata Input 32
-add_interface_port S_AXIS_IN s_axis_tvalid tvalid Input 1
-add_interface_port S_AXIS_IN s_axis_tready tready Output 1
+add_interface_port S_AXIS_IN s_axis_tdata TDATA Input 32
+add_interface_port S_AXIS_IN s_axis_tvalid TVALID Input 1
+add_interface_port S_AXIS_IN s_axis_tready TREADY Output 1
 
 
 # Conduit interface for user port: i_active_channel
@@ -38173,25 +38535,25 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI_LITE s_axi_awaddr awaddr Input 16
-add_interface_port S_AXI_LITE s_axi_awvalid awvalid Input 1
-add_interface_port S_AXI_LITE s_axi_awready awready Output 1
-add_interface_port S_AXI_LITE s_axi_awprot awprot Input 3
-add_interface_port S_AXI_LITE s_axi_wdata wdata Input 32
-add_interface_port S_AXI_LITE s_axi_wstrb wstrb Input 4
-add_interface_port S_AXI_LITE s_axi_wvalid wvalid Input 1
-add_interface_port S_AXI_LITE s_axi_wready wready Output 1
-add_interface_port S_AXI_LITE s_axi_bresp bresp Output 2
-add_interface_port S_AXI_LITE s_axi_bvalid bvalid Output 1
-add_interface_port S_AXI_LITE s_axi_bready bready Input 1
-add_interface_port S_AXI_LITE s_axi_araddr araddr Input 32
-add_interface_port S_AXI_LITE s_axi_arvalid arvalid Input 1
-add_interface_port S_AXI_LITE s_axi_arready arready Output 1
-add_interface_port S_AXI_LITE s_axi_arprot arprot Input 3
-add_interface_port S_AXI_LITE s_axi_rdata rdata Output 32
-add_interface_port S_AXI_LITE s_axi_rresp rresp Output 2
-add_interface_port S_AXI_LITE s_axi_rvalid rvalid Output 1
-add_interface_port S_AXI_LITE s_axi_rready rready Input 1
+add_interface_port S_AXI_LITE s_axi_awaddr AWADDR Input 16
+add_interface_port S_AXI_LITE s_axi_awvalid AWVALID Input 1
+add_interface_port S_AXI_LITE s_axi_awready AWREADY Output 1
+add_interface_port S_AXI_LITE s_axi_awprot AWPROT Input 3
+add_interface_port S_AXI_LITE s_axi_wdata WDATA Input 32
+add_interface_port S_AXI_LITE s_axi_wstrb WSTRB Input 4
+add_interface_port S_AXI_LITE s_axi_wvalid WVALID Input 1
+add_interface_port S_AXI_LITE s_axi_wready WREADY Output 1
+add_interface_port S_AXI_LITE s_axi_bresp BRESP Output 2
+add_interface_port S_AXI_LITE s_axi_bvalid BVALID Output 1
+add_interface_port S_AXI_LITE s_axi_bready BREADY Input 1
+add_interface_port S_AXI_LITE s_axi_araddr ARADDR Input 16
+add_interface_port S_AXI_LITE s_axi_arvalid ARVALID Input 1
+add_interface_port S_AXI_LITE s_axi_arready ARREADY Output 1
+add_interface_port S_AXI_LITE s_axi_arprot ARPROT Input 3
+add_interface_port S_AXI_LITE s_axi_rdata RDATA Output 32
+add_interface_port S_AXI_LITE s_axi_rresp RRESP Output 2
+add_interface_port S_AXI_LITE s_axi_rvalid RVALID Output 1
+add_interface_port S_AXI_LITE s_axi_rready RREADY Input 1
 
 
 # Interface: M_AXIS_CH0_OUT (ipcraft:busif:axi_stream:1.0)
@@ -38207,11 +38569,11 @@ set_interface_property M_AXIS_CH0_OUT SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tdata tdata Output 64
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tready tready Input 1
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tlast tlast Output 1
-add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tuser tuser Output 1
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tdata TDATA Output 64
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tready TREADY Input 1
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tlast TLAST Output 1
+add_interface_port M_AXIS_CH0_OUT m_axis_ch0_tuser TUSER Output 1
 
 
 # Interface: M_AXIS_CH1_OUT (ipcraft:busif:axi_stream:1.0)
@@ -38227,11 +38589,11 @@ set_interface_property M_AXIS_CH1_OUT SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tdata tdata Output 64
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tready tready Input 1
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tlast tlast Output 1
-add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tuser tuser Output 1
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tdata TDATA Output 64
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tready TREADY Input 1
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tlast TLAST Output 1
+add_interface_port M_AXIS_CH1_OUT m_axis_ch1_tuser TUSER Output 1
 
 
 # Interface: M_AXIS_CH2_OUT (ipcraft:busif:axi_stream:1.0)
@@ -38247,11 +38609,11 @@ set_interface_property M_AXIS_CH2_OUT SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tdata tdata Output 64
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tready tready Input 1
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tlast tlast Output 1
-add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tuser tuser Output 1
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tdata TDATA Output 64
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tready TREADY Input 1
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tlast TLAST Output 1
+add_interface_port M_AXIS_CH2_OUT m_axis_ch2_tuser TUSER Output 1
 
 
 # Interface: M_AXIS_CH3_OUT (ipcraft:busif:axi_stream:1.0)
@@ -38267,11 +38629,11 @@ set_interface_property M_AXIS_CH3_OUT SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tdata tdata Output 64
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tvalid tvalid Output 1
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tready tready Input 1
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tlast tlast Output 1
-add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tuser tuser Output 1
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tdata TDATA Output 64
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tvalid TVALID Output 1
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tready TREADY Input 1
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tlast TLAST Output 1
+add_interface_port M_AXIS_CH3_OUT m_axis_ch3_tuser TUSER Output 1
 
 
 # Interface: S_AXIS_IN (ipcraft:busif:axi_stream:1.0)
@@ -38287,9 +38649,9 @@ set_interface_property S_AXIS_IN SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXIS_IN s_axis_tdata tdata Input 32
-add_interface_port S_AXIS_IN s_axis_tvalid tvalid Input 1
-add_interface_port S_AXIS_IN s_axis_tready tready Output 1
+add_interface_port S_AXIS_IN s_axis_tdata TDATA Input 32
+add_interface_port S_AXIS_IN s_axis_tvalid TVALID Input 1
+add_interface_port S_AXIS_IN s_axis_tready TREADY Output 1
 
 
 # Conduit interface for user port: i_active_channel
@@ -38544,25 +38906,25 @@ set_interface_property control_reg SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port control_reg s_axi_ctrl_awaddr awaddr Input 32
-add_interface_port control_reg s_axi_ctrl_awvalid awvalid Input 1
-add_interface_port control_reg s_axi_ctrl_awready awready Output 1
-add_interface_port control_reg s_axi_ctrl_awprot awprot Input 3
-add_interface_port control_reg s_axi_ctrl_wdata wdata Input 32
-add_interface_port control_reg s_axi_ctrl_wstrb wstrb Input 4
-add_interface_port control_reg s_axi_ctrl_wvalid wvalid Input 1
-add_interface_port control_reg s_axi_ctrl_wready wready Output 1
-add_interface_port control_reg s_axi_ctrl_bresp bresp Output 2
-add_interface_port control_reg s_axi_ctrl_bvalid bvalid Output 1
-add_interface_port control_reg s_axi_ctrl_bready bready Input 1
-add_interface_port control_reg s_axi_ctrl_araddr araddr Input 32
-add_interface_port control_reg s_axi_ctrl_arvalid arvalid Input 1
-add_interface_port control_reg s_axi_ctrl_arready arready Output 1
-add_interface_port control_reg s_axi_ctrl_arprot arprot Input 3
-add_interface_port control_reg s_axi_ctrl_rdata rdata Output 32
-add_interface_port control_reg s_axi_ctrl_rresp rresp Output 2
-add_interface_port control_reg s_axi_ctrl_rvalid rvalid Output 1
-add_interface_port control_reg s_axi_ctrl_rready rready Input 1
+add_interface_port control_reg s_axi_ctrl_awaddr AWADDR Input 32
+add_interface_port control_reg s_axi_ctrl_awvalid AWVALID Input 1
+add_interface_port control_reg s_axi_ctrl_awready AWREADY Output 1
+add_interface_port control_reg s_axi_ctrl_awprot AWPROT Input 3
+add_interface_port control_reg s_axi_ctrl_wdata WDATA Input 32
+add_interface_port control_reg s_axi_ctrl_wstrb WSTRB Input 4
+add_interface_port control_reg s_axi_ctrl_wvalid WVALID Input 1
+add_interface_port control_reg s_axi_ctrl_wready WREADY Output 1
+add_interface_port control_reg s_axi_ctrl_bresp BRESP Output 2
+add_interface_port control_reg s_axi_ctrl_bvalid BVALID Output 1
+add_interface_port control_reg s_axi_ctrl_bready BREADY Input 1
+add_interface_port control_reg s_axi_ctrl_araddr ARADDR Input 32
+add_interface_port control_reg s_axi_ctrl_arvalid ARVALID Input 1
+add_interface_port control_reg s_axi_ctrl_arready ARREADY Output 1
+add_interface_port control_reg s_axi_ctrl_arprot ARPROT Input 3
+add_interface_port control_reg s_axi_ctrl_rdata RDATA Output 32
+add_interface_port control_reg s_axi_ctrl_rresp RRESP Output 2
+add_interface_port control_reg s_axi_ctrl_rvalid RVALID Output 1
+add_interface_port control_reg s_axi_ctrl_rready RREADY Input 1
 
 
 # Interface: dma_control (ipcraft:busif:axi4_lite:1.0)
@@ -38578,25 +38940,25 @@ set_interface_property dma_control SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port dma_control s_axi_dma_awaddr awaddr Input 32
-add_interface_port dma_control s_axi_dma_awvalid awvalid Input 1
-add_interface_port dma_control s_axi_dma_awready awready Output 1
-add_interface_port dma_control s_axi_dma_awprot awprot Input 3
-add_interface_port dma_control s_axi_dma_wdata wdata Input 32
-add_interface_port dma_control s_axi_dma_wstrb wstrb Input 4
-add_interface_port dma_control s_axi_dma_wvalid wvalid Input 1
-add_interface_port dma_control s_axi_dma_wready wready Output 1
-add_interface_port dma_control s_axi_dma_bresp bresp Output 2
-add_interface_port dma_control s_axi_dma_bvalid bvalid Output 1
-add_interface_port dma_control s_axi_dma_bready bready Input 1
-add_interface_port dma_control s_axi_dma_araddr araddr Input 32
-add_interface_port dma_control s_axi_dma_arvalid arvalid Input 1
-add_interface_port dma_control s_axi_dma_arready arready Output 1
-add_interface_port dma_control s_axi_dma_arprot arprot Input 3
-add_interface_port dma_control s_axi_dma_rdata rdata Output 32
-add_interface_port dma_control s_axi_dma_rresp rresp Output 2
-add_interface_port dma_control s_axi_dma_rvalid rvalid Output 1
-add_interface_port dma_control s_axi_dma_rready rready Input 1
+add_interface_port dma_control s_axi_dma_awaddr AWADDR Input 32
+add_interface_port dma_control s_axi_dma_awvalid AWVALID Input 1
+add_interface_port dma_control s_axi_dma_awready AWREADY Output 1
+add_interface_port dma_control s_axi_dma_awprot AWPROT Input 3
+add_interface_port dma_control s_axi_dma_wdata WDATA Input 32
+add_interface_port dma_control s_axi_dma_wstrb WSTRB Input 4
+add_interface_port dma_control s_axi_dma_wvalid WVALID Input 1
+add_interface_port dma_control s_axi_dma_wready WREADY Output 1
+add_interface_port dma_control s_axi_dma_bresp BRESP Output 2
+add_interface_port dma_control s_axi_dma_bvalid BVALID Output 1
+add_interface_port dma_control s_axi_dma_bready BREADY Input 1
+add_interface_port dma_control s_axi_dma_araddr ARADDR Input 32
+add_interface_port dma_control s_axi_dma_arvalid ARVALID Input 1
+add_interface_port dma_control s_axi_dma_arready ARREADY Output 1
+add_interface_port dma_control s_axi_dma_arprot ARPROT Input 3
+add_interface_port dma_control s_axi_dma_rdata RDATA Output 32
+add_interface_port dma_control s_axi_dma_rresp RRESP Output 2
+add_interface_port dma_control s_axi_dma_rvalid RVALID Output 1
+add_interface_port dma_control s_axi_dma_rready RREADY Input 1
 
 
 # Interface: memory_port (ipcraft:busif:axi4_lite:1.0)
@@ -38612,25 +38974,25 @@ set_interface_property memory_port SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port memory_port m_axi_mem_awaddr awaddr Output 32
-add_interface_port memory_port m_axi_mem_awvalid awvalid Output 1
-add_interface_port memory_port m_axi_mem_awready awready Input 1
-add_interface_port memory_port m_axi_mem_awprot awprot Output 3
-add_interface_port memory_port m_axi_mem_wdata wdata Output 32
-add_interface_port memory_port m_axi_mem_wstrb wstrb Output 4
-add_interface_port memory_port m_axi_mem_wvalid wvalid Output 1
-add_interface_port memory_port m_axi_mem_wready wready Input 1
-add_interface_port memory_port m_axi_mem_bresp bresp Input 2
-add_interface_port memory_port m_axi_mem_bvalid bvalid Input 1
-add_interface_port memory_port m_axi_mem_bready bready Output 1
-add_interface_port memory_port m_axi_mem_araddr araddr Output 32
-add_interface_port memory_port m_axi_mem_arvalid arvalid Output 1
-add_interface_port memory_port m_axi_mem_arready arready Input 1
-add_interface_port memory_port m_axi_mem_arprot arprot Output 3
-add_interface_port memory_port m_axi_mem_rdata rdata Input 32
-add_interface_port memory_port m_axi_mem_rresp rresp Input 2
-add_interface_port memory_port m_axi_mem_rvalid rvalid Input 1
-add_interface_port memory_port m_axi_mem_rready rready Output 1
+add_interface_port memory_port m_axi_mem_awaddr AWADDR Output 32
+add_interface_port memory_port m_axi_mem_awvalid AWVALID Output 1
+add_interface_port memory_port m_axi_mem_awready AWREADY Input 1
+add_interface_port memory_port m_axi_mem_awprot AWPROT Output 3
+add_interface_port memory_port m_axi_mem_wdata WDATA Output 32
+add_interface_port memory_port m_axi_mem_wstrb WSTRB Output 4
+add_interface_port memory_port m_axi_mem_wvalid WVALID Output 1
+add_interface_port memory_port m_axi_mem_wready WREADY Input 1
+add_interface_port memory_port m_axi_mem_bresp BRESP Input 2
+add_interface_port memory_port m_axi_mem_bvalid BVALID Input 1
+add_interface_port memory_port m_axi_mem_bready BREADY Output 1
+add_interface_port memory_port m_axi_mem_araddr ARADDR Output 32
+add_interface_port memory_port m_axi_mem_arvalid ARVALID Output 1
+add_interface_port memory_port m_axi_mem_arready ARREADY Input 1
+add_interface_port memory_port m_axi_mem_arprot ARPROT Output 3
+add_interface_port memory_port m_axi_mem_rdata RDATA Input 32
+add_interface_port memory_port m_axi_mem_rresp RRESP Input 2
+add_interface_port memory_port m_axi_mem_rvalid RVALID Input 1
+add_interface_port memory_port m_axi_mem_rready RREADY Output 1
 
 
 # Interface: data_stream_in (ipcraft:busif:axi_stream:1.0)
@@ -38646,9 +39008,9 @@ set_interface_property data_stream_in SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port data_stream_in s_axis_data_tdata tdata Input 32
-add_interface_port data_stream_in s_axis_data_tvalid tvalid Input 1
-add_interface_port data_stream_in s_axis_data_tready tready Output 1
+add_interface_port data_stream_in s_axis_data_tdata TDATA Input 32
+add_interface_port data_stream_in s_axis_data_tvalid TVALID Input 1
+add_interface_port data_stream_in s_axis_data_tready TREADY Output 1
 
 
 # Interface: data_stream_out (ipcraft:busif:axi_stream:1.0)
@@ -38664,9 +39026,9 @@ set_interface_property data_stream_out SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port data_stream_out m_axis_data_tdata tdata Output 32
-add_interface_port data_stream_out m_axis_data_tvalid tvalid Output 1
-add_interface_port data_stream_out m_axis_data_tready tready Input 1
+add_interface_port data_stream_out m_axis_data_tdata TDATA Output 32
+add_interface_port data_stream_out m_axis_data_tvalid TVALID Output 1
+add_interface_port data_stream_out m_axis_data_tready TREADY Input 1
 
 
 # Interface: pcie_interface (ipcraft:busif:axi4_lite:1.0)
@@ -38682,25 +39044,25 @@ set_interface_property pcie_interface SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port pcie_interface m_axi_pcie_awaddr awaddr Output 32
-add_interface_port pcie_interface m_axi_pcie_awvalid awvalid Output 1
-add_interface_port pcie_interface m_axi_pcie_awready awready Input 1
-add_interface_port pcie_interface m_axi_pcie_awprot awprot Output 3
-add_interface_port pcie_interface m_axi_pcie_wdata wdata Output 32
-add_interface_port pcie_interface m_axi_pcie_wstrb wstrb Output 4
-add_interface_port pcie_interface m_axi_pcie_wvalid wvalid Output 1
-add_interface_port pcie_interface m_axi_pcie_wready wready Input 1
-add_interface_port pcie_interface m_axi_pcie_bresp bresp Input 2
-add_interface_port pcie_interface m_axi_pcie_bvalid bvalid Input 1
-add_interface_port pcie_interface m_axi_pcie_bready bready Output 1
-add_interface_port pcie_interface m_axi_pcie_araddr araddr Output 32
-add_interface_port pcie_interface m_axi_pcie_arvalid arvalid Output 1
-add_interface_port pcie_interface m_axi_pcie_arready arready Input 1
-add_interface_port pcie_interface m_axi_pcie_arprot arprot Output 3
-add_interface_port pcie_interface m_axi_pcie_rdata rdata Input 32
-add_interface_port pcie_interface m_axi_pcie_rresp rresp Input 2
-add_interface_port pcie_interface m_axi_pcie_rvalid rvalid Input 1
-add_interface_port pcie_interface m_axi_pcie_rready rready Output 1
+add_interface_port pcie_interface m_axi_pcie_awaddr AWADDR Output 32
+add_interface_port pcie_interface m_axi_pcie_awvalid AWVALID Output 1
+add_interface_port pcie_interface m_axi_pcie_awready AWREADY Input 1
+add_interface_port pcie_interface m_axi_pcie_awprot AWPROT Output 3
+add_interface_port pcie_interface m_axi_pcie_wdata WDATA Output 32
+add_interface_port pcie_interface m_axi_pcie_wstrb WSTRB Output 4
+add_interface_port pcie_interface m_axi_pcie_wvalid WVALID Output 1
+add_interface_port pcie_interface m_axi_pcie_wready WREADY Input 1
+add_interface_port pcie_interface m_axi_pcie_bresp BRESP Input 2
+add_interface_port pcie_interface m_axi_pcie_bvalid BVALID Input 1
+add_interface_port pcie_interface m_axi_pcie_bready BREADY Output 1
+add_interface_port pcie_interface m_axi_pcie_araddr ARADDR Output 32
+add_interface_port pcie_interface m_axi_pcie_arvalid ARVALID Output 1
+add_interface_port pcie_interface m_axi_pcie_arready ARREADY Input 1
+add_interface_port pcie_interface m_axi_pcie_arprot ARPROT Output 3
+add_interface_port pcie_interface m_axi_pcie_rdata RDATA Input 32
+add_interface_port pcie_interface m_axi_pcie_rresp RRESP Input 2
+add_interface_port pcie_interface m_axi_pcie_rvalid RVALID Input 1
+add_interface_port pcie_interface m_axi_pcie_rready RREADY Output 1
 
 
 # Interface: usb_data_in (ipcraft:busif:axi_stream:1.0)
@@ -38716,9 +39078,9 @@ set_interface_property usb_data_in SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port usb_data_in s_axis_usb_tdata tdata Input 32
-add_interface_port usb_data_in s_axis_usb_tvalid tvalid Input 1
-add_interface_port usb_data_in s_axis_usb_tready tready Output 1
+add_interface_port usb_data_in s_axis_usb_tdata TDATA Input 32
+add_interface_port usb_data_in s_axis_usb_tvalid TVALID Input 1
+add_interface_port usb_data_in s_axis_usb_tready TREADY Output 1
 
 
 # Interface: usb_data_out (ipcraft:busif:axi_stream:1.0)
@@ -38734,9 +39096,9 @@ set_interface_property usb_data_out SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port usb_data_out m_axis_usb_tdata tdata Output 32
-add_interface_port usb_data_out m_axis_usb_tvalid tvalid Output 1
-add_interface_port usb_data_out m_axis_usb_tready tready Input 1
+add_interface_port usb_data_out m_axis_usb_tdata TDATA Output 32
+add_interface_port usb_data_out m_axis_usb_tvalid TVALID Output 1
+add_interface_port usb_data_out m_axis_usb_tready TREADY Input 1
 
 
 
@@ -38972,25 +39334,25 @@ set_interface_property control_reg SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port control_reg s_axi_ctrl_awaddr awaddr Input 32
-add_interface_port control_reg s_axi_ctrl_awvalid awvalid Input 1
-add_interface_port control_reg s_axi_ctrl_awready awready Output 1
-add_interface_port control_reg s_axi_ctrl_awprot awprot Input 3
-add_interface_port control_reg s_axi_ctrl_wdata wdata Input 32
-add_interface_port control_reg s_axi_ctrl_wstrb wstrb Input 4
-add_interface_port control_reg s_axi_ctrl_wvalid wvalid Input 1
-add_interface_port control_reg s_axi_ctrl_wready wready Output 1
-add_interface_port control_reg s_axi_ctrl_bresp bresp Output 2
-add_interface_port control_reg s_axi_ctrl_bvalid bvalid Output 1
-add_interface_port control_reg s_axi_ctrl_bready bready Input 1
-add_interface_port control_reg s_axi_ctrl_araddr araddr Input 32
-add_interface_port control_reg s_axi_ctrl_arvalid arvalid Input 1
-add_interface_port control_reg s_axi_ctrl_arready arready Output 1
-add_interface_port control_reg s_axi_ctrl_arprot arprot Input 3
-add_interface_port control_reg s_axi_ctrl_rdata rdata Output 32
-add_interface_port control_reg s_axi_ctrl_rresp rresp Output 2
-add_interface_port control_reg s_axi_ctrl_rvalid rvalid Output 1
-add_interface_port control_reg s_axi_ctrl_rready rready Input 1
+add_interface_port control_reg s_axi_ctrl_awaddr AWADDR Input 32
+add_interface_port control_reg s_axi_ctrl_awvalid AWVALID Input 1
+add_interface_port control_reg s_axi_ctrl_awready AWREADY Output 1
+add_interface_port control_reg s_axi_ctrl_awprot AWPROT Input 3
+add_interface_port control_reg s_axi_ctrl_wdata WDATA Input 32
+add_interface_port control_reg s_axi_ctrl_wstrb WSTRB Input 4
+add_interface_port control_reg s_axi_ctrl_wvalid WVALID Input 1
+add_interface_port control_reg s_axi_ctrl_wready WREADY Output 1
+add_interface_port control_reg s_axi_ctrl_bresp BRESP Output 2
+add_interface_port control_reg s_axi_ctrl_bvalid BVALID Output 1
+add_interface_port control_reg s_axi_ctrl_bready BREADY Input 1
+add_interface_port control_reg s_axi_ctrl_araddr ARADDR Input 32
+add_interface_port control_reg s_axi_ctrl_arvalid ARVALID Input 1
+add_interface_port control_reg s_axi_ctrl_arready ARREADY Output 1
+add_interface_port control_reg s_axi_ctrl_arprot ARPROT Input 3
+add_interface_port control_reg s_axi_ctrl_rdata RDATA Output 32
+add_interface_port control_reg s_axi_ctrl_rresp RRESP Output 2
+add_interface_port control_reg s_axi_ctrl_rvalid RVALID Output 1
+add_interface_port control_reg s_axi_ctrl_rready RREADY Input 1
 
 
 # Interface: dma_control (ipcraft:busif:axi4_lite:1.0)
@@ -39006,25 +39368,25 @@ set_interface_property dma_control SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port dma_control s_axi_dma_awaddr awaddr Input 32
-add_interface_port dma_control s_axi_dma_awvalid awvalid Input 1
-add_interface_port dma_control s_axi_dma_awready awready Output 1
-add_interface_port dma_control s_axi_dma_awprot awprot Input 3
-add_interface_port dma_control s_axi_dma_wdata wdata Input 32
-add_interface_port dma_control s_axi_dma_wstrb wstrb Input 4
-add_interface_port dma_control s_axi_dma_wvalid wvalid Input 1
-add_interface_port dma_control s_axi_dma_wready wready Output 1
-add_interface_port dma_control s_axi_dma_bresp bresp Output 2
-add_interface_port dma_control s_axi_dma_bvalid bvalid Output 1
-add_interface_port dma_control s_axi_dma_bready bready Input 1
-add_interface_port dma_control s_axi_dma_araddr araddr Input 32
-add_interface_port dma_control s_axi_dma_arvalid arvalid Input 1
-add_interface_port dma_control s_axi_dma_arready arready Output 1
-add_interface_port dma_control s_axi_dma_arprot arprot Input 3
-add_interface_port dma_control s_axi_dma_rdata rdata Output 32
-add_interface_port dma_control s_axi_dma_rresp rresp Output 2
-add_interface_port dma_control s_axi_dma_rvalid rvalid Output 1
-add_interface_port dma_control s_axi_dma_rready rready Input 1
+add_interface_port dma_control s_axi_dma_awaddr AWADDR Input 32
+add_interface_port dma_control s_axi_dma_awvalid AWVALID Input 1
+add_interface_port dma_control s_axi_dma_awready AWREADY Output 1
+add_interface_port dma_control s_axi_dma_awprot AWPROT Input 3
+add_interface_port dma_control s_axi_dma_wdata WDATA Input 32
+add_interface_port dma_control s_axi_dma_wstrb WSTRB Input 4
+add_interface_port dma_control s_axi_dma_wvalid WVALID Input 1
+add_interface_port dma_control s_axi_dma_wready WREADY Output 1
+add_interface_port dma_control s_axi_dma_bresp BRESP Output 2
+add_interface_port dma_control s_axi_dma_bvalid BVALID Output 1
+add_interface_port dma_control s_axi_dma_bready BREADY Input 1
+add_interface_port dma_control s_axi_dma_araddr ARADDR Input 32
+add_interface_port dma_control s_axi_dma_arvalid ARVALID Input 1
+add_interface_port dma_control s_axi_dma_arready ARREADY Output 1
+add_interface_port dma_control s_axi_dma_arprot ARPROT Input 3
+add_interface_port dma_control s_axi_dma_rdata RDATA Output 32
+add_interface_port dma_control s_axi_dma_rresp RRESP Output 2
+add_interface_port dma_control s_axi_dma_rvalid RVALID Output 1
+add_interface_port dma_control s_axi_dma_rready RREADY Input 1
 
 
 # Interface: memory_port (ipcraft:busif:axi4_lite:1.0)
@@ -39040,25 +39402,25 @@ set_interface_property memory_port SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port memory_port m_axi_mem_awaddr awaddr Output 32
-add_interface_port memory_port m_axi_mem_awvalid awvalid Output 1
-add_interface_port memory_port m_axi_mem_awready awready Input 1
-add_interface_port memory_port m_axi_mem_awprot awprot Output 3
-add_interface_port memory_port m_axi_mem_wdata wdata Output 32
-add_interface_port memory_port m_axi_mem_wstrb wstrb Output 4
-add_interface_port memory_port m_axi_mem_wvalid wvalid Output 1
-add_interface_port memory_port m_axi_mem_wready wready Input 1
-add_interface_port memory_port m_axi_mem_bresp bresp Input 2
-add_interface_port memory_port m_axi_mem_bvalid bvalid Input 1
-add_interface_port memory_port m_axi_mem_bready bready Output 1
-add_interface_port memory_port m_axi_mem_araddr araddr Output 32
-add_interface_port memory_port m_axi_mem_arvalid arvalid Output 1
-add_interface_port memory_port m_axi_mem_arready arready Input 1
-add_interface_port memory_port m_axi_mem_arprot arprot Output 3
-add_interface_port memory_port m_axi_mem_rdata rdata Input 32
-add_interface_port memory_port m_axi_mem_rresp rresp Input 2
-add_interface_port memory_port m_axi_mem_rvalid rvalid Input 1
-add_interface_port memory_port m_axi_mem_rready rready Output 1
+add_interface_port memory_port m_axi_mem_awaddr AWADDR Output 32
+add_interface_port memory_port m_axi_mem_awvalid AWVALID Output 1
+add_interface_port memory_port m_axi_mem_awready AWREADY Input 1
+add_interface_port memory_port m_axi_mem_awprot AWPROT Output 3
+add_interface_port memory_port m_axi_mem_wdata WDATA Output 32
+add_interface_port memory_port m_axi_mem_wstrb WSTRB Output 4
+add_interface_port memory_port m_axi_mem_wvalid WVALID Output 1
+add_interface_port memory_port m_axi_mem_wready WREADY Input 1
+add_interface_port memory_port m_axi_mem_bresp BRESP Input 2
+add_interface_port memory_port m_axi_mem_bvalid BVALID Input 1
+add_interface_port memory_port m_axi_mem_bready BREADY Output 1
+add_interface_port memory_port m_axi_mem_araddr ARADDR Output 32
+add_interface_port memory_port m_axi_mem_arvalid ARVALID Output 1
+add_interface_port memory_port m_axi_mem_arready ARREADY Input 1
+add_interface_port memory_port m_axi_mem_arprot ARPROT Output 3
+add_interface_port memory_port m_axi_mem_rdata RDATA Input 32
+add_interface_port memory_port m_axi_mem_rresp RRESP Input 2
+add_interface_port memory_port m_axi_mem_rvalid RVALID Input 1
+add_interface_port memory_port m_axi_mem_rready RREADY Output 1
 
 
 # Interface: data_stream_in (ipcraft:busif:axi_stream:1.0)
@@ -39074,9 +39436,9 @@ set_interface_property data_stream_in SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port data_stream_in s_axis_data_tdata tdata Input 32
-add_interface_port data_stream_in s_axis_data_tvalid tvalid Input 1
-add_interface_port data_stream_in s_axis_data_tready tready Output 1
+add_interface_port data_stream_in s_axis_data_tdata TDATA Input 32
+add_interface_port data_stream_in s_axis_data_tvalid TVALID Input 1
+add_interface_port data_stream_in s_axis_data_tready TREADY Output 1
 
 
 # Interface: data_stream_out (ipcraft:busif:axi_stream:1.0)
@@ -39092,9 +39454,9 @@ set_interface_property data_stream_out SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port data_stream_out m_axis_data_tdata tdata Output 32
-add_interface_port data_stream_out m_axis_data_tvalid tvalid Output 1
-add_interface_port data_stream_out m_axis_data_tready tready Input 1
+add_interface_port data_stream_out m_axis_data_tdata TDATA Output 32
+add_interface_port data_stream_out m_axis_data_tvalid TVALID Output 1
+add_interface_port data_stream_out m_axis_data_tready TREADY Input 1
 
 
 # Interface: pcie_interface (ipcraft:busif:axi4_lite:1.0)
@@ -39110,25 +39472,25 @@ set_interface_property pcie_interface SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port pcie_interface m_axi_pcie_awaddr awaddr Output 32
-add_interface_port pcie_interface m_axi_pcie_awvalid awvalid Output 1
-add_interface_port pcie_interface m_axi_pcie_awready awready Input 1
-add_interface_port pcie_interface m_axi_pcie_awprot awprot Output 3
-add_interface_port pcie_interface m_axi_pcie_wdata wdata Output 32
-add_interface_port pcie_interface m_axi_pcie_wstrb wstrb Output 4
-add_interface_port pcie_interface m_axi_pcie_wvalid wvalid Output 1
-add_interface_port pcie_interface m_axi_pcie_wready wready Input 1
-add_interface_port pcie_interface m_axi_pcie_bresp bresp Input 2
-add_interface_port pcie_interface m_axi_pcie_bvalid bvalid Input 1
-add_interface_port pcie_interface m_axi_pcie_bready bready Output 1
-add_interface_port pcie_interface m_axi_pcie_araddr araddr Output 32
-add_interface_port pcie_interface m_axi_pcie_arvalid arvalid Output 1
-add_interface_port pcie_interface m_axi_pcie_arready arready Input 1
-add_interface_port pcie_interface m_axi_pcie_arprot arprot Output 3
-add_interface_port pcie_interface m_axi_pcie_rdata rdata Input 32
-add_interface_port pcie_interface m_axi_pcie_rresp rresp Input 2
-add_interface_port pcie_interface m_axi_pcie_rvalid rvalid Input 1
-add_interface_port pcie_interface m_axi_pcie_rready rready Output 1
+add_interface_port pcie_interface m_axi_pcie_awaddr AWADDR Output 32
+add_interface_port pcie_interface m_axi_pcie_awvalid AWVALID Output 1
+add_interface_port pcie_interface m_axi_pcie_awready AWREADY Input 1
+add_interface_port pcie_interface m_axi_pcie_awprot AWPROT Output 3
+add_interface_port pcie_interface m_axi_pcie_wdata WDATA Output 32
+add_interface_port pcie_interface m_axi_pcie_wstrb WSTRB Output 4
+add_interface_port pcie_interface m_axi_pcie_wvalid WVALID Output 1
+add_interface_port pcie_interface m_axi_pcie_wready WREADY Input 1
+add_interface_port pcie_interface m_axi_pcie_bresp BRESP Input 2
+add_interface_port pcie_interface m_axi_pcie_bvalid BVALID Input 1
+add_interface_port pcie_interface m_axi_pcie_bready BREADY Output 1
+add_interface_port pcie_interface m_axi_pcie_araddr ARADDR Output 32
+add_interface_port pcie_interface m_axi_pcie_arvalid ARVALID Output 1
+add_interface_port pcie_interface m_axi_pcie_arready ARREADY Input 1
+add_interface_port pcie_interface m_axi_pcie_arprot ARPROT Output 3
+add_interface_port pcie_interface m_axi_pcie_rdata RDATA Input 32
+add_interface_port pcie_interface m_axi_pcie_rresp RRESP Input 2
+add_interface_port pcie_interface m_axi_pcie_rvalid RVALID Input 1
+add_interface_port pcie_interface m_axi_pcie_rready RREADY Output 1
 
 
 # Interface: usb_data_in (ipcraft:busif:axi_stream:1.0)
@@ -39144,9 +39506,9 @@ set_interface_property usb_data_in SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port usb_data_in s_axis_usb_tdata tdata Input 32
-add_interface_port usb_data_in s_axis_usb_tvalid tvalid Input 1
-add_interface_port usb_data_in s_axis_usb_tready tready Output 1
+add_interface_port usb_data_in s_axis_usb_tdata TDATA Input 32
+add_interface_port usb_data_in s_axis_usb_tvalid TVALID Input 1
+add_interface_port usb_data_in s_axis_usb_tready TREADY Output 1
 
 
 # Interface: usb_data_out (ipcraft:busif:axi_stream:1.0)
@@ -39162,9 +39524,9 @@ set_interface_property usb_data_out SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port usb_data_out m_axis_usb_tdata tdata Output 32
-add_interface_port usb_data_out m_axis_usb_tvalid tvalid Output 1
-add_interface_port usb_data_out m_axis_usb_tready tready Input 1
+add_interface_port usb_data_out m_axis_usb_tdata TDATA Output 32
+add_interface_port usb_data_out m_axis_usb_tvalid TVALID Output 1
+add_interface_port usb_data_out m_axis_usb_tready TREADY Input 1
 
 
 

@@ -1,3 +1,5 @@
+import type { PortPolarity } from '../shared/busContracts';
+
 export type HdlLanguage = 'vhdl' | 'systemverilog';
 
 // ---------------------------------------------------------------------------
@@ -204,6 +206,8 @@ export interface GenerateResult {
   count?: number;
   busType?: string;
   error?: string;
+  /** Structured diagnostics when generation is blocked before output construction. */
+  issues?: readonly import('../shared/issues').IpcraftIssue[];
 }
 
 export type BusPortDefinition = {
@@ -217,7 +221,56 @@ export type BusPortDefinition = {
    *  - 'byteQualifier': per-byte-lane mask (e.g. WSTRB/TKEEP/byteenable); bit-reversed in
    *    lockstep with the data so the lane mask stays aligned with the reversed bytes. */
   role?: 'data' | 'byteQualifier';
+  /** Vendor logical roles declared for this canonical port. */
+  interfaceRoles?: string[];
 };
+
+/** Camel-case generator projection of one canonical resolved bus port. */
+export interface ProjectedBusPort {
+  canonicalName: string;
+  name: string;
+  interfaceRole: string;
+  effectivePolarity?: PortPolarity;
+  physicalSuffix: string;
+  direction: 'in' | 'out';
+  svDirection: 'input' | 'output';
+  type: string;
+  svType: string;
+  width: number | string | null;
+  widthExpr: string | null;
+  isParameterized: boolean;
+  tclWidth: string;
+  endianness: 'little' | 'big';
+  needsSwap: boolean;
+  role?: 'data' | 'byteQualifier';
+  swapKind?: 'lane' | 'bit';
+  laneWidth?: number | string;
+  laneKind?: 'byte' | 'symbol';
+  needsPolarityInversion: boolean;
+}
+
+/** One directional HDL-boundary transform planned for a projected port. */
+export interface BoundaryTransformPort {
+  name: string;
+  internalName: string;
+  direction: 'in' | 'out' | 'inout';
+  type: string;
+  svType: string;
+  width: number | string | null;
+  widthExpr: string | null;
+  isParameterized: boolean;
+  invert: boolean;
+  swapKind?: 'lane' | 'bit';
+  laneWidth?: number | string;
+  laneKind?: 'byte' | 'symbol';
+}
+
+/** Interface-wide metadata needed to project per-port endian reflow semantics. */
+export interface BusPortProjectionMetadata {
+  endianness: 'little' | 'big';
+  laneWidth: number | string;
+  laneKind: 'byte' | 'symbol';
+}
 
 export type BusDefinition = {
   busType?: {
@@ -228,6 +281,9 @@ export type BusDefinition = {
     description?: string;
   };
   ports?: BusPortDefinition[];
+  contract?: {
+    interfaceKind?: 'memoryMapped' | 'streaming' | 'conduit';
+  };
   /** Set to 'vivado' for interfaces discovered from a local Vivado install (e.g. fifo_write) —
    *  Vivado already ships busDefinition/abstractionDefinition XML for these, so IPCraft must
    *  not bundle a duplicate copy when packaging. Absent for user-authored custom interfaces. */
@@ -266,14 +322,17 @@ export interface BusInterfaceDef {
   physicalPrefix?: string | null;
   useOptionalPorts?: string[];
   portWidthOverrides?: Record<string, number | string>;
+  /** Semantic properties validated by the resolved bus contract. */
+  interfaceProperties?: Record<string, number | string | boolean>;
   portNameOverrides?: Record<string, string>;
+  portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
   /** Logical port names (uppercase) absent from the user's HDL source — skipped in generation. */
   absentPorts?: string[];
   associatedClock?: string;
   associatedReset?: string;
   /** Name of the memory map this (slave) interface exposes — matches a map's `name`. */
   memoryMapRef?: string;
-  /** Byte order for this interface's data port(s). Little-endian is the default. */
+  /** Lane order for this interface's data port(s). Avalon-ST uses symbol lanes. */
   endianness?: 'little' | 'big';
   array?: BusInterfaceArrayDef;
   /** User-defined signals for conduit (custom) interfaces. */

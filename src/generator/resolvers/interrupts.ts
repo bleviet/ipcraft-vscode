@@ -1,6 +1,7 @@
-import type { BusRuleRegistry } from '../buses/registry';
-import { expandBusInterfaces, normalizeBusType } from '../registerProcessor';
+import { expandBusInterfaces } from '../registerProcessor';
 import type { BusInterfaceDef, IpCoreData } from '../types';
+import { busSupportsInterruptAssociation } from '../../shared/busVlnv';
+import type { NormalizedBusLibrary } from '../../shared/busContracts';
 
 export interface InterruptPortContext {
   name: string;
@@ -10,10 +11,14 @@ export interface InterruptPortContext {
   associated_clock: string;
 }
 
-function isMemoryMappedSlave(iface: BusInterfaceDef, registry: BusRuleRegistry): boolean {
-  return (
-    (iface.mode ?? '').toLowerCase() === 'slave' &&
-    registry.isMemoryMapped(normalizeBusType(String(iface.type ?? '')).templateType)
+function isMemoryMappedConsumer(iface: BusInterfaceDef, library: NormalizedBusLibrary): boolean {
+  return busSupportsInterruptAssociation(
+    {
+      type: String(iface.type ?? ''),
+      mode: String(iface.mode ?? ''),
+      array: iface.array,
+    },
+    library
   );
 }
 
@@ -27,7 +32,7 @@ function requireKnownClock(ipCore: IpCoreData, clockName: string, source: string
 
 export function buildInterruptPorts(
   ipCore: IpCoreData,
-  registry: BusRuleRegistry,
+  library: NormalizedBusLibrary,
   expandedBusInterfaces: BusInterfaceDef[],
   primaryMemoryMappedIndex: number
 ): InterruptPortContext[] {
@@ -46,7 +51,7 @@ export function buildInterruptPorts(
         (iface) => iface.name === explicitBusName
       );
       const isArray = (configuredBus?.array?.count ?? 0) > 1;
-      if (!configuredBus || isArray || !isMemoryMappedSlave(configuredBus, registry)) {
+      if (!configuredBus || isArray || !isMemoryMappedConsumer(configuredBus, library)) {
         throw new Error(
           `Interrupt '${interruptName}' references missing or ineligible memory-mapped slave interface '${explicitBusName}'`
         );

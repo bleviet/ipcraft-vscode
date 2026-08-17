@@ -6,8 +6,20 @@ import type { ResourceRoots } from '../services/ResourceRoots';
 import { normalizeParameterDataType } from '../parser/paramDataType';
 import { normalizeIpCoreData } from './registerProcessor';
 import type { IpCoreData } from './types';
+import { schemaIssuesFromValidation } from '../shared/schemaIssues';
+import type { IpcraftIssue } from '../shared/issues';
 
 const validator = new YamlValidator();
+
+export class IpCoreSchemaValidationError extends Error {
+  constructor(
+    message: string,
+    readonly issues: readonly IpcraftIssue[]
+  ) {
+    super(message);
+    this.name = 'IpCoreSchemaValidationError';
+  }
+}
 
 /**
  * Load, canonicalise, and schema-validate an .ip.yml file into normalized IpCoreData.
@@ -39,7 +51,10 @@ export async function loadIpCoreData(
   const schemaPath = path.join(resourceRoots.schemasDir, 'ip_core.schema.json');
   const schemaResult = validator.validateAgainstSchema(parsed, schemaPath);
   if (!schemaResult.valid) {
-    throw new Error(`IP core YAML schema validation failed: ${schemaResult.error}`);
+    throw new IpCoreSchemaValidationError(
+      `IP core YAML schema validation failed: ${schemaResult.error}`,
+      schemaIssuesFromValidation(schemaResult)
+    );
   }
   return normalizeIpCoreData(parsed as Record<string, unknown>);
 }

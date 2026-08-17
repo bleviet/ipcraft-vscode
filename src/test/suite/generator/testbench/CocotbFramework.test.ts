@@ -347,7 +347,7 @@ describe('CocotbFramework — rtlSourceFiles-driven sources', () => {
       },
     });
     const testPy = framework.generate(ctx, new GhdlEngine())['tb/test_core_test.py'];
-    expect(testPy).toContain('dut.avs_address.value = addr');
+    expect(testPy).toContain('self.address_signal.value = addr');
     expect(testPy).not.toContain('addr >> 2');
   });
 
@@ -376,15 +376,92 @@ describe('CocotbFramework — rtlSourceFiles-driven sources', () => {
     });
     const testPy = framework.generate(ctx, new GhdlEngine())['tb/test_core_test.py'];
     const readFn = testPy.slice(testPy.indexOf('    async def read(self, addr):'));
-    const deassertIdx = readFn.indexOf('avs_read.value = 0');
+    const deassertIdx = readFn.indexOf('self.read_signal.value = self.read_deasserted');
     // Old (buggy) code returned readdata right after this point whenever no
     // readdatavalid port exists -- no unconditional extra edge afterward.
     const elseIdx = readFn.indexOf('\n        else:\n', deassertIdx);
     expect(elseIdx).toBeGreaterThan(deassertIdx);
-    const returnIdx = readFn.indexOf('return self.dut.avs_readdata.value');
+    const returnIdx = readFn.indexOf('return self.read_data_signal.value');
     const settleEdgeIdx = readFn.indexOf('await RisingEdge', elseIdx);
     expect(settleEdgeIdx).toBeGreaterThan(elseIdx);
     expect(settleEdgeIdx).toBeLessThan(returnIdx);
+  });
+
+  it('avmm cocotb transport uses physical names and active-low levels from bus metadata', () => {
+    const ctx = makeCtx({
+      hasMmSlave: true,
+      templateContext: {
+        entity_name: 'test_core',
+        clock_port: 'clk',
+        reset_port: 'rst_n',
+        reset_active_high: false,
+        bus_type: 'avmm',
+        bus_prefix: 'avs',
+        has_memory_mapped_slave: true,
+        memmap_relpath: '../test_core.mmap.yml',
+        ports: [],
+        parameters: [],
+        bus_ports: [
+          { logical_name: 'address', name: 'avs_address' },
+          { logical_name: 'writedata', name: 'avs_writedata' },
+          { logical_name: 'readdata', name: 'avs_readdata' },
+          {
+            logical_name: 'byteenable',
+            name: 'avs_byteenable_n',
+            effective_polarity: 'activeLow',
+          },
+          { logical_name: 'write', name: 'avs_write_n', effective_polarity: 'activeLow' },
+          { logical_name: 'read', name: 'avs_read_n', effective_polarity: 'activeLow' },
+          {
+            logical_name: 'waitrequest',
+            name: 'avs_waitrequest_n',
+            effective_polarity: 'activeLow',
+          },
+          {
+            logical_name: 'readdatavalid',
+            name: 'avs_readdatavalid_n',
+            effective_polarity: 'activeLow',
+          },
+        ],
+      },
+    });
+
+    const testPy = framework.generate(ctx, new GhdlEngine())['tb/test_core_test.py'];
+
+    expect(testPy).toContain('self.read_signal = getattr(dut, "avs_read_n")');
+    expect(testPy).toContain('self.read_asserted = 0');
+    expect(testPy).toContain('self.read_deasserted = 1');
+    expect(testPy).toContain('self.write_signal = getattr(dut, "avs_write_n")');
+    expect(testPy).toContain('self.write_asserted = 0');
+    expect(testPy).toContain('self.wait_request = getattr(dut, "avs_waitrequest_n", None)');
+    expect(testPy).toContain('self.wait_request_asserted = 0');
+    expect(testPy).toContain('self.read_data_valid = getattr(dut, "avs_readdatavalid_n", None)');
+    expect(testPy).toContain('self.read_data_valid_asserted = 0');
+    expect(testPy).toContain('self.byte_enable = getattr(dut, "avs_byteenable_n", None)');
+    expect(testPy).toContain('self.byte_enable_active_low = True');
+    expect(testPy).toContain('self.read_signal.value = self.read_asserted');
+    expect(testPy).toContain('self.write_signal.value = self.write_asserted');
+    expect(testPy).toContain('while self.wait_request.value == self.wait_request_asserted:');
+    expect(testPy).toContain('while self.read_data_valid.value != self.read_data_valid_asserted:');
+    expect(testPy).toContain('_FULL_BYTE_ENABLE ^ byte_enable');
+  });
+
+  it('keeps Avalon transport metadata scoped to the test template', () => {
+    const renderSpy = jest.spyOn(templates, 'render');
+
+    framework.generate(makeCtx(), new GhdlEngine());
+
+    const contextFor = (templateName: string): Record<string, unknown> => {
+      const call = renderSpy.mock.calls.find(([name]) => name === templateName);
+      expect(call).toBeDefined();
+      return call?.[1] ?? {};
+    };
+
+    expect(contextFor('cocotb_test.py.j2')).toHaveProperty('avmm_signals');
+    expect(contextFor('cocotb_conftest.py.j2')).not.toHaveProperty('avmm_signals');
+    expect(contextFor('cocotb_makefile.j2')).not.toHaveProperty('avmm_signals');
+
+    renderSpy.mockRestore();
   });
 
   it('falls back to entity-name VHDL logic when rtlSourceFiles is empty', () => {

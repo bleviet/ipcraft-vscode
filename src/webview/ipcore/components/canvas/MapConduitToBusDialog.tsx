@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ConduitPort } from '../../../types/ipCore';
-import type { BusPortDef } from '../../data/busDefinitions';
+import { isAssociatedPort, type BusPortDef } from '../../utils/busLibrary';
+import { portNameCandidates, type PortPolarity } from '../../../../shared/busContracts';
 import type { MapConduitToBusOptions } from '../../hooks/useGroupPorts';
 
 export type { MapConduitToBusOptions as MapConduitToBusResult } from '../../hooks/useGroupPorts';
@@ -102,9 +103,20 @@ function expectedDirection(def: BusPortDef, mode: 'slave' | 'master'): 'in' | 'o
   return def.direction === 'in' ? 'out' : 'in';
 }
 
-/** Best-effort exact-name match (case-insensitive) to seed the mapping. */
-function findAutoMatch(def: BusPortDef, candidates: ConduitPort[]): ConduitPort | undefined {
-  return candidates.find((p) => p.name.toLowerCase() === def.name.toLowerCase());
+interface MappingAssignment {
+  physicalPort: string;
+  polarity?: PortPolarity;
+}
+
+/** Best-effort declared-role match (case-insensitive) to seed the editable mapping. */
+function findAutoMatch(def: BusPortDef, candidates: ConduitPort[]): MappingAssignment | undefined {
+  for (const role of portNameCandidates(def)) {
+    const port = candidates.find((p) => p.name.toLowerCase() === role.suffix.toLowerCase());
+    if (port) {
+      return { physicalPort: port.name, ...(role.polarity ? { polarity: role.polarity } : {}) };
+    }
+  }
+  return undefined;
 }
 
 /**
@@ -122,28 +134,34 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
   onCancel,
 }) => {
   const [mode, setMode] = useState<'slave' | 'master'>('slave');
-  const assignableDefs = libraryPortDefs.filter((d) => !d.role);
+  const assignableDefs = libraryPortDefs.filter((port) => !isAssociatedPort(port));
 
-  const [assignments, setAssignments] = useState<Record<string, string>>(() => {
-    const seeded: Record<string, string> = {};
+  const [assignments, setAssignments] = useState<Record<string, MappingAssignment>>(() => {
+    const seeded: Record<string, MappingAssignment> = {};
     for (const def of assignableDefs) {
       const match = findAutoMatch(def, conduitPorts);
       if (match) {
-        seeded[def.name] = match.name;
+        seeded[def.name] = match;
       }
     }
     return seeded;
   });
 
-  const assignedElsewhere = new Set(Object.values(assignments));
+  const assignedElsewhere = new Set(
+    Object.values(assignments)
+      .map((assignment) => assignment.physicalPort)
+      .filter(Boolean)
+  );
   const requiredUnassigned = assignableDefs.some(
-    (d) => d.presence === 'required' && !assignments[d.name]
+    (d) => d.presence === 'required' && !assignments[d.name]?.physicalPort
   );
 
   const handleConfirm = () => {
     const portNameOverrides: Record<string, string> = {};
     const portWidthOverrides: Record<string, number | string> = {};
+    const portPolarityOverrides: Record<string, PortPolarity> = {};
     const useOptionalPorts: string[] = [];
+    const assignedPortNames = new Set<string>();
     // Build a quick lookup from conduit port name to width
     const conduitWidthByName: Record<string, number | string> = {};
     for (const cp of conduitPorts) {
@@ -152,17 +170,25 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
       }
     }
     for (const def of assignableDefs) {
-      const assigned = assignments[def.name];
-      if (!assigned) {
+      const assignment = assignments[def.name];
+      if (!assignment?.physicalPort) {
         continue;
       }
-      portNameOverrides[def.name] = assigned;
+      assignedPortNames.add(assignment.physicalPort);
+      const polarity = assignment.polarity ?? def.polarity?.default;
+      const selectedRole = def.polarity && polarity ? def.polarity.roles[polarity] : def.name;
+      if (assignment.physicalPort !== selectedRole) {
+        portNameOverrides[def.name] = assignment.physicalPort;
+      }
+      if (def.polarity && polarity && polarity !== def.polarity.default) {
+        portPolarityOverrides[def.name] = polarity;
+      }
       if (def.presence === 'optional') {
         useOptionalPorts.push(def.name);
       }
       // Preserve the conduit port's width so it is not silently replaced by the
       // bus definition's default width after conduitPorts are cleared.
-      const w = conduitWidthByName[assigned];
+      const w = conduitWidthByName[assignment.physicalPort];
       if (w !== undefined) {
         portWidthOverrides[def.name] = w;
       }
@@ -170,8 +196,11 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
     onConfirm({
       mode,
       portNameOverrides,
-      portWidthOverrides:
-        Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
+      ...(Object.keys(portWidthOverrides).length > 0 ? { portWidthOverrides } : {}),
+      ...(Object.keys(portPolarityOverrides).length > 0 ? { portPolarityOverrides } : {}),
+      ...(conduitPorts.some((port) => !assignedPortNames.has(port.name))
+        ? { unmappedConduitPorts: conduitPorts.filter((port) => !assignedPortNames.has(port.name)) }
+        : {}),
       useOptionalPorts,
     });
   };
@@ -203,13 +232,16 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
                 <tr>
                   <th style={STYLE.thCell}>Logical</th>
                   <th style={STYLE.thCell}>Your signal</th>
+                  <th style={STYLE.thCell}>Polarity</th>
                   <th style={STYLE.thCell}>Req</th>
                 </tr>
               </thead>
               <tbody>
                 {assignableDefs.map((def) => {
                   const expectedDir = expectedDirection(def, mode);
-                  const current = assignments[def.name] ?? '';
+                  const assignment = assignments[def.name];
+                  const current = assignment?.physicalPort ?? '';
+                  const polarity = assignment?.polarity ?? def.polarity?.default;
                   const isError = def.presence === 'required' && !current;
                   return (
                     <tr key={def.name}>
@@ -229,7 +261,21 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
                           style={{ ...STYLE.select, width: '100%' }}
                           value={current}
                           onChange={(e) =>
-                            setAssignments((prev) => ({ ...prev, [def.name]: e.target.value }))
+                            setAssignments((prev) => {
+                              if (!e.target.value) {
+                                const { [def.name]: _removed, ...remaining } = prev;
+                                return remaining;
+                              }
+                              return {
+                                ...prev,
+                                [def.name]: {
+                                  physicalPort: e.target.value,
+                                  ...(def.polarity
+                                    ? { polarity: polarity ?? def.polarity.default }
+                                    : {}),
+                                },
+                              };
+                            })
                           }
                         >
                           <option value="">— unassigned —</option>
@@ -249,6 +295,29 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
                               </option>
                             ))}
                         </select>
+                      </td>
+                      <td style={STYLE.tdCell}>
+                        {def.polarity ? (
+                          <select
+                            aria-label={`${def.name} polarity`}
+                            style={{ ...STYLE.select, width: '100%' }}
+                            value={polarity}
+                            onChange={(e) =>
+                              setAssignments((prev) => ({
+                                ...prev,
+                                [def.name]: {
+                                  physicalPort: current,
+                                  polarity: e.target.value as PortPolarity,
+                                },
+                              }))
+                            }
+                          >
+                            <option value="activeHigh">Active high</option>
+                            <option value="activeLow">Active low</option>
+                          </select>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                       <td style={{ ...STYLE.tdCell, opacity: 0.7 }}>
                         {def.presence === 'required' ? '✓' : ''}

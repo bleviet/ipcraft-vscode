@@ -10,6 +10,7 @@ import { useProtocolSuggestions } from './hooks/useProtocolSuggestions';
 import { useStagingSession } from './hooks/useStagingSession';
 import { useConsistencySession } from './hooks/useConsistencySession';
 import { useToolbarSettings } from './hooks/useToolbarSettings';
+import { useIssuesSession } from './hooks/useIssuesSession';
 import { IpCoreShell } from './components/IpCoreShell';
 import { IpCoreRightPanel } from './components/IpCoreRightPanel';
 import type { IpCoreToolbarProps } from './components/IpCoreToolbar';
@@ -17,7 +18,7 @@ import { EditorPanel } from './components/layout/EditorPanel';
 import type { IpCore } from '../types/ipCore';
 import { useGroupPorts } from './hooks/useGroupPorts';
 import type { BatchUpdate } from './hooks/useGroupPorts';
-import { lookupBusDef, lookupBusDefFromLibrary } from './data/busDefinitions';
+import { lookupBusDef } from './utils/busLibrary';
 import '@vscode/codicons/dist/codicon.css';
 import '../index.css';
 
@@ -115,9 +116,15 @@ const IpCoreApp: React.FC = () => {
     setDismissedChipIds((prev) => new Set([...prev, chipId]));
   }, []);
 
+  const busDefs = useCallback(
+    (type: string) => lookupBusDef(type, imports.busLibrary),
+    [imports.busLibrary]
+  );
+
   // Protocol suggestions for unassigned ports
   const allSuggestions = useProtocolSuggestions(
-    (ipCore as unknown as IpCore | null) ?? ({} as IpCore)
+    (ipCore as unknown as IpCore | null) ?? ({} as IpCore),
+    busDefs
   );
   const activeSuggestions = useMemo(
     () => allSuggestions.filter((c) => !dismissedChipIds.has(c.id)),
@@ -132,26 +139,10 @@ const IpCoreApp: React.FC = () => {
   });
 
   // Ungroup a bus interface: restore its signals to ports[], remove the interface
-  const busDefsForUngroup = useMemo(() => {
-    const lib = (imports as Record<string, unknown> | undefined)?.busLibrary as
-      | Record<string, unknown>
-      | undefined;
-    if (!lib) {
-      return lookupBusDef;
-    }
-    return (type: string) => {
-      const hardcoded = lookupBusDef(type);
-      if (hardcoded !== null) {
-        return hardcoded;
-      }
-      return lookupBusDefFromLibrary(type, lib);
-    };
-  }, [imports]);
-
   const { ungroupBusInterface } = useGroupPorts(
     ipCore as unknown as IpCore,
     batchUpdateIpCore,
-    busDefsForUngroup
+    busDefs
   );
 
   // Model-mutating canvas commands (remove/duplicate/delete/ungroup) plus the
@@ -169,6 +160,16 @@ const IpCoreApp: React.FC = () => {
   });
 
   const validationErrors = getValidationErrors();
+  const typedIpCore = ipCore as unknown as Parameters<typeof EditorPanel>[0]['ipCore'];
+  const issues = useIssuesSession({
+    ipCore: (ipCore as unknown as IpCore | null) ?? null,
+    revision: rawYaml,
+    busLibrary: imports.busLibrary,
+    validationErrors,
+    consistencyIssues: consistency.consistencyResult?.issues,
+    onSelectElement: selection.select,
+    onSelectSubPort: selection.selectSubPort,
+  });
 
   // The single boundary to the extension host: ready handshake, debounced
   // outbound updates, and revision-filtered inbound `update`/staging/
@@ -188,9 +189,10 @@ const IpCoreApp: React.FC = () => {
       [staging]
     ),
     onConsistencyResult: consistency.handleConsistencyResultMessage,
+    onGenerateResult: issues.handleGenerateResult,
+    onConformanceReport: issues.setHostReport,
   });
 
-  const typedIpCore = ipCore as unknown as Parameters<typeof EditorPanel>[0]['ipCore'];
   const vlnv = typedIpCore?.vlnv && typeof typedIpCore.vlnv === 'object' ? typedIpCore.vlnv : null;
 
   // Detect duplicate physicalPrefix values across all bus interfaces
@@ -226,8 +228,10 @@ const IpCoreApp: React.FC = () => {
     hasConsistencyResult: consistency.consistencyResult !== null,
     consistencyBadge: consistency.consistencyBadge,
     onCheckConsistency: consistency.handleCheckConsistency,
-    onToggleConsistencyOverlay: () => consistency.setShowConsistencyOverlay((v) => !v),
-    validationErrorCount: validationErrors.length,
+    onToggleConsistencyOverlay: () => issues.openIssues(),
+    issueErrorCount: issues.errorCount,
+    issueWarningCount: issues.warningCount,
+    onOpenIssues: () => issues.openIssues(),
   };
 
   return (
@@ -258,12 +262,13 @@ const IpCoreApp: React.FC = () => {
         suggestionChips: activeSuggestions,
         onDismissSelection: selection.deselectAll,
         onDismissSuggestion: handleDismissSuggestion,
-        consistencyAnnotations: consistency.consistencyAnnotations,
+        issueAnnotations: issues.annotations,
+        issueFocusRequest: issues.focusRequest,
       }}
       rightPanel={
         <IpCoreRightPanel
           staging={staging}
-          consistency={consistency}
+          issues={issues}
           canvasSelected={selection.selected}
           ipCore={typedIpCore}
           imports={imports}
@@ -275,7 +280,11 @@ const IpCoreApp: React.FC = () => {
           onSelectElement={selection.select}
         />
       }
-      validationErrors={validationErrors}
+      importIssues={{
+        saveBlocked: issues.importSaveBlocked,
+        hasWarnings: issues.hasUnresolved || issues.warningCount > 0,
+        onOpen: () => issues.openIssues(),
+      }}
       toast={toast}
     />
   );

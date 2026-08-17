@@ -102,6 +102,24 @@ it('derives Avalon-ST symbol ordering from endianness in Quartus hw.tcl', () => 
   expect(tcl).toContain('set_interface_property SNK_ST firstSymbolInHighOrderBits false');
 });
 
+it('emits every configured Avalon-MM polarity as an active-low physical port and vendor role', () => {
+  const fixture = alteraFixtures(allFixtures).find(
+    (candidate) => candidate.name === 'examples/comprehensive_avalon_vhdl'
+  );
+  expect(fixture).toBeDefined();
+
+  const tcl = fs.readFileSync(hwTclFiles(fixture!)[0], 'utf8');
+  for (const [role, direction, width] of [
+    ['read_n', 'Input', 1],
+    ['write_n', 'Input', 1],
+    ['byteenable_n', 'Input', 4],
+    ['readdatavalid_n', 'Output', 1],
+    ['waitrequest_n', 'Output', 1],
+  ] as const) {
+    expect(tcl).toContain(`add_interface_port S_AVMM avs_${role} ${role} ${direction} ${width}`);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // VHDL package files
 // ---------------------------------------------------------------------------

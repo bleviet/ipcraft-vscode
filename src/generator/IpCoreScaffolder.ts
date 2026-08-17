@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { Logger } from '../utils/Logger';
 import { ResourceRoots } from '../services/ResourceRoots';
-import { BusLibraryService } from '../services/BusLibraryService';
+import { BusLibraryService, type LoadedBusDefinitionSources } from '../services/BusLibraryService';
 import { getVivadoInterfaceCacheDir, pathExists } from '../services/VivadoInterfaceScanner';
 import { resolveVivadoCacheVersion } from '../services/VivadoCacheVersion';
 import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
@@ -11,12 +11,12 @@ import { TemplateLoader } from './TemplateLoader';
 import { resolveScaffoldOutputPath, ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
   getBusTypeForTemplate,
-  hasMemoryMappedSlaveInterface,
+  hasMemoryMappedConsumerInterface,
   prepareRegisters,
   resolveMemoryMaps,
   projectMemoryMapsForTemplate,
 } from './registerProcessor';
-import { loadIpCoreData } from './loadIpCore';
+import { IpCoreSchemaValidationError, loadIpCoreData } from './loadIpCore';
 import { sortByCompilationOrder, hdlLanguageFromPath } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
 import { generateTestbenchFiles, DEFAULT_FRAMEWORK, DEFAULT_ENGINE } from './testbench';
@@ -35,6 +35,8 @@ import { busResolver } from './resolvers/bus';
 import { shadowRegistersResolver } from './resolvers/shadowRegisters';
 import type { ResolverInput } from './resolvers/types';
 import type { NormalizedMemoryMap } from '../domain/internal.types';
+import type { NormalizedBusLibrary } from '../shared/busContracts';
+import { blocksGeneration, checkBusConformance } from '../shared/busConformance';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
 import type {
   BusDefinitions,
@@ -79,13 +81,19 @@ export class IpCoreScaffolder {
   private readonly templates: TemplateLoader;
   private readonly busLibraryService: BusLibraryService;
   private busDefinitions: BusDefinitions | null = null;
+  private busLibrary: NormalizedBusLibrary | null = null;
+  private busLibraryInputKey: string | null = null;
   private readonly resourceRoots: ResourceRoots;
 
   constructor(logger: Logger, templates: TemplateLoader, resourceRoots: ResourceRoots) {
     this.logger = logger;
     this.templates = templates;
     this.resourceRoots = resourceRoots;
-    this.busLibraryService = new BusLibraryService(logger, resourceRoots.busDefinitionsDir);
+    this.busLibraryService = new BusLibraryService(
+      logger,
+      resourceRoots.busDefinitionsDir,
+      resourceRoots.busDefinitionSchemaPath
+    );
   }
 
   async generateAll(
@@ -94,20 +102,20 @@ export class IpCoreScaffolder {
     options: GenerateOptions = {}
   ): Promise<GenerateResult> {
     try {
-      await this.ensureBusDefinitions(inputPath);
       const ipCoreData = await this.loadIpCore(inputPath, options.sourceText);
+      await this.ensureBusDefinitions(inputPath, ipCoreData);
+      const conformance = checkBusConformance(ipCoreData, this.busLibrary!);
+      if (blocksGeneration(conformance)) {
+        return {
+          success: false,
+          error: 'Generation blocked by bus interface conformance issues.',
+          issues: conformance.issues,
+        };
+      }
       const ipCoreDir = path.dirname(inputPath);
 
-      // Load per-IP custom bus library (useBusLibrary: ./path) without polluting the global cache
-      const useBusLib = String((ipCoreData as Record<string, unknown>).useBusLibrary ?? '');
-      if (useBusLib) {
-        const busLibPath = path.resolve(ipCoreDir, useBusLib);
-        const extraDefs = await this.busLibraryService.loadFromDirectories([busLibPath]);
-        this.busDefinitions = { ...this.busDefinitions, ...extraDefs } as BusDefinitions;
-      }
-
-      const busType = getBusTypeForTemplate(ipCoreData);
-      const hasMmSlave = hasMemoryMappedSlaveInterface(ipCoreData);
+      const busType = getBusTypeForTemplate(ipCoreData, this.busLibrary!);
+      const hasMmSlave = hasMemoryMappedConsumerInterface(ipCoreData, this.busLibrary!);
       // Resolve memory maps once: shared by the template context (RTL/testbench)
       // and the vendor packaging step (component.xml <spirit:memoryMaps>).
       const resolvedMemoryMaps = await resolveMemoryMaps(ipCoreData, inputPath);
@@ -190,6 +198,8 @@ export class IpCoreScaffolder {
             has_endian_swap: false,
             endian_swap_ports: [],
             endian_swap_widths: [],
+            has_boundary_transform: false,
+            boundary_transform_ports: [],
           };
 
       if (includeVhdl) {
@@ -307,6 +317,7 @@ export class IpCoreScaffolder {
             templates: packLoader,
             ipCoreData,
             busDefinitions: this.busDefinitions ?? {},
+            busLibrary: this.busLibrary!,
             isSv,
             memoryMaps: resolvedMemoryMaps,
             ipCoreDir,
@@ -448,6 +459,7 @@ export class IpCoreScaffolder {
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
+        ...(error instanceof IpCoreSchemaValidationError ? { issues: error.issues } : {}),
       };
     }
   }
@@ -464,14 +476,16 @@ export class IpCoreScaffolder {
     }
   }
 
-  private async ensureBusDefinitions(inputPath: string): Promise<void> {
-    if (this.busDefinitions) {
+  private async ensureBusDefinitions(inputPath: string, ipCoreData: IpCoreData): Promise<void> {
+    const useBusLibrary = String((ipCoreData as Record<string, unknown>).useBusLibrary ?? '');
+    const inputKey = `${path.resolve(inputPath)}\0${useBusLibrary}`;
+    if (this.busDefinitions && this.busLibrary && this.busLibraryInputKey === inputKey) {
       return;
     }
-    const library = await this.busLibraryService.loadDefaultLibrary();
+    const builtin = await this.busLibraryService.loadDefaultSources();
 
-    let userLibrary: Record<string, unknown> = {};
-    let workspaceLibrary: Record<string, unknown> = {};
+    let configured: LoadedBusDefinitionSources = { sources: [], diagnostics: [] };
+    let workspace: LoadedBusDefinitionSources = { sources: [], diagnostics: [] };
     try {
       const resourceUri = vscode.Uri.file(inputPath);
       const config = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT, resourceUri);
@@ -486,7 +500,7 @@ export class IpCoreScaffolder {
       }
       const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
       if (userPaths.length > 0) {
-        userLibrary = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);
+        configured = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);
       }
     } catch {
       // VS Code workspace API unavailable (e.g. test environment)
@@ -500,19 +514,49 @@ export class IpCoreScaffolder {
     // prevent workspace-discovered definitions from reaching the generator.
     try {
       const wsScanResult = await getWorkspaceBusDefinitionScanner().scan();
-      workspaceLibrary = wsScanResult.library;
+      workspace = this.busLibraryService.loadRecord(
+        wsScanResult.library,
+        'workspace://discovered',
+        'workspace'
+      );
     } catch {
       // WorkspaceBusDefinitionScanner unavailable (e.g. test environment)
     }
 
-    // Merge order: default library < workspace scan < explicitly configured user paths.
-    // Explicit user paths win over workspace-discovered definitions; workspace wins over
-    // the bundled defaults.
-    this.busDefinitions = {
-      ...(library || {}),
-      ...workspaceLibrary,
-      ...userLibrary,
-    } as BusDefinitions;
+    let ipLocal: LoadedBusDefinitionSources = { sources: [], diagnostics: [] };
+    if (useBusLibrary) {
+      ipLocal = await this.busLibraryService.loadFromDirectories(
+        [path.resolve(path.dirname(inputPath), useBusLibrary)],
+        'ipLocal'
+      );
+    }
+
+    this.busLibrary = this.busLibraryService.normalizeSources(
+      builtin,
+      workspace,
+      configured,
+      ipLocal
+    );
+    this.busDefinitions = Object.fromEntries(
+      Object.entries(this.busLibrary.definitions).map(([key, contract]) => {
+        const [vendor, library, name, version] = contract.canonicalVlnv.split(':');
+        return [
+          key,
+          {
+            busType: { vendor, library, name, version },
+            ports: contract.ports.map((port) => ({
+              name: port.name,
+              width: port.width,
+              direction: port.direction,
+              presence: port.presence,
+              ...(port.role === 'data' || port.role === 'byteQualifier' ? { role: port.role } : {}),
+            })),
+            ...(contract.artifactSource ? { source: contract.artifactSource } : {}),
+          },
+        ];
+      })
+    );
+    this.busLibraryInputKey = inputKey;
   }
 
   private async loadIpCore(inputPath: string, sourceText?: string): Promise<IpCoreData> {
@@ -524,10 +568,10 @@ export class IpCoreScaffolder {
    * Used by TemplatePreviewProvider to render .j2 previews without writing files.
    */
   async buildTemplateContextPublic(inputPath: string): Promise<TemplateContext> {
-    await this.ensureBusDefinitions(inputPath);
     const ipCore = await this.loadIpCore(inputPath);
-    const busType = getBusTypeForTemplate(ipCore);
-    const hasMmSlave = hasMemoryMappedSlaveInterface(ipCore);
+    await this.ensureBusDefinitions(inputPath, ipCore);
+    const busType = getBusTypeForTemplate(ipCore, this.busLibrary!);
+    const hasMmSlave = hasMemoryMappedConsumerInterface(ipCore, this.busLibrary!);
     const context = await this.buildTemplateContext(ipCore, busType, inputPath);
     context.has_memory_mapped_slave = hasMmSlave;
     assertValidContext(context);
@@ -547,6 +591,7 @@ export class IpCoreScaffolder {
       ipCore,
       registers,
       busDefinitions: this.busDefinitions ?? {},
+      busLibrary: this.busLibrary ?? this.busLibraryService.normalizeSources(),
       registry: BUS_REGISTRY,
     };
 

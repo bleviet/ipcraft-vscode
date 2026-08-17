@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
 
 const mockPathExists = jest.fn<Promise<boolean>, [string]>();
 const mockGetVivadoInterfaceCacheDir = jest.fn(
@@ -23,8 +25,48 @@ jest.mock('../../../services/WorkspaceBusDefinitionScanner', () => ({
 
 import { ImportResolver } from '../../../services/ImportResolver';
 import { Logger } from '../../../utils/Logger';
+import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
+import type { LoadedBusDefinitionSources } from '../../../services/BusLibraryService';
 
 type LoggerMock = Pick<Logger, 'info' | 'warn' | 'error'>;
+const SCHEMA_PATH = path.resolve(
+  __dirname,
+  '../../../../ipcraft-spec/schemas/bus_definition.schema.json'
+);
+const BUS_DIR = '/ext/dist/resources/bus_definitions';
+
+function definition(key: string, name: string, port: string): BusDefinitionFile {
+  return {
+    [key]: {
+      busType: { vendor: 'example.com', library: 'interface', name, version: '1.0' },
+      contract: {
+        version: 1,
+        interfaceKind: 'conduit',
+        modePolicy: { producer: 'master', consumer: 'slave', aliases: {} },
+        interfaceProperties: {},
+        constraints: [],
+      },
+      ports: [{ name: port, direction: 'in', role: 'control' }],
+    },
+  };
+}
+
+function loaded(definitions?: BusDefinitionFile): LoadedBusDefinitionSources {
+  return definitions
+    ? {
+        sources: [{ sourceFile: '/builtin/test.yml', sourceKind: 'builtin', definitions }],
+        diagnostics: [],
+      }
+    : { sources: [], diagnostics: [] };
+}
+
+function createResolver(logger: LoggerMock): ImportResolver {
+  const resolver = new ImportResolver(logger as Logger, BUS_DIR, SCHEMA_PATH);
+  (
+    resolver as unknown as { busLibraryService: { loadDefaultSources: jest.Mock } }
+  ).busLibraryService.loadDefaultSources = jest.fn().mockResolvedValue(loaded());
+  return resolver;
+}
 
 describe('ImportResolver', () => {
   let logger: LoggerMock;
@@ -57,28 +99,23 @@ describe('ImportResolver', () => {
   });
 
   it('loads default bus library when useBusLibrary is not provided', async () => {
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const resolver = createResolver(logger);
     (
-      resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
-    ).busLibraryService.loadDefaultLibrary = jest
+      resolver as unknown as { busLibraryService: { loadDefaultSources: jest.Mock } }
+    ).busLibraryService.loadDefaultSources = jest
       .fn()
-      .mockResolvedValue({ axi4: { ports: ['awaddr'] } });
+      .mockResolvedValue(loaded(definition('AXI4', 'axi4', 'awaddr')));
 
     const result = await resolver.resolveImports({}, '/project');
 
-    expect(result.busLibrary).toEqual({ axi4: { ports: ['awaddr'] } });
+    expect(result.busLibrary?.definitions.AXI4.ports[0].name).toBe('awaddr');
     expect(result.memoryMaps).toBeUndefined();
   });
 
   it('does not merge in the Vivado interface cache when it has not been scanned', async () => {
     mockPathExists.mockResolvedValue(false);
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
-    const loadFromUserPaths = jest.fn().mockResolvedValue({});
-    (
-      resolver as unknown as {
-        busLibraryService: { loadDefaultLibrary: jest.Mock; loadFromUserPaths: jest.Mock };
-      }
-    ).busLibraryService.loadDefaultLibrary = jest.fn().mockResolvedValue({});
+    const resolver = createResolver(logger);
+    const loadFromUserPaths = jest.fn().mockResolvedValue(loaded());
     (
       resolver as unknown as { busLibraryService: { loadFromUserPaths: jest.Mock } }
     ).busLibraryService.loadFromUserPaths = loadFromUserPaths;
@@ -94,11 +131,8 @@ describe('ImportResolver', () => {
 
   it('merges in the cached Vivado interface catalog when it has been scanned', async () => {
     mockPathExists.mockResolvedValue(true);
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
-    const loadFromUserPaths = jest.fn().mockResolvedValue({});
-    (
-      resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
-    ).busLibraryService.loadDefaultLibrary = jest.fn().mockResolvedValue({});
+    const resolver = createResolver(logger);
+    const loadFromUserPaths = jest.fn().mockResolvedValue(loaded());
     (
       resolver as unknown as { busLibraryService: { loadFromUserPaths: jest.Mock } }
     ).busLibraryService.loadFromUserPaths = loadFromUserPaths;
@@ -117,13 +151,8 @@ describe('ImportResolver', () => {
 
   it('loads the resource-pinned Vivado interface cache', async () => {
     mockPathExists.mockResolvedValue(true);
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
-    const loadFromUserPaths = jest.fn().mockResolvedValue({});
-    (
-      resolver as unknown as {
-        busLibraryService: { loadDefaultLibrary: jest.Mock; loadFromUserPaths: jest.Mock };
-      }
-    ).busLibraryService.loadDefaultLibrary = jest.fn().mockResolvedValue({});
+    const resolver = createResolver(logger);
+    const loadFromUserPaths = jest.fn().mockResolvedValue(loaded());
     (
       resolver as unknown as { busLibraryService: { loadFromUserPaths: jest.Mock } }
     ).busLibraryService.loadFromUserPaths = loadFromUserPaths;
@@ -149,11 +178,8 @@ describe('ImportResolver', () => {
 
   it('merges in the cached Vivado interface catalog even with no busLibraryPaths configured', async () => {
     mockPathExists.mockResolvedValue(true);
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
-    const loadFromUserPaths = jest.fn().mockResolvedValue({});
-    (
-      resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
-    ).busLibraryService.loadDefaultLibrary = jest.fn().mockResolvedValue({});
+    const resolver = createResolver(logger);
+    const loadFromUserPaths = jest.fn().mockResolvedValue(loaded());
     (
       resolver as unknown as { busLibraryService: { loadFromUserPaths: jest.Mock } }
     ).busLibraryService.loadFromUserPaths = loadFromUserPaths;
@@ -169,52 +195,53 @@ describe('ImportResolver', () => {
   it('merges workspace-discovered bus definitions into the library', async () => {
     mockPathExists.mockResolvedValue(false);
     mockWorkspaceScan.mockReturnValue({
-      library: { MY_CUSTOM_BUS: { ports: [{ name: 'CLK' }], source: 'workspace' } },
+      library: definition('MY_CUSTOM_BUS', 'custom', 'CLK'),
       count: 1,
       files: [],
     });
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const resolver = createResolver(logger);
     (
-      resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
-    ).busLibraryService.loadDefaultLibrary = jest
+      resolver as unknown as { busLibraryService: { loadDefaultSources: jest.Mock } }
+    ).busLibraryService.loadDefaultSources = jest
       .fn()
-      .mockResolvedValue({ AXI4_LITE: { ports: [{ name: 'ACLK' }] } });
+      .mockResolvedValue(loaded(definition('AXI4_LITE', 'axi4lite', 'ACLK')));
 
     const result = await resolver.resolveImports({}, '/project');
 
-    expect(result.busLibrary).toEqual({
-      AXI4_LITE: { ports: [{ name: 'ACLK' }] },
-      MY_CUSTOM_BUS: { ports: [{ name: 'CLK' }], source: 'workspace' },
-    });
+    expect(Object.keys(result.busLibrary?.definitions ?? {})).toEqual([
+      'AXI4_LITE',
+      'MY_CUSTOM_BUS',
+    ]);
+    expect(result.busLibrary?.definitions.MY_CUSTOM_BUS.sourceFile).toBe('workspace://discovered');
   });
 
   it('clearCache also clears the workspace bus definition scanner cache', () => {
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const resolver = createResolver(logger);
     // clearCache should not throw and should log the cleared message.
     resolver.clearCache();
     expect(logger.info).toHaveBeenCalledWith('Bus library cache cleared');
   });
 
   it('falls back to default bus library when explicit bus library fails', async () => {
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const resolver = createResolver(logger);
     (
-      resolver as unknown as { busLibraryService: { loadDefaultLibrary: jest.Mock } }
-    ).busLibraryService.loadDefaultLibrary = jest
+      resolver as unknown as { busLibraryService: { loadDefaultSources: jest.Mock } }
+    ).busLibraryService.loadDefaultSources = jest
       .fn()
-      .mockResolvedValue({ fallback: { ports: ['clk'] } });
+      .mockResolvedValue(loaded(definition('FALLBACK', 'fallback', 'clk')));
 
     readFileMock.mockRejectedValue(new Error('missing bus library'));
 
     const result = await resolver.resolveImports({ useBusLibrary: 'custom_bus.yml' }, '/project');
 
-    expect(result.busLibrary).toEqual({ fallback: { ports: ['clk'] } });
+    expect(result.busLibrary?.definitions.FALLBACK.ports[0].name).toBe('clk');
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('Falling back to default bus library.')
     );
   });
 
   it('resolves memory map imports for array and single-object YAML payloads', async () => {
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const resolver = createResolver(logger);
 
     readFileMock
       .mockResolvedValueOnce(Buffer.from('- name: map0\n  baseAddress: 0x0\n', 'utf8'))
@@ -228,7 +255,7 @@ describe('ImportResolver', () => {
   });
 
   it('throws when any file set import fails', async () => {
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const resolver = createResolver(logger);
 
     readFileMock.mockImplementation(async (uri: { fsPath: string }) => {
       if (uri.fsPath.endsWith('good_a.fileset.yml')) {
@@ -257,19 +284,19 @@ describe('ImportResolver', () => {
   });
 
   it('caches resolved bus library by absolute path and reloads after clearCache', async () => {
-    const resolver = new ImportResolver(logger as Logger, '/ext/dist/resources/bus_definitions');
+    const resolver = createResolver(logger);
     readFileMock
-      .mockResolvedValueOnce(Buffer.from('axi4: { ports: [awaddr] }', 'utf8'))
-      .mockResolvedValueOnce(Buffer.from('wishbone: { ports: [adr] }', 'utf8'));
+      .mockResolvedValueOnce(Buffer.from(yaml.dump(definition('AXI4', 'axi4', 'awaddr'))))
+      .mockResolvedValueOnce(Buffer.from(yaml.dump(definition('WISHBONE', 'wishbone', 'adr'))));
 
     const first = await resolver.resolveBusLibrary('bus.yml', '/project');
     const second = await resolver.resolveBusLibrary('bus.yml', '/project');
     resolver.clearCache();
     const third = await resolver.resolveBusLibrary('bus.yml', '/project');
 
-    expect(first).toEqual({ axi4: { ports: ['awaddr'] } });
+    expect(first.sources[0].definitions.AXI4.ports[0].name).toBe('awaddr');
     expect(second).toBe(first);
-    expect(third).toEqual({ wishbone: { ports: ['adr'] } });
+    expect(third.sources[0].definitions.WISHBONE.ports[0].name).toBe('adr');
     expect(readFileMock).toHaveBeenCalledTimes(2);
     expect(logger.info).toHaveBeenCalledWith('Bus library cache cleared');
   });

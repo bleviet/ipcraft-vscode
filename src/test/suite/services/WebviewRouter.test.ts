@@ -86,6 +86,23 @@ describe('WebviewRouter', () => {
     });
   });
 
+  it('queues non-document notifications without wrapping them as updates', async () => {
+    const router = new WebviewRouter({
+      webviewPanel,
+      document: document as vscode.TextDocument,
+      logger: new Logger('TestRouter'),
+      onReady: onReadyMock,
+    });
+    const notification = { type: 'conformanceResult', sourceRevision: 'name: core' };
+
+    router.postNotification(notification);
+    expect(webviewPanel.webview.postMessage).not.toHaveBeenCalled();
+
+    await messageListener?.({ type: 'ready' });
+
+    expect(webviewPanel.webview.postMessage).toHaveBeenCalledWith(notification);
+  });
+
   it('routes custom messages through registered handlers', async () => {
     const router = new WebviewRouter({
       webviewPanel,

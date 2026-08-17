@@ -9,11 +9,17 @@ import {
   normalizeIpCoreData,
   expandBusInterfaces,
   getActiveBusPortsFromDefinition,
+  projectResolvedBusPorts,
 } from '../registerProcessor';
 import { reconstructBusPortNameSet } from '../../shared/busPortNameSet';
-import { lookupBusDef } from '../../webview/ipcore/data/busDefinitions';
+import {
+  resolveBusInterface,
+  resolveDataLane,
+  type NormalizedBusLibrary,
+} from '../../shared/busContracts';
 import { crossCheckMemoryMapsAgainstVendor } from './registerCrossCheck';
 import type { IpCoreData, ParameterDef, PortDef } from '../types';
+import type { BusInterface, Parameter } from '../../domain/ipcore.types';
 import {
   SEVERITY_BY_KIND,
   type HdlCrossCheckKind,
@@ -85,16 +91,19 @@ function collectAllHdlFiles(ipCoreData: IpCoreData): ManagedHdlFile[] {
 /**
  * Physical port names already accounted for by the .ip.yml's busInterfaces/interrupts, so they
  * must never be flagged extra-port just because they aren't literally in `ports`: bus interface
- * physical names are a generator-side reconstruction (physicalPrefix + portNameOverrides, mirrored
- * here via reconstructBusPortNameSet/expandBusInterfaces — the same formula the generator itself
- * uses), and an interrupt's `name` is its physical port name declared outside `ports` entirely.
+ * physical names come from the canonical interface resolver, exposed here via
+ * reconstructBusPortNameSet/expandBusInterfaces, and an interrupt's `name` is its physical port
+ * name declared outside `ports` entirely.
  * Conduit interfaces run their conduitPorts through the same getActiveBusPortsFromDefinition
  * reconstruction (mirroring VivadoComponentXmlGenerator's busDefPortMaps) rather than treating
  * conduitPorts[].name as already-final: a conduit can still declare its own physicalPrefix (e.g.
  * to namespace an interface's signals), in which case the generator prefixes each conduit port's
  * name exactly as it would a standard bus's logical port.
  */
-function collectAccountedForPortNames(ipCoreData: IpCoreData): Set<string> {
+function collectAccountedForPortNames(
+  ipCoreData: IpCoreData,
+  busLibrary: NormalizedBusLibrary
+): Set<string> {
   const names = new Set<string>();
 
   for (const iface of expandBusInterfaces(ipCoreData)) {
@@ -119,7 +128,7 @@ function collectAccountedForPortNames(ipCoreData: IpCoreData): Set<string> {
       }
       continue;
     }
-    const reconstructed = reconstructBusPortNameSet(iface);
+    const reconstructed = reconstructBusPortNameSet(iface, busLibrary);
     if (reconstructed) {
       for (const name of reconstructed) {
         names.add(name);
@@ -210,11 +219,10 @@ interface ExpectedBusPort {
 }
 
 /**
- * Reconstructs each recognized (non-conduit) bus interface's active physical ports — name,
- * direction, width — using the generator's own getActiveBusPortsFromDefinition (mirroring
- * registerProcessor.ts's expandBusInterfaces + per-interface expansion), so "expected" here is
- * exactly what the generator itself would emit. Conduit interfaces and unrecognized/custom bus
- * types (lookupBusDef returns null or an empty array) are skipped — their physical ports remain
+ * Projects each recognized (non-conduit) bus interface's resolver-owned active physical ports —
+ * name, direction, width — through projectResolvedBusPorts, so "expected" here is exactly what
+ * the generator itself would emit. Conduit interfaces and unrecognized/custom bus types are
+ * skipped — their physical ports remain
  * excluded from extra-port via collectAccountedForPortNames's conduitPorts/rawPortMaps fallback;
  * signal-by-signal diffing isn't possible without a known bus definition to diff against.
  *
@@ -222,8 +230,18 @@ interface ExpectedBusPort {
  * array interface's expanded copies can still be traced back to their original ipYmlPath index —
  * expandBusInterfaces itself doesn't retain that mapping once interfaces are flattened together.
  */
-function collectExpectedBusPorts(ipCoreData: IpCoreData): ExpectedBusPort[] {
+function collectExpectedBusPorts(
+  ipCoreData: IpCoreData,
+  busLibrary: NormalizedBusLibrary
+): ExpectedBusPort[] {
   const result: ExpectedBusPort[] = [];
+  const parameterDefaults = Object.fromEntries(
+    (ipCoreData.parameters ?? []).flatMap((parameter) =>
+      parameter.name && typeof parameter.value === 'number'
+        ? [[String(parameter.name), parameter.value]]
+        : []
+    )
+  );
   (ipCoreData.busInterfaces ?? []).forEach((rawIface, origIdx) => {
     const expanded = expandBusInterfaces({
       ...ipCoreData,
@@ -234,28 +252,32 @@ function collectExpectedBusPorts(ipCoreData: IpCoreData): ExpectedBusPort[] {
       if ((iface.mode ?? '').toLowerCase() === 'conduit') {
         continue;
       }
-      const busDef = lookupBusDef(iface.type ?? '');
-      if (!busDef || busDef.length === 0) {
+      const resolution = resolveBusInterface({
+        busInterface: iface as unknown as BusInterface,
+        busIndex: origIdx,
+        parameters: (ipCoreData.parameters ?? []) as unknown as Parameter[],
+        library: busLibrary,
+      });
+      if (!resolution.match || resolution.match.contract.ports.length === 0) {
         continue;
       }
-      const activePorts = getActiveBusPortsFromDefinition(
-        busDef,
-        iface.useOptionalPorts ?? [],
+      const dataLane = resolveDataLane(resolution, iface);
+      const activePorts = projectResolvedBusPorts(
+        resolution.activePorts,
         iface.physicalPrefix ?? '',
-        iface.mode ?? '',
-        iface.portWidthOverrides ?? {},
-        ipCoreData.parameters as
-          | { name: string; value?: number | string; data_type?: string }[]
-          | undefined,
-        iface.portNameOverrides,
-        iface.absentPorts
+        parameterDefaults,
+        {
+          endianness: iface.endianness === 'big' ? 'big' : 'little',
+          laneWidth: dataLane.width,
+          laneKind: dataLane.kind,
+        }
       );
       for (const p of activePorts) {
         result.push({
           physicalName: String(p.name),
-          direction: typeof p.direction === 'string' ? p.direction : undefined,
+          direction: p.direction,
           width: Number(p.width),
-          logicalName: String(p.logical_name),
+          logicalName: p.canonicalName,
           ifaceName: iface.name ?? rawIface.name ?? '',
           ipYmlPath: ['busInterfaces', origIdx],
         });
@@ -274,7 +296,7 @@ function collectExpectedBusPorts(ipCoreData: IpCoreData): ExpectedBusPort[] {
  */
 /**
  * Reduces a bus interface's active ports to the same name-keyed ImplPort shape used for HDL/
- * vendor ports, so a vendor's own reconstructed bus interfaces (see collectExpectedBusPorts's
+ * vendor ports, so a vendor's own projected bus interfaces (see collectExpectedBusPorts's
  * docstring on vendorData below) can be diffed with the same diffBusPorts comparator used for
  * the .ip.yml side.
  */
@@ -682,6 +704,7 @@ async function diffAgainstHdlFiles(
   files: ManagedHdlFile[],
   ipCoreData: IpCoreData,
   ipCoreDir: string,
+  busLibrary: NormalizedBusLibrary,
   readFile: (absPath: string) => Promise<string>
 ): Promise<HdlCrossCheckFinding[]> {
   const findings: HdlCrossCheckFinding[] = [];
@@ -691,8 +714,8 @@ async function diffAgainstHdlFiles(
 
   const expectedSignals = collectExpectedSignals(ipCoreData);
   const expectedParams = (ipCoreData.parameters ?? []).map((p, idx) => ({ ...p, idx }));
-  const accountedFor = collectAccountedForPortNames(ipCoreData);
-  const expectedBusPorts = collectExpectedBusPorts(ipCoreData);
+  const accountedFor = collectAccountedForPortNames(ipCoreData, busLibrary);
+  const expectedBusPorts = collectExpectedBusPorts(ipCoreData, busLibrary);
 
   const parsedFiles: ParsedManagedFile[] = [];
   for (const file of files) {
@@ -786,9 +809,16 @@ async function diffAgainstHdlFiles(
 export async function crossCheckIpCoreAgainstHdl(
   ipCoreData: IpCoreData,
   ipCoreDir: string,
+  busLibrary: NormalizedBusLibrary,
   readFile: (absPath: string) => Promise<string> = (p) => fs.readFile(p, 'utf8')
 ): Promise<HdlCrossCheckFinding[]> {
-  return diffAgainstHdlFiles(collectManagedHdlFiles(ipCoreData), ipCoreData, ipCoreDir, readFile);
+  return diffAgainstHdlFiles(
+    collectManagedHdlFiles(ipCoreData),
+    ipCoreData,
+    ipCoreDir,
+    busLibrary,
+    readFile
+  );
 }
 
 /**
@@ -805,9 +835,16 @@ export async function crossCheckIpCoreAgainstHdl(
 export async function crossCheckIpCoreAgainstTopLevelHdl(
   ipCoreData: IpCoreData,
   ipCoreDir: string,
+  busLibrary: NormalizedBusLibrary,
   readFile: (absPath: string) => Promise<string> = (p) => fs.readFile(p, 'utf8')
 ): Promise<HdlCrossCheckFinding[]> {
-  return diffAgainstHdlFiles(collectAllHdlFiles(ipCoreData), ipCoreData, ipCoreDir, readFile);
+  return diffAgainstHdlFiles(
+    collectAllHdlFiles(ipCoreData),
+    ipCoreData,
+    ipCoreDir,
+    busLibrary,
+    readFile
+  );
 }
 
 export type VendorSource = 'hwTcl' | 'componentXml';
@@ -840,6 +877,7 @@ export async function crossCheckIpCoreAgainstVendor(
   ipCoreData: IpCoreData,
   ipCoreDir: string,
   source: VendorSource,
+  busLibrary: NormalizedBusLibrary,
   readFile: (absPath: string) => Promise<string> = (p) => fs.readFile(p, 'utf8')
 ): Promise<HdlCrossCheckFinding[]> {
   const relPath = vendorRelPath(ipCoreData, source);
@@ -860,9 +898,9 @@ export async function crossCheckIpCoreAgainstVendor(
   let vendorMmYamlText: string | undefined;
   try {
     if (source === 'hwTcl') {
-      vendorYamlText = parseHwTclContent(content, absPath).yamlText;
+      vendorYamlText = parseHwTclContent(content, absPath, { busLibrary }).yamlText;
     } else {
-      const parsedComponent = parseComponentXmlText(content);
+      const parsedComponent = parseComponentXmlText(content, { busLibrary });
       vendorYamlText = parsedComponent.ipYamlText;
       vendorMmYamlText = parsedComponent.mmYamlText;
     }
@@ -883,7 +921,7 @@ export async function crossCheckIpCoreAgainstVendor(
     ...p,
     idx,
   }));
-  const expectedBusPorts = collectExpectedBusPorts(ipCoreData);
+  const expectedBusPorts = collectExpectedBusPorts(ipCoreData, busLibrary);
   const rawVendorPorts = collectImplPorts(vendorData);
   const vendorEntity = vendorData.vlnv?.name ?? null;
 
@@ -894,7 +932,7 @@ export async function crossCheckIpCoreAgainstVendor(
   // collectImplPorts(vendorData); reuse collectExpectedBusPorts on the vendor side too and diff
   // against that instead — the vendor's derivation is lossless, so its reconstructed physical
   // names/widths are exactly what the artifact declared.
-  const vendorBusPorts = busPortsToImplPortMap(collectExpectedBusPorts(vendorData));
+  const vendorBusPorts = busPortsToImplPortMap(collectExpectedBusPorts(vendorData, busLibrary));
 
   const busFindings = diffBusPorts(
     expectedBusPorts,
@@ -924,7 +962,10 @@ export async function crossCheckIpCoreAgainstVendor(
     ...diffAgainstImplementation(
       expectedSignals,
       expectedParams,
-      withoutAccountedForPorts(rawVendorPorts, collectAccountedForPortNames(ipCoreData)),
+      withoutAccountedForPorts(
+        rawVendorPorts,
+        collectAccountedForPortNames(ipCoreData, busLibrary)
+      ),
       collectImplParams(vendorData),
       relPath,
       vendorEntity,

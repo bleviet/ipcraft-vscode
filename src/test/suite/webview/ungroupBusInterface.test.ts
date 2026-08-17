@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { useGroupPorts } from '../../../webview/ipcore/hooks/useGroupPorts';
 import type { IpCore } from '../../../webview/types/ipCore';
-import type { BusPortDef } from '../../../webview/ipcore/data/busDefinitions';
+import type { BusPortDef } from '../../../webview/ipcore/utils/busLibrary';
 
 function makeStandardBusIpCore(): IpCore {
   return {
@@ -25,9 +25,9 @@ function makeStandardBusIpCore(): IpCore {
  * with only the signals needed to verify port reconstruction.
  */
 const LIBRARY_BUS_DEFS: BusPortDef[] = [
-  { name: 'AWADDR', width: 32, direction: 'out', presence: 'required' },
-  { name: 'WDATA', width: 32, direction: 'out', presence: 'required' },
-  { name: 'BRESP', width: 2, direction: 'in', presence: 'required' },
+  { name: 'AWADDR', width: 32, direction: 'out', presence: 'required', role: 'control' },
+  { name: 'WDATA', width: 32, direction: 'out', presence: 'required', role: 'data' },
+  { name: 'BRESP', width: 2, direction: 'in', presence: 'required', role: 'control' },
 ];
 
 function makeBusDefs(type: string): BusPortDef[] | null {

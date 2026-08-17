@@ -4,8 +4,9 @@ import * as fs from 'fs/promises';
 import { IpCoreScaffolder } from '../../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../../generator/TemplateLoader';
 import { Logger } from '../../../utils/Logger';
-import { BusLibraryService } from '../../../services/BusLibraryService';
 import { devResourceRoots } from '../../../services/ResourceRoots';
+import { BusLibraryService } from '../../../services/BusLibraryService';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 jest.mock('../../../utils/Logger', () => ({
   Logger: jest.fn().mockImplementation(() => ({
@@ -16,14 +17,21 @@ jest.mock('../../../utils/Logger', () => ({
   })),
 }));
 
-jest.mock('../../../services/BusLibraryService', () => ({
-  BusLibraryService: jest.fn().mockImplementation(() => ({
-    loadDefaultLibrary: jest.fn().mockResolvedValue({
-      AXI4L: { ports: [{ name: 'AWADDR', presence: 'required' }] },
-    }),
+jest.mock('../../../services/BusLibraryService', () => {
+  return {
+    BusLibraryService: jest.fn(),
+  };
+});
+
+function installBusLibraryMock(): void {
+  const emptySources = { sources: [], diagnostics: [] };
+  (BusLibraryService as jest.Mock).mockImplementation(() => ({
+    loadDefaultSources: jest.fn().mockResolvedValue(emptySources),
+    loadFromDirectories: jest.fn().mockResolvedValue(emptySources),
+    normalizeSources: jest.fn(() => builtinBusLibrary()),
     clearCache: jest.fn(),
-  })),
-}));
+  }));
+}
 
 jest.mock('fs/promises', () => {
   const actual = jest.requireActual('fs/promises');
@@ -69,12 +77,7 @@ describe('self-clearing access types', () => {
   let scaffolder: any;
 
   beforeEach(() => {
-    (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({
-        AXI4L: { ports: [{ name: 'AWADDR', presence: 'required' }] },
-      }),
-      clearCache: jest.fn(),
-    }));
+    installBusLibraryMock();
     scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
     jest.clearAllMocks();
   });

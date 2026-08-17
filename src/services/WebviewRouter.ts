@@ -23,6 +23,7 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
   private isDisposed = false;
   private readonly handlers = new Map<string, (message: unknown) => Promise<void> | void>();
   private pendingUpdates: unknown[] = [];
+  private pendingNotifications: unknown[] = [];
 
   // Monotonic pending edit IDs for V-3 FIFO pairing
   private readonly pendingEditIds: number[] = [];
@@ -66,6 +67,10 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
           // Flush any pending updates
           while (this.pendingUpdates.length > 0) {
             const payload = this.pendingUpdates.shift();
+            this.postMessage(payload);
+          }
+          while (this.pendingNotifications.length > 0) {
+            const payload = this.pendingNotifications.shift();
             this.postMessage(payload);
           }
           return;
@@ -257,6 +262,15 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
     this.postMessage(msg);
   }
 
+  /** Post host metadata that is intentionally independent of document revision filtering. */
+  postNotification(message: unknown): void {
+    if (!this.isReady) {
+      this.pendingNotifications.push(message);
+      return;
+    }
+    this.postMessage(message);
+  }
+
   private postMessage(message: unknown) {
     if (!this.isDisposed) {
       void this.webviewPanel.webview.postMessage(message);
@@ -274,6 +288,7 @@ export class WebviewRouter<M extends { type: string } = { type: string }> {
     this.disposables.length = 0;
     this.handlers.clear();
     this.pendingUpdates = [];
+    this.pendingNotifications = [];
     this.logger.debug('WebviewRouter disposed');
   }
 }

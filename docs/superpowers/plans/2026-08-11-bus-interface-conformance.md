@@ -24,6 +24,16 @@ GHDL, Icarus Verilog.
 **Design reference:**
 `docs/superpowers/specs/2026-08-11-bus-interface-conformance-design.md`
 
+## Completion status
+
+All 106 implementation steps were completed and verified by 2026-08-12.
+Two reviewed follow-up refinements supersede intermediate wording below: callers
+now use the shared conformance policy directly instead of retaining the temporary
+`BusConformanceService` adapter, and the IP-XACT contract mirror serializes only
+explicitly authored semantic properties while standard vendor parameters still
+carry resolved values. The completed checkboxes represent the final required
+behavior, including these refinements.
+
 ## Global Constraints
 
 - Keep source imports relative; repository path aliases are test-only.
@@ -81,7 +91,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
 - Consumes: existing `json-schema-to-typescript` generation path and Ajv test
   setup.
 
-- [ ] **Step 1: Write failing schema tests for the version-1 shape**
+- [x] **Step 1: Write failing schema tests for the version-1 shape**
 
   Add Ajv cases covering a complete streaming contract, a legacy definition
   with only `ports`, malformed operations, missing operands, invalid aliases,
@@ -115,7 +125,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   ).toBe(true);
   ```
 
-- [ ] **Step 2: Run the new schema tests and confirm the missing schema fails**
+- [x] **Step 2: Run the new schema tests and confirm the missing schema fails**
 
   Run:
 
@@ -125,7 +135,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
 
   Expected: FAIL because `bus_definition.schema.json` does not exist.
 
-- [ ] **Step 3: Author the discriminated JSON Schema**
+- [x] **Step 3: Author the discriminated JSON Schema**
 
   Define these closed version-1 vocabularies in
   `bus_definition.schema.json`:
@@ -165,7 +175,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   optional for legacy definitions. Validate `role` as a non-empty string so the
   semantic normalizer can degrade unknown workspace roles with a warning.
 
-- [ ] **Step 4: Add `interfaceProperties` to the IP-core schema and round trip**
+- [x] **Step 4: Add `interfaceProperties` to the IP-core schema and round trip**
 
   Add an object after `portWidthOverrides` whose values are integer, string, or
   boolean and whose description says recognized contracts validate their keys.
@@ -184,7 +194,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   });
   ```
 
-- [ ] **Step 5: Extend type generation and resource packaging**
+- [x] **Step 5: Extend type generation and resource packaging**
 
   Add `BUS_DEFINITION_SCHEMA_PATH` and `BUS_DEFINITION_OUTPUT_PATH` to
   `scripts/generate-types.js`, call `compile(rawBusDefinition,
@@ -192,7 +202,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   schema in webpack. Add it to the VSIX required-schema list. Update the legacy
   webview and generator types deliberately; do not hand-edit generated files.
 
-- [ ] **Step 6: Generate types and verify schema, compilation, and packaging**
+- [x] **Step 6: Generate types and verify schema, compilation, and packaging**
 
   Run:
 
@@ -205,7 +215,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   Expected: generated `busDefinition.types.ts`, successful webpack compilation,
   and all listed tests passing.
 
-- [ ] **Step 7: Review checkpoint**
+- [x] **Step 7: Review checkpoint**
 
   Run `git diff --check` and inspect only the schema/type-generation changes.
   Leave the worktree unstaged.
@@ -233,7 +243,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   aliases, `interfaceKind`, `modePolicy`, roles, width policies, properties,
   derivations, and stable rules.
 
-- [ ] **Step 1: Write failing completeness and alias-inventory tests**
+- [x] **Step 1: Write failing completeness and alias-inventory tests**
 
   Load all five YAML files and assert every built-in has a version-1 contract,
   every port has a recognized explicit role and width policy, aliases do not
@@ -270,7 +280,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   `xilinx.com:interface:avalon-st:*`, and
   `altera.com:interface:avalon_streaming:*`.
 
-- [ ] **Step 2: Run the completeness test and confirm it fails**
+- [x] **Step 2: Run the completeness test and confirm it fails**
 
   Run:
 
@@ -281,7 +291,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   Expected: FAIL because the shipped definitions do not yet contain contracts,
   complete roles, modes, or aliases.
 
-- [ ] **Step 3: Add canonical metadata and width policies**
+- [x] **Step 3: Add canonical metadata and width policies**
 
   Use `interfaceKind: memoryMapped` for AXI4-Lite, AXI4 Full, and Avalon-MM;
   `interfaceKind: streaming` for AXI4-Stream and Avalon-ST. Use
@@ -289,7 +299,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   `master -> source`, `slave -> sink` aliases for Avalon-ST. Mark clocks,
   resets, data, byte qualifiers, and all remaining control ports explicitly.
 
-- [ ] **Step 4: Encode stable built-in rules**
+- [x] **Step 4: Encode stable built-in rules**
 
   Use these rule IDs and severities as the contract inventory:
 
@@ -305,14 +315,14 @@ boolean>` in generated, legacy webview, and generator-facing types.
   `readyLatency` default `0`, and derived `maxChannel` in Avalon-ST.
   Keep `firstSymbolInHighOrderBits` out of `interfaceProperties`.
 
-- [ ] **Step 5: Document the machine contract for people and agents**
+- [x] **Step 5: Document the machine contract for people and agents**
 
   In `ipcraft-spec/docs/bus-interface-conformance.md`, include concrete
   `TDATA/TKEEP`, Avalon `data/empty`, one-bit-symbol, parameterized, and vendor
   conversion examples. Add a short pointer in `AGENTS.md`; do not duplicate the
   rule tables there. Link the reference from `ip_spec.md`.
 
-- [ ] **Step 6: Validate all built-ins**
+- [x] **Step 6: Validate all built-ins**
 
   Run:
 
@@ -323,7 +333,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   Expected: all five definitions pass schema validation and the completeness
   invariant without warnings.
 
-- [ ] **Step 7: Review checkpoint**
+- [x] **Step 7: Review checkpoint**
 
   Run `git diff --check`; compare the contract tables against the approved
   design, especially AXI4-Lite 32/64-bit widths, AXI4-Stream byte lanes, and
@@ -442,7 +452,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   export function isConsumerInterface(contract: BusDefinitionContract, mode: string): boolean;
   ```
 
-- [ ] **Step 1: Write failing normalization tests**
+- [x] **Step 1: Write failing normalization tests**
 
   Cover exact VLNV construction, short-alias trim/case normalization,
   structured wildcard versions, alias collision errors, derivation cycles,
@@ -460,7 +470,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   );
   ```
 
-- [ ] **Step 2: Run the tests and confirm missing exports fail**
+- [x] **Step 2: Run the tests and confirm missing exports fail**
 
   Run:
 
@@ -470,7 +480,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
 
   Expected: FAIL because `src/shared/busContracts/` does not exist.
 
-- [ ] **Step 3: Implement semantic normalization**
+- [x] **Step 3: Implement semantic normalization**
 
   Convert raw schema types into immutable normalized entries. Treat malformed
   contracts, conflicting aliases, cycles, and undeclared operands as errors that
@@ -478,7 +488,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   `control`; record a warning only for an explicit unknown value. Reject any
   warning from a bundled built-in in its repository test.
 
-- [ ] **Step 4: Implement exact canonicalization and mode normalization**
+- [x] **Step 4: Implement exact canonicalization and mode normalization**
 
   Apply this order without substring matching:
 
@@ -495,12 +505,12 @@ boolean>` in generated, legacy webview, and generator-facing types.
   canonical producer/consumer mode or `null`; it never guesses from a protocol
   name.
 
-- [ ] **Step 5: Verify the pure library**
+- [x] **Step 5: Verify the pure library**
 
   Run the two Jest files from Step 2. Expected: PASS with no VS Code, React,
   filesystem, generator, or webview imports in `src/shared/busContracts/`.
 
-- [ ] **Step 6: Review checkpoint**
+- [x] **Step 6: Review checkpoint**
 
   Run:
 
@@ -595,7 +605,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   ): readonly BusConformanceDiagnostic[];
   ```
 
-- [ ] **Step 1: Write failing four-state and built-in table tests**
+- [x] **Step 1: Write failing four-state and built-in table tests**
 
   Add `it.each` cases for every rule ID from Task 2. Include concrete, symbolic,
   unresolved, and invalid outcomes; compatible and incompatible derived
@@ -622,7 +632,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   ).toEqual([]);
   ```
 
-- [ ] **Step 2: Write failing domain-cap and memory-map diagnostic tests**
+- [x] **Step 2: Write failing domain-cap and memory-map diagnostic tests**
 
   Build a two-parameter 16-by-16 domain that evaluates exactly 256 combinations
   and a 17-by-16 domain that returns:
@@ -641,7 +651,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   `memoryMapRef` reports `BUS_MEMORY_MAP_UNSUPPORTED` at
   `['busInterfaces', index, 'memoryMapRef']`.
 
-- [ ] **Step 3: Run the new resolver tests and confirm they fail**
+- [x] **Step 3: Run the new resolver tests and confirm they fail**
 
   Run:
 
@@ -651,7 +661,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
 
   Expected: FAIL because the resolver and validator exports are absent.
 
-- [ ] **Step 4: Implement expression resolution and structural proof**
+- [x] **Step 4: Implement expression resolution and structural proof**
 
   Reuse `parse` and `evaluate` from `widthExprAst`. Reduce constant subtrees,
   normalize parameter-name case exactly as the parameter table does, and compare
@@ -659,7 +669,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   or algebraic guessing. A relation is `symbolic` only when the normalized AST
   structure proves it.
 
-- [ ] **Step 5: Implement active ports, property defaults, and derivations**
+- [x] **Step 5: Implement active ports, property defaults, and derivations**
 
   Resolve in the approved order: declared width -> explicit override ->
   parameter expression -> property defaults/derivations -> derived width ->
@@ -673,20 +683,20 @@ boolean>` in generated, legacy webview, and generator-facing types.
 
   Reject zero, negative, fractional, or overflowed widths.
 
-- [ ] **Step 6: Implement bounded constraint evaluation and diagnostics**
+- [x] **Step 6: Implement bounded constraint evaluation and diagnostics**
 
   For each constraint, collect only referenced parameters, form their Cartesian
   product, and stop before evaluation if its size exceeds 256. Validate defaults
   and every declared combination within the cap. Unknown
   `interfaceProperties` keys are errors only when a contract resolved.
 
-- [ ] **Step 7: Preserve `interfaceProperties` in domain normalization**
+- [x] **Step 7: Preserve `interfaceProperties` in domain normalization**
 
   Read only canonical `interfaceProperties` into normalized bus interfaces and
   leave opaque keys untouched. Add a round-trip test proving no property map is
   dropped or materialized when absent.
 
-- [ ] **Step 8: Verify the resolver**
+- [x] **Step 8: Verify the resolver**
 
   Run:
 
@@ -697,7 +707,7 @@ boolean>` in generated, legacy webview, and generator-facing types.
   Expected: all four states, the 256 cap, five built-in rule tables, and
   structured paths pass.
 
-- [ ] **Step 9: Review checkpoint**
+- [x] **Step 9: Review checkpoint**
 
   Run `git diff --check` and confirm the pure modules import neither `vscode`,
   React, components, nor generator templates.
@@ -729,14 +739,14 @@ boolean>` in generated, legacy webview, and generator-facing types.
 - Produces: deterministic precedence `built-in < workspace < configured user <
 per-IP useBusLibrary` by exact definition key/canonical VLNV.
 
-- [ ] **Step 1: Write failing service tests for normalization and diagnostics**
+- [x] **Step 1: Write failing service tests for normalization and diagnostics**
 
   Update fixtures to include complete raw definition objects. Assert bundled
   malformed contracts throw, malformed workspace contracts are excluded with
   source paths, unknown workspace roles remain with warnings, and later sources
   win deterministically.
 
-- [ ] **Step 2: Run focused service tests and confirm raw-record expectations fail**
+- [x] **Step 2: Run focused service tests and confirm raw-record expectations fail**
 
   Run:
 
@@ -746,7 +756,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
 
   Expected: FAIL until services return the normalized runtime shape.
 
-- [ ] **Step 3: Preserve source identity while loading**
+- [x] **Step 3: Preserve source identity while loading**
 
   Replace anonymous `Object.assign` merging with ordered
   `BusDefinitionSource[]` entries:
@@ -762,21 +772,21 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   Parse files with `js-yaml`, validate each with the packaged schema, normalize
   them once, and cache the resulting serializable `NormalizedBusLibrary`.
 
-- [ ] **Step 4: Send the normalized library to the webview**
+- [x] **Step 4: Send the normalized library to the webview**
 
   Narrow the message/import types from `Record<string, unknown>` to
   `NormalizedBusLibrary`. Ensure update messages and revision filtering remain
   unchanged except for the payload type. Add a provider test that inspects the
   posted update message.
 
-- [ ] **Step 5: Inject the same library into generator resolver input**
+- [x] **Step 5: Inject the same library into generator resolver input**
 
   Make `IpCoreScaffolder.ensureBusDefinitions` assemble all sources first,
   including per-IP definitions, and retain both normalized contracts and raw
   port data through one `NormalizedBusLibrary`. Do not reload or renormalize per
   resolver.
 
-- [ ] **Step 6: Verify loading and transport**
+- [x] **Step 6: Verify loading and transport**
 
   Run:
 
@@ -788,7 +798,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   Expected: normalized contracts and load diagnostics reach both generator and
   webview without broad contexts or layer-reversing imports.
 
-- [ ] **Step 7: Review checkpoint**
+- [x] **Step 7: Review checkpoint**
 
   Run `git diff --check` and inspect the extension/webview message pair together
   for protocol compatibility.
@@ -826,7 +836,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   VLNV. No shared, parser, or generator module imports webview code or owns
   aliases, modes, roles, or memory-mapped classification.
 
-- [ ] **Step 1: Land the shared characterization gate before changing lookup behavior**
+- [x] **Step 1: Land the shared characterization gate before changing lookup behavior**
 
   Store the legacy port expectations as test-owned data, then assert both the
   current hard-coded lookup and the normalized built-ins match each shared
@@ -836,7 +846,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   `lookupBusDef` branch, and `src/generator/buses/builtin.ts`. Assert each
   spelling resolves to the same canonical contract and `interfaceKind`.
 
-- [ ] **Step 2: Run characterization tests against the old tables**
+- [x] **Step 2: Run characterization tests against the old tables**
 
   Run:
 
@@ -847,7 +857,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   Expected: PASS before any production lookup path changes. The test-owned
   expectations remain after the hard-coded module is deleted in Task 6B.
 
-- [ ] **Step 3: Replace memory-map and mode predicates**
+- [x] **Step 3: Replace memory-map and mode predicates**
 
   Change `busSupportsMemoryMap`, `busSupportsInterruptAssociation`,
   `getBusTypeForTemplate`, `hasMemoryMappedSlaveInterface`, addressing, and
@@ -864,7 +874,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   `registerProcessor.ts`. Keep generator template selection separate and keyed
   by exact canonical VLNV.
 
-- [ ] **Step 4: Migrate parser, checker, generator, and shared utilities**
+- [x] **Step 4: Migrate parser, checker, generator, and shared utilities**
 
   Add an injected `NormalizedBusLibrary` parameter to each pure parser/helper
   that needs protocol lookup. Update command/provider/service callers to supply
@@ -873,14 +883,14 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   proving `busPortNameSet` uses canonical ports and preserves a contract-less
   custom interface's physical ports.
 
-- [ ] **Step 5: Retire extension-side alias and classification ownership**
+- [x] **Step 5: Retire extension-side alias and classification ownership**
 
   Remove alias arrays and `isMemoryMapped` from the generator registry; retain
   only exact canonical template-provider mapping required by the Nunjucks packs.
   Keep `src/webview/ipcore/data/busDefinitions.ts` temporarily as the webview's
   characterized adapter until Task 6B.
 
-- [ ] **Step 6: Verify the extension-side cutover and dependency direction**
+- [x] **Step 6: Verify the extension-side cutover and dependency direction**
 
   Run:
 
@@ -895,7 +905,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   any unrelated `slave` occurrence manually rather than deleting it
   mechanically.
 
-- [ ] **Step 7: Review checkpoint**
+- [x] **Step 7: Review checkpoint**
 
   Run `git diff --check` and review the extension-side behavior and layering
   fix independently. Leave the hard-coded webview table and its consumers for
@@ -933,7 +943,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   inspector consumers. The webview no longer has a protocol table parallel to
   `ipcraft-spec`.
 
-- [ ] **Step 1: Re-run the shared characterization gate before webview changes**
+- [x] **Step 1: Re-run the shared characterization gate before webview changes**
 
   Run:
 
@@ -943,7 +953,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
 
   Expected: PASS with the hard-coded table still present.
 
-- [ ] **Step 2: Write failing webview regression coverage**
+- [x] **Step 2: Write failing webview regression coverage**
 
   Extend `useCanvasValidation.test.ts` and add
   `bus-contract-library.spec.ts`. Inject the normalized library with AXI4-Stream
@@ -952,7 +962,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   behavior and the intentional canonical-YAML port set. Assert selecting a
   bundle or subport still opens and focuses the correct inspector field.
 
-- [ ] **Step 3: Run the new UI coverage and confirm the canonical Avalon-MM expectations fail**
+- [x] **Step 3: Run the new UI coverage and confirm the canonical Avalon-MM expectations fail**
 
   Run:
 
@@ -963,7 +973,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
 
   Expected: FAIL while the webview still prefers the hard-coded Avalon-MM table.
 
-- [ ] **Step 4: Migrate every webview consumer through narrow props**
+- [x] **Step 4: Migrate every webview consumer through narrow props**
 
   Have `IpCoreApp` derive lookup adapters from its transported
   `NormalizedBusLibrary`, then pass only the library or focused lookup callbacks
@@ -972,7 +982,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   composition and preserve selection, grouping, optional-port toggles, and
   inspector focus.
 
-- [ ] **Step 5: Delete the hard-coded table after both gates pass**
+- [x] **Step 5: Delete the hard-coded table after both gates pass**
 
   Move the durable alias/port cases from `busDefinitions.test.ts` into the
   test-owned expectations in
@@ -982,7 +992,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   value differs; keep each intentional delta named in the characterization
   fixture.
 
-- [ ] **Step 6: Verify the webview cutover and visible canvas behavior**
+- [x] **Step 6: Verify the webview cutover and visible canvas behavior**
 
   Run:
 
@@ -997,7 +1007,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   the deleted module, and the browser assertions expose the intentional
   Avalon-MM canvas changes independently from the extension-side refactor.
 
-- [ ] **Step 7: Review checkpoint**
+- [x] **Step 7: Review checkpoint**
 
   Run `git diff --check` and review only the webview migration, deleted table,
   retained characterization expectations, and intentional canvas deltas.
@@ -1055,7 +1065,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   ): ConformanceReport;
   ```
 
-- [ ] **Step 1: Write the enforcement-table tests before adding gates**
+- [x] **Step 1: Write the enforcement-table tests before adding gates**
 
   Cover these exact decisions:
 
@@ -1070,7 +1080,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   `BUS_MEMORY_MAP_UNSUPPORTED` and blocks before `generateAll` constructs a
   staging result.
 
-- [ ] **Step 2: Run the focused tests and confirm no gate exists**
+- [x] **Step 2: Run the focused tests and confirm no gate exists**
 
   Run:
 
@@ -1080,7 +1090,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
 
   Expected: FAIL because generation currently proceeds after schema validation.
 
-- [ ] **Step 3: Implement one service adapter and issue conversion**
+- [x] **Step 3: Implement one service adapter and issue conversion**
 
   Keep policy out of the pure resolver. Convert each
   `BusConformanceDiagnostic` to `IpcraftIssue` with `source: 'protocol'`, and
@@ -1093,7 +1103,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   export const blocksImportWrite = (report: ConformanceReport): boolean => report.hasKnownErrors;
   ```
 
-- [ ] **Step 4: Gate the scaffolder before resolving memory maps or templates**
+- [x] **Step 4: Gate the scaffolder before resolving memory maps or templates**
 
   In `generateAll`, finish merging the runtime bus library, validate the loaded
   IP, and return a failure containing structured issues before
@@ -1101,13 +1111,13 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   output. Ensure `GenerationEngine` and `IpCoreGenerateHandler` forward issues
   in `generateResult` instead of flattening them to one opaque string.
 
-- [ ] **Step 5: Add protocol results to the explicit checker**
+- [x] **Step 5: Add protocol results to the explicit checker**
 
   Run conformance before HDL/vendor cross-checks, adapt existing findings into
   `IpcraftIssue`, and return one ordered issue list. Deduplicate by
   `code + JSON.stringify(path) + source`; do not parse dotted paths.
 
-- [ ] **Step 6: Gate command imports and preview saves**
+- [x] **Step 6: Gate command imports and preview saves**
 
   Parse the proposed YAML in memory, load the same runtime contract library for
   the source directory, then apply import policy before calling
@@ -1116,7 +1126,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   Preview messages carry the report so the webview can disable Save without a
   second protocol implementation.
 
-- [ ] **Step 7: Verify no partial-output path remains**
+- [x] **Step 7: Verify no partial-output path remains**
 
   Run:
 
@@ -1128,7 +1138,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   unresolved import asserts one atomic IP write and warning; generation remains
   blocked.
 
-- [ ] **Step 8: Review checkpoint**
+- [x] **Step 8: Review checkpoint**
 
   Run `git diff --check` and inspect every call to `writeImportedFile`,
   `generateAll`, and staging creation to confirm validation precedes mutation.
@@ -1175,7 +1185,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   export function issuesToCanvasAnnotations(issues: readonly IpcraftIssue[]): CanvasAnnotations;
   ```
 
-- [ ] **Step 1: Write failing projection and panel tests**
+- [x] **Step 1: Write failing projection and panel tests**
 
   Assert protocol paths map `['busInterfaces', 1]` to `bus:1` and
   `['busInterfaces', 1, 'portWidthOverrides', 'empty']` to both `bus:1` and the
@@ -1183,7 +1193,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   `References`, `HDL consistency`, `Vendor artifact consistency`; duplicate
   keys collapse; error and warning counts remain distinct.
 
-- [ ] **Step 2: Run UI tests and confirm the Issues components are absent**
+- [x] **Step 2: Run UI tests and confirm the Issues components are absent**
 
   Run:
 
@@ -1193,7 +1203,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
 
   Expected: FAIL on missing module/components.
 
-- [ ] **Step 3: Implement the pure UI issue adapters**
+- [x] **Step 3: Implement the pure UI issue adapters**
 
   Preserve source paths as arrays. Convert existing reference errors and
   consistency findings once at their boundary, then merge them with immediate
@@ -1204,7 +1214,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
     `${issue.source}|${issue.code}|${JSON.stringify(issue.path)}`;
   ```
 
-- [ ] **Step 4: Build the Issues panel and selection behavior**
+- [x] **Step 4: Build the Issues panel and selection behavior**
 
   Replace the footer labeled `Reference Validation Errors` and the separate
   consistency overlay with `IssuesPanel`. Clicking a row closes competing
@@ -1212,26 +1222,26 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   an `IssueFocusRequest`. Keep staging overlay precedence; Issues occupies the
   right slot when explicitly opened or when generation is blocked.
 
-- [ ] **Step 5: Add toolbar counts and blocked-generation behavior**
+- [x] **Step 5: Add toolbar counts and blocked-generation behavior**
 
   Show separate error/warning totals. When `generateResult.success === false`
   includes issues, open the panel and focus the first error, falling back to the
   first warning. Keep auto consistency checks silent: update counts without
   opening the panel.
 
-- [ ] **Step 6: Annotate bundles and logical subports from the same issues**
+- [x] **Step 6: Annotate bundles and logical subports from the same issues**
 
   Remove protocol-specific warning construction from `useCanvasValidation` once
   the shared validator supplies it. Merge issue annotations with remaining local
   structural annotations, preserving existing canvas dot/tool-tip rendering.
 
-- [ ] **Step 7: Gate import-preview Save in the shell**
+- [x] **Step 7: Gate import-preview Save in the shell**
 
   Add `importSaveBlocked` and `onOpenIssues` props. Disable `Save as .ip.yml`
   only for known errors; keep it enabled for unresolved warnings and add an
   accessible title explaining the warning state.
 
-- [ ] **Step 8: Verify the unified UI**
+- [x] **Step 8: Verify the unified UI**
 
   Run:
 
@@ -1243,7 +1253,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   Expected: one issue model drives counts, panel rows, canvas markers, preview
   save state, and blocked-generation focus.
 
-- [ ] **Step 9: Review checkpoint**
+- [x] **Step 9: Review checkpoint**
 
   Run `git diff --check`; verify `IpCoreApp`, `IpCoreShell`, and
   `IpBlockCanvas` remain composition-focused and issue transformation lives in
@@ -1305,7 +1315,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   ): BusContractMutation[];
   ```
 
-- [ ] **Step 1: Write failing editor-model tests**
+- [x] **Step 1: Write failing editor-model tests**
 
   For AXI4-Stream, assert `TDATA` is editable, `TKEEP` displays
   `TDATA / 8 = 8` read-only, and editing `TDATA` from 32 to 64 returns one batch:
@@ -1320,7 +1330,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
 
   Assert load alone preserves matching explicit derived overrides.
 
-- [ ] **Step 2: Run focused tests and confirm no contract editor exists**
+- [x] **Step 2: Run focused tests and confirm no contract editor exists**
 
   Run:
 
@@ -1330,33 +1340,33 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
 
   Expected: FAIL on missing editor model/component.
 
-- [ ] **Step 3: Implement the pure edit model and deterministic mutations**
+- [x] **Step 3: Implement the pure edit model and deterministic mutations**
 
   Build fields from width policies and property declarations. On a root edit,
   always delete every affected explicit derived override; never rewrite it to a
   new redundant number and never materialize an omitted derived value.
 
-- [ ] **Step 4: Render root, semantic, derived, and fixed fields**
+- [x] **Step 4: Render root, semantic, derived, and fixed fields**
 
   Use existing inspector controls. Show formula and effective value for derived
   fields, expected/actual text for invalid editable fields, and no edit handler
   for derived/fixed values. Render Avalon-ST `dataBitsPerSymbol`,
   `symbolsPerBeat`, `readyLatency`, and `maxChannel` under Configuration.
 
-- [ ] **Step 5: Apply coupled edits with `updateIpCoreBatch`**
+- [x] **Step 5: Apply coupled edits with `updateIpCoreBatch`**
 
   Wire `BusContractFields` through the existing `batchUpdateIpCore` callback in
   `IpCoreApp`. Add a state test proving one `pushUndo`, one state transition, and
   one debounced outbound update for the mutation batch.
 
-- [ ] **Step 6: Focus inspector fields from issue paths**
+- [x] **Step 6: Focus inspector fields from issue paths**
 
   Map the final path segments to stable field IDs such as
   `bus-0-property-dataBitsPerSymbol` and `bus-0-width-TDATA`. On a new
   `IssueFocusRequest.nonce`, call `focus()` and `scrollIntoView({ block:
 'nearest' })` after the selected inspector renders.
 
-- [ ] **Step 7: Verify editor behavior**
+- [x] **Step 7: Verify editor behavior**
 
   Run:
 
@@ -1367,7 +1377,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   Expected: root edits are atomic, derived overrides are deleted
   deterministically, and issue focus reaches the correct field.
 
-- [ ] **Step 8: Review checkpoint**
+- [x] **Step 8: Review checkpoint**
 
   Run `git diff --check`; inspect YAML mutation paths and confirm no
   `sendUpdate` loop or new `__op` was introduced.
@@ -1394,7 +1404,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
   `interfaceProperties`; template context with a deterministic ordered property
   list.
 
-- [ ] **Step 1: Write failing parser cases for current and legacy spellings**
+- [x] **Step 1: Write failing parser cases for current and legacy spellings**
 
   Parse this fixture and assert the canonical `.ip.yml` shape:
 
@@ -1412,7 +1422,7 @@ per-IP useBusLibrary` by exact definition key/canonical VLNV.
 readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   where both spellings differ and parsing returns a source-located error.
 
-- [ ] **Step 2: Run parser tests and confirm properties are currently dropped**
+- [x] **Step 2: Run parser tests and confirm properties are currently dropped**
 
   Run:
 
@@ -1422,7 +1432,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
 
   Expected: FAIL on missing `interfaceProperties` and canonical streaming mode.
 
-- [ ] **Step 3: Implement contract-driven property import**
+- [x] **Step 3: Implement contract-driven property import**
 
   Remove the webview lookup dependency if any remains. Read only properties
   declared by the matched contract, coerce declared integer/boolean values, map
@@ -1430,7 +1440,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   `firstSymbolInHighOrderBits` solely to `endianness`. Derive omitted
   `symbolsPerBeat` only when data width divides by symbol width.
 
-- [ ] **Step 4: Emit canonical properties in Platform Designer Tcl**
+- [x] **Step 4: Emit canonical properties in Platform Designer Tcl**
 
   Project resolved properties as an ordered array and render:
 
@@ -1444,13 +1454,13 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   Do not emit `bitsPerSymbol`. Preserve symbolic parameter references in Tcl
   form where supported.
 
-- [ ] **Step 5: Add one-bit-symbol round-trip coverage**
+- [x] **Step 5: Add one-bit-symbol round-trip coverage**
 
   Import `_hw.tcl` -> generate `.ip.yml` -> regenerate `_hw.tcl` -> re-import,
   then assert `data=5`, `dataBitsPerSymbol=1`, `symbolsPerBeat=5`,
   `readyLatency=0`, and `endianness=big` remain unchanged.
 
-- [ ] **Step 6: Verify parser, generator, and snapshots**
+- [x] **Step 6: Verify parser, generator, and snapshots**
 
   Run:
 
@@ -1461,7 +1471,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
 
   Expected: unit and snapshot tests pass with current-property spelling only.
 
-- [ ] **Step 7: Review checkpoint**
+- [x] **Step 7: Review checkpoint**
 
   Run `git diff --check`; inspect that `firstSymbolInHighOrderBits` never appears
   as an `.ip.yml` `interfaceProperties` key.
@@ -1502,7 +1512,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   }
   ```
 
-- [ ] **Step 1: Write failing resolver and UI cases for a five-bit stream**
+- [x] **Step 1: Write failing resolver and UI cases for a five-bit stream**
 
   Resolve a big-endian Avalon-ST source with `data=5`,
   `dataBitsPerSymbol=1`, and `symbolsPerBeat=5`. Assert its data port has
@@ -1511,7 +1521,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   enabled. Retain the existing warning/disabled behavior for a five-bit
   standalone port.
 
-- [ ] **Step 2: Run focused tests and confirm byte-only behavior fails**
+- [x] **Step 2: Run focused tests and confirm byte-only behavior fails**
 
   Run:
 
@@ -1521,14 +1531,14 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
 
   Expected: FAIL because `needsByteSwap` rejects width 5.
 
-- [ ] **Step 3: Replace byte-only bus swap metadata**
+- [x] **Step 3: Replace byte-only bus swap metadata**
 
   Keep raw standalone ports at `lane_width: 8`. For interface data roles, use
   `8` for AXI/Avalon-MM and resolved `dataBitsPerSymbol` for Avalon-ST. Require
   `width % laneWidth === 0` and more than one lane. Byte qualifiers retain
   one-bit lane reversal aligned to their data lanes.
 
-- [ ] **Step 4: Render generic lane-reversal loops**
+- [x] **Step 4: Render generic lane-reversal loops**
 
   In both top templates, map destination lane `i` to source lane
   `laneCount - 1 - i` using `lane_width`. Fixed and parameterized variants must
@@ -1536,20 +1546,20 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   `swap_bytes_<width>` helpers only for fixed eight-bit lane swaps if they remain
   simpler than the generic loop.
 
-- [ ] **Step 5: Extend the template-context schema and regenerate types**
+- [x] **Step 5: Extend the template-context schema and regenerate types**
 
   Replace the byte/bit-only enum with lane/bit and require `lane_width` for lane
   swaps. Update descriptions, run type generation, and fix compile errors rather
   than hand-editing `templateContext.types.ts`.
 
-- [ ] **Step 6: Add VHDL and SystemVerilog integration fixtures**
+- [x] **Step 6: Add VHDL and SystemVerilog integration fixtures**
 
   Extend `src/test/integration/endianness.test.ts` with the five-bit stream.
   Assert generated RTL contains five lane assignments in reverse order, contains
   no byte-alignment guard for that port, and compiles/elaborates under the
   suite's available GHDL/Icarus gates.
 
-- [ ] **Step 7: Verify endianness behavior**
+- [x] **Step 7: Verify endianness behavior**
 
   Run:
 
@@ -1560,7 +1570,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   npx jest --config config/jest.integration.js src/test/integration/endianness.test.ts --runInBand
   ```
 
-- [ ] **Step 8: Review checkpoint**
+- [x] **Step 8: Review checkpoint**
 
   Run `git diff --check`; confirm `portEndianness.ts` stayed byte-oriented and
   only contract-resolved bus data gained symbol lanes.
@@ -1586,7 +1596,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
 - Produces: standard IP-XACT bus-interface parameters plus deterministic IPCraft
   vendor metadata in namespace `urn:ipcraft:interface-contract:1`.
 
-- [ ] **Step 1: Write failing custom Avalon-ST export tests**
+- [x] **Step 1: Write failing custom Avalon-ST export tests**
 
   Generate `component.xml` for the five-bit, one-bit-symbol stream and assert:
 
@@ -1602,13 +1612,13 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   Assert bundled bus/abstraction files are generated and physical ports are not
   padded or relabeled as AXI4-Stream.
 
-- [ ] **Step 2: Write failing import and conflict tests**
+- [x] **Step 2: Write failing import and conflict tests**
 
   Parse the exported XML and assert canonical properties/endianness return. Add
   a fixture where a standard IP-XACT property differs from the mirrored IPCraft
   property and assert a blocking diagnostic rather than precedence guessing.
 
-- [ ] **Step 3: Run focused XML tests and confirm metadata is absent**
+- [x] **Step 3: Run focused XML tests and confirm metadata is absent**
 
   Run:
 
@@ -1618,14 +1628,14 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
 
   Expected: FAIL on missing parameters/vendor extension or incorrect identity.
 
-- [ ] **Step 4: Extend custom bus artifact generation**
+- [x] **Step 4: Extend custom bus artifact generation**
 
   Treat canonical Avalon-ST as custom for AMD packaging even though it is a
   built-in IPCraft contract. Generate its bus definition and abstraction
   definition once per VLNV. Set IP-XACT addressability from `interfaceKind`, not
   from the bus name.
 
-- [ ] **Step 5: Emit deterministic standard and mirrored properties**
+- [x] **Step 5: Emit deterministic standard and mirrored properties**
 
   Sort canonical property names lexicographically. Emit standard bus-interface
   parameters where the current IP-XACT writer supports them, with
@@ -1640,14 +1650,14 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   </ipcraft:interfaceContract>
   ```
 
-- [ ] **Step 6: Import standard parameters and verify the mirror**
+- [x] **Step 6: Import standard parameters and verify the mirror**
 
   Map standard `firstSymbolInHighOrderBits` back to canonical `endianness` and
   standard semantic parameters to `interfaceProperties`. Use the mirror to
   recover ignored parameters, but report any standard/mirror disagreement as a
   known error with an XML source location.
 
-- [ ] **Step 7: Add full XML round-trip coverage**
+- [x] **Step 7: Add full XML round-trip coverage**
 
   Extend `roundtrip.test.ts`:
 
@@ -1658,7 +1668,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   Assert VLNV, mode, data width, symbol properties, ready latency, channel
   maximum, and endianness are identical.
 
-- [ ] **Step 8: Verify IP-XACT output and re-import**
+- [x] **Step 8: Verify IP-XACT output and re-import**
 
   Run:
 
@@ -1670,7 +1680,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   Expected: custom Avalon-ST remains custom, round trips losslessly, and never
   appears as AXI4-Stream.
 
-- [ ] **Step 9: Review checkpoint**
+- [x] **Step 9: Review checkpoint**
 
   Run `git diff --check`; inspect XML ordering snapshots and ensure one canonical
   metadata representation is emitted.
@@ -1697,14 +1707,14 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
 - Produces: enforcement enabled for all shipped examples and end-to-end evidence
   for the user-visible workflow.
 
-- [ ] **Step 1: Add an all-examples audit test before editing fixtures**
+- [x] **Step 1: Add an all-examples audit test before editing fixtures**
 
   Recursively load every shipped `.ip.yml`, resolve its effective bus library,
   and print diagnostics grouped by file. Fail on known errors or unresolved
   generation constraints. Explicitly assert the legacy comprehensive Avalon
   channel derives `maxChannel: 3` without rewriting the YAML.
 
-- [ ] **Step 2: Run the audit and record each intentional migration**
+- [x] **Step 2: Run the audit and record each intentional migration**
 
   Run:
 
@@ -1715,14 +1725,14 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   Expected: any failures identify exact array paths. Change only examples proven
   invalid by the contract; do not normalize unrelated formatting.
 
-- [ ] **Step 3: Update examples and documentation deliberately**
+- [x] **Step 3: Update examples and documentation deliberately**
 
   Add explicit Avalon-ST properties where legacy derivation is ambiguous,
   convert new/example streaming modes to `source`/`sink`, and correct invalid
   derived overrides. Document the observable Avalon-MM canvas port/optionality
   changes and the Avalon-ST generated-RTL lane-order change in `CHANGELOG.md`.
 
-- [ ] **Step 4: Add browser coverage for the complete error workflow**
+- [x] **Step 4: Add browser coverage for the complete error workflow**
 
   Inject invalid AXI4-Stream YAML through `window.__RENDER__`, then assert the
   canvas bundle marker, subport marker, toolbar error count, grouped Protocol
@@ -1730,7 +1740,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   Add an unresolved-import preview case where Save remains enabled with a
   warning.
 
-- [ ] **Step 5: Run the complete focused test matrix**
+- [x] **Step 5: Run the complete focused test matrix**
 
   Run:
 
@@ -1750,7 +1760,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   HDL/vendor integration gates pass or report only their repository-defined tool
   skip condition.
 
-- [ ] **Step 6: Run repository-wide regression checks**
+- [x] **Step 6: Run repository-wide regression checks**
 
   Run:
 
@@ -1764,7 +1774,7 @@ readyLatency: 0 }`. Repeat with legacy `bitsPerSymbol`. Add a conflict case
   intentional source, schema, generated type, documentation, fixture, and
   snapshot changes.
 
-- [ ] **Step 7: Final review checkpoint**
+- [x] **Step 7: Final review checkpoint**
 
   Present the full diff and verification outputs to the developer. Do not stage,
   commit, or push; let the developer decide integration and commit boundaries.

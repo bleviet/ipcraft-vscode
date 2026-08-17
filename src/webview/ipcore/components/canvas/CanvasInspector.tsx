@@ -1,4 +1,6 @@
 import React from 'react';
+import type { NormalizedBusLibrary } from '../../../../shared/busContracts';
+import type { IssueFocusRequest } from '../../types/issues';
 import type { IpCore } from '../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { CanvasElement } from '../../hooks/useCanvasSelection';
@@ -10,9 +12,10 @@ import { useInspectorWidth } from './inspector/useInspectorWidth';
 interface CanvasInspectorProps {
   selected: CanvasElement | null;
   ipCore: IpCore;
-  imports?: { busLibrary?: unknown; memoryMaps?: unknown[] };
+  imports?: { busLibrary?: NormalizedBusLibrary; memoryMaps?: unknown[] };
   onUpdate: YamlUpdateHandler;
   batchUpdate?: BatchUpdate;
+  issueFocusRequest?: IssueFocusRequest | null;
   onClose: () => void;
   onDelete?: () => void;
   onUngroup?: () => void;
@@ -25,6 +28,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   imports,
   onUpdate,
   batchUpdate,
+  issueFocusRequest,
   onClose,
   onDelete,
   onUngroup,
@@ -72,6 +76,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
           imports={imports}
           onUpdate={onUpdate}
           batchUpdate={batchUpdate}
+          issueFocusRequest={issueFocusRequest}
           onSelectElement={onSelectElement}
         />
       </div>

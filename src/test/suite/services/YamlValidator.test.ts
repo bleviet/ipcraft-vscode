@@ -179,6 +179,47 @@ describe('YamlValidator', () => {
       expect(result.error).toBeUndefined();
     });
 
+    it('accepts a per-port polarity override', () => {
+      const result = validator.validateAgainstSchema(
+        {
+          vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+          busInterfaces: [
+            {
+              name: 'control',
+              type: 'AVMM',
+              mode: 'slave',
+              portPolarityOverrides: { read: 'activeLow' },
+            },
+          ],
+        },
+        IP_CORE_SCHEMA_PATH
+      );
+
+      expect(result).toEqual({ valid: true });
+    });
+
+    it.each(['low', 'ACTIVE_LOW', true, ['activeLow']])(
+      'rejects an invalid per-port polarity override %p',
+      (override) => {
+        const result = validator.validateAgainstSchema(
+          {
+            vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+            busInterfaces: [
+              {
+                name: 'control',
+                type: 'AVMM',
+                mode: 'slave',
+                portPolarityOverrides: { read: override },
+              },
+            ],
+          },
+          IP_CORE_SCHEMA_PATH
+        );
+
+        expect(result.valid).toBe(false);
+      }
+    );
+
     it('accepts string and null interrupt associations', () => {
       const base = {
         vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
@@ -251,6 +292,9 @@ describe('YamlValidator', () => {
       const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
       expect(result.valid).toBe(false);
       expect(result.error).toContain('simulation.engine');
+      expect(result.details).toContainEqual(
+        expect.objectContaining({ path: ['simulation', 'engine'], keyword: 'enum' })
+      );
     });
 
     it('rejects unknown simulation.framework', () => {

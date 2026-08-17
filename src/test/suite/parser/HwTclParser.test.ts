@@ -1,7 +1,12 @@
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import * as fsPromises from 'fs/promises';
-import { parseHwTclContent, parseHwTclFile, extractSourcePath } from '../../../parser/HwTclParser';
+import {
+  parseHwTclContent,
+  parseHwTclFile as parseHwTclFileImpl,
+  extractSourcePath,
+} from '../../../parser/HwTclParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 jest.mock('fs/promises', () => {
   const actual = jest.requireActual<typeof fsPromises>('fs/promises');
@@ -13,8 +18,14 @@ const mockReadFile = fsPromises.readFile as jest.Mock;
 const FAKE_PATH = '/project/intel/my_core_hw.tcl';
 
 function parse(content: string, opts?: { library?: string; outputDir?: string }) {
-  return parseHwTclContent(content, FAKE_PATH, opts);
+  return parseHwTclContent(content, FAKE_PATH, {
+    ...opts,
+    busLibrary: builtinBusLibrary(),
+  });
 }
+
+const parseHwTclFile = (filePath: string, options: { library?: string } = {}) =>
+  parseHwTclFileImpl(filePath, { ...options, busLibrary: builtinBusLibrary() });
 
 function parseYaml(content: string) {
   return yaml.load(content) as Record<string, unknown>;
@@ -181,6 +192,24 @@ describe('HwTclParser', () => {
       // physical port name, keyed in Avalon-ST's canonical lowercase casing.
       expect(sink0.portNameOverrides).toEqual({ valid: 'valid_0_i', data: 'data_0_i' });
       expect(sink1.portNameOverrides).toEqual({ valid: 'valid_1_i', data: 'data_1_i' });
+    });
+
+    it('preserves logical polarity and literal physical suffix independently', () => {
+      const tcl = `
+        add_interface avs avalon end
+        add_interface_port avs avs_byteenable byteenable_n Input 2
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.busInterfaces[0]).toMatchObject({
+        physicalPrefix: 'avs_',
+        useOptionalPorts: ['byteenable'],
+        portWidthOverrides: { byteenable: 2 },
+        portNameOverrides: { byteenable: 'byteenable' },
+        portPolarityOverrides: { byteenable: 'activeLow' },
+      });
     });
 
     it('maps start mode to master', () => {
@@ -1125,5 +1154,47 @@ add_interface_port avl avl_rdata    readdata  Output DATA_WIDTH
     // Uppercase variants must NOT appear
     expect(overrides?.['WRITEDATA']).toBeUndefined();
     expect(overrides?.['READDATA']).toBeUndefined();
+  });
+});
+
+describe('Avalon-ST contract properties', () => {
+  const streamTcl = (symbolProperty: string) => `
+set_module_property NAME stream_core
+add_interface stream avalon_streaming start
+set_interface_property stream ${symbolProperty} 1
+set_interface_property stream symbolsPerBeat 5
+set_interface_property stream readyLatency 0
+set_interface_property stream firstSymbolInHighOrderBits true
+add_interface_port stream stream_data data Output 5
+add_interface_port stream stream_valid valid Output 1
+`;
+
+  it.each(['dataBitsPerSymbol', 'bitsPerSymbol'])(
+    'normalizes %s and canonical streaming semantics',
+    (symbolProperty) => {
+      const doc = parseYaml(parse(streamTcl(symbolProperty)).yamlText);
+      expect((doc.busInterfaces as Array<Record<string, unknown>>)[0]).toEqual(
+        expect.objectContaining({
+          mode: 'source',
+          endianness: 'big',
+          interfaceProperties: {
+            dataBitsPerSymbol: 1,
+            symbolsPerBeat: 5,
+            readyLatency: 0,
+          },
+        })
+      );
+    }
+  );
+
+  it('rejects conflicting current and legacy symbol-width spellings with source context', () => {
+    expect(() =>
+      parse(`
+add_interface stream avalon_streaming start
+set_interface_property stream dataBitsPerSymbol 1
+set_interface_property stream bitsPerSymbol 8
+add_interface_port stream stream_data data Output 8
+`)
+    ).toThrow(`${FAKE_PATH}: interface 'stream' declares conflicting dataBitsPerSymbol`);
   });
 });

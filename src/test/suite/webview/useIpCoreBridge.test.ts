@@ -18,6 +18,7 @@ function makeCallbacks() {
     onStagingStart: jest.fn<void, [IpCoreStagingStartMessage]>(),
     onStagingFileMerged: jest.fn<void, [IpCoreStagingFileMergedMessage]>(),
     onConsistencyResult: jest.fn<void, [IpCoreConsistencyResultMessage]>(),
+    onConformanceReport: jest.fn(),
   };
 }
 
@@ -79,6 +80,40 @@ describe('useIpCoreBridge', () => {
     );
 
     expect(callbacks.onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('routes conformance metadata separately without bypassing the self-echo filter', () => {
+    const callbacks = makeCallbacks();
+    const { result } = renderHook(() => useIpCoreBridge({ rawYaml: '', ...callbacks }));
+    const report = {
+      issues: [],
+      hasKnownErrors: true,
+      hasUnresolved: false,
+    };
+
+    act(() => result.current.sendUpdate('a: invalid\n'));
+    act(() =>
+      dispatchMessage({
+        type: 'update',
+        text: 'a: invalid\n',
+        fileName: 'x.ip.yml',
+        sourceEditId: 1,
+        conformanceReport: report,
+      })
+    );
+
+    expect(callbacks.onUpdate).not.toHaveBeenCalled();
+    expect(callbacks.onConformanceReport).not.toHaveBeenCalled();
+
+    act(() =>
+      dispatchMessage({
+        type: 'conformanceResult',
+        sourceRevision: 'a: invalid\n',
+        report,
+      })
+    );
+
+    expect(callbacks.onConformanceReport).toHaveBeenCalledWith(report, 'a: invalid\n');
   });
 
   it('always applies a forceResync update even if it looks stale', () => {

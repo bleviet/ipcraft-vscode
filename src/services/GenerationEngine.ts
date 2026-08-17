@@ -14,10 +14,13 @@ import type { StagedFile } from '../providers/StagingPanel';
 import { WebviewStagingBridge } from '../providers/WebviewStagingBridge';
 import { getGeneratedArtifactsEmitter } from './GeneratedArtifactsEmitter';
 import { CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
+import type { IpcraftIssue } from '../shared/issues';
 
 const logger = new Logger('GenerationEngine');
 
-export type GenerationRunResult = { success: true; ipCoreName: string } | { success: false };
+export type GenerationRunResult =
+  | { success: true; ipCoreName: string }
+  | { success: false; issues?: readonly IpcraftIssue[] };
 
 /**
  * Read the active scaffold pack name from settings. Returns undefined when the
@@ -107,7 +110,7 @@ export async function runGenerator(
     void vscode.window.showErrorMessage(
       `Generation failed: ${dryResult?.error ?? 'Unknown error'}`
     );
-    return { success: false };
+    return { success: false, issues: dryResult?.issues };
   }
 
   // Phase 2: Categorise generated files against what is currently on disk

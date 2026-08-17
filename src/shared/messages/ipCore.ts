@@ -52,4 +52,17 @@ export type IpCoreHostMessage =
       filePath: string;
       customBusLibraryDir: string;
       portWidthOverrides?: Record<string, unknown>;
+    }
+  | {
+      type: 'generateResult';
+      success: boolean;
+      error?: string;
+      files?: string[];
+      issues?: readonly import('../issues').IpcraftIssue[];
+      sourceRevision?: string;
+    }
+  | {
+      type: 'conformanceResult';
+      sourceRevision: string;
+      report: import('../issues').ConformanceReport;
     };

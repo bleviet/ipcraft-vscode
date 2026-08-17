@@ -82,6 +82,9 @@ via `src/test/integration/setup.ts`), and there is no Jest for browser tests
   and `src/generator/contract/templateContext.types.ts`; it does not update
   these two older webview files. Schema changes may therefore require a
   deliberate update to both the generated domain types and these legacy types.
+- **Bus-interface contracts** are defined in `ipcraft-spec/bus_definitions/`
+  and documented in `ipcraft-spec/docs/bus-interface-conformance.md`. Use the
+  contract metadata instead of adding protocol-name or alias heuristics.
 
 ## Test/mock conventions worth knowing
 

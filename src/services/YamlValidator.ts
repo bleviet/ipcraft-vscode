@@ -14,6 +14,28 @@ export interface SchemaValidationResult {
   valid: boolean;
   /** Human-readable ajv error path string, e.g. "simulation.engine: must be equal to one of the allowed values" */
   error?: string;
+  details?: readonly SchemaValidationDetail[];
+}
+
+export interface SchemaValidationDetail {
+  path: readonly (string | number)[];
+  keyword: string;
+  message: string;
+}
+
+function instancePathToDocumentPath(error: ErrorObject): readonly (string | number)[] {
+  const path = error.instancePath
+    .split('/')
+    .slice(1)
+    .map((part) => decodeURIComponent(part.replace(/~1/g, '/').replace(/~0/g, '~')))
+    .map((part) => (/^(0|[1-9]\d*)$/.test(part) ? Number(part) : part));
+  if (error.keyword === 'required') {
+    const missing = (error.params as { missingProperty?: unknown }).missingProperty;
+    if (typeof missing === 'string') {
+      return [...path, missing];
+    }
+  }
+  return path;
 }
 
 /**
@@ -45,6 +67,13 @@ export class YamlValidator {
       }
 
       const errors: ErrorObject[] = validate.errors ?? [];
+      const details = errors.map(
+        (e): SchemaValidationDetail => ({
+          path: instancePathToDocumentPath(e),
+          keyword: e.keyword,
+          message: e.message ?? 'Schema validation failed.',
+        })
+      );
       const message = errors
         .map((e) => {
           const instancePath = e.instancePath.replace(/^\//, '').replace(/\//g, '.');
@@ -53,7 +82,7 @@ export class YamlValidator {
         })
         .join('; ');
 
-      return { valid: false, error: message };
+      return { valid: false, error: message, details };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn('Schema validation error', msg);

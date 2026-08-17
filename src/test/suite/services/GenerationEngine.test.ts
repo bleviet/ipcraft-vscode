@@ -152,4 +152,36 @@ describe('runGenerator (issue #195)', () => {
     expect(saveDocument).not.toHaveBeenCalled();
     expect(fs.readFileSync(ipCorePath, 'utf8')).toBe(savedYaml);
   });
+
+  it('returns structured conformance issues without constructing a staging result', async () => {
+    const issues = [
+      {
+        code: 'BUS_MEMORY_MAP_UNSUPPORTED',
+        severity: 'error' as const,
+        source: 'protocol' as const,
+        path: ['busInterfaces', 0, 'memoryMapRef'],
+        message: 'The unresolved bus type cannot own a memory map.',
+      },
+    ];
+    generateAll.mockResolvedValue({
+      success: false,
+      error: 'Generation blocked by bus interface conformance issues.',
+      issues,
+    });
+    const showInWebview = jest.spyOn(WebviewStagingBridge.getInstance(), 'showInWebview');
+    const showStaging = jest.spyOn(StagingPanel, 'show');
+
+    const result = await runGenerator(
+      {} as ResourceRoots,
+      {} as vscode.ExtensionContext,
+      { fsPath: ipCorePath } as vscode.Uri,
+      tmpDir,
+      { targets: [], silent: true },
+      'Generating HDL...'
+    );
+
+    expect(result).toEqual({ success: false, issues });
+    expect(showInWebview).not.toHaveBeenCalled();
+    expect(showStaging).not.toHaveBeenCalled();
+  });
 });

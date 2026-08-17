@@ -2,7 +2,13 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { BUS_VLNV } from '../shared/busVlnv';
-import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
+import {
+  canonicalizeBusType,
+  portNameCandidates,
+  type NormalizedBusLibrary,
+  type PortNameCandidate,
+  type PortPolarity,
+} from '../shared/busContracts';
 import { collapseVhdlFunctionCallsInExpr, stripRedundantOuterParens } from '../shared/widthExprAst';
 
 export interface ParsedPort {
@@ -24,6 +30,7 @@ export interface ParseOptions {
   version?: string;
   detectBus?: boolean;
   outputDir?: string;
+  busLibrary?: NormalizedBusLibrary;
 }
 
 export interface ParseResult {
@@ -51,7 +58,9 @@ export async function parseVhdlFile(
   const clockReset = classifyClocksResets(ports);
 
   const detectBus = options.detectBus !== false;
-  const busDetection = detectBus ? detectBusInterfaces(ports, clockReset) : null;
+  const busDetection = detectBus
+    ? detectBusInterfaces(ports, clockReset, options.busLibrary)
+    : null;
 
   const excludedNames = new Set<string>();
   if (busDetection) {
@@ -124,6 +133,9 @@ export async function parseVhdlFile(
       }
       if (bus.portNameOverrides && Object.keys(bus.portNameOverrides).length > 0) {
         entry.portNameOverrides = bus.portNameOverrides;
+      }
+      if (bus.portPolarityOverrides && Object.keys(bus.portPolarityOverrides).length > 0) {
+        entry.portPolarityOverrides = bus.portPolarityOverrides;
       }
       if (bus.absentPorts && bus.absentPorts.length > 0) {
         entry.absentPorts = bus.absentPorts;
@@ -649,6 +661,31 @@ function isBoundaryChar(c: string | undefined): boolean {
   return c === undefined || c === '_' || /[0-9]/.test(c);
 }
 
+interface MatchedSignalPort {
+  port: ParsedPort;
+  role: PortNameCandidate;
+}
+
+/**
+ * Raw HDL has no vendor-provided semantic role. Match only the canonical name and
+ * explicitly declared polarity roles, then leave the resulting choice editable.
+ */
+function declaredRoleCandidates(
+  busType: string,
+  signal: BusSignalDef,
+  busLibrary: NormalizedBusLibrary | undefined
+): PortNameCandidate[] {
+  const contractPort =
+    busLibrary &&
+    canonicalizeBusType(busType, busLibrary)?.contract.ports.find(
+      (port) => port.name.toLowerCase() === signal.name
+    );
+  if (!contractPort) {
+    return [{ suffix: signal.name, roleSuffix: signal.name }];
+  }
+  return portNameCandidates(contractPort);
+}
+
 /**
  * Matches a bus signal anchored at the start of `rest` (the portion of a lowercased
  * port name after a candidate prefix). Tries signal names longest-first so a longer
@@ -658,11 +695,19 @@ function isBoundaryChar(c: string | undefined): boolean {
  */
 function matchSignalAt(
   sortedSignals: readonly BusSignalDef[],
-  rest: string
-): { sig: BusSignalDef; decoration: string } | null {
+  rest: string,
+  busType: string,
+  busLibrary: NormalizedBusLibrary | undefined
+): { sig: BusSignalDef; role: PortNameCandidate; decoration: string } | null {
   for (const sig of sortedSignals) {
-    if (rest.startsWith(sig.name) && isBoundaryChar(rest[sig.name.length])) {
-      return { sig, decoration: rest.slice(sig.name.length) };
+    const candidates = declaredRoleCandidates(busType, sig, busLibrary).sort(
+      (a, b) => b.suffix.length - a.suffix.length
+    );
+    for (const role of candidates) {
+      const suffix = role.suffix.toLowerCase();
+      if (rest.startsWith(suffix) && isBoundaryChar(rest[suffix.length])) {
+        return { sig, role, decoration: rest.slice(suffix.length) };
+      }
     }
   }
   return null;
@@ -696,7 +741,11 @@ function findOccurrences(name: string, sigName: string): number[] {
 
 export function detectBusInterfaces(
   ports: ParsedPort[],
-  clockReset: { clocks: Array<{ name: string }>; resets: Array<{ name: string; polarity: string }> }
+  clockReset: {
+    clocks: Array<{ name: string }>;
+    resets: Array<{ name: string; polarity: string }>;
+  },
+  busLibrary?: NormalizedBusLibrary
 ): {
   busInterfaces: Array<{
     name: string;
@@ -707,6 +756,7 @@ export function detectBusInterfaces(
     associatedReset?: string;
     portWidthOverrides?: Record<string, string | number>;
     portNameOverrides?: Record<string, string>;
+    portPolarityOverrides?: Record<string, PortPolarity>;
     absentPorts?: string[];
     useOptionalPorts?: string[];
   }>;
@@ -721,14 +771,17 @@ export function detectBusInterfaces(
   const candidatePrefixes = new Set<string>(['']);
   for (const busDef of BUS_DEFINITIONS) {
     for (const sig of busDef.signals) {
-      for (const lowerName of portMap.keys()) {
-        for (const i of findOccurrences(lowerName, sig.name)) {
-          const before = i === 0 ? undefined : lowerName[i - 1];
-          const after = lowerName[i + sig.name.length];
-          if ((i === 0 || before === '_') && isBoundaryChar(after)) {
-            const prefix = lowerName.slice(0, i);
-            if (prefix === '' || prefix.endsWith('_')) {
-              candidatePrefixes.add(prefix);
+      for (const role of declaredRoleCandidates(busDef.id, sig, busLibrary)) {
+        const suffix = role.suffix.toLowerCase();
+        for (const lowerName of portMap.keys()) {
+          for (const i of findOccurrences(lowerName, suffix)) {
+            const before = i === 0 ? undefined : lowerName[i - 1];
+            const after = lowerName[i + suffix.length];
+            if ((i === 0 || before === '_') && isBoundaryChar(after)) {
+              const prefix = lowerName.slice(0, i);
+              if (prefix === '' || prefix.endsWith('_')) {
+                candidatePrefixes.add(prefix);
+              }
             }
           }
         }
@@ -744,7 +797,7 @@ export function detectBusInterfaces(
     totalCount: number;
     mode: 'master' | 'slave';
     matchedPorts: Set<string>;
-    sigByName: Map<string, ParsedPort>;
+    sigByName: Map<string, MatchedSignalPort>;
   }
 
   const candidates: Candidate[] = [];
@@ -757,7 +810,7 @@ export function detectBusInterfaces(
       // in the decoration after direction tags are stripped out).
       const groups = new Map<
         string,
-        { sigByName: Map<string, ParsedPort>; matchedPorts: Set<string> }
+        { sigByName: Map<string, MatchedSignalPort>; matchedPorts: Set<string> }
       >();
 
       for (const [lowerName, port] of portMap) {
@@ -765,7 +818,7 @@ export function detectBusInterfaces(
           continue;
         }
         const rest = lowerName.slice(prefix.length);
-        const match = matchSignalAt(sortedSignals, rest);
+        const match = matchSignalAt(sortedSignals, rest, busDef.id, busLibrary);
         if (!match) {
           continue;
         }
@@ -775,8 +828,14 @@ export function detectBusInterfaces(
           group = { sigByName: new Map(), matchedPorts: new Set() };
           groups.set(instanceKey, group);
         }
-        if (!group.sigByName.has(match.sig.name)) {
-          group.sigByName.set(match.sig.name, port);
+        const existing = group.sigByName.get(match.sig.name);
+        const isDefaultRole = match.role.isDefaultRole === true;
+        const existingIsDefault = existing?.role.isDefaultRole === true;
+        if (!existing || (isDefaultRole && !existingIsDefault)) {
+          if (existing) {
+            group.matchedPorts.delete(existing.port.name);
+          }
+          group.sigByName.set(match.sig.name, { port, role: match.role });
           group.matchedPorts.add(port.name);
         }
       }
@@ -796,17 +855,17 @@ export function detectBusInterfaces(
         let masterVotes = 0;
         let slaveVotes = 0;
         for (const sig of busDef.signals) {
-          const port = group.sigByName.get(sig.name);
-          if (!port) {
+          const matched = group.sigByName.get(sig.name);
+          if (!matched) {
             continue;
           }
           totalCount++;
           if (sig.presence === 'required') {
             requiredCount++;
           }
-          if (port.direction === sig.direction) {
+          if (matched.port.direction === sig.direction) {
             masterVotes++;
-          } else if (port.direction !== 'inout') {
+          } else if (matched.port.direction !== 'inout') {
             slaveVotes++;
           }
         }
@@ -887,6 +946,7 @@ export function detectBusInterfaces(
     associatedReset?: string;
     portWidthOverrides?: Record<string, string | number>;
     portNameOverrides?: Record<string, string>;
+    portPolarityOverrides?: Record<string, PortPolarity>;
     absentPorts?: string[];
     useOptionalPorts?: string[];
   }> = [];
@@ -921,33 +981,40 @@ export function detectBusInterfaces(
     if (prefix.length > 0) {
       const anyPort = sigByName.values().next().value;
       if (anyPort) {
-        originalPrefix = anyPort.name.slice(0, prefix.length);
+        originalPrefix = anyPort.port.name.slice(0, prefix.length);
       }
     }
 
     // Canonical logical-name casing (uppercase for AXI, lowercase for Avalon) comes from
     // the shared bus definitions the generator itself resolves against, so overrides key
     // exactly the way registerProcessor.ts looks them up.
-    const canonDef = lookupBusDef(busDef.id);
+    const canonDef = busLibrary
+      ? canonicalizeBusType(busDef.id, busLibrary)?.contract.ports
+      : undefined;
     const canonByLower = new Map<string, string>(
       (canonDef ?? []).map((d) => [d.name.toLowerCase(), d.name])
     );
     const canonicalKey = (sigName: string): string =>
-      canonByLower.get(sigName) ?? sigName.toUpperCase();
+      canonByLower.get(sigName) ??
+      (busDef.id === BUS_VLNV.AVALON_MM || busDef.id === BUS_VLNV.AVALON_ST
+        ? sigName
+        : sigName.toUpperCase());
 
     const portWidthOverrides: Record<string, string | number> = {};
     const portNameOverrides: Record<string, string> = {};
+    const portPolarityOverrides: Record<string, PortPolarity> = {};
     const absentPorts: string[] = [];
     const useOptionalPorts: string[] = [];
     for (const sig of busDef.signals) {
-      const port = sigByName.get(sig.name);
-      if (!port) {
+      const matched = sigByName.get(sig.name);
+      if (!matched) {
         if (sig.presence === 'required') {
           absentPorts.push(sig.name.toUpperCase());
         }
         continue;
       }
       const key = canonicalKey(sig.name);
+      const port = matched.port;
 
       if (typeof port.width === 'string') {
         let overrideExpr = port.width;
@@ -962,11 +1029,14 @@ export function detectBusInterfaces(
         portWidthOverrides[key] = overrideExpr;
       }
 
-      // Record a suffix override when the actual physical suffix differs from the
-      // conventional lowercase form (sig.name), preserving the original casing.
+      // Record a suffix override when the literal spelling differs from the selected
+      // declared role, preserving physical casing independently from polarity.
       const actualSuffix = port.name.slice(prefix.length);
-      if (actualSuffix !== sig.name) {
+      if (actualSuffix !== matched.role.roleSuffix) {
         portNameOverrides[key] = actualSuffix;
+      }
+      if (matched.role.polarity && !matched.role.isDefaultRole) {
+        portPolarityOverrides[key] = matched.role.polarity;
       }
 
       if (sig.presence === 'optional') {
@@ -984,6 +1054,8 @@ export function detectBusInterfaces(
       portWidthOverrides:
         Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
       portNameOverrides: Object.keys(portNameOverrides).length > 0 ? portNameOverrides : undefined,
+      portPolarityOverrides:
+        Object.keys(portPolarityOverrides).length > 0 ? portPolarityOverrides : undefined,
       absentPorts: absentPorts.length > 0 ? absentPorts : undefined,
       useOptionalPorts: useOptionalPorts.length > 0 ? useOptionalPorts : undefined,
     });
