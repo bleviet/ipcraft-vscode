@@ -171,6 +171,7 @@ describe('CanvasBusSubPort polarity badge', () => {
             y: 100,
             side: 'left',
             name: 'read',
+            interfaceRole: 'read_n',
             widthLabel: '',
             direction: 'out',
             presence: 'optional',
@@ -189,7 +190,10 @@ describe('CanvasBusSubPort polarity badge', () => {
       </svg>
     );
 
-    expect(screen.getByRole('button', { name: /read signal, active low/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /read signal, interface role read_n, active low/i })
+    ).toBeInTheDocument();
+    expect(document.querySelector('.canvas-bus-subport__logical')).toHaveTextContent('read_n');
     expect(document.querySelector('.canvas-bus-subport__polarity-badge')).toHaveTextContent('L');
   });
 });

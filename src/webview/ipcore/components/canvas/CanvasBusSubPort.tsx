@@ -71,8 +71,10 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
   const [renameValue, setRenameValue] = useState('');
   const abortRef = useRef(false);
 
-  // Logical label shown inside the block (signal role within the bus protocol)
-  const logicalLabel = subPort.widthLabel ? `${subPort.name}${subPort.widthLabel}` : subPort.name;
+  // Effective vendor role shown inside the block; canonical identity remains subPort.name.
+  const logicalLabel = subPort.widthLabel
+    ? `${subPort.interfaceRole}${subPort.widthLabel}`
+    : subPort.interfaceRole;
 
   // Physical label shown outside on the stub (actual HDL port name)
   const currentSuffix = subPort.physicalSuffix ?? subPort.name.toLowerCase();
@@ -136,7 +138,7 @@ export const CanvasBusSubPort: React.FC<CanvasBusSubPortProps> = ({
       onContextMenu={handleContextMenu}
       style={{ cursor: isRenaming ? 'default' : 'pointer' }}
       role="button"
-      aria-label={`${subPort.name} signal${subPort.polarityConfigurable ? `, ${polarityLabel}` : ''}`}
+      aria-label={`${subPort.name} signal${subPort.interfaceRole !== subPort.name ? `, interface role ${subPort.interfaceRole}` : ''}${subPort.polarityConfigurable ? `, ${polarityLabel}` : ''}`}
     >
       {/* Stub line */}
       <line

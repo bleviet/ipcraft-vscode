@@ -328,12 +328,14 @@ describe('computeLayout', () => {
     expect(readPorts.filter((port) => port.name === 'read')).toHaveLength(1);
     expect(readPorts.some((port) => port.name === 'read_n')).toBe(false);
     expect(readPorts.find((port) => port.name === 'read')).toMatchObject({
+      interfaceRole: 'read_n',
       polarity: 'activeLow',
       polarityConfigurable: true,
       physicalSuffix: 'read_n',
       active: true,
     });
     expect(layout.subPorts.find((port) => port.name === 'write')).toMatchObject({
+      interfaceRole: 'write',
       polarity: 'activeHigh',
       polarityConfigurable: true,
       physicalSuffix: 'write',

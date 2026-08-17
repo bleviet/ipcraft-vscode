@@ -571,10 +571,14 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
       }
     }
 
-    // Expanded sub-ports: match by logical name or full physical name
+    // Expanded sub-ports: match by canonical name, visible interface role, or physical name
     for (const sp of subPorts) {
       const physical = sp.physicalPrefix + (sp.physicalSuffix ?? sp.name.toLowerCase());
-      if (sp.name.toLowerCase().includes(q) || physical.toLowerCase().includes(q)) {
+      if (
+        sp.name.toLowerCase().includes(q) ||
+        sp.interfaceRole.toLowerCase().includes(q) ||
+        physical.toLowerCase().includes(q)
+      ) {
         subPortIds.add(sp.id);
         portIds.add(sp.parentBusId);
       }

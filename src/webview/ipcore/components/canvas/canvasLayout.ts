@@ -2,6 +2,7 @@ import type { IpCore, BusInterface } from '../../../types/ipCore';
 import type { BusPortDef } from '../../utils/busLibrary';
 import {
   resolveEffectivePortPolarity,
+  resolveInterfaceRole,
   resolvePhysicalSuffix,
   type BusInterfaceResolution,
   type PortPolarity,
@@ -109,6 +110,8 @@ export interface LayoutSubPort {
   side: PortSide;
   /** Logical signal name, e.g. `AWADDR` */
   name: string;
+  /** Effective vendor interface role shown on the canvas, e.g. `read_n`. */
+  interfaceRole: string;
   /** Width label e.g. `[31:0]` or empty string */
   widthLabel: string;
   direction?: 'in' | 'out' | 'inout';
@@ -659,6 +662,7 @@ export function computeLayout(
               y: subY,
               side,
               name: cp.name,
+              interfaceRole: cp.name,
               widthLabel: formatWidth(cp.width),
               direction: cp.direction,
               presence: cp.presence ?? 'required',
@@ -728,6 +732,10 @@ export function computeLayout(
               resolution?.canonicalBusInterface && normalizedPort
                 ? resolvePhysicalSuffix(normalizedPort, resolution.canonicalBusInterface)
                 : nameOverrides[portDef.name];
+            const interfaceRole =
+              resolution?.canonicalBusInterface && normalizedPort
+                ? resolveInterfaceRole(normalizedPort, resolution.canonicalBusInterface)
+                : portDef.name;
             const polarity =
               resolution?.canonicalBusInterface && normalizedPort
                 ? resolveEffectivePortPolarity(normalizedPort, resolution.canonicalBusInterface)
@@ -740,6 +748,7 @@ export function computeLayout(
               y: subY,
               side,
               name: portDef.name,
+              interfaceRole,
               widthLabel: widthLbl,
               direction: subPortDir,
               presence: portDef.presence,

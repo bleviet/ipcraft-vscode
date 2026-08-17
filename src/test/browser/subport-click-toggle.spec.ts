@@ -183,7 +183,7 @@ busInterfaces:
     await expect(tlastRow).toHaveClass(/canvas-bus-subport--active/);
   });
 
-  test('polarity active low keeps canonical bus ports, derived names, and sibling state', async ({
+  test('polarity active low shows resolved roles while keeping canonical state', async ({
     page,
   }) => {
     const polarityYaml = `
@@ -213,25 +213,24 @@ busInterfaces:
     await expandBus(page);
 
     const canonicalRow = (name: string) =>
-      page.locator('.canvas-bus-subport', {
-        has: page.locator('.canvas-bus-subport__logical', {
-          hasText: new RegExp(`^${name}\\b`),
-        }),
-      });
+      page.getByRole('button', { name: new RegExp(`^${name} signal`) });
     const readRow = canonicalRow('read');
     const writeRow = canonicalRow('write');
     const waitrequestRow = canonicalRow('waitrequest');
+    const readLogical = readRow.locator('.canvas-bus-subport__logical');
+    const writeLogical = writeRow.locator('.canvas-bus-subport__logical');
 
     await expect(readRow).toHaveCount(1);
+    await expect(readLogical).toHaveText('read');
     await expect(readRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('H');
     await expect(readRow.locator('.canvas-bus-subport__label')).toHaveText('avs_read');
+    await expect(writeLogical).toHaveText('write');
     await expect(writeRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('H');
     await expect(writeRow.locator('.canvas-bus-subport__label')).toHaveText(
       'avs_imported_write_signal'
     );
     await expect(waitrequestRow).toHaveClass(/canvas-bus-subport--active/);
 
-    const readLogical = readRow.locator('.canvas-bus-subport__logical');
     await readLogical.click();
     await expect(readRow).toHaveClass(/canvas-bus-subport--selected/);
 
@@ -251,6 +250,7 @@ busInterfaces:
     await page.waitForTimeout(100);
     expect(await page.evaluate(() => (window as any).__polarity_update_count)).toBe(1);
     await expect(readRow).toHaveClass(/canvas-bus-subport--inactive/);
+    await expect(readLogical).toHaveText('read_n');
     await expect(readRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('L');
     await expect(readRow.locator('.canvas-bus-subport__label')).toHaveText('avs_read_n');
     await expect(writeRow.locator('.canvas-bus-subport__label')).toHaveText(
@@ -259,11 +259,13 @@ busInterfaces:
 
     const writePolarity = page.getByRole('combobox', { name: 'write polarity' });
     await writePolarity.selectOption('activeLow');
+    await expect(writeLogical).toHaveText('write_n');
     await expect(writeRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('L');
     await expect(writeRow.locator('.canvas-bus-subport__label')).toHaveText(
       'avs_imported_write_signal'
     );
     await writePolarity.selectOption('activeHigh');
+    await expect(writeLogical).toHaveText('write');
     await expect(writeRow.locator('.canvas-bus-subport__polarity-badge')).toHaveText('H');
     await expect(writeRow.locator('.canvas-bus-subport__label')).toHaveText(
       'avs_imported_write_signal'
