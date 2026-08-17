@@ -17,6 +17,14 @@ re-import.
 with `config/jest.integration.js`, IP-XACT XML, Quartus `_hw.tcl`, YAML bus
 contracts.
 
+## Completion status
+
+All 44 implementation steps are complete. `npm run lint`, `npm run type-check`,
+and the unit suite pass, and the vendor validation recorded on the pull request
+covers Vivado 2026.1 (including `ipx::check_integrity`) and Quartus 25.1std
+Lite (all 24 `_hw.tcl` files validated). The `qsys-generate` BFM tier is not
+distributed with Quartus Lite and was deliberately skipped.
+
 ## Global Constraints
 
 - Work only in `.worktrees/bus-interface-conformance`; preserve all existing
@@ -75,7 +83,7 @@ contracts.
   ): ObservedBusPortSelections;
   ```
 
-- [ ] **Step 1: Write the failing pure-function tests**
+- [x] **Step 1: Write the failing pure-function tests**
 
   Add table-driven tests with literal expectations. Include mixed-case logical
   names, an enabled optional port, a numeric default-width match, a numeric
@@ -105,7 +113,7 @@ contracts.
 
   Add a second case proving empty maps and arrays are omitted from the result.
 
-- [ ] **Step 2: Run the new test and verify RED**
+- [x] **Step 2: Run the new test and verify RED**
 
   Run:
 
@@ -115,7 +123,7 @@ contracts.
 
   Expected: FAIL because `reconcileObservedBusPorts` is not yet exported.
 
-- [ ] **Step 3: Implement the pure reconciler**
+- [x] **Step 3: Implement the pure reconciler**
 
   Build one case-insensitive definition map. Preserve each contract port's
   canonical name when constructing result keys. Treat a string observed width
@@ -132,11 +140,11 @@ contracts.
   Return only non-empty properties and export the module through the package
   barrel.
 
-- [ ] **Step 4: Run the pure test and verify GREEN**
+- [x] **Step 4: Run the pure test and verify GREEN**
 
   Run the Step 2 command. Expected: PASS.
 
-- [ ] **Step 5: Replace both importer copies**
+- [x] **Step 5: Replace both importer copies**
 
   In `ComponentXmlParser`, adapt `extractPortMap(busIf, modelPortAttrs)` to
   `ObservedBusPort[]` and assign the returned selections to the bus entry.
@@ -160,7 +168,7 @@ contracts.
   Delete the local optional-port, width-override, and name-override loops from
   both parsers.
 
-- [ ] **Step 6: Verify importer behavior remains green**
+- [x] **Step 6: Verify importer behavior remains green**
 
   Run:
 
@@ -216,7 +224,7 @@ contracts.
 | Key present | Different | Present | Throw source-located conflict |
 | Key undeclared by contract | Any | Present | Throw source-located unknown-property error |
 
-- [ ] **Step 1: Add failing precedence tests**
+- [x] **Step 1: Add failing precedence tests**
 
   Extend `vendorContractProperties.test.ts` with one literal test per matrix
   row. The empty-mirror case must assert exactly `{}`. The partial case must
@@ -241,7 +249,7 @@ contracts.
   Add an absent-standard/absent-mirror case that returns `{}`, and an unknown
   mirrored key case that reports the key and source location.
 
-- [ ] **Step 2: Run precedence tests and verify RED**
+- [x] **Step 2: Run precedence tests and verify RED**
 
   Run:
 
@@ -251,7 +259,7 @@ contracts.
 
   Expected: FAIL because `mirroredProperties` is ignored or unsupported.
 
-- [ ] **Step 3: Implement mirror-aware shared metadata import**
+- [x] **Step 3: Implement mirror-aware shared metadata import**
 
   Parse and validate standard values first. When `mirroredProperties` is
   defined, parse mirror values, compare only keys present in both maps, and
@@ -265,7 +273,7 @@ contracts.
   Use the same rule for `firstSymbolInHighOrderBits` versus mirrored
   `endianness`; absence on either side is not a conflict.
 
-- [ ] **Step 4: Add and implement the named version predicate**
+- [x] **Step 4: Add and implement the named version predicate**
 
   Add focused assertions for `undefined`, `version: null`, and `version: 1`,
   then implement:
@@ -280,7 +288,7 @@ contracts.
 
   Replace the direct sentinel in `propertyResolution.ts`.
 
-- [ ] **Step 5: Refactor component XML metadata through the shared importer**
+- [x] **Step 5: Refactor component XML metadata through the shared importer**
 
   Change `getMirroredContractProperties` to return `Map<string, string> |
   undefined`, preserving the distinction between absent/unsupported and a
@@ -301,7 +309,7 @@ contracts.
 
   Gate the call with `isDeclarativeContract(match?.contract)`.
 
-- [ ] **Step 6: Verify shared and parser behavior**
+- [x] **Step 6: Verify shared and parser behavior**
 
   Run:
 
@@ -332,7 +340,7 @@ contracts.
 - Eligible version-one custom contracts always emit the mirror element, even
   with zero children.
 
-- [ ] **Step 1: Write the named empty-mirror round-trip test**
+- [x] **Step 1: Write the named empty-mirror round-trip test**
 
   Add a test named:
 
@@ -355,7 +363,7 @@ contracts.
   expect(parsed.busInterfaces?.[0].endianness).toBeUndefined();
   ```
 
-- [ ] **Step 2: Add partial and explicit-little tests**
+- [x] **Step 2: Add partial and explicit-little tests**
 
   Add one custom-contract case with an authored `lanes` value and an unauthored
   default `interleaved: false`. Assert that both appear as standard parameters,
@@ -366,7 +374,7 @@ contracts.
   export/import cycle. This distinguishes authored little from absent default
   little.
 
-- [ ] **Step 3: Run generator/parser tests and verify RED**
+- [x] **Step 3: Run generator/parser tests and verify RED**
 
   Run:
 
@@ -377,7 +385,7 @@ contracts.
   Expected: FAIL because resolved defaults and little endianness are currently
   mirrored unconditionally.
 
-- [ ] **Step 4: Split standard and mirrored property selections**
+- [x] **Step 4: Split standard and mirrored property selections**
 
   Keep `semanticProperties` unchanged for standard parameter emission. Add an
   authored selection:
@@ -395,7 +403,7 @@ contracts.
   Use `isDeclarativeContract(contract)` for the mirror gate. Always emit the
   eligible mirror wrapper; sort only the mirrored values before rendering.
 
-- [ ] **Step 5: Verify GREEN and round-trip coverage**
+- [x] **Step 5: Verify GREEN and round-trip coverage**
 
   Run:
 
@@ -427,7 +435,7 @@ contracts.
 - A malformed raw-only definition absent from the normalized library returns no
   custom artifact.
 
-- [ ] **Step 1: Write the malformed-definition characterization test**
+- [x] **Step 1: Write the malformed-definition characterization test**
 
   Construct a raw definition with valid VLNV metadata but duplicate logical
   ports so `normalizeBusLibrary` rejects it. Call the current public generator
@@ -453,13 +461,13 @@ contracts.
   This assertion must fail against the current fallback loop, which resurrects
   the raw definition.
 
-- [ ] **Step 2: Write the valid legacy characterization test**
+- [x] **Step 2: Write the valid legacy characterization test**
 
   Normalize a contract-less definition and assert `version` is `null`, then
   assert its bus and abstraction XML files are generated. This test must pass
   before and after fallback removal.
 
-- [ ] **Step 3: Run the focused tests and verify RED for malformed input**
+- [x] **Step 3: Run the focused tests and verify RED for malformed input**
 
   Run:
 
@@ -470,7 +478,7 @@ contracts.
   Expected: malformed case FAILS because raw lookup still generates files;
   valid legacy case PASSES.
 
-- [ ] **Step 4: Remove the raw fallback**
+- [x] **Step 4: Remove the raw fallback**
 
   Delete the `Object.values(busDefinitions)` scan. Resolve custom metadata only
   from `canonicalizeBusType`. Keep the existing native Vivado exclusion.
@@ -480,7 +488,7 @@ contracts.
   `busDefinitions` argument from `findCustomBusDef` and
   `generateCustomBusDefs`, updating production and test call sites.
 
-- [ ] **Step 5: Inject normalized custom definitions in tests**
+- [x] **Step 5: Inject normalized custom definitions in tests**
 
   Add a local helper based on the existing test sources:
 
@@ -501,7 +509,7 @@ contracts.
   removed raw scan. Native `BUS_DEFS` remain available for Vivado-native port
   rendering.
 
-- [ ] **Step 6: Verify canonical and malformed behavior**
+- [x] **Step 6: Verify canonical and malformed behavior**
 
   Run:
 
@@ -537,7 +545,7 @@ contracts.
   `blocksImportWrite` from `src/shared/busConformance.ts`.
 - Consumers import `ConformanceReport` from `src/shared/issues.ts` when needed.
 
-- [ ] **Step 1: Establish the enforcement-policy characterization baseline**
+- [x] **Step 1: Establish the enforcement-policy characterization baseline**
 
   Run:
 
@@ -547,19 +555,19 @@ contracts.
 
   Expected: PASS before refactoring.
 
-- [ ] **Step 2: Move the policy test to the shared boundary**
+- [x] **Step 2: Move the policy test to the shared boundary**
 
   Preserve the five existing consumer-visible assertions unchanged, but import
   directly from `../../../shared/busConformance` and rename the suite to
   `busConformance enforcement policy`.
 
-- [ ] **Step 3: Update production and test imports**
+- [x] **Step 3: Update production and test imports**
 
   Replace every `services/BusConformanceService` import and Jest mock with the
   shared module. Keep mocks only where command/provider boundary behavior is
   under test; use the real shared implementation in policy and example tests.
 
-- [ ] **Step 4: Delete the middle-man module and obsolete test path**
+- [x] **Step 4: Delete the middle-man module and obsolete test path**
 
   Remove the 19-line wrapper and the superseded services test file. Verify no
   references remain:
@@ -570,7 +578,7 @@ contracts.
 
   Expected: zero matches.
 
-- [ ] **Step 5: Verify enforcement boundaries remain green**
+- [x] **Step 5: Verify enforcement boundaries remain green**
 
   Run:
 
@@ -615,7 +623,7 @@ contracts.
 - Quartus evidence includes authored `dataBitsPerSymbol`, derived
   `symbolsPerBeat`, and default `readyLatency` as standard interface properties.
 
-- [ ] **Step 1: Add failing Vivado fixture assertions**
+- [x] **Step 1: Add failing Vivado fixture assertions**
 
   In `vivado.test.ts`, locate
   `examples/comprehensive_avalon_vhdl`, read its `component.xml`, and assert:
@@ -637,7 +645,7 @@ contracts.
   `aso_endofpacket`, and the three-bit `aso_empty` port so the existing packet
   contract cannot change as incidental fixture churn.
 
-- [ ] **Step 2: Add failing Quartus fixture assertions**
+- [x] **Step 2: Add failing Quartus fixture assertions**
 
   In `quartus.test.ts`, locate the same fixture's `_hw.tcl` and assert literal
   properties and unchanged port structure:
@@ -650,7 +658,7 @@ contracts.
   expect(tcl).toContain('add_interface_port SRC_ST aso_empty empty Output 3');
   ```
 
-- [ ] **Step 3: Run vendor scripts without external tools and verify RED**
+- [x] **Step 3: Run vendor scripts without external tools and verify RED**
 
   Run:
 
@@ -665,7 +673,7 @@ contracts.
   The existing 11 vendor-tool tests remain regression evidence; the failing
   symbol assertions establish the missing feature evidence.
 
-- [ ] **Step 4: Author non-default symbol semantics in the shared example**
+- [x] **Step 4: Author non-default symbol semantics in the shared example**
 
   Add the exact authored-only `interfaceProperties` block above to `SNK_ST`.
   Update the README to explain that the source demonstrates default byte
@@ -673,12 +681,12 @@ contracts.
   symbols per beat. Do not change `data: 16`, `useOptionalPorts`, or
   `portNameOverrides`.
 
-- [ ] **Step 5: Run vendor scripts and verify GREEN**
+- [x] **Step 5: Run vendor scripts and verify GREEN**
 
   Repeat the Step 3 commands. Expected: structural assertions PASS and external
   tool invocations are explicitly skipped.
 
-- [ ] **Step 6: Update and audit the shared fixture snapshot**
+- [x] **Step 6: Update and audit the shared fixture snapshot**
 
   Run:
 
@@ -693,7 +701,7 @@ contracts.
   retaining authored `endianness: big` and `SNK_ST` no longer materializing
   unauthored `endianness: little` on re-import or in IPCraft mirror metadata.
 
-- [ ] **Step 7: Verify the fixture blast radius**
+- [x] **Step 7: Verify the fixture blast radius**
 
   Run:
 
@@ -719,7 +727,7 @@ contracts.
 
 **Interfaces:** Human-facing architecture guidance; no production behavior.
 
-- [ ] **Step 1: Add the format-boundary responsibility review**
+- [x] **Step 1: Add the format-boundary responsibility review**
 
   Document that `ComponentXmlParser`, `HwTclParser`, and
   `VivadoComponentXmlGenerator` each own one ordered vendor format
@@ -731,7 +739,7 @@ contracts.
   Explain that syntax traversal, source ordering, and ordered document assembly
   remain local, while policy and transformations are extracted.
 
-- [ ] **Step 2: Record source-result correlation beside revision guidance**
+- [x] **Step 2: Record source-result correlation beside revision guidance**
 
   Add one concise paragraph stating that `sourceRevision` compares exact source
   text only when applying asynchronous conformance/generation results. It is
@@ -739,13 +747,13 @@ contracts.
   revisions. Mention the full-text comparison cost so future changes can assess
   it deliberately.
 
-- [ ] **Step 3: Review documentation constraints**
+- [x] **Step 3: Review documentation constraints**
 
   Run:
 
   ```bash
   git diff --check -- docs/architecture/extension-host.md docs/architecture/webview.md docs/superpowers/specs/2026-08-12-bus-interface-audit-remediation-design.md
-  rg -n "[😀-🙏]" docs/architecture/extension-host.md docs/superpowers/specs/2026-08-12-bus-interface-audit-remediation-design.md || true
+  rg -nP "[\x{1F600}-\x{1F64F}]" docs/architecture/extension-host.md docs/superpowers/specs/2026-08-12-bus-interface-audit-remediation-design.md || true
   ```
 
   Expected: no whitespace errors and no documentation emojis.
@@ -759,7 +767,7 @@ contracts.
 - Verify all files changed by Tasks 1-7.
 - Do not stage, commit, or push.
 
-- [ ] **Step 1: Run focused unit suites**
+- [x] **Step 1: Run focused unit suites**
 
   ```bash
   npx jest --config config/jest.config.js src/test/suite/shared/observedBusPorts.test.ts src/test/suite/shared/vendorContractProperties.test.ts src/test/suite/shared/busConformance.test.ts src/test/suite/shared/busConformancePolicy.test.ts src/test/suite/parser/ComponentXmlParser.test.ts src/test/suite/parser/HwTclParser.test.ts src/test/suite/generator/VivadoComponentXmlGenerator.test.ts src/test/suite/services/BusLibraryService.test.ts src/test/suite/webview/useCanvasValidation.test.ts --runInBand
@@ -769,7 +777,7 @@ contracts.
   `defers contract-dependent interrupt validation until the bus library arrives`
   remains green; do not add a duplicate.
 
-- [ ] **Step 2: Run boundary suites**
+- [x] **Step 2: Run boundary suites**
 
   ```bash
   npx jest --config config/jest.config.js src/test/suite/services/AllExamplesConformance.test.ts src/test/suite/commands/ConsistencyCheckCommands.test.ts src/test/suite/commands/ImportCommands.test.ts src/test/suite/providers/IpCoreSourcePreviewProvider.test.ts src/test/suite/generator/IpCoreScaffolder.test.ts --runInBand
@@ -779,7 +787,7 @@ contracts.
 
   Expected: all PASS.
 
-- [ ] **Step 3: Run vendor feature suites**
+- [x] **Step 3: Run vendor feature suites**
 
   ```bash
   VIVADO_BIN=/nonexistent/ipcraft-vivado npm run test:integration:vivado -- --runInBand
@@ -789,7 +797,7 @@ contracts.
   Expected: feature assertions PASS. Record external-tool skips accurately; do
   not represent skipped Vivado/Quartus execution as vendor-tool validation.
 
-- [ ] **Step 4: Run static and build gates**
+- [x] **Step 4: Run static and build gates**
 
   ```bash
   npm run lint
@@ -800,7 +808,7 @@ contracts.
 
   Expected: all commands exit 0 with no warnings.
 
-- [ ] **Step 5: Re-run audit queries**
+- [x] **Step 5: Re-run audit queries**
 
   ```bash
   rg -n "BusConformanceService" src || true
@@ -815,7 +823,7 @@ contracts.
   line counts are reported for reviewer context. Coverage by the architecture
   note is established by Task 7's documentation review, not by `wc -l`.
 
-- [ ] **Step 6: Report outcomes without committing**
+- [x] **Step 6: Report outcomes without committing**
 
   Summarize confirmed audit fixes, rejected findings, exact test results,
   external-tool skips, snapshot changes, remaining dirty submodule state, and

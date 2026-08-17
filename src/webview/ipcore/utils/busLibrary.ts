@@ -21,6 +21,24 @@ export function isAssociatedPort(port: Pick<BusPortDef, 'role'>): boolean {
   return port.role === 'clock' || port.role === 'reset';
 }
 
+/** Resolve a bus type to its contract, tolerating an unloaded library. */
+function matchContract(busType: string, library: NormalizedBusLibrary | undefined) {
+  return library ? canonicalizeBusType(busType, library)?.contract : undefined;
+}
+
+/** Bus types whose contracts carry the given source, as palette entries. */
+function listBusTypes(
+  library: NormalizedBusLibrary | undefined,
+  isBuiltin: boolean
+): Array<{ vlnv: string; label: string }> {
+  return Object.values(library?.definitions ?? {})
+    .filter((contract) => (contract.sourceKind === 'builtin') === isBuiltin)
+    .map((contract) => ({
+      vlnv: contract.canonicalVlnv,
+      label: contract.displayName,
+    }));
+}
+
 export function lookupBusDef(
   busType: string,
   library: NormalizedBusLibrary | undefined
@@ -28,44 +46,25 @@ export function lookupBusDef(
   if (busType === BUS_VLNV.CONDUIT) {
     return [];
   }
-  const match = library ? canonicalizeBusType(busType, library) : null;
-  return match ? match.contract.ports.map((port) => ({ ...port })) : null;
+  const contract = matchContract(busType, library);
+  return contract ? contract.ports.map((port) => ({ ...port })) : null;
 }
 
 export function isConduitType(busType: string, library: NormalizedBusLibrary | undefined): boolean {
   if (busType === BUS_VLNV.CONDUIT) {
     return true;
   }
-  const match = library ? canonicalizeBusType(busType, library) : null;
-  return match?.contract.interfaceKind === 'conduit';
+  return matchContract(busType, library)?.interfaceKind === 'conduit';
 }
 
 export function listBuiltinBusTypes(
   library: NormalizedBusLibrary | undefined
 ): Array<{ vlnv: string; label: string }> {
-  if (!library) {
-    return [];
-  }
-  return Object.values(library.definitions)
-    .filter((contract) => contract.sourceKind === 'builtin')
-    .map((contract) => ({
-      vlnv: contract.canonicalVlnv,
-      label: contract.displayName,
-    }));
+  return listBusTypes(library, true);
 }
 
 export function listLibraryBusTypes(
   library: NormalizedBusLibrary | undefined
 ): Array<{ vlnv: string; label: string }> {
-  if (!library) {
-    return [];
-  }
-  return Object.values(library.definitions)
-    .filter((contract) => contract.sourceKind !== 'builtin')
-    .map((contract) => {
-      return {
-        vlnv: contract.canonicalVlnv,
-        label: contract.displayName,
-      };
-    });
+  return listBusTypes(library, false);
 }

@@ -28,7 +28,7 @@ import * as jsYaml from 'js-yaml';
 import { generateFixtures, xilinxFixtures, alteraFixtures, hwTclFiles, Fixture } from './generator';
 import { parseComponentXmlText as parseComponentXmlTextImpl } from '../../parser/ComponentXmlParser';
 import { parseHwTclFile as parseHwTclFileImpl } from '../../parser/HwTclParser';
-import { normalizeBusType as normalizeBusTypeImpl } from '../../generator/registerProcessor';
+import { BUS_REGISTRY } from '../../generator/buses/builtin';
 import { builtinBusLibrary } from '../helpers/busLibrary';
 import {
   generateComponentXml,
@@ -44,7 +44,7 @@ const parseComponentXmlText = (text: string) =>
   parseComponentXmlTextImpl(text, { busLibrary: builtinBusLibrary() });
 const parseHwTclFile = (filePath: string) =>
   parseHwTclFileImpl(filePath, { busLibrary: builtinBusLibrary() });
-const normalizeBusType = (type: string) => normalizeBusTypeImpl(type, builtinBusLibrary());
+const normalizeBusType = (type: string) => BUS_REGISTRY.normalize(type, builtinBusLibrary());
 
 // ---------------------------------------------------------------------------
 // Helpers

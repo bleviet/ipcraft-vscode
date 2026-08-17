@@ -1,4 +1,4 @@
-import { normalizeBusType } from './registerProcessor';
+import { BUS_REGISTRY } from './buses/builtin';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { canonicalizeBusType, type NormalizedBusLibrary } from '../shared/busContracts';
 
@@ -54,7 +54,7 @@ export function resolveVivadoBusType(
   if (direct) {
     return direct;
   }
-  const { libraryKey } = normalizeBusType(ifaceType, busLibrary);
+  const { libraryKey } = BUS_REGISTRY.normalize(ifaceType, busLibrary);
   if (!libraryKey) {
     return undefined;
   }

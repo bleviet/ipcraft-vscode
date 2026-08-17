@@ -7,11 +7,16 @@ All notable changes to this project are documented in this file.
 ### Added
 
 - Bus interfaces are now checked against one canonical contract library across the editor, importers, consistency checks, and generators. The Issues panel groups protocol errors and warnings, links them to the affected canvas signal and Inspector field, and blocks generation when a known error or unresolved generation constraint remains.
+- **Configurable port polarity.** A bus contract can declare an active-high and an active-low role for the same logical port, and an interface selects one per port through `portPolarityOverrides`. The Inspector exposes a per-port polarity selector, the canvas marks the resolved role, and vendor artifacts (`_hw.tcl`, IP-XACT) carry the polarity-specific interface role while generated HDL keeps canonical active-high internals and inverts at the boundary. Only a nondefault choice is stored; returning a port to its contract default removes the entry. Avalon-MM `byteenable`, `readdatavalid`, `waitrequest`, `read`, and `write` are polarity-configurable, replacing the separate `_n` logical ports, which are still accepted when reading existing documents.
 
 ### Changed
 
 - Avalon-MM now uses its canonical logical port set and optionality in the canvas and generated artifacts. Legacy aliases are accepted only at the document boundary and resolve to the canonical IPCraft VLNV.
 - Avalon-ST uses `source` and `sink` modes and preserves `dataBitsPerSymbol`, `symbolsPerBeat`, `readyLatency`, `maxChannel`, and endianness through Platform Designer Tcl and custom IP-XACT. Big-endian generated RTL reverses Avalon-ST data in symbol-sized lanes; AXI, Avalon-MM, and standalone ports retain eight-bit lanes.
+
+### Compatibility
+
+- Bus-interface compatibility is forward-only for port polarity. This version reads every bus-interface document the 1.0.0 release supported, and existing active-high documents keep their behavior and generated port names. A document that selects an active-low port through `portPolarityOverrides` requires this version or later: an older IPCraft ignores the field and would generate the active-high role instead.
 
 ## [1.0.0] - 2026-08-09
 

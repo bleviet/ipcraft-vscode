@@ -46,7 +46,7 @@ export function collectParameterNames(expression: WidthExprNode): ReadonlySet<st
   return names;
 }
 
-export function normalizeExpression(expression: WidthExprNode): WidthExprNode {
+function normalizeExpression(expression: WidthExprNode): WidthExprNode {
   let normalized: WidthExprNode;
   switch (expression.type) {
     case 'Number':

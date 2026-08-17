@@ -12,11 +12,6 @@ export type CanonicalPortRole = 'clock' | 'reset' | 'data' | 'byteQualifier' | '
 
 export type PortPolarity = 'activeHigh' | 'activeLow';
 
-export interface BusPortPolarity {
-  default: PortPolarity;
-  roles: Record<PortPolarity, string>;
-}
-
 export interface NormalizedPortPolarity {
   default: PortPolarity;
   roles: Readonly<Record<PortPolarity, string>>;

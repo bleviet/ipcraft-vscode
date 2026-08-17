@@ -93,3 +93,12 @@ export function normalizeInterfaceMode(
 export function isConsumerInterface(contract: BusDefinitionContract, mode: string): boolean {
   return normalizeInterfaceMode(contract, mode) === contract.modePolicy.consumer;
 }
+
+/**
+ * True when this contract and mode describe a memory-mapped consumer endpoint —
+ * the single test for "may own a register file / memory map". Both halves are
+ * declared by the contract, never inferred from the protocol name.
+ */
+export function isMemoryMappedConsumer(contract: BusDefinitionContract, mode: string): boolean {
+  return contract.interfaceKind === 'memoryMapped' && isConsumerInterface(contract, mode);
+}

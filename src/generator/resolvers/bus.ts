@@ -3,12 +3,11 @@ import {
   expandBusInterfaces,
   checkDuplicatePhysicalPrefixes,
   getActiveBusPortsFromDefinition,
-  needsBitReverse,
-  needsLaneSwap,
   projectResolvedBusPorts,
   resolveStringWidth,
   buildParameterizedPortTypes,
 } from '../registerProcessor';
+import { needsBitReverse, needsLaneSwap } from './endiannessPolicy';
 import type { BusInterfaceDef, ProjectedBusPort } from '../types';
 import { parse, serialize, widthExprUsesMathReal } from '../../shared/widthExprAst';
 import { buildInterruptPorts } from './interrupts';

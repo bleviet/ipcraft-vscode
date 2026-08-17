@@ -2,7 +2,6 @@
 import * as path from 'path';
 import {
   normalizeIpCoreData,
-  normalizeBusType as normalizeBusTypeImpl,
   getBusTypeForTemplate as getBusTypeForTemplateImpl,
   expandBusInterfaces,
   checkDuplicatePhysicalPrefixes as checkDuplicatePhysicalPrefixesImpl,
@@ -13,9 +12,10 @@ import {
   projectMemoryMapsForTemplate,
 } from '../../../generator/registerProcessor';
 import { normalizeMemoryMap } from '../../../domain/parse';
+import { BUS_REGISTRY } from '../../../generator/buses/builtin';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
 
-const normalizeBusType = (type: string) => normalizeBusTypeImpl(type, builtinBusLibrary());
+const normalizeBusType = (type: string) => BUS_REGISTRY.normalize(type, builtinBusLibrary());
 const getBusTypeForTemplate = (ipCore: Parameters<typeof getBusTypeForTemplateImpl>[0]) =>
   getBusTypeForTemplateImpl(ipCore, builtinBusLibrary());
 const checkDuplicatePhysicalPrefixes = (

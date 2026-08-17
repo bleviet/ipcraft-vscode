@@ -19,14 +19,14 @@ import { spawnSync } from 'child_process';
 import { generateFixtures, Fixture } from './generator';
 import { guardTier1, toolOnPath } from './tier';
 import {
-  hasMemoryMappedSlaveInterface as hasMemoryMappedSlaveInterfaceImpl,
+  hasMemoryMappedConsumerInterface as hasMemoryMappedConsumerInterfaceImpl,
   resolveMemoryMaps,
 } from '../../generator/registerProcessor';
 import type { IpCoreData } from '../../generator/types';
 import { builtinBusLibrary } from '../helpers/busLibrary';
 
-const hasMemoryMappedSlaveInterface = (core: IpCoreData) =>
-  hasMemoryMappedSlaveInterfaceImpl(core, builtinBusLibrary());
+const hasMemoryMappedConsumerInterface = (core: IpCoreData) =>
+  hasMemoryMappedConsumerInterfaceImpl(core, builtinBusLibrary());
 
 let allFixtures: Fixture[] = [];
 
@@ -82,7 +82,7 @@ async function missingMemoryMap(fixture: Fixture): Promise<string | undefined> {
   } catch {
     return undefined;
   }
-  if (!hasMemoryMappedSlaveInterface(doc)) {
+  if (!hasMemoryMappedConsumerInterface(doc)) {
     return undefined;
   }
   const maps = await resolveMemoryMaps(doc, fixture.yamlPath);

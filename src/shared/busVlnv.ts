@@ -1,6 +1,6 @@
 import {
   canonicalizeBusType,
-  normalizeInterfaceMode,
+  isMemoryMappedConsumer,
   type NormalizedBusLibrary,
 } from './busContracts';
 
@@ -42,11 +42,7 @@ export function busSupportsMemoryMap(
   library: NormalizedBusLibrary
 ): boolean {
   const match = canonicalizeBusType(busType, library);
-  return (
-    match !== null &&
-    match.contract.interfaceKind === 'memoryMapped' &&
-    normalizeInterfaceMode(match.contract, mode) === match.contract.modePolicy.consumer
-  );
+  return match !== null && isMemoryMappedConsumer(match.contract, mode);
 }
 
 /** Returns true when one interrupt can unambiguously reference this interface as

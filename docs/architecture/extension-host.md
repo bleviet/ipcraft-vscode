@@ -117,6 +117,25 @@ The extraction rule is: logic with a second consumer belongs in
 depends on vendor source ordering. This makes the size exception a cohesion
 decision, not an exemption from future extraction.
 
+### Generator projection modules
+
+`registerProcessor.ts` also exceeds the general module-size review threshold. It
+owns the one-way projection from normalized domain data into the template
+context: width-expression evaluation, register access derivation, bus-interface
+array expansion, and memory-map projection. These stages share the width and
+`getString` coercion helpers and run in a fixed order for every generated
+artifact, so they are reviewed together.
+
+Policy that a second caller needs is extracted instead of grown in place:
+
+- `resolvers/endiannessPolicy.ts` decides which canonical ports need big-endian
+  lane or bit reflow and how wide each reflowed element is. `resolvers/bus.ts`
+  is the second consumer, so this policy must not live in `registerProcessor`.
+- `resolvers/boundaryTransforms.ts` plans the HDL-boundary signals that realize
+  a reflow or a polarity inversion.
+- Contract-declared questions such as "is this a memory-mapped consumer" belong
+  to `src/shared/busContracts/`, never to a generator-local name heuristic.
+
 ## External tools
 
 Toolchains under `src/services/toolchains/` provide one interface for local and

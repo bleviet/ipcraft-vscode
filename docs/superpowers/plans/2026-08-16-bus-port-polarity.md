@@ -8,6 +8,14 @@
 
 **Tech Stack:** TypeScript, React, YAML v2 format-preserving edits, JSON Schema, generated TypeScript types, Nunjucks, Jest, Playwright, VHDL, SystemVerilog, Intel `_hw.tcl`, IP-XACT.
 
+## Completion status
+
+All 55 implementation steps are complete. One review follow-up refines Task 8
+Step 3: the Inspector polarity selector now drops the override entry when the
+contract default is chosen explicitly, not only when `Default` is selected, so
+the editor and the importer agree that a default-equal override is never
+stored.
+
 ## Global Constraints
 
 - Work only in `/Users/bachleviet/workspace/opensource/ipcraft-vscode/.worktrees/bus-interface-conformance`.
@@ -97,7 +105,7 @@ interface NormalizedPortPolarity {
 
 `BusInterface` gains `portPolarityOverrides?: Record<string, PortPolarity>` so the resolver work in Task 2 is typed from the start. The already-supported `portNameOverrides?: Record<string, string>` is also declared in the schema so generated domain code can preserve literal physical names without relying on the schema's open-object index signature.
 
-- [ ] **Step 1: Write failing schema and built-in tests**
+- [x] **Step 1: Write failing schema and built-in tests**
 
 Add valid declarations plus malformed-role, duplicate-role, colliding-role, and `inout` cases. Also validate an IP-core instance with `portPolarityOverrides: { read: activeLow }`, and reject `low`, `ACTIVE_LOW`, booleans, and arrays:
 
@@ -136,7 +144,7 @@ expect(avalon.ports.filter((port) => port.polarity).map((port) => port.name)).to
 expect(avalon.ports.some((port) => port.name.endsWith('_n'))).toBe(false);
 ```
 
-- [ ] **Step 2: Verify the tests fail for the intended reason**
+- [x] **Step 2: Verify the tests fail for the intended reason**
 
 Run:
 
@@ -146,7 +154,7 @@ npx jest --config config/jest.config.js src/test/suite/services/BusDefinitionSch
 
 Expected: FAIL because contract polarity and instance overrides are rejected and duplicate `_n` ports remain.
 
-- [ ] **Step 3: Add the raw schema and consolidate Avalon-MM**
+- [x] **Step 3: Add the raw schema and consolidate Avalon-MM**
 
 Add:
 
@@ -188,7 +196,7 @@ Also formalize the existing `portNameOverrides` string map in the same schema ob
 
 Run type generation and update the legacy `src/webview/types/ipCore.d.ts` plus generator `BusInterfaceDef` manually. Do not hand-edit generated domain types.
 
-- [ ] **Step 4: Normalize polarity and reject role collisions**
+- [x] **Step 4: Normalize polarity and reject role collisions**
 
 Extend `normalizePort`. Invalid declarations, equal activeHigh/activeLow roles, and polarity on `inout` produce `BUS_DEF_INVALID_PORT_POLARITY` at the precise path. In `normalizeEntry`, build a case-insensitive owner map for canonical names and polarity roles. Allow one role to equal its own port name; reject collisions with another port/role as `BUS_DEF_PORT_ROLE_COLLISION` at the exact role path.
 
@@ -201,7 +209,7 @@ onUpdate?.(['busInterfaces', busIndex, 'useOptionalPorts'], updated);
 
 Delete the superseded direct policy test and browser coexistence case.
 
-- [ ] **Step 5: Regenerate and pass the contract slice**
+- [x] **Step 5: Regenerate and pass the contract slice**
 
 Run:
 
@@ -214,7 +222,7 @@ npm run compile
 
 Expected: PASS; generated and normalized unions contain polarity and no mutual-exclusion member.
 
-- [ ] **Step 6: Document and review unstaged changes**
+- [x] **Step 6: Document and review unstaged changes**
 
 Document declaration, defaults, roles, built-in scope, and physical-name independence. Run `git diff --check` and `git status --short`. Expected: no whitespace errors and nothing staged.
 
@@ -280,7 +288,7 @@ export function resolvePhysicalSuffix(
 
 `ResolvedBusPort` gains `effectivePolarity?`, `interfaceRole`, and `physicalSuffix`. `BusInterfaceResolution` gains `canonicalBusInterface: BusInterface | null`.
 
-- [ ] **Step 1: Write failing pure-policy tests**
+- [x] **Step 1: Write failing pure-policy tests**
 
 Cover case-insensitive matching, literal physical overrides, all five aliases, inactive overrides, last-occurrence wins, and explicit new override precedence:
 
@@ -308,19 +316,19 @@ expect(result.busInterface.portWidthOverrides).toEqual({ read: 1 });
 expect(result.busInterface.portNameOverrides).toEqual({ read: 'odd_read' });
 ```
 
-- [ ] **Step 2: Verify the API is absent**
+- [x] **Step 2: Verify the API is absent**
 
 Run `npx jest --config config/jest.config.js src/test/suite/shared/busContractPolarity.test.ts --runInBand`.
 
 Expected: FAIL because the module and result fields do not exist.
 
-- [ ] **Step 3: Implement matching and canonicalization without suffix inference**
+- [x] **Step 3: Implement matching and canonicalization without suffix inference**
 
 Use declared canonical names and roles only. A canonical authored name means the declared default polarity; a declared role means that role's polarity. Canonicalize `useOptionalPorts`, `portWidthOverrides`, `portNameOverrides`, and `absentPorts`. Preserve unknown entries for diagnostics. Duplicate aliases use last occurrence/property order; unrelated order remains stable.
 
 Explicit canonical `portPolarityOverrides` wins over legacy inferred polarity. If that makes the legacy authored role differ from the newly-derived physical suffix, preserve the old suffix as a literal canonical `portNameOverrides` entry. Return whole-field mutations only when values differ; use `undefined` for whole-field deletion so the existing YAML edit adapter chooses `applyPathDeletes`.
 
-- [ ] **Step 4: Resolve metadata and diagnose invalid overrides**
+- [x] **Step 4: Resolve metadata and diagnose invalid overrides**
 
 Canonicalize immediately after contract matching. Use the canonical interface for all resolution. Diagnose unknown/incapable overrides at `['busInterfaces', index, 'portPolarityOverrides', name]` with `BUS_PORT_POLARITY_OVERRIDE`, then use the contract default. Inactive capable overrides are valid.
 
@@ -337,7 +345,7 @@ Build active ports with:
 }
 ```
 
-- [ ] **Step 5: Run policy, migration, and resolver tests**
+- [x] **Step 5: Run policy, migration, and resolver tests**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/shared/busContractPolarity.test.ts src/test/suite/shared/busContractResolve.test.ts src/test/suite/shared/busContractMigration.characterization.test.ts --runInBand
@@ -346,7 +354,7 @@ npm run type-check
 
 Expected: PASS with exact paths and one canonical identity per function.
 
-- [ ] **Step 6: Review dependency direction**
+- [x] **Step 6: Review dependency direction**
 
 Run `git diff --check`. Confirm `polarity.ts` imports no webview, component, service, or generator module.
 
@@ -367,13 +375,13 @@ Run `git diff --check`. Confirm `polarity.ts` imports no webview, component, ser
 - Uses `BusInterface.portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>` added in Task 1.
 - Uses a private `InternalIpCoreState extends IpCoreState` with `pendingBusCanonicalization`; destructure that field out before returning the public hook result. This keeps the migration queue atomic with YAML state without exposing or serializing it.
 
-- [ ] **Step 1: Write failing round-trip and hook tests**
+- [x] **Step 1: Write failing round-trip and hook tests**
 
 Assert domain normalize/serialize preserves a valid override map.
 
 Load commented legacy YAML with `useOptionalPorts: [read_n]`. Assert canonical in-memory `read` plus activeLow override, but byte-for-byte unchanged `rawYaml`.
 
-- [ ] **Step 2: Verify tests fail**
+- [x] **Step 2: Verify tests fail**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/domain/roundtrip.test.ts src/test/suite/webview/useIpCoreState.test.ts --runInBand
@@ -381,11 +389,11 @@ npx jest --config config/jest.config.js src/test/suite/domain/roundtrip.test.ts 
 
 Expected: FAIL because domain propagation and deferred migration are absent.
 
-- [ ] **Step 3: Propagate the typed instance field**
+- [x] **Step 3: Propagate the typed instance field**
 
 Copy `portPolarityOverrides` in both `expandBusInterfaces` branches. Make `normalizeIpCore` preserve only a plain-object camelCase map; do not add a snake_case fallback.
 
-- [ ] **Step 4: Canonicalize state without editing on open**
+- [x] **Step 4: Canonicalize state without editing on open**
 
 Add:
 
@@ -414,7 +422,7 @@ const {
 
 In `updateIpCore` and `updateIpCoreBatch`, apply pending migration mutations first and the user mutation second inside one updater. Return `pendingBusCanonicalization: []` in the successful state object and reparse through the helper. Loading alone must not dirty or rewrite the document. Do not mutate a ref from inside a React state updater.
 
-- [ ] **Step 5: Prove one format-preserving mutation**
+- [x] **Step 5: Prove one format-preserving mutation**
 
 After an unrelated edit, assert comments and hex spellings remain, aliases migrate, one state transition occurs, and pending mutations clear.
 
@@ -426,7 +434,7 @@ npm run compile
 
 Expected: PASS.
 
-- [ ] **Step 6: Review unstaged output**
+- [x] **Step 6: Review unstaged output**
 
 Run `git diff --check` and `git status --short`. Confirm the load-only test sends no migration edit.
 
@@ -456,7 +464,7 @@ interface ObservedBusPortSelections {
 }
 ```
 
-- [ ] **Step 1: Write failing structured-import tests**
+- [x] **Step 1: Write failing structured-import tests**
 
 Cover semantic role and physical spelling independently:
 
@@ -465,7 +473,7 @@ Cover semantic role and physical spelling independently:
 - a conventional matching spelling avoids an unnecessary name override;
 - if both roles are observed, the last observed role wins deterministically.
 
-- [ ] **Step 2: Verify the focused tests fail**
+- [x] **Step 2: Verify the focused tests fail**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/shared/busContractObservedPorts.test.ts src/test/suite/parser/HwTclParser.test.ts src/test/suite/parser/HwTclParser.altera.test.ts src/test/suite/parser/ComponentXmlParser.test.ts --runInBand
@@ -473,7 +481,7 @@ npx jest --config config/jest.config.js src/test/suite/shared/busContractObserve
 
 Expected: FAIL because reconciliation still treats role strings as independent canonical ports.
 
-- [ ] **Step 3: Reconcile each observed port through the role matcher**
+- [x] **Step 3: Reconcile each observed port through the role matcher**
 
 In `reconcileObservedBusPorts`, call `matchBusPortRole` and derive four properties independently:
 
@@ -484,11 +492,11 @@ In `reconcileObservedBusPorts`, call `matchBusPortRole` and derive four properti
 
 Use the imported logical role for polarity. Preserve the imported physical spelling exactly through `portNameOverrides` when it differs from the selected role's default suffix. Do not infer semantic polarity from the physical name when the source format already provides a logical role.
 
-- [ ] **Step 4: Wire both structured parsers**
+- [x] **Step 4: Wire both structured parsers**
 
 Make `_hw.tcl` and IP-XACT collection pass logical role and physical port name separately. Ensure all existing aliases, widths, prefixes, and optional-port selections survive reconciliation.
 
-- [ ] **Step 5: Run focused and integration verification**
+- [x] **Step 5: Run focused and integration verification**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/shared/busContractObservedPorts.test.ts src/test/suite/parser/HwTclParser.test.ts src/test/suite/parser/HwTclParser.altera.test.ts src/test/suite/parser/ComponentXmlParser.test.ts --runInBand
@@ -498,7 +506,7 @@ npm run test:integration:ipxact -- --runInBand
 
 Expected: PASS.
 
-- [ ] **Step 6: Review unstaged output**
+- [x] **Step 6: Review unstaged output**
 
 Run `git diff --check` and inspect the parser fixtures to confirm no imported literal name was normalized away.
 
@@ -537,11 +545,11 @@ interface SignalAssignment {
 
 The grouping payload carries `portPolarityOverrides` keyed by canonical bus port name.
 
-- [ ] **Step 1: Write failing raw-HDL matching tests**
+- [x] **Step 1: Write failing raw-HDL matching tests**
 
 Cover conventional `read_n` inference, a misleading literal name manually assigned as activeHigh, activeLow vector signals, and declarations where both `read` and `read_n` exist. In the last case select the contract default and leave the other HDL port ungrouped.
 
-- [ ] **Step 2: Verify the focused tests fail**
+- [x] **Step 2: Verify the focused tests fail**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/webview/busLibrary.test.ts src/test/suite/components/MapConduitToBusDialog.test.tsx src/test/suite/webview/applyMapConduitToKnownBus.test.ts src/test/suite/parser/VerilogParser.test.ts src/test/suite/parser/VhdlParser.test.ts --runInBand
@@ -549,17 +557,17 @@ npx jest --config config/jest.config.js src/test/suite/webview/busLibrary.test.t
 
 Expected: FAIL because candidates are still independent ports and grouping has no polarity value.
 
-- [ ] **Step 3: Generate candidates from declared roles**
+- [x] **Step 3: Generate candidates from declared roles**
 
 Expose all declared role suffixes for matching, with the default role first. A matched role maps back to one canonical logical name plus its declared polarity. Do not synthesize undeclared `_n` variants for user-defined contracts.
 
 When both roles match separate HDL ports, use the default role only and keep the second signal visible as ungrouped so the user can correct the ambiguity.
 
-- [ ] **Step 4: Preserve the user's manual assignment**
+- [x] **Step 4: Preserve the user's manual assignment**
 
 Show the selected role/polarity in the mapping UI. A manual physical-port assignment keeps the chosen polarity even when its spelling suggests the opposite. Emit a polarity override only when the selected polarity differs from the contract default. Compare physical suffix against the selected role when deciding whether a `portNameOverrides` entry is needed.
 
-- [ ] **Step 5: Run parser and grouping tests**
+- [x] **Step 5: Run parser and grouping tests**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/parser/VerilogParser.test.ts src/test/suite/parser/VhdlParser.test.ts --runInBand
@@ -569,7 +577,7 @@ npm run type-check
 
 Expected: PASS.
 
-- [ ] **Step 6: Review unstaged output**
+- [x] **Step 6: Review unstaged output**
 
 Run `git diff --check`. Confirm raw HDL inference is documented in code as best-effort and remains editable.
 
@@ -626,7 +634,7 @@ interface ProjectedBusPort {
 
 The template context exposes the same data as `interface_role`, `effective_polarity`, `physical_suffix`, and `needs_polarity_inversion`.
 
-- [ ] **Step 1: Write failing projection tests**
+- [x] **Step 1: Write failing projection tests**
 
 Assert:
 
@@ -636,7 +644,7 @@ Assert:
 - widths and parameterized widths are unchanged;
 - cross-check accepts the resolved physical name and does not require the inactive role.
 
-- [ ] **Step 2: Verify the focused tests fail**
+- [x] **Step 2: Verify the focused tests fail**
 
 ```bash
 npx jest --config config/jest.config.js -t 'interface role|physical suffix|polarity inversion|byteenable_n' --runInBand
@@ -644,7 +652,7 @@ npx jest --config config/jest.config.js -t 'interface role|physical suffix|polar
 
 Expected: FAIL because projection conflates canonical name, vendor role, and physical suffix.
 
-- [ ] **Step 3: Add one canonical projection path**
+- [x] **Step 3: Add one canonical projection path**
 
 Add:
 
@@ -658,11 +666,11 @@ function projectResolvedBusPorts(
 
 Use it for generator context, vendor metadata, HDL cross-check, and expected-name construction. Keep unresolved conduit projection separate. Resolve names only through `resolvePhysicalSuffix`; `portNameOverrides` always wins literally.
 
-- [ ] **Step 4: Emit selected vendor roles**
+- [x] **Step 4: Emit selected vendor roles**
 
 Use `interfaceRole` for `_hw.tcl` port roles and IP-XACT logical mappings. Update custom Vivado bus definitions to declare all configured role strings while each component instance maps only its selected role.
 
-- [ ] **Step 5: Extend and regenerate the template contract**
+- [x] **Step 5: Extend and regenerate the template contract**
 
 Add the polarity fields to the template-context schema, bump `CONTRACT_VERSION` from `1.3.0` to `1.4.0`, then run:
 
@@ -673,7 +681,7 @@ npm run compile
 
 Expected: generated types and both bundles compile.
 
-- [ ] **Step 6: Run focused tests and review**
+- [x] **Step 6: Run focused tests and review**
 
 ```bash
 npx jest --config config/jest.config.js -t 'bus resolver|Altera|Vivado|HDL cross-check|bus port name' --runInBand
@@ -724,11 +732,11 @@ function buildBoundaryTransforms(
 };
 ```
 
-- [ ] **Step 1: Write failing pure transform tests**
+- [x] **Step 1: Write failing pure transform tests**
 
 Cover scalar input/output inversion, vector bitwise inversion, parameterized widths, name collisions, endian swap only, and combined swap plus inversion. Assert only one intermediate signal is allocated per transformed port.
 
-- [ ] **Step 2: Verify the pure tests fail**
+- [x] **Step 2: Verify the pure tests fail**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/generator/resolvers/boundaryTransforms.test.ts --runInBand
@@ -736,19 +744,19 @@ npx jest --config config/jest.config.js src/test/suite/generator/resolvers/bound
 
 Expected: FAIL because the focused resolver does not exist.
 
-- [ ] **Step 3: Build cohesive boundary-transform data**
+- [x] **Step 3: Build cohesive boundary-transform data**
 
 Move transform planning out of the already-large bus resolver. Keep canonical internal behavior activeHigh. Mark a selected activeLow port for boundary inversion. Compose inversion with existing lane/endian reordering through a single internal signal; bitwise inversion and bit reordering commute, so templates may use the order that avoids duplicated loops.
 
 Allocate an intermediate only when `needsSwap || needsPolarityInversion`. Use `${name}_be` as the preferred base when a swap is present (preserving current generated names), otherwise `${name}_inv`; append `_2`, `_3`, and so on through the existing reserved-name policy until unique.
 
-- [ ] **Step 4: Render VHDL and SystemVerilog correctly**
+- [x] **Step 4: Render VHDL and SystemVerilog correctly**
 
 Use VHDL `not` and SystemVerilog bitwise `~`, never logical `!` for vectors. For inputs, drive the canonical internal signal from the transformed external signal. For outputs, drive the external signal from the transformed canonical internal signal. Preserve existing endian-loop semantics and widths. `inout` remains legal for standalone user ports but is never polarity-configurable.
 
 Expose `boundary_transform_ports` and `has_boundary_transform` in the template contract while retaining existing endian fields until every template consumer has migrated in the same task.
 
-- [ ] **Step 5: Update snapshots and run HDL verification**
+- [x] **Step 5: Update snapshots and run HDL verification**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/generator/resolvers/boundaryTransforms.test.ts --runInBand
@@ -758,7 +766,7 @@ npm run test:integration:hdl
 
 Expected: PASS. Inspect at least one generated activeLow scalar and one vector wrapper in each supported HDL.
 
-- [ ] **Step 6: Review unstaged output**
+- [x] **Step 6: Review unstaged output**
 
 Run `git diff --check` and confirm generated ports retain their literal external names while only internal signals use canonical activeHigh semantics.
 
@@ -798,13 +806,13 @@ interface BusContractEditModel {
 
 The hook exposes `updatePolarity(portName, polarity)`. `LayoutSubPort` carries `polarity` and `polarityConfigurable`.
 
-- [ ] **Step 1: Write failing hook and canvas tests**
+- [x] **Step 1: Write failing hook and canvas tests**
 
 Assert configurable active ports expose an Active high/Active low selector, returning to the default removes the override, inactive ports show the chosen setting without activating themselves, and fixed-polarity ports expose no selector.
 
 Assert the canvas shows one canonical port with an `H` or `L` badge and never displays both role aliases.
 
-- [ ] **Step 2: Verify focused tests fail**
+- [x] **Step 2: Verify focused tests fail**
 
 ```bash
 npx jest --config config/jest.config.js -t 'BusContractFields|polarity|canvas sub-port' --runInBand
@@ -812,17 +820,17 @@ npx jest --config config/jest.config.js -t 'BusContractFields|polarity|canvas su
 
 Expected: FAIL because the editor and layout do not expose polarity.
 
-- [ ] **Step 3: Add narrow editor and layout data**
+- [x] **Step 3: Add narrow editor and layout data**
 
 Derive fields from the normalized contract, not from hard-coded Avalon names. The selector writes `portPolarityOverrides` only for a nondefault choice and deletes the key when restored to default. Preserve overrides for temporarily inactive optional ports.
 
 Keep `IpBlockCanvas` focused on activation routing; put label/badge rendering in `CanvasBusSubPort` and edit construction in the hook.
 
-- [ ] **Step 4: Make activation canonical**
+- [x] **Step 4: Make activation canonical**
 
 All activation and optional-port deduplication uses canonical logical names. Activating `read` must not remove `write`; changing polarity must not change activation. Remove every remaining `portsMutuallyExclusive` branch and test.
 
-- [ ] **Step 5: Add browser regressions**
+- [x] **Step 5: Add browser regressions**
 
 Cover:
 
@@ -835,7 +843,7 @@ Cover:
 
 Use unique selectors for names where one is a prefix of another.
 
-- [ ] **Step 6: Run UI verification**
+- [x] **Step 6: Run UI verification**
 
 ```bash
 npx jest --config config/jest.config.js -t 'BusContractFields|useBusContractEditor|canvas|polarity' --runInBand
@@ -844,7 +852,7 @@ npm run test:browser -- --grep 'polarity|active low|canonical bus port'
 
 Expected: PASS.
 
-- [ ] **Step 7: Review unstaged output**
+- [x] **Step 7: Review unstaged output**
 
 Run `git diff --check`. Confirm keyboard/mouse table-editor behavior is untouched and the canvas root did not absorb contract-editing logic.
 
@@ -857,7 +865,7 @@ Run `git diff --check`. Confirm keyboard/mouse table-editor behavior is untouche
 - Modify or add only narrowly-scoped compatibility tests discovered during the final audit
 - Do not stage or commit
 
-- [ ] **Step 1: Add a final table-driven compatibility test**
+- [x] **Step 1: Add a final table-driven compatibility test**
 
 Cover all five built-in Avalon-MM canonical ports and aliases:
 
@@ -871,7 +879,7 @@ Cover all five built-in Avalon-MM canonical ports and aliases:
 
 For legacy arrays with both aliases, assert the last occurrence wins. Cover main-compatible activeHigh documents, new activeLow documents, arbitrary imported literal names, and unsupported interfaces remaining unchanged.
 
-- [ ] **Step 2: Audit stale mutual-exclusion code and accidental dual representations**
+- [x] **Step 2: Audit stale mutual-exclusion code and accidental dual representations**
 
 ```bash
 rg -n "portsMutuallyExclusive|NormalizedMutuallyExclusive|mutually-exclusive|busContractActivePorts" src ipcraft-spec/schemas ipcraft-spec/bus_definitions
@@ -881,7 +889,7 @@ rg -n "port_polarity|polarity_override|portPolarityOverrides.*port_polarity" src
 
 Expected: the first and third searches return no implementation leftovers; alias hits in the second are limited to role declarations, fixtures, compatibility tests, and generated/vendor expectations.
 
-- [ ] **Step 3: Prove generation is idempotent**
+- [x] **Step 3: Prove generation is idempotent**
 
 Run `npm run generate-types`, record the generated-file hashes or diff, run it again, and assert the second run produces no new diff. Then run:
 
@@ -892,7 +900,7 @@ npm run compile
 
 Expected: PASS.
 
-- [ ] **Step 4: Run the focused unit suite**
+- [x] **Step 4: Run the focused unit suite**
 
 ```bash
 npx jest --config config/jest.config.js src/test/suite/shared src/test/suite/parser src/test/suite/generator src/test/suite/domain src/test/suite/webview --runInBand
@@ -900,7 +908,7 @@ npx jest --config config/jest.config.js src/test/suite/shared src/test/suite/par
 
 Expected: PASS.
 
-- [ ] **Step 5: Run repository gates**
+- [x] **Step 5: Run repository gates**
 
 ```bash
 npm run lint
@@ -914,7 +922,7 @@ npm run test:integration:hdl
 
 Expected: PASS. Report any environment-gated Vivado/Quartus tests separately; do not describe them as passing if skipped.
 
-- [ ] **Step 6: Inspect the final unstaged change**
+- [x] **Step 6: Inspect the final unstaged change**
 
 ```bash
 git diff --check

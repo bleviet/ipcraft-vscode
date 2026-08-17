@@ -3,7 +3,6 @@ import * as path from 'path';
 import type {
   BusInterfaceDef,
   BusPortProjectionMetadata,
-  BusTypeInfo,
   IpCoreData,
   ProjectedBusPort,
 } from './types';
@@ -14,7 +13,8 @@ import { BUS_REGISTRY } from './buses/builtin';
 import {
   BYTE_LANE_WIDTH,
   canonicalizeBusType,
-  normalizeInterfaceMode,
+  isConsumerInterface,
+  isMemoryMappedConsumer,
   type ResolvedBusPort,
   type NormalizedBusLibrary,
 } from '../shared/busContracts';
@@ -22,6 +22,7 @@ import {
 import { evalWidthExpr } from '../shared/evalWidthExpr';
 import { parse, serialize, containsParamRef } from '../shared/widthExprAst';
 import { reconstructBusPortNameSet } from '../shared/busPortNameSet';
+import { buildPortSwapProjection } from './resolvers/endiannessPolicy';
 export { evalWidthExpr };
 
 /**
@@ -135,10 +136,6 @@ export function normalizeIpCoreData(raw: Record<string, unknown>): IpCoreData {
   return normalizeIpCore(raw) as unknown as IpCoreData;
 }
 
-export function normalizeBusType(typeName: string, library: NormalizedBusLibrary): BusTypeInfo {
-  return BUS_REGISTRY.normalize(typeName, library);
-}
-
 export function getBusTypeForTemplate(ipCore: IpCoreData, library: NormalizedBusLibrary): string {
   let firstConsumer: string | undefined;
   for (const bus of ipCore.busInterfaces ?? []) {
@@ -147,8 +144,8 @@ export function getBusTypeForTemplate(ipCore: IpCoreData, library: NormalizedBus
     if (!contract) {
       continue;
     }
-    if (contract.modePolicy.consumer === normalizeInterfaceMode(contract, getString(bus.mode))) {
-      const templateType = normalizeBusType(getString(bus.type), library).templateType;
+    if (isConsumerInterface(contract, getString(bus.mode))) {
+      const templateType = BUS_REGISTRY.normalize(getString(bus.type), library).templateType;
       firstConsumer ??= templateType;
       if (contract.interfaceKind === 'memoryMapped') {
         return templateType;
@@ -158,21 +155,19 @@ export function getBusTypeForTemplate(ipCore: IpCoreData, library: NormalizedBus
   return firstConsumer ?? 'axil';
 }
 
-export function hasMemoryMappedSlaveInterface(
+/**
+ * True when any interface is a memory-mapped consumer, i.e. the core owns a
+ * register file reachable over a bus. The mode is resolved from the contract's
+ * declared mode policy rather than from a protocol-specific role name.
+ */
+export function hasMemoryMappedConsumerInterface(
   ipCore: IpCoreData,
   library: NormalizedBusLibrary
 ): boolean {
-  for (const bus of ipCore.busInterfaces ?? []) {
+  return (ipCore.busInterfaces ?? []).some((bus) => {
     const match = canonicalizeBusType(getString(bus.type), library);
-    if (
-      match?.contract.interfaceKind === 'memoryMapped' &&
-      normalizeInterfaceMode(match.contract, getString(bus.mode)) ===
-        match.contract.modePolicy.consumer
-    ) {
-      return true;
-    }
-  }
-  return false;
+    return match !== null && isMemoryMappedConsumer(match.contract, getString(bus.mode));
+  });
 }
 
 /**
@@ -300,42 +295,6 @@ export function getSvPortType(width: number, _logicalName: string): string {
   return `logic [${width - 1}:0]`;
 }
 
-/** A payload is swappable when it contains at least two complete lanes. */
-export function needsLaneSwap(
-  endianness: 'little' | 'big',
-  width: number | string | null,
-  laneWidth: number | string,
-  direction: string,
-  isParameterized = false
-): boolean {
-  return (
-    endianness === 'big' &&
-    (direction === 'in' || direction === 'out') &&
-    (isParameterized ||
-      typeof width === 'string' ||
-      typeof laneWidth === 'string' ||
-      (typeof width === 'number' &&
-        typeof laneWidth === 'number' &&
-        laneWidth > 0 &&
-        width > laneWidth &&
-        width % laneWidth === 0))
-  );
-}
-
-/** A multi-bit or parameterized qualifier reverses one bit per payload lane. */
-export function needsBitReverse(
-  endianness: 'little' | 'big',
-  width: number | string | null,
-  direction: string,
-  isParameterized = false
-): boolean {
-  return (
-    endianness === 'big' &&
-    (direction === 'in' || direction === 'out') &&
-    (isParameterized || (typeof width === 'number' && width > 1))
-  );
-}
-
 function toTclWidthExpression(exprStr: string, parameterNames: readonly string[]): string {
   const ast = parse(exprStr);
   if (!ast) {
@@ -402,35 +361,13 @@ export function projectResolvedBusPorts(
           type: getVhdlPortType(evaluatedWidth, port.name),
           sv_type: getSvPortType(evaluatedWidth, port.name),
         };
-    const projectionMetadata =
-      port.role === 'data'
-        ? {
-            role: port.role,
-            swapKind: 'lane' as const,
-            laneWidth: metadata.laneWidth,
-            laneKind: metadata.laneKind,
-            needsSwap: needsLaneSwap(
-              metadata.endianness,
-              evaluatedWidth,
-              metadata.laneWidth,
-              direction,
-              widthExpr !== null
-            ),
-          }
-        : port.role === 'byteQualifier'
-          ? {
-              role: port.role,
-              swapKind: 'bit' as const,
-              laneWidth: 1,
-              laneKind: metadata.laneKind,
-              needsSwap: needsBitReverse(
-                metadata.endianness,
-                evaluatedWidth,
-                direction,
-                widthExpr !== null
-              ),
-            }
-          : { needsSwap: false };
+    const projectionMetadata = buildPortSwapProjection(
+      port.role,
+      direction,
+      evaluatedWidth,
+      widthExpr !== null,
+      metadata
+    );
 
     return [
       {

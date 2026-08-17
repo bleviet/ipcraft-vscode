@@ -8,7 +8,7 @@ import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
-import { normalizeBusType } from '../../generator/registerProcessor';
+import { BUS_REGISTRY } from '../../generator/buses/builtin';
 import type { NormalizedBusLibrary } from '../../shared/busContracts';
 import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
@@ -157,7 +157,7 @@ export function mapBusTypeToAltera(
   if (!typeName) {
     return 'conduit';
   }
-  const info = normalizeBusType(typeName, library);
+  const info = BUS_REGISTRY.normalize(typeName, library);
   return TEMPLATE_TYPE_TO_ALTERA[info.templateType] ?? 'conduit';
 }
 

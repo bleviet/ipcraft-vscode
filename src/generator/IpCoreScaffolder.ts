@@ -11,7 +11,7 @@ import { TemplateLoader } from './TemplateLoader';
 import { resolveScaffoldOutputPath, ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
   getBusTypeForTemplate,
-  hasMemoryMappedSlaveInterface,
+  hasMemoryMappedConsumerInterface,
   prepareRegisters,
   resolveMemoryMaps,
   projectMemoryMapsForTemplate,
@@ -115,7 +115,7 @@ export class IpCoreScaffolder {
       const ipCoreDir = path.dirname(inputPath);
 
       const busType = getBusTypeForTemplate(ipCoreData, this.busLibrary!);
-      const hasMmSlave = hasMemoryMappedSlaveInterface(ipCoreData, this.busLibrary!);
+      const hasMmSlave = hasMemoryMappedConsumerInterface(ipCoreData, this.busLibrary!);
       // Resolve memory maps once: shared by the template context (RTL/testbench)
       // and the vendor packaging step (component.xml <spirit:memoryMaps>).
       const resolvedMemoryMaps = await resolveMemoryMaps(ipCoreData, inputPath);
@@ -571,7 +571,7 @@ export class IpCoreScaffolder {
     const ipCore = await this.loadIpCore(inputPath);
     await this.ensureBusDefinitions(inputPath, ipCore);
     const busType = getBusTypeForTemplate(ipCore, this.busLibrary!);
-    const hasMmSlave = hasMemoryMappedSlaveInterface(ipCore, this.busLibrary!);
+    const hasMmSlave = hasMemoryMappedConsumerInterface(ipCore, this.busLibrary!);
     const context = await this.buildTemplateContext(ipCore, busType, inputPath);
     context.has_memory_mapped_slave = hasMmSlave;
     assertValidContext(context);

@@ -1,4 +1,4 @@
-import { isConsumerInterface } from './canonicalize';
+import { isMemoryMappedConsumer } from './canonicalize';
 import { resolveBusInterface } from './resolve';
 import type { BusConformanceDiagnostic, ValidateBusInterfacesInput } from './types';
 
@@ -21,8 +21,7 @@ export function validateBusInterfaces(
     }
     const supported =
       resolution.match !== null &&
-      resolution.match.contract.interfaceKind === 'memoryMapped' &&
-      isConsumerInterface(resolution.match.contract, busInterface.mode) &&
+      isMemoryMappedConsumer(resolution.match.contract, busInterface.mode) &&
       (busInterface.array?.count === undefined || busInterface.array.count <= 1);
     if (!supported) {
       diagnostics.push({
