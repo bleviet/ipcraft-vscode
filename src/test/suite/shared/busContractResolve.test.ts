@@ -120,10 +120,12 @@ describe('resolveBusInterface policies and properties', () => {
         expect.objectContaining({
           code: 'BUS_PORT_POLARITY_OVERRIDE',
           path: ['busInterfaces', 0, 'portPolarityOverrides', 'missing'],
+          message: "Port polarity override 'missing' is not declared by this bus contract.",
         }),
         expect.objectContaining({
           code: 'BUS_PORT_POLARITY_OVERRIDE',
           path: ['busInterfaces', 0, 'portPolarityOverrides', 'address'],
+          message: "Port 'address' does not declare configurable polarity in this bus contract.",
         }),
       ])
     );
@@ -150,6 +152,7 @@ describe('resolveBusInterface policies and properties', () => {
       expect.objectContaining({
         code: 'BUS_PORT_POLARITY_OVERRIDE',
         path: ['busInterfaces', 0, 'portPolarityOverrides', 'read'],
+        message: "Port polarity override 'read' must be 'activeHigh' or 'activeLow'.",
       })
     );
   });

@@ -242,7 +242,9 @@ export function useBusContractEditor(options: {
           delete updated[key];
         }
       }
-      if (value !== 'default') {
+      // Only a genuinely nondefault choice is stored; selecting the contract
+      // default explicitly is the same document state as 'default'.
+      if (value !== 'default' && value !== field.defaultValue) {
         updated[name] = value;
       }
       batchUpdate([

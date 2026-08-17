@@ -209,14 +209,16 @@ describe('bus contract editor model', () => {
       { initialProps: { currentBus: bus } }
     );
 
-    act(() => result.current.updatePolarity('read', 'activeHigh'));
-    expect(batchUpdate).toHaveBeenLastCalledWith([
-      [['busInterfaces', 1, 'portPolarityOverrides'], { read: 'activeHigh' }],
-    ]);
-
     act(() => result.current.updatePolarity('read', 'activeLow'));
     expect(batchUpdate).toHaveBeenLastCalledWith([
       [['busInterfaces', 1, 'portPolarityOverrides'], { read: 'activeLow' }],
+    ]);
+
+    // 'read' defaults to activeHigh, so choosing it explicitly is the contract
+    // default and must not leave a redundant override entry behind.
+    act(() => result.current.updatePolarity('read', 'activeHigh'));
+    expect(batchUpdate).toHaveBeenLastCalledWith([
+      [['busInterfaces', 1, 'portPolarityOverrides'], undefined],
     ]);
 
     rerender({
@@ -254,6 +256,31 @@ describe('bus contract editor model', () => {
     );
 
     act(() => result.current.updatePolarity('read', 'default'));
+
+    expect(batchUpdate).toHaveBeenCalledWith([
+      [['busInterfaces', 0, 'portPolarityOverrides'], { write: 'activeLow' }],
+    ]);
+  });
+
+  it('drops a redundant override when the contract default is chosen explicitly', () => {
+    const batchUpdate = jest.fn();
+    const bus: BusInterface = {
+      name: 'control',
+      type: 'AVMM',
+      mode: 'master',
+      portPolarityOverrides: { read: 'activeLow', write: 'activeLow' },
+    };
+    const { result } = renderHook(() =>
+      useBusContractEditor({
+        bus,
+        busIndex: 0,
+        parameters: [],
+        busLibrary: builtinBusLibrary(),
+        batchUpdate,
+      })
+    );
+
+    act(() => result.current.updatePolarity('read', 'activeHigh'));
 
     expect(batchUpdate).toHaveBeenCalledWith([
       [['busInterfaces', 0, 'portPolarityOverrides'], { write: 'activeLow' }],

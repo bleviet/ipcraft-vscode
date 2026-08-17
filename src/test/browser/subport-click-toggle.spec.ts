@@ -283,9 +283,10 @@ busInterfaces:
     const lastMessage = await page.evaluate(() => (window as any).__last_message);
     const emitted = yaml.load(lastMessage.text) as any;
     expect(emitted.busInterfaces[0].useOptionalPorts).toEqual(['write', 'waitrequest', 'read']);
+    // 'write' was returned to its contract default (activeHigh) through the
+    // selector, so its override entry is removed rather than stored.
     expect(emitted.busInterfaces[0].portPolarityOverrides).toEqual({
       read: 'activeLow',
-      write: 'activeHigh',
     });
     expect(emitted.busInterfaces[0].portNameOverrides).toEqual({
       write: 'imported_write_signal',

@@ -92,10 +92,40 @@ function linkedOverrideDiagnostic(
   };
 }
 
+/** Why a `portPolarityOverrides` entry cannot take effect. */
+type PolarityOverrideRejection = 'unknownPort' | 'portNotConfigurable' | 'invalidValue';
+
+const POLARITY_OVERRIDE_MESSAGES: Record<PolarityOverrideRejection, (portName: string) => string> =
+  {
+    unknownPort: (portName) =>
+      `Port polarity override '${portName}' is not declared by this bus contract.`,
+    portNotConfigurable: (portName) =>
+      `Port '${portName}' does not declare configurable polarity in this bus contract.`,
+    invalidValue: (portName) =>
+      `Port polarity override '${portName}' must be 'activeHigh' or 'activeLow'.`,
+  };
+
+function polarityOverrideRejection(
+  port: NormalizedBusPort | undefined,
+  polarity: unknown
+): PolarityOverrideRejection | null {
+  if (!port) {
+    return 'unknownPort';
+  }
+  if (!port.polarity) {
+    return 'portNotConfigurable';
+  }
+  if (polarity !== 'activeHigh' && polarity !== 'activeLow') {
+    return 'invalidValue';
+  }
+  return null;
+}
+
 function polarityOverrideDiagnostic(
   busInterface: BusInterface,
   busIndex: number,
-  portName: string
+  portName: string,
+  rejection: PolarityOverrideRejection
 ): BusConformanceDiagnostic {
   return {
     code: 'BUS_PORT_POLARITY_OVERRIDE',
@@ -104,7 +134,7 @@ function polarityOverrideDiagnostic(
     state: 'invalid',
     interfaceName: busInterface.name,
     path: ['busInterfaces', busIndex, 'portPolarityOverrides', portName],
-    message: `Port polarity override '${portName}' is not declared by this bus contract.`,
+    message: POLARITY_OVERRIDE_MESSAGES[rejection](portName),
   };
 }
 
@@ -208,8 +238,11 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
     const port = contract.ports.find(
       (candidate) => candidate.name.toLowerCase() === portName.toLowerCase()
     );
-    if (!port?.polarity || (polarity !== 'activeHigh' && polarity !== 'activeLow')) {
-      diagnostics.push(polarityOverrideDiagnostic(canonicalBusInterface, input.busIndex, portName));
+    const rejection = polarityOverrideRejection(port, polarity);
+    if (rejection) {
+      diagnostics.push(
+        polarityOverrideDiagnostic(canonicalBusInterface, input.busIndex, portName, rejection)
+      );
     }
   }
 
