@@ -16,14 +16,15 @@ flowchart LR
 
 ## Main commands
 
-| Command | Result |
-|---|---|
-| **IPCraft: Scaffold Project** | Complete output selected by the pack and settings |
-| **IPCraft: Generate Top-Level HDL** | RTL only |
-| **IPCraft: Generate CocoTB Testbench** | Python and simulator files |
-| **IPCraft: Generate Vivado Project** | Vivado project scripts and constraints |
-| **IPCraft: Generate Quartus Project** | Quartus project script and constraints |
-| **IPCraft: Generate Documentation** | Markdown documentation supplied by the pack |
+| Command                                                | Result                                            |
+| ------------------------------------------------------ | ------------------------------------------------- |
+| **IPCraft: Scaffold Project**                          | Complete output selected by the pack and settings |
+| **IPCraft: Generate Top-Level HDL**                    | RTL only                                          |
+| **IPCraft: Generate CocoTB Testbench**                 | Python and simulator files                        |
+| **IPCraft: Generate System Testbench from Vivado Tcl** | Tracked VHDL/XSim system-verification runner      |
+| **IPCraft: Generate Vivado Project**                   | Vivado project scripts and constraints            |
+| **IPCraft: Generate Quartus Project**                  | Quartus project script and constraints            |
+| **IPCraft: Generate Documentation**                    | Markdown documentation supplied by the pack       |
 
 All generated files are shown in a staging review before IPCraft writes them.
 
@@ -61,6 +62,48 @@ module, core module, bus wrapper, and register module.
 Smaller packs intentionally produce fewer files. See
 [scaffold packs](../how-to/customizing-generated-files-with-scaffold-packs.md).
 
+## System-verification scaffold
+
+System verification is separate from IP-core scaffold packs. It starts from a
+checked-in Vivado recreation Tcl script and stages this fixed, tracked layout in
+a `verification/` directory beside the script:
+
+```text
+verification/
+├── system-verification.yml
+├── Makefile
+├── scripts/run_xsim.tcl
+└── tb/
+    ├── axi4lite_master_bfm.vhd
+    └── system_verification_tb.vhd
+```
+
+The `Makefile` is mandatory. `make run` is the common extension, developer, and
+CI entry point; `make run WAVES=1` enables waveform capture. `make clean`
+removes only a marked run directory within the scaffold's `.run/` directory or
+the project `.ipcraft/system-verification/` run root, and `make help` lists the
+supported targets.
+
+IPCraft renders all five source files in memory and sends them through the
+standard staging review. Cancelling the review writes none of them. Accepted
+sources belong in version control; runtime Vivado/XSim output does not. The VS
+Code runner retains each run beneath
+`.ipcraft/system-verification/<run-id>/`, including
+`system-verification.log`, exported simulation files, and any `result.json` or
+optional waveform produced before the run ends. A generated `result.json`
+records passed, failed, or cancelled; it includes the resolved interface,
+instance, and system base address only after the recreated binding has been
+validated.
+
+This runner is VHDL/XSim-only and exercises deterministic, ordered,
+single-word reads and writes through a 32-bit-address, 32-bit-data AXI4-Lite
+boundary interface. At run time it byte-checks the reviewed configuration and
+memory map and revalidates the wrapper language, physical interface shape,
+clock/reset boundary ports, target segment, and address assignment. Drift
+requires regeneration. It does not use AXI VIP, Cocotb, or Questa. See
+[Run System Verification](../how-to/run-system-verification.md) for the complete
+configuration and failure-diagnosis procedure.
+
 ## Cocotb verification source of truth
 
 For generated cocotb tests, `tb/verification_manifest.json` replaces
@@ -83,30 +126,30 @@ interpret it. It is therefore not a second verification oracle.
 
 ## Generation options
 
-| Option | Default | Meaning |
-|---|---|---|
-| `targets` | `[]` | Vendor outputs such as `vivado` or `quartus` |
-| `hdlLanguage` | `vhdl` | `vhdl` or `systemverilog` |
-| `includeHdl` | `true` | Include RTL files |
-| `includeRegs` | `true` | Include generated register logic |
-| `includeTestbench` | `true` | Include test files |
-| `includeDocs` | `true` | Include generated Markdown documentation |
-| `includeVivadoProject` | `false` | Include Vivado project and build scripts |
-| `targetPart` | Setting value | Vivado FPGA part |
-| `includeQuartusProject` | `false` | Include Quartus project files |
-| `quartusDevice` | Setting value | Quartus device part |
+| Option                  | Default       | Meaning                                      |
+| ----------------------- | ------------- | -------------------------------------------- |
+| `targets`               | `[]`          | Vendor outputs such as `vivado` or `quartus` |
+| `hdlLanguage`           | `vhdl`        | `vhdl` or `systemverilog`                    |
+| `includeHdl`            | `true`        | Include RTL files                            |
+| `includeRegs`           | `true`        | Include generated register logic             |
+| `includeTestbench`      | `true`        | Include test files                           |
+| `includeDocs`           | `true`        | Include generated Markdown documentation     |
+| `includeVivadoProject`  | `false`       | Include Vivado project and build scripts     |
+| `targetPart`            | Setting value | Vivado FPGA part                             |
+| `includeQuartusProject` | `false`       | Include Quartus project files                |
+| `quartusDevice`         | Setting value | Quartus device part                          |
 
 The IP Core toolbar writes the common choices to the current file or workspace
 settings. Commands may ask for a missing part or device.
 
 ## Vendor targets
 
-| Target | Packaging output |
-|---|---|
-| None | HDL, tests, and documentation only |
-| `vivado` | `component.xml` and Vivado XGUI metadata |
-| `quartus` | Platform Designer `_hw.tcl` component |
-| Both | Both vendor packages |
+| Target    | Packaging output                         |
+| --------- | ---------------------------------------- |
+| None      | HDL, tests, and documentation only       |
+| `vivado`  | `component.xml` and Vivado XGUI metadata |
+| `quartus` | Platform Designer `_hw.tcl` component    |
+| Both      | Both vendor packages                     |
 
 Project creation is a separate choice. For example, Vivado packaging can be
 generated without creating an out-of-context synthesis project.
@@ -139,21 +182,21 @@ flowchart TD
 
 Common template values:
 
-| Value | Meaning |
-|---|---|
-| `name`, `display_name` | Core names suitable for files and headings |
-| `is_systemverilog` | Whether SystemVerilog is selected |
-| `bus_type` | Short bus name used by templates |
-| `has_memory_mapped_slave` | Whether register-bus output is needed |
-| `has_endian_swap` | Whether top-level endian reflow logic is needed |
-| `registers` | Registers sorted by address |
-| `bus_ports`, `user_ports` | Physical interface and standalone ports |
-| `interrupt_ports` | Interrupt signals with resolved bus-interface and clock associations |
-| `endian_swap_ports`, `endian_swap_widths` | Ports and fixed widths used by endian reflow logic |
-| `generics` | Core parameters |
-| `xgui_pages` | Parameter `uiPage`/`uiGroup` layout as a page-group-parameter tree, for the Vivado xGUI |
-| `display_items` | The same layout flattened into Platform Designer `add_display_item` records |
-| `clock_port`, `reset_port` | Primary clock and reset names |
+| Value                                     | Meaning                                                                                 |
+| ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| `name`, `display_name`                    | Core names suitable for files and headings                                              |
+| `is_systemverilog`                        | Whether SystemVerilog is selected                                                       |
+| `bus_type`                                | Short bus name used by templates                                                        |
+| `has_memory_mapped_slave`                 | Whether register-bus output is needed                                                   |
+| `has_endian_swap`                         | Whether top-level endian reflow logic is needed                                         |
+| `registers`                               | Registers sorted by address                                                             |
+| `bus_ports`, `user_ports`                 | Physical interface and standalone ports                                                 |
+| `interrupt_ports`                         | Interrupt signals with resolved bus-interface and clock associations                    |
+| `endian_swap_ports`, `endian_swap_widths` | Ports and fixed widths used by endian reflow logic                                      |
+| `generics`                                | Core parameters                                                                         |
+| `xgui_pages`                              | Parameter `uiPage`/`uiGroup` layout as a page-group-parameter tree, for the Vivado xGUI |
+| `display_items`                           | The same layout flattened into Platform Designer `add_display_item` records             |
+| `clock_port`, `reset_port`                | Primary clock and reset names                                                           |
 
 The versioned template-data schema is
 `src/generator/contract/template_context.schema.json`. Template variables use
@@ -168,10 +211,10 @@ use the compatible `^1.0` range.
 
 ## Testbench selection
 
-| Framework | Supported simulator choices | Main output |
-|---|---|---|
-| Cocotb | GHDL, Icarus Verilog, Verilator, Questa | Python tests and simulator runner |
-| VUnit | GHDL | `run.py` and VHDL testbench |
+| Framework | Supported simulator choices             | Main output                       |
+| --------- | --------------------------------------- | --------------------------------- |
+| Cocotb    | GHDL, Icarus Verilog, Verilator, Questa | Python tests and simulator runner |
+| VUnit     | GHDL                                    | `run.py` and VHDL testbench       |
 
 The framework controls how tests are written. The simulator choice controls how
 the generated HDL is compiled and run.
@@ -202,16 +245,16 @@ npm install --global ./build/ipcraft-0.9.2.tgz
 ipcraft generate path/to/core.ip.yml --target quartus --lang vhdl --out gen/
 ```
 
-| Option | Meaning |
-|---|---|
-| `--target <vendor>` | Vendor output; repeat or use a comma-separated list |
-| `--lang <language>` | `vhdl` or `systemverilog` |
-| `--out <directory>` | Generated project directory |
-| `--pack <name>` | Scaffold pack override |
-| `--quartus-device <part>` | Quartus device |
-| `--vivado-part <part>` | Vivado part |
-| `--indent-style <spaces\|tab>` | Indentation style for generated HDL/TCL/XDC/SDC (default: `spaces`) |
-| `--indent-size <n>` | Spaces per indentation level when `--indent-style` is `spaces` (default: `2`) |
+| Option                         | Meaning                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| `--target <vendor>`            | Vendor output; repeat or use a comma-separated list                           |
+| `--lang <language>`            | `vhdl` or `systemverilog`                                                     |
+| `--out <directory>`            | Generated project directory                                                   |
+| `--pack <name>`                | Scaffold pack override                                                        |
+| `--quartus-device <part>`      | Quartus device                                                                |
+| `--vivado-part <part>`         | Vivado part                                                                   |
+| `--indent-style <spaces\|tab>` | Indentation style for generated HDL/TCL/XDC/SDC (default: `spaces`)           |
+| `--indent-size <n>`            | Spaces per indentation level when `--indent-style` is `spaces` (default: `2`) |
 
 Use `verify` to compare committed output with a fresh in-memory generation:
 

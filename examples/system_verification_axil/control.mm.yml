@@ -1,0 +1,24 @@
+- name: CONTROL
+  description: Register contract for the Vivado system-verification example
+  addressBlocks:
+    - name: REGISTERS
+      baseAddress: 0
+      range: 0x20
+      usage: register
+      defaultRegWidth: 32
+      registers:
+        - name: STATUS
+          offset: 0
+          access: read-only
+          resetValue: 0x00000001
+          fields: []
+        - name: CONTROL
+          offset: 4
+          access: read-write
+          resetValue: 0
+          fields: []
+        - name: IDENTITY
+          offset: 8
+          access: read-only
+          resetValue: 0x49504352
+          fields: []

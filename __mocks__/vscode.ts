@@ -11,12 +11,14 @@ const mockOutputChannel = {
 
 export const window = {
   createOutputChannel: jest.fn(() => mockOutputChannel),
+  createWebviewPanel: jest.fn(),
   showSaveDialog: jest.fn(),
   showErrorMessage: jest.fn(),
   showWarningMessage: jest.fn(),
   showInformationMessage: jest.fn(),
   showOpenDialog: jest.fn(),
   showQuickPick: jest.fn(),
+  showInputBox: jest.fn(),
   // `resetMocks: true` (config/jest.config.js) wipes any default implementation
   // before every test, so this is a bare stub — tests that need withProgress to
   // actually invoke its task must call `.mockImplementation(...)` themselves.
@@ -28,6 +30,12 @@ export const window = {
     },
   },
 };
+
+export enum ViewColumn {
+  Active = -1,
+  Beside = -2,
+  One = 1,
+}
 
 export class TabInputCustom {
   constructor(

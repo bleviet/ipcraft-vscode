@@ -9,6 +9,7 @@ common tasks below; the later tables are the complete reference.
 |---|---|
 | Create a core and linked register map | **IPCraft: New IP Core + Register Map** |
 | Generate the complete project | **IPCraft: Scaffold Project** |
+| Generate a Vivado system-verification runner | **IPCraft: Generate System Testbench from Vivado Tcl** |
 | Check generated files against the specification | **IPCraft: Check Consistency** |
 | Import an existing VHDL entity | **IPCraft: Import from VHDL (Experimental)** |
 | Run the available vendor build | **IPCraft: Build** |
@@ -94,6 +95,28 @@ These commands are available on `.ip.yml` files.
 **Generate Xilinx Vivado Component** — Exports `xilinx/component.xml` and `xilinx/xgui/<ip_name>_v*.tcl` for use in the Vivado IP catalog.
 
 **Generate Documentation** — Renders `docs/<ip_name>_datasheet.md`, a Markdown datasheet covering ports, generics, bus interfaces, and (if present) the linked register map. Same command run by scaffolding when `ipcraft.generate.includeDocs` is enabled.
+
+---
+
+### System Verification
+
+| Command | Location | Requirement |
+|---------|----------|-------------|
+| `IPCraft: Generate System Testbench from Vivado Tcl` | Command Palette | Trusted workspace and configured Vivado |
+| `IPCraft: Run System Testbench` | Explorer context menu on `system-verification.yml` | Trusted workspace, GNU Make, and configured Vivado/XSim |
+
+**Generate System Testbench from Vivado Tcl** — Recreates a checked-in Vivado
+block design in a temporary directory, discovers one externally reachable
+AXI4-Lite target, and stages the tracked VHDL/XSim runner beside the recreation
+script. Cancelling before staging confirmation writes no tracked files.
+
+**Run System Testbench** — Runs the tracked mandatory `Makefile`, shows typed
+preflight-to-completion status, and retains the log, any result or optional
+waveform produced, and Vivado/XSim work under
+`.ipcraft/system-verification/<run-id>/`.
+
+See [Run System Verification](../how-to/run-system-verification.md) for the
+configuration, `make run` targets, version 1 restrictions, and troubleshooting.
 
 ---
 

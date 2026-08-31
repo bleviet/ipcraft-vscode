@@ -34,6 +34,8 @@ const TRUST_REQUIRED_COMMANDS = [
   'fpga-ip-core.generateQuartusProject',
   'fpga-ip-core.generateAndBuildVivado',
   'fpga-ip-core.generateAndBuildQuartus',
+  'fpga-ip-core.generateSystemTestbench',
+  'fpga-ip-core.runSystemTestbench',
   'fpga-ip-core.buildVivadoOoc',
   'fpga-ip-core.buildQuartusCompile',
   'fpga-ip-core.parseVHDL',
@@ -73,6 +75,14 @@ describe('workspace trust manifest contract', () => {
     for (const commandId of TRUST_REQUIRED_COMMANDS) {
       expect(commands.get(commandId)?.enablement).toContain('isWorkspaceTrusted');
     }
+  });
+
+  it('requires a configured Vivado toolchain before enabling the system-testbench run command', () => {
+    const runCommand = manifest.contributes?.commands?.find(
+      (command) => command.command === 'fpga-ip-core.runSystemTestbench'
+    );
+
+    expect(runCommand?.enablement).toBe('isWorkspaceTrusted && ipcraft.vivadoFound');
   });
 
   it('declares settings that can redirect templates or external tools as restricted', () => {
