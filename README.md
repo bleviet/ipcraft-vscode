@@ -89,11 +89,13 @@ Requires VS Code 1.80 or later.
 
 Walkthroughs covering these steps (and importing existing VHDL, importing from vendor tools, and synthesizing) are available from **Help → Get Started** or `IPCraft: Open Walkthrough...`.
 
-Installing the Marketplace extension does not add a shell command to your
-`PATH`. A separate npm CLI package is being prepared for headless CI and
-scripting; until it is published, use the extension commands above. See the
+Installing the Marketplace extension also makes an `ipcraft` command
+available for headless `generate`/`verify` — automatically in VS Code's
+integrated terminal, or in any external terminal/CI shell via **IPCraft:
+Install 'ipcraft' Command in PATH** (no sudo/admin rights, no separate
+Node.js install). See the
 [Generator Reference](docs/reference/generator.md#command-line-package) for
-local package testing.
+details.
 
 ---
 

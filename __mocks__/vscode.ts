@@ -29,6 +29,12 @@ export const window = {
   },
 };
 
+export const env = {
+  clipboard: {
+    writeText: jest.fn(),
+  },
+};
+
 export class TabInputCustom {
   constructor(
     public uri: { fsPath: string },

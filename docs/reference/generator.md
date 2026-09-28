@@ -189,12 +189,36 @@ For commands, configuration, and report states, see
 
 ## Command-line package
 
-The Marketplace extension does not install a global shell command. The
-standalone `ipcraft` npm package is prepared in this repository but is not yet
-published. Until it is released, use the extension commands documented above.
+Installing the extension from the Marketplace also ships an `ipcraft` command,
+run with VS Code's own bundled Electron/Node runtime — no separate Node.js
+install is required.
 
-Contributors can build a local package archive and install that archive in a
-clean environment without publishing it:
+- **Integrated terminal:** works automatically. Open a terminal inside VS Code
+  (`` Ctrl+` ``/`` Cmd+` ``) after installing or updating the extension and run
+  `ipcraft --help`.
+- **External terminal / CI shell:** run **IPCraft: Install 'ipcraft' Command in
+  PATH** from the Command Palette once. It writes a small shim to a
+  user-writable directory — no sudo/admin rights needed — and, if that
+  directory is not already on `PATH`, offers to add it:
+
+  | OS | Shim location | PATH handling |
+  |---|---|---|
+  | Linux | `~/.local/bin/ipcraft` | Usually already on `PATH` (XDG default) |
+  | macOS | `~/.local/bin/ipcraft` | Offers to add an export line to `~/.zprofile`/`~/.bash_profile` |
+  | Windows | `%LOCALAPPDATA%\Programs\ipcraft\ipcraft.cmd` | Adds to the per-user `PATH` (no admin rights) |
+
+  Open a new terminal afterward to pick up the `PATH` change. Run **IPCraft:
+  Uninstall 'ipcraft' Command from PATH** to remove the shim and undo the
+  `PATH` change.
+- **Stays current across updates:** the shim forwards to a launcher that VS
+  Code rewrites on every activation, so it always matches the installed
+  extension version — reinstalling after an update is never required.
+
+The standalone `ipcraft` npm package (for use without VS Code installed at
+all) is prepared in this repository but is not yet published; see
+[issue #116](https://github.com/bleviet/ipcraft-vscode/issues/116). Until it
+is released, contributors can build a local package archive and install that
+archive in a clean environment without publishing it:
 
 ```bash
 npm run package:cli

@@ -46,7 +46,9 @@
     "Visualization",
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "capabilities": {
     "untrustedWorkspaces": {
@@ -413,6 +415,16 @@
       {
         "command": "fpga-ip-core.openBuildAndVerifyWalkthrough",
         "title": "Synthesize and Check Timing",
+        "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.installCli",
+        "title": "Install 'ipcraft' Command in PATH",
+        "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.uninstallCli",
+        "title": "Uninstall 'ipcraft' Command from PATH",
         "category": "IPCraft"
       }
     ],

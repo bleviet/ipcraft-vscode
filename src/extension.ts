@@ -60,6 +60,8 @@ import { handleErrorWithUserNotification } from './utils/ErrorHandler';
 import { DataInspectorPanel } from './providers/DataInspectorPanel';
 import { DataInspectorRecipeEditorProvider } from './providers/DataInspectorRecipeEditorProvider';
 import { selectRegisterLayout } from './commands/DataInspectorCommands';
+import { registerCliInstallCommands } from './commands/CliInstallCommands';
+import { refreshLauncher, getLauncherPath } from './services/cliInstall/CliInstaller';
 
 const SHARED_EDITOR_OPTIONS = {
   webviewOptions: {
@@ -86,9 +88,21 @@ function registerCustomProvider(
 }
 
 /**
+ * Extension activation API exposed via `context.exports` / `Extension.exports`
+ * (issue #206). `cliLauncherPath` is the stable, always-current path integrated
+ * terminals' PATH points at — computed synchronously, but the file itself is written
+ * asynchronously by `refreshLauncher` (fire-and-forget below), so callers relying on it
+ * (e.g. e2e tests) must poll for its existence rather than assume it is there
+ * immediately after `activate` returns.
+ */
+export interface IpcraftExtensionApi {
+  cliLauncherPath: string;
+}
+
+/**
  * Extension activation entry point
  */
-export function activate(context: vscode.ExtensionContext): void {
+export function activate(context: vscode.ExtensionContext): IpcraftExtensionApi | undefined {
   // Initialize logging
   Logger.initialize('FPGA Memory Map & IP Core Editor', LogLevel.INFO);
   const logger = new Logger('Extension');
@@ -105,8 +119,15 @@ export function activate(context: vscode.ExtensionContext): void {
       'extension.activate',
       `IPCraft extension activation failed: ${message}`
     );
-    return;
+    return undefined;
   }
+
+  // Keep the 'ipcraft' CLI launcher current and on the integrated terminal's PATH
+  // (issue #206). Never blocks activation: refreshLauncher catches and logs its own
+  // errors, so a failure here just means `ipcraft` is unavailable this session.
+  const cliLauncherPath = getLauncherPath(context);
+  void refreshLauncher(context);
+  registerCliInstallCommands(context);
 
   registerCustomProvider(
     context,
@@ -360,6 +381,7 @@ export function activate(context: vscode.ExtensionContext): void {
   void migrateToolchainSettings(context);
 
   logger.info('Extension activated successfully');
+  return { cliLauncherPath };
 }
 
 /**

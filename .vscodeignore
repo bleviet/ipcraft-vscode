@@ -9,8 +9,6 @@ src/**
 packages/**
 node_modules/**
 out/**
-dist/cli.js
-dist/cli.js.LICENSE.txt
 .gitignore
 .prettierrc.js
 .prettierignore
