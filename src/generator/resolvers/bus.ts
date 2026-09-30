@@ -481,14 +481,18 @@ export const busResolver: ContextResolver = {
       ...(port.laneKind ? { lane_kind: port.laneKind } : {}),
     }));
     const swappablePorts = boundaryTransforms.ports.filter((port) => port.swapKind !== undefined);
-    // Only fixed-width byte swaps use a swap_bytes_<width>() function; bit reversals and
-    // parameterized byte swaps are emitted inline as generate loops.
+    // Only fixed-width swaps in eight-bit lanes use a swap_bytes_<width>() function; bit
+    // reversals, parameterized swaps, and other lane widths are emitted inline as generate
+    // loops. This must match the top-level templates, which pick the function by lane width
+    // alone — eight-bit Avalon-ST symbols (laneKind 'symbol') call it too.
     const endianSwapWidths = [
       ...new Set(
         swappablePorts
           .filter(
             (port) =>
-              port.swapKind === 'lane' && port.laneKind === 'byte' && port.isParameterized !== true
+              port.swapKind === 'lane' &&
+              Number(port.laneWidth) === BYTE_LANE_WIDTH &&
+              port.isParameterized !== true
           )
           .map((port) => port.width as number)
       ),

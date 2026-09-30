@@ -537,3 +537,51 @@ describe('Endianness on a stream-only IP with no memory-mapped slave (issue #138
     }
   }, 90_000);
 });
+
+describe('Endianness on a big-endian Avalon-ST source with eight-bit symbols', () => {
+  it('declares swap_bytes_32 in the package that the top level calls', async () => {
+    const { rtlDir } = await generate('vhdl', AVALON_ST_ENDIAN_YAML);
+    const top = fs.readFileSync(path.join(rtlDir, 'avalon_st_endian.vhd'), 'utf8');
+    const pkg = fs.readFileSync(path.join(rtlDir, 'avalon_st_endian_pkg.vhd'), 'utf8');
+    expect(top).toContain('big_data <= swap_bytes_32(big_data_be);');
+    expect(pkg).toContain('function swap_bytes_32');
+  });
+
+  it('GHDL + iverilog: the generated RTL compiles', async () => {
+    if (!guardTier1('ghdl', () => toolOnPath('ghdl'))) {
+      const { rootDir, rtlOrder } = await generate('vhdl', AVALON_ST_ENDIAN_YAML);
+      const ordered = rtlOrder.filter((f) => f.endsWith('.vhd'));
+      const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-ghdl-avst-'));
+      try {
+        for (const args of [
+          ['-a', '--std=08', `--workdir=${workdir}`, ...ordered],
+          ['-e', '--std=08', `--workdir=${workdir}`, 'avalon_st_endian'],
+        ]) {
+          const r = spawnSync('ghdl', args, { cwd: rootDir, encoding: 'utf8', timeout: 120_000 });
+          expect({ status: r.status, out: r.stderr || r.stdout }).toEqual({
+            status: 0,
+            out: r.stderr || r.stdout,
+          });
+        }
+      } finally {
+        fs.rmSync(workdir, { recursive: true, force: true });
+      }
+    }
+
+    if (!guardTier1('iverilog', () => toolOnPath('iverilog'))) {
+      const { rootDir, rtlOrder } = await generate('systemverilog', AVALON_ST_ENDIAN_YAML);
+      const ordered = rtlOrder.filter((f) => f.endsWith('.sv'));
+      const out = path.join(os.tmpdir(), `ipcraft-iverilog-avst-${process.pid}.vvp`);
+      const r = spawnSync('iverilog', ['-g2012', '-o', out, ...ordered], {
+        cwd: rootDir,
+        encoding: 'utf8',
+        timeout: 120_000,
+      });
+      fs.rmSync(out, { force: true });
+      expect({ status: r.status, out: r.stderr || r.stdout }).toEqual({
+        status: 0,
+        out: r.stderr || r.stdout,
+      });
+    }
+  }, 90_000);
+});

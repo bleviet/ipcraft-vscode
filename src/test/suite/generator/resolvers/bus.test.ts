@@ -465,6 +465,36 @@ describe('buildUserPorts endianness', () => {
     ).toEqual(expect.objectContaining({ needs_swap: true, lane_width: 1 }));
   });
 
+  it('declares swap_bytes for a fixed-width Avalon-ST payload in eight-bit symbol lanes', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        busInterfaces: [
+          {
+            name: 'stream',
+            type: 'ipcraft:busif:avalon_st:1.0',
+            mode: 'source',
+            physicalPrefix: 'stream_',
+            endianness: 'big',
+            interfaceProperties: { dataBitsPerSymbol: 8, symbolsPerBeat: 4 },
+          },
+        ],
+      })
+    );
+
+    expect(result.boundary_transform_ports).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: 'stream_data',
+          width: 32,
+          swap_kind: 'lane',
+          lane_width: 8,
+          lane_kind: 'symbol',
+        }),
+      ])
+    );
+    expect(result.endian_swap_widths).toEqual([32]);
+  });
+
   it('derives symbol-sized endian lanes from custom contract metadata', () => {
     const result = busResolver.resolve(
       makeInput(
