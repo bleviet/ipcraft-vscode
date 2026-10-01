@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import * as yaml from 'js-yaml';
 import type { BusDefinitionFile } from '../domain/busDefinition.types';
 import {
+  busAliasIdentity,
   normalizeBusLibrary,
   type BusDefinitionSource,
   type BusLibraryDiagnostic,
@@ -285,7 +286,32 @@ export class BusLibraryService {
 
   normalizeSources(...loads: readonly LoadedBusDefinitionSources[]): NormalizedBusLibrary {
     const semanticDiagnostics: BusLibraryDiagnostic[] = [];
+    // selectedSources always holds winners only (unique keys and canonical VLNVs).
     let selectedSources: BusDefinitionSource[] = [];
+    // Normalized selectedSources, computed only when the full check needs it.
+    let selected: NormalizedBusLibrary | null = null;
+    const selectedKeys = new Set<string>();
+    const selectedCanonicals = new Set<string>();
+    const aliasOwners = new Map<string, string>();
+    const adopt = (library: NormalizedBusLibrary): void => {
+      selected = library;
+      selectedKeys.clear();
+      selectedCanonicals.clear();
+      aliasOwners.clear();
+      for (const winner of selectedSources) {
+        for (const [key, entry] of Object.entries(winner.definitions)) {
+          selectedKeys.add(key);
+          const canonical = canonicalVlnv(entry);
+          if (canonical) {
+            selectedCanonicals.add(canonical);
+          }
+        }
+      }
+      for (const alias of library.aliases) {
+        aliasOwners.set(busAliasIdentity(alias), alias.canonicalVlnv);
+      }
+    };
+
     for (const source of loads.flatMap((load) => load.sources)) {
       for (const [key, entry] of Object.entries(source.definitions)) {
         const candidate: BusDefinitionSource = {
@@ -294,7 +320,8 @@ export class BusLibraryService {
           definitions: { [key]: entry },
         };
         const candidateResult = normalizeBusLibrary([candidate]);
-        if (!candidateResult.definitions[key]) {
+        const candidateContract = candidateResult.definitions[key];
+        if (!candidateContract) {
           if (source.sourceKind === 'builtin') {
             const detail = candidateResult.diagnostics.map((item) => item.message).join(' ');
             throw new Error(`Invalid bundled bus definition at ${source.sourceFile}: ${detail}`);
@@ -303,10 +330,32 @@ export class BusLibraryService {
           continue;
         }
 
-        const before = normalizeBusLibrary(selectWinningSources(selectedSources));
+        // Fast path: a new key and canonical VLNV whose aliases are free cannot
+        // displace or change any selected definition, so normalizing the whole
+        // library again would give the same result plus this candidate.
+        const canonical = canonicalVlnv(entry);
+        if (
+          canonical &&
+          !selectedKeys.has(key) &&
+          !selectedCanonicals.has(canonical) &&
+          candidateResult.aliases.every((alias) => {
+            const owner = aliasOwners.get(busAliasIdentity(alias));
+            return owner === undefined || owner === candidateContract.canonicalVlnv;
+          })
+        ) {
+          selectedSources = [...selectedSources, candidate];
+          selected = null;
+          selectedKeys.add(key);
+          selectedCanonicals.add(canonical);
+          for (const alias of candidateResult.aliases) {
+            aliasOwners.set(busAliasIdentity(alias), alias.canonicalVlnv);
+          }
+          continue;
+        }
+
+        const before: NormalizedBusLibrary = selected ?? normalizeBusLibrary(selectedSources);
         const tentativeSources = selectWinningSources([...selectedSources, candidate]);
         const tentative = normalizeBusLibrary(tentativeSources);
-        const canonical = canonicalVlnv(entry);
         const acceptedCandidate = tentative.definitions[key];
         const removesUnrelatedDefinition = Object.values(before.definitions).some(
           (existing) =>
@@ -325,9 +374,11 @@ export class BusLibraryService {
             throw new Error(`Invalid bundled bus definition at ${source.sourceFile}: ${detail}`);
           }
           semanticDiagnostics.push(...diagnostics);
+          selected = before;
           continue;
         }
         selectedSources = tentativeSources;
+        adopt(tentative);
       }
     }
     const normalized = normalizeBusLibrary(selectWinningSources(selectedSources));

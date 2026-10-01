@@ -552,23 +552,11 @@ describe('busResolver canonical port projection', () => {
       library: busLibrary,
     });
     const dataLane = resolveDataLane(resolution, iface);
-    const parameterDefaults = Object.fromEntries(
-      parameters.flatMap((parameter) =>
-        parameter.name && typeof parameter.value === 'number'
-          ? [[parameter.name, parameter.value]]
-          : []
-      )
-    );
-    return projectResolvedBusPorts(
-      resolution.activePorts,
-      iface.physicalPrefix ?? '',
-      parameterDefaults,
-      {
-        endianness: iface.endianness === 'big' ? 'big' : 'little',
-        laneWidth: dataLane.width,
-        laneKind: dataLane.kind,
-      }
-    );
+    return projectResolvedBusPorts(resolution.activePorts, iface.physicalPrefix ?? '', parameters, {
+      endianness: iface.endianness === 'big' ? 'big' : 'little',
+      laneWidth: dataLane.width,
+      laneKind: dataLane.kind,
+    });
   }
 
   it('projects big-endian byte data and qualifier swap metadata before template adaptation', () => {
@@ -644,6 +632,37 @@ describe('busResolver canonical port projection', () => {
       swapKind: 'lane',
       laneWidth: 1,
       laneKind: 'symbol',
+    });
+  });
+
+  it('emits TCL parameter references for expression-valued and defaultValue-only parameters', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        parameters: [
+          { name: 'BASE_W', defaultValue: 16 },
+          { name: 'DATA_WIDTH', value: '2*BASE_W' },
+        ],
+        busInterfaces: [
+          {
+            name: 's_avmm',
+            type: 'AVMM',
+            mode: 'slave',
+            physicalPrefix: 'avs_',
+            useOptionalPorts: ['writedata', 'readdata'],
+            portWidthOverrides: { writedata: 'DATA_WIDTH', readdata: 'BASE_W' },
+          },
+        ],
+      })
+    );
+
+    const ports = result.bus_ports as Array<Record<string, unknown>>;
+    expect(ports.find((port) => port.logical_name === 'writedata')).toMatchObject({
+      width: 32,
+      tcl_width: '[get_parameter_value DATA_WIDTH]',
+    });
+    expect(ports.find((port) => port.logical_name === 'readdata')).toMatchObject({
+      width: 16,
+      tcl_width: '[get_parameter_value BASE_W]',
     });
   });
 

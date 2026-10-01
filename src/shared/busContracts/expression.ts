@@ -138,6 +138,16 @@ export function createParameterContext(parameters: readonly Parameter[]): Parame
   return Object.freeze({ names, defaults, domains });
 }
 
+/**
+ * Numeric defaults for every parameter that resolves to a number, including
+ * expression-valued parameters and parameters that only declare `defaultValue`.
+ */
+export function resolveParameterDefaults(
+  parameters: readonly Parameter[]
+): Readonly<Record<string, number>> {
+  return Object.fromEntries(createParameterContext(parameters).defaults);
+}
+
 export function resolveNumericValue(
   rawValue: unknown,
   context: ParameterContext,

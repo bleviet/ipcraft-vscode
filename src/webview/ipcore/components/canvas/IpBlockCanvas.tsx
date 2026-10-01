@@ -270,7 +270,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         setPendingPortDrop({ portIndex, busIndex });
       }
     },
-    [batchUpdate, groupPorts, ipCore]
+    [batchUpdate, busLibrary, groupPorts, ipCore]
   );
 
   const { portDragActive, portDragActivePIdx, portDragHoveredBus, handlePortPointerDragStart } =

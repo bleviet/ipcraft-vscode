@@ -235,13 +235,6 @@ function collectExpectedBusPorts(
   busLibrary: NormalizedBusLibrary
 ): ExpectedBusPort[] {
   const result: ExpectedBusPort[] = [];
-  const parameterDefaults = Object.fromEntries(
-    (ipCoreData.parameters ?? []).flatMap((parameter) =>
-      parameter.name && typeof parameter.value === 'number'
-        ? [[String(parameter.name), parameter.value]]
-        : []
-    )
-  );
   (ipCoreData.busInterfaces ?? []).forEach((rawIface, origIdx) => {
     const expanded = expandBusInterfaces({
       ...ipCoreData,
@@ -265,7 +258,7 @@ function collectExpectedBusPorts(
       const activePorts = projectResolvedBusPorts(
         resolution.activePorts,
         iface.physicalPrefix ?? '',
-        parameterDefaults,
+        (ipCoreData.parameters ?? []) as unknown as Parameter[],
         {
           endianness: iface.endianness === 'big' ? 'big' : 'little',
           laneWidth: dataLane.width,

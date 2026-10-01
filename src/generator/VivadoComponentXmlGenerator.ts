@@ -336,13 +336,6 @@ function renderBusInterface(
     parameters: parameters as unknown as Parameter[],
     library: busLibrary,
   });
-  const parameterDefaults = Object.fromEntries(
-    parameters.flatMap((parameter) =>
-      parameter.name && typeof parameter.value === 'number'
-        ? [[String(parameter.name), parameter.value]]
-        : []
-    )
-  );
   const dataLane = resolveDataLane(contractResolution, iface);
 
   const lines: string[] = [];
@@ -425,7 +418,7 @@ function renderBusInterface(
         projectResolvedBusPorts(
           contractResolution.activePorts,
           String(iface.physicalPrefix ?? ''),
-          parameterDefaults,
+          parameters as unknown as Parameter[],
           {
             endianness: iface.endianness === 'big' ? 'big' : 'little',
             laneWidth: dataLane.width,
@@ -1111,16 +1104,11 @@ function renderPorts(
       }
       continue;
     }
-    const parameterDefaults = Object.fromEntries(
-      typedParams.flatMap((parameter) =>
-        typeof parameter.value === 'number' ? [[parameter.name, parameter.value]] : []
-      )
-    );
     const dataLane = resolveDataLane(contractResolution, iface);
     const activePorts = projectResolvedBusPorts(
       contractResolution.activePorts,
       String(iface.physicalPrefix ?? ''),
-      parameterDefaults,
+      parameters as unknown as Parameter[],
       {
         endianness: iface.endianness === 'big' ? 'big' : 'little',
         laneWidth: dataLane.width,

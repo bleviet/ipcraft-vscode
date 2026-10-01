@@ -227,6 +227,39 @@ describe('BusLibraryService normalized contract loading', () => {
     expect(loaded.sources).toHaveLength(1);
   });
 
+  it('normalizes a large Vivado interface catalog without re-normalizing per definition', () => {
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+    const definitions = Object.fromEntries(
+      Array.from({ length: 300 }, (_, index) => {
+        const { key, record } = vivadoInterfaceToBusDefEntry(
+          {
+            busType: {
+              vendor: 'xilinx.com',
+              library: 'interface',
+              name: `if_${index}`,
+              version: '1.0',
+            },
+            ports: Array.from({ length: 10 }, (_, port) => ({
+              name: `P${port}`,
+              direction: 'out',
+              width: 8,
+            })),
+          },
+          'vivado'
+        );
+        return [key, record];
+      })
+    );
+    const loaded = service.loadRecord(definitions, '/vivado/catalog.yml', 'configured');
+
+    const start = Date.now();
+    const library = service.normalizeSources(loaded);
+
+    expect(Object.keys(library.definitions)).toHaveLength(300);
+    // Quadratic re-normalization took several seconds at this size.
+    expect(Date.now() - start).toBeLessThan(2000);
+  });
+
   it('validates each workspace file separately so one invalid file keeps the others', () => {
     const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
     const good = {

@@ -9,12 +9,14 @@ import type {
 import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImports';
 import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
+import type { Parameter } from '../domain/ipcore.types';
 import { BUS_REGISTRY } from './buses/builtin';
 import {
   BYTE_LANE_WIDTH,
   canonicalizeBusType,
   isConsumerInterface,
   isMemoryMappedConsumer,
+  resolveParameterDefaults,
   type ResolvedBusPort,
   type NormalizedBusLibrary,
 } from '../shared/busContracts';
@@ -295,7 +297,11 @@ export function getSvPortType(width: number, _logicalName: string): string {
   return `logic [${width - 1}:0]`;
 }
 
-function toTclWidthExpression(exprStr: string, parameterNames: readonly string[]): string {
+/**
+ * Convert a width expression to a Platform Designer TCL expression, replacing each
+ * declared parameter reference with `[get_parameter_value NAME]`.
+ */
+export function toTclWidthExpression(exprStr: string, parameterNames: readonly string[]): string {
   const ast = parse(exprStr);
   if (!ast) {
     return exprStr;
@@ -328,14 +334,15 @@ function toTclWidthExpression(exprStr: string, parameterNames: readonly string[]
 export function projectResolvedBusPorts(
   ports: readonly ResolvedBusPort[],
   physicalPrefix: string,
-  parameters: Readonly<Record<string, number>> = {},
+  parameters: readonly Parameter[] = [],
   metadata: BusPortProjectionMetadata = {
     endianness: 'little',
     laneWidth: BYTE_LANE_WIDTH,
     laneKind: 'byte',
   }
 ): ProjectedBusPort[] {
-  const parameterNames = Object.keys(parameters);
+  const parameterNames = parameters.map((parameter) => parameter.name);
+  const parameterDefaults = resolveParameterDefaults(parameters);
 
   return ports.flatMap((port) => {
     if (port.role === 'clock' || port.role === 'reset') {
@@ -352,7 +359,7 @@ export function projectResolvedBusPorts(
         : null;
     const evaluatedWidth =
       port.effectiveWidth.value ??
-      (widthExpr ? evalWidthExpr(widthExpr, parameters) : undefined) ??
+      (widthExpr ? evalWidthExpr(widthExpr, parameterDefaults) : undefined) ??
       (typeof port.width === 'number' ? port.width : undefined) ??
       1;
     const portTypes = widthExpr

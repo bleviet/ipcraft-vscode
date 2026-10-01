@@ -181,6 +181,37 @@ describe('useIpCoreState', () => {
       expect(result.current.rawYaml).toContain('useOptionalPorts: [ read ]');
       expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
     });
+
+    it('keeps raw YAML aligned with canonical indices after an edit introduces a legacy alias', () => {
+      const { result } = renderHook(() => useIpCoreState());
+      act(() =>
+        result.current.updateFromYaml(
+          LEGACY_POLARITY_YAML.replace('useOptionalPorts: [read_n]', 'useOptionalPorts: [write]'),
+          'legacy.ip.yml',
+          { busLibrary: builtinBusLibrary() }
+        )
+      );
+      act(() =>
+        result.current.updateIpCore(
+          ['busInterfaces', 0, 'useOptionalPorts'],
+          ['read', 'read_n', 'write']
+        )
+      );
+      const optionalPorts = () =>
+        (result.current.ipCore as { busInterfaces?: Array<{ useOptionalPorts?: string[] }> })
+          .busInterfaces?.[0]?.useOptionalPorts;
+      const canonical = optionalPorts() ?? [];
+      const writeIndex = canonical.indexOf('write');
+      expect(canonical).not.toContain('read_n');
+
+      act(() =>
+        result.current.updateIpCore(['busInterfaces', 0, 'useOptionalPorts', writeIndex], undefined)
+      );
+
+      expect(optionalPorts()).toEqual(canonical.filter((name) => name !== 'write'));
+      expect(result.current.rawYaml).not.toContain('read_n');
+      expect(result.current.rawYaml).toContain('portPolarityOverrides:');
+    });
   });
 
   describe('updateIpCoreBatch', () => {

@@ -6,10 +6,11 @@ import {
   projectResolvedBusPorts,
   resolveStringWidth,
   buildParameterizedPortTypes,
+  toTclWidthExpression,
 } from '../registerProcessor';
 import { needsBitReverse, needsLaneSwap } from './endiannessPolicy';
 import type { BusInterfaceDef, ProjectedBusPort } from '../types';
-import { parse, serialize, widthExprUsesMathReal } from '../../shared/widthExprAst';
+import { widthExprUsesMathReal } from '../../shared/widthExprAst';
 import { buildInterruptPorts } from './interrupts';
 import { busSupportsMemoryMap } from '../../shared/busVlnv';
 import { BYTE_LANE_WIDTH, resolveBusInterface, resolveDataLane } from '../../shared/busContracts';
@@ -34,30 +35,6 @@ function normalizePrefix(prefix: string): string {
     return 's_axi';
   }
   return prefix.endsWith('_') ? prefix.slice(0, -1) : prefix;
-}
-
-function toTclWidthExpression(exprStr: string, paramNames: string[]): string {
-  const ast = parse(exprStr);
-  if (!ast) {
-    return exprStr;
-  }
-  const upperParamNames = paramNames.map((p) => p.toUpperCase());
-  let hasParam = false;
-  const converted = serialize(ast, 'tcl', {
-    paramRef: (name) => {
-      const upper = name.toUpperCase();
-      if (upperParamNames.includes(upper)) {
-        hasParam = true;
-        return `[get_parameter_value ${upper}]`;
-      }
-      return name;
-    },
-  }).code;
-  if (!hasParam) {
-    return exprStr;
-  }
-  const isSimpleRef = /^\[get_parameter_value [a-zA-Z0-9_]+\]$/.test(converted.trim());
-  return isSimpleRef ? converted : `[expr ${converted}]`;
 }
 
 function toTclWidth(
@@ -202,13 +179,6 @@ export const busResolver: ContextResolver = {
 
     const expandedBusInterfaces = expandBusInterfaces(ipCore);
     const parameterNames = (ipCore?.parameters ?? []).map((p) => String(p.name));
-    const parameterDefaults = Object.fromEntries(
-      (ipCore?.parameters ?? []).flatMap((parameter) =>
-        parameter.name && typeof parameter.value === 'number'
-          ? [[String(parameter.name), parameter.value]]
-          : []
-      )
-    );
 
     const busPorts: Array<Record<string, unknown>> = [];
     const secondaryBusPorts: Array<Record<string, unknown>> = [];
@@ -345,7 +315,7 @@ export const busResolver: ContextResolver = {
           const projectedPorts = projectResolvedBusPorts(
             contractResolution.activePorts,
             iface.physicalPrefix ?? '',
-            parameterDefaults,
+            (ipCore?.parameters ?? []) as unknown as Parameter[],
             {
               endianness: ifaceEndianness,
               laneWidth: dataLane.width,

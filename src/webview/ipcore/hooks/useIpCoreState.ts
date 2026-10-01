@@ -206,7 +206,9 @@ export function useIpCoreState() {
           value,
         ]);
 
-        const { ipCore } = canonicalizeParsedIpCore(
+        // Keep any canonicalization the edit introduced pending, so the next
+        // index-based edit applies it first and the raw YAML matches ipCore.
+        const { ipCore, mutations: pendingBusCanonicalization } = canonicalizeParsedIpCore(
           yaml.parse(newYaml) as Record<string, unknown>,
           prev.imports.busLibrary
         );
@@ -215,7 +217,7 @@ export function useIpCoreState() {
           ...prev,
           ipCore,
           rawYaml: newYaml,
-          pendingBusCanonicalization: [],
+          pendingBusCanonicalization,
         };
       } catch (error) {
         console.error('Failed to update YAML:', error);
@@ -252,7 +254,9 @@ export function useIpCoreState() {
           ]);
         }
 
-        const { ipCore } = canonicalizeParsedIpCore(
+        // Keep any canonicalization the edit introduced pending, so the next
+        // index-based edit applies it first and the raw YAML matches ipCore.
+        const { ipCore, mutations: pendingBusCanonicalization } = canonicalizeParsedIpCore(
           yaml.parse(currentYaml) as Record<string, unknown>,
           prev.imports.busLibrary
         );
@@ -261,7 +265,7 @@ export function useIpCoreState() {
           ...prev,
           ipCore,
           rawYaml: currentYaml,
-          pendingBusCanonicalization: [],
+          pendingBusCanonicalization,
         };
       } catch (error) {
         console.error('Failed to apply batch YAML update:', error);

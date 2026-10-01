@@ -585,3 +585,81 @@ describe('Endianness on a big-endian Avalon-ST source with eight-bit symbols', (
     }
   }, 90_000);
 });
+
+const ONE_LANE_PARAMETERIZED_YAML = `
+vlnv:
+  vendor: ipcraft
+  library: test
+  name: one_lane_be
+  version: 1.0.0
+scaffold_pack: builtin-ipcraft
+parameters:
+- name: C_W
+  dataType: integer
+  value: 8
+clocks:
+- name: clk
+  direction: in
+  associatedReset: reset_n
+resets:
+- name: reset_n
+  direction: in
+  polarity: activeLow
+  associatedClock: clk
+busInterfaces:
+- name: m_axis
+  type: ipcraft:busif:axi_stream:1.0
+  mode: master
+  physicalPrefix: m_axis_
+  associatedClock: clk
+  associatedReset: reset_n
+  endianness: big
+  portWidthOverrides:
+    TDATA: C_W
+`;
+
+describe('Endianness on a parameterized big-endian payload that is exactly one lane wide', () => {
+  it('GHDL + iverilog: the lane-swap width check passes at run time', async () => {
+    if (!guardTier1('ghdl', () => toolOnPath('ghdl'))) {
+      const { rootDir, rtlOrder } = await generate('vhdl', ONE_LANE_PARAMETERIZED_YAML);
+      const ordered = rtlOrder.filter((f) => f.endsWith('.vhd'));
+      const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-ghdl-onelane-'));
+      try {
+        for (const args of [
+          ['-a', '--std=08', `--workdir=${workdir}`, ...ordered],
+          ['-e', '--std=08', `--workdir=${workdir}`, 'one_lane_be'],
+          ['-r', '--std=08', `--workdir=${workdir}`, 'one_lane_be', '--stop-time=0ns'],
+        ]) {
+          const r = spawnSync('ghdl', args, { cwd: rootDir, encoding: 'utf8', timeout: 120_000 });
+          expect({ status: r.status, out: r.stderr || r.stdout }).toEqual({
+            status: 0,
+            out: r.stderr || r.stdout,
+          });
+        }
+      } finally {
+        fs.rmSync(workdir, { recursive: true, force: true });
+      }
+    }
+
+    if (!guardTier1('iverilog', () => toolOnPath('iverilog'))) {
+      const { rootDir, rtlOrder } = await generate('systemverilog', ONE_LANE_PARAMETERIZED_YAML);
+      const ordered = rtlOrder.filter((f) => f.endsWith('.sv'));
+      const out = path.join(os.tmpdir(), `ipcraft-iverilog-onelane-${process.pid}.vvp`);
+      try {
+        const compile = spawnSync(
+          'iverilog',
+          ['-g2012', '-s', 'one_lane_be', '-o', out, ...ordered],
+          { cwd: rootDir, encoding: 'utf8', timeout: 120_000 }
+        );
+        expect({ status: compile.status, out: compile.stderr || compile.stdout }).toEqual({
+          status: 0,
+          out: compile.stderr || compile.stdout,
+        });
+        const run = spawnSync('vvp', ['-n', out], { encoding: 'utf8', timeout: 120_000 });
+        expect(run.stdout + run.stderr).not.toMatch(/FATAL|lane swap requires/);
+      } finally {
+        fs.rmSync(out, { force: true });
+      }
+    }
+  }, 90_000);
+});

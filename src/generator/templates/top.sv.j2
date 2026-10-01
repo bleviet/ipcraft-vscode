@@ -97,8 +97,8 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
   endgenerate
 {% elif port.swap_kind == 'lane' and (port.is_parameterized or port.lane_width != 8) %}
   initial begin : check_swap_{{ port.name }}_width
-    assert (($bits({{ port.name }}) % {{ port.lane_width }}) == 0 && $bits({{ port.name }}) > {{ port.lane_width }})
-      else $fatal(1, "{{ port.name }}: big-endian lane swap requires at least two complete {{ port.lane_width }}-bit lanes");
+    assert (($bits({{ port.name }}) % {{ port.lane_width }}) == 0 && $bits({{ port.name }}) >= {{ port.lane_width }})
+      else $fatal(1, "{{ port.name }}: big-endian lane swap requires whole {{ port.lane_width }}-bit lanes");
   end
   genvar lane_idx_{{ port.name }};
   generate
