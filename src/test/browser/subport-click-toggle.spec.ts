@@ -271,18 +271,21 @@ busInterfaces:
       'avs_imported_write_signal'
     );
 
-    await page.evaluate(() => {
-      (window as any).__last_message = null;
-    });
     await readLogical.dblclick();
     await expect(readRow).toHaveClass(/canvas-bus-subport--active/);
     await expect(writeRow).toHaveClass(/canvas-bus-subport--active/);
     await expect(waitrequestRow).toHaveClass(/canvas-bus-subport--active/);
-    await page.waitForFunction(() => (window as any).__last_message?.type === 'update');
 
-    const lastMessage = await page.evaluate(() => (window as any).__last_message);
-    const emitted = yaml.load(lastMessage.text) as any;
-    expect(emitted.busInterfaces[0].useOptionalPorts).toEqual(['write', 'waitrequest', 'read']);
+    // Updates are debounced, so the write-polarity update can still arrive after
+    // the double-click. Wait for the latest update that contains the activation.
+    const latestUpdate = async () => {
+      const message = await page.evaluate(() => (window as any).__last_message);
+      return message?.type === 'update' ? (yaml.load(message.text) as any) : null;
+    };
+    await expect
+      .poll(async () => (await latestUpdate())?.busInterfaces[0].useOptionalPorts)
+      .toEqual(['write', 'waitrequest', 'read']);
+    const emitted = await latestUpdate();
     // 'write' was returned to its contract default (activeHigh) through the
     // selector, so its override entry is removed rather than stored.
     expect(emitted.busInterfaces[0].portPolarityOverrides).toEqual({
