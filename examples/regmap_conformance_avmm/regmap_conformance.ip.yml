@@ -185,16 +185,16 @@ fileSets:
         type: makefile
         managed: false
       - path: software/platform/nios2/main.c
-        type: c
+        type: cSource
         managed: false
       - path: software/platform/nios2/platform.c
-        type: c
+        type: cSource
         managed: false
       - path: software/platform/niosv/main.c
-        type: c
+        type: cSource
         managed: false
       - path: software/platform/niosv/platform.c
-        type: c
+        type: cSource
         managed: false
   - name: Documentation
     description: User-maintained validation evidence

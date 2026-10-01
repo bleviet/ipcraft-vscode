@@ -7,6 +7,7 @@ const REPO_ROOT = path.resolve(__dirname, '../../../..');
 const FIXTURES_DIR = path.join(REPO_ROOT, 'src', 'test', 'fixtures');
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'ipcraft-spec', 'templates');
 const EXAMPLES_DIR = path.join(REPO_ROOT, 'ipcraft-spec', 'examples');
+const REPO_EXAMPLES_DIR = path.join(REPO_ROOT, 'examples');
 const BUS_DEFINITIONS_DIR = path.join(REPO_ROOT, 'ipcraft-spec', 'bus_definitions');
 
 const IP_CORE_SCHEMA_PATH = path.join(REPO_ROOT, 'ipcraft-spec', 'schemas', 'ip_core.schema.json');
@@ -97,6 +98,8 @@ describe('Spec Conformance Tests', () => {
     ...getYamlFiles(FIXTURES_DIR),
     ...getYamlFiles(TEMPLATES_DIR),
     ...getYamlFiles(EXAMPLES_DIR),
+    // Repository examples also hold tool configs, so only take IP core and memory map files.
+    ...getYamlFiles(REPO_EXAMPLES_DIR).filter((f) => /\.(ip|mm)\.ya?ml$/.test(f)),
   ].filter((f) => !f.includes('invalid-syntax'));
 
   for (const filePath of allYamlFiles) {
