@@ -514,11 +514,7 @@ export class IpCoreScaffolder {
     // prevent workspace-discovered definitions from reaching the generator.
     try {
       const wsScanResult = await getWorkspaceBusDefinitionScanner().scan();
-      workspace = this.busLibraryService.loadRecord(
-        wsScanResult.library,
-        'workspace://discovered',
-        'workspace'
-      );
+      workspace = this.busLibraryService.loadWorkspaceScan(wsScanResult);
     } catch {
       // WorkspaceBusDefinitionScanner unavailable (e.g. test environment)
     }

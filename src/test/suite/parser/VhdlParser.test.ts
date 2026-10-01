@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { parseVhdlFile, extractVhdlInterface } from '../../../parser/VhdlParser';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
+import { blocksImportWrite, checkBusConformance } from '../../../shared/busConformance';
 import {
   parse as parseWidthExpr,
   evaluate as evaluateWidthExpr,
@@ -609,8 +610,11 @@ describe('VhdlParser', () => {
     expect(overrides.ARADDR).toBe('AddrWidth_g');
     expect(overrides.WDATA).toBe('DataWidth_g');
     expect(overrides.RDATA).toBe('DataWidth_g');
-    // WSTRB: generator applies /8 automatically, so override must be data-width param
-    expect(overrides.WSTRB).toBe('DataWidth_g');
+    // WSTRB is a derived width: keep the full expression so it matches WDATA/8.
+    expect(overrides.WSTRB).toBe('DataWidth_g/8');
+    const report = checkBusConformance(parsed, builtinBusLibrary());
+    expect(report.issues).toEqual([]);
+    expect(blocksImportWrite(report)).toBe(false);
     // All-lowercase ports → no portNameOverrides needed
     expect(ifaces[0].portNameOverrides).toBeUndefined();
   });

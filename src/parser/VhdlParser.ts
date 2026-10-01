@@ -1017,16 +1017,7 @@ export function detectBusInterfaces(
       const port = matched.port;
 
       if (typeof port.width === 'string') {
-        let overrideExpr = port.width;
-        if (key.toUpperCase() === 'WSTRB') {
-          // Generator applies /8 automatically for WSTRB; strip the trailing /N from
-          // the extracted VHDL expression so the override stores the data-width param.
-          overrideExpr = overrideExpr.replace(/\s*\/\s*\d+\s*$/, '').trim();
-          if (!overrideExpr) {
-            continue;
-          }
-        }
-        portWidthOverrides[key] = overrideExpr;
+        portWidthOverrides[key] = port.width;
       }
 
       // Record a suffix override when the literal spelling differs from the selected

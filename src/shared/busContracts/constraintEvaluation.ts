@@ -137,6 +137,20 @@ function structurallyProven(
       const expected = left && right ? binaryExpression('*', left, right) : undefined;
       return expressionsEqual(numericExpression(input.portWidths[constraint.port]), expected);
     }
+    case 'propertyFitsPort': {
+      // maxEncodableValue is frozen to the default width (the expression grammar has no
+      // power operator), so it cannot be re-evaluated per parameter combination. When the
+      // property is derived from this same port it fits by definition.
+      const derive = input.contract.interfaceProperties[constraint.property]?.derive;
+      return (
+        !Object.prototype.hasOwnProperty.call(
+          input.busInterface.interfaceProperties ?? {},
+          constraint.property
+        ) &&
+        derive?.operation === 'maxEncodableValue' &&
+        derive.port === constraint.port
+      );
+    }
     default:
       return false;
   }

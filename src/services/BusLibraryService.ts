@@ -247,6 +247,42 @@ export class BusLibraryService {
     });
   }
 
+  /**
+   * Load a workspace scan result, validating each discovered file on its own so a
+   * schema-invalid file only drops its own definitions. Definitions without file
+   * provenance are loaded together under `workspace://discovered`.
+   */
+  loadWorkspaceScan(scan: {
+    library: Record<string, unknown>;
+    files: readonly { uri: { fsPath: string }; busTypes: readonly string[] }[];
+  }): LoadedBusDefinitionSources {
+    const loads: LoadedBusDefinitionSources[] = [];
+    const assignedKeys = new Set<string>();
+    for (const file of scan.files) {
+      const definitions = Object.fromEntries(
+        file.busTypes
+          .filter((key) => scan.library[key] !== undefined)
+          .map((key) => {
+            assignedKeys.add(key);
+            return [key, scan.library[key]];
+          })
+      );
+      if (Object.keys(definitions).length > 0) {
+        loads.push(this.loadRecord(definitions, file.uri.fsPath, 'workspace'));
+      }
+    }
+    const unassigned = Object.fromEntries(
+      Object.entries(scan.library).filter(([key]) => !assignedKeys.has(key))
+    );
+    if (Object.keys(unassigned).length > 0) {
+      loads.push(this.loadRecord(unassigned, 'workspace://discovered', 'workspace'));
+    }
+    return Object.freeze({
+      sources: Object.freeze(loads.flatMap((load) => load.sources)),
+      diagnostics: Object.freeze(loads.flatMap((load) => load.diagnostics)),
+    });
+  }
+
   normalizeSources(...loads: readonly LoadedBusDefinitionSources[]): NormalizedBusLibrary {
     const semanticDiagnostics: BusLibraryDiagnostic[] = [];
     let selectedSources: BusDefinitionSource[] = [];

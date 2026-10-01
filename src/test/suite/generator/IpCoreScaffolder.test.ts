@@ -56,6 +56,16 @@ jest.mock('../../../services/BusLibraryService', () => {
         sources: [{ definitions, sourceFile, sourceKind }],
         diagnostics: [],
       })),
+      loadWorkspaceScan: jest.fn((scan) => ({
+        sources: [
+          {
+            definitions: scan.library,
+            sourceFile: 'workspace://discovered',
+            sourceKind: 'workspace',
+          },
+        ],
+        diagnostics: [],
+      })),
       normalizeSources: jest.fn((...loads) =>
         normalizeBusLibrary(loads.flatMap((load: { sources: unknown[] }) => load.sources))
       ),
@@ -88,6 +98,9 @@ function createBusLibraryServiceMock(
     loadFromUserPaths,
     loadRecord: jest.fn((definitions, sourceFile, sourceKind) =>
       asLoad(definitions, sourceKind, sourceFile)
+    ),
+    loadWorkspaceScan: jest.fn((scan: { library: Record<string, unknown> }) =>
+      asLoad(scan.library, 'workspace', 'workspace://discovered')
     ),
     normalizeSources: jest.fn((...loads) =>
       normalizeBusLibrary(loads.flatMap((load: { sources: unknown[] }) => load.sources))
@@ -2642,6 +2655,12 @@ describe('IpCoreScaffolder', () => {
       expect(componentXml).toBeDefined();
       // The bus interface must appear with port maps from the workspace bus definition
       expect(componentXml).toContain('<spirit:name>DATA</spirit:name>');
+      // Workspace definitions go through the per-file loader, like the editor's
+      // ImportResolver, so one invalid workspace file cannot drop the others.
+      const service = (BusLibraryService as jest.Mock).mock.results.at(-1)?.value;
+      expect(service.loadWorkspaceScan).toHaveBeenCalledWith(
+        expect.objectContaining({ library: workspaceBusDef })
+      );
     } finally {
       fs2.rmSync(tmp, { recursive: true, force: true });
     }

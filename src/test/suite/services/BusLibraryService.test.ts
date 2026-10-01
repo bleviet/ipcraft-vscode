@@ -227,6 +227,30 @@ describe('BusLibraryService normalized contract loading', () => {
     expect(loaded.sources).toHaveLength(1);
   });
 
+  it('validates each workspace file separately so one invalid file keeps the others', () => {
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+    const good = {
+      busType: { vendor: 'acme', library: 'busif', name: 'good', version: '1.0' },
+      ports: [{ name: 'DATA', width: 8, direction: 'out', presence: 'required' }],
+    };
+    const loaded = service.loadWorkspaceScan({
+      library: { GOOD: good, BROKEN: { ports: 'not-a-list' }, LOOSE: good },
+      files: [
+        { uri: { fsPath: '/ws/good.yml' }, busTypes: ['GOOD'] },
+        { uri: { fsPath: '/ws/broken.yml' }, busTypes: ['BROKEN'] },
+      ],
+    });
+
+    expect(
+      loaded.sources.map((source) => [source.sourceFile, Object.keys(source.definitions)])
+    ).toEqual([
+      ['/ws/good.yml', ['GOOD']],
+      ['workspace://discovered', ['LOOSE']],
+    ]);
+    expect(loaded.sources.every((source) => source.sourceKind === 'workspace')).toBe(true);
+    expect(loaded.diagnostics).toEqual([expect.objectContaining({ sourceFile: '/ws/broken.yml' })]);
+  });
+
   it('throws when a bundled definition violates the packaged schema', async () => {
     const readDirectory = jest.fn().mockResolvedValue([['bad.yml', vscode.FileType.File]]);
     const readFile = jest.fn().mockResolvedValue(Buffer.from('BAD: { ports: [] }'));

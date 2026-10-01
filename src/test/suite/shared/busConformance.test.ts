@@ -161,6 +161,51 @@ describe('built-in conformance rules', () => {
 
     expect(hasRule(result, ruleId)).toBe(true);
   });
+
+  it('accepts a derived maxChannel for every allowed channel width', () => {
+    const result = resolve(
+      {
+        name: 'stream',
+        type: 'AVST',
+        mode: 'source',
+        useOptionalPorts: ['channel'],
+        portWidthOverrides: { channel: 'CH_W' },
+      },
+      [
+        {
+          name: 'CH_W',
+          dataType: 'integer',
+          value: 8,
+          allowedValues: [4, 8],
+        } as unknown as Parameter,
+      ]
+    );
+
+    expect(hasRule(result, 'AVALON_ST_MAX_CHANNEL')).toBe(false);
+  });
+
+  it('still rejects an authored maxChannel that does not fit every allowed channel width', () => {
+    const result = resolve(
+      {
+        name: 'stream',
+        type: 'AVST',
+        mode: 'source',
+        useOptionalPorts: ['channel'],
+        portWidthOverrides: { channel: 'CH_W' },
+        interfaceProperties: { maxChannel: 255 },
+      },
+      [
+        {
+          name: 'CH_W',
+          dataType: 'integer',
+          value: 8,
+          allowedValues: [4, 8],
+        } as unknown as Parameter,
+      ]
+    );
+
+    expect(hasRule(result, 'AVALON_ST_MAX_CHANNEL')).toBe(true);
+  });
 });
 
 describe('bounded allowed-value domains', () => {

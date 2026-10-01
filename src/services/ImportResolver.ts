@@ -144,36 +144,10 @@ export class ImportResolver {
     // fires `onDidScan` on completion; `IpCoreEditorProvider` is subscribed
     // to that event and refreshes the webview once results are in.
     const workspaceResult = getWorkspaceBusDefinitionScanner().peekAndScanInBackground();
-    const workspaceLoads: LoadedBusDefinitionSources[] = [];
-    if (workspaceResult.count > 0) {
-      const assignedKeys = new Set<string>();
-      for (const file of workspaceResult.files) {
-        const definitions = Object.fromEntries(
-          file.busTypes
-            .filter((key) => workspaceResult.library[key] !== undefined)
-            .map((key) => {
-              assignedKeys.add(key);
-              return [key, workspaceResult.library[key]];
-            })
-        );
-        if (Object.keys(definitions).length > 0) {
-          workspaceLoads.push(
-            this.busLibraryService.loadRecord(definitions, file.uri.fsPath, 'workspace')
-          );
-        }
-      }
-      const unassigned = Object.fromEntries(
-        Object.entries(workspaceResult.library).filter(([key]) => !assignedKeys.has(key))
-      );
-      if (Object.keys(unassigned).length > 0) {
-        workspaceLoads.push(
-          this.busLibraryService.loadRecord(unassigned, 'workspace://discovered', 'workspace')
-        );
-      }
-    }
+    const workspace = this.busLibraryService.loadWorkspaceScan(workspaceResult);
     const library = this.busLibraryService.normalizeSources(
       builtin,
-      ...workspaceLoads,
+      workspace,
       configured,
       ...(ipLocal ? [ipLocal] : [])
     );
