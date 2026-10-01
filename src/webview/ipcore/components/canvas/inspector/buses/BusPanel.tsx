@@ -115,10 +115,19 @@ export const BusPanel: React.FC<BusPanelProps> = ({
     !!imports?.busLibrary &&
     busSupportsMemoryMap(bus.type, bus.mode, imports.busLibrary);
 
+  // Object form `memoryMaps: { import: file }` imports every map in one file.
+  const fileImportPath =
+    !Array.isArray(ipCore.memoryMaps) && ipCore.memoryMaps?.import
+      ? String(ipCore.memoryMaps.import)
+      : null;
+
   // The import path shown for this interface's map entry (per-interface, not global).
   const currentMapImportPath: string | null = (() => {
     if (!bus.memoryMapRef) {
       return null;
+    }
+    if (fileImportPath) {
+      return importedMapNames.includes(bus.memoryMapRef) ? fileImportPath : null;
     }
     const entry = inlineMaps.find((m) => String(m.name ?? '') === bus.memoryMapRef);
     return entry?.import ? String(entry.import) : null;
@@ -142,10 +151,16 @@ export const BusPanel: React.FC<BusPanelProps> = ({
       // If the referenced map entry has an import and is not used by any other interface,
       // remove it from the array to keep the YAML clean.
       const refName = bus.memoryMapRef;
-      if (refName) {
-        const usedByOthers = buses.some(
-          (b, i) => i !== index && (b as { memoryMapRef?: string }).memoryMapRef === refName
-        );
+      const otherRefs = buses
+        .filter((_, i) => i !== index)
+        .map((b) => (b as { memoryMapRef?: string }).memoryMapRef);
+      if (refName && fileImportPath) {
+        // The object-form file is in use while any interface references one of its maps.
+        if (currentMapImportPath && !otherRefs.some((r) => r && importedMapNames.includes(r))) {
+          onUpdate(['memoryMaps'], undefined);
+        }
+      } else if (refName) {
+        const usedByOthers = otherRefs.includes(refName);
         if (!usedByOthers) {
           const entry = inlineMaps.find((m) => String(m.name ?? '') === refName);
           if (entry?.import) {
