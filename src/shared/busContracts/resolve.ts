@@ -179,6 +179,28 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
     portWidths[port.name] = resolveNumericValue(rawValue, context);
   }
 
+  // The contract declares some ports equal (Avalon-MM writedata/readdata). An inactive
+  // one takes the active port's width, so a width derived from it follows the data the
+  // interface has: byteenable on a read-only slave is readdata/8, not the default/8.
+  const isActive = (name: string): boolean => {
+    const port = contract.ports.find((candidate) => candidate.name === name);
+    return port !== undefined && isPortActive(port, canonicalBusInterface);
+  };
+  for (const constraint of contract.constraints) {
+    if (constraint.kind !== 'portWidthsEqual') {
+      continue;
+    }
+    const source = constraint.ports.find(isActive);
+    if (source === undefined) {
+      continue;
+    }
+    for (const name of constraint.ports) {
+      if (!isActive(name)) {
+        portWidths[name] = portWidths[source];
+      }
+    }
+  }
+
   const properties = resolveProperties(
     contract,
     canonicalBusInterface,

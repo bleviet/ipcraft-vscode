@@ -202,6 +202,23 @@ describe('built-in conformance rules', () => {
     expect(hasRule(result, ruleId)).toBe(true);
   });
 
+  // Intel altera_trace_printf_monitor: read-only slave, byteenable = CAPTURE_DATAWIDTH/8.
+  it('derives byteenable from readdata on a read-only Avalon-MM slave', () => {
+    const readOnly = (byteenable: number) =>
+      resolve({
+        name: 'control',
+        type: 'AVMM',
+        mode: 'slave',
+        useOptionalPorts: ['read', 'readdata', 'byteenable'],
+        portWidthOverrides: { readdata: 16, byteenable },
+      });
+
+    expect(readOnly(2).diagnostics).toEqual([]);
+    expect(readOnly(4).diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'AVALON_MM_BYTEENABLE_WIDTH' })
+    );
+  });
+
   it('derives maxChannel only when the channel port is active', () => {
     const withoutChannel = resolve({ name: 'stream', type: 'AVST', mode: 'source' });
     const withChannel = resolve({
