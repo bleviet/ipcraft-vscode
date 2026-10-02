@@ -245,12 +245,28 @@ describe('MapConduitToBusDialog', () => {
     // should already be enabled without any manual selection.
     expect(screen.getByText('Confirm')).not.toBeDisabled();
     fireEvent.click(screen.getByText('Confirm'));
+    // The names equal the generator's default suffixes, so no override is needed.
     expect(onConfirm).toHaveBeenCalledWith({
       mode: 'master',
-      portNameOverrides: { WR_DATA: 'wr_data', WR_EN: 'wr_en' },
+      portNameOverrides: {},
       portWidthOverrides: { WR_DATA: 8, WR_EN: 1 },
       useOptionalPorts: [],
     });
+  });
+
+  it('keeps an uppercase physical name that differs from the lowercase default suffix', () => {
+    const { onConfirm } = renderDialog({
+      conduitPorts: [
+        { name: 'WR_DATA', direction: 'out', width: 8 },
+        { name: 'WR_EN', direction: 'out', width: 1 },
+      ],
+    });
+    fireEvent.change(screen.getAllByRole('combobox')[0], { target: { value: 'master' } });
+    fireEvent.click(screen.getByText('Confirm'));
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({ portNameOverrides: { WR_DATA: 'WR_DATA', WR_EN: 'WR_EN' } })
+    );
   });
 
   it('only offers direction-compatible candidates for a given logical port and mode', () => {

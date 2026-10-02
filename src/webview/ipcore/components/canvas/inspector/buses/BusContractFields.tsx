@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import type { IssueFocusRequest } from '../../../../types/issues';
-import type {
-  BusContractEditModel,
-  PolaritySelection,
+import {
+  parsePropertyInput,
+  type BusContractEditModel,
+  type PolaritySelection,
 } from '../../../../hooks/useBusContractEditor';
 import {
   PropCheckbox,
@@ -96,23 +97,19 @@ export const BusContractFields: React.FC<BusContractFieldsProps> = ({
         <Section title="Interface Properties">
           {model.properties.map((field) => (
             <div id={fieldId(busIndex, 'property', field.name)} key={field.name}>
-              {typeof field.value === 'boolean' ? (
+              {field.valueType === 'boolean' ? (
                 <PropCheckbox
                   label={field.name}
-                  checked={field.value}
+                  checked={field.value === true}
                   onChange={(value) => onPropertyChange(field.name, value)}
                 />
               ) : (
                 <PropField
                   label={field.name}
                   value={field.value === undefined ? '' : String(field.value)}
-                  onSave={(raw) => {
-                    const number = Number(raw);
-                    onPropertyChange(
-                      field.name,
-                      raw.trim() !== '' && Number.isFinite(number) ? number : raw
-                    );
-                  }}
+                  onSave={(raw) =>
+                    onPropertyChange(field.name, parsePropertyInput(raw, field.valueType))
+                  }
                   hasError={Boolean(field.error)}
                   errorMsg={field.error}
                   mono

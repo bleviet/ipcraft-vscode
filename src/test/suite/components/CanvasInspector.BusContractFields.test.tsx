@@ -5,6 +5,9 @@ import type { CanvasElement } from '../../../webview/ipcore/hooks/useCanvasSelec
 import type { IpCore } from '../../../webview/types/ipCore';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
 import { CanvasBusSubPort } from '../../../webview/ipcore/components/canvas/CanvasBusSubPort';
+import { BusContractFields } from '../../../webview/ipcore/components/canvas/inspector/buses/BusContractFields';
+import { buildBusContractEditModel } from '../../../webview/ipcore/hooks/useBusContractEditor';
+import { normalizeBusLibrary, resolveBusInterface } from '../../../shared/busContracts';
 
 const selected: CanvasElement = { kind: 'busInterface', index: 0, id: 'bus:0' };
 
@@ -195,5 +198,72 @@ describe('CanvasBusSubPort polarity badge', () => {
     ).toBeInTheDocument();
     expect(document.querySelector('.canvas-bus-subport__logical')).toHaveTextContent('read_n');
     expect(document.querySelector('.canvas-bus-subport__polarity-badge')).toHaveTextContent('L');
+  });
+});
+
+describe('BusContractFields typed interface properties', () => {
+  const library = normalizeBusLibrary([
+    {
+      sourceFile: '/workspace/custom.yml',
+      sourceKind: 'workspace',
+      definitions: {
+        CUSTOM: {
+          busType: { vendor: 'acme', library: 'busif', name: 'custom', version: '1.0' },
+          contract: {
+            version: 1,
+            interfaceKind: 'streaming',
+            modePolicy: { producer: 'source', consumer: 'sink', aliases: {} },
+            interfaceProperties: {
+              label: { type: 'string', default: 'abc' },
+              enable: { type: 'boolean' },
+            },
+            constraints: [],
+          },
+          ports: [
+            {
+              name: 'd',
+              width: 8,
+              direction: 'out',
+              presence: 'required',
+              role: 'data',
+              widthPolicy: 'root',
+            },
+          ],
+        },
+      },
+    },
+  ]);
+
+  it('uses the declared type: a checkbox for boolean, a string for digits typed into string', () => {
+    const onPropertyChange = jest.fn();
+    const resolution = resolveBusInterface({
+      busInterface: { name: 'b', type: 'acme:busif:custom:1.0', mode: 'source' },
+      busIndex: 0,
+      parameters: [],
+      library,
+    });
+    const { container } = render(
+      <BusContractFields
+        busIndex={0}
+        model={buildBusContractEditModel(0, resolution)}
+        paramNames={[]}
+        paramValues={{}}
+        onRootWidthChange={jest.fn()}
+        onPropertyChange={onPropertyChange}
+        onPolarityChange={jest.fn()}
+      />
+    );
+
+    const input = (name: string) =>
+      container.querySelector(`#bus-0-property-${name} input`) as HTMLInputElement;
+    expect(input('enable').type).toBe('checkbox');
+
+    fireEvent.focus(input('label'));
+    fireEvent.change(input('label'), { target: { value: '123' } });
+    fireEvent.blur(input('label'));
+    fireEvent.click(input('enable'));
+
+    expect(onPropertyChange).toHaveBeenCalledWith('label', '123');
+    expect(onPropertyChange).toHaveBeenCalledWith('enable', true);
   });
 });

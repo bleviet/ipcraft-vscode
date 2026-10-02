@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import type { ConduitPort } from '../../../types/ipCore';
 import { isAssociatedPort, type BusPortDef } from '../../utils/busLibrary';
-import { portNameCandidates, type PortPolarity } from '../../../../shared/busContracts';
+import {
+  portNameCandidates,
+  resolveDefaultPhysicalSuffix,
+  type PortPolarity,
+} from '../../../../shared/busContracts';
 import type { MapConduitToBusOptions } from '../../hooks/useGroupPorts';
 
 export type { MapConduitToBusOptions as MapConduitToBusResult } from '../../hooks/useGroupPorts';
@@ -176,8 +180,9 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
       }
       assignedPortNames.add(assignment.physicalPort);
       const polarity = assignment.polarity ?? def.polarity?.default;
-      const selectedRole = def.polarity && polarity ? def.polarity.roles[polarity] : def.name;
-      if (assignment.physicalPort !== selectedRole) {
+      // Omit the override only when the generator's default name is exactly this port;
+      // physical names are case-sensitive in SystemVerilog and vendor port maps.
+      if (assignment.physicalPort !== resolveDefaultPhysicalSuffix(def, polarity)) {
         portNameOverrides[def.name] = assignment.physicalPort;
       }
       if (def.polarity && polarity && polarity !== def.polarity.default) {

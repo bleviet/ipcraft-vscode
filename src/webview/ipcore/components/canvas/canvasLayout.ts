@@ -689,8 +689,9 @@ export function computeLayout(
           const activePortNames = new Set(resolution?.activePorts.map((port) => port.name));
           const hasClock = !!busData.associatedClock;
           const hasReset = !!busData.associatedReset;
-          // Directions in bus definitions are from the master perspective; flip for slave/sink.
-          const isMaster = busData.mode === 'master' || busData.mode === 'source';
+          // Directions in bus definitions are from the producer perspective; flip for the
+          // consumer side, decided by the same contract mode policy that places the bus.
+          const isMaster = !isLeftSide(item.data as BusInterface, isContractConsumer);
           const flipDir = (d: 'in' | 'out' | undefined): 'in' | 'out' | undefined =>
             d === 'in' ? 'out' : d === 'out' ? 'in' : undefined;
 

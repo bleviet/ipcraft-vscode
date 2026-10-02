@@ -7,7 +7,12 @@ import {
   BLOCK_WIDTH,
   AUTHOR_ROW_HEIGHT,
 } from '../../../webview/ipcore/components/canvas/canvasLayout';
-import { resolveBusInterface } from '../../../shared/busContracts';
+import {
+  canonicalizeBusType,
+  isConsumerInterface,
+  normalizeBusLibrary,
+  resolveBusInterface,
+} from '../../../shared/busContracts';
 import type { IpCore } from '../../../webview/types/ipCore';
 import { lookupBusDef } from '../../../webview/ipcore/utils/busLibrary';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
@@ -734,5 +739,67 @@ describe('resolveMemoryMapImportPath', () => {
 
   it('returns undefined when memoryMaps is entirely absent', () => {
     expect(resolveMemoryMapImportPath(undefined, 'S_AXI_MAP')).toBeUndefined();
+  });
+});
+
+describe('computeLayout custom contract modes', () => {
+  const library = normalizeBusLibrary([
+    {
+      sourceFile: '/workspace/custom.yml',
+      sourceKind: 'workspace',
+      definitions: {
+        CUSTOM: {
+          busType: { vendor: 'acme', library: 'busif', name: 'custom', version: '1.0' },
+          contract: {
+            version: 1,
+            interfaceKind: 'streaming',
+            modePolicy: { producer: 'initiator', consumer: 'target', aliases: {} },
+            interfaceProperties: {},
+            constraints: [],
+          },
+          ports: [
+            {
+              name: 'payload',
+              width: 8,
+              direction: 'out',
+              presence: 'required',
+              role: 'data',
+              widthPolicy: 'root',
+            },
+          ],
+        },
+      },
+    },
+  ]);
+
+  it.each([
+    ['initiator', 'out'],
+    ['target', 'in'],
+  ])('draws sub-port directions from the contract mode policy for %s', (mode, direction) => {
+    const ip = makeIpCore({
+      busInterfaces: [{ name: 'bus', type: 'acme:busif:custom:1.0', mode, physicalPrefix: 'p_' }],
+    });
+    const layout = computeLayout(
+      ip,
+      new Set(['bus:0']),
+      () => null,
+      undefined,
+      (bus) => {
+        const match = canonicalizeBusType(bus.type, library);
+        return match ? isConsumerInterface(match.contract, bus.mode) : undefined;
+      },
+      undefined,
+      (bus, busIndex) =>
+        resolveBusInterface({
+          busInterface: bus as unknown as import('../../../domain/ipcore.types').BusInterface,
+          busIndex,
+          parameters: [],
+          library,
+        })
+    );
+
+    expect(layout.subPorts.find((port) => port.physicalSuffix === 'payload')).toMatchObject({
+      direction,
+    });
   });
 });

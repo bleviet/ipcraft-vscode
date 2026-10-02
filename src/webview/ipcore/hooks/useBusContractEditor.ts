@@ -7,6 +7,7 @@ import {
   resolveBusInterface,
   type BusInterfaceResolution,
   type NormalizedBusLibrary,
+  type NormalizedPropertyDeclaration,
   type PortPolarity,
   type ResolutionState,
 } from '../../../shared/busContracts';
@@ -17,6 +18,24 @@ export interface EditableContractField {
   name: string;
   value: number | string | boolean | undefined;
   error?: string;
+}
+
+export interface EditablePropertyField extends EditableContractField {
+  /** Declared contract type; selects the editor widget and how typed text is saved. */
+  valueType: NormalizedPropertyDeclaration['type'];
+}
+
+/** Converts Inspector text to the value type the contract declares for a property. */
+export function parsePropertyInput(
+  raw: string,
+  valueType: EditablePropertyField['valueType']
+): number | string {
+  if (valueType !== 'integer') {
+    return raw;
+  }
+  // Integer properties also accept parameter expressions such as `DATA_W/8`.
+  const number = Number(raw);
+  return raw.trim() !== '' && Number.isFinite(number) ? number : raw;
 }
 
 export interface ReadonlyContractField {
@@ -40,7 +59,7 @@ export type BusContractMutation = [Array<string | number>, unknown];
 
 export interface BusContractEditModel {
   rootWidths: readonly EditableContractField[];
-  properties: readonly EditableContractField[];
+  properties: readonly EditablePropertyField[];
   derivedWidths: readonly ReadonlyContractField[];
   fixedWidths: readonly ReadonlyContractField[];
   polarities: readonly EditablePolarityField[];
@@ -115,9 +134,10 @@ export function buildBusContractEditModel(
           port.width,
         error: diagnosticFor(resolution, 'portWidthOverrides', port.name),
       })),
-    properties: Object.keys(contract.interfaceProperties).map((name) => ({
+    properties: Object.entries(contract.interfaceProperties).map(([name, declaration]) => ({
       path: ['busInterfaces', busIndex, 'interfaceProperties', name],
       name,
+      valueType: declaration.type,
       value: resolution.authoredProperties[name] ?? resolution.properties[name]?.value,
       error: diagnosticFor(resolution, 'interfaceProperties', name),
     })),
