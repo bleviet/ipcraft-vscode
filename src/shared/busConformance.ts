@@ -23,6 +23,7 @@ export function checkBusConformance(
   const parameters = (ipCore.parameters ?? []) as readonly Parameter[];
   const diagnostics = validateBusInterfaces({ busInterfaces, parameters, library });
   const unresolvedIssues: IpcraftIssue[] = [];
+  let hasBlockingUnresolvedType = false;
 
   busInterfaces.forEach((busInterface, busIndex) => {
     if (canonicalizeBusType(busInterface.type, library)) {
@@ -30,8 +31,14 @@ export function checkBusConformance(
     }
     // Inline conduits carry their complete signal contract in the document and do not
     // require an external bus definition.
-    if (busInterface.mode === 'conduit' && (busInterface.conduitPorts?.length ?? 0) > 0) {
+    if (busInterface.mode === 'conduit') {
       return;
+    }
+    // Imported vendor interfaces keep their literal port maps, which the generator
+    // emits without a contract. Report the missing contract, but do not block.
+    const rawPortMaps = (busInterface as { rawPortMaps?: readonly unknown[] }).rawPortMaps;
+    if (!rawPortMaps?.length) {
+      hasBlockingUnresolvedType = true;
     }
     unresolvedIssues.push({
       code: 'BUS_TYPE_UNRESOLVED',
@@ -64,10 +71,14 @@ export function checkBusConformance(
         diagnostic.severity === 'error' &&
         (diagnostic.state === 'concrete' || diagnostic.state === 'invalid')
     ),
+    // Recommendations (warnings) never block, including a parameter domain too large
+    // to enumerate when its default already conforms (design §8.3, §9.2).
     hasUnresolved:
-      unresolvedIssues.length > 0 ||
+      hasBlockingUnresolvedType ||
       diagnostics.some(
-        (diagnostic) => diagnostic.state === 'symbolic' || diagnostic.state === 'unresolved'
+        (diagnostic) =>
+          diagnostic.severity === 'error' &&
+          (diagnostic.state === 'symbolic' || diagnostic.state === 'unresolved')
       ),
   };
 }

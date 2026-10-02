@@ -87,6 +87,46 @@ describe('built-in conformance rules', () => {
     expect(result.diagnostics).toEqual([]);
   });
 
+  // v0.9.9-v1.0.0 VHDL imports wrote WSTRB as the data-width parameter.
+  it('derives WSTRB from WDATA for a v1.0.0-style WSTRB override', () => {
+    const result = resolve(
+      {
+        name: 's_axi',
+        type: 'ipcraft:busif:axi4_lite:1.0',
+        mode: 'slave',
+        portWidthOverrides: {
+          WDATA: 'AxiDataWidth_g',
+          RDATA: 'AxiDataWidth_g',
+          WSTRB: 'AxiDataWidth_g',
+        },
+      },
+      [{ name: 'AxiDataWidth_g', value: 32, dataType: 'integer' } as unknown as Parameter]
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.authoredPortWidths).not.toHaveProperty('WSTRB');
+    expect(result.portWidths.WSTRB).toMatchObject({ value: 4 });
+  });
+
+  it('still rejects a WSTRB override that differs from its derived width', () => {
+    const result = resolve(
+      {
+        name: 's_axi',
+        type: 'ipcraft:busif:axi4_lite:1.0',
+        mode: 'slave',
+        portWidthOverrides: { WDATA: 'AxiDataWidth_g', RDATA: 'AxiDataWidth_g', WSTRB: 'OTHER_W' },
+      },
+      [
+        { name: 'AxiDataWidth_g', value: 32, dataType: 'integer' } as unknown as Parameter,
+        { name: 'OTHER_W', value: 32, dataType: 'integer' } as unknown as Parameter,
+      ]
+    );
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'BUS_DERIVED_WIDTH_OVERRIDE' })
+    );
+  });
+
   it('ignores a stale derived-width override after its optional port is disabled', () => {
     const result = resolve({
       name: 'stream',
@@ -160,6 +200,20 @@ describe('built-in conformance rules', () => {
     const result = resolve({ name: 'stream', type: 'AVST', mode: 'source', ...partial });
 
     expect(hasRule(result, ruleId)).toBe(true);
+  });
+
+  it('derives maxChannel only when the channel port is active', () => {
+    const withoutChannel = resolve({ name: 'stream', type: 'AVST', mode: 'source' });
+    const withChannel = resolve({
+      name: 'stream',
+      type: 'AVST',
+      mode: 'source',
+      useOptionalPorts: ['channel'],
+      portWidthOverrides: { channel: 2 },
+    });
+
+    expect(withoutChannel.properties.maxChannel?.value).toBeUndefined();
+    expect(withChannel.properties.maxChannel).toMatchObject({ state: 'concrete', value: 3 });
   });
 
   it('accepts a derived maxChannel for every allowed channel width', () => {

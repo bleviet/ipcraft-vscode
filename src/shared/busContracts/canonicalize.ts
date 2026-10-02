@@ -32,10 +32,17 @@ function toMatch(
   };
 }
 
+/**
+ * Callers pass document values before schema validation (the editor validates while
+ * the user types), so a missing or non-string type is "no match", never an exception.
+ */
 export function canonicalizeBusType(
-  type: string,
+  type: unknown,
   library: NormalizedBusLibrary
 ): CanonicalBusMatch | null {
+  if (typeof type !== 'string') {
+    return null;
+  }
   const trimmed = type.trim();
   const canonical = Object.values(library.definitions).find(
     (definition) => definition.canonicalVlnv === trimmed
@@ -78,8 +85,11 @@ export function canonicalizeBusType(
 
 export function normalizeInterfaceMode(
   contract: BusDefinitionContract,
-  mode: string
+  mode: unknown
 ): string | null {
+  if (typeof mode !== 'string') {
+    return null;
+  }
   const normalized = mode.trim().toLowerCase();
   if (normalized === contract.modePolicy.producer) {
     return contract.modePolicy.producer;
@@ -90,7 +100,7 @@ export function normalizeInterfaceMode(
   return contract.modePolicy.aliases[normalized] ?? null;
 }
 
-export function isConsumerInterface(contract: BusDefinitionContract, mode: string): boolean {
+export function isConsumerInterface(contract: BusDefinitionContract, mode: unknown): boolean {
   return normalizeInterfaceMode(contract, mode) === contract.modePolicy.consumer;
 }
 
@@ -99,6 +109,6 @@ export function isConsumerInterface(contract: BusDefinitionContract, mode: strin
  * the single test for "may own a register file / memory map". Both halves are
  * declared by the contract, never inferred from the protocol name.
  */
-export function isMemoryMappedConsumer(contract: BusDefinitionContract, mode: string): boolean {
+export function isMemoryMappedConsumer(contract: BusDefinitionContract, mode: unknown): boolean {
   return contract.interfaceKind === 'memoryMapped' && isConsumerInterface(contract, mode);
 }

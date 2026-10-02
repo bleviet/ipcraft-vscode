@@ -93,6 +93,11 @@ describe('canonicalizeBusType', () => {
   ])('does not guess a match for %s', (type) => {
     expect(canonicalizeBusType(type, library)).toBeNull();
   });
+
+  // The editor validates documents while the user is still typing them.
+  it.each([undefined, null, 42])('returns null for a non-string type (%p)', (type) => {
+    expect(canonicalizeBusType(type, library)).toBeNull();
+  });
 });
 
 describe('interface mode normalization', () => {
@@ -110,6 +115,10 @@ describe('interface mode normalization', () => {
 
   it('returns null for an undeclared mode', () => {
     expect(normalizeInterfaceMode(contract, 'initiator')).toBeNull();
+  });
+
+  it.each([undefined, null])('returns null for a missing mode (%p)', (mode) => {
+    expect(normalizeInterfaceMode(contract, mode)).toBeNull();
   });
 
   it('recognizes consumer aliases through the normalized mode policy', () => {

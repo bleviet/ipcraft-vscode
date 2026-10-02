@@ -160,7 +160,10 @@ export function resolveBusInterface(input: ResolveBusInterfaceInput): BusInterfa
       state: 'invalid',
       interfaceName: canonicalBusInterface.name,
       path: ['busInterfaces', input.busIndex, 'mode'],
-      message: `Mode '${canonicalBusInterface.mode}' is not declared by ${contract.canonicalVlnv}.`,
+      message:
+        typeof canonicalBusInterface.mode === 'string'
+          ? `Mode '${canonicalBusInterface.mode}' is not declared by ${contract.canonicalVlnv}.`
+          : `Mode is required by ${contract.canonicalVlnv}.`,
     });
   }
 

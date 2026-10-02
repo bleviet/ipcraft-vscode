@@ -7,6 +7,7 @@ import type {
   NormalizedBusPort,
   PortPolarity,
 } from './types';
+import { dropLegacyQuotientOverrides } from './legacyWidthOverrides';
 
 type CanonicalPortField =
   | 'useOptionalPorts'
@@ -284,10 +285,9 @@ export function canonicalizeBusInterfacePorts(
     busInterface.useOptionalPorts,
     identityRoles
   );
-  const portWidthOverrides = canonicalizeMap(
+  const portWidthOverrides = dropLegacyQuotientOverrides(
     contract.ports,
-    busInterface.portWidthOverrides,
-    keyedRoles
+    canonicalizeMap(contract.ports, busInterface.portWidthOverrides, keyedRoles)
   );
   let portNameOverrides = canonicalizeMap(
     contract.ports,

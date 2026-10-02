@@ -1,4 +1,5 @@
 import type { BusInterface } from '../../domain/ipcore.types';
+import { isPortActive } from './activePorts';
 import { isDeclarativeContract } from './contractVersion';
 import { deriveOperation, resolveToFixpoint, sameResolution } from './derivation';
 import { resolveNumericValue, type ParameterContext } from './expression';
@@ -79,13 +80,26 @@ export function resolveProperties(
     }
   }
 
+  // A property derived from an inactive port describes a signal the interface does not
+  // have (maxChannel without a channel port); leave it unset so it is not exported.
+  const derivesFromInactivePort = (
+    derive: NonNullable<NormalizedPropertyDeclaration['derive']>
+  ) => {
+    if (!('port' in derive)) {
+      return false;
+    }
+    const port = contract.ports.find((candidate) => candidate.name === derive.port);
+    return port !== undefined && !isPortActive(port, busInterface);
+  };
+
   resolveToFixpoint(Object.keys(contract.interfaceProperties).length, () => {
     let changed = false;
     for (const [name, declaration] of Object.entries(contract.interfaceProperties)) {
       if (
         Object.prototype.hasOwnProperty.call(authored, name) ||
         declaration.default !== undefined ||
-        !declaration.derive
+        !declaration.derive ||
+        derivesFromInactivePort(declaration.derive)
       ) {
         continue;
       }
