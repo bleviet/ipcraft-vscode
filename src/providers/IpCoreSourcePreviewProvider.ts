@@ -37,6 +37,8 @@ interface ParsedSource {
   mmYamlText?: string;
   /** Filename the .ip.yml's `memoryMaps.import` points at (e.g. core.mm.yml). */
   mmFileName?: string;
+  /** Interfaces the importer could not read statically (see HwTclParseResult). */
+  staticallyIncompleteInterfaces?: string[];
 }
 
 interface GenerateMessage {
@@ -79,7 +81,11 @@ async function parseSource(
         library: cfg.get<string>('library'),
         vendor: resolvePreviewVendor(cfg.get<string>('vendor')),
       });
-      return { yamlText: result.yamlText, name: result.componentName };
+      return {
+        yamlText: result.yamlText,
+        name: result.componentName,
+        staticallyIncompleteInterfaces: result.staticallyIncompleteInterfaces,
+      };
     }
     case 'componentXml': {
       const result = await parseComponentXmlFile(fsPath, {
@@ -166,6 +172,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     // The .ip.yml references it via `memoryMaps.import`, so it must be written too.
     let currentMmYaml: string | undefined;
     let currentMmFileName: string | undefined;
+    let currentIncompleteInterfaces: string[] | undefined;
     let currentConformance: ConformanceReport | undefined;
 
     const router = new WebviewRouter({
@@ -192,11 +199,13 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         componentName = parsed.name;
         currentMmYaml = parsed.mmYamlText;
         currentMmFileName = parsed.mmFileName;
+        currentIncompleteInterfaces = parsed.staticallyIncompleteInterfaces;
         currentConformance = await checkImportedIpCore({
           sourcePath: document.uri.fsPath,
           yamlText: currentYaml,
           resourceRoots: this.resourceRoots,
           loadBusLibrary: () => Promise.resolve(busLibrary),
+          staticallyIncompleteInterfaces: currentIncompleteInterfaces,
         });
         router.postUpdate({
           text: currentYaml,
@@ -238,10 +247,13 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     });
 
     router.on('saveAsIpYml', async () => {
-      await this.handleSaveAsIpYml(document.uri, currentYaml, componentName, {
-        mmYamlText: currentMmYaml,
-        mmFileName: currentMmFileName,
-      });
+      await this.handleSaveAsIpYml(
+        document.uri,
+        currentYaml,
+        componentName,
+        { mmYamlText: currentMmYaml, mmFileName: currentMmFileName },
+        currentIncompleteInterfaces
+      );
     });
 
     webviewPanel.onDidDispose(() => {
@@ -346,7 +358,8 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     sourceUri: vscode.Uri,
     currentYaml: string,
     componentName: string,
-    memoryMap?: { mmYamlText?: string; mmFileName?: string }
+    memoryMap?: { mmYamlText?: string; mmFileName?: string },
+    staticallyIncompleteInterfaces?: readonly string[]
   ): Promise<void> {
     const dir = path.dirname(sourceUri.fsPath);
     const report = await checkImportedIpCore({
@@ -355,6 +368,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
       resourceRoots: this.resourceRoots,
       loadBusLibrary: (ipCoreData) =>
         loadRuntimeBusLibrary(this.logger, this.resourceRoots, sourceUri, ipCoreData),
+      staticallyIncompleteInterfaces,
     });
     if (blocksImportWrite(report)) {
       void vscode.window.showErrorMessage(

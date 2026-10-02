@@ -1234,6 +1234,32 @@ proc elaborate {} {
     expect(result.warnings).toEqual([expect.stringContaining("imported the static default '256'")]);
   });
 
+  it('marks interfaces whose Tcl cannot be read statically', () => {
+    const result = parse(`
+add_interface static_st avalon_streaming start
+set_interface_property static_st dataBitsPerSymbol 8
+add_interface_port static_st s_data data Output 8
+add_interface computed avalon_streaming start
+add_interface_port computed c_data data Output [expr {$W*8}]
+add_interface terminated avalon_streaming start
+add_interface_port terminated t_data data Output 8
+add_interface_port terminated t_empty empty Output 1
+set_port_property t_empty termination true
+add_interface placeholder avalon_mm end
+add_interface_port placeholder p_address address Input -1
+for {set i 0} {$i < 2} {incr i} {
+  add_interface sink\${i} avalon_streaming end
+}
+`);
+
+    expect(result.staticallyIncompleteInterfaces).toEqual([
+      'computed',
+      'terminated',
+      'placeholder',
+      'sink${i}',
+    ]);
+  });
+
   it('still rejects a malformed literal property value', () => {
     expect(() =>
       parse(`

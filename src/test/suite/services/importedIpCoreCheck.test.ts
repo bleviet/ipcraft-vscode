@@ -38,4 +38,26 @@ busInterfaces:
 
     expect(blocksImportWrite(report)).toBe(true);
   });
+
+  it('reports but does not block errors on interfaces the importer could not read statically', async () => {
+    const check = (staticallyIncompleteInterfaces?: string[]) =>
+      checkImportedIpCore({
+        sourcePath: '/project/core_hw.tcl',
+        yamlText: `
+vlnv: {vendor: acme, library: ip, name: core, version: 1.0.0}
+busInterfaces:
+  - {name: computed, type: AXIS, mode: master, portWidthOverrides: {TDATA: 20}}
+`,
+        resourceRoots,
+        loadBusLibrary: () => Promise.resolve(builtinBusLibrary()),
+        staticallyIncompleteInterfaces,
+      });
+
+    const unmarked = await check();
+    const marked = await check(['computed']);
+
+    expect(blocksImportWrite(unmarked)).toBe(true);
+    expect(blocksImportWrite(marked)).toBe(false);
+    expect(marked.issues).toEqual(unmarked.issues);
+  });
 });

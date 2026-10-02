@@ -24,6 +24,12 @@ export interface HwTclParseResult {
   yamlText: string;
   /** Vendor values that could not be imported; the import itself succeeded. */
   warnings?: string[];
+  /**
+   * Interfaces whose Tcl uses runtime constructs (substitutions, elaboration-time port
+   * properties, re-declaration). Their imported values may be placeholders, so protocol
+   * errors on them must not block the import; generation still validates them.
+   */
+  staticallyIncompleteInterfaces?: string[];
 }
 
 interface TclInterface {
@@ -35,6 +41,8 @@ interface TclInterface {
   symbolicProperties: Set<string>;
   /** The last literal value written for each property, e.g. before an elaboration override. */
   staticProperties: Map<string, string>;
+  /** Set when any line defining this interface could not be read statically. */
+  staticallyIncomplete: boolean;
   ports: TclPort[];
 }
 
@@ -104,6 +112,9 @@ const FILESET_NAME_MAP: Record<string, string> = {
   SIM_SYSTEMVERILOG: 'Simulation_Resources',
   SIMULATION: 'Simulation_Resources',
 };
+
+/** A Tcl line using a substitution or a quoted word, which static parsing cannot evaluate. */
+const RUNTIME_VALUE = /[$["]/;
 
 /** A `set_interface_property <iface> <prop> <value>` whose value uses `$` or `[...]`. */
 const SUBSTITUTED_PROPERTY_VALUE = /^set_interface_property\s+\S+\s+\S+\s+.*[$[]/;
@@ -279,6 +290,7 @@ export function parseHwTclContent(
     displayNames: new Map(),
   };
   const variables = new Map<string, string>();
+  const runtimePorts = new Set<string>();
   let currentFileSet: TclFileSet | null = null;
 
   for (const rawLine of content.split('\n')) {
@@ -308,6 +320,8 @@ export function parseHwTclContent(
         symbolicProperties: new Set(),
         staticProperties: new Map(),
         ports: [],
+        // A second declaration means conditional branches or an elaboration rebuild.
+        staticallyIncomplete: interfaces.has(name) || RUNTIME_VALUE.test(line),
       });
     } else if (cmd === 'set_interface_property' && args.length >= 3) {
       const [ifaceName, prop, value] = args;
@@ -315,6 +329,9 @@ export function parseHwTclContent(
       iface?.properties.set(prop, value);
       if (SUBSTITUTED_PROPERTY_VALUE.test(line)) {
         iface?.symbolicProperties.add(prop);
+        if (iface) {
+          iface.staticallyIncomplete = true;
+        }
       } else {
         iface?.symbolicProperties.delete(prop);
         iface?.staticProperties.set(prop, value);
@@ -322,12 +339,26 @@ export function parseHwTclContent(
     } else if (cmd === 'add_interface_port' && args.length >= 5) {
       const [ifaceName, portName, logicalName, direction, widthStr] = args;
       const parsedWidth = parseInt(widthStr, 10);
-      interfaces.get(ifaceName)?.ports.push({
+      const iface = interfaces.get(ifaceName);
+      if (iface && (RUNTIME_VALUE.test(line) || parsedWidth < 0)) {
+        iface.staticallyIncomplete = true;
+      }
+      iface?.ports.push({
         portName,
         logicalName,
         direction,
         width: Number.isNaN(parsedWidth) ? (widthStr ?? 1) : parsedWidth,
       });
+    } else if (cmd === 'set_port_property' && args.length >= 2) {
+      // Termination and width changes are applied during elaboration.
+      if (/^(termination|width|width_expr|width_value)$/i.test(args[1])) {
+        runtimePorts.add(args[0]);
+      }
+    } else if (cmd === 'add_port_to_interface' && args.length >= 1) {
+      const iface = interfaces.get(args[0]);
+      if (iface) {
+        iface.staticallyIncomplete = true;
+      }
     } else if (cmd === 'add_fileset' && args.length >= 1) {
       const fsName = args[0];
       if (!fileSets.has(fsName)) {
@@ -597,7 +628,18 @@ export function parseHwTclContent(
 
   const yamlText = yaml.dump(yamlData, { noRefs: true, sortKeys: false, lineWidth: -1, indent: 2 });
 
-  return { componentName, yamlText, ...(warnings.length > 0 ? { warnings } : {}) };
+  const staticallyIncompleteInterfaces = Array.from(interfaces.values())
+    .filter(
+      (iface) =>
+        iface.staticallyIncomplete || iface.ports.some((port) => runtimePorts.has(port.portName))
+    )
+    .map((iface) => iface.name);
+  return {
+    componentName,
+    yamlText,
+    ...(warnings.length > 0 ? { warnings } : {}),
+    ...(staticallyIncompleteInterfaces.length > 0 ? { staticallyIncompleteInterfaces } : {}),
+  };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -36,13 +36,15 @@ async function loadImportBusLibrary(
 async function checkImportedYaml(
   context: vscode.ExtensionContext,
   sourceUri: vscode.Uri,
-  yamlText: string
+  yamlText: string,
+  staticallyIncompleteInterfaces?: readonly string[]
 ): Promise<ConformanceReport> {
   return checkImportedIpCore({
     sourcePath: sourceUri.fsPath,
     yamlText,
     resourceRoots: resolveResourceRoots(context.extensionPath),
     loadBusLibrary: (ipCoreData) => loadImportBusLibrary(context, sourceUri, ipCoreData),
+    staticallyIncompleteInterfaces,
   });
 }
 
@@ -55,9 +57,15 @@ function showParseWarnings(warnings: readonly string[] | undefined): void {
 async function allowImportedYamlWrite(
   context: vscode.ExtensionContext,
   sourceUri: vscode.Uri,
-  yamlText: string
+  yamlText: string,
+  staticallyIncompleteInterfaces?: readonly string[]
 ): Promise<boolean> {
-  const report = await checkImportedYaml(context, sourceUri, yamlText);
+  const report = await checkImportedYaml(
+    context,
+    sourceUri,
+    yamlText,
+    staticallyIncompleteInterfaces
+  );
   if (blocksImportWrite(report)) {
     const detail = report.issues
       .filter((issue) => issue.severity === 'error')
@@ -277,7 +285,14 @@ export async function parseHwTcl(
         });
         showParseWarnings(result.warnings);
 
-        if (!(await allowImportedYamlWrite(context, tclUri, result.yamlText))) {
+        if (
+          !(await allowImportedYamlWrite(
+            context,
+            tclUri,
+            result.yamlText,
+            result.staticallyIncompleteInterfaces
+          ))
+        ) {
           return;
         }
         const outcome = await writeImportedFile(vscode.Uri.file(outputPath), result.yamlText);
