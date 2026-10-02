@@ -7,6 +7,8 @@ export interface BusPortDef {
   role?: 'clock' | 'reset';
   /** Marks payload and per-byte qualifier signals for endianness validation. */
   endianRole?: 'data' | 'byteQualifier';
+  /** Width is user-configurable even though the spec default is 1 bit (e.g. AXI-Stream TUSER). */
+  configurableWidth?: boolean;
 }
 
 import { BUS_VLNV } from '../../../shared/busVlnv';
@@ -110,7 +112,7 @@ const AXI_STREAM: BusPortDef[] = [
   { name: 'TLAST', direction: 'out', presence: 'optional' },
   { name: 'TID', width: 8, direction: 'out', presence: 'optional' },
   { name: 'TDEST', width: 4, direction: 'out', presence: 'optional' },
-  { name: 'TUSER', width: 1, direction: 'out', presence: 'optional' },
+  { name: 'TUSER', width: 1, direction: 'out', presence: 'optional', configurableWidth: true },
 ];
 
 const AVALON_MM: BusPortDef[] = [

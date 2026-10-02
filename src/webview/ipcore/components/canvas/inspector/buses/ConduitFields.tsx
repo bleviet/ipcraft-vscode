@@ -238,10 +238,14 @@ export const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps>
   }
 
   // Signals with an explicit standard width of 1 are fixed by the bus specification and
-  // cannot be meaningfully overridden. Signals with no declared width at all (common for
-  // discovered Vivado interfaces, e.g. fifo_write's WR_DATA) are parameterized rather than
-  // fixed-at-1 — those must stay editable so the user can set a real width.
-  const configurableDefs = enabledDefs.filter((p) => p.width === undefined || p.width > 1);
+  // cannot be meaningfully overridden, unless the definition marks them configurableWidth
+  // (AXI-Stream TUSER defaults to 1 bit but is sized by the design). Signals with no declared
+  // width at all (common for discovered Vivado interfaces, e.g. fifo_write's WR_DATA) are
+  // parameterized rather than fixed-at-1 — those must stay editable so the user can set a
+  // real width.
+  const configurableDefs = enabledDefs.filter(
+    (p) => p.width === undefined || p.width > 1 || p.configurableWidth
+  );
 
   if (configurableDefs.length === 0) {
     return null;
