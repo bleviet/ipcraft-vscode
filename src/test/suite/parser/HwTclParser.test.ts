@@ -1217,6 +1217,23 @@ add_interface_port out out_valid valid Output 1
     ]);
   });
 
+  // Pattern from Intel dispatcher_hw.tcl: a static default, then an elaboration override.
+  it('keeps the static default when an elaboration override is computed', () => {
+    const result = parse(`
+add_interface snk avalon_streaming end
+set_interface_property snk dataBitsPerSymbol 256
+set_interface_property snk symbolsPerBeat 1
+add_interface_port snk snk_data data Input 256
+proc elaborate {} {
+  set_interface_property snk dataBitsPerSymbol [get_parameter_value DESCRIPTOR_WIDTH]
+}
+`);
+    const iface = (parseYaml(result.yamlText).busInterfaces as Array<Record<string, unknown>>)[0];
+
+    expect(iface.interfaceProperties).toEqual({ dataBitsPerSymbol: 256, symbolsPerBeat: 1 });
+    expect(result.warnings).toEqual([expect.stringContaining("imported the static default '256'")]);
+  });
+
   it('still rejects a malformed literal property value', () => {
     expect(() =>
       parse(`

@@ -31,8 +31,10 @@ interface TclInterface {
   type: string;
   mode: string;
   properties: Map<string, string>;
-  /** Properties whose value is a `$var` or `[...]` substitution in the source. */
+  /** Properties whose last value is a `$var` or `[...]` substitution in the source. */
   symbolicProperties: Set<string>;
+  /** The last literal value written for each property, e.g. before an elaboration override. */
+  staticProperties: Map<string, string>;
   ports: TclPort[];
 }
 
@@ -304,6 +306,7 @@ export function parseHwTclContent(
         mode: mode.toLowerCase(),
         properties: new Map(),
         symbolicProperties: new Set(),
+        staticProperties: new Map(),
         ports: [],
       });
     } else if (cmd === 'set_interface_property' && args.length >= 3) {
@@ -312,6 +315,9 @@ export function parseHwTclContent(
       iface?.properties.set(prop, value);
       if (SUBSTITUTED_PROPERTY_VALUE.test(line)) {
         iface?.symbolicProperties.add(prop);
+      } else {
+        iface?.symbolicProperties.delete(prop);
+        iface?.staticProperties.set(prop, value);
       }
     } else if (cmd === 'add_interface_port' && args.length >= 5) {
       const [ifaceName, portName, logicalName, direction, widthStr] = args;
@@ -509,6 +515,7 @@ export function parseHwTclContent(
         contract: contractMatch.contract,
         rawProperties: bi.properties,
         symbolicProperties: bi.symbolicProperties,
+        staticProperties: bi.staticProperties,
         dataWidth,
         location: `${tclPath}: interface '${bi.name}'`,
       });

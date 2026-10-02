@@ -35,16 +35,26 @@ export function importVendorContractMetadata(input: {
    * rather than written as a literal. Their values may be parameter references.
    */
   symbolicProperties?: ReadonlySet<string>;
+  /** Literal values written before a computed override; used when the override is not a literal. */
+  staticProperties?: ReadonlyMap<string, string>;
   dataWidth?: number | string;
   location: string;
 }): VendorContractMetadata {
-  const { contract, rawProperties, mirroredProperties, symbolicProperties, dataWidth, location } =
-    input;
+  const {
+    contract,
+    rawProperties,
+    mirroredProperties,
+    symbolicProperties,
+    staticProperties,
+    dataWidth,
+    location,
+  } = input;
   const isSymbolLane = dataLaneKind(contract) === 'symbol';
   const warnings: string[] = [];
   // Vendor files often compute standard properties from parameters
-  // (`dataBitsPerSymbol [get_parameter_value BPS]`). Such a computed value is skipped
-  // with a warning instead of failing the whole import. Written literals stay strict.
+  // (`dataBitsPerSymbol [get_parameter_value BPS]`), usually in an elaboration callback
+  // after a static default. A computed value that is not a literal falls back to that
+  // static default, or is skipped, with a warning. Written literals stay strict.
   const literalOrSkip = <T>(
     raw: string | undefined,
     name: string,
@@ -60,10 +70,13 @@ export function importVendorContractMetadata(input: {
     try {
       return parse(raw, name, valueLocation);
     } catch {
+      const fallback = staticProperties?.get(name);
       warnings.push(
-        `${valueLocation}: computed value '${raw}' is not a literal and was not imported; set ${name} in the .ip.yml if needed.`
+        fallback === undefined
+          ? `${valueLocation}: computed value '${raw}' is not a literal and was not imported; set ${name} in the .ip.yml if needed.`
+          : `${valueLocation}: computed value '${raw}' is not a literal; imported the static default '${fallback}'.`
       );
-      return undefined;
+      return fallback === undefined ? undefined : parse(fallback, name, valueLocation);
     }
   };
   const currentSymbolWidthRaw = isSymbolLane ? rawProperties.get('dataBitsPerSymbol') : undefined;
