@@ -20,8 +20,8 @@ import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
 import type { NormalizedBusLibrary } from '../shared/busContracts';
 import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
-import { loadIpCoreData } from '../generator/loadIpCore';
-import { blocksImportWrite, checkBusConformance } from '../shared/busConformance';
+import { checkImportedIpCore } from '../services/importedIpCoreCheck';
+import { blocksImportWrite } from '../shared/busConformance';
 import type { ConformanceReport } from '../shared/issues';
 
 import { WebviewRouter } from '../services/WebviewRouter';
@@ -192,12 +192,12 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         componentName = parsed.name;
         currentMmYaml = parsed.mmYamlText;
         currentMmFileName = parsed.mmFileName;
-        const ipCoreData = await loadIpCoreData(
-          document.uri.fsPath,
-          this.resourceRoots,
-          currentYaml
-        );
-        currentConformance = checkBusConformance(ipCoreData, busLibrary);
+        currentConformance = await checkImportedIpCore({
+          sourcePath: document.uri.fsPath,
+          yamlText: currentYaml,
+          resourceRoots: this.resourceRoots,
+          loadBusLibrary: () => Promise.resolve(busLibrary),
+        });
         router.postUpdate({
           text: currentYaml,
           fileName: path.basename(document.uri.fsPath),
@@ -349,14 +349,13 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     memoryMap?: { mmYamlText?: string; mmFileName?: string }
   ): Promise<void> {
     const dir = path.dirname(sourceUri.fsPath);
-    const ipCoreData = await loadIpCoreData(sourceUri.fsPath, this.resourceRoots, currentYaml);
-    const busLibrary = await loadRuntimeBusLibrary(
-      this.logger,
-      this.resourceRoots,
-      sourceUri,
-      ipCoreData as Record<string, unknown>
-    );
-    const report = checkBusConformance(ipCoreData, busLibrary);
+    const report = await checkImportedIpCore({
+      sourcePath: sourceUri.fsPath,
+      yamlText: currentYaml,
+      resourceRoots: this.resourceRoots,
+      loadBusLibrary: (ipCoreData) =>
+        loadRuntimeBusLibrary(this.logger, this.resourceRoots, sourceUri, ipCoreData),
+    });
     if (blocksImportWrite(report)) {
       void vscode.window.showErrorMessage(
         `Save blocked by bus conformance: ${report.issues

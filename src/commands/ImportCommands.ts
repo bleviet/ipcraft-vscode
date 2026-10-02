@@ -13,8 +13,8 @@ import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { resolveResourceRoots } from '../services/ResourceRoots';
 import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
 import { Logger } from '../utils/Logger';
-import { loadIpCoreData } from '../generator/loadIpCore';
-import { blocksImportWrite, checkBusConformance } from '../shared/busConformance';
+import { checkImportedIpCore } from '../services/importedIpCoreCheck';
+import { blocksImportWrite } from '../shared/busConformance';
 import type { ConformanceReport } from '../shared/issues';
 
 const HIDE_EXPERIMENTAL_IMPORT_WARNING = 'ipcraft.hideExperimentalImportWarning';
@@ -38,10 +38,18 @@ async function checkImportedYaml(
   sourceUri: vscode.Uri,
   yamlText: string
 ): Promise<ConformanceReport> {
-  const resourceRoots = resolveResourceRoots(context.extensionPath);
-  const ipCoreData = await loadIpCoreData(sourceUri.fsPath, resourceRoots, yamlText);
-  const busLibrary = await loadImportBusLibrary(context, sourceUri, ipCoreData);
-  return checkBusConformance(ipCoreData, busLibrary);
+  return checkImportedIpCore({
+    sourcePath: sourceUri.fsPath,
+    yamlText,
+    resourceRoots: resolveResourceRoots(context.extensionPath),
+    loadBusLibrary: (ipCoreData) => loadImportBusLibrary(context, sourceUri, ipCoreData),
+  });
+}
+
+function showParseWarnings(warnings: readonly string[] | undefined): void {
+  for (const warning of warnings ?? []) {
+    void vscode.window.showWarningMessage(warning);
+  }
 }
 
 async function allowImportedYamlWrite(
@@ -181,11 +189,7 @@ export async function parseVHDL(
           version: cfg.get<string>('version'),
         });
 
-        if (result.warnings && result.warnings.length > 0) {
-          for (const warn of result.warnings) {
-            void vscode.window.showWarningMessage(warn);
-          }
-        }
+        showParseWarnings(result.warnings);
 
         if (!(await allowImportedYamlWrite(context, vhdlUri, result.yamlText))) {
           return;
@@ -271,6 +275,7 @@ export async function parseHwTcl(
           library: cfg.get<string>('library'),
           vendor: resolveVendor(cfg.get<string>('vendor')),
         });
+        showParseWarnings(result.warnings);
 
         if (!(await allowImportedYamlWrite(context, tclUri, result.yamlText))) {
           return;

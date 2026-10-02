@@ -1197,4 +1197,33 @@ add_interface_port stream stream_data data Output 8
 `)
     ).toThrow(`${FAKE_PATH}: interface 'stream' declares conflicting dataBitsPerSymbol`);
   });
+  // Pattern from Intel IP such as altera_rs_ser_enc_hw.tcl.
+  it('imports a stream whose properties are computed from parameters, with warnings', () => {
+    const result = parse(`
+add_parameter BITSPERSYMBOL INTEGER 8
+add_interface out avalon_streaming start
+set_interface_property out dataBitsPerSymbol [get_parameter_value BITSPERSYMBOL]
+set_interface_property out maxChannel $MAX_CH
+set_interface_property out readyLatency 0
+add_interface_port out out_data data Output 8
+add_interface_port out out_valid valid Output 1
+`);
+    const iface = (parseYaml(result.yamlText).busInterfaces as Array<Record<string, unknown>>)[0];
+
+    expect(iface.interfaceProperties).toEqual({ readyLatency: 0 });
+    expect(result.warnings).toEqual([
+      expect.stringContaining("dataBitsPerSymbol: computed value 'BITSPERSYMBOL' is not a literal"),
+      expect.stringContaining('maxChannel: computed value'),
+    ]);
+  });
+
+  it('still rejects a malformed literal property value', () => {
+    expect(() =>
+      parse(`
+add_interface out avalon_streaming start
+set_interface_property out readyLatency 1.5
+add_interface_port out out_data data Output 8
+`)
+    ).toThrow("invalid integer value '1.5' for readyLatency");
+  });
 });

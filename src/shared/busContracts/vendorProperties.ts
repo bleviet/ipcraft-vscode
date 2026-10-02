@@ -4,6 +4,8 @@ import type { BusDefinitionContract } from './types';
 export interface VendorContractMetadata {
   interfaceProperties?: Record<string, number | string | boolean>;
   endianness?: 'little' | 'big';
+  /** Vendor values that were not literals of the declared type and were not imported. */
+  warnings?: string[];
 }
 
 function parseVendorBoolean(raw: string, property: string, location: string): boolean {
@@ -28,29 +30,54 @@ export function importVendorContractMetadata(input: {
   contract: Pick<BusDefinitionContract, 'interfaceProperties'>;
   rawProperties: ReadonlyMap<string, string>;
   mirroredProperties?: ReadonlyMap<string, string>;
+  /**
+   * Properties whose source value was computed (a Tcl `$var` or `[...]` substitution)
+   * rather than written as a literal. Their values may be parameter references.
+   */
+  symbolicProperties?: ReadonlySet<string>;
   dataWidth?: number | string;
   location: string;
 }): VendorContractMetadata {
-  const { contract, rawProperties, mirroredProperties, dataWidth, location } = input;
+  const { contract, rawProperties, mirroredProperties, symbolicProperties, dataWidth, location } =
+    input;
   const isSymbolLane = dataLaneKind(contract) === 'symbol';
+  const warnings: string[] = [];
+  // Vendor files often compute standard properties from parameters
+  // (`dataBitsPerSymbol [get_parameter_value BPS]`). Such a computed value is skipped
+  // with a warning instead of failing the whole import. Written literals stay strict.
+  const literalOrSkip = <T>(
+    raw: string | undefined,
+    name: string,
+    parse: (raw: string, name: string, location: string) => T
+  ): T | undefined => {
+    if (raw === undefined) {
+      return undefined;
+    }
+    const valueLocation = `${location}.parameters.${name}`;
+    if (!symbolicProperties?.has(name)) {
+      return parse(raw, name, valueLocation);
+    }
+    try {
+      return parse(raw, name, valueLocation);
+    } catch {
+      warnings.push(
+        `${valueLocation}: computed value '${raw}' is not a literal and was not imported; set ${name} in the .ip.yml if needed.`
+      );
+      return undefined;
+    }
+  };
   const currentSymbolWidthRaw = isSymbolLane ? rawProperties.get('dataBitsPerSymbol') : undefined;
   const legacySymbolWidthRaw = isSymbolLane ? rawProperties.get('bitsPerSymbol') : undefined;
-  const currentSymbolWidth =
-    currentSymbolWidthRaw === undefined
-      ? undefined
-      : parseVendorInteger(
-          currentSymbolWidthRaw,
-          'dataBitsPerSymbol',
-          `${location}.parameters.dataBitsPerSymbol`
-        );
-  const legacySymbolWidth =
-    legacySymbolWidthRaw === undefined
-      ? undefined
-      : parseVendorInteger(
-          legacySymbolWidthRaw,
-          'bitsPerSymbol',
-          `${location}.parameters.bitsPerSymbol`
-        );
+  const currentSymbolWidth = literalOrSkip(
+    currentSymbolWidthRaw,
+    'dataBitsPerSymbol',
+    parseVendorInteger
+  );
+  const legacySymbolWidth = literalOrSkip(
+    legacySymbolWidthRaw,
+    'bitsPerSymbol',
+    parseVendorInteger
+  );
   if (
     currentSymbolWidth !== undefined &&
     legacySymbolWidth !== undefined &&
@@ -89,11 +116,16 @@ export function importVendorContractMetadata(input: {
       name === 'dataBitsPerSymbol'
         ? (currentSymbolWidthRaw ?? legacySymbolWidthRaw)
         : rawProperties.get(name);
-    if (raw === undefined) {
+    const standard =
+      name === 'dataBitsPerSymbol'
+        ? (currentSymbolWidth ?? legacySymbolWidth)
+        : literalOrSkip(raw, name, (value) =>
+            parseProperty(value, name, `${location}.parameters.${name}`)
+          );
+    if (raw === undefined || standard === undefined) {
       continue;
     }
-    const standardLocation = `${location}.parameters.${name}`;
-    standardProperties[name] = parseProperty(raw, name, standardLocation);
+    standardProperties[name] = standard;
     const mirroredRaw = mirroredProperties?.get(name);
     if (mirroredRaw !== undefined) {
       const mirrored = parseProperty(mirroredRaw, name, `${location}.mirror.${name}`);
@@ -129,16 +161,9 @@ export function importVendorContractMetadata(input: {
   }
 
   const ordering = isSymbolLane ? rawProperties.get('firstSymbolInHighOrderBits') : undefined;
+  const firstSymbolHigh = literalOrSkip(ordering, 'firstSymbolInHighOrderBits', parseVendorBoolean);
   const standardEndianness =
-    ordering === undefined
-      ? undefined
-      : parseVendorBoolean(
-            ordering,
-            'firstSymbolInHighOrderBits',
-            `${location}.parameters.firstSymbolInHighOrderBits`
-          )
-        ? 'big'
-        : 'little';
+    firstSymbolHigh === undefined ? undefined : firstSymbolHigh ? 'big' : 'little';
   const mirroredEndianness = mirroredProperties?.get('endianness');
   if (
     mirroredEndianness !== undefined &&
@@ -162,5 +187,6 @@ export function importVendorContractMetadata(input: {
   return {
     ...(Object.keys(interfaceProperties).length > 0 ? { interfaceProperties } : {}),
     ...(endianness !== undefined ? { endianness } : {}),
+    ...(warnings.length > 0 ? { warnings } : {}),
   };
 }

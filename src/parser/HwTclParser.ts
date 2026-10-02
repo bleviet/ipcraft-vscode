@@ -22,6 +22,8 @@ export interface HwTclParseOptions {
 export interface HwTclParseResult {
   componentName: string;
   yamlText: string;
+  /** Vendor values that could not be imported; the import itself succeeded. */
+  warnings?: string[];
 }
 
 interface TclInterface {
@@ -29,6 +31,8 @@ interface TclInterface {
   type: string;
   mode: string;
   properties: Map<string, string>;
+  /** Properties whose value is a `$var` or `[...]` substitution in the source. */
+  symbolicProperties: Set<string>;
   ports: TclPort[];
 }
 
@@ -98,6 +102,9 @@ const FILESET_NAME_MAP: Record<string, string> = {
   SIM_SYSTEMVERILOG: 'Simulation_Resources',
   SIMULATION: 'Simulation_Resources',
 };
+
+/** A `set_interface_property <iface> <prop> <value>` whose value uses `$` or `[...]`. */
+const SUBSTITUTED_PROPERTY_VALUE = /^set_interface_property\s+\S+\s+\S+\s+.*[$[]/;
 
 const FILESET_DESC_MAP: Record<string, string> = {
   RTL_Sources: 'RTL source files',
@@ -260,6 +267,7 @@ export function parseHwTclContent(
   options: HwTclParseOptions
 ): HwTclParseResult {
   const moduleProps = new Map<string, string>();
+  const warnings: string[] = [];
   const interfaces = new Map<string, TclInterface>();
   const fileSets = new Map<string, TclFileSet>();
   const parameters: TclParameter[] = [];
@@ -295,11 +303,16 @@ export function parseHwTclContent(
         type: type.toLowerCase(),
         mode: mode.toLowerCase(),
         properties: new Map(),
+        symbolicProperties: new Set(),
         ports: [],
       });
     } else if (cmd === 'set_interface_property' && args.length >= 3) {
       const [ifaceName, prop, value] = args;
-      interfaces.get(ifaceName)?.properties.set(prop, value);
+      const iface = interfaces.get(ifaceName);
+      iface?.properties.set(prop, value);
+      if (SUBSTITUTED_PROPERTY_VALUE.test(line)) {
+        iface?.symbolicProperties.add(prop);
+      }
     } else if (cmd === 'add_interface_port' && args.length >= 5) {
       const [ifaceName, portName, logicalName, direction, widthStr] = args;
       const parsedWidth = parseInt(widthStr, 10);
@@ -492,15 +505,15 @@ export function parseHwTclContent(
 
     if (contractMatch) {
       const dataWidth = bi.ports.find((port) => port.logicalName.toLowerCase() === 'data')?.width;
-      Object.assign(
-        entry,
-        importVendorContractMetadata({
-          contract: contractMatch.contract,
-          rawProperties: bi.properties,
-          dataWidth,
-          location: `${tclPath}: interface '${bi.name}'`,
-        })
-      );
+      const { warnings: metadataWarnings = [], ...metadata } = importVendorContractMetadata({
+        contract: contractMatch.contract,
+        rawProperties: bi.properties,
+        symbolicProperties: bi.symbolicProperties,
+        dataWidth,
+        location: `${tclPath}: interface '${bi.name}'`,
+      });
+      Object.assign(entry, metadata);
+      warnings.push(...metadataWarnings);
     }
 
     const busDef = contractMatch?.contract.ports;
@@ -577,7 +590,7 @@ export function parseHwTclContent(
 
   const yamlText = yaml.dump(yamlData, { noRefs: true, sortKeys: false, lineWidth: -1, indent: 2 });
 
-  return { componentName, yamlText };
+  return { componentName, yamlText, ...(warnings.length > 0 ? { warnings } : {}) };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

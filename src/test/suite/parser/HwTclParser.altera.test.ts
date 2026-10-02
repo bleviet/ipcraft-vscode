@@ -103,7 +103,7 @@ describeIf('HwTclParser — real Altera files', () => {
       const src = busifs.find((b) => b.name === 'rx_data_source');
       expect(src).toBeDefined();
       expect(src?.type).toContain('avalon_st');
-      expect(src?.mode).toBe('master');
+      expect(src?.mode).toBe('source');
     });
 
     it('includes Avalon-ST sink (transfer_command_sink)', () => {
@@ -111,7 +111,7 @@ describeIf('HwTclParser — real Altera files', () => {
       const snk = busifs.find((b) => b.name === 'transfer_command_sink');
       expect(snk).toBeDefined();
       expect(snk?.type).toContain('avalon_st');
-      expect(snk?.mode).toBe('slave');
+      expect(snk?.mode).toBe('sink');
     });
 
     it('includes conduit ports (I2C serial signals)', () => {
