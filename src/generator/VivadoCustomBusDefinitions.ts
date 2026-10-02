@@ -1,5 +1,11 @@
-import { canonicalizeBusType, type NormalizedBusLibrary } from '../shared/busContracts';
-import { resolveVivadoBusType } from './VivadoBusTypes';
+import {
+  canonicalizeBusType,
+  resolveBusInterface,
+  type BusDefinitionContract,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
+import type { BusInterface, Parameter } from '../domain/ipcore.types';
+import { resolveVivadoBusType, resolveVivadoBusTypeForInterface } from './VivadoBusTypes';
 import type { BusPortDefinition, IpCoreData } from './types';
 
 export interface CustomBusInfo {
@@ -14,6 +20,34 @@ export interface CustomBusInfo {
   source?: string;
 }
 
+/**
+ * The IP-XACT bus information for an IPCraft contract. It declares every polarity role
+ * as a logical port, so per-IP and globally installed copies of one VLNV are identical.
+ */
+export function customBusInfoFromContract(contract: BusDefinitionContract): CustomBusInfo {
+  const [vendor, library, name, version] = contract.canonicalVlnv.split(':');
+  return {
+    vendor,
+    library,
+    name,
+    version,
+    description: `${contract.displayName} interface`,
+    ports: contract.ports.map((port) => ({
+      name: port.name,
+      width: port.width,
+      direction: port.direction,
+      presence: port.presence,
+      interfaceRoles: port.polarity
+        ? [port.polarity.roles.activeHigh, port.polarity.roles.activeLow]
+        : [port.name],
+      ...(port.role === 'data' || port.role === 'byteQualifier' ? { role: port.role } : {}),
+    })),
+    isAddressable: contract.interfaceKind === 'memoryMapped',
+    source: contract.artifactSource,
+  };
+}
+
+/** The IPCraft bus definition for a type that has no native Vivado bus. */
 export function findCustomBusDef(
   ifaceType: string,
   busLibrary: NormalizedBusLibrary
@@ -22,29 +56,7 @@ export function findCustomBusDef(
     return null;
   }
   const canonical = canonicalizeBusType(ifaceType, busLibrary);
-  if (canonical) {
-    const [vendor, library, name, version] = canonical.canonicalVlnv.split(':');
-    return {
-      vendor,
-      library,
-      name,
-      version,
-      description: `${canonical.contract.displayName} interface`,
-      ports: canonical.contract.ports.map((port) => ({
-        name: port.name,
-        width: port.width,
-        direction: port.direction,
-        presence: port.presence,
-        interfaceRoles: port.polarity
-          ? [port.polarity.roles.activeHigh, port.polarity.roles.activeLow]
-          : [port.name],
-        ...(port.role === 'data' || port.role === 'byteQualifier' ? { role: port.role } : {}),
-      })),
-      isAddressable: canonical.contract.interfaceKind === 'memoryMapped',
-      source: canonical.contract.artifactSource,
-    };
-  }
-  return null;
+  return canonical ? customBusInfoFromContract(canonical.contract) : null;
 }
 
 export function renderBusDefinitionXml(busInfo: CustomBusInfo): string {
@@ -132,13 +144,23 @@ export function generateCustomBusDefs(
 
   for (const iface of ipCore.busInterfaces ?? []) {
     const ifaceType = String(iface.type ?? '');
-    const canonicalVlnv = canonicalizeBusType(ifaceType, busLibrary)?.canonicalVlnv ?? ifaceType;
-    if (seen.has(canonicalVlnv)) {
+    const resolution = resolveBusInterface({
+      busInterface: iface as unknown as BusInterface,
+      busIndex: 0,
+      parameters: (ipCore.parameters ?? []) as unknown as Parameter[],
+      library: busLibrary,
+    });
+    const contract = resolution.match?.contract;
+    if (
+      !contract ||
+      seen.has(contract.canonicalVlnv) ||
+      resolveVivadoBusTypeForInterface(ifaceType, busLibrary, resolution)
+    ) {
       continue;
     }
-    seen.add(canonicalVlnv);
-    const custom = findCustomBusDef(ifaceType, busLibrary);
-    if (!custom || custom.source === 'vivado') {
+    seen.add(contract.canonicalVlnv);
+    const custom = customBusInfoFromContract(contract);
+    if (custom.source === 'vivado') {
       continue;
     }
     const resolvedPorts = custom.ports.map((port) => ({

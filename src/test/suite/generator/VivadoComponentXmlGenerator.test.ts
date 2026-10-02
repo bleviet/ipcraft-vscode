@@ -2511,3 +2511,46 @@ function extractPort(xml: string, portName: string): string {
   }
   return '';
 }
+
+// Vivado 2024.2 avalon_rtl declares READ/WRITE but no READ_N/WRITE_N
+// ([IP_Flow 19-568] "Cannot find Logical port read_n").
+describe('Avalon-MM polarity roles and the native Vivado bus', () => {
+  const avalonSlave = (portPolarityOverrides?: Record<string, 'activeLow'>) =>
+    makeIp({
+      busInterfaces: [
+        {
+          name: 's0',
+          type: 'ipcraft:busif:avalon_mm:1.0',
+          mode: 'slave',
+          physicalPrefix: 's0_',
+          associatedClock: 'clk',
+          associatedReset: 'rst_n',
+          useOptionalPorts: ['read', 'write', 'readdata', 'writedata'],
+          ...(portPolarityOverrides ? { portPolarityOverrides } : {}),
+        },
+      ],
+    });
+
+  it('keeps the native xilinx.com avalon bus for active-high roles', async () => {
+    const xml = await generateComponentXml(avalonSlave(), BUS_DEFS);
+
+    expect(xml).toContain(
+      'spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon"'
+    );
+    expect(generateCustomBusDefs(avalonSlave(), BUS_DEFS)).not.toHaveProperty(
+      'busdef/avalon_mm_rtl.xml'
+    );
+  });
+
+  it('uses the bundled IPCraft bus, which declares read_n, for active-low roles', async () => {
+    const ip = avalonSlave({ read: 'activeLow', write: 'activeLow' });
+    const xml = await generateComponentXml(ip, BUS_DEFS);
+    const files = generateCustomBusDefs(ip, BUS_DEFS);
+
+    expect(xml).toContain('spirit:vendor="ipcraft" spirit:library="busif" spirit:name="avalon_mm"');
+    expect(xml).toContain('<spirit:name>read_n</spirit:name>');
+    expect(files['busdef/avalon_mm_rtl.xml']).toContain(
+      '<spirit:logicalName>read_n</spirit:logicalName>'
+    );
+  });
+});

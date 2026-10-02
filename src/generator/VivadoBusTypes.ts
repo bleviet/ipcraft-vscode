@@ -1,6 +1,10 @@
 import { BUS_REGISTRY } from './buses/builtin';
 import { BUS_VLNV } from '../shared/busVlnv';
-import { canonicalizeBusType, type NormalizedBusLibrary } from '../shared/busContracts';
+import {
+  canonicalizeBusType,
+  type BusInterfaceResolution,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
 
 export interface VivadoBusTypeInfo {
   vendor: string;
@@ -43,6 +47,29 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     libraryKey: 'AVALON_MEMORY_MAPPED',
   },
 };
+
+/**
+ * Vivado's native abstractions declare only the canonical (active-high) logical ports,
+ * e.g. avalon_rtl has READ but no READ_N. An interface that uses an alternate polarity
+ * role cannot be mapped onto them without inverting the signal's meaning.
+ */
+export function usesAlternatePolarityRole(resolution: BusInterfaceResolution): boolean {
+  return resolution.activePorts.some((port) => port.interfaceRole !== port.name);
+}
+
+/**
+ * The native Vivado bus for one interface, or undefined when the interface must use
+ * IPCraft's own bus definition because of {@link usesAlternatePolarityRole}.
+ */
+export function resolveVivadoBusTypeForInterface(
+  ifaceType: string,
+  busLibrary: NormalizedBusLibrary,
+  resolution: BusInterfaceResolution
+): VivadoBusTypeInfo | undefined {
+  return usesAlternatePolarityRole(resolution)
+    ? undefined
+    : resolveVivadoBusType(ifaceType, busLibrary);
+}
 
 /** Resolve an IPCraft alias or canonical VLNV to Vivado's native bus metadata. */
 export function resolveVivadoBusType(

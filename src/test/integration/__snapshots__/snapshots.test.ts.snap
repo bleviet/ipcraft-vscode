@@ -9137,10 +9137,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.dataBitsPerSymbol">8</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
-          <spirit:name>maxChannel</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.maxChannel">255</spirit:value>
-        </spirit:parameter>
-        <spirit:parameter>
           <spirit:name>readyLatency</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.readyLatency">0</spirit:value>
         </spirit:parameter>
@@ -9209,10 +9205,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameter>
           <spirit:name>dataBitsPerSymbol</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.dataBitsPerSymbol">8</spirit:value>
-        </spirit:parameter>
-        <spirit:parameter>
-          <spirit:name>maxChannel</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.maxChannel">255</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>readyLatency</spirit:name>
@@ -9866,10 +9858,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.dataBitsPerSymbol">8</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
-          <spirit:name>maxChannel</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.maxChannel">255</spirit:value>
-        </spirit:parameter>
-        <spirit:parameter>
           <spirit:name>readyLatency</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.readyLatency">0</spirit:value>
         </spirit:parameter>
@@ -9938,10 +9926,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameter>
           <spirit:name>dataBitsPerSymbol</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.dataBitsPerSymbol">8</spirit:value>
-        </spirit:parameter>
-        <spirit:parameter>
-          <spirit:name>maxChannel</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.maxChannel">255</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>readyLatency</spirit:name>
@@ -14156,8 +14140,8 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:busInterfaces>
     <spirit:busInterface>
       <spirit:name>S_AVMM</spirit:name>
-      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0" />
-      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon_rtl" spirit:version="1.0" />
+      <spirit:busType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="avalon_mm" spirit:version="1.0" />
+      <spirit:abstractionType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="avalon_mm_rtl" spirit:version="1.0" />
       <spirit:slave>
         <spirit:memoryMapRef spirit:memoryMapRef="AVMM_CSR" />
       </spirit:slave>
@@ -14227,6 +14211,10 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>SRC_ST</spirit:name>
@@ -14362,10 +14350,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameter>
           <spirit:name>dataBitsPerSymbol</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.dataBitsPerSymbol">1</spirit:value>
-        </spirit:parameter>
-        <spirit:parameter>
-          <spirit:name>maxChannel</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.maxChannel">255</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>readyLatency</spirit:name>
@@ -15151,8 +15135,8 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   <spirit:busInterfaces>
     <spirit:busInterface>
       <spirit:name>S_AVMM</spirit:name>
-      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0" />
-      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon_rtl" spirit:version="1.0" />
+      <spirit:busType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="avalon_mm" spirit:version="1.0" />
+      <spirit:abstractionType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="avalon_mm_rtl" spirit:version="1.0" />
       <spirit:slave>
         <spirit:memoryMapRef spirit:memoryMapRef="AVMM_CSR" />
       </spirit:slave>
@@ -15222,6 +15206,10 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>SRC_ST</spirit:name>
@@ -15357,10 +15345,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:parameter>
           <spirit:name>dataBitsPerSymbol</spirit:name>
           <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.dataBitsPerSymbol">1</spirit:value>
-        </spirit:parameter>
-        <spirit:parameter>
-          <spirit:name>maxChannel</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.maxChannel">255</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>readyLatency</spirit:name>
@@ -34919,6 +34903,8 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "tb/register_model.py",
     "tb/test_comprehensive_avalon_sim.py",
     "tb/verification_manifest.json",
+    "xilinx/busdef/avalon_mm.xml",
+    "xilinx/busdef/avalon_mm_rtl.xml",
     "xilinx/busdef/avalon_st.xml",
     "xilinx/busdef/avalon_st_rtl.xml",
     "xilinx/component.xml",
@@ -34945,6 +34931,8 @@ exports[`file list matches snapshot for every fixture 1`] = `
     "tb/register_model.py",
     "tb/test_comprehensive_avalon_sim.py",
     "tb/verification_manifest.json",
+    "xilinx/busdef/avalon_mm.xml",
+    "xilinx/busdef/avalon_mm_rtl.xml",
     "xilinx/busdef/avalon_st.xml",
     "xilinx/busdef/avalon_st_rtl.xml",
     "xilinx/component.xml",
@@ -35369,7 +35357,6 @@ set_interface_property avalon_st_sink SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property avalon_st_sink dataBitsPerSymbol 8
-set_interface_property avalon_st_sink maxChannel 255
 set_interface_property avalon_st_sink readyLatency 0
 set_interface_property avalon_st_sink symbolsPerBeat 4
 set_interface_property avalon_st_sink firstSymbolInHighOrderBits false
@@ -35393,7 +35380,6 @@ set_interface_property avalon_st_source SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property avalon_st_source dataBitsPerSymbol 8
-set_interface_property avalon_st_source maxChannel 255
 set_interface_property avalon_st_source readyLatency 0
 set_interface_property avalon_st_source symbolsPerBeat 4
 set_interface_property avalon_st_source firstSymbolInHighOrderBits false
@@ -35525,7 +35511,6 @@ set_interface_property avalon_st_sink SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property avalon_st_sink dataBitsPerSymbol 8
-set_interface_property avalon_st_sink maxChannel 255
 set_interface_property avalon_st_sink readyLatency 0
 set_interface_property avalon_st_sink symbolsPerBeat 4
 set_interface_property avalon_st_sink firstSymbolInHighOrderBits false
@@ -35549,7 +35534,6 @@ set_interface_property avalon_st_source SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property avalon_st_source dataBitsPerSymbol 8
-set_interface_property avalon_st_source maxChannel 255
 set_interface_property avalon_st_source readyLatency 0
 set_interface_property avalon_st_source symbolsPerBeat 4
 set_interface_property avalon_st_source firstSymbolInHighOrderBits false
@@ -36609,7 +36593,6 @@ set_interface_property SNK_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property SNK_ST dataBitsPerSymbol 1
-set_interface_property SNK_ST maxChannel 255
 set_interface_property SNK_ST readyLatency 0
 set_interface_property SNK_ST symbolsPerBeat 16
 set_interface_property SNK_ST firstSymbolInHighOrderBits false
@@ -36827,7 +36810,6 @@ set_interface_property SNK_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
 set_interface_property SNK_ST dataBitsPerSymbol 1
-set_interface_property SNK_ST maxChannel 255
 set_interface_property SNK_ST readyLatency 0
 set_interface_property SNK_ST symbolsPerBeat 16
 set_interface_property SNK_ST firstSymbolInHighOrderBits false

@@ -15,8 +15,8 @@ import {
   resolveDataLane,
   type NormalizedBusLibrary,
 } from '../shared/busContracts';
-import { resolveVivadoBusType } from './VivadoBusTypes';
-import { findCustomBusDef } from './VivadoCustomBusDefinitions';
+import { resolveVivadoBusTypeForInterface } from './VivadoBusTypes';
+import { customBusInfoFromContract, findCustomBusDef } from './VivadoCustomBusDefinitions';
 export {
   generateCustomBusDefs,
   renderAbstractionDefinitionXml,
@@ -328,14 +328,18 @@ function renderBusInterface(
   const ifaceType = String(iface.type ?? '');
   const mode = String(iface.mode ?? 'slave').toLowerCase();
 
-  const vivadoType = resolveVivadoBusType(ifaceType, busLibrary);
-  const customBus = vivadoType ? null : findCustomBusDef(ifaceType, busLibrary);
   const contractResolution = resolveBusInterface({
     busInterface: iface as unknown as BusInterface,
     busIndex: 0,
     parameters: parameters as unknown as Parameter[],
     library: busLibrary,
   });
+  const vivadoType = resolveVivadoBusTypeForInterface(ifaceType, busLibrary, contractResolution);
+  const customBus = vivadoType
+    ? null
+    : contractResolution.match
+      ? customBusInfoFromContract(contractResolution.match.contract)
+      : findCustomBusDef(ifaceType, busLibrary);
   const dataLane = resolveDataLane(contractResolution, iface);
 
   const lines: string[] = [];
