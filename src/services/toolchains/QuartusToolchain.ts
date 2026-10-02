@@ -12,6 +12,7 @@ import { BUS_REGISTRY } from '../../generator/buses/builtin';
 import type { NormalizedBusLibrary } from '../../shared/busContracts';
 import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
+import { applyPlatformDesignerRoleCase } from './platformDesignerRoles';
 import {
   resolveExecutionLauncher,
   type DockerConfig,
@@ -372,8 +373,14 @@ export class QuartusToolchain implements SynthesisToolchain {
       name,
       ctx.ipCoreDir
     );
+    const roles = applyPlatformDesignerRoleCase(
+      expanded ?? [],
+      (templateContext.elaborate_port_widths as Array<Record<string, unknown>> | undefined) ?? []
+    );
     files[`altera/${name}_hw.tcl`] = templates.render('altera_hw_tcl.j2', {
       ...templateContext,
+      expanded_bus_interfaces: roles.interfaces,
+      elaborate_port_widths: roles.elaboratePortWidths,
       rtl_files: rtlFileEntries,
     });
 

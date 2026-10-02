@@ -2485,6 +2485,25 @@ describe('IpCoreScaffolder', () => {
     );
   });
 
+  it('writes lowercase Platform Designer roles for AXI ports in _hw.tcl', async () => {
+    const inputPath = path.resolve(__dirname, '../../fixtures/sample-ipcore.yml');
+    const result = await scaffolder.generateAll(inputPath, '/tmp/axi-roles', {
+      targets: ['quartus'],
+      includeRegs: false,
+      includeTestbench: false,
+    });
+
+    expect(result).toMatchObject({ success: true });
+    const tclContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+      String(call[0]).endsWith('sample_core_hw.tcl')
+    )?.[1] as string | undefined;
+    expect(tclContent).toBeDefined();
+    // Platform Designer only knows lowercase AXI roles; AWADDR is an "unknown type".
+    expect(tclContent).toMatch(/^add_interface_port S_AXI s_axi_awaddr awaddr Input /m);
+    expect(tclContent).toMatch(/^add_interface_port S_AXI s_axi_wdata wdata Input /m);
+    expect(tclContent).not.toMatch(/^\s*add_interface_port S_AXI \S+ [A-Z]/m);
+  });
+
   it('places arithmetic expression user ports in the elaborate proc (Rb_ByteEna pattern)', async () => {
     // No custom bus library needed — this IP has no bus interfaces.
     (BusLibraryService as jest.Mock).mockImplementation(() => createBusLibraryServiceMock());
