@@ -121,6 +121,9 @@ architecture rtl of {{ entity_name }}_axil is
   -- Registered flag for an unmapped read address: lets read_valid_proc respond
   -- with SLVERR one cycle after rd_en, matching the timing of rd_valid.
   signal rd_invalid_d : std_logic := '0';
+  -- One read in flight: set when AR is accepted, cleared on the R handshake.
+  -- AR must not be taken while RVALID is pending, or that read is never answered.
+  signal rd_busy      : std_logic := '0';
 
   -- Write transaction tracking using VHDL 2008 records
   type t_write_transaction is record
@@ -232,7 +235,11 @@ begin
 
   ----------------------------------------------------------------------------
   -- Write Data Channel
-  -- Accept write data when WVALID is asserted (independent of AWVALID)
+  -- Accept write data when WVALID is asserted (independent of AWVALID), but
+  -- only one write at a time: W of the next transaction waits until the
+  -- previous one completed with the B handshake. Otherwise a master with
+  -- several writes in flight (e.g. an interconnect forwarding posted PCIe
+  -- writes) overwrites wdata_latch and the port deadlocks.
   ----------------------------------------------------------------------------
   write_data_proc : process (clk) is
   begin
@@ -241,7 +248,7 @@ begin
         wready              <= '0';
         write_txn.data_received <= '0';
       else
-        if (wready = '0' and {{ wvalid_port[0].name if wvalid_port | length > 0 else "'0'" }} = '1') then
+        if (wready = '0' and {{ wvalid_port[0].name if wvalid_port | length > 0 else "'0'" }} = '1' and write_txn.data_received = '0') then
           -- Ready to accept write data; latch data and strobe immediately
           wready              <= '1';
           write_txn.data_received <= '1';
@@ -319,12 +326,17 @@ begin
       if rst = '1' then
         arready <= '0';
         araddr  <= (others => '0');
+        rd_busy <= '0';
       else
-        if (arready = '0' and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} = '1') then
+        if (arready = '0' and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} = '1' and rd_busy = '0') then
           arready <= '1';
+          rd_busy <= '1';
           araddr  <= {{ araddr_port[0].name if araddr_port | length > 0 else "(others => '0')" }};  -- latch address from port
         else
           arready <= '0';
+          if (rvalid = '1' and {{ rready_port[0].name if rready_port | length > 0 else "'1'" }} = '1') then
+            rd_busy <= '0';
+          end if;
         end if;
       end if;
     end if;

@@ -82,6 +82,10 @@ module {{ entity_name }}_axil
   logic                        wr_pending   = 1'b0;
   // rd_invalid_d: registered flag for unmapped read address
   logic                        rd_invalid_d = 1'b0;
+  // rd_busy: one read in flight - set when AR is accepted, cleared on the R
+  // handshake. AR must not be taken while RVALID is pending, or that read is
+  // never answered.
+  logic                        rd_busy      = 1'b0;
 
   // Write transaction tracking
   logic aw_en          = 1'b1;
@@ -196,14 +200,18 @@ module {{ entity_name }}_axil
 
   ////////////////////////////////////////////////////////////////////////////
   // Write Data Channel
-  // Accept write data when WVALID is asserted (independent of AWVALID)
+  // Accept write data when WVALID is asserted (independent of AWVALID), but
+  // only one write at a time: W of the next transaction waits until the
+  // previous one completed with the B handshake. Otherwise a master with
+  // several writes in flight (e.g. an interconnect forwarding posted PCIe
+  // writes) overwrites wdata_latch and the port deadlocks.
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : write_data_proc
     if (rst) begin
       wready        <= 1'b0;
       data_received <= 1'b0;
     end else begin
-      if (!wready && wvalid) begin
+      if (!wready && wvalid && !data_received) begin
         wready        <= 1'b1;
         data_received <= 1'b1;
         wdata_latch   <= wdata;
@@ -261,12 +269,17 @@ module {{ entity_name }}_axil
   always_ff @(posedge clk) begin : read_addr_proc
     if (rst) begin
       arready <= 1'b0;
+      rd_busy <= 1'b0;
     end else begin
-      if (!arready && arvalid) begin
+      if (!arready && arvalid && !rd_busy) begin
         arready    <= 1'b1;
+        rd_busy    <= 1'b1;
         araddr_lat <= araddr[C_ADDR_WIDTH-1:0];
       end else begin
         arready <= 1'b0;
+        if (rvalid && rready) begin
+          rd_busy <= 1'b0;
+        end
       end
     end
   end
