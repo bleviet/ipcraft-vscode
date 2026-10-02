@@ -13,7 +13,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { parseComponentXmlText } from '../../../parser/ComponentXmlParser';
+import { parseComponentXmlText as parseComponentXmlTextImpl } from '../../../parser/ComponentXmlParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
+
+const parseComponentXmlText = (text: string) =>
+  parseComponentXmlTextImpl(text, { busLibrary: builtinBusLibrary() });
 
 const VIVADO_IP_DIR = '/home/balevision/tools/Xilinx/Vivado/2024.2/data/ip/xilinx';
 

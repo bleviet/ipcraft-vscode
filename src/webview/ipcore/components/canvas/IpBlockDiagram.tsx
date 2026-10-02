@@ -5,7 +5,7 @@ import { CanvasPort } from './CanvasPort';
 import { CanvasBusBundle } from './CanvasBusBundle';
 import { CanvasBusSubPort } from './CanvasBusSubPort';
 import type { CanvasAnnotations } from '../../hooks/useCanvasValidation';
-import type { BusPortDef } from '../../data/busDefinitions';
+import type { BusPortDef } from '../../utils/busLibrary';
 import { getActiveDragPayload, type LibraryDragPayload } from './canvasDragTypes';
 import { vscode } from '../../../vscode';
 import type { IpCore } from '../../../types/ipCore';

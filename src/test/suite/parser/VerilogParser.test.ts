@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { parseVerilogFile, extractVerilogInterface } from '../../../parser/VerilogParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 describe('VerilogParser', () => {
   let tempDir: string;
@@ -399,6 +400,32 @@ endmodule
   });
 
   describe('bus interface detection', () => {
+    it('maps conventional declared active-low roles to canonical bus ports', async () => {
+      const result = await writeAndParse(
+        'avalon_low.v',
+        `
+module avalon_low (
+  output wire [7:0] address,
+  output wire read_n,
+  output wire write,
+  output wire [3:0] byteenable_n
+);
+endmodule
+`,
+        { detectBus: true, busLibrary: builtinBusLibrary() }
+      );
+      const parsed = yaml.load(result.yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+
+      expect(parsed.busInterfaces).toHaveLength(1);
+      expect(parsed.busInterfaces[0].portPolarityOverrides).toEqual({
+        read: 'activeLow',
+        byteenable: 'activeLow',
+      });
+      expect(parsed.busInterfaces[0].portNameOverrides).toBeUndefined();
+    });
+
     it('detects AXI-Lite bus interface patterns', async () => {
       const result = await writeAndParse(
         'axi_slave.v',
@@ -425,13 +452,41 @@ module axi_slave (
 );
 endmodule
 `,
-        { detectBus: true }
+        { detectBus: true, busLibrary: builtinBusLibrary() }
       );
       const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
       const ifaces = parsed.busInterfaces as Array<Record<string, unknown>>;
 
       expect(ifaces).toBeDefined();
       expect(ifaces.length).toBeGreaterThan(0);
+      expect(ifaces[0].portNameOverrides).toBeUndefined();
+    });
+
+    it('preserves genuinely mixed-case AXI suffixes with the normalized bus library', async () => {
+      const result = await writeAndParse(
+        'axi_mixed.v',
+        `
+module axi_mixed (
+  input  wire        S_Axi_AwValid,
+  output wire        S_Axi_AwReady,
+  input  wire [31:0] S_Axi_AwAddr,
+  input  wire        S_Axi_WValid
+);
+endmodule
+`,
+        { detectBus: true, busLibrary: builtinBusLibrary() }
+      );
+      const parsed = yaml.load(result.yamlText) as Record<string, unknown>;
+      const ifaces = parsed.busInterfaces as Array<Record<string, unknown>>;
+
+      expect(ifaces).toHaveLength(1);
+      expect(ifaces[0].physicalPrefix).toBe('S_Axi_');
+      expect(ifaces[0].portNameOverrides).toEqual({
+        AWADDR: 'AwAddr',
+        AWVALID: 'AwValid',
+        AWREADY: 'AwReady',
+        WVALID: 'WValid',
+      });
     });
 
     it('skips bus detection when detectBus is false', async () => {

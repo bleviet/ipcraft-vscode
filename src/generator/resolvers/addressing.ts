@@ -1,38 +1,29 @@
 import type { ContextResolver, ResolverInput } from './types';
-
-function getString(value: unknown): string {
-  if (value === null || value === undefined) {
-    return '';
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'object' && 'value' in value) {
-    return String((value as Record<string, unknown>).value);
-  }
-  return String(value);
-}
+import { resolveBusInterface } from '../../shared/busContracts';
+import type { BusInterface, Parameter } from '../../domain/ipcore.types';
 
 /** Derive data_width from the primary memory-mapped slave's WDATA port in the bus library. */
 function deriveDataWidth(input: ResolverInput): number {
-  const { ipCore, busDefinitions, registry } = input;
-  for (const bus of ipCore.busInterfaces ?? []) {
-    if ((bus.mode ?? '').toLowerCase() !== 'slave') {
+  const { ipCore, busLibrary } = input;
+  for (const [busIndex, bus] of (ipCore.busInterfaces ?? []).entries()) {
+    const resolution = resolveBusInterface({
+      busInterface: bus as unknown as BusInterface,
+      busIndex,
+      parameters: (ipCore.parameters ?? []) as unknown as Parameter[],
+      library: busLibrary,
+    });
+    const contract = resolution.match?.contract;
+    if (
+      contract?.interfaceKind !== 'memoryMapped' ||
+      resolution.normalizedMode !== contract.modePolicy.consumer
+    ) {
       continue;
     }
-    const info = registry.normalize(getString(bus.type));
-    if (!registry.isMemoryMapped(info.templateType)) {
-      continue;
-    }
-    const def = info.libraryKey ? busDefinitions[info.libraryKey] : undefined;
-    if (!def?.ports) {
-      continue;
-    }
-    const wdata = def.ports.find(
+    const wdata = contract.ports.find(
       (p) => typeof p.name === 'string' && /^(WDATA|writedata)$/.test(p.name)
     );
-    const width = Number(wdata?.width);
-    if (Number.isFinite(width) && width > 0) {
+    const width = wdata ? resolution.portWidths[wdata.name]?.value : undefined;
+    if (typeof width === 'number' && Number.isFinite(width) && width > 0) {
       return width;
     }
     break;

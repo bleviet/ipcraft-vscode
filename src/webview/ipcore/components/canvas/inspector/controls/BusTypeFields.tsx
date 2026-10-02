@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import type { NormalizedBusLibrary } from '../../../../../../shared/busContracts';
 import { BUS_VLNV } from '../../../../../../shared/busVlnv';
 import { isValidVlnv } from '../../../../../../utils/vlnv';
-import { BUILTIN_BUS_TYPES, listLibraryBusTypes } from '../../../../data/busDefinitions';
+import { listBuiltinBusTypes, listLibraryBusTypes } from '../../../../utils/busLibrary';
 import { buildConduitType, conduitTypeName } from '../buses/busInterfaceMetadata';
 import {
   buildSelectFilesMessage,
@@ -244,16 +245,14 @@ const FuzzySelect: React.FC<FuzzySelectProps> = ({
 
 interface BusTypeFieldProps {
   value: string;
-  busLibrary?: unknown;
+  busLibrary?: NormalizedBusLibrary;
   onSave: (vlnv: string) => void;
 }
 
 export const BusTypeField: React.FC<BusTypeFieldProps> = ({ value, busLibrary, onSave }) => {
-  const libraryOpts = useMemo(
-    () => (busLibrary ? listLibraryBusTypes(busLibrary as Record<string, unknown>) : []),
-    [busLibrary]
-  );
-  const allOpts = useMemo(() => [...BUILTIN_BUS_TYPES, ...libraryOpts], [libraryOpts]);
+  const builtinOpts = useMemo(() => listBuiltinBusTypes(busLibrary), [busLibrary]);
+  const libraryOpts = useMemo(() => listLibraryBusTypes(busLibrary), [busLibrary]);
+  const allOpts = useMemo(() => [...builtinOpts, ...libraryOpts], [builtinOpts, libraryOpts]);
   const isPreset = allOpts.some((o) => o.vlnv === value);
 
   const [mode, setMode] = useState<'preset' | 'manual'>(() => (isPreset ? 'preset' : 'manual'));
@@ -283,7 +282,7 @@ export const BusTypeField: React.FC<BusTypeFieldProps> = ({ value, busLibrary, o
     } else {
       setMode('preset');
       if (!allOpts.some((o) => o.vlnv === value)) {
-        onSave(BUILTIN_BUS_TYPES[0].vlnv);
+        onSave(builtinOpts[0]?.vlnv ?? BUS_VLNV.AXI4_LITE);
       }
     }
   };
@@ -347,7 +346,7 @@ export const BusTypeField: React.FC<BusTypeFieldProps> = ({ value, busLibrary, o
 interface InterfaceTypeFieldProps {
   /** Full VLNV of the interface (e.g. 'xilinx.com:interface:fifo_write:1.0' or 'user:busif:spi:1.0'). */
   value: string;
-  busLibrary?: unknown;
+  busLibrary?: NormalizedBusLibrary;
   onSave: (vlnv: string) => void;
 }
 
@@ -356,22 +355,19 @@ export const InterfaceTypeField: React.FC<InterfaceTypeFieldProps> = ({
   busLibrary,
   onSave,
 }) => {
-  const libraryOpts = useMemo(
-    () => (busLibrary ? listLibraryBusTypes(busLibrary as Record<string, unknown>) : []),
-    [busLibrary]
-  );
+  const libraryOpts = useMemo(() => listLibraryBusTypes(busLibrary), [busLibrary]);
   const isPreset = libraryOpts.some((o) => o.vlnv === value);
 
   const [mode, setMode] = useState<'preset' | 'manual'>(() => (isPreset ? 'preset' : 'manual'));
-  const currentTypeName = conduitTypeName(value);
+  const currentTypeName = conduitTypeName(value, busLibrary);
   const [draft, setDraft] = useState(currentTypeName);
   const [focused, setFocused] = useState(false);
 
   useEffect(() => {
     if (!focused) {
-      setDraft(conduitTypeName(value));
+      setDraft(conduitTypeName(value, busLibrary));
     }
-  }, [value, focused]);
+  }, [value, focused, busLibrary]);
 
   const commitManual = () => {
     setFocused(false);
@@ -388,14 +384,14 @@ export const InterfaceTypeField: React.FC<InterfaceTypeFieldProps> = ({
     if (next !== value) {
       onSave(next);
     } else {
-      setDraft(conduitTypeName(value));
+      setDraft(conduitTypeName(value, busLibrary));
     }
   };
 
   const toggleMode = () => {
     if (mode === 'preset') {
       setMode('manual');
-      setDraft(conduitTypeName(value));
+      setDraft(conduitTypeName(value, busLibrary));
     } else {
       setMode('preset');
       if (libraryOpts.length > 0 && !libraryOpts.some((o) => o.vlnv === value)) {

@@ -1,7 +1,22 @@
 import * as yaml from 'js-yaml';
-import { generateComponentXml } from '../../../generator/VivadoComponentXmlGenerator';
+import { generateComponentXml as generateComponentXmlImpl } from '../../../generator/VivadoComponentXmlGenerator';
+import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
 import type { BusDefinitions, IpCoreData } from '../../../generator/types';
-import { parseComponentXmlText } from '../../../parser/ComponentXmlParser';
+import { parseComponentXmlText as parseComponentXmlTextImpl } from '../../../parser/ComponentXmlParser';
+import { normalizeBusLibrary } from '../../../shared/busContracts';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
+
+const parseComponentXmlText = (text: string, options: { library?: string } = {}) =>
+  parseComponentXmlTextImpl(text, { ...options, busLibrary: builtinBusLibrary() });
+const generateComponentXml = (
+  ipCore: IpCoreData,
+  definitions: BusDefinitions,
+  options: Record<string, unknown> = {}
+) =>
+  generateComponentXmlImpl(ipCore, definitions, {
+    ...options,
+    busLibrary: builtinBusLibrary(),
+  });
 
 function parseYaml(text: string) {
   return yaml.load(text) as Record<string, unknown>;
@@ -430,6 +445,54 @@ describe('ComponentXmlParser', () => {
       expect(generatedXml).not.toContain('<spirit:name>tdata</spirit:name>');
       expect(generatedXml).not.toContain('<spirit:name>tvalid</spirit:name>');
       expect(generatedXml).not.toContain('<spirit:name>tready</spirit:name>');
+    });
+
+    it('preserves logical polarity and literal physical suffix independently', () => {
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>xilinx.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>avalon_polarity</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>AVS</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="interface" spirit:name="avalon" spirit:version="1.0"/>
+      <spirit:slave/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>byteenable</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>avs_byteenable_n</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>write</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>avs_write</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+  <spirit:model><spirit:ports>
+    <spirit:port>
+      <spirit:name>avs_byteenable_n</spirit:name>
+      <spirit:wire><spirit:direction>in</spirit:direction><spirit:vector><spirit:left>1</spirit:left><spirit:right>0</spirit:right></spirit:vector></spirit:wire>
+    </spirit:port>
+    <spirit:port>
+      <spirit:name>avs_write</spirit:name>
+      <spirit:wire><spirit:direction>in</spirit:direction></spirit:wire>
+    </spirit:port>
+  </spirit:ports></spirit:model>
+</spirit:component>`;
+      const doc = parseYaml(parseComponentXmlText(xml).ipYamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.busInterfaces[0]).toMatchObject({
+        physicalPrefix: 'avs_',
+        useOptionalPorts: ['write', 'byteenable'],
+        portWidthOverrides: { byteenable: 2 },
+        portNameOverrides: { byteenable: 'byteenable_n' },
+      });
+      expect(doc.busInterfaces[0].portPolarityOverrides).toBeUndefined();
     });
 
     it('excludes clock/reset busInterfaces from busInterfaces list', () => {
@@ -1095,29 +1158,24 @@ const AVALON_STREAMING_XML = `<?xml version="1.0" encoding="UTF-8"?>
   </spirit:model>
 </spirit:component>`;
 
-describe('unknown bus type VLNV preservation', () => {
+describe('canonical Avalon Streaming alias import', () => {
   type BusIf = { name: string; type: string; busTypeVlnv?: Record<string, string> };
 
-  it('stores busTypeVlnv with original vendor/library/name/version', () => {
+  it('does not retain redundant raw VLNV state', () => {
     const { ipYamlText } = parseComponentXmlText(AVALON_STREAMING_XML);
     const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
     const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
-    expect(iface?.busTypeVlnv).toEqual({
-      vendor: 'altera.com',
-      library: 'interface',
-      name: 'avalon_streaming',
-      version: '19.1',
-    });
+    expect(iface?.busTypeVlnv).toBeUndefined();
   });
 
-  it('encodes type as the colon-joined VLNV string', () => {
+  it('stores the canonical contract VLNV', () => {
     const { ipYamlText } = parseComponentXmlText(AVALON_STREAMING_XML);
     const ip = parseYaml(ipYamlText) as { busInterfaces?: BusIf[] };
     const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
-    expect(iface?.type).toBe('altera.com:interface:avalon_streaming:19.1');
+    expect(iface?.type).toBe('ipcraft:busif:avalon_st:1.0');
   });
 
-  it('captures rawPortMaps with logical and physical names', () => {
+  it('uses the canonical port contract instead of raw port maps', () => {
     const { ipYamlText } = parseComponentXmlText(AVALON_STREAMING_XML);
     const ip = parseYaml(ipYamlText) as {
       busInterfaces?: Array<{
@@ -1126,9 +1184,158 @@ describe('unknown bus type VLNV preservation', () => {
       }>;
     };
     const iface = ip.busInterfaces?.find((b) => b.name === 'st_source');
-    expect(iface?.rawPortMaps).toEqual([
-      { logical: 'DATA', physical: 'st_data', direction: 'out', width: 8 },
+    expect(iface?.rawPortMaps).toBeUndefined();
+  });
+});
+
+describe('Avalon-ST contract metadata', () => {
+  const ip: IpCoreData = {
+    vlnv: { vendor: 'acme', library: 'ip', name: 'stream_ip', version: '1.0' },
+    busInterfaces: [
+      {
+        name: 'stream',
+        type: 'ipcraft:busif:avalon_st:1.0',
+        mode: 'source',
+        physicalPrefix: 'stream_',
+        endianness: 'big',
+        portWidthOverrides: { data: 5 },
+        interfaceProperties: {
+          dataBitsPerSymbol: 1,
+          symbolsPerBeat: 5,
+          readyLatency: 0,
+        },
+      },
+    ],
+  };
+
+  it('round-trips canonical identity, mode, widths, properties, and endianness', async () => {
+    const xml = await generateComponentXml(ip, {});
+    const parsed = parseYaml(parseComponentXmlText(xml).ipYamlText) as {
+      busInterfaces: Array<Record<string, unknown>>;
+    };
+
+    expect(parsed.busInterfaces[0]).toEqual(
+      expect.objectContaining({
+        type: 'ipcraft:busif:avalon_st:1.0',
+        mode: 'source',
+        endianness: 'big',
+        portWidthOverrides: { data: 5 },
+        interfaceProperties: expect.objectContaining({
+          dataBitsPerSymbol: 1,
+          symbolsPerBeat: 5,
+          readyLatency: 0,
+        }),
+      })
+    );
+  });
+
+  it('rejects disagreement between standard and mirrored properties', async () => {
+    const xml = (await generateComponentXml(ip, {})).replace(
+      '<ipcraft:property name="symbolsPerBeat" value="5" />',
+      '<ipcraft:property name="symbolsPerBeat" value="4" />'
+    );
+
+    expect(() => parseComponentXmlText(xml)).toThrow(
+      /component\.xml busInterfaces\.stream\.symbolsPerBeat: standard value '5' conflicts/
+    );
+  });
+});
+
+describe('component.xml contract metadata versions', () => {
+  const componentXml = (
+    busType: { vendor: string; library: string; name: string; version: string },
+    metadata: string
+  ) => `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+                  xmlns:ipcraft="urn:ipcraft:interface-contract:1">
+  <spirit:vendor>acme</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>metadata_import</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>stream</spirit:name>
+      <spirit:busType spirit:vendor="${busType.vendor}" spirit:library="${busType.library}" spirit:name="${busType.name}" spirit:version="${busType.version}"/>
+      <spirit:master/>
+      ${metadata}
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+</spirit:component>`;
+
+  it('keeps legacy contract-less metadata opaque during import', () => {
+    const definitions: BusDefinitionFile = {
+      LEGACY: {
+        busType: { vendor: 'acme', library: 'busif', name: 'legacy', version: '1.0' },
+        ports: [{ name: 'payload', width: 8, direction: 'out' }],
+      },
+    };
+    const busLibrary = normalizeBusLibrary([
+      { sourceFile: '/workspace/legacy.yml', sourceKind: 'workspace', definitions },
     ]);
+    const xml = componentXml(
+      definitions.LEGACY.busType,
+      `<spirit:parameters>
+        <spirit:parameter><spirit:name>firstSymbolInHighOrderBits</spirit:name><spirit:value>true</spirit:value></spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="endianness" value="big" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>`
+    );
+    const parsed = parseYaml(parseComponentXmlTextImpl(xml, { busLibrary }).ipYamlText) as {
+      busInterfaces: Array<Record<string, unknown>>;
+    };
+
+    expect(busLibrary.definitions.LEGACY.version).toBeNull();
+    expect(parsed.busInterfaces[0].endianness).toBeUndefined();
+    expect(parsed.busInterfaces[0].interfaceProperties).toBeUndefined();
+  });
+
+  it('ignores an IPCraft mirror with an unsupported version', () => {
+    const xml = componentXml(
+      { vendor: 'altera.com', library: 'interface', name: 'avalon_streaming', version: '19.1' },
+      `<spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="2">
+          <ipcraft:property name="endianness" value="big" />
+          <ipcraft:property name="symbolsPerBeat" value="4" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>`
+    );
+    const parsed = parseYaml(parseComponentXmlText(xml).ipYamlText) as {
+      busInterfaces: Array<Record<string, unknown>>;
+    };
+
+    expect(parsed.busInterfaces[0].endianness).toBeUndefined();
+    expect(parsed.busInterfaces[0].interfaceProperties).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'standard parameter',
+      `<spirit:parameters>
+        <spirit:parameter><spirit:name>symbolsPerBeat</spirit:name><spirit:value>9007199254740993</spirit:value></spirit:parameter>
+      </spirit:parameters>`,
+      'parameters.symbolsPerBeat',
+    ],
+    [
+      'IPCraft mirror',
+      `<spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="symbolsPerBeat" value="9007199254740993" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>`,
+      'mirror.symbolsPerBeat',
+    ],
+  ])('rejects an unsafe integer in a %s', (_source, metadata, location) => {
+    const xml = componentXml(
+      { vendor: 'altera.com', library: 'interface', name: 'avalon_streaming', version: '19.1' },
+      metadata
+    );
+
+    expect(() => parseComponentXmlText(xml)).toThrow(
+      `component.xml busInterfaces.stream.${location} has invalid integer value '9007199254740993'`
+    );
   });
 });
 

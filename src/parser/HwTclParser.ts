@@ -1,13 +1,19 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
+import {
+  canonicalizeBusType,
+  importVendorContractMetadata,
+  reconcileObservedBusPorts,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
 import { resolveVendor } from '../utils/resolveVendor';
 import { titleCaseIdentifier } from '../utils/titleCase';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { normalizeParameterDataType } from './paramDataType';
 
 export interface HwTclParseOptions {
+  busLibrary: NormalizedBusLibrary;
   library?: string;
   outputDir?: string;
   vendor?: string;
@@ -100,7 +106,7 @@ const FILESET_DESC_MAP: Record<string, string> = {
 
 export async function parseHwTclFile(
   tclPath: string,
-  options: HwTclParseOptions = {}
+  options: HwTclParseOptions
 ): Promise<HwTclParseResult> {
   const content = await fs.readFile(tclPath, 'utf8');
   const flattened = await flattenTclContent(content, tclPath, new Set(), false);
@@ -251,7 +257,7 @@ async function flattenTclContent(
 export function parseHwTclContent(
   content: string,
   tclPath: string,
-  options: HwTclParseOptions = {}
+  options: HwTclParseOptions
 ): HwTclParseResult {
   const moduleProps = new Map<string, string>();
   const interfaces = new Map<string, TclInterface>();
@@ -453,7 +459,14 @@ export function parseHwTclContent(
   // ── Bus interfaces ──────────────────────────────────────────────────────────
 
   const busEntries = busIfaces.map((bi) => {
-    const mode = bi.mode === 'start' ? 'master' : 'slave';
+    const contractMatch = canonicalizeBusType(BUS_TYPE_MAP[bi.type], options.busLibrary);
+    const mode = contractMatch
+      ? bi.mode === 'start'
+        ? contractMatch.contract.modePolicy.producer
+        : contractMatch.contract.modePolicy.consumer
+      : bi.mode === 'start'
+        ? 'master'
+        : 'slave';
 
     const portNames = bi.ports.map((p) => p.portName);
     const physicalPrefix = computePhysicalPrefix(portNames);
@@ -477,69 +490,33 @@ export function parseHwTclContent(
       entry.associatedReset = resetPort;
     }
 
-    const firstSymbolInHighOrderBits = bi.properties.get('firstSymbolInHighOrderBits');
-    if (bi.type === 'avalon_streaming' && firstSymbolInHighOrderBits !== undefined) {
-      entry.endianness = /^(?:1|true)$/i.test(firstSymbolInHighOrderBits) ? 'big' : 'little';
+    if (contractMatch) {
+      const dataWidth = bi.ports.find((port) => port.logicalName.toLowerCase() === 'data')?.width;
+      Object.assign(
+        entry,
+        importVendorContractMetadata({
+          contract: contractMatch.contract,
+          rawProperties: bi.properties,
+          dataWidth,
+          location: `${tclPath}: interface '${bi.name}'`,
+        })
+      );
     }
 
-    // Detect optional ports and portWidthOverrides from bus definition
-    const busDef = lookupBusDef(BUS_TYPE_MAP[bi.type]);
+    const busDef = contractMatch?.contract.ports;
     if (busDef) {
-      const presentLogical = new Set(bi.ports.map((p) => p.logicalName.toLowerCase()));
-      const useOptionalPorts = busDef
-        .filter((def) => def.presence === 'optional' && presentLogical.has(def.name.toLowerCase()))
-        .map((def) => def.name);
-      if (useOptionalPorts.length > 0) {
-        entry.useOptionalPorts = useOptionalPorts;
-      }
-
-      // Emit portWidthOverrides for bus ports whose actual width differs from the
-      // bus-definition default (numeric mismatch) or is a parameter expression
-      // (string) — so the generator reproduces the original port sizes faithfully.
-      // Keys use the bus definition's original case (e.g. uppercase for AXI, lowercase
-      // for Avalon) so the canvas lookup `overrides[portDef.name]` matches directly.
-      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
-      const hasWidthDefs = busDef.some((def) => typeof def.width === 'number');
-      if (hasWidthDefs) {
-        const portWidthOverrides: Record<string, number | string> = {};
-        for (const p of bi.ports) {
-          const logUpper = p.logicalName.toUpperCase();
-          const def = defByUpper.get(logUpper);
-          if (!def || typeof def.width !== 'number') {
-            continue;
-          }
-          const canonicalKey = def.name;
-          if (typeof p.width === 'string') {
-            portWidthOverrides[canonicalKey] = p.width;
-          } else if (p.width !== def.width) {
-            portWidthOverrides[canonicalKey] = p.width;
-          }
-        }
-        if (Object.keys(portWidthOverrides).length > 0) {
-          entry.portWidthOverrides = portWidthOverrides;
-        }
-      }
-
-      // Emit portNameOverrides for any physical port whose suffix (after the shared
-      // physicalPrefix) does not match the conventional lowercase logical name. This
-      // is lossless: physicalPrefix + suffix always reconstructs the original portName,
-      // even when multiple interfaces of the same protocol share one physicalPrefix
-      // (e.g. two Avalon-ST sinks both prefixed "asi_" but distinguished by an index/
-      // direction-tag suffix like "_0_i" / "_1_i").
-      const portNameOverrides: Record<string, string> = {};
-      for (const p of bi.ports) {
-        const suffix = p.portName.startsWith(physicalPrefix)
-          ? p.portName.slice(physicalPrefix.length)
-          : p.portName;
-        if (suffix !== p.logicalName.toLowerCase()) {
-          const def = defByUpper.get(p.logicalName.toUpperCase());
-          const canonicalKey = def ? def.name : p.logicalName;
-          portNameOverrides[canonicalKey] = suffix;
-        }
-      }
-      if (Object.keys(portNameOverrides).length > 0) {
-        entry.portNameOverrides = portNameOverrides;
-      }
+      Object.assign(
+        entry,
+        reconcileObservedBusPorts(
+          busDef,
+          bi.ports.map((port) => ({
+            logicalName: port.logicalName,
+            physicalName: port.portName,
+            width: port.width,
+          })),
+          physicalPrefix
+        )
+      );
     }
 
     return entry;

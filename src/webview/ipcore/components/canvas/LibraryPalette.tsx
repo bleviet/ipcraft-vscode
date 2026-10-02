@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo, type DragEvent } from 'react';
 import { BUS_VLNV } from '../../../../shared/busVlnv';
+import type { NormalizedBusLibrary } from '../../../../shared/busContracts';
 import { DRAG_MIME, setActiveDragPayload, type LibraryDragPayload } from './canvasDragTypes';
 
 export { DRAG_MIME, getActiveDragPayload, type LibraryDragPayload } from './canvasDragTypes';
@@ -104,59 +105,21 @@ function itemSearchText(item: LibraryDragPayload): string {
   return [item.label, item.vendor, item.nameHint].filter(Boolean).join(' ');
 }
 
-const BUILT_IN_BUS_KEYS = new Set([
-  'AXI4_LITE',
-  'AXI4_FULL',
-  'AXI_STREAM',
-  'AVALON_MEMORY_MAPPED',
-  'AVALON_STREAMING',
-]);
-
-function buildUserBusItems(busLibrary: Record<string, unknown>): LibraryDragPayload[] {
+function buildUserBusItems(busLibrary: NormalizedBusLibrary): LibraryDragPayload[] {
   const items: LibraryDragPayload[] = [];
-
-  for (const [key, value] of Object.entries(busLibrary)) {
-    if (BUILT_IN_BUS_KEYS.has(key)) {
+  for (const contract of Object.values(busLibrary.definitions)) {
+    if (contract.sourceKind === 'builtin') {
       continue;
     }
-
-    if (!value || typeof value !== 'object' || Array.isArray(value)) {
-      continue;
-    }
-
-    const entry = value as Record<string, unknown>;
-    const busType = entry.busType;
-    if (!busType || typeof busType !== 'object' || Array.isArray(busType)) {
-      continue;
-    }
-
-    const bt = busType as Record<string, unknown>;
-    const vendor = typeof bt.vendor === 'string' ? bt.vendor : 'user';
-    const library = typeof bt.library === 'string' ? bt.library : 'busif';
-    const name = typeof bt.name === 'string' ? bt.name : key.toLowerCase();
-    const version = typeof bt.version === 'string' ? bt.version : '1.0';
-    const vlnv = `${vendor}:${library}:${name}:${version}`;
-
-    // Build display label from busType.name, fall back to the key
-    let label: string;
-    if (typeof bt.name === 'string') {
-      label = bt.name
-        .replace(/_/g, '-')
-        .split('-')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join('-');
-    } else {
-      label = key;
-    }
-
-    const mode = 'slave';
+    const [vendor = 'user', , name = contract.key.toLowerCase()] =
+      contract.canonicalVlnv.split(':');
 
     items.push({
       kind: 'bus',
-      type: vlnv,
-      mode,
+      type: contract.canonicalVlnv,
+      mode: contract.modePolicy.consumer,
       nameHint: name,
-      label,
+      label: contract.displayName,
       vendor,
     });
   }
@@ -215,7 +178,7 @@ const LIBRARY_DEFAULT_WIDTH = 250;
 
 interface LibraryPaletteProps {
   onCollapse?: () => void;
-  busLibrary?: Record<string, unknown>;
+  busLibrary?: NormalizedBusLibrary;
 }
 
 /** Single draggable row: icon, label, and a vendor badge (bus items) or kind badge (ports/interrupts). */

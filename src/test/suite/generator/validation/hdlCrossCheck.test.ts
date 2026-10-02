@@ -1,8 +1,20 @@
 import {
-  crossCheckIpCoreAgainstHdl,
-  crossCheckIpCoreAgainstTopLevelHdl,
+  crossCheckIpCoreAgainstHdl as crossCheckIpCoreAgainstHdlImpl,
+  crossCheckIpCoreAgainstTopLevelHdl as crossCheckIpCoreAgainstTopLevelHdlImpl,
 } from '../../../../generator/validation/hdlCrossCheck';
 import type { IpCoreData } from '../../../../generator/types';
+import { builtinBusLibrary } from '../../../helpers/busLibrary';
+
+const crossCheckIpCoreAgainstHdl = (
+  core: IpCoreData,
+  dir: string,
+  reader: (path: string) => Promise<string>
+) => crossCheckIpCoreAgainstHdlImpl(core, dir, builtinBusLibrary(), reader);
+const crossCheckIpCoreAgainstTopLevelHdl = (
+  core: IpCoreData,
+  dir: string,
+  reader: (path: string) => Promise<string>
+) => crossCheckIpCoreAgainstTopLevelHdlImpl(core, dir, builtinBusLibrary(), reader);
 
 function baseIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
   return {

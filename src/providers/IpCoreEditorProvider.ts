@@ -30,6 +30,7 @@ import { listAll } from '../services/toolchains/registry';
 import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
 import { ResourceRoots } from '../services/ResourceRoots';
 import { CONFIG_KEY_IPCRAFT_GENERATE, CONFIG_KEY_IPCRAFT_TOOLBAR } from '../utils/configKeys';
+import { schemaIssuesFromValidation } from '../shared/schemaIssues';
 
 interface IpcMessage {
   type: string;
@@ -94,7 +95,11 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const services = createSharedProviderServices(context);
     this.htmlGenerator = services.htmlGenerator;
     this.documentManager = services.documentManager;
-    this.importResolver = new ImportResolver(this.logger, resourceRoots.busDefinitionsDir);
+    this.importResolver = new ImportResolver(
+      this.logger,
+      resourceRoots.busDefinitionsDir,
+      resourceRoots.busDefinitionSchemaPath
+    );
     this.subcoreResolver = new SubcoreResolver(context);
     void this.subcoreResolver.initialize();
 
@@ -348,11 +353,15 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       return;
     }
     try {
-      const { findings, summary } = await runConsistencyCheck(document.uri, this.resourceRoots);
+      const { findings, issues, summary } = await runConsistencyCheck(
+        document.uri,
+        this.resourceRoots
+      );
       if (!isDisposed()) {
         void webviewPanel.webview.postMessage({
           type: 'consistencyResult',
           findings,
+          issues,
           summary,
           auto: true,
         });
@@ -407,8 +416,16 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
 
     router.on('checkConsistency', async () => {
       try {
-        const { findings, summary } = await runConsistencyCheck(document.uri, this.resourceRoots);
-        void webviewPanel.webview.postMessage({ type: 'consistencyResult', findings, summary });
+        const { findings, issues, summary } = await runConsistencyCheck(
+          document.uri,
+          this.resourceRoots
+        );
+        void webviewPanel.webview.postMessage({
+          type: 'consistencyResult',
+          findings,
+          issues,
+          summary,
+        });
       } catch (error) {
         this.logger.error('Consistency check failed', error as Error);
         void webviewPanel.webview.postMessage({
@@ -601,6 +618,12 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       // version and desync the docVersion we stamp on this text.
       const docVersion = document.version;
       const parsed = jsyaml.load(text);
+      const schemaIssues = schemaIssuesFromValidation(
+        this.yamlValidator.validateAgainstSchema(
+          parsed,
+          path.join(this.resourceRoots.schemasDir, 'ip_core.schema.json')
+        )
+      );
       const baseDir = path.dirname(document.uri.fsPath);
       const imports = await this.importResolver.resolveImports(
         parsed as Record<string, unknown>,
@@ -689,6 +712,17 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         },
         docVersion
       );
+      if (schemaIssues.length > 0) {
+        router.postNotification({
+          type: 'conformanceResult',
+          sourceRevision: text,
+          report: {
+            issues: schemaIssues,
+            hasKnownErrors: true,
+            hasUnresolved: false,
+          },
+        });
+      }
     } catch (error) {
       this.logger.error('Failed to update webview', error as Error);
     }

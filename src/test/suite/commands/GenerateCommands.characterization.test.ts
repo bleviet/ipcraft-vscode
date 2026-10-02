@@ -18,6 +18,7 @@ describe('registerGeneratorCommands registration surface', () => {
       builtinPacksDir: '/packs',
       templatesDir: '/templates',
       busDefinitionsDir: '/bus_definitions',
+      busDefinitionSchemaPath: '/schemas/bus_definition.schema.json',
     };
 
     registerGeneratorCommands(context, resourceRoots);

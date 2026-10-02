@@ -3,9 +3,10 @@ import * as fs from 'fs/promises';
 import * as fs2 from 'fs';
 import * as os from 'os';
 import { runCliGenerate, DEFAULT_QUARTUS_DEVICE } from '../../../cli/generate';
-import { BusLibraryService } from '../../../services/BusLibraryService';
 import { Logger } from '../../../utils/Logger';
 import { devResourceRoots } from '../../../services/ResourceRoots';
+import { BusLibraryService } from '../../../services/BusLibraryService';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 // Mock Logger (same convention as IpCoreScaffolder.test.ts) so the CLI logic doesn't spam
 // the test output — the CLI itself renders these through console via vscodeShim.
@@ -22,14 +23,19 @@ jest.mock('../../../utils/Logger', () => {
 
 jest.mock('../../../services/BusLibraryService', () => {
   return {
-    BusLibraryService: jest.fn().mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({
-        AXI4L: { ports: [{ name: 'AWADDR', presence: 'required' }] },
-      }),
-      clearCache: jest.fn(),
-    })),
+    BusLibraryService: jest.fn(),
   };
 });
+
+function installBusLibraryMock(): void {
+  const emptySources = { sources: [], diagnostics: [] };
+  (BusLibraryService as jest.Mock).mockImplementation(() => ({
+    loadDefaultSources: jest.fn().mockResolvedValue(emptySources),
+    loadFromDirectories: jest.fn().mockResolvedValue(emptySources),
+    normalizeSources: jest.fn(() => builtinBusLibrary()),
+    clearCache: jest.fn(),
+  }));
+}
 
 const mockVivadoPathExists = jest.fn<Promise<boolean>, [string]>().mockResolvedValue(false);
 jest.mock('../../../services/VivadoInterfaceScanner', () => ({
@@ -56,17 +62,12 @@ const resourceRoots = devResourceRoots(repoRoot);
 
 describe('runCliGenerate', () => {
   beforeEach(() => {
+    installBusLibraryMock();
     (Logger as unknown as jest.Mock).mockImplementation(() => ({
       info: jest.fn(),
       error: jest.fn(),
       warn: jest.fn(),
       debug: jest.fn(),
-    }));
-    (BusLibraryService as jest.Mock).mockImplementation(() => ({
-      loadDefaultLibrary: jest.fn().mockResolvedValue({
-        AXI4L: { ports: [{ name: 'AWADDR', presence: 'required' }] },
-      }),
-      clearCache: jest.fn(),
     }));
     mockVivadoPathExists.mockResolvedValue(false);
     mockWorkspaceScan.mockResolvedValue({ library: {}, files: [], count: 0 });

@@ -2,10 +2,9 @@
 import * as path from 'path';
 import {
   normalizeIpCoreData,
-  normalizeBusType,
-  getBusTypeForTemplate,
+  getBusTypeForTemplate as getBusTypeForTemplateImpl,
   expandBusInterfaces,
-  checkDuplicatePhysicalPrefixes,
+  checkDuplicatePhysicalPrefixes as checkDuplicatePhysicalPrefixesImpl,
   evalWidthExpr,
   getVhdlPortType,
   getActiveBusPortsFromDefinition,
@@ -13,6 +12,15 @@ import {
   projectMemoryMapsForTemplate,
 } from '../../../generator/registerProcessor';
 import { normalizeMemoryMap } from '../../../domain/parse';
+import { BUS_REGISTRY } from '../../../generator/buses/builtin';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
+
+const normalizeBusType = (type: string) => BUS_REGISTRY.normalize(type, builtinBusLibrary());
+const getBusTypeForTemplate = (ipCore: Parameters<typeof getBusTypeForTemplateImpl>[0]) =>
+  getBusTypeForTemplateImpl(ipCore, builtinBusLibrary());
+const checkDuplicatePhysicalPrefixes = (
+  ipCore: Parameters<typeof checkDuplicatePhysicalPrefixesImpl>[0]
+) => checkDuplicatePhysicalPrefixesImpl(ipCore, builtinBusLibrary());
 
 describe('registerProcessor', () => {
   describe('normalizeIpCoreData', () => {
@@ -303,7 +311,11 @@ describe('registerProcessor', () => {
         { name: 'C_ADDR_WIDTH', value: 32 },
         { name: 'C_DATA_WIDTH', value: 32 },
       ];
-      const overrides = { AWADDR: 'C_ADDR_WIDTH', WDATA: 'C_DATA_WIDTH', WSTRB: 'C_DATA_WIDTH' };
+      const overrides = {
+        AWADDR: 'C_ADDR_WIDTH',
+        WDATA: 'C_DATA_WIDTH',
+        WSTRB: 'C_DATA_WIDTH/8',
+      };
       const result = getActiveBusPortsFromDefinition(
         defPorts,
         [],
@@ -319,6 +331,7 @@ describe('registerProcessor', () => {
       expect(byName['WSTRB'].type).toBe('std_logic_vector((C_DATA_WIDTH/8)-1 downto 0)');
       expect(byName['AWADDR'].is_parameterized).toBe(true);
       expect(byName['AWADDR'].width_expr).toBe('C_ADDR_WIDTH');
+      expect(byName['WSTRB'].width_expr).toBe('C_DATA_WIDTH/8');
     });
 
     it('uses portNameOverrides to preserve original-case port name suffix', () => {

@@ -63,9 +63,30 @@ The IP Core app uses a block-diagram canvas:
 - `CanvasInspector` edits the current selection;
 - `StagingOverlay` reviews generated files before they are accepted.
 
-`useIpCoreState` owns parsed data and validation. `useIpCoreSync` sends serialized
-changes to the extension host. Canvas hooks handle drop, selection, undo, and
-keyboard actions.
+`useIpCoreState` owns parsed data and validation. `useIpCoreBridge` is the single
+typed message boundary: it sends serialized edits and applies the shared
+revision filter to incoming document updates. Canvas hooks handle drop,
+selection, undo, and keyboard actions.
+
+Host conformance reports are sent as separate `conformanceResult`
+notifications tied to the exact source text they validate. They never bypass
+the document update filter, and the Issues session ignores a report whose
+source revision no longer matches the current YAML.
+
+Generation is asynchronous, so `generateResult` carries the source revision
+captured when generation started. The Issues session discards a mismatched
+result before changing the report, opening the Issues panel, or focusing a
+canvas element. This correlation is separate from document-update revision
+filtering: a generation result is an operation response, not a document update.
+
+### Bus contract package boundary
+
+`src/shared/busContracts/index.ts` is the public API used by generators,
+parsers, services, and the webview. Its exported modules cover canonicalization,
+normalization, resolution, validation, data-lane semantics, and vendor metadata
+import. Lower-level expression, constraint, fixpoint, alias, and active-port
+modules are implementation details; keeping them behind the barrel prevents
+consumers from coupling to intermediate resolver state.
 
 ### IP Core dependency and ownership boundaries
 

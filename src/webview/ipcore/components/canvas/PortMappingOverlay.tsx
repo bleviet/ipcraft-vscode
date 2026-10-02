@@ -2,7 +2,7 @@ import React from 'react';
 import type { IpCore } from '../../../types/ipCore';
 import { GroupingMappingStep } from './GroupingMappingStep';
 import type { GroupAsStandardOptions } from '../../hooks/useGroupPorts';
-import type { BusPortDef } from '../../data/busDefinitions';
+import { isAssociatedPort, type BusPortDef } from '../../utils/busLibrary';
 
 export interface PendingPortDrop {
   portIndex: number;
@@ -54,7 +54,7 @@ export const PortMappingOverlay: React.FC<PortMappingOverlayProps> = ({
   );
   const existingPortAssignments: Record<string, string> = {};
   for (const sig of rawSignals) {
-    if (sig.role) {
+    if (isAssociatedPort(sig)) {
       continue;
     }
     if (sig.presence === 'optional' && !useOptional.has(sig.name.toUpperCase())) {
@@ -73,6 +73,7 @@ export const PortMappingOverlay: React.FC<PortMappingOverlayProps> = ({
       initialPrefix={existingPrefix}
       initialMode={existingMode}
       existingPortAssignments={existingPortAssignments}
+      busDefs={busDefs}
       onConfirm={(opts) => onConfirm(opts, pendingPortDrop.busIndex)}
       onCancel={onCancel}
     />

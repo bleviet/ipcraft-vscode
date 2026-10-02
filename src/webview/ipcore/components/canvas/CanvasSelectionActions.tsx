@@ -5,12 +5,14 @@ import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import { useGroupPorts } from '../../hooks/useGroupPorts';
 import { matchPorts, getAllProtocols, type ProtocolMatch } from '../../utils/protocolMatcher';
 import { GroupingMappingStep } from './GroupingMappingStep';
+import type { BusDefinitionLookup } from '../../utils/protocolMatcher';
 
 interface CanvasSelectionActionsProps {
   multiSelection: CanvasMultiSelection;
   ipCore: IpCore;
   batchUpdate: BatchUpdate;
   onDismiss: () => void;
+  busDefs: BusDefinitionLookup;
 }
 
 const SCORE_THRESHOLD = 0.6;
@@ -77,6 +79,7 @@ export const CanvasSelectionActions: React.FC<CanvasSelectionActionsProps> = ({
   ipCore,
   batchUpdate,
   onDismiss,
+  busDefs,
 }) => {
   const groupPorts = useGroupPorts(ipCore, batchUpdate);
 
@@ -108,10 +111,10 @@ export const CanvasSelectionActions: React.FC<CanvasSelectionActionsProps> = ({
     if (selectedPorts.length === 0) {
       return [];
     }
-    return matchPorts(selectedPorts).filter((m) => m.score >= SCORE_THRESHOLD);
-  }, [selectedPorts]);
+    return matchPorts(selectedPorts, busDefs).filter((m) => m.score >= SCORE_THRESHOLD);
+  }, [selectedPorts, busDefs]);
 
-  const allProtocols = useMemo(() => getAllProtocols(), []);
+  const allProtocols = useMemo(() => getAllProtocols(busDefs), [busDefs]);
 
   const suggestedTypes = useMemo(() => new Set(suggestions.map((m) => m.busType)), [suggestions]);
 
@@ -143,6 +146,7 @@ export const CanvasSelectionActions: React.FC<CanvasSelectionActionsProps> = ({
         busType={mappingStep.busType}
         busLabel={mappingStep.busLabel}
         selectedPortIndices={selectedPortIndices}
+        busDefs={busDefs}
         onConfirm={(opts) => {
           groupPorts.groupAsStandard(opts);
           setMappingStep(null);

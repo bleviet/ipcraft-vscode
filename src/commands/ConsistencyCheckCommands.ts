@@ -12,7 +12,7 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { Logger } from '../utils/Logger';
 import { ResourceRoots } from '../services/ResourceRoots';
-import { loadIpCoreData } from '../generator/loadIpCore';
+import { IpCoreSchemaValidationError, loadIpCoreData } from '../generator/loadIpCore';
 import {
   crossCheckIpCoreAgainstTopLevelHdl,
   crossCheckIpCoreAgainstVendor,
@@ -21,6 +21,9 @@ import {
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
 import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
+import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
+import { checkBusConformance } from '../shared/busConformance';
+import { deduplicateIssues, type IpcraftIssue } from '../shared/issues';
 
 const logger = new Logger('ConsistencyCheckCommands');
 
@@ -48,6 +51,7 @@ export interface ConsistencySummary {
 
 export interface ConsistencyCheckResult {
   findings: HdlCrossCheckFinding[];
+  issues: IpcraftIssue[];
   summary: ConsistencySummary;
 }
 
@@ -90,24 +94,60 @@ export async function runConsistencyCheck(
   ipCoreUri: vscode.Uri,
   resourceRoots: ResourceRoots
 ): Promise<ConsistencyCheckResult> {
-  const ipCoreData = await loadIpCoreData(ipCoreUri.fsPath, resourceRoots);
+  let ipCoreData;
+  try {
+    ipCoreData = await loadIpCoreData(ipCoreUri.fsPath, resourceRoots);
+  } catch (error) {
+    if (error instanceof IpCoreSchemaValidationError) {
+      return {
+        findings: [],
+        issues: [...error.issues],
+        summary: { added: 0, removed: 0, changed: 0, ambiguous: 0 },
+      };
+    }
+    throw error;
+  }
   const ipCoreDir = path.dirname(ipCoreUri.fsPath);
+  const busLibrary = await loadRuntimeBusLibrary(
+    logger,
+    resourceRoots,
+    ipCoreUri,
+    ipCoreData as Record<string, unknown>
+  );
+  const protocolReport = checkBusConformance(ipCoreData, busLibrary);
 
   const findings: HdlCrossCheckFinding[] = [
-    ...(await crossCheckIpCoreAgainstTopLevelHdl(ipCoreData, ipCoreDir)),
+    ...(await crossCheckIpCoreAgainstTopLevelHdl(ipCoreData, ipCoreDir, busLibrary)),
   ];
 
   // Vendor artifacts live at conventional paths (see hdlCrossCheck.ts's vendorRelPath) and are
   // only cross-checked once actually scaffolded — an un-scaffolded project isn't "drifted".
   const name = ipCoreData.vlnv?.name;
   if (name && (await fileExists(path.join(ipCoreDir, 'altera', `${name.toLowerCase()}_hw.tcl`)))) {
-    findings.push(...(await crossCheckIpCoreAgainstVendor(ipCoreData, ipCoreDir, 'hwTcl')));
+    findings.push(
+      ...(await crossCheckIpCoreAgainstVendor(ipCoreData, ipCoreDir, 'hwTcl', busLibrary))
+    );
   }
   if (await fileExists(path.join(ipCoreDir, 'xilinx', 'component.xml'))) {
-    findings.push(...(await crossCheckIpCoreAgainstVendor(ipCoreData, ipCoreDir, 'componentXml')));
+    findings.push(
+      ...(await crossCheckIpCoreAgainstVendor(ipCoreData, ipCoreDir, 'componentXml', busLibrary))
+    );
   }
 
-  return { findings, summary: summarize(findings) };
+  const implementationIssues = findings.map(
+    (finding): IpcraftIssue => ({
+      code: `CONSISTENCY_${finding.kind.replace(/-/g, '_').toUpperCase()}`,
+      severity: finding.severity === 'red' ? 'error' : 'warning',
+      source: finding.source,
+      path: finding.ipYmlPath,
+      message: finding.message,
+    })
+  );
+  return {
+    findings,
+    issues: deduplicateIssues([...protocolReport.issues, ...implementationIssues]),
+    summary: summarize(findings),
+  };
 }
 
 function formatFinding(finding: HdlCrossCheckFinding): string {
@@ -133,9 +173,9 @@ export function registerConsistencyCheckCommands(
 
       const ch = getOutputChannel();
       try {
-        const { findings, summary } = await runConsistencyCheck(ipCoreUri, resourceRoots);
+        const { findings, issues, summary } = await runConsistencyCheck(ipCoreUri, resourceRoots);
 
-        if (findings.length === 0) {
+        if (issues.length === 0) {
           void vscode.window.showInformationMessage(
             `IPCraft: ${path.basename(ipCoreUri.fsPath)} is consistent with its implementation.`
           );
@@ -145,9 +185,14 @@ export function registerConsistencyCheckCommands(
         ch.clear();
         ch.appendLine(`IPCraft consistency check — ${path.basename(ipCoreUri.fsPath)}`);
         ch.appendLine(
-          `${findings.length} finding(s): ${summary.added} added, ${summary.removed} removed, ` +
+          `${issues.length} issue(s): ${summary.added} added, ${summary.removed} removed, ` +
             `${summary.changed} changed, ${summary.ambiguous} ambiguous.`
         );
+        for (const issue of issues.filter((issue) => issue.source === 'protocol')) {
+          ch.appendLine(
+            `  [${issue.severity}/${issue.code}] .ip.yml:${issue.path.join('.')} — ${issue.message}`
+          );
+        }
         for (const finding of findings) {
           ch.appendLine(formatFinding(finding));
         }
@@ -156,10 +201,12 @@ export function registerConsistencyCheckCommands(
         // An ambiguity finding means no interface comparison happened at all — it's not
         // evidence of drift, so it shouldn't read as one (issue #161's "informational" ask). Only
         // warn about actual inconsistencies; when every finding is ambiguity-only, say so plainly.
-        const hasNonAmbiguous = findings.some((f) => !AMBIGUOUS_KINDS.has(f.kind));
+        const hasNonAmbiguous =
+          issues.some((issue) => issue.source === 'protocol') ||
+          findings.some((f) => !AMBIGUOUS_KINDS.has(f.kind));
         if (hasNonAmbiguous) {
           void vscode.window.showWarningMessage(
-            `IPCraft: found ${findings.length} inconsistenc${findings.length === 1 ? 'y' : 'ies'} ` +
+            `IPCraft: found ${issues.length} issue${issues.length === 1 ? '' : 's'} ` +
               `between the .ip.yml and its implementation. See "IPCraft Consistency Check" output.`
           );
         } else {

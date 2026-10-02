@@ -10,8 +10,61 @@ import { writeImportedFile, describeOutcome } from '../utils/importWrite';
 import { EDITOR_VIEW_TYPE_IP_CORE } from '../utils/editorViewTypes';
 import { CONFIG_KEY_IPCRAFT_IMPORT } from '../utils/configKeys';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
+import { resolveResourceRoots } from '../services/ResourceRoots';
+import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
+import { Logger } from '../utils/Logger';
+import { loadIpCoreData } from '../generator/loadIpCore';
+import { blocksImportWrite, checkBusConformance } from '../shared/busConformance';
+import type { ConformanceReport } from '../shared/issues';
 
 const HIDE_EXPERIMENTAL_IMPORT_WARNING = 'ipcraft.hideExperimentalImportWarning';
+const logger = new Logger('ImportCommands');
+
+async function loadImportBusLibrary(
+  context: vscode.ExtensionContext,
+  sourceUri: vscode.Uri,
+  ipCoreData?: Record<string, unknown>
+) {
+  return loadRuntimeBusLibrary(
+    logger,
+    resolveResourceRoots(context.extensionPath),
+    sourceUri,
+    ipCoreData
+  );
+}
+
+async function checkImportedYaml(
+  context: vscode.ExtensionContext,
+  sourceUri: vscode.Uri,
+  yamlText: string
+): Promise<ConformanceReport> {
+  const resourceRoots = resolveResourceRoots(context.extensionPath);
+  const ipCoreData = await loadIpCoreData(sourceUri.fsPath, resourceRoots, yamlText);
+  const busLibrary = await loadImportBusLibrary(context, sourceUri, ipCoreData);
+  return checkBusConformance(ipCoreData, busLibrary);
+}
+
+async function allowImportedYamlWrite(
+  context: vscode.ExtensionContext,
+  sourceUri: vscode.Uri,
+  yamlText: string
+): Promise<boolean> {
+  const report = await checkImportedYaml(context, sourceUri, yamlText);
+  if (blocksImportWrite(report)) {
+    const detail = report.issues
+      .filter((issue) => issue.severity === 'error')
+      .map((issue) => issue.message)
+      .join(' ');
+    void vscode.window.showErrorMessage(`Import blocked by bus conformance: ${detail}`);
+    return false;
+  }
+  if (report.issues.length > 0) {
+    void vscode.window.showWarningMessage(
+      `Imported bus interfaces need review: ${report.issues.map((issue) => issue.message).join(' ')}`
+    );
+  }
+  return true;
+}
 
 /**
  * Show a one-time dismissable warning before experimental parse/import operations.
@@ -119,8 +172,10 @@ export async function parseVHDL(
     async () => {
       try {
         const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
+        const busLibrary = await loadImportBusLibrary(context, vhdlUri);
         const result = await parseVhdlFile(vhdlPath, {
           detectBus: true,
+          busLibrary,
           vendor: cfg.get<string>('vendor'),
           library: cfg.get<string>('library'),
           version: cfg.get<string>('version'),
@@ -132,6 +187,9 @@ export async function parseVHDL(
           }
         }
 
+        if (!(await allowImportedYamlWrite(context, vhdlUri, result.yamlText))) {
+          return;
+        }
         const outcome = await writeImportedFile(vscode.Uri.file(defaultOutput), result.yamlText);
 
         const summary = buildParseSummary(result.yamlText);
@@ -207,11 +265,16 @@ export async function parseHwTcl(
     async () => {
       try {
         const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
+        const busLibrary = await loadImportBusLibrary(context, tclUri);
         const result = await parseHwTclFile(tclPath, {
+          busLibrary,
           library: cfg.get<string>('library'),
           vendor: resolveVendor(cfg.get<string>('vendor')),
         });
 
+        if (!(await allowImportedYamlWrite(context, tclUri, result.yamlText))) {
+          return;
+        }
         const outcome = await writeImportedFile(vscode.Uri.file(outputPath), result.yamlText);
 
         const summary = buildParseSummary(result.yamlText);
@@ -287,7 +350,9 @@ export async function parseComponentXml(
     async () => {
       try {
         const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
+        const busLibrary = await loadImportBusLibrary(context, xmlUri);
         const result = await parseComponentXmlFile(xmlPath, {
+          busLibrary,
           library: cfg.get<string>('library'),
         });
 
@@ -297,6 +362,9 @@ export async function parseComponentXml(
             : result.ipYamlText;
         const ipFileName = `${result.componentName}.ip.yml`;
         const ipOutputPath = path.join(outputDir, ipFileName);
+        if (!(await allowImportedYamlWrite(context, xmlUri, ipYamlText))) {
+          return;
+        }
         const ipOutcome = await writeImportedFile(vscode.Uri.file(ipOutputPath), ipYamlText);
 
         const ipSummary = buildParseSummary(ipYamlText);

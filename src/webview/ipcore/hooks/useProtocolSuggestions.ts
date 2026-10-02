@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { IpCore } from '../../types/ipCore';
 import { matchPorts, type ProtocolMatch } from '../utils/protocolMatcher';
+import type { BusDefinitionLookup } from '../utils/protocolMatcher';
 
 export interface SuggestionChip extends ProtocolMatch {
   /** Unique key for React list rendering and dismissal */
@@ -16,7 +17,10 @@ const SUGGESTION_THRESHOLD = 0.75;
  * busInterface's physicalPrefix. Only unclaimed ports are fed to the matcher.
  * Suggestions above SUGGESTION_THRESHOLD are returned as chips.
  */
-export function useProtocolSuggestions(ipCore: IpCore): SuggestionChip[] {
+export function useProtocolSuggestions(
+  ipCore: IpCore,
+  busDefs: BusDefinitionLookup
+): SuggestionChip[] {
   return useMemo(() => {
     const allPorts = ipCore.ports ?? [];
     if (allPorts.length === 0) {
@@ -39,7 +43,10 @@ export function useProtocolSuggestions(ipCore: IpCore): SuggestionChip[] {
       return [];
     }
 
-    const matches = matchPorts(unclaimed.map((p) => ({ name: p.name, direction: p.direction })));
+    const matches = matchPorts(
+      unclaimed.map((p) => ({ name: p.name, direction: p.direction })),
+      busDefs
+    );
 
     return matches
       .filter((m) => m.score >= SUGGESTION_THRESHOLD)
@@ -47,5 +54,5 @@ export function useProtocolSuggestions(ipCore: IpCore): SuggestionChip[] {
         ...m,
         id: `suggestion-${m.busType}-${m.detectedPrefix}-${i}`,
       }));
-  }, [ipCore.ports, ipCore.busInterfaces]);
+  }, [ipCore.ports, ipCore.busInterfaces, busDefs]);
 }

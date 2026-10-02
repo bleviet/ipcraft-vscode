@@ -1,7 +1,15 @@
-import { crossCheckIpCoreAgainstVendor } from '../../../../generator/validation/hdlCrossCheck';
+import { crossCheckIpCoreAgainstVendor as crossCheckIpCoreAgainstVendorImpl } from '../../../../generator/validation/hdlCrossCheck';
 import { diffMemoryMaps } from '../../../../generator/validation/registerCrossCheck';
 import { normalizeMemoryMap } from '../../../../domain/parse';
 import type { IpCoreData } from '../../../../generator/types';
+import { builtinBusLibrary } from '../../../helpers/busLibrary';
+
+const crossCheckIpCoreAgainstVendor = (
+  core: IpCoreData,
+  dir: string,
+  source: 'hwTcl' | 'componentXml',
+  reader: (path: string) => Promise<string>
+) => crossCheckIpCoreAgainstVendorImpl(core, dir, source, builtinBusLibrary(), reader);
 
 function baseIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
   return {

@@ -1,7 +1,11 @@
 import * as vscode from 'vscode';
 import * as fsPromises from 'fs/promises';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
 import { BusLibraryService } from '../../../services/BusLibraryService';
 import { Logger } from '../../../utils/Logger';
+import type { BusDefinitionSource } from '../../../shared/busContracts';
+import { vivadoInterfaceToBusDefEntry } from '../../../services/VivadoInterfaceScanner';
 
 jest.mock('fs/promises', () => {
   const actual = jest.requireActual<typeof fsPromises>('fs/promises');
@@ -23,6 +27,36 @@ function dirent(name: string, kind: 'file' | 'dir'): unknown {
 type LoggerMock = Pick<Logger, 'info' | 'error'>;
 
 const MOCK_DIR = '/ext/dist/resources/bus_definitions';
+const SCHEMA_PATH = path.resolve(
+  __dirname,
+  '../../../../ipcraft-spec/schemas/bus_definition.schema.json'
+);
+
+function completeDefinition(
+  key: string,
+  canonicalName: string,
+  portName: string,
+  role = 'control'
+): string {
+  return yaml.dump({
+    [key]: {
+      busType: {
+        vendor: 'example.com',
+        library: 'interface',
+        name: canonicalName,
+        version: '1.0',
+      },
+      contract: {
+        version: 1,
+        interfaceKind: 'conduit',
+        modePolicy: { producer: 'master', consumer: 'slave', aliases: {} },
+        interfaceProperties: {},
+        constraints: [],
+      },
+      ports: [{ name: portName, direction: 'in', role }],
+    },
+  });
+}
 
 describe('BusLibraryService', () => {
   let logger: LoggerMock;
@@ -56,16 +90,17 @@ describe('BusLibraryService', () => {
       ['avalon_mm.yml', vscode.FileType.File],
     ]);
     readFileMock
-      .mockResolvedValueOnce(Buffer.from('AXI4_LITE: { ports: [AWADDR] }', 'utf8'))
-      .mockResolvedValueOnce(Buffer.from('AVALON_MEMORY_MAPPED: { ports: [address] }', 'utf8'));
+      .mockResolvedValueOnce(Buffer.from(completeDefinition('AXI4_LITE', 'axi4lite', 'AWADDR')))
+      .mockResolvedValueOnce(
+        Buffer.from(completeDefinition('AVALON_MEMORY_MAPPED', 'avalon_mm', 'address'))
+      );
 
-    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
     const result = await service.loadDefaultLibrary();
 
-    expect(result).toEqual({
-      AXI4_LITE: { ports: ['AWADDR'] },
-      AVALON_MEMORY_MAPPED: { ports: ['address'] },
-    });
+    expect(Object.keys(result.definitions)).toEqual(['AXI4_LITE', 'AVALON_MEMORY_MAPPED']);
+    expect(result.definitions.AXI4_LITE.ports[0].name).toBe('AWADDR');
+    expect(result.definitions.AVALON_MEMORY_MAPPED.ports[0].name).toBe('address');
     expect(vscode.Uri.file).toHaveBeenCalledWith(MOCK_DIR);
     expect(readDirectoryMock).toHaveBeenCalledTimes(1);
     expect(readFileMock).toHaveBeenCalledTimes(2);
@@ -76,9 +111,11 @@ describe('BusLibraryService', () => {
 
   it('caches the result and reads directory only once', async () => {
     readDirectoryMock.mockResolvedValue([['axi4_lite.yml', vscode.FileType.File]]);
-    readFileMock.mockResolvedValue(Buffer.from('AXI4_LITE: { ports: [AWADDR] }', 'utf8'));
+    readFileMock.mockResolvedValue(
+      Buffer.from(completeDefinition('AXI4_LITE', 'axi4lite', 'AWADDR'))
+    );
 
-    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
     const first = await service.loadDefaultLibrary();
     const second = await service.loadDefaultLibrary();
 
@@ -89,7 +126,7 @@ describe('BusLibraryService', () => {
 
   it('throws and logs when bus library directory cannot be read', async () => {
     readDirectoryMock.mockRejectedValue(new Error('not found'));
-    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
 
     await expect(service.loadDefaultLibrary()).rejects.toThrow(
       `Default bus library directory not found at ${MOCK_DIR}: not found`
@@ -103,7 +140,7 @@ describe('BusLibraryService', () => {
     readDirectoryMock.mockResolvedValue([['axi4_lite.yml', vscode.FileType.File]]);
     readFileMock.mockRejectedValue(new Error('permission denied'));
 
-    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
 
     await expect(service.loadDefaultLibrary()).rejects.toThrow(
       `Failed to read bus definition from ${MOCK_DIR}/axi4_lite.yml: permission denied`
@@ -115,7 +152,7 @@ describe('BusLibraryService', () => {
     readDirectoryMock.mockResolvedValue([['axi4_lite.yml', vscode.FileType.File]]);
     readFileMock.mockResolvedValue(Buffer.from('{ invalid: [', 'utf8'));
 
-    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
 
     await expect(service.loadDefaultLibrary()).rejects.toThrow(
       `Failed to parse bus definition from ${MOCK_DIR}/axi4_lite.yml`
@@ -126,16 +163,16 @@ describe('BusLibraryService', () => {
   it('clears cache and reloads on next request', async () => {
     readDirectoryMock.mockResolvedValue([['axi4_lite.yml', vscode.FileType.File]]);
     readFileMock
-      .mockResolvedValueOnce(Buffer.from('AXI4_LITE: { ports: [AWADDR] }', 'utf8'))
-      .mockResolvedValueOnce(Buffer.from('AXI4_LITE: { ports: [AWADDR, ARADDR] }', 'utf8'));
+      .mockResolvedValueOnce(Buffer.from(completeDefinition('AXI4_LITE', 'axi4lite', 'AWADDR')))
+      .mockResolvedValueOnce(Buffer.from(completeDefinition('AXI4_LITE', 'axi4lite', 'ARADDR')));
 
-    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
     const first = await service.loadDefaultLibrary();
     service.clearCache();
     const second = await service.loadDefaultLibrary();
 
-    expect(first).toEqual({ AXI4_LITE: { ports: ['AWADDR'] } });
-    expect(second).toEqual({ AXI4_LITE: { ports: ['AWADDR', 'ARADDR'] } });
+    expect(first.definitions.AXI4_LITE.ports[0].name).toBe('AWADDR');
+    expect(second.definitions.AXI4_LITE.ports[0].name).toBe('ARADDR');
     expect(readFileMock).toHaveBeenCalledTimes(2);
   });
 
@@ -145,15 +182,208 @@ describe('BusLibraryService', () => {
       ['README.md', vscode.FileType.File],
       ['subdir', vscode.FileType.Directory],
     ]);
-    readFileMock.mockResolvedValue(Buffer.from('AXI4_LITE: { ports: [AWADDR] }', 'utf8'));
+    readFileMock.mockResolvedValue(
+      Buffer.from(completeDefinition('AXI4_LITE', 'axi4lite', 'AWADDR'))
+    );
 
-    const service = new BusLibraryService(logger as Logger, MOCK_DIR);
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
     const result = await service.loadDefaultLibrary();
 
-    expect(result).toEqual({ AXI4_LITE: { ports: ['AWADDR'] } });
+    expect(Object.keys(result.definitions)).toEqual(['AXI4_LITE']);
     expect(readFileMock).toHaveBeenCalledTimes(1);
     expect(logger.info).toHaveBeenCalledWith(
       `Loaded default bus library from ${MOCK_DIR} (1 files)`
+    );
+  });
+});
+
+describe('BusLibraryService normalized contract loading', () => {
+  let logger: Pick<Logger, 'info' | 'warn' | 'error'>;
+
+  beforeEach(() => {
+    logger = { info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    mockReaddir.mockReset();
+    mockFsReadFile.mockReset();
+  });
+
+  it('accepts the source provenance emitted by the Vivado interface scanner', () => {
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+    const { key, record } = vivadoInterfaceToBusDefEntry(
+      {
+        busType: {
+          vendor: 'xilinx.com',
+          library: 'interface',
+          name: 'fifo_write',
+          version: '1.0',
+        },
+        ports: [{ name: 'WR_EN', direction: 'out', width: 1 }],
+      },
+      'vivado'
+    );
+
+    const loaded = service.loadRecord({ [key]: record }, '/vivado/fifo_write.yml', 'configured');
+
+    expect(loaded.diagnostics).toEqual([]);
+    expect(loaded.sources).toHaveLength(1);
+  });
+
+  it('normalizes a large Vivado interface catalog without re-normalizing per definition', () => {
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+    const definitions = Object.fromEntries(
+      Array.from({ length: 300 }, (_, index) => {
+        const { key, record } = vivadoInterfaceToBusDefEntry(
+          {
+            busType: {
+              vendor: 'xilinx.com',
+              library: 'interface',
+              name: `if_${index}`,
+              version: '1.0',
+            },
+            ports: Array.from({ length: 10 }, (_, port) => ({
+              name: `P${port}`,
+              direction: 'out',
+              width: 8,
+            })),
+          },
+          'vivado'
+        );
+        return [key, record];
+      })
+    );
+    const loaded = service.loadRecord(definitions, '/vivado/catalog.yml', 'configured');
+
+    const start = Date.now();
+    const library = service.normalizeSources(loaded);
+
+    expect(Object.keys(library.definitions)).toHaveLength(300);
+    // Quadratic re-normalization took several seconds at this size.
+    expect(Date.now() - start).toBeLessThan(2000);
+  });
+
+  it('validates each workspace file separately so one invalid file keeps the others', () => {
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+    const good = {
+      busType: { vendor: 'acme', library: 'busif', name: 'good', version: '1.0' },
+      ports: [{ name: 'DATA', width: 8, direction: 'out', presence: 'required' }],
+    };
+    const loaded = service.loadWorkspaceScan({
+      library: { GOOD: good, BROKEN: { ports: 'not-a-list' }, LOOSE: good },
+      files: [
+        { uri: { fsPath: '/ws/good.yml' }, busTypes: ['GOOD'] },
+        { uri: { fsPath: '/ws/broken.yml' }, busTypes: ['BROKEN'] },
+      ],
+    });
+
+    expect(
+      loaded.sources.map((source) => [source.sourceFile, Object.keys(source.definitions)])
+    ).toEqual([
+      ['/ws/good.yml', ['GOOD']],
+      ['workspace://discovered', ['LOOSE']],
+    ]);
+    expect(loaded.sources.every((source) => source.sourceKind === 'workspace')).toBe(true);
+    expect(loaded.diagnostics).toEqual([expect.objectContaining({ sourceFile: '/ws/broken.yml' })]);
+  });
+
+  it('throws when a bundled definition violates the packaged schema', async () => {
+    const readDirectory = jest.fn().mockResolvedValue([['bad.yml', vscode.FileType.File]]);
+    const readFile = jest.fn().mockResolvedValue(Buffer.from('BAD: { ports: [] }'));
+    (vscode.workspace as unknown as { fs: { readFile: jest.Mock; readDirectory: jest.Mock } }).fs =
+      {
+        readFile,
+        readDirectory,
+      };
+
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+
+    await expect(service.loadDefaultLibrary()).rejects.toThrow(
+      /\/ext\/dist\/resources\/bus_definitions\/bad\.yml/
+    );
+  });
+
+  it('excludes malformed configured definitions and records their source path', async () => {
+    mockReaddir.mockResolvedValue([dirent('bad.yml', 'file')]);
+    mockFsReadFile.mockResolvedValue('BAD: { ports: [] }');
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+
+    const loaded = await service.loadFromDirectories(['/workspace/buses'], 'workspace');
+    const result = service.normalizeSources(loaded);
+
+    expect(result.definitions).toEqual({});
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'BUS_DEF_SCHEMA_INVALID',
+        sourceFile: '/workspace/buses/bad.yml',
+      }),
+    ]);
+  });
+
+  it('keeps unknown workspace roles as control ports with a warning', async () => {
+    mockReaddir.mockResolvedValue([dirent('custom.yml', 'file')]);
+    mockFsReadFile.mockResolvedValue(
+      completeDefinition('CUSTOM', 'custom', 'payload', 'vendorSpecific')
+    );
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+
+    const loaded = await service.loadFromDirectories(['/workspace/buses'], 'workspace');
+    const result = service.normalizeSources(loaded);
+
+    expect(result.definitions.CUSTOM.ports[0].role).toBe('control');
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: 'BUS_DEF_UNKNOWN_PORT_ROLE',
+        severity: 'warning',
+        sourceFile: '/workspace/buses/custom.yml',
+      }),
+    ]);
+  });
+
+  it('lets later sources replace an earlier exact key and canonical VLNV', () => {
+    const definitions = (text: string) => yaml.load(text) as BusDefinitionSource['definitions'];
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+    const sources: BusDefinitionSource[] = [
+      {
+        sourceFile: '/builtin/first.yml',
+        sourceKind: 'builtin',
+        definitions: definitions(completeDefinition('FIRST', 'shared', 'old')),
+      },
+      {
+        sourceFile: '/workspace/second.yml',
+        sourceKind: 'workspace',
+        definitions: definitions(completeDefinition('SECOND', 'shared', 'new')),
+      },
+    ];
+
+    const result = service.normalizeSources({ sources, diagnostics: [] });
+
+    expect(Object.keys(result.definitions)).toEqual(['SECOND']);
+    expect(result.definitions.SECOND.ports[0].name).toBe('new');
+  });
+
+  it('keeps a valid lower-precedence definition when an override is semantically invalid', () => {
+    const definitions = (text: string) => yaml.load(text) as BusDefinitionSource['definitions'];
+    const builtin = definitions(completeDefinition('SHARED', 'shared', 'builtin'));
+    const invalid = definitions(completeDefinition('SHARED', 'shared', 'override'));
+    const entry = invalid.SHARED;
+    entry.contract!.interfaceProperties = {
+      first: { type: 'integer', derive: { operation: 'ceilLog2', property: 'second' } },
+      second: { type: 'integer', derive: { operation: 'ceilLog2', property: 'first' } },
+    };
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+
+    const result = service.normalizeSources({
+      sources: [
+        { sourceFile: '/builtin/shared.yml', sourceKind: 'builtin', definitions: builtin },
+        { sourceFile: '/workspace/shared.yml', sourceKind: 'workspace', definitions: invalid },
+      ],
+      diagnostics: [],
+    });
+
+    expect(result.definitions.SHARED.ports[0].name).toBe('builtin');
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'BUS_DEF_DERIVATION_CYCLE',
+        sourceFile: '/workspace/shared.yml',
+      })
     );
   });
 });
@@ -171,16 +401,17 @@ describe('BusLibraryService.scanDirectory (via user paths)', () => {
   it('reads and merges bus definition files via fs.promises (no VS Code IPC)', async () => {
     mockReaddir.mockResolvedValue([dirent('axi.yml', 'file'), dirent('avalon.yaml', 'file')]);
     mockFsReadFile
-      .mockResolvedValueOnce('AXI4_LITE: { ports: [AWADDR] }')
-      .mockResolvedValueOnce('AVALON_MM: { ports: [address] }');
+      .mockResolvedValueOnce(completeDefinition('AXI4_LITE', 'axi4lite', 'AWADDR'))
+      .mockResolvedValueOnce(completeDefinition('AVALON_MM', 'avalon_mm', 'address'));
 
-    const service = new BusLibraryService(logger as Logger, '/ext/dist');
+    const service = new BusLibraryService(logger as Logger, '/ext/dist', SCHEMA_PATH);
     const result = await service.loadFromUserPaths([USER_DIR]);
 
-    expect(result).toEqual({
-      AXI4_LITE: { ports: ['AWADDR'] },
-      AVALON_MM: { ports: ['address'] },
-    });
+    expect(result.sources.map((source) => source.sourceFile)).toEqual([
+      `${USER_DIR}/axi.yml`,
+      `${USER_DIR}/avalon.yaml`,
+    ]);
+    expect(result.diagnostics).toEqual([]);
     expect(mockReaddir).toHaveBeenCalledWith(USER_DIR, { withFileTypes: true });
     expect(mockFsReadFile).toHaveBeenCalledWith(`${USER_DIR}/axi.yml`, 'utf8');
     expect(mockFsReadFile).toHaveBeenCalledWith(`${USER_DIR}/avalon.yaml`, 'utf8');
@@ -204,7 +435,7 @@ describe('BusLibraryService.scanDirectory (via user paths)', () => {
     });
     mockFsReadFile.mockImplementation(async (filePath: string) => {
       if (filePath === `${USER_DIR}/nested/deep.yml`) {
-        return 'DEEP_BUS: { ports: [clk] }';
+        return completeDefinition('DEEP_BUS', 'deep', 'clk');
       }
       if (filePath === `${USER_DIR}/top.yml`) {
         // Not a bus definition record — must be ignored, not merged.
@@ -213,10 +444,11 @@ describe('BusLibraryService.scanDirectory (via user paths)', () => {
       throw new Error(`unexpected read of ${filePath}`);
     });
 
-    const service = new BusLibraryService(logger as Logger, '/ext/dist');
+    const service = new BusLibraryService(logger as Logger, '/ext/dist', SCHEMA_PATH);
     const result = await service.loadFromUserPaths([USER_DIR]);
 
-    expect(result).toEqual({ DEEP_BUS: { ports: ['clk'] } });
+    expect(result.sources).toHaveLength(1);
+    expect(result.sources[0].definitions.DEEP_BUS.ports[0].name).toBe('clk');
     // .ip.yml, .mm.yml and .txt are never read.
     expect(mockFsReadFile).not.toHaveBeenCalledWith(`${USER_DIR}/core.ip.yml`, 'utf8');
     expect(mockFsReadFile).not.toHaveBeenCalledWith(`${USER_DIR}/map.mm.yml`, 'utf8');
@@ -226,10 +458,10 @@ describe('BusLibraryService.scanDirectory (via user paths)', () => {
   it('warns and returns empty when the directory cannot be read', async () => {
     mockReaddir.mockRejectedValue(new Error('ENOENT'));
 
-    const service = new BusLibraryService(logger as Logger, '/ext/dist');
+    const service = new BusLibraryService(logger as Logger, '/ext/dist', SCHEMA_PATH);
     const result = await service.loadFromUserPaths([USER_DIR]);
 
-    expect(result).toEqual({});
+    expect(result).toEqual({ sources: [], diagnostics: [] });
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining(`Could not read bus library directory '${USER_DIR}'`)
     );
@@ -241,13 +473,17 @@ describe('BusLibraryService.scanDirectory (via user paths)', () => {
       if (filePath === `${USER_DIR}/bad.yml`) {
         throw new Error('permission denied');
       }
-      return 'GOOD_BUS: { ports: [valid] }';
+      return completeDefinition('GOOD_BUS', 'good', 'valid');
     });
 
-    const service = new BusLibraryService(logger as Logger, '/ext/dist');
+    const service = new BusLibraryService(logger as Logger, '/ext/dist', SCHEMA_PATH);
     const result = await service.loadFromUserPaths([USER_DIR]);
 
-    expect(result).toEqual({ GOOD_BUS: { ports: ['valid'] } });
+    expect(result.sources).toHaveLength(1);
+    expect(result.sources[0].definitions.GOOD_BUS.ports[0].name).toBe('valid');
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({ sourceFile: `${USER_DIR}/bad.yml` }),
+    ]);
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining(`Skipping bus definition file '${USER_DIR}/bad.yml'`)
     );
@@ -255,9 +491,9 @@ describe('BusLibraryService.scanDirectory (via user paths)', () => {
 
   it('caches the user library and does not re-scan on the second call', async () => {
     mockReaddir.mockResolvedValue([dirent('axi.yml', 'file')]);
-    mockFsReadFile.mockResolvedValue('AXI4_LITE: { ports: [AWADDR] }');
+    mockFsReadFile.mockResolvedValue(completeDefinition('AXI4_LITE', 'axi4lite', 'AWADDR'));
 
-    const service = new BusLibraryService(logger as Logger, '/ext/dist');
+    const service = new BusLibraryService(logger as Logger, '/ext/dist', SCHEMA_PATH);
     const first = await service.loadFromUserPaths([USER_DIR]);
     const second = await service.loadFromUserPaths([USER_DIR]);
 
@@ -267,9 +503,9 @@ describe('BusLibraryService.scanDirectory (via user paths)', () => {
 
   it('loadFromDirectories does not use the user-library cache', async () => {
     mockReaddir.mockResolvedValue([dirent('axi.yml', 'file')]);
-    mockFsReadFile.mockResolvedValue('AXI4_LITE: { ports: [AWADDR] }');
+    mockFsReadFile.mockResolvedValue(completeDefinition('AXI4_LITE', 'axi4lite', 'AWADDR'));
 
-    const service = new BusLibraryService(logger as Logger, '/ext/dist');
+    const service = new BusLibraryService(logger as Logger, '/ext/dist', SCHEMA_PATH);
     await service.loadFromDirectories([USER_DIR]);
     await service.loadFromDirectories([USER_DIR]);
 

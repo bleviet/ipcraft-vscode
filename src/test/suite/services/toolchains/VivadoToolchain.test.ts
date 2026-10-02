@@ -10,6 +10,7 @@ import type { ScaffoldContext } from '../../../../services/toolchains/SynthesisT
 import type { TemplateLoader } from '../../../../generator/TemplateLoader';
 import type { IpCoreData } from '../../../../generator/types';
 import * as detector from '../../../../services/toolchains/toolchainVersionDetector';
+import { builtinBusLibrary } from '../../../helpers/busLibrary';
 
 jest.mock('../../../../utils/vivadoResolver');
 jest.mock('../../../../utils/fsHelpers');
@@ -460,6 +461,7 @@ describe('VivadoToolchain.scaffold() — RTL file fallback (issue #91)', () => {
       templates,
       ipCoreData,
       busDefinitions: {},
+      busLibrary: builtinBusLibrary(),
       isSv: false,
       memoryMaps: [],
       ipCoreDir: tmp,

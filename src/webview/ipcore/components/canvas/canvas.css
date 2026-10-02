@@ -2504,6 +2504,21 @@
   opacity: 0.85;
 }
 
+.canvas-bus-subport__polarity-badge-bg {
+  fill: var(--vscode-badge-background);
+  stroke: var(--vscode-contrastBorder, var(--vscode-panel-border));
+  stroke-width: 0.5;
+  pointer-events: none;
+}
+
+.canvas-bus-subport__polarity-badge {
+  fill: var(--vscode-badge-foreground);
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 8px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
 .canvas-bus-subport--inactive .canvas-bus-subport__logical {
   opacity: 0.3;
   font-style: italic;

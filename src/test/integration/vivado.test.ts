@@ -41,6 +41,56 @@ it('generates at least one Xilinx fixture with component.xml', () => {
   expect(xilinxes.length).toBeGreaterThan(0);
 });
 
+it('exports authored Avalon-ST symbol semantics and bundled custom definitions', () => {
+  const fixture = xilinxes.find(
+    (candidate) => candidate.name === 'examples/comprehensive_avalon_vhdl'
+  );
+  expect(fixture).toBeDefined();
+  const xilinxDir = path.join(fixture!.outputDir, 'xilinx');
+  const xml = fs.readFileSync(path.join(xilinxDir, 'component.xml'), 'utf8');
+
+  expect(fs.existsSync(path.join(xilinxDir, 'busdef', 'avalon_st.xml'))).toBe(true);
+  expect(fs.existsSync(path.join(xilinxDir, 'busdef', 'avalon_st_rtl.xml'))).toBe(true);
+
+  const snkStart = xml.indexOf('<spirit:name>SNK_ST</spirit:name>');
+  const snkEnd = xml.indexOf('</spirit:busInterface>', snkStart);
+  const snkInterface = xml.slice(snkStart, snkEnd);
+  expect(snkInterface).toMatch(
+    /<spirit:name>dataBitsPerSymbol<\/spirit:name>[\s\S]*?<spirit:value[^>]*>1<\/spirit:value>/
+  );
+  expect(snkInterface).toMatch(
+    /<spirit:name>symbolsPerBeat<\/spirit:name>[\s\S]*?<spirit:value[^>]*>16<\/spirit:value>/
+  );
+  const mirrorStart = snkInterface.indexOf('<ipcraft:interfaceContract version="1">');
+  const mirrorEnd = snkInterface.indexOf('</ipcraft:interfaceContract>', mirrorStart);
+  const mirror = snkInterface.slice(mirrorStart, mirrorEnd);
+  expect(mirror).toContain('<ipcraft:property name="dataBitsPerSymbol" value="1" />');
+  expect(mirror.match(/<ipcraft:property /g)).toHaveLength(1);
+  expect(mirror).not.toContain('name="symbolsPerBeat"');
+  expect(mirror).not.toContain('name="maxChannel"');
+  expect(mirror).not.toContain('name="readyLatency"');
+  expect(mirror).not.toContain('name="endianness"');
+  expect(snkInterface).toContain('<spirit:name>asi_rx_bits</spirit:name>');
+
+  const snkDataPortStart = xml.indexOf('<spirit:name>asi_rx_bits</spirit:name>', snkEnd);
+  const snkDataPortEnd = xml.indexOf('</spirit:port>', snkDataPortStart);
+  expect(xml.slice(snkDataPortStart, snkDataPortEnd)).toContain(
+    '<spirit:left spirit:format="long">15</spirit:left>'
+  );
+
+  const srcStart = xml.indexOf('<spirit:name>SRC_ST</spirit:name>');
+  const srcEnd = xml.indexOf('</spirit:busInterface>', srcStart);
+  const srcInterface = xml.slice(srcStart, srcEnd);
+  expect(srcInterface).toContain('<spirit:name>aso_startofpacket</spirit:name>');
+  expect(srcInterface).toContain('<spirit:name>aso_endofpacket</spirit:name>');
+  expect(srcInterface).toContain('<spirit:name>aso_empty</spirit:name>');
+  const srcEmptyPortStart = xml.indexOf('<spirit:name>aso_empty</spirit:name>', srcEnd);
+  const srcEmptyPortEnd = xml.indexOf('</spirit:port>', srcEmptyPortStart);
+  expect(xml.slice(srcEmptyPortStart, srcEmptyPortEnd)).toContain(
+    '<spirit:left spirit:format="long">2</spirit:left>'
+  );
+});
+
 it('all Xilinx fixtures pass Vivado ipx::check_integrity', () => {
   if (
     guardTier2(

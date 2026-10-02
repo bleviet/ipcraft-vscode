@@ -11,7 +11,9 @@ import type {
   IpCoreStagingStartMessage,
   IpCoreStagingFileMergedMessage,
   IpCoreConsistencyResultMessage,
+  IpCoreGenerateResultMessage,
 } from '../types/messages';
+import type { ConformanceReport } from '../../../shared/issues';
 
 interface UseIpCoreBridgeOptions {
   rawYaml: string;
@@ -19,6 +21,8 @@ interface UseIpCoreBridgeOptions {
   onStagingStart: (message: IpCoreStagingStartMessage) => void;
   onStagingFileMerged: (message: IpCoreStagingFileMergedMessage) => void;
   onConsistencyResult: (message: IpCoreConsistencyResultMessage) => void;
+  onGenerateResult?: (message: IpCoreGenerateResultMessage) => void;
+  onConformanceReport?: (report: ConformanceReport, revision: string) => void;
 }
 
 /**
@@ -35,9 +39,10 @@ interface UseIpCoreBridgeOptions {
  *
  * Preserves the exact revisioned sync protocol (V-3/V-4): only `update`
  * messages are subject to `shouldApplyUpdate`'s stale/self-echo/forceResync
- * check; staging and consistency messages pass straight through, matching
- * prior behavior. Do not change this filtering without also reviewing
- * `WebviewRouter` and `revisionFilter.ts`.
+ * check. Staging, consistency, generation, and conformance notifications are
+ * separate typed messages and never bypass a rejected document update. Do not
+ * change this filtering without also reviewing `WebviewRouter` and
+ * `revisionFilter.ts`.
  */
 export function useIpCoreBridge({
   rawYaml,
@@ -45,6 +50,8 @@ export function useIpCoreBridge({
   onStagingStart,
   onStagingFileMerged,
   onConsistencyResult,
+  onGenerateResult,
+  onConformanceReport,
 }: UseIpCoreBridgeOptions): { sendUpdate: (yamlText: string) => void } {
   const revision = useRef(createRevisionState());
 
@@ -67,6 +74,10 @@ export function useIpCoreBridge({
   onStagingFileMergedRef.current = onStagingFileMerged;
   const onConsistencyResultRef = useRef(onConsistencyResult);
   onConsistencyResultRef.current = onConsistencyResult;
+  const onGenerateResultRef = useRef(onGenerateResult);
+  onGenerateResultRef.current = onGenerateResult;
+  const onConformanceReportRef = useRef(onConformanceReport);
+  onConformanceReportRef.current = onConformanceReport;
 
   // Notify the extension that the webview is ready to receive the initial document.
   useEffect(() => {
@@ -141,6 +152,12 @@ export function useIpCoreBridge({
           break;
         case 'consistencyResult':
           onConsistencyResultRef.current(message);
+          break;
+        case 'generateResult':
+          onGenerateResultRef.current?.(message);
+          break;
+        case 'conformanceResult':
+          onConformanceReportRef.current?.(message.report, message.sourceRevision);
           break;
       }
     };

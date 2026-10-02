@@ -1,10 +1,12 @@
 import type { IpCoreData, BusDefinitions } from '../types';
 import type { BusRuleRegistry } from '../buses/registry';
+import type { NormalizedBusLibrary } from '../../shared/busContracts';
 
 export interface ResolverInput {
   readonly ipCore: IpCoreData;
   readonly registers: readonly Record<string, unknown>[];
   readonly busDefinitions: BusDefinitions;
+  readonly busLibrary: NormalizedBusLibrary;
   readonly registry: BusRuleRegistry;
 }
 

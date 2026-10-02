@@ -9011,6 +9011,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "avalon_peripheral_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -9130,6 +9131,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.symbolsPerBeat">4</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>avalon_st_source</spirit:name>
@@ -9178,6 +9205,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.symbolsPerBeat">4</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>clk</spirit:name>
@@ -9687,6 +9740,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "avalon_peripheral_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -9806,6 +9860,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.symbolsPerBeat">4</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SINK.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>avalon_st_source</spirit:name>
@@ -9854,6 +9934,32 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.symbolsPerBeat">4</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.AVALON_ST_SOURCE.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>clk</spirit:name>
@@ -10363,6 +10469,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "axi_slave_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -11087,6 +11194,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "axi_slave_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -11811,6 +11919,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "basic_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -12027,6 +12136,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "basic_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -12243,6 +12353,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/basic_peripheral_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -13139,6 +13250,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/basic_peripheral_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -14035,6 +14147,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/comprehensive_avalon_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -14059,26 +14172,26 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>read_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_read</spirit:name>
+            <spirit:name>avs_read_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>write_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_write</spirit:name>
+            <spirit:name>avs_write_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>byteenable</spirit:name>
+            <spirit:name>byteenable_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_byteenable</spirit:name>
+            <spirit:name>avs_byteenable_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -14099,18 +14212,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>readdatavalid_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_readdatavalid</spirit:name>
+            <spirit:name>avs_readdatavalid_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>waitrequest_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_waitrequest</spirit:name>
+            <spirit:name>avs_waitrequest_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -14186,6 +14299,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.maxChannel">3</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.symbolsPerBeat">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.firstSymbolInHighOrderBits">true</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="endianness" value="big" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>SNK_ST</spirit:name>
@@ -14218,6 +14358,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.dataBitsPerSymbol">1</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.symbolsPerBeat">16</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="dataBitsPerSymbol" value="1" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>clk</spirit:name>
@@ -14541,7 +14708,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_read</spirit:name>
+        <spirit:name>avs_read_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14554,7 +14721,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_write</spirit:name>
+        <spirit:name>avs_write_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14567,7 +14734,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_byteenable</spirit:name>
+        <spirit:name>avs_byteenable_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
@@ -14618,7 +14785,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_readdatavalid</spirit:name>
+        <spirit:name>avs_readdatavalid_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14631,7 +14798,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_waitrequest</spirit:name>
+        <spirit:name>avs_waitrequest_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -14975,6 +15142,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/comprehensive_avalon_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -14999,26 +15167,26 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>read_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_read</spirit:name>
+            <spirit:name>avs_read_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>write_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_write</spirit:name>
+            <spirit:name>avs_write_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>byteenable</spirit:name>
+            <spirit:name>byteenable_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_byteenable</spirit:name>
+            <spirit:name>avs_byteenable_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -15039,18 +15207,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>readdatavalid_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_readdatavalid</spirit:name>
+            <spirit:name>avs_readdatavalid_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>waitrequest_n</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
-            <spirit:name>avs_waitrequest</spirit:name>
+            <spirit:name>avs_waitrequest_n</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
@@ -15126,6 +15294,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.dataBitsPerSymbol">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.maxChannel">3</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.symbolsPerBeat">8</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.firstSymbolInHighOrderBits">true</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="endianness" value="big" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>SNK_ST</spirit:name>
@@ -15158,6 +15353,33 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>dataBitsPerSymbol</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.dataBitsPerSymbol">1</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>maxChannel</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.maxChannel">255</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>readyLatency</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.readyLatency">0</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>symbolsPerBeat</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.symbolsPerBeat">16</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>firstSymbolInHighOrderBits</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SNK_ST.firstSymbolInHighOrderBits">false</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+      <spirit:vendorExtensions>
+        <ipcraft:interfaceContract version="1">
+          <ipcraft:property name="dataBitsPerSymbol" value="1" />
+        </ipcraft:interfaceContract>
+      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>clk</spirit:name>
@@ -15481,7 +15703,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_read</spirit:name>
+        <spirit:name>avs_read_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15494,7 +15716,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_write</spirit:name>
+        <spirit:name>avs_write_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15507,7 +15729,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_byteenable</spirit:name>
+        <spirit:name>avs_byteenable_n</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
@@ -15558,7 +15780,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_readdatavalid</spirit:name>
+        <spirit:name>avs_readdatavalid_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15571,7 +15793,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>avs_waitrequest</spirit:name>
+        <spirit:name>avs_waitrequest_n</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
           <spirit:wireTypeDefs>
@@ -15915,6 +16137,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/comprehensive_axi_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -16217,18 +16440,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>BRESP</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_bresp</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>BID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_bid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>BRESP</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axi_bresp</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -17832,13 +18055,9 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>m_axi_bresp</spirit:name>
+        <spirit:name>m_axi_bid</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">1</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -17849,9 +18068,13 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>m_axi_bid</spirit:name>
+        <spirit:name>m_axi_bresp</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">1</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -18537,6 +18760,53 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>s_axis_tuser</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trace_data</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.DATA_W&apos;)) - 1)">31</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trace_valid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trigger</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -18810,6 +19080,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/comprehensive_axi_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -19112,18 +19383,18 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>BRESP</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_bresp</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>BID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_bid</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>BRESP</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>m_axi_bresp</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -20727,6 +20998,19 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>m_axi_bid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>m_axi_bresp</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -20737,19 +21021,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_bid</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -21442,6 +21713,53 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
+        <spirit:name>dbg_trace_data</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long" spirit:resolve="dependent" spirit:dependency="(spirit:decode(id(&apos;MODELPARAM_VALUE.DATA_W&apos;)) - 1)">31</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trace_valid</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>dbg_trigger</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:vector>
+            <spirit:left spirit:format="long">3</spirit:left>
+            <spirit:right spirit:format="long">0</spirit:right>
+          </spirit:vector>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>std_logic_vector</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
         <spirit:name>i_gpio</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -21705,6 +22023,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/daq_controller_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -22852,6 +23171,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/daq_controller_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -23999,6 +24319,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/minimal_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -24117,6 +24438,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/minimal_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -24235,6 +24557,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/multi_interface_accelerator_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -25317,7 +25640,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">31</spirit:left>
+            <spirit:left spirit:format="long">15</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -25909,6 +26232,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/multi_interface_accelerator_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -26991,7 +27315,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">31</spirit:left>
+            <spirit:left spirit:format="long">15</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -27583,6 +27907,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/system_controller_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -30428,6 +30753,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/system_controller_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -33273,6 +33599,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/xcvr_loopback_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -33721,6 +34048,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "examples/xcvr_loopback_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>examples</spirit:library>
@@ -34169,6 +34497,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "minimal_sv": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -34287,6 +34616,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
   "minimal_vhdl": "<?xml version="1.0" encoding="UTF-8"?>
 <spirit:component xmlns:xilinx="http://www.xilinx.com"
   xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009"
+  xmlns:ipcraft="urn:ipcraft:interface-contract:1"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <spirit:vendor>ipcraft</spirit:vendor>
   <spirit:library>templates</spirit:library>
@@ -35038,6 +35368,10 @@ set_interface_property avalon_st_sink CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_sink SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property avalon_st_sink dataBitsPerSymbol 8
+set_interface_property avalon_st_sink maxChannel 255
+set_interface_property avalon_st_sink readyLatency 0
+set_interface_property avalon_st_sink symbolsPerBeat 4
 set_interface_property avalon_st_sink firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_sink s_avst_data data Input 32
@@ -35058,6 +35392,10 @@ set_interface_property avalon_st_source CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_source SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property avalon_st_source dataBitsPerSymbol 8
+set_interface_property avalon_st_source maxChannel 255
+set_interface_property avalon_st_source readyLatency 0
+set_interface_property avalon_st_source symbolsPerBeat 4
 set_interface_property avalon_st_source firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_source m_avst_data data Output 32
@@ -35186,6 +35524,10 @@ set_interface_property avalon_st_sink CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_sink SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property avalon_st_sink dataBitsPerSymbol 8
+set_interface_property avalon_st_sink maxChannel 255
+set_interface_property avalon_st_sink readyLatency 0
+set_interface_property avalon_st_sink symbolsPerBeat 4
 set_interface_property avalon_st_sink firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_sink s_avst_data data Input 32
@@ -35206,6 +35548,10 @@ set_interface_property avalon_st_source CMSIS_SVD_VARIABLES ""
 set_interface_property avalon_st_source SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property avalon_st_source dataBitsPerSymbol 8
+set_interface_property avalon_st_source maxChannel 255
+set_interface_property avalon_st_source readyLatency 0
+set_interface_property avalon_st_source symbolsPerBeat 4
 set_interface_property avalon_st_source firstSymbolInHighOrderBits false
 # Ports
 add_interface_port avalon_st_source m_avst_data data Output 32
@@ -36216,13 +36562,13 @@ set_interface_property S_AVMM addressUnits BYTES
 set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
-add_interface_port S_AVMM avs_read read Input 1
-add_interface_port S_AVMM avs_write write Input 1
-add_interface_port S_AVMM avs_byteenable byteenable Input 4
+add_interface_port S_AVMM avs_read_n read_n Input 1
+add_interface_port S_AVMM avs_write_n write_n Input 1
+add_interface_port S_AVMM avs_byteenable_n byteenable_n Input 4
 add_interface_port S_AVMM avs_writedata writedata Input 32
 add_interface_port S_AVMM avs_readdata readdata Output 32
-add_interface_port S_AVMM avs_readdatavalid readdatavalid Output 1
-add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
+add_interface_port S_AVMM avs_readdatavalid_n readdatavalid_n Output 1
+add_interface_port S_AVMM avs_waitrequest_n waitrequest_n Output 1
 
 
 # Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
@@ -36236,6 +36582,10 @@ set_interface_property SRC_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SRC_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property SRC_ST dataBitsPerSymbol 8
+set_interface_property SRC_ST maxChannel 3
+set_interface_property SRC_ST readyLatency 0
+set_interface_property SRC_ST symbolsPerBeat 8
 set_interface_property SRC_ST firstSymbolInHighOrderBits true
 # Ports
 add_interface_port SRC_ST aso_valid valid Output 1
@@ -36258,6 +36608,10 @@ set_interface_property SNK_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SNK_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property SNK_ST dataBitsPerSymbol 1
+set_interface_property SNK_ST maxChannel 255
+set_interface_property SNK_ST readyLatency 0
+set_interface_property SNK_ST symbolsPerBeat 16
 set_interface_property SNK_ST firstSymbolInHighOrderBits false
 # Ports
 add_interface_port SNK_ST asi_rx_bits data Input 16
@@ -36426,13 +36780,13 @@ set_interface_property S_AVMM addressUnits BYTES
 set_interface_property S_AVMM maximumPendingReadTransactions 1
 # Ports
 add_interface_port S_AVMM avs_address address Input 12
-add_interface_port S_AVMM avs_read read Input 1
-add_interface_port S_AVMM avs_write write Input 1
-add_interface_port S_AVMM avs_byteenable byteenable Input 4
+add_interface_port S_AVMM avs_read_n read_n Input 1
+add_interface_port S_AVMM avs_write_n write_n Input 1
+add_interface_port S_AVMM avs_byteenable_n byteenable_n Input 4
 add_interface_port S_AVMM avs_writedata writedata Input 32
 add_interface_port S_AVMM avs_readdata readdata Output 32
-add_interface_port S_AVMM avs_readdatavalid readdatavalid Output 1
-add_interface_port S_AVMM avs_waitrequest waitrequest Output 1
+add_interface_port S_AVMM avs_readdatavalid_n readdatavalid_n Output 1
+add_interface_port S_AVMM avs_waitrequest_n waitrequest_n Output 1
 
 
 # Interface: SRC_ST (ipcraft:busif:avalon_st:1.0)
@@ -36446,6 +36800,10 @@ set_interface_property SRC_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SRC_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property SRC_ST dataBitsPerSymbol 8
+set_interface_property SRC_ST maxChannel 3
+set_interface_property SRC_ST readyLatency 0
+set_interface_property SRC_ST symbolsPerBeat 8
 set_interface_property SRC_ST firstSymbolInHighOrderBits true
 # Ports
 add_interface_port SRC_ST aso_valid valid Output 1
@@ -36468,6 +36826,10 @@ set_interface_property SNK_ST CMSIS_SVD_VARIABLES ""
 set_interface_property SNK_ST SVD_ADDRESS_GROUP ""
 
 # Type-specific properties
+set_interface_property SNK_ST dataBitsPerSymbol 1
+set_interface_property SNK_ST maxChannel 255
+set_interface_property SNK_ST readyLatency 0
+set_interface_property SNK_ST symbolsPerBeat 16
 set_interface_property SNK_ST firstSymbolInHighOrderBits false
 # Ports
 add_interface_port SNK_ST asi_rx_bits data Input 16
@@ -36740,8 +37102,8 @@ add_interface_port M_AXI m_axi_wstrb wstrb Output 8
 add_interface_port M_AXI m_axi_wlast wlast Output 1
 add_interface_port M_AXI m_axi_wvalid wvalid Output 1
 add_interface_port M_AXI m_axi_wready wready Input 1
-add_interface_port M_AXI m_axi_bresp bresp Input 2
 add_interface_port M_AXI m_axi_bid bid Input 1
+add_interface_port M_AXI m_axi_bresp bresp Input 2
 add_interface_port M_AXI m_axi_bvalid bvalid Input 1
 add_interface_port M_AXI m_axi_bready bready Output 1
 add_interface_port M_AXI m_axi_arid arid Output 1
@@ -37152,8 +37514,8 @@ add_interface_port M_AXI m_axi_wstrb wstrb Output 8
 add_interface_port M_AXI m_axi_wlast wlast Output 1
 add_interface_port M_AXI m_axi_wvalid wvalid Output 1
 add_interface_port M_AXI m_axi_wready wready Input 1
-add_interface_port M_AXI m_axi_bresp bresp Input 2
 add_interface_port M_AXI m_axi_bid bid Input 1
+add_interface_port M_AXI m_axi_bresp bresp Input 2
 add_interface_port M_AXI m_axi_bvalid bvalid Input 1
 add_interface_port M_AXI m_axi_bready bready Output 1
 add_interface_port M_AXI m_axi_arid arid Output 1
@@ -37904,7 +38266,7 @@ add_interface_port S_AXI_LITE s_axi_wready wready Output 1
 add_interface_port S_AXI_LITE s_axi_bresp bresp Output 2
 add_interface_port S_AXI_LITE s_axi_bvalid bvalid Output 1
 add_interface_port S_AXI_LITE s_axi_bready bready Input 1
-add_interface_port S_AXI_LITE s_axi_araddr araddr Input 32
+add_interface_port S_AXI_LITE s_axi_araddr araddr Input 16
 add_interface_port S_AXI_LITE s_axi_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axi_arready arready Output 1
 add_interface_port S_AXI_LITE s_axi_arprot arprot Input 3
@@ -38184,7 +38546,7 @@ add_interface_port S_AXI_LITE s_axi_wready wready Output 1
 add_interface_port S_AXI_LITE s_axi_bresp bresp Output 2
 add_interface_port S_AXI_LITE s_axi_bvalid bvalid Output 1
 add_interface_port S_AXI_LITE s_axi_bready bready Input 1
-add_interface_port S_AXI_LITE s_axi_araddr araddr Input 32
+add_interface_port S_AXI_LITE s_axi_araddr araddr Input 16
 add_interface_port S_AXI_LITE s_axi_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axi_arready arready Output 1
 add_interface_port S_AXI_LITE s_axi_arprot arprot Input 3

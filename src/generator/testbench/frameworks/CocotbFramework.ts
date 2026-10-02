@@ -9,6 +9,57 @@ function isSimPath(p: string): boolean {
   return SIM_PREFIXES.some((prefix) => p.startsWith(prefix));
 }
 
+interface AvalonSignalContext {
+  name: string;
+  asserted: 0 | 1;
+  deasserted: 0 | 1;
+  active_low: boolean;
+}
+
+interface AvalonTransportContext {
+  address: AvalonSignalContext;
+  byte_enable: AvalonSignalContext;
+  read: AvalonSignalContext;
+  read_data: AvalonSignalContext;
+  read_data_valid: AvalonSignalContext;
+  wait_request: AvalonSignalContext;
+  write: AvalonSignalContext;
+  write_data: AvalonSignalContext;
+}
+
+function buildAvalonTransportContext(
+  templateContext: Record<string, unknown>
+): AvalonTransportContext {
+  const prefix = String(templateContext.bus_prefix ?? '');
+  const ports = Array.isArray(templateContext.bus_ports)
+    ? (templateContext.bus_ports as Array<Record<string, unknown>>)
+    : [];
+  const resolve = (logicalName: string): AvalonSignalContext => {
+    const port = ports.find(
+      (candidate) =>
+        String(candidate.logical_name ?? '').toLowerCase() === logicalName.toLowerCase()
+    );
+    const activeLow = port?.effective_polarity === 'activeLow';
+    return {
+      name: typeof port?.name === 'string' ? port.name : `${prefix}_${logicalName}`,
+      asserted: activeLow ? 0 : 1,
+      deasserted: activeLow ? 1 : 0,
+      active_low: activeLow,
+    };
+  };
+
+  return {
+    address: resolve('address'),
+    byte_enable: resolve('byteenable'),
+    read: resolve('read'),
+    read_data: resolve('readdata'),
+    read_data_valid: resolve('readdatavalid'),
+    wait_request: resolve('waitrequest'),
+    write: resolve('write'),
+    write_data: resolve('writedata'),
+  };
+}
+
 export class CocotbFramework implements Framework {
   readonly id = 'cocotb';
   readonly displayName = 'CocoTB';
@@ -40,6 +91,10 @@ export class CocotbFramework implements Framework {
       rtl_source_files: rtlSourceFiles,
       rtl_include_dirs: rtlIncludeDirs,
       top_level: topLevel,
+    };
+    const testCtx = {
+      ...cocotbCtx,
+      avmm_signals: buildAvalonTransportContext(templateContext),
     };
 
     // Extend the template context with engine-specific values so templates can
@@ -75,7 +130,7 @@ export class CocotbFramework implements Framework {
       files['tb/verification_manifest.json'] = `${JSON.stringify(manifest, null, 2)}\n`;
       files['tb/register_model.py'] = templates.render('register_model.py.j2', templateContext);
     }
-    files[`tb/${name}_test.py`] = templates.render('cocotb_test.py.j2', templateContext);
+    files[`tb/${name}_test.py`] = templates.render('cocotb_test.py.j2', testCtx);
     files['tb/conftest.py'] = templates.render('cocotb_conftest.py.j2', cocotbCtx);
     files[`tb/test_${name}_sim.py`] = templates.render('cocotb_pytest.py.j2', templateContext);
     files['tb/Makefile'] = templates.render(

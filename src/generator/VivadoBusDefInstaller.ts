@@ -58,6 +58,7 @@ export async function installGlobalBusDefinitions(busDefinitionsDir: string): Pr
       version: bt.version,
       description: bt.description ?? '',
       ports: def.ports ?? [],
+      isAddressable: def.contract?.interfaceKind === 'memoryMapped',
     };
 
     const busDefXml = renderBusDefinitionXml(customBusInfo);

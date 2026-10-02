@@ -1,9 +1,27 @@
 import {
-  crossCheckIpCoreAgainstHdl,
-  crossCheckIpCoreAgainstTopLevelHdl,
-  crossCheckIpCoreAgainstVendor,
+  crossCheckIpCoreAgainstHdl as crossCheckIpCoreAgainstHdlImpl,
+  crossCheckIpCoreAgainstTopLevelHdl as crossCheckIpCoreAgainstTopLevelHdlImpl,
+  crossCheckIpCoreAgainstVendor as crossCheckIpCoreAgainstVendorImpl,
 } from '../../../../generator/validation/hdlCrossCheck';
 import type { IpCoreData } from '../../../../generator/types';
+import { builtinBusLibrary } from '../../../helpers/busLibrary';
+
+const crossCheckIpCoreAgainstHdl = (
+  core: IpCoreData,
+  dir: string,
+  reader: (path: string) => Promise<string>
+) => crossCheckIpCoreAgainstHdlImpl(core, dir, builtinBusLibrary(), reader);
+const crossCheckIpCoreAgainstTopLevelHdl = (
+  core: IpCoreData,
+  dir: string,
+  reader: (path: string) => Promise<string>
+) => crossCheckIpCoreAgainstTopLevelHdlImpl(core, dir, builtinBusLibrary(), reader);
+const crossCheckIpCoreAgainstVendor = (
+  core: IpCoreData,
+  dir: string,
+  source: 'hwTcl' | 'componentXml',
+  reader: (path: string) => Promise<string>
+) => crossCheckIpCoreAgainstVendorImpl(core, dir, source, builtinBusLibrary(), reader);
 
 function baseIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
   return {
@@ -368,6 +386,34 @@ describe('crossCheckIpCoreAgainstTopLevelHdl — bus-interface signal diffing (i
     expect(findings[0].kind).toBe('bus-port-direction-mismatch');
     expect(findings[0].severity).toBe('red');
     expect(findings[0].message).toContain('avs_readdata');
+  });
+
+  it('accepts the resolved active-low physical name and never requires the inactive role', async () => {
+    const ipCore = avmmIpCore({
+      busInterfaces: [
+        {
+          name: 'S_AVMM',
+          type: 'AVMM',
+          mode: 'slave',
+          physicalPrefix: 'avs_',
+          useOptionalPorts: ['byteenable'],
+          portPolarityOverrides: { byteenable: 'activeLow' },
+        },
+      ],
+    });
+    const hdl = [
+      'entity core is',
+      '  port (',
+      '    clk : in std_logic;',
+      '    rst : in std_logic;',
+      '    avs_byteenable_n : in std_logic_vector(3 downto 0)',
+      '  );',
+      'end entity core;',
+    ].join('\n');
+
+    const findings = await crossCheckIpCoreAgainstTopLevelHdl(ipCore, '/proj', makeReader(hdl));
+
+    expect(findings).toEqual([]);
   });
 });
 

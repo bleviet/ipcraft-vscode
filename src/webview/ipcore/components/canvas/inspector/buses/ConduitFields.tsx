@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { BusInterface, ConduitPort } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
-import { lookupBusDef, type BusPortDef } from '../../../../data/busDefinitions';
+import type { BusPortDef } from '../../../../utils/busLibrary';
 import { PropField, Section } from '../controls/InspectorFields';
 import { WidthExprControl } from '../controls/WidthExprControl';
 
@@ -211,7 +211,7 @@ export const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps>
   libraryPortDefs,
   onUpdate,
 }) => {
-  const portDefs = lookupBusDef(bus.type) ?? libraryPortDefs ?? null;
+  const portDefs = libraryPortDefs ?? null;
   const overrides = (bus.portWidthOverrides ?? {}) as Record<string, number | string>;
 
   if (!portDefs) {
@@ -241,13 +241,15 @@ export const PortWidthOverridesSection: React.FC<PortWidthOverridesSectionProps>
   // cannot be meaningfully overridden. Signals with no declared width at all (common for
   // discovered Vivado interfaces, e.g. fifo_write's WR_DATA) are parameterized rather than
   // fixed-at-1 — those must stay editable so the user can set a real width.
-  const configurableDefs = enabledDefs.filter((p) => p.width === undefined || p.width > 1);
+  const configurableDefs = enabledDefs.filter(
+    (p) => p.width === undefined || typeof p.width === 'string' || p.width > 1
+  );
 
   if (configurableDefs.length === 0) {
     return null;
   }
 
-  const saveWidth = (portName: string, value: number | string, defaultWidth: number) => {
+  const saveWidth = (portName: string, value: number | string, defaultWidth: number | string) => {
     const basePath = ['busInterfaces', busIndex, 'portWidthOverrides'];
     const hasOverride = portName in overrides;
 
@@ -300,7 +302,7 @@ interface PortWidthRowProps {
   signal: string;
   direction?: 'in' | 'out';
   currentValue: number | string;
-  defaultWidth: number;
+  defaultWidth: number | string;
   /** False when the interface spec declares no width for this port (e.g. a parameterized
    *  data signal like fifo_write's WR_DATA) — the shown defaultWidth is just a fallback,
    *  not a real standard value, so the row is flagged for the user. */
@@ -340,7 +342,9 @@ const PortWidthRow: React.FC<PortWidthRowProps> = ({
       </span>
       <WidthExprControl
         value={currentValue}
-        defaultWidth={defaultWidth}
+        defaultWidth={
+          typeof defaultWidth === 'number' ? defaultWidth : (paramValues[defaultWidth] ?? 1)
+        }
         paramNames={paramNames}
         paramValues={paramValues}
         onSave={onSave}

@@ -61,6 +61,7 @@ addRequiredTree('src/generator/packs', 'extension/dist/packs');
 addRequiredTree('ipcraft-spec/bus_definitions', 'extension/dist/resources/bus_definitions');
 addRequiredTree('media/walkthrough', 'extension/media/walkthrough');
 for (const schema of [
+  'bus_definition.schema.json',
   'data_inspector.schema.json',
   'ip_core.schema.json',
   'memory_map.schema.json',

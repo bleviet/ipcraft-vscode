@@ -1,7 +1,15 @@
 import { IpCore, Clock, Reset, Port, BusInterface } from '../../types/ipCore';
 import { reconstructBusPortNameSet } from '../../../shared/busPortNameSet';
 import { busSupportsInterruptAssociation } from '../../../shared/busVlnv';
-import { lookupBusDef } from '../data/busDefinitions';
+import {
+  resolveBusInterface,
+  resolveDataLane,
+  type NormalizedBusLibrary,
+} from '../../../shared/busContracts';
+import type {
+  BusInterface as DomainBusInterface,
+  Parameter as DomainParameter,
+} from '../../../domain/ipcore.types';
 
 export type ValidationSeverity = 'warning' | 'error';
 
@@ -12,7 +20,10 @@ export interface ValidationAnnotation {
 
 export type CanvasAnnotations = Record<string, ValidationAnnotation[]>;
 
-export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
+export const useCanvasValidation = (
+  ipCore: IpCore,
+  busLibrary?: NormalizedBusLibrary
+): CanvasAnnotations => {
   const annotations: CanvasAnnotations = {};
 
   const addAnnotation = (id: string, severity: ValidationSeverity, message: string) => {
@@ -80,7 +91,7 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
   // name collision is flagged.
   const busList = ipCore.busInterfaces ?? [];
   const reconstructedSets = busList.map((bus) =>
-    bus.physicalPrefix ? reconstructBusPortNameSet(bus) : null
+    bus.physicalPrefix && busLibrary ? reconstructBusPortNameSet(bus, busLibrary) : null
   );
   const collisionMessages = new Map<number, string[]>();
   for (let i = 0; i < busList.length; i++) {
@@ -119,16 +130,16 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
     }
 
     if (bus.endianness === 'big') {
-      const portDefs = lookupBusDef(bus.type);
-      if (portDefs && portDefs.length > 0) {
-        const selectedOptionalPorts = new Set(bus.useOptionalPorts ?? []);
-        const absentPorts = new Set((bus.absentPorts ?? []).map((name) => name.toUpperCase()));
-        const activeDataPorts = portDefs.filter(
-          (port) =>
-            port.endianRole === 'data' &&
-            !absentPorts.has(port.name.toUpperCase()) &&
-            (port.presence === 'required' || selectedOptionalPorts.has(port.name))
-        );
+      const resolution = busLibrary
+        ? resolveBusInterface({
+            busInterface: bus as unknown as DomainBusInterface,
+            busIndex: idx,
+            parameters: (ipCore.parameters ?? []) as unknown as DomainParameter[],
+            library: busLibrary,
+          })
+        : null;
+      if (resolution?.match) {
+        const activeDataPorts = resolution.activePorts.filter((port) => port.role === 'data');
 
         if (activeDataPorts.length === 0) {
           addAnnotation(
@@ -137,15 +148,25 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
             'Endianness "big" has no effect: interface has no enabled data port'
           );
         } else {
+          const dataLane = resolveDataLane(resolution, bus);
+          const laneWidth = dataLane.width;
           const invalidDataPort = activeDataPorts.find((port) => {
-            const width = bus.portWidthOverrides?.[port.name] ?? port.width ?? 1;
-            return typeof width === 'number' && !(width > 1 && width % 8 === 0);
+            const width = port.effectiveWidth.value;
+            return (
+              typeof width === 'number' &&
+              typeof laneWidth === 'number' &&
+              !(laneWidth > 0 && width > laneWidth && width % laneWidth === 0)
+            );
           });
           if (invalidDataPort) {
+            const laneDescription =
+              dataLane.kind === 'symbol'
+                ? `a multiple of the ${laneWidth}-bit symbol width`
+                : `a multiple of ${laneWidth} bits`;
             addAnnotation(
               id,
               'warning',
-              `Endianness "big" has no effect on ${invalidDataPort.name}: width must be a multiple of 8 bits`
+              `Endianness "big" has no effect on ${invalidDataPort.name}: width must be ${laneDescription}`
             );
           }
         }
@@ -227,7 +248,9 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
   // Check interrupts
   const irqNames = new Set<string>();
   const eligibleInterruptBusNames = new Set(
-    (ipCore.busInterfaces ?? []).filter(busSupportsInterruptAssociation).map((bus) => bus.name)
+    (ipCore.busInterfaces ?? [])
+      .filter((bus) => (busLibrary ? busSupportsInterruptAssociation(bus, busLibrary) : false))
+      .map((bus) => bus.name)
   );
   const clockNames = new Set((ipCore.clocks ?? []).map((clock) => clock.name));
   (
@@ -248,7 +271,11 @@ export const useCanvasValidation = (ipCore: IpCore): CanvasAnnotations => {
         irqNames.add(key);
       }
     }
-    if (irq.associatedBusInterface && !eligibleInterruptBusNames.has(irq.associatedBusInterface)) {
+    if (
+      busLibrary &&
+      irq.associatedBusInterface &&
+      !eligibleInterruptBusNames.has(irq.associatedBusInterface)
+    ) {
       addAnnotation(
         id,
         'error',

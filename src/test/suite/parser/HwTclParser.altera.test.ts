@@ -16,7 +16,11 @@
 
 import { execSync } from 'child_process';
 import * as yaml from 'js-yaml';
-import { parseHwTclContent } from '../../../parser/HwTclParser';
+import { parseHwTclContent as parseHwTclContentImpl } from '../../../parser/HwTclParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
+
+const parseHwTclContent = (content: string, filePath: string) =>
+  parseHwTclContentImpl(content, filePath, { busLibrary: builtinBusLibrary() });
 
 // ── Docker availability guard ──────────────────────────────────────────────
 

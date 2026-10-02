@@ -10,11 +10,22 @@ const commonResolve = {
   extensions: [".ts", ".tsx", ".js", ".jsx", ".json"],
 };
 
+// Type-check only what the bundles actually import. Without this, ts-loader
+// also walks the test tree on every build, which pushes the bundle step past
+// the default Node heap. Full-program checking stays the job of
+// `npm run type-check`, which CI runs as its own step.
+const typescriptLoader = {
+  loader: "ts-loader",
+  options: {
+    onlyCompileBundledFiles: true,
+  },
+};
+
 const extensionModuleRules = {
   rules: [
     {
       test: /\.tsx?$/,
-      use: "ts-loader",
+      use: typescriptLoader,
       exclude: /node_modules/,
     },
     {
@@ -28,7 +39,7 @@ const webviewModuleRules = {
   rules: [
     {
       test: /\.tsx?$/,
-      use: "ts-loader",
+      use: typescriptLoader,
       exclude: /node_modules/,
     },
     {
@@ -104,6 +115,10 @@ const extensionConfig = {
         {
           from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "data_inspector.schema.json"),
           to: "resources/schemas/data_inspector.schema.json",
+        },
+        {
+          from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "bus_definition.schema.json"),
+          to: "resources/schemas/bus_definition.schema.json",
         },
       ],
     }),

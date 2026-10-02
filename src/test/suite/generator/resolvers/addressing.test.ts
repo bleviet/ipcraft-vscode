@@ -2,16 +2,20 @@ import { addressingResolver } from '../../../../generator/resolvers/addressing';
 import { normalizeIpCoreData } from '../../../../generator/registerProcessor';
 import { BUS_REGISTRY } from '../../../../generator/buses/builtin';
 import type { ResolverInput } from '../../../../generator/resolvers/types';
+import { normalizeBusLibrary } from '../../../../shared/busContracts';
+import { builtinBusLibrary } from '../../../helpers/busLibrary';
 
 function makeInput(
   raw: Record<string, unknown>,
   registers: Record<string, unknown>[] = [],
-  busDefinitions: ResolverInput['busDefinitions'] = {}
+  busDefinitions: ResolverInput['busDefinitions'] = {},
+  busLibrary: ResolverInput['busLibrary'] = normalizeBusLibrary([])
 ): ResolverInput {
   return {
     ipCore: normalizeIpCoreData(raw),
     registers,
     busDefinitions,
+    busLibrary,
     registry: BUS_REGISTRY,
   };
 }
@@ -35,6 +39,30 @@ describe('addressingResolver', () => {
     );
     expect(result.data_width).toBe(32);
     expect(result.reg_width).toBe(4);
+  });
+
+  it('uses the effective root width override for a memory-mapped consumer', () => {
+    const result = addressingResolver.resolve(
+      makeInput(
+        {
+          busInterfaces: [
+            {
+              name: 'S_AXI',
+              type: 'AXI4L',
+              mode: 'slave',
+              portWidthOverrides: { WDATA: 64, RDATA: 64 },
+            },
+          ],
+        },
+        [{ offset: 0 }],
+        {},
+        builtinBusLibrary()
+      )
+    );
+
+    expect(result.data_width).toBe(64);
+    expect(result.reg_width).toBe(8);
+    expect(result.addr_map_size).toBe(8);
   });
 
   it('computes addr_width from number of registers', () => {

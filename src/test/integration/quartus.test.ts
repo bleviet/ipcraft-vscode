@@ -35,6 +35,13 @@ import { guardTier2 } from './tier';
 
 const REPO_ROOT = path.resolve(__dirname, '../../..');
 const DOCKER_IMAGE = process.env.QUARTUS_DOCKER_IMAGE ?? 'cvsoc/quartus:23.1';
+// Steps that write into the fixture directories run as the host user, so the
+// generated project and compile output are not root-owned. quartus_sh only
+// needs a writable home for its cache.
+const DOCKER_HOST_USER =
+  process.getuid && process.getgid
+    ? ['--user', `${process.getuid()}:${process.getgid()}`, '-e', 'HOME=/tmp']
+    : [];
 
 // Docker paths (container-internal)
 const DOCKER_TCLSH = '/opt/intelFPGA/quartus/bin/tclsh';
@@ -105,6 +112,22 @@ beforeAll(async () => {
 
 it('generates at least one Altera fixture with _hw.tcl', () => {
   expect(alteras.length).toBeGreaterThan(0);
+});
+
+it('exports authored and derived Avalon-ST properties to Platform Designer', () => {
+  const fixture = alteras.find(
+    (candidate) => candidate.name === 'examples/comprehensive_avalon_vhdl'
+  );
+  expect(fixture).toBeDefined();
+  const [hwTclFile] = hwTclFiles(fixture!);
+  expect(hwTclFile).toBeDefined();
+  const tcl = fs.readFileSync(hwTclFile, 'utf8');
+
+  expect(tcl).toContain('set_interface_property SNK_ST dataBitsPerSymbol 1');
+  expect(tcl).toContain('set_interface_property SNK_ST symbolsPerBeat 16');
+  expect(tcl).toContain('set_interface_property SNK_ST readyLatency 0');
+  expect(tcl).toContain('add_interface_port SNK_ST asi_rx_bits data Input 16');
+  expect(tcl).toContain('add_interface_port SRC_ST aso_empty empty Output 3');
 });
 
 it('all Altera _hw.tcl files pass Platform Designer stub validation', () => {
@@ -303,16 +326,21 @@ it('all Altera Quartus project creation scripts run successfully', () => {
 
     if (mode === 'docker') {
       const tclInContainer = projectTcl.replace(REPO_ROOT, '/work');
-      // quartus_sh needs a writable home for its cache; run as root (no --user)
+      // project_new writes the .qpf into the working directory. spawnSync's cwd
+      // only applies to the docker client, so set the container's directory
+      // with -w; otherwise the project lands in the image's /build and is lost.
       result = spawnSync(
         'docker',
         [
           'run',
           '--rm',
+          ...DOCKER_HOST_USER,
           '-v',
           `${REPO_ROOT}:/work`,
           '-v',
           `${FIXTURE_BASE}:${FIXTURE_BASE}`,
+          '-w',
+          alteraDir.replace(REPO_ROOT, '/work'),
           DOCKER_IMAGE,
           '/opt/intelFPGA/quartus/bin/quartus_sh',
           '-t',
@@ -399,6 +427,7 @@ it('representative Quartus projects compile successfully', () => {
         [
           'run',
           '--rm',
+          ...DOCKER_HOST_USER,
           '-v',
           `${REPO_ROOT}:/work`,
           '-v',

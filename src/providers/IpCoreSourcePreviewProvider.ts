@@ -18,6 +18,11 @@ import { writeImportedFile, describeOutcome } from '../utils/importWrite';
 import { legacyVendorToTargets } from '../utils/migrateIpCore';
 import type { GenerateOptionsMessage } from './IpCoreGenerateHandler';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
+import type { NormalizedBusLibrary } from '../shared/busContracts';
+import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
+import { loadIpCoreData } from '../generator/loadIpCore';
+import { blocksImportWrite, checkBusConformance } from '../shared/busConformance';
+import type { ConformanceReport } from '../shared/issues';
 
 import { WebviewRouter } from '../services/WebviewRouter';
 import { EDITOR_VIEW_TYPE_IP_CORE } from '../utils/editorViewTypes';
@@ -61,11 +66,16 @@ function detectKind(fsPath: string): SourceKind | null {
   return null;
 }
 
-async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSource> {
+async function parseSource(
+  fsPath: string,
+  kind: SourceKind,
+  busLibrary: NormalizedBusLibrary
+): Promise<ParsedSource> {
   const cfg = vscode.workspace.getConfiguration(CONFIG_KEY_IPCRAFT_IMPORT);
   switch (kind) {
     case 'hwTcl': {
       const result = await parseHwTclFile(fsPath, {
+        busLibrary,
         library: cfg.get<string>('library'),
         vendor: resolvePreviewVendor(cfg.get<string>('vendor')),
       });
@@ -73,6 +83,7 @@ async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSour
     }
     case 'componentXml': {
       const result = await parseComponentXmlFile(fsPath, {
+        busLibrary,
         library: cfg.get<string>('library'),
       });
       return {
@@ -85,6 +96,7 @@ async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSour
     case 'vhdl': {
       const result = await parseVhdlFile(fsPath, {
         detectBus: true,
+        busLibrary,
         vendor: resolvePreviewVendor(cfg.get<string>('vendor')),
         library: cfg.get<string>('library'),
         version: cfg.get<string>('version'),
@@ -95,6 +107,7 @@ async function parseSource(fsPath: string, kind: SourceKind): Promise<ParsedSour
     case 'verilog': {
       const result = await parseVerilogFile(fsPath, {
         detectBus: true,
+        busLibrary,
         vendor: resolvePreviewVendor(cfg.get<string>('vendor')),
         library: cfg.get<string>('library'),
         version: cfg.get<string>('version'),
@@ -153,6 +166,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     // The .ip.yml references it via `memoryMaps.import`, so it must be written too.
     let currentMmYaml: string | undefined;
     let currentMmFileName: string | undefined;
+    let currentConformance: ConformanceReport | undefined;
 
     const router = new WebviewRouter({
       webviewPanel,
@@ -168,11 +182,22 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         return;
       }
       try {
-        const parsed = await parseSource(document.uri.fsPath, kind);
+        const busLibrary = await loadRuntimeBusLibrary(
+          this.logger,
+          this.resourceRoots,
+          document.uri
+        );
+        const parsed = await parseSource(document.uri.fsPath, kind, busLibrary);
         currentYaml = parsed.yamlText;
         componentName = parsed.name;
         currentMmYaml = parsed.mmYamlText;
         currentMmFileName = parsed.mmFileName;
+        const ipCoreData = await loadIpCoreData(
+          document.uri.fsPath,
+          this.resourceRoots,
+          currentYaml
+        );
+        currentConformance = checkBusConformance(ipCoreData, busLibrary);
         router.postUpdate({
           text: currentYaml,
           fileName: path.basename(document.uri.fsPath),
@@ -181,6 +206,12 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
           hasHwTcl: false,
           hasXpr: false,
           hasQpf: false,
+          imports: { busLibrary },
+        });
+        router.postNotification({
+          type: 'conformanceResult',
+          sourceRevision: currentYaml,
+          report: currentConformance,
         });
       } catch (error) {
         this.logger.error('Failed to parse source for preview', error as Error);
@@ -285,12 +316,19 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
           type: 'generateResult',
           success: false,
           error: result.error ?? 'Generation failed',
+          issues: result.issues,
+          sourceRevision: currentYaml,
         });
         return;
       }
 
       const writtenFiles = result.files ? Object.keys(result.files) : [];
-      void webview.postMessage({ type: 'generateResult', success: true, files: writtenFiles });
+      void webview.postMessage({
+        type: 'generateResult',
+        success: true,
+        files: writtenFiles,
+        sourceRevision: currentYaml,
+      });
 
       const action = await vscode.window.showInformationMessage(
         `Generated ${writtenFiles.length} files to ${outputDir}`,
@@ -311,6 +349,30 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
     memoryMap?: { mmYamlText?: string; mmFileName?: string }
   ): Promise<void> {
     const dir = path.dirname(sourceUri.fsPath);
+    const ipCoreData = await loadIpCoreData(sourceUri.fsPath, this.resourceRoots, currentYaml);
+    const busLibrary = await loadRuntimeBusLibrary(
+      this.logger,
+      this.resourceRoots,
+      sourceUri,
+      ipCoreData as Record<string, unknown>
+    );
+    const report = checkBusConformance(ipCoreData, busLibrary);
+    if (blocksImportWrite(report)) {
+      void vscode.window.showErrorMessage(
+        `Save blocked by bus conformance: ${report.issues
+          .filter((issue) => issue.severity === 'error')
+          .map((issue) => issue.message)
+          .join(' ')}`
+      );
+      return;
+    }
+    if (report.issues.length > 0) {
+      void vscode.window.showWarningMessage(
+        `Saved import contains bus interfaces that need review: ${report.issues
+          .map((issue) => issue.message)
+          .join(' ')}`
+      );
+    }
     const outputPath = path.join(dir, `${componentName}.ip.yml`);
     const outputUri = vscode.Uri.file(outputPath);
     const ipOutcome = await writeImportedFile(outputUri, currentYaml);
