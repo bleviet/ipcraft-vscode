@@ -135,11 +135,20 @@ busInterfaces:
     const save = page.getByRole('button', { name: 'Save as .ip.yml' });
     await expect(save).toBeEnabled();
     await expect(save).toHaveAttribute('title', /Save with unresolved bus warnings/);
+    // The debounced echo of the loaded YAML (150 ms) can be posted after the
+    // click, so check every posted message rather than only the last one.
+    await page.evaluate(() => {
+      const posted: unknown[] = [];
+      Reflect.set(window, '__posted_types', posted);
+      window.addEventListener('vscode-post-message', (event: Event) => {
+        if (event instanceof CustomEvent) {
+          posted.push((event.detail as { type?: unknown } | null)?.type);
+        }
+      });
+    });
     await save.click();
     await expect
-      .poll(() =>
-        page.evaluate(() => (window as typeof window & { __last_message?: unknown }).__last_message)
-      )
-      .toMatchObject({ type: 'saveAsIpYml' });
+      .poll(() => page.evaluate(() => Reflect.get(window, '__posted_types') as unknown[]))
+      .toContain('saveAsIpYml');
   });
 });
