@@ -74,7 +74,9 @@ function runValidator(
       { stdio: ['ignore', fd, fd], timeout: 120_000 }
     );
     if (result.error) {
-      return { status: null, output: `failed to spawn Vivado — ${result.error.message}` };
+      // e.g. ETIMEDOUT: keep what Vivado logged before it was stopped.
+      const log = fs.readFileSync(logPath, 'utf8');
+      return { status: null, output: `Vivado run failed — ${result.error.message}\n${log}` };
     }
     return { status: result.status, output: fs.readFileSync(logPath, 'utf8') };
   } finally {
@@ -163,7 +165,7 @@ it('all Xilinx fixtures pass Vivado ipx::check_integrity', () => {
     const failure = checkRun(
       fixture.name,
       runValidator(VALIDATE_TCL, xilinxDir),
-      'check_integrity',
+      'component validation',
       KNOWN_INTEGRITY_FAILURES,
       'KNOWN_INTEGRITY_FAILURES'
     );

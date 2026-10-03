@@ -76,12 +76,6 @@ set errors_before   [get_msg_config -count -severity ERROR]
 set critical_before [get_msg_config -count -severity {CRITICAL WARNING}]
 puts "=== block design begin ==="
 
-# Exporting a memory-mapped slave creates an external address space only as
-# wide as the slave's own address port, which cannot hold its segment; in a
-# real design an interconnect master provides the address space. The resulting
-# "segment not assigned" (BD 41-1356) is a harness artefact, not an IP defect.
-set_msg_config -id {BD 41-1356} -new_severity WARNING
-
 # Register the generated directory (and any custom bus definitions) as an IP
 # repository so Vivado can resolve the component VLNV and its bus interfaces.
 set repo_paths [list $xilinx_dir]
@@ -112,6 +106,17 @@ if {[llength $intf_pins] > 0} {
 set pins [get_bd_pins -quiet -of_objects [get_bd_cells inst_0]]
 if {[llength $pins] > 0} {
     make_bd_pins_external $pins
+}
+
+# A memory-mapped slave exported on its own has no master, so Vivado reports
+# each of its segments as "not assigned" into the external address space that
+# make_bd_intf_pins_external created for it (BD 41-1356). In a real design an
+# interconnect master maps the segments; that is not a defect of the packaged
+# IP. Downgrade the message for exactly those harness-made address spaces (one
+# per exported interface, named after the port) and nowhere else, so the same
+# message about any other address space still fails the run.
+foreach port [get_bd_intf_ports -quiet] {
+    set_msg_config -id {BD 41-1356} -string [list "address space <$port>"] -new_severity WARNING
 }
 
 puts "Exported interfaces: [llength $intf_pins]   ports: [llength $pins]"

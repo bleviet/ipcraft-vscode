@@ -30,6 +30,16 @@ if {![file exists $comp_xml]} {
 # In-memory project — no disk artefacts
 create_project -in_memory -part xc7z020clg484-1
 
+# Everything after this point concerns the generated IP: loading the busdef
+# repository, opening the core and checking its integrity. Vivado reports real
+# port-map defects (e.g. IP_Flow 19-4729, logical-name case mismatch) as
+# CRITICAL WARNINGs, so those fail like ERRORs. get_msg_config -count counts
+# each message more than once, so only the change from here decides PASS/FAIL;
+# the messages are printed between the markers for vivado.test.ts.
+set errors_before   [get_msg_config -count -severity ERROR]
+set critical_before [get_msg_config -count -severity {CRITICAL WARNING}]
+puts "=== component validation begin ==="
+
 # Register custom bus definitions if present so Vivado can resolve their VLNVs
 if {[file isdirectory $busdef_dir]} {
     set_property ip_repo_paths [list $busdef_dir] [current_project]
@@ -49,18 +59,9 @@ if {$vlnv eq ":::"} {
     exit 1
 }
 
-# Run integrity check. Not -quiet, and CRITICAL WARNINGs fail too: Vivado
-# reports real port-map defects (e.g. IP_Flow 19-4729, logical-name case
-# mismatch) only at that severity.
-#
-# get_msg_config -count counts each message more than once, so only the change
-# across check_integrity decides PASS/FAIL. The messages themselves are printed
-# between the markers below; vivado.test.ts reads their IDs from there.
-set errors_before   [get_msg_config -count -severity ERROR]
-set critical_before [get_msg_config -count -severity {CRITICAL WARNING}]
-puts "=== check_integrity begin ==="
+# Run integrity check (not -quiet, so its messages are listed).
 catch {ipx::check_integrity $core}
-puts "=== check_integrity end ==="
+puts "=== component validation end ==="
 set new_errors   [expr {[get_msg_config -count -severity ERROR] - $errors_before}]
 set new_critical [expr {[get_msg_config -count -severity {CRITICAL WARNING}] - $critical_before}]
 
@@ -71,6 +72,6 @@ if {$new_errors == 0 && $new_critical == 0} {
     puts "\nPASS: $vlnv — integrity check passed"
     exit 0
 } else {
-    puts "\nFAIL: $vlnv — check_integrity raised ERRORs or CRITICAL WARNINGs (listed above)"
+    puts "\nFAIL: $vlnv — component validation raised ERRORs or CRITICAL WARNINGs (listed above)"
     exit 1
 }

@@ -1,9 +1,13 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
 import {
   crossCheckIpCoreAgainstHdl,
   crossCheckIpCoreAgainstTopLevelHdl,
   crossCheckIpCoreAgainstVendor,
 } from '../../../../generator/validation/hdlCrossCheck';
-import type { IpCoreData } from '../../../../generator/types';
+import { generateComponentXml } from '../../../../generator/VivadoComponentXmlGenerator';
+import type { BusDefinitions, IpCoreData } from '../../../../generator/types';
 
 function baseIpCore(overrides: Partial<IpCoreData> = {}): IpCoreData {
   return {
@@ -496,5 +500,43 @@ describe('crossCheckIpCoreAgainstVendor — component.xml (Xilinx/Vivado)', () =
     expect(findings).toEqual([]);
     expect(error.mock.calls.some(([message]) => String(message).includes('[xmldom'))).toBe(true);
     error.mockClear();
+  });
+});
+
+describe('crossCheckIpCoreAgainstVendor — generated Avalon component.xml', () => {
+  // Vivado's avalon_rtl does not declare debugaccess, so the generator writes it as a
+  // plain port outside the bus interface. It must still count as part of the Avalon
+  // interface, not as an extra port.
+  it('reports no extra-port for an Avalon optional port written as a plain component port', async () => {
+    const avalonLibrary = yaml.load(
+      fs.readFileSync(
+        path.resolve(__dirname, '../../../../../ipcraft-spec/bus_definitions/avalon_mm.yml'),
+        'utf8'
+      )
+    ) as BusDefinitions;
+    const ipCore = baseIpCore({
+      clocks: [{ name: 'clk' }],
+      resets: [{ name: 'rst_n', polarity: 'activeLow' }],
+      busInterfaces: [
+        {
+          name: 's0',
+          type: 'ipcraft:busif:avalon_mm:1.0',
+          mode: 'slave',
+          physicalPrefix: 's0_',
+          associatedClock: 'clk',
+          useOptionalPorts: ['address', 'read', 'write', 'readdata', 'writedata', 'debugaccess'],
+        },
+      ],
+    });
+    const xml = await generateComponentXml(ipCore, avalonLibrary);
+
+    const findings = await crossCheckIpCoreAgainstVendor(
+      ipCore,
+      '/proj',
+      'componentXml',
+      makeReader(xml)
+    );
+
+    expect(findings.filter((f) => f.kind === 'extra-port')).toEqual([]);
   });
 });

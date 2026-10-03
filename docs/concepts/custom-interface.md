@@ -95,6 +95,11 @@ XML needed to describe a custom type. One definition is generated per type,
 even when several interfaces use it. Vivado has no conduit concept, so an
 interface of the generic `ipcraft:busif:conduit:1.0` type is not a Vivado bus
 interface: its signals appear in `component.xml` as plain component ports.
+Importing such a `component.xml` yields those signals as plain ports, because
+the conduit grouping cannot be recovered. Avalon-MM ports that Vivado's
+`avalon_rtl` does not declare (`chipselect`, `debugaccess` and the active-low
+variants) are likewise plain ports in `component.xml`, but they are folded back
+into the Avalon-MM interface on import.
 
 For Quartus Platform Designer, custom signals are emitted as a generic conduit.
 The signals remain grouped, but Platform Designer does not infer protocol

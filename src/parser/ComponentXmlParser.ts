@@ -13,6 +13,38 @@ const AXIMM_BUS_LITE = BUS_VLNV.AXI4_LITE;
 const AXIS_BUS = BUS_VLNV.AXI_STREAM;
 const AVALON_MM_BUS = BUS_VLNV.AVALON_MM;
 
+interface FoldedBusPort {
+  /** The library's name for the port (lowercase). */
+  name: string;
+  physical: string;
+  width: number;
+}
+
+/**
+ * Optional ports of a bus library that sit in the component's model without a
+ * port map, because the Vivado abstraction does not declare them (e.g. Avalon
+ * debugaccess). The generator writes them as `physicalPrefix + library name`;
+ * finding one that nothing else claims puts it back into its interface.
+ */
+function findUnmappedOptionalPorts(
+  busDef: Array<{ name: string; presence: string }>,
+  mappedLogicalNames: ReadonlySet<string>,
+  physicalPrefix: string,
+  modelPortAttrs: ReadonlyMap<string, { width: number }>,
+  claimedPhysicalPorts: ReadonlySet<string>
+): FoldedBusPort[] {
+  return busDef.flatMap((def) => {
+    const physical = physicalPrefix + def.name;
+    const attrs = modelPortAttrs.get(physical);
+    return def.presence === 'optional' &&
+      !mappedLogicalNames.has(def.name.toUpperCase()) &&
+      attrs &&
+      !claimedPhysicalPorts.has(physical)
+      ? [{ name: def.name, physical, width: attrs.width }]
+      : [];
+  });
+}
+
 export interface ComponentXmlParseOptions {
   library?: string;
 }
@@ -358,6 +390,14 @@ export function parseComponentXmlText(
   }
 
   const busInterfaces: BusIfEntry[] = [];
+  // Physical ports some interface's port maps, a clock or a reset already own,
+  // and the ones an Avalon-MM interface takes back as unmapped optional ports.
+  const claimedPorts = new Set<string>([
+    ...busInterfaceEls.flatMap(physicalPortNames),
+    ...clockPortMap.values(),
+    ...Array.from(resetPortMap.values(), (r) => r.port),
+  ]);
+  const foldedPorts = new Set<string>();
 
   for (const busIf of busInterfaceEls) {
     const busTypeEl = busIf.getElementsByTagNameNS(SPIRIT_NS, 'busType')[0] as Element | undefined;
@@ -452,8 +492,26 @@ export function parseComponentXmlText(
     const busDef = lookupBusDef(busType);
     if (busDef) {
       const logPorts = logicalPortNames(busIf);
+      const folded =
+        busType === AVALON_MM_BUS
+          ? findUnmappedOptionalPorts(
+              busDef,
+              logPorts,
+              physicalPrefix ?? '',
+              modelPortAttrs,
+              new Set([...claimedPorts, ...foldedPorts])
+            )
+          : [];
+      for (const port of folded) {
+        foldedPorts.add(port.physical);
+      }
+      const foldedNames = new Set(folded.map((port) => port.name));
       const useOptionalPorts = busDef
-        .filter((def) => def.presence === 'optional' && logPorts.has(def.name.toUpperCase()))
+        .filter(
+          (def) =>
+            def.presence === 'optional' &&
+            (logPorts.has(def.name.toUpperCase()) || foldedNames.has(def.name))
+        )
         .map((def) => def.name);
       if (useOptionalPorts.length > 0) {
         entry.useOptionalPorts = useOptionalPorts;
@@ -472,6 +530,12 @@ export function parseComponentXmlText(
         const portMapsEl = childEl(busIf, 'portMaps');
         if (portMapsEl) {
           const portWidthOverrides: Record<string, number> = {};
+          for (const port of folded) {
+            const defaultWidth = defaultWidths.get(port.name.toUpperCase());
+            if (defaultWidth !== undefined && port.width !== defaultWidth) {
+              portWidthOverrides[port.name] = port.width;
+            }
+          }
           for (const portMap of childEls(portMapsEl, 'portMap')) {
             const logName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
             const physName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
@@ -687,7 +751,7 @@ export function parseComponentXmlText(
   if (portsEl) {
     for (const portEl of childEls(portsEl, 'port')) {
       const pName = text(portEl, 'name');
-      if (!pName || assignedPorts.has(pName)) {
+      if (!pName || assignedPorts.has(pName) || foldedPorts.has(pName)) {
         continue;
       }
       const wireEl = childEl(portEl, 'wire');

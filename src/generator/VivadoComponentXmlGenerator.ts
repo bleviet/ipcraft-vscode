@@ -2,13 +2,12 @@ import {
   evalWidthExpr,
   getActiveBusPortsFromDefinition,
   expandBusInterfaces,
-  normalizeBusType,
 } from './registerProcessor';
 import { parse, serialize, IPXACT_UNSUPPORTED } from '../shared/widthExprAst';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { resolveFileSetRtlFiles } from '../utils/compilationOrder';
 import { parseVlnv, isValidVlnv } from '../utils/vlnv';
-import { BUS_VLNV } from '../shared/busVlnv';
+import { resolveVivadoBusType } from './vivadoBusCatalog';
 import type {
   NormalizedAddressBlock,
   NormalizedField,
@@ -63,12 +62,17 @@ function findCustomBusDef(ifaceType: string, busDefinitions: BusDefinitions): Cu
   return null;
 }
 
+interface PortMap {
+  logical: string;
+  physical: string;
+}
+
 function busDefPortMaps(
   ports: BusPortDefinition[],
   iface: BusInterfaceDef,
   mode: string,
   vivadoLogicalPorts?: ReadonlySet<string>
-): string[] {
+): PortMap[] {
   const activePorts = getActiveBusPortsFromDefinition(
     ports,
     iface.useOptionalPorts ?? [],
@@ -79,7 +83,7 @@ function busDefPortMaps(
     iface.portNameOverrides,
     iface.absentPorts
   );
-  const portMaps = activePorts.flatMap((port) => {
+  return activePorts.flatMap((port) => {
     const logical = String(port.logical_name);
     if (!vivadoLogicalPorts) {
       return [{ logical, physical: String(port.name) }];
@@ -89,22 +93,61 @@ function busDefPortMaps(
     const upper = logical.toUpperCase();
     return vivadoLogicalPorts.has(upper) ? [{ logical: upper, physical: String(port.name) }] : [];
   });
+}
+
+function renderPortMaps(portMaps: PortMap[]): string[] {
   if (portMaps.length === 0) {
     return [];
   }
   const lines: string[] = ['      <spirit:portMaps>'];
-  for (const port of portMaps) {
+  for (const pm of portMaps) {
     lines.push('        <spirit:portMap>');
     lines.push('          <spirit:logicalPort>');
-    lines.push(`            <spirit:name>${x(port.logical)}</spirit:name>`);
+    lines.push(`            <spirit:name>${x(pm.logical)}</spirit:name>`);
     lines.push('          </spirit:logicalPort>');
     lines.push('          <spirit:physicalPort>');
-    lines.push(`            <spirit:name>${x(port.physical)}</spirit:name>`);
+    lines.push(`            <spirit:name>${x(pm.physical)}</spirit:name>`);
     lines.push('          </spirit:physicalPort>');
     lines.push('        </spirit:portMap>');
   }
   lines.push('      </spirit:portMaps>');
   return lines;
+}
+
+/**
+ * The port maps of an interface that Vivado can resolve as a bus interface, or
+ * an empty list when it cannot. Vivado needs the bus type to resolve: a Xilinx
+ * bus, a busdef IPCraft ships or Vivado provides, or the raw port maps of an
+ * imported component.xml (whose busdef existed for its source). Anything else
+ * (IPCraft's generic conduit, a user VLNV with no busdef) is not a Vivado bus
+ * interface (IP_Flow 19-569/19-570), and neither is one whose ports all lie
+ * outside the abstraction (a bus interface needs at least one port map). The
+ * caller leaves such an interface out and declares its ports as plain ports.
+ */
+function vivadoBusPortMaps(iface: BusInterfaceDef, busDefinitions: BusDefinitions): PortMap[] {
+  const ifaceType = String(iface.type ?? '');
+  const mode = String(iface.mode ?? 'slave').toLowerCase();
+  const vivadoType = resolveVivadoBusType(ifaceType);
+  if (vivadoType) {
+    const ports = busDefinitions[vivadoType.libraryKey]?.ports;
+    return ports ? busDefPortMaps(ports, iface, mode, vivadoType.logicalPorts) : [];
+  }
+  const customBus = findCustomBusDef(ifaceType, busDefinitions);
+  const rawPortMaps = (iface.rawPortMaps as PortMap[] | undefined) ?? [];
+  if (!customBus && rawPortMaps.length === 0) {
+    return [];
+  }
+  // Ports already authored directly on the interface take priority over a
+  // newly-discovered library match (e.g. from the Vivado interface catalog):
+  // the user's physical port names are presumably already wired up in their real
+  // HDL, and a library match alone doesn't tell us how to remap them to the
+  // library's official logical names. Silently switching here would produce a
+  // component.xml with physical names that don't exist on the actual entity.
+  const conduitPorts = iface.conduitPorts as BusPortDefinition[] | undefined;
+  if (conduitPorts && conduitPorts.length > 0) {
+    return busDefPortMaps(conduitPorts, iface, mode);
+  }
+  return customBus ? busDefPortMaps(customBus.ports, iface, mode) : rawPortMaps;
 }
 
 export function renderBusDefinitionXml(busInfo: CustomBusInfo): string {
@@ -223,110 +266,6 @@ export function generateCustomBusDefs(
   return files;
 }
 
-// ── Vivado bus type mapping ───────────────────────────────────────────────────
-
-interface VivadoBusTypeInfo {
-  vendor: string;
-  library: string;
-  name: string;
-  abstraction: string;
-  protocol?: string;
-  libraryKey: string;
-  /**
-   * Logical port names declared by the Xilinx abstraction. Vivado matches them
-   * exactly (IP_Flow 19-4729) and rejects any name it does not declare
-   * (IP_Flow 19-568), so IPCraft library names are uppercased and filtered
-   * against this set.
-   */
-  logicalPorts: ReadonlySet<string>;
-}
-
-// From Vivado's data/ip/interfaces/<name>_v1_0/<name>_rtl.xml.
-const AXIMM_RTL_PORTS: ReadonlySet<string> = new Set(
-  (
-    'AWID AWADDR AWLEN AWSIZE AWBURST AWLOCK AWCACHE AWPROT AWREGION AWQOS AWUSER AWVALID ' +
-    'AWREADY WID WDATA WSTRB WLAST WUSER WVALID WREADY BID BRESP BUSER BVALID BREADY ARID ' +
-    'ARADDR ARLEN ARSIZE ARBURST ARLOCK ARCACHE ARPROT ARREGION ARQOS ARUSER ARVALID ARREADY ' +
-    'RID RDATA RRESP RLAST RUSER RVALID RREADY'
-  ).split(' ')
-);
-const AXIS_RTL_PORTS: ReadonlySet<string> = new Set(
-  'TID TDEST TDATA TSTRB TKEEP TLAST TUSER TVALID TREADY'.split(' ')
-);
-// avalon_rtl has no active-low (*_n) variants and no DEBUGACCESS.
-const AVALON_RTL_PORTS: ReadonlySet<string> = new Set(
-  (
-    'ADDRESS READDATA READDATAVALID WAITREQUEST BYTEENABLE READ RESPONSE WRITE WRITEDATA ' +
-    'LOCK WRITERESPONSEVALID BURSTCOUNT BEGINBURSTTRANSFER'
-  ).split(' ')
-);
-
-const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
-  [BUS_VLNV.AXI4_LITE]: {
-    vendor: 'xilinx.com',
-    library: 'interface',
-    name: 'aximm',
-    abstraction: 'aximm_rtl',
-    protocol: 'AXI4LITE',
-    libraryKey: 'AXI4_LITE',
-    logicalPorts: AXIMM_RTL_PORTS,
-  },
-  [BUS_VLNV.AXI4_FULL]: {
-    vendor: 'xilinx.com',
-    library: 'interface',
-    name: 'aximm',
-    abstraction: 'aximm_rtl',
-    protocol: 'AXI4',
-    libraryKey: 'AXI4_FULL',
-    logicalPorts: AXIMM_RTL_PORTS,
-  },
-  [BUS_VLNV.AXI_STREAM]: {
-    vendor: 'xilinx.com',
-    library: 'interface',
-    name: 'axis',
-    abstraction: 'axis_rtl',
-    libraryKey: 'AXI_STREAM',
-    logicalPorts: AXIS_RTL_PORTS,
-  },
-  [BUS_VLNV.AVALON_MM]: {
-    vendor: 'xilinx.com',
-    library: 'interface',
-    name: 'avalon',
-    abstraction: 'avalon_rtl',
-    libraryKey: 'AVALON_MEMORY_MAPPED',
-    logicalPorts: AVALON_RTL_PORTS,
-  },
-};
-
-/**
- * Resolves an interface type string (short alias, VLNV, or full VLNV) to a
- * VivadoBusTypeInfo entry. Falls back to normalizeBusType() alias resolution so
- * that short tokens produced by the parser (e.g. 'AXI4L', 'AXI4F', 'AXI4S')
- * map correctly even if not listed as explicit keys in IPCRAFT_TO_VIVADO.
- */
-function resolveVivadoBusType(ifaceType: string): VivadoBusTypeInfo | undefined {
-  const direct = IPCRAFT_TO_VIVADO[ifaceType];
-  if (direct) {
-    return direct;
-  }
-  const { libraryKey } = normalizeBusType(ifaceType);
-  if (!libraryKey) {
-    return undefined;
-  }
-  return Object.values(IPCRAFT_TO_VIVADO).find((v) => v.libraryKey === libraryKey);
-}
-
-/**
- * Vivado has no conduit concept and no busdef for IPCraft's generic conduit
- * VLNV (IP_Flow 19-569/19-570), so a generic conduit's ports are emitted as
- * plain component ports instead of a bus interface. Bundling a busdef is not an
- * option: every IP would ship a different abstraction under the same VLNV.
- */
-function isPlainConduit(iface: BusInterfaceDef, busDefinitions: BusDefinitions): boolean {
-  const ifaceType = String(iface.type ?? '');
-  return ifaceType === BUS_VLNV.CONDUIT && !findCustomBusDef(ifaceType, busDefinitions);
-}
-
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export interface ComponentXmlOptions {
@@ -394,7 +333,10 @@ export async function generateComponentXml(
   const resets = ipCore.resets ?? [];
   // Use expanded bus interfaces so array-type entries produce one entry per instance.
   const allBusInterfaces = expandBusInterfaces(ipCore);
-  const busInterfaces = allBusInterfaces.filter((bi) => !isPlainConduit(bi, busDefinitions));
+  const vivadoBusInterfaces = allBusInterfaces
+    .map((iface) => ({ iface, portMaps: vivadoBusPortMaps(iface, busDefinitions) }))
+    .filter(({ portMaps }) => portMaps.length > 0);
+  const busInterfaces = vivadoBusInterfaces.map(({ iface }) => iface);
   const userPorts = ipCore.ports ?? [];
   const parameters = ipCore.parameters ?? [];
   const interrupts =
@@ -435,8 +377,8 @@ export async function generateComponentXml(
 
   const busIfLines: string[] = [];
 
-  for (const iface of busInterfaces) {
-    busIfLines.push(...renderBusInterface(iface, busDefinitions));
+  for (const { iface, portMaps } of vivadoBusInterfaces) {
+    busIfLines.push(...renderBusInterface(iface, busDefinitions, portMaps));
   }
 
   for (const clock of clocks) {
@@ -548,7 +490,11 @@ export async function generateComponentXml(
 
 // ── Render helpers ────────────────────────────────────────────────────────────
 
-function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitions): string[] {
+function renderBusInterface(
+  iface: BusInterfaceDef,
+  busDefinitions: BusDefinitions,
+  portMaps: PortMap[]
+): string[] {
   const ifaceName = String(iface.name ?? '');
   const ifaceType = String(iface.type ?? '');
   const mode = String(iface.mode ?? 'slave').toLowerCase();
@@ -609,41 +555,7 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
     lines.push(`      <spirit:${xmlMode} />`);
   }
 
-  // portMaps
-  if (vivadoType) {
-    const busDef = busDefinitions[vivadoType.libraryKey];
-    if (busDef?.ports) {
-      lines.push(...busDefPortMaps(busDef.ports, iface, mode, vivadoType.logicalPorts));
-    }
-  } else if (iface.conduitPorts && (iface.conduitPorts as unknown[]).length > 0) {
-    // Ports already authored directly on the interface take priority over a
-    // newly-discovered library match (e.g. from the Vivado interface catalog):
-    // the user's physical port names are presumably already wired up in their real
-    // HDL, and a library match alone doesn't tell us how to remap them to the
-    // library's official logical names. Silently switching here would produce a
-    // component.xml with physical names that don't exist on the actual entity.
-    lines.push(...busDefPortMaps(iface.conduitPorts as BusPortDefinition[], iface, mode));
-  } else if (customBus) {
-    lines.push(...busDefPortMaps(customBus.ports, iface, mode));
-  } else {
-    const rawPortMaps = iface.rawPortMaps as
-      | Array<{ logical: string; physical: string }>
-      | undefined;
-    if (rawPortMaps && rawPortMaps.length > 0) {
-      lines.push('      <spirit:portMaps>');
-      for (const pm of rawPortMaps) {
-        lines.push('        <spirit:portMap>');
-        lines.push('          <spirit:logicalPort>');
-        lines.push(`            <spirit:name>${x(pm.logical)}</spirit:name>`);
-        lines.push('          </spirit:logicalPort>');
-        lines.push('          <spirit:physicalPort>');
-        lines.push(`            <spirit:name>${x(pm.physical)}</spirit:name>`);
-        lines.push('          </spirit:physicalPort>');
-        lines.push('        </spirit:portMap>');
-      }
-      lines.push('      </spirit:portMaps>');
-    }
-  }
+  lines.push(...renderPortMaps(portMaps));
 
   // PROTOCOL parameter for AXI4/AXI4LITE
   if (vivadoType?.protocol) {
@@ -1210,7 +1122,7 @@ function renderPorts(
     const ifaceType = String(iface.type ?? '');
     const mode = String(iface.mode ?? 'slave').toLowerCase();
     const vivadoType = resolveVivadoBusType(ifaceType);
-    // Same precedence as renderBusInterface's portMaps.
+    // Same precedence as vivadoBusPortMaps.
     const conduitPorts = iface.conduitPorts as BusPortDefinition[] | undefined;
     const sourcePorts: BusPortDefinition[] | undefined = vivadoType
       ? busDefinitions[vivadoType.libraryKey]?.ports
