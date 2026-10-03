@@ -61,7 +61,10 @@ function normalizeExprText(text: string): string {
     .trim();
 }
 
-function tokenizeExpr(text: string): ExprToken[] | null {
+/** Two-character then one-character comparison/logic operators, accepted in conditions only. */
+const CONDITION_OPS = ['==', '!=', '<=', '>=', '&&', '||', '<', '>', '!'];
+
+function tokenizeExpr(text: string, allowCondition = false): ExprToken[] | null {
   const tokens: ExprToken[] = [];
   let i = 0;
   while (i < text.length) {
@@ -83,7 +86,12 @@ function tokenizeExpr(text: string): ExprToken[] | null {
       tokens.push({ kind: 'op', op: ch });
       i++;
     } else {
-      return null;
+      const op = allowCondition ? CONDITION_OPS.find((o) => text.startsWith(o, i)) : undefined;
+      if (!op) {
+        return null;
+      }
+      tokens.push({ kind: 'op', op });
+      i += op.length;
     }
   }
   return tokens.length > 0 ? tokens : null;
@@ -97,10 +105,32 @@ interface EvalOutcome {
   value: number | null;
 }
 
-/** Recursive-descent evaluation with Tcl integer semantics (floor division). */
+type BinaryOps = ReadonlyMap<string, (a: number, b: number) => number>;
+
+const bool = (b: boolean): number => (b ? 1 : 0);
+const RELATIONAL_OPS: BinaryOps = new Map([
+  ['<', (a, b) => bool(a < b)],
+  ['>', (a, b) => bool(a > b)],
+  ['<=', (a, b) => bool(a <= b)],
+  ['>=', (a, b) => bool(a >= b)],
+]);
+const EQUALITY_OPS: BinaryOps = new Map([
+  ['==', (a, b) => bool(a === b)],
+  ['!=', (a, b) => bool(a !== b)],
+]);
+const AND_OPS: BinaryOps = new Map([['&&', (a, b) => bool(a !== 0 && b !== 0)]]);
+const OR_OPS: BinaryOps = new Map([['||', (a, b) => bool(a !== 0 || b !== 0)]]);
+
+/**
+ * Recursive-descent evaluation with Tcl integer semantics (floor division).
+ * With `condition`, the comparison and logic operators (`== != < > <= >= && || !`)
+ * sit above the arithmetic grammar with Tcl precedence, and parentheses accept
+ * the full condition grammar.
+ */
 function evalTokens(
   tokens: ExprToken[],
-  lookup: (name: string) => number | undefined
+  lookup: (name: string) => number | undefined,
+  condition = false
 ): EvalOutcome {
   let pos = 0;
   let invalid = false;
@@ -127,7 +157,7 @@ function evalTokens(
       return v;
     }
     if (t.op === '(') {
-      const v = parseSum();
+      const v = condition ? parseOr() : parseSum();
       const close = tokens[pos++];
       if (close?.kind !== 'op' || close.op !== ')') {
         throw new ExprSyntaxError();
@@ -141,6 +171,10 @@ function evalTokens(
     if (peekOp() === '-') {
       pos++;
       return -parseUnary();
+    }
+    if (condition && peekOp() === '!') {
+      pos++;
+      return bool(parseUnary() === 0);
     }
     return parsePrimary();
   };
@@ -173,8 +207,21 @@ function evalTokens(
     return v;
   };
 
+  const leftAssoc = (next: () => number, ops: BinaryOps) => (): number => {
+    let v = next();
+    for (let op = peekOp(); op !== undefined && ops.has(op); op = peekOp()) {
+      pos++;
+      v = ops.get(op)!(v, next());
+    }
+    return v;
+  };
+  const parseRelational = leftAssoc(parseSum, RELATIONAL_OPS);
+  const parseEquality = leftAssoc(parseRelational, EQUALITY_OPS);
+  const parseAnd = leftAssoc(parseEquality, AND_OPS);
+  const parseOr = leftAssoc(parseAnd, OR_OPS);
+
   try {
-    const v = parseSum();
+    const v = condition ? parseOr() : parseSum();
     if (pos !== tokens.length) {
       return { syntaxOk: false, value: null };
     }
@@ -222,6 +269,44 @@ export function evaluateTclInt(
 ): number | null {
   const tokens = tokenizeExpr(normalizeExprText(text));
   return tokens ? evalTokens(tokens, (name) => paramValues.get(name)).value : null;
+}
+
+/**
+ * Evaluates a Tcl condition (`if` test) against numeric parameter defaults.
+ * Nonzero is true. Returns null when it uses strings, unknown identifiers, or
+ * anything outside the supported grammar, so the caller can keep it unresolved.
+ */
+export function evaluateTclCondition(
+  text: string,
+  paramValues: ReadonlyMap<string, number>
+): boolean | null {
+  const tokens = tokenizeExpr(normalizeExprText(text), true);
+  if (!tokens) {
+    return null;
+  }
+  const value = evalTokens(tokens, (name) => paramValues.get(name), true).value;
+  return value === null ? null : value !== 0;
+}
+
+/**
+ * Numeric parameter defaults: integer defaults as-is, BOOLEAN-style `true` /
+ * `false` as 1 / 0. Parameters with any other default are left out.
+ */
+export function numericParamValues(
+  params: ReadonlyArray<{ name: string; defaultValue?: string }>
+): Map<string, number> {
+  const values = new Map<string, number>();
+  for (const p of params) {
+    const raw = p.defaultValue?.trim();
+    if (!raw) {
+      continue;
+    }
+    const value = /^(?:true|false)$/i.test(raw) ? bool(raw.toLowerCase() === 'true') : Number(raw);
+    if (Number.isInteger(value)) {
+      values.set(p.name, value);
+    }
+  }
+  return values;
 }
 
 /**
