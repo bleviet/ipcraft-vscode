@@ -6,8 +6,16 @@ import { resolveVendor } from '../utils/resolveVendor';
 import { titleCaseIdentifier } from '../utils/titleCase';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { normalizeParameterDataType } from './paramDataType';
-import { hasTclSyntax, resolveTclWidth, unquoteTclWord } from './hwTclExpr';
+import {
+  evaluateTclCondition,
+  hasTclSyntax,
+  numericParamValues,
+  resolveTclWidth,
+  unquoteTclWord,
+} from './hwTclExpr';
 import { collectLoopBody, parseTclList, resolveLoop } from './hwTclLoops';
+import { collectIfChain, selectIfBranches } from './hwTclConditionals';
+import { applyPortProperty, finalizeInterfaces, type TclInterface } from './hwTclPortEffects';
 
 export interface HwTclParseOptions {
   library?: string;
@@ -20,22 +28,6 @@ export interface HwTclParseResult {
   yamlText: string;
   /** De-duplicated, first-seen-order notes about Tcl the importer could not resolve. */
   warnings: string[];
-}
-
-interface TclInterface {
-  name: string;
-  type: string;
-  mode: string;
-  properties: Map<string, string>;
-  ports: TclPort[];
-}
-
-interface TclPort {
-  portName: string;
-  logicalName: string;
-  direction: string;
-  /** undefined when the width used Tcl that could not be resolved; the port is kept without a width. */
-  width: number | string | undefined;
 }
 
 interface TclFileSet {
@@ -70,6 +62,14 @@ interface TclDisplayLayout {
   paramParents: Map<string, string>;
   displayNames: Map<string, string>;
 }
+
+/** Interface properties the importer reads; a kept-static value for these is worth a warning. */
+const READ_INTERFACE_PROPERTIES = new Set([
+  'associatedClock',
+  'associatedReset',
+  'firstSymbolInHighOrderBits',
+  'synchronousEdges',
+]);
 
 const BUS_TYPE_MAP: Record<string, string> = {
   axi4lite: BUS_VLNV.AXI4_LITE,
@@ -259,7 +259,7 @@ export function parseHwTclContent(
   options: HwTclParseOptions = {}
 ): HwTclParseResult {
   const moduleProps = new Map<string, string>();
-  const interfaces = new Map<string, TclInterface>();
+  let interfaces = new Map<string, TclInterface>();
   const fileSets = new Map<string, TclFileSet>();
   const parameters: TclParameter[] = [];
   const displayLayout: TclDisplayLayout = {
@@ -275,8 +275,13 @@ export function parseHwTclContent(
     }
   };
   let currentFileSet: TclFileSet | null = null;
+  // Proc bodies (elaboration callbacks) run after the main script, in source order.
+  const pendingProcs: Array<{ body: string[]; unresolved: boolean; fileSet: TclFileSet | null }> =
+    [];
 
-  const processLines = (lines: readonly string[]): void => {
+  // `unresolved` is set inside `if` branches whose condition could not be evaluated;
+  // it is inherited by nested blocks and keeps static declarations unchanged.
+  const processLines = (lines: readonly string[], unresolved = false): void => {
     for (let idx = 0; idx < lines.length; idx++) {
       const rawLine = lines[idx];
       const line = rawLine.trim();
@@ -291,16 +296,26 @@ export function parseHwTclContent(
 
       const [cmd, ...args] = tokens;
 
-      if (cmd === 'for' || cmd === 'foreach') {
+      if (cmd === 'proc') {
         const { body, next } = collectLoopBody(lines, idx);
         idx = next - 1;
-        const paramValues = new Map<string, number>();
-        for (const p of parameters) {
-          const value = Number(p.defaultValue);
-          if (p.defaultValue?.trim() && Number.isInteger(value)) {
-            paramValues.set(p.name, value);
-          }
+        pendingProcs.push({ body, unresolved, fileSet: currentFileSet });
+      } else if (cmd === 'if') {
+        const chain = collectIfChain(lines, idx);
+        idx = chain.next - 1;
+        const { bodies, resolved } = selectIfBranches(chain, (condition) =>
+          evaluateTclCondition(
+            substituteTclVariables(condition, variables),
+            numericParamValues(parameters)
+          )
+        );
+        for (const body of bodies) {
+          processLines(body, unresolved || !resolved);
         }
+      } else if (cmd === 'for' || cmd === 'foreach') {
+        const { body, next } = collectLoopBody(lines, idx);
+        idx = next - 1;
+        const paramValues = numericParamValues(parameters);
         const loop = resolveLoop(line, {
           substitute: (text) => substituteTclVariables(text, variables),
           getVariable: (name) => variables.get(name),
@@ -310,7 +325,7 @@ export function parseHwTclContent(
         if (loop) {
           for (const value of loop.values) {
             variables.set(loop.variable, value);
-            processLines(body);
+            processLines(body, unresolved);
           }
         } else if (body.some((bodyLine) => bodyLine.includes('add_interface'))) {
           warn(
@@ -338,7 +353,30 @@ export function parseHwTclContent(
         }
       } else if (cmd === 'set_interface_property' && args.length >= 3) {
         const [ifaceName, prop, value] = args;
-        interfaces.get(ifaceName)?.properties.set(prop, value);
+        const iface = interfaces.get(ifaceName);
+        const staticKept = unresolved || hasTclSyntax(value);
+        if (iface && !staticKept) {
+          iface.properties.set(prop, value);
+        } else if (iface && READ_INTERFACE_PROPERTIES.has(prop)) {
+          warn(
+            unresolved
+              ? `Interface "${ifaceName}": property "${prop}" is set under a condition that could not be evaluated, so the static value was kept.`
+              : `Interface "${ifaceName}": property "${prop}" value "${value}" uses Tcl that could not be resolved, so the static value was kept.`
+          );
+        }
+      } else if (cmd === 'set_port_property' && args.length >= 3) {
+        const [portName, prop, value] = args;
+        for (const message of applyPortProperty(
+          interfaces,
+          portName,
+          prop,
+          value,
+          new Set(parameters.map((p) => p.name)),
+          numericParamValues(parameters),
+          unresolved
+        )) {
+          warn(message);
+        }
       } else if (cmd === 'add_interface_port' && args.length >= 5) {
         const [ifaceName, portName, logicalName, direction, widthStr] = args;
         const iface = interfaces.get(ifaceName);
@@ -414,6 +452,17 @@ export function parseHwTclContent(
   };
 
   processLines(content.split('\n'));
+  for (let i = 0; i < pendingProcs.length; i++) {
+    // Fileset callbacks add files to the file set current where the proc was declared.
+    currentFileSet = pendingProcs[i].fileSet;
+    processLines(pendingProcs[i].body, pendingProcs[i].unresolved);
+  }
+
+  // ── Elaboration effects ────────────────────────────────────────────────────
+
+  const finalized = finalizeInterfaces(interfaces, numericParamValues(parameters));
+  interfaces = finalized.interfaces;
+  finalized.warnings.forEach(warn);
 
   // ── Derived values ─────────────────────────────────────────────────────────
 

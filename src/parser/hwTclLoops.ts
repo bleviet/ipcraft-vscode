@@ -23,7 +23,7 @@ export interface ResolvedLoop {
   values: string[];
 }
 
-interface Word {
+export interface Word {
   kind: 'brace' | 'other';
   text: string;
 }
@@ -71,7 +71,7 @@ export function parseTclList(text: string): string[] {
 }
 
 /** Net unescaped brace depth of one line (comment lines count as zero). */
-function braceDelta(line: string): number {
+export function braceDelta(line: string): number {
   if (line.trimStart().startsWith('#')) {
     return 0;
   }
@@ -89,7 +89,7 @@ function braceDelta(line: string): number {
 }
 
 /** Splits a command line into Tcl words, keeping braced words as one unit. */
-function splitWords(line: string): Word[] {
+export function splitWords(line: string): Word[] {
   const words: Word[] = [];
   let i = 0;
   while (i < line.length) {

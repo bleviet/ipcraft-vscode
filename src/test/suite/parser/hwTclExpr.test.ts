@@ -1,5 +1,7 @@
 import {
+  evaluateTclCondition,
   evaluateTclInt,
+  numericParamValues,
   hasTclSyntax,
   reduceTclExpr,
   resolveTclWidth,
@@ -68,5 +70,60 @@ describe('resolveTclWidth', () => {
     expect(resolveTclWidth('32', params)).toBe(32);
     expect(resolveTclWidth('2 * X', params)).toBe('2 * X');
     expect(resolveTclWidth('8${x}', params)).toBeUndefined();
+  });
+});
+
+describe('evaluateTclCondition', () => {
+  const values = new Map([
+    ['W', 0],
+    ['N', 8],
+    ['EN', 1],
+  ]);
+
+  it.each([
+    ['W > 0', false],
+    ['N > 0', true],
+    ['N == 8', true],
+    ['N != 8', false],
+    ['N <= 8 && W >= 0', true],
+    ['W || EN', true],
+    ['W && EN', false],
+    ['!W', true],
+    ['!(N == 8)', false],
+    ['(W || EN) && (N > 4 || W)', true],
+    ['N - 8 == 0', true],
+    ['EN', true],
+    ['W', false],
+    ['{ [ get_parameter_value N ] == 8 }', true],
+    ['[get_parameter_value W] > 0', false],
+  ])('evaluates %s', (text, expected) => {
+    expect(evaluateTclCondition(text, values)).toBe(expected);
+  });
+
+  it.each([['MODE == "Aligned Accesses"'], ['UNKNOWN > 0'], ['N = 8'], ['N > 0 &&'], ['$x > 0']])(
+    'returns null for %s',
+    (text) => {
+      expect(evaluateTclCondition(text, values)).toBeNull();
+    }
+  );
+
+  it('keeps comparison operators out of widths', () => {
+    expect(reduceTclExpr('A == B', new Set(['A', 'B']))).toBeNull();
+    expect(reduceTclExpr('expr {A > 1}', new Set(['A']))).toBeNull();
+    expect(evaluateTclInt('1 == 1', new Map())).toBeNull();
+  });
+});
+
+describe('numericParamValues', () => {
+  it('keeps integers and maps booleans to 1/0', () => {
+    const values = numericParamValues([
+      { name: 'A', defaultValue: '8' },
+      { name: 'B', defaultValue: 'true' },
+      { name: 'C', defaultValue: 'FALSE' },
+      { name: 'D', defaultValue: 'abc' },
+      { name: 'E', defaultValue: ' ' },
+      { name: 'F' },
+    ]);
+    expect(Object.fromEntries(values)).toEqual({ A: 8, B: 1, C: 0 });
   });
 });
