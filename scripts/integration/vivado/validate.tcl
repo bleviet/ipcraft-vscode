@@ -7,7 +7,7 @@
 #   component.xml          - the Spirit 1685-2009 IP-XACT component descriptor
 #   busdef/                - (optional) custom bus definition XML files
 #
-# Exit: 0 = PASS, 1 = FAIL
+# Exit: 0 = PASS, 1 = FAIL (any ERROR or CRITICAL WARNING fails)
 
 set amd_dir [lindex $argv 0]
 if {$amd_dir eq ""} {
@@ -49,22 +49,26 @@ if {$vlnv eq ":::"} {
     exit 1
 }
 
-# Run integrity check
-catch {ipx::check_integrity -quiet $core}
+# Run integrity check. Not -quiet, and CRITICAL WARNINGs fail too: Vivado
+# reports real port-map defects (e.g. IP_Flow 19-4729, logical-name case
+# mismatch) only at that severity.
+catch {ipx::check_integrity $core}
 
-set n_errors   [get_msg_config -count -severity ERROR]
-set n_warnings [get_msg_config -count -severity WARNING]
+set n_errors    [get_msg_config -count -severity ERROR]
+set n_critical  [get_msg_config -count -severity {CRITICAL WARNING}]
+set n_warnings  [get_msg_config -count -severity WARNING]
 
-puts "\nErrors   : $n_errors"
-puts "Warnings : $n_warnings"
+puts "\nErrors            : $n_errors"
+puts "Critical warnings : $n_critical"
+puts "Warnings          : $n_warnings"
 
 ipx::unload_core $core
 close_project -delete
 
-if {$n_errors == 0} {
+if {$n_errors == 0 && $n_critical == 0} {
     puts "\nPASS: $vlnv — integrity check passed"
     exit 0
 } else {
-    puts "\nFAIL: $vlnv — $n_errors error(s) detected"
+    puts "\nFAIL: $vlnv — $n_errors error(s), $n_critical critical warning(s) detected"
     exit 1
 }

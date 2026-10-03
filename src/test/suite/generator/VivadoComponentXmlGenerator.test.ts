@@ -210,6 +210,48 @@ describe('generateComponentXml', () => {
     });
   });
 
+  describe('Avalon-MM bus interface', () => {
+    const avalonBusDefs: BusDefinitions = {
+      ...BUS_DEFS,
+      AVALON_MEMORY_MAPPED: {
+        ports: [
+          { name: 'address', width: 32, direction: 'out', presence: 'optional' },
+          { name: 'read', direction: 'out', presence: 'optional' },
+          { name: 'write', direction: 'out', presence: 'optional' },
+          { name: 'writedata', width: 32, direction: 'out', presence: 'optional' },
+          { name: 'readdata', width: 32, direction: 'in', presence: 'optional' },
+        ],
+      },
+    };
+
+    // Vivado's avalon_rtl abstraction declares uppercase logical names and
+    // rejects case-insensitive matches with IP_Flow 19-4729 (issue #215).
+    it('writes uppercase logical names and keeps physical names', async () => {
+      const xml = await generateComponentXml(
+        makeIp({
+          busInterfaces: [
+            {
+              name: 's0',
+              type: 'ipcraft:busif:avalon_mm:1.0',
+              mode: 'slave',
+              physicalPrefix: 's0_',
+              useOptionalPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
+              portWidthOverrides: {},
+            },
+          ],
+        }),
+        avalonBusDefs
+      );
+      expect(xml).toContain('spirit:name="avalon_rtl"');
+      for (const name of ['address', 'read', 'write', 'writedata', 'readdata']) {
+        expect(xml).toContain(
+          `<spirit:logicalPort>\n            <spirit:name>${name.toUpperCase()}</spirit:name>\n          </spirit:logicalPort>\n          <spirit:physicalPort>\n            <spirit:name>s0_${name}</spirit:name>`
+        );
+      }
+      expect(xml).not.toMatch(/<spirit:logicalPort>\s*<spirit:name>[a-z]/);
+    });
+  });
+
   describe('unknown bus type (no bus definition)', () => {
     it('splits a well-formed VLNV type into its real components when busTypeVlnv is absent', async () => {
       const xml = await gen({

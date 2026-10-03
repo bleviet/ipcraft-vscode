@@ -66,7 +66,8 @@ function findCustomBusDef(ifaceType: string, busDefinitions: BusDefinitions): Cu
 function busDefPortMaps(
   ports: BusPortDefinition[],
   iface: BusInterfaceDef,
-  mode: string
+  mode: string,
+  logicalName: (name: string) => string = (name) => name
 ): string[] {
   const activePorts = getActiveBusPortsFromDefinition(
     ports,
@@ -85,7 +86,9 @@ function busDefPortMaps(
   for (const port of activePorts) {
     lines.push('        <spirit:portMap>');
     lines.push('          <spirit:logicalPort>');
-    lines.push(`            <spirit:name>${x(String(port.logical_name))}</spirit:name>`);
+    lines.push(
+      `            <spirit:name>${x(logicalName(String(port.logical_name)))}</spirit:name>`
+    );
     lines.push('          </spirit:logicalPort>');
     lines.push('          <spirit:physicalPort>');
     lines.push(`            <spirit:name>${x(String(port.name))}</spirit:name>`);
@@ -221,6 +224,12 @@ interface VivadoBusTypeInfo {
   abstraction: string;
   protocol?: string;
   libraryKey: string;
+  /**
+   * Vivado matches logical port names exactly (IP_Flow 19-4729). Set when the
+   * Xilinx abstraction spells them in uppercase but the IPCraft bus library
+   * does not.
+   */
+  upperCaseLogicalNames?: boolean;
 }
 
 const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
@@ -253,6 +262,7 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     name: 'avalon',
     abstraction: 'avalon_rtl',
     libraryKey: 'AVALON_MEMORY_MAPPED',
+    upperCaseLogicalNames: true,
   },
 };
 
@@ -559,7 +569,10 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
   if (vivadoType) {
     const busDef = busDefinitions[vivadoType.libraryKey];
     if (busDef?.ports) {
-      lines.push(...busDefPortMaps(busDef.ports, iface, mode));
+      const logicalName = vivadoType.upperCaseLogicalNames
+        ? (name: string) => name.toUpperCase()
+        : undefined;
+      lines.push(...busDefPortMaps(busDef.ports, iface, mode, logicalName));
     }
   } else if (iface.conduitPorts && (iface.conduitPorts as unknown[]).length > 0) {
     // Ports already authored directly on the interface take priority over a

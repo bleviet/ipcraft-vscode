@@ -9027,7 +9027,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>address</spirit:name>
+            <spirit:name>ADDRESS</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_address</spirit:name>
@@ -9035,7 +9035,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>READ</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_read</spirit:name>
@@ -9043,7 +9043,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>WRITE</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_write</spirit:name>
@@ -9051,7 +9051,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>writedata</spirit:name>
+            <spirit:name>WRITEDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_writedata</spirit:name>
@@ -9059,7 +9059,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdata</spirit:name>
+            <spirit:name>READDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_readdata</spirit:name>
@@ -9067,7 +9067,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>READDATAVALID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_readdatavalid</spirit:name>
@@ -9075,7 +9075,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>WAITREQUEST</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_waitrequest</spirit:name>
@@ -9703,7 +9703,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>address</spirit:name>
+            <spirit:name>ADDRESS</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_address</spirit:name>
@@ -9711,7 +9711,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>READ</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_read</spirit:name>
@@ -9719,7 +9719,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>WRITE</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_write</spirit:name>
@@ -9727,7 +9727,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>writedata</spirit:name>
+            <spirit:name>WRITEDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_writedata</spirit:name>
@@ -9735,7 +9735,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdata</spirit:name>
+            <spirit:name>READDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_readdata</spirit:name>
@@ -9743,7 +9743,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>READDATAVALID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_readdatavalid</spirit:name>
@@ -9751,7 +9751,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>WAITREQUEST</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_waitrequest</spirit:name>
@@ -14051,7 +14051,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>address</spirit:name>
+            <spirit:name>ADDRESS</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_address</spirit:name>
@@ -14059,7 +14059,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>READ</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_read</spirit:name>
@@ -14067,7 +14067,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>WRITE</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_write</spirit:name>
@@ -14075,7 +14075,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>byteenable</spirit:name>
+            <spirit:name>BYTEENABLE</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_byteenable</spirit:name>
@@ -14083,7 +14083,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>writedata</spirit:name>
+            <spirit:name>WRITEDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_writedata</spirit:name>
@@ -14091,7 +14091,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdata</spirit:name>
+            <spirit:name>READDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_readdata</spirit:name>
@@ -14099,7 +14099,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>READDATAVALID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_readdatavalid</spirit:name>
@@ -14107,7 +14107,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>WAITREQUEST</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_waitrequest</spirit:name>
@@ -14991,7 +14991,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>address</spirit:name>
+            <spirit:name>ADDRESS</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_address</spirit:name>
@@ -14999,7 +14999,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>READ</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_read</spirit:name>
@@ -15007,7 +15007,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>WRITE</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_write</spirit:name>
@@ -15015,7 +15015,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>byteenable</spirit:name>
+            <spirit:name>BYTEENABLE</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_byteenable</spirit:name>
@@ -15023,7 +15023,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>writedata</spirit:name>
+            <spirit:name>WRITEDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_writedata</spirit:name>
@@ -15031,7 +15031,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdata</spirit:name>
+            <spirit:name>READDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_readdata</spirit:name>
@@ -15039,7 +15039,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>READDATAVALID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_readdatavalid</spirit:name>
@@ -15047,7 +15047,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>WAITREQUEST</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>avs_waitrequest</spirit:name>
