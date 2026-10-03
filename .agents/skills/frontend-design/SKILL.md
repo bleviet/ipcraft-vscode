@@ -1,11 +1,11 @@
 ---
 name: frontend-design
-description: Create distinctive, production-grade frontend interfaces with high design quality anchored to bahonavi's brand. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics and stays on-brand for bahonavi.
+description: Create distinctive, production-grade frontend interfaces with high design quality anchored to bahonavi's brand. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics and stays on-brand for bahonavi. Not for the IPCraft extension webviews, which follow the VS Code theme via var(--vscode-*) (see AGENTS.md).
 ---
 
 This skill guides creation of distinctive, production-grade frontend interfaces for bahonavi that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices, always grounded in the bahonavi brand identity.
 
-> **Brand reference**: Always consult `skills/brand-guidelines/SKILL.md` for the full bahonavi color system, typography, gradients, and design tokens before generating any UI.
+> **Brand reference**: Always consult `.agents/skills/brand-guidelines/SKILL.md` for the full bahonavi color system, typography, gradients, and design tokens before generating any UI.
 
 The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
 
