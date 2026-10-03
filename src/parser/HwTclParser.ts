@@ -6,6 +6,8 @@ import { resolveVendor } from '../utils/resolveVendor';
 import { titleCaseIdentifier } from '../utils/titleCase';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { normalizeParameterDataType } from './paramDataType';
+import { hasTclSyntax, resolveTclWidth, unquoteTclWord } from './hwTclExpr';
+import { collectLoopBody, parseTclList, resolveLoop } from './hwTclLoops';
 
 export interface HwTclParseOptions {
   library?: string;
@@ -16,6 +18,8 @@ export interface HwTclParseOptions {
 export interface HwTclParseResult {
   componentName: string;
   yamlText: string;
+  /** De-duplicated, first-seen-order notes about Tcl the importer could not resolve. */
+  warnings: string[];
 }
 
 interface TclInterface {
@@ -30,7 +34,8 @@ interface TclPort {
   portName: string;
   logicalName: string;
   direction: string;
-  width: number | string;
+  /** undefined when the width used Tcl that could not be resolved; the port is kept without a width. */
+  width: number | string | undefined;
 }
 
 interface TclFileSet {
@@ -263,93 +268,152 @@ export function parseHwTclContent(
     displayNames: new Map(),
   };
   const variables = new Map<string, string>();
+  const warnings: string[] = [];
+  const warn = (message: string): void => {
+    if (!warnings.includes(message)) {
+      warnings.push(message);
+    }
+  };
   let currentFileSet: TclFileSet | null = null;
 
-  for (const rawLine of content.split('\n')) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#')) {
-      continue;
-    }
-
-    const tokens = parseTclTokens(line, variables);
-    if (tokens.length === 0) {
-      continue;
-    }
-
-    const [cmd, ...args] = tokens;
-
-    if (cmd === 'set' && args.length >= 2) {
-      variables.set(args[0], args[1]);
-    } else if (cmd === 'set_module_property' && args.length >= 2) {
-      moduleProps.set(args[0], args[1]);
-    } else if (cmd === 'add_interface' && args.length >= 3) {
-      const [name, type, mode] = args;
-      interfaces.set(name, {
-        name,
-        type: type.toLowerCase(),
-        mode: mode.toLowerCase(),
-        properties: new Map(),
-        ports: [],
-      });
-    } else if (cmd === 'set_interface_property' && args.length >= 3) {
-      const [ifaceName, prop, value] = args;
-      interfaces.get(ifaceName)?.properties.set(prop, value);
-    } else if (cmd === 'add_interface_port' && args.length >= 5) {
-      const [ifaceName, portName, logicalName, direction, widthStr] = args;
-      const parsedWidth = parseInt(widthStr, 10);
-      interfaces.get(ifaceName)?.ports.push({
-        portName,
-        logicalName,
-        direction,
-        width: Number.isNaN(parsedWidth) ? (widthStr ?? 1) : parsedWidth,
-      });
-    } else if (cmd === 'add_fileset' && args.length >= 1) {
-      const fsName = args[0];
-      if (!fileSets.has(fsName)) {
-        const entry: TclFileSet = { name: fsName, files: [] };
-        fileSets.set(fsName, entry);
-        currentFileSet = entry;
-      } else {
-        currentFileSet = fileSets.get(fsName)!;
+  const processLines = (lines: readonly string[]): void => {
+    for (let idx = 0; idx < lines.length; idx++) {
+      const rawLine = lines[idx];
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) {
+        continue;
       }
-    } else if (cmd === 'add_fileset_file' && args.length >= 4 && currentFileSet) {
-      // add_fileset_file <name> <lang> PATH <path> [TOP_LEVEL_FILE]
-      const pathIdx = args.indexOf('PATH');
-      if (pathIdx !== -1 && pathIdx + 1 < args.length) {
-        currentFileSet.files.push({ lang: args[1], filePath: args[pathIdx + 1] });
+
+      const tokens = parseTclTokens(line, variables);
+      if (tokens.length === 0) {
+        continue;
       }
-    } else if (cmd === 'add_parameter' && args.length >= 2) {
-      parameters.push({ name: args[0], type: args[1], defaultValue: args[2] });
-    } else if (cmd === 'set_parameter_property' && args.length >= 3) {
-      const param = parameters.find((p) => p.name === args[0]);
-      if (param) {
-        if (args[1] === 'DEFAULT_VALUE') {
-          param.defaultValue = args[2];
-        } else if (args[1] === 'DESCRIPTION') {
-          param.description = args[2];
-        } else if (args[1] === 'DISPLAY_NAME') {
-          param.displayName = args[2];
-        } else if (args[1] === 'ALLOWED_RANGES') {
-          param.allowedRanges = args[2];
-        } else if (args[1] === 'GROUP') {
-          param.legacyGroup = args[2];
+
+      const [cmd, ...args] = tokens;
+
+      if (cmd === 'for' || cmd === 'foreach') {
+        const { body, next } = collectLoopBody(lines, idx);
+        idx = next - 1;
+        const paramValues = new Map<string, number>();
+        for (const p of parameters) {
+          const value = Number(p.defaultValue);
+          if (p.defaultValue?.trim() && Number.isInteger(value)) {
+            paramValues.set(p.name, value);
+          }
         }
+        const loop = resolveLoop(line, {
+          substitute: (text) => substituteTclVariables(text, variables),
+          getVariable: (name) => variables.get(name),
+          isParameter: (name) => parameters.some((p) => p.name === name),
+          paramValues,
+        });
+        if (loop) {
+          for (const value of loop.values) {
+            variables.set(loop.variable, value);
+            processLines(body);
+          }
+        } else if (body.some((bodyLine) => bodyLine.includes('add_interface'))) {
+          warn(
+            `Skipped Tcl loop "${line}": its bounds could not be resolved, so the interfaces it creates were not imported.`
+          );
+        }
+      } else if (cmd === 'set' && args.length >= 2) {
+        variables.set(args[0], args[1]);
+      } else if (cmd === 'set_module_property' && args.length >= 2) {
+        moduleProps.set(args[0], args[1]);
+      } else if (cmd === 'add_interface' && args.length >= 3) {
+        const [name, type, mode] = args;
+        if (hasTclSyntax(name)) {
+          warn(
+            `Interface "${name}" was not imported: its name uses Tcl that could not be resolved.`
+          );
+        } else {
+          interfaces.set(name, {
+            name,
+            type: type.toLowerCase(),
+            mode: mode.toLowerCase(),
+            properties: new Map(),
+            ports: [],
+          });
+        }
+      } else if (cmd === 'set_interface_property' && args.length >= 3) {
+        const [ifaceName, prop, value] = args;
+        interfaces.get(ifaceName)?.properties.set(prop, value);
+      } else if (cmd === 'add_interface_port' && args.length >= 5) {
+        const [ifaceName, portName, logicalName, direction, widthStr] = args;
+        const iface = interfaces.get(ifaceName);
+        if (hasTclSyntax(portName)) {
+          warn(
+            `Port "${portName}" on interface "${ifaceName}" was not imported: its name uses Tcl that could not be resolved.`
+          );
+        } else if (iface) {
+          const width = resolveTclWidth(widthStr, new Set(parameters.map((p) => p.name)));
+          if (width === undefined) {
+            warn(
+              `Port "${portName}" on interface "${ifaceName}": width "${widthStr}" could not be resolved and was left out.`
+            );
+          }
+          iface.ports.push({ portName, logicalName, direction, width });
+        }
+      } else if (cmd === 'add_fileset' && args.length >= 1) {
+        const fsName = args[0];
+        if (!fileSets.has(fsName)) {
+          const entry: TclFileSet = { name: fsName, files: [] };
+          fileSets.set(fsName, entry);
+          currentFileSet = entry;
+        } else {
+          currentFileSet = fileSets.get(fsName)!;
+        }
+      } else if (cmd === 'add_fileset_file' && args.length >= 4 && currentFileSet) {
+        // add_fileset_file <name> <lang> PATH <path> [TOP_LEVEL_FILE]
+        const pathIdx = args.indexOf('PATH');
+        if (pathIdx !== -1 && pathIdx + 1 < args.length) {
+          const rawPath = args[pathIdx + 1];
+          const joined = /^\s*\[\s*file\s+join\s+([\s\S]*)\]\s*$/.exec(rawPath);
+          const filePath = joined ? path.join(...parseTclList(joined[1])) : rawPath;
+          if (hasTclSyntax(filePath)) {
+            warn(
+              `File "${rawPath}" in file set "${currentFileSet.name}" was not imported: its path uses Tcl that could not be resolved.`
+            );
+          } else {
+            currentFileSet.files.push({ lang: args[1], filePath });
+          }
+        }
+      } else if (cmd === 'add_parameter' && args.length >= 2) {
+        parameters.push({ name: args[0], type: args[1], defaultValue: args[2] });
+      } else if (cmd === 'set_parameter_property' && args.length >= 3) {
+        const param = parameters.find((p) => p.name === args[0]);
+        if (param) {
+          if (args[1] === 'DEFAULT_VALUE') {
+            param.defaultValue = args[2];
+          } else if (args[1] === 'DESCRIPTION') {
+            param.description = args[2];
+          } else if (args[1] === 'DISPLAY_NAME') {
+            param.displayName = args[2];
+          } else if (args[1] === 'ALLOWED_RANGES') {
+            param.allowedRanges = args[2];
+          } else if (args[1] === 'GROUP') {
+            param.legacyGroup = args[2];
+          }
+        }
+      } else if (cmd === 'add_display_item' && args.length >= 3) {
+        const [parent, id, kind] = args;
+        if (kind.toUpperCase() === 'GROUP') {
+          displayLayout.groupParents.set(id, parent);
+        } else if (kind.toUpperCase() === 'PARAMETER') {
+          displayLayout.paramParents.set(id, parent);
+        }
+      } else if (
+        cmd === 'set_display_item_property' &&
+        args.length >= 3 &&
+        args[1].toUpperCase() === 'DISPLAY_NAME'
+      ) {
+        displayLayout.displayNames.set(args[0], args[2]);
       }
-    } else if (cmd === 'add_display_item' && args.length >= 3) {
-      const [parent, id, kind] = args;
-      if (kind.toUpperCase() === 'GROUP') {
-        displayLayout.groupParents.set(id, parent);
-      } else if (kind.toUpperCase() === 'PARAMETER') {
-        displayLayout.paramParents.set(id, parent);
-      }
-    } else if (
-      cmd === 'set_display_item_property' &&
-      args.length >= 3 &&
-      args[1].toUpperCase() === 'DISPLAY_NAME'
-    ) {
-      displayLayout.displayNames.set(args[0], args[2]);
     }
-  }
+  };
+
+  processLines(content.split('\n'));
 
   // ── Derived values ─────────────────────────────────────────────────────────
 
@@ -428,7 +492,10 @@ export function parseHwTclContent(
         name: p.portName,
         direction: mapDirection(p.direction),
       };
-      if (typeof p.width === 'string' ? p.width.length > 0 : p.width > 1) {
+      if (
+        p.width !== undefined &&
+        (typeof p.width === 'string' ? p.width.length > 0 : p.width > 1)
+      ) {
         entry.width = p.width;
       }
       return entry;
@@ -505,7 +572,7 @@ export function parseHwTclContent(
         for (const p of bi.ports) {
           const logUpper = p.logicalName.toUpperCase();
           const def = defByUpper.get(logUpper);
-          if (!def || typeof def.width !== 'number') {
+          if (!def || typeof def.width !== 'number' || p.width === undefined) {
             continue;
           }
           const canonicalKey = def.name;
@@ -559,7 +626,11 @@ export function parseHwTclContent(
         dataType,
         description: p.description ?? '',
         ...resolveParameterDisplayName(p),
-        ...resolveParameterConstraint(p.allowedRanges, dataType),
+        ...resolveParameterConstraint(p.allowedRanges, dataType, (raw) =>
+          warn(
+            `Parameter "${p.name}": ALLOWED_RANGES "${raw}" uses Tcl that could not be resolved and was left out.`
+          )
+        ),
         ...resolveParameterPlacement(p, displayLayout),
       };
     });
@@ -600,7 +671,7 @@ export function parseHwTclContent(
 
   const yamlText = yaml.dump(yamlData, { noRefs: true, sortKeys: false, lineWidth: -1, indent: 2 });
 
-  return { componentName, yamlText };
+  return { componentName, yamlText, warnings };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -691,18 +762,18 @@ function parseTclTokens(
       i++; // closing bracket
       const paramRef = /^\s*get_parameter_value\s+(\S+)\s*$/.exec(body);
       if (paramRef) {
-        tokens.push(substituteTclVariables(paramRef[1], variables));
+        tokens.push(substituteTclVariables(unquoteTclWord(paramRef[1]), variables));
       } else {
-        // A more complex expression this parser can't reduce to a single parameter
-        // reference — e.g. a clog2-style width `[expr int(ceil(log([get_parameter_value
-        // P])/log(2)))]`. Push the raw body as a fallback token rather than dropping
-        // the argument outright: silently vanishing a token shifts every argument
-        // after it, which can drop the enclosing command entirely once its arg count
-        // falls below the command's minimum (e.g. add_interface_port's width arg).
-        // add_interface_port's own width parsing already falls back to keeping a
-        // non-numeric widthStr as-is, so this just surfaces the port with an
-        // unresolved (string) width instead of losing it.
-        tokens.push(substituteTclVariables(body, variables));
+        // Not a single parameter reference. Push a token rather than dropping the
+        // argument: a vanished token shifts every later argument and can drop the
+        // enclosing command (e.g. add_interface_port's width arg). `expr ...` bodies
+        // stay bare because resolveTclWidth reduces them. Any other command
+        // substitution (e.g. `[log2ceil "P"]`) keeps its brackets so hasTclSyntax
+        // flags it and it is never written as if it were a literal. Names and widths
+        // are checked with hasTclSyntax; free-text fields (descriptions, display
+        // names, interface property values) may still carry the bracketed text.
+        const substituted = substituteTclVariables(body, variables);
+        tokens.push(/^\s*expr\b/.test(body) ? substituted : `[${substituted}]`);
       }
       continue;
     }
@@ -829,7 +900,7 @@ function resolveParameterDisplayName(param: TclParameter): { displayName?: strin
 
 /**
  * ALLOWED_RANGES is either a `min:max` span or a Tcl list of discrete choices
- * (the tokenizer already unwraps the braces). Choices may be quoted for string
+ * (the tokenizer already unwraps the braces, or `[list ...]`). Choices may be quoted for string
  * parameters.
  *
  * For a STRING-typed parameter, every choice is kept as a string even when it
@@ -839,7 +910,8 @@ function resolveParameterDisplayName(param: TclParameter): { displayName?: strin
  */
 function resolveParameterConstraint(
   allowedRanges: string | undefined,
-  dataType: string
+  dataType: string,
+  onUnresolved: (raw: string) => void
 ): { min?: number; max?: number } | { allowedValues?: Array<number | string> } {
   if (!allowedRanges) {
     return {};
@@ -849,10 +921,17 @@ function resolveParameterConstraint(
     return { min: Number(span[1]), max: Number(span[2]) };
   }
   const isString = dataType === 'string';
-  // Quoted choices are one token even when they contain spaces.
-  const tokens = parseTclTokens(allowedRanges);
-  const choices = tokens.map((token) => {
-    const unquoted = token.replace(/^"(.*)"$/, '$1');
+  // Quoted choices are one item even when they contain spaces.
+  let listText = allowedRanges;
+  if (/^\s*\[/.test(allowedRanges)) {
+    const listCmd = /^\s*\[\s*list\b([\s\S]*)\]\s*$/.exec(allowedRanges);
+    if (!listCmd) {
+      onUnresolved(allowedRanges);
+      return {};
+    }
+    listText = listCmd[1];
+  }
+  const choices = parseTclList(listText).map((unquoted) => {
     if (isString) {
       return unquoted;
     }
