@@ -11,6 +11,39 @@ const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
 const AXIMM_BUS_FULL = BUS_VLNV.AXI4_FULL;
 const AXIMM_BUS_LITE = BUS_VLNV.AXI4_LITE;
 const AXIS_BUS = BUS_VLNV.AXI_STREAM;
+const AVALON_MM_BUS = BUS_VLNV.AVALON_MM;
+
+interface FoldedBusPort {
+  /** The library's name for the port (lowercase). */
+  name: string;
+  physical: string;
+  width: number;
+}
+
+/**
+ * Optional ports of a bus library that sit in the component's model without a
+ * port map, because the Vivado abstraction does not declare them (e.g. Avalon
+ * debugaccess). The generator writes them as `physicalPrefix + library name`;
+ * finding one that nothing else claims puts it back into its interface.
+ */
+function findUnmappedOptionalPorts(
+  busDef: Array<{ name: string; presence: string }>,
+  mappedLogicalNames: ReadonlySet<string>,
+  physicalPrefix: string,
+  modelPortAttrs: ReadonlyMap<string, { width: number }>,
+  claimedPhysicalPorts: ReadonlySet<string>
+): FoldedBusPort[] {
+  return busDef.flatMap((def) => {
+    const physical = physicalPrefix + def.name;
+    const attrs = modelPortAttrs.get(physical);
+    return def.presence === 'optional' &&
+      !mappedLogicalNames.has(def.name.toUpperCase()) &&
+      attrs &&
+      !claimedPhysicalPorts.has(physical)
+      ? [{ name: def.name, physical, width: attrs.width }]
+      : [];
+  });
+}
 
 export interface ComponentXmlParseOptions {
   library?: string;
@@ -357,6 +390,14 @@ export function parseComponentXmlText(
   }
 
   const busInterfaces: BusIfEntry[] = [];
+  // Physical ports some interface's port maps, a clock or a reset already own,
+  // and the ones an Avalon-MM interface takes back as unmapped optional ports.
+  const claimedPorts = new Set<string>([
+    ...busInterfaceEls.flatMap(physicalPortNames),
+    ...clockPortMap.values(),
+    ...Array.from(resetPortMap.values(), (r) => r.port),
+  ]);
+  const foldedPorts = new Set<string>();
 
   for (const busIf of busInterfaceEls) {
     const busTypeEl = busIf.getElementsByTagNameNS(SPIRIT_NS, 'busType')[0] as Element | undefined;
@@ -383,6 +424,9 @@ export function parseComponentXmlText(
       busType = logPorts.has('ARLEN') || logPorts.has('AWLEN') ? AXIMM_BUS_FULL : AXIMM_BUS_LITE;
     } else if (btName === 'axis') {
       busType = AXIS_BUS;
+    } else if (btName === 'avalon' && attr(busTypeEl, SPIRIT_NS, 'vendor') === 'xilinx.com') {
+      // The Vivado generator writes IPCraft Avalon-MM as xilinx.com:interface:avalon.
+      busType = AVALON_MM_BUS;
     } else {
       // Unknown bus type — preserve raw VLNV components and port maps so the
       // generator can reconstruct the exact XML without re-splitting the
@@ -448,8 +492,26 @@ export function parseComponentXmlText(
     const busDef = lookupBusDef(busType);
     if (busDef) {
       const logPorts = logicalPortNames(busIf);
+      const folded =
+        busType === AVALON_MM_BUS
+          ? findUnmappedOptionalPorts(
+              busDef,
+              logPorts,
+              physicalPrefix ?? '',
+              modelPortAttrs,
+              new Set([...claimedPorts, ...foldedPorts])
+            )
+          : [];
+      for (const port of folded) {
+        foldedPorts.add(port.physical);
+      }
+      const foldedNames = new Set(folded.map((port) => port.name));
       const useOptionalPorts = busDef
-        .filter((def) => def.presence === 'optional' && logPorts.has(def.name.toUpperCase()))
+        .filter(
+          (def) =>
+            def.presence === 'optional' &&
+            (logPorts.has(def.name.toUpperCase()) || foldedNames.has(def.name))
+        )
         .map((def) => def.name);
       if (useOptionalPorts.length > 0) {
         entry.useOptionalPorts = useOptionalPorts;
@@ -458,6 +520,7 @@ export function parseComponentXmlText(
       // Extract portWidthOverrides: where the actual port width in <spirit:ports>
       // differs from the bus-definition default, record the actual width so the
       // generator reproduces the original port sizes faithfully on re-export.
+      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
       const defaultWidths = new Map(
         busDef
           .filter((def): def is typeof def & { width: number } => typeof def.width === 'number')
@@ -467,6 +530,12 @@ export function parseComponentXmlText(
         const portMapsEl = childEl(busIf, 'portMaps');
         if (portMapsEl) {
           const portWidthOverrides: Record<string, number> = {};
+          for (const port of folded) {
+            const defaultWidth = defaultWidths.get(port.name.toUpperCase());
+            if (defaultWidth !== undefined && port.width !== defaultWidth) {
+              portWidthOverrides[port.name] = port.width;
+            }
+          }
           for (const portMap of childEls(portMapsEl, 'portMap')) {
             const logName = text(childEl(portMap, 'logicalPort') ?? portMap, 'name');
             const physName = text(childEl(portMap, 'physicalPort') ?? portMap, 'name');
@@ -479,7 +548,10 @@ export function parseComponentXmlText(
             }
             const defaultWidth = defaultWidths.get(logName.toUpperCase());
             if (defaultWidth !== undefined && attrs.width !== defaultWidth) {
-              portWidthOverrides[logName] = attrs.width;
+              // Key by the library's spelling: Vivado abstractions use uppercase
+              // logical names where the IPCraft library may not (Avalon).
+              portWidthOverrides[defByUpper.get(logName.toUpperCase())?.name ?? logName] =
+                attrs.width;
             }
           }
           if (Object.keys(portWidthOverrides).length > 0) {
@@ -494,7 +566,6 @@ export function parseComponentXmlText(
       // renamed suffix). Recording the actual observed suffix keeps physicalPrefix +
       // portNameOverrides losslessly reconstructing the original physical names on
       // re-export. With no common prefix, the suffix is the whole physical name.
-      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
       const portMapsEl = childEl(busIf, 'portMaps');
       if (portMapsEl) {
         const prefix = physicalPrefix ?? '';
@@ -680,7 +751,7 @@ export function parseComponentXmlText(
   if (portsEl) {
     for (const portEl of childEls(portsEl, 'port')) {
       const pName = text(portEl, 'name');
-      if (!pName || assignedPorts.has(pName)) {
+      if (!pName || assignedPorts.has(pName) || foldedPorts.has(pName)) {
         continue;
       }
       const wireEl = childEl(portEl, 'wire');

@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import * as yaml from 'js-yaml';
 import { lookupBusDef } from '../../../webview/ipcore/data/busDefinitions';
 import { BUS_VLNV } from '../../../shared/busVlnv';
 
@@ -20,6 +23,40 @@ describe('lookupBusDef', () => {
       expect(ports).not.toBeNull();
       expect(portNames(ports)).toContain('address');
       expect(portNames(ports)).toContain('writedata');
+    });
+  });
+
+  describe('Avalon-MM parity with the shipped bus library', () => {
+    it('declares every non-clock/reset port of avalon_mm.yml with the same direction, width and presence', () => {
+      const library = yaml.load(
+        fs.readFileSync(
+          path.resolve(__dirname, '../../../../ipcraft-spec/bus_definitions/avalon_mm.yml'),
+          'utf8'
+        )
+      ) as {
+        AVALON_MEMORY_MAPPED: {
+          ports: Array<{ name: string; direction?: string; width?: number; presence?: string }>;
+        };
+      };
+      const webviewPorts = new Map(
+        (lookupBusDef(BUS_VLNV.AVALON_MM) ?? []).map((p) => [p.name, p])
+      );
+      for (const spec of library.AVALON_MEMORY_MAPPED.ports) {
+        if (spec.name === 'clk' || spec.name === 'reset') {
+          continue;
+        }
+        const port = webviewPorts.get(spec.name);
+        expect(port).toBeDefined();
+        expect({
+          direction: port?.direction,
+          width: port?.width,
+          presence: port?.presence,
+        }).toEqual({
+          direction: spec.direction,
+          width: spec.width,
+          presence: spec.presence,
+        });
+      }
     });
   });
 
