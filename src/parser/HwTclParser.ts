@@ -11,10 +11,12 @@ import {
   hasTclSyntax,
   numericParamValues,
   resolveTclWidth,
-  unquoteTclWord,
 } from './hwTclExpr';
+import { parseTclTokens, substituteTclVariables } from './hwTclTokens';
 import { collectLoopBody, parseTclList, resolveLoop } from './hwTclLoops';
 import { collectIfChain, selectIfBranches } from './hwTclConditionals';
+import { computeProcDefaults, hasCeilLog2Proc } from './hwTclProcs';
+import { hasLegacyPortDeclarations, readLegacyPorts, type LegacyPort } from './hwTclLegacyPorts';
 import { applyPortProperty, finalizeInterfaces, type TclInterface } from './hwTclPortEffects';
 
 export interface HwTclParseOptions {
@@ -109,7 +111,14 @@ export async function parseHwTclFile(
 ): Promise<HwTclParseResult> {
   const content = await fs.readFile(tclPath, 'utf8');
   const flattened = await flattenTclContent(content, tclPath, new Set(), false);
-  return parseHwTclContent(flattened, tclPath, options);
+  const legacy = hasLegacyPortDeclarations(flattened)
+    ? await readLegacyPorts(flattened, path.dirname(tclPath))
+    : null;
+  const result = parseHwTclContent(flattened, tclPath, options, legacy?.ports ?? undefined);
+  if (legacy?.warning && !result.warnings.includes(legacy.warning)) {
+    result.warnings.push(legacy.warning);
+  }
+  return result;
 }
 
 // ── Source-file flattening ────────────────────────────────────────────────────
@@ -256,7 +265,8 @@ async function flattenTclContent(
 export function parseHwTclContent(
   content: string,
   tclPath: string,
-  options: HwTclParseOptions = {}
+  options: HwTclParseOptions = {},
+  legacyPorts?: ReadonlyMap<string, LegacyPort>
 ): HwTclParseResult {
   const moduleProps = new Map<string, string>();
   let interfaces = new Map<string, TclInterface>();
@@ -276,8 +286,15 @@ export function parseHwTclContent(
   };
   let currentFileSet: TclFileSet | null = null;
   // Proc bodies (elaboration callbacks) run after the main script, in source order.
-  const pendingProcs: Array<{ body: string[]; unresolved: boolean; fileSet: TclFileSet | null }> =
-    [];
+  const pendingProcs: Array<{
+    name: string;
+    body: string[];
+    unresolved: boolean;
+    fileSet: TclFileSet | null;
+  }> = [];
+  const contentLines = content.split('\n');
+  const procDefaults = computeProcDefaults(contentLines);
+  const rewriteLog2ceil = hasCeilLog2Proc(contentLines);
 
   // `unresolved` is set inside `if` branches whose condition could not be evaluated;
   // it is inherited by nested blocks and keeps static declarations unchanged.
@@ -289,7 +306,7 @@ export function parseHwTclContent(
         continue;
       }
 
-      const tokens = parseTclTokens(line, variables);
+      const tokens = parseTclTokens(line, variables, rewriteLog2ceil);
       if (tokens.length === 0) {
         continue;
       }
@@ -299,7 +316,7 @@ export function parseHwTclContent(
       if (cmd === 'proc') {
         const { body, next } = collectLoopBody(lines, idx);
         idx = next - 1;
-        pendingProcs.push({ body, unresolved, fileSet: currentFileSet });
+        pendingProcs.push({ name: args[0] ?? '', body, unresolved, fileSet: currentFileSet });
       } else if (cmd === 'if') {
         const chain = collectIfChain(lines, idx);
         idx = chain.next - 1;
@@ -393,6 +410,22 @@ export function parseHwTclContent(
           }
           iface.ports.push({ portName, logicalName, direction, width });
         }
+      } else if (cmd === 'add_port_to_interface' && args.length >= 3) {
+        const [ifaceName, portName, role] = args;
+        const iface = interfaces.get(ifaceName);
+        const hdlPort = legacyPorts?.get(portName);
+        if (iface && hdlPort) {
+          iface.ports.push({
+            portName,
+            logicalName: role,
+            direction: hdlPort.direction,
+            width: hdlPort.width,
+          });
+        } else if (iface) {
+          warn(
+            `Port "${portName}" on interface "${ifaceName}" was not imported: add_port_to_interface declares no direction or width and the port was not found in the HDL source.`
+          );
+        }
       } else if (cmd === 'add_fileset' && args.length >= 1) {
         const fsName = args[0];
         if (!fileSets.has(fsName)) {
@@ -451,11 +484,22 @@ export function parseHwTclContent(
     }
   };
 
-  processLines(content.split('\n'));
+  processLines(contentLines);
   for (let i = 0; i < pendingProcs.length; i++) {
     // Fileset callbacks add files to the file set current where the proc was declared.
     currentFileSet = pendingProcs[i].fileSet;
+    // Default argument bindings are scoped to this proc body.
+    const bindings = procDefaults.get(pendingProcs[i].name) ?? new Map<string, string>();
+    const saved = new Map([...bindings.keys()].map((k) => [k, variables.get(k)]));
+    bindings.forEach((value, name) => variables.set(name, value));
     processLines(pendingProcs[i].body, pendingProcs[i].unresolved);
+    saved.forEach((previous, name) => {
+      if (previous === undefined) {
+        variables.delete(name);
+      } else {
+        variables.set(name, previous);
+      }
+    });
   }
 
   // ── Elaboration effects ────────────────────────────────────────────────────
@@ -569,7 +613,7 @@ export function parseHwTclContent(
   // ── Bus interfaces ──────────────────────────────────────────────────────────
 
   const busEntries = busIfaces.map((bi) => {
-    const mode = bi.mode === 'start' ? 'master' : 'slave';
+    const mode = ['start', 'source', 'master'].includes(bi.mode) ? 'master' : 'slave';
 
     const portNames = bi.ports.map((p) => p.portName);
     const physicalPrefix = computePhysicalPrefix(portNames);
@@ -724,172 +768,6 @@ export function parseHwTclContent(
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function parseTclTokens(
-  line: string,
-  variables: ReadonlyMap<string, string> = new Map()
-): string[] {
-  const tokens: string[] = [];
-  let i = 0;
-
-  while (i < line.length) {
-    const ch = line[i];
-
-    if (ch === ' ' || ch === '\t') {
-      i++;
-      continue;
-    }
-
-    if (ch === '"') {
-      i++;
-      let val = '';
-      while (i < line.length && line[i] !== '"') {
-        if (line[i] === '\\' && i + 1 < line.length) {
-          const escaped = line[i + 1];
-          val += escaped === '$' ? `\\${escaped}` : escaped;
-          i += 2;
-          continue;
-        } else {
-          val += line[i];
-        }
-        i++;
-      }
-      i++; // closing quote
-      tokens.push(substituteTclVariables(val, variables));
-      continue;
-    }
-
-    if (ch === '{') {
-      i++;
-      let val = '';
-      let depth = 1;
-      while (i < line.length && depth > 0) {
-        if (line[i] === '\\' && i + 1 < line.length) {
-          // An escaped brace is literal and must not affect the outer braced
-          // word's nesting. Preserve the escape for a later Tcl-list parse.
-          val += line[i];
-          val += line[i + 1];
-          i += 2;
-          continue;
-        }
-        if (line[i] === '{') {
-          depth++;
-        } else if (line[i] === '}') {
-          depth--;
-          if (depth === 0) {
-            break;
-          }
-        }
-        val += line[i];
-        i++;
-      }
-      i++; // closing brace
-      tokens.push(val);
-      continue;
-    }
-
-    if (ch === '[') {
-      // Command substitution. Capture the bracket body so we can recover the
-      // one form that carries port information: `[get_parameter_value PARAM]`,
-      // which Quartus (and our own generator) use for parameter-dependent port
-      // widths inside the elaborate callback.
-      let depth = 1;
-      i++;
-      let body = '';
-      while (i < line.length && depth > 0) {
-        if (line[i] === '[') {
-          depth++;
-        } else if (line[i] === ']') {
-          depth--;
-          if (depth === 0) {
-            break;
-          }
-        }
-        body += line[i];
-        i++;
-      }
-      i++; // closing bracket
-      const paramRef = /^\s*get_parameter_value\s+(\S+)\s*$/.exec(body);
-      if (paramRef) {
-        tokens.push(substituteTclVariables(unquoteTclWord(paramRef[1]), variables));
-      } else {
-        // Not a single parameter reference. Push a token rather than dropping the
-        // argument: a vanished token shifts every later argument and can drop the
-        // enclosing command (e.g. add_interface_port's width arg). `expr ...` bodies
-        // stay bare because resolveTclWidth reduces them. Any other command
-        // substitution (e.g. `[log2ceil "P"]`) keeps its brackets so hasTclSyntax
-        // flags it and it is never written as if it were a literal. Names and widths
-        // are checked with hasTclSyntax; free-text fields (descriptions, display
-        // names, interface property values) may still carry the bracketed text.
-        const substituted = substituteTclVariables(body, variables);
-        tokens.push(/^\s*expr\b/.test(body) ? substituted : `[${substituted}]`);
-      }
-      continue;
-    }
-
-    // Plain token
-    let val = '';
-    while (i < line.length && line[i] !== ' ' && line[i] !== '\t') {
-      val += line[i];
-      i++;
-    }
-    tokens.push(substituteTclVariables(val, variables));
-  }
-
-  return tokens;
-}
-
-/**
- * Applies the two common Tcl variable-reference forms to a word. Unknown
- * variables stay verbatim so an unsupported or out-of-scope reference is not
- * silently discarded. Braced Tcl words bypass this helper in parseTclTokens,
- * matching Tcl's rule that braces suppress substitutions.
- */
-function substituteTclVariables(value: string, variables: ReadonlyMap<string, string>): string {
-  let result = '';
-  let i = 0;
-
-  while (i < value.length) {
-    if (value[i] === '\\' && value[i + 1] === '$') {
-      result += '$';
-      i += 2;
-      continue;
-    }
-
-    if (value[i] !== '$') {
-      result += value[i];
-      i++;
-      continue;
-    }
-
-    let name = '';
-    let end = i + 1;
-    if (value[end] === '{') {
-      const closingBrace = value.indexOf('}', end + 1);
-      if (closingBrace === -1) {
-        result += '$';
-        i++;
-        continue;
-      }
-      name = value.slice(end + 1, closingBrace);
-      end = closingBrace + 1;
-    } else {
-      const nameMatch = /^[A-Za-z0-9_:]+/.exec(value.slice(end));
-      if (!nameMatch) {
-        result += '$';
-        i++;
-        continue;
-      }
-      name = nameMatch[0];
-      end += name.length;
-    }
-
-    result += variables.get(name) ?? value.slice(i, end);
-    i = end;
-  }
-
-  return result;
-}
 
 function mapDirection(dir: string): string {
   switch (dir.toLowerCase()) {
