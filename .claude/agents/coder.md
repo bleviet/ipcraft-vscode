@@ -1,7 +1,7 @@
 ---
 name: coder
-description: Executes implementation, editing, and test runs using Sonnet.
-model: sonnet
+description: Executes implementation, editing, and test runs using Sonnet 5.5.
+model: claude-sonnet-5-5
 tools: Read, Edit, Write, Glob, Grep, Bash
 ---
 You are an implementation engineer executing a spec from the orchestrating session.

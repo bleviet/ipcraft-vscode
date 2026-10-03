@@ -1,5 +1,5 @@
 ---
-description: Execute a complete 3-phase cycle (Plan with Opus -> Code with Sonnet -> Audit with Opus)
+description: Execute a complete 3-phase cycle (Plan with Opus 5.5 -> Code with Sonnet 5.5 -> Audit with Opus 5.5)
 argument-hint: <task description>
 ---
 
