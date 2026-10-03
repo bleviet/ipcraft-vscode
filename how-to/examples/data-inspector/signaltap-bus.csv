@@ -1,0 +1,6 @@
+Data:,Time:,BUS
+0,0 ns,0000
+1,10 ns,0001
+2,20 ns,00A5
+3,30 ns,XXA5
+4,40 ns,ZZZZ
