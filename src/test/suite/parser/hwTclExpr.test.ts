@@ -3,6 +3,7 @@ import {
   evaluateTclInt,
   numericParamValues,
   hasTclSyntax,
+  log2ceilToClog2,
   reduceTclExpr,
   resolveTclWidth,
 } from '../../../parser/hwTclExpr';
@@ -125,5 +126,55 @@ describe('numericParamValues', () => {
       { name: 'F' },
     ]);
     expect(Object.fromEntries(values)).toEqual({ A: 8, B: 1, C: 0 });
+  });
+});
+
+describe('clog2', () => {
+  it.each([
+    ['clog2(1)', 0],
+    ['clog2(0)', 0],
+    ['clog2(2)', 1],
+    ['clog2(5)', 3],
+    ['clog2(8)', 3],
+    ['clog2(9) + 1', 5],
+  ])('evaluates %s as an integer', (text, expected) => {
+    expect(evaluateTclInt(text, new Map())).toBe(expected);
+  });
+
+  it('uses parameter defaults', () => {
+    expect(evaluateTclInt('clog2(N)', new Map([['N', 16]]))).toBe(4);
+    expect(evaluateTclInt('clog2(N)', new Map())).toBeNull();
+  });
+
+  it('works in conditions', () => {
+    expect(evaluateTclCondition('[expr clog2(N) > 0]', new Map([['N', 4]]))).toBe(true);
+    expect(evaluateTclCondition('clog2(N) > 0', new Map([['N', 1]]))).toBe(false);
+  });
+
+  it('resolves widths: constant, symbolic and unknown', () => {
+    const names = new Set(['NUM_OF_INPUT', 'X']);
+    expect(resolveTclWidth('clog2(8)', names)).toBe(3);
+    expect(resolveTclWidth('clog2(NUM_OF_INPUT)', names)).toBe('clog2(NUM_OF_INPUT)');
+    expect(resolveTclWidth('clog2(X  +  1)', names)).toBe('clog2(X + 1)');
+    expect(resolveTclWidth('clog2(UNKNOWN)', names)).toBeUndefined();
+  });
+});
+
+describe('log2ceilToClog2', () => {
+  it.each([
+    ['SYMBOLS_PER_BEAT', 'clog2(SYMBOLS_PER_BEAT)'],
+    ['[get_parameter_value "inSymbolsPerBeat" ]', 'clog2(inSymbolsPerBeat)'],
+    ['[expr {X + 1}]', 'clog2(X + 1)'],
+    ['"P"', 'clog2(P)'],
+    ['"8"', 'clog2(8)'],
+    ['[get_parameter_value "P"]', 'clog2(P)'],
+  ])('rewrites %s', (arg, expected) => {
+    expect(log2ceilToClog2(arg)).toBe(expected);
+  });
+
+  it('returns null when Tcl syntax remains', () => {
+    expect(log2ceilToClog2('$unknown')).toBeNull();
+    expect(log2ceilToClog2('[some_proc 3]')).toBeNull();
+    expect(log2ceilToClog2('"a" "b"')).toBeNull();
   });
 });

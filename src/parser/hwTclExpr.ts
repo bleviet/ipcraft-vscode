@@ -8,6 +8,7 @@
 type ExprToken =
   | { kind: 'num'; value: number }
   | { kind: 'id'; name: string }
+  | { kind: 'fn'; name: 'clog2' }
   | { kind: 'op'; op: string };
 
 const TCL_SYNTAX = /[$[\]{}]|\bexpr\b/;
@@ -61,6 +62,17 @@ function normalizeExprText(text: string): string {
     .trim();
 }
 
+/**
+ * Rewrites the argument of a file-local `[log2ceil ARG]` to `clog2(ARG)` text.
+ * Returns null when the normalized argument still carries Tcl syntax.
+ */
+export function log2ceilToClog2(arg: string): string | null {
+  const normalized = normalizeExprText(unquoteTclWord(arg.trim()));
+  return normalized === '' || normalized.includes('"') || hasTclSyntax(normalized)
+    ? null
+    : `clog2(${normalized})`;
+}
+
 /** Two-character then one-character comparison/logic operators, accepted in conditions only. */
 const CONDITION_OPS = ['==', '!=', '<=', '>=', '&&', '||', '<', '>', '!'];
 
@@ -80,7 +92,11 @@ function tokenizeExpr(text: string, allowCondition = false): ExprToken[] | null 
       if (m[0] === 'expr') {
         return null;
       }
-      tokens.push({ kind: 'id', name: m[0] });
+      if (m[0] === 'clog2' && /^\s*\(/.test(text.slice(i + m[0].length))) {
+        tokens.push({ kind: 'fn', name: 'clog2' });
+      } else {
+        tokens.push({ kind: 'id', name: m[0] });
+      }
       i += m[0].length;
     } else if ('+-*/%()'.includes(ch)) {
       tokens.push({ kind: 'op', op: ch });
@@ -95,6 +111,15 @@ function tokenizeExpr(text: string, allowCondition = false): ExprToken[] | null 
     }
   }
   return tokens.length > 0 ? tokens : null;
+}
+
+/** `clog2`: 0 for e <= 1, otherwise ceil(log2(e)). */
+function ceilLog2(e: number): number {
+  let bits = 0;
+  while (2 ** bits < e) {
+    bits++;
+  }
+  return bits;
 }
 
 class ExprSyntaxError extends Error {}
@@ -147,6 +172,18 @@ function evalTokens(
     }
     if (t.kind === 'num') {
       return t.value;
+    }
+    if (t.kind === 'fn') {
+      const open = tokens[pos++];
+      if (open?.kind !== 'op' || open.op !== '(') {
+        throw new ExprSyntaxError();
+      }
+      const arg = condition ? parseOr() : parseSum();
+      const close = tokens[pos++];
+      if (close?.kind !== 'op' || close.op !== ')') {
+        throw new ExprSyntaxError();
+      }
+      return ceilLog2(arg);
     }
     if (t.kind === 'id') {
       const v = lookup(t.name);
@@ -321,7 +358,7 @@ export function resolveTclWidth(
   if (/^\s*-?\d+\s*$/.test(raw)) {
     return parseInt(raw, 10);
   }
-  const resolved = /^\s*expr\b/.test(raw) ? reduceTclExpr(raw, paramNames) : raw;
+  const resolved = /^\s*(?:expr\b|clog2\()/.test(raw) ? reduceTclExpr(raw, paramNames) : raw;
   if (resolved === null || (typeof resolved === 'string' && hasTclSyntax(resolved))) {
     return undefined;
   }
