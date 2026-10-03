@@ -189,12 +189,35 @@ For commands, configuration, and report states, see
 
 ## Command-line package
 
-The Marketplace extension does not install a global shell command. The
-standalone `ipcraft` npm package is prepared in this repository but is not yet
-published. Until it is released, use the extension commands documented above.
+The extension ships the `ipcraft` command-line tool for headless generation and
+CI checks. It runs on VS Code's own runtime, so no separate Node.js installation
+is required.
 
-Contributors can build a local package archive and install that archive in a
-clean environment without publishing it:
+- **Integrated terminal:** `ipcraft` is on `PATH` automatically in every VS Code
+  integrated terminal once the extension has started. Terminals opened before
+  the extension started need to be restarted.
+- **External terminals on this machine:** run `IPCraft: Install 'ipcraft' Command
+  in PATH` from the Command Palette. Scripts and Makefiles run in those terminals
+  work too. No sudo or administrator rights are needed. The installed command
+  needs VS Code with this extension installed on the same machine, so CI runners
+  without VS Code are not covered (the npm package remains separate and
+  unpublished).
+  `IPCraft: Uninstall 'ipcraft' Command from PATH` removes it again.
+
+| OS | Installed command | PATH handling |
+|---|---|---|
+| Linux | `~/.local/bin/ipcraft` | Offers to copy the `export PATH` line if `~/.local/bin` is not on `PATH` |
+| macOS | `~/.local/bin/ipcraft` | Offers to append the `export PATH` line to `~/.zprofile` (only after you click) or copy it |
+| Windows | `%LOCALAPPDATA%\Programs\ipcraft\ipcraft.cmd` | Adds the directory to the user `PATH`; open a new terminal |
+
+The installed command is a small shim that forwards to the copy bundled with the
+extension, so it follows extension updates without reinstalling. It refuses to
+overwrite an existing file that IPCraft did not create. In remote sessions
+(Remote-SSH, WSL, Dev Containers, Codespaces) the command is installed on the
+remote host.
+
+The standalone `ipcraft` npm package remains unpublished and separate. Contributors
+can build a local package archive and install it in a clean environment:
 
 ```bash
 npm run package:cli
@@ -230,7 +253,8 @@ and remains in this repository so it uses the same generator as the extension.
 Its npm release is tracked by
 [issue #116](https://github.com/bleviet/ipcraft-vscode/issues/116) and is a
 separate, explicitly manual release after the matching extension version has
-been published.
+been published. Shipping the CLI inside the extension and putting it on `PATH`
+is tracked by [issue #206](https://github.com/bleviet/ipcraft-vscode/issues/206).
 
 ## Contributor implementation
 

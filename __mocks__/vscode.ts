@@ -76,6 +76,10 @@ export enum QuickPickItemKind {
   Default = 0,
 }
 
+export const env = {
+  clipboard: { writeText: jest.fn() },
+};
+
 export const commands = {
   executeCommand: jest.fn(),
   registerCommand: jest.fn((_command: string, handler: (...args: unknown[]) => unknown) => ({

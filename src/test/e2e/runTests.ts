@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { spawn } from 'child_process';
 import { downloadAndUnzipVSCode, runTests, runVSCodeCommand } from '@vscode/test-electron';
@@ -99,21 +100,30 @@ async function main() {
       });
     }
 
+    // Explicit so tests can locate the extension's global storage.
+    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-e2e-user-data-'));
+
     // Download VS Code, unzip it and run the integration test
-    await runTests({
-      version: vscodeVersion,
-      extensionDevelopmentPath: vsixPath
-        ? path.join(extensionDevelopmentPath, 'src', 'test', 'e2e', 'harness')
-        : extensionDevelopmentPath,
-      extensionTestsPath,
-      launchArgs: [
-        '--disable-gpu',
-        '--no-sandbox',
-        '--disable-gpu-sandbox',
-        '--disable-dev-shm-usage',
-        ...(vsixPath ? [] : ['--disable-extensions']),
-      ],
-    });
+    try {
+      await runTests({
+        version: vscodeVersion,
+        extensionDevelopmentPath: vsixPath
+          ? path.join(extensionDevelopmentPath, 'src', 'test', 'e2e', 'harness')
+          : extensionDevelopmentPath,
+        extensionTestsPath,
+        extensionTestsEnv: { IPCRAFT_E2E_USER_DATA_DIR: userDataDir },
+        launchArgs: [
+          `--user-data-dir=${userDataDir}`,
+          '--disable-gpu',
+          '--no-sandbox',
+          '--disable-gpu-sandbox',
+          '--disable-dev-shm-usage',
+          ...(vsixPath ? [] : ['--disable-extensions']),
+        ],
+      });
+    } finally {
+      fs.rmSync(userDataDir, { recursive: true, force: true });
+    }
   } catch (err) {
     console.error('Failed to run tests', err);
     process.exit(1);

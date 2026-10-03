@@ -46,7 +46,9 @@
     "Visualization",
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
   "capabilities": {
     "untrustedWorkspaces": {
@@ -70,6 +72,16 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "fpga-ip-core.installCliInPath",
+        "title": "Install 'ipcraft' Command in PATH",
+        "category": "IPCraft"
+      },
+      {
+        "command": "fpga-ip-core.uninstallCliFromPath",
+        "title": "Uninstall 'ipcraft' Command from PATH",
+        "category": "IPCraft"
+      },
       {
         "command": "fpga-ip-core.createIpCore",
         "title": "New IP Core",
