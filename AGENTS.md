@@ -223,7 +223,12 @@ files only point at these; put shared guidance here, never in them.
 | `.gemini/settings.json` | Points Gemini CLI at `AGENTS.md` | Gemini CLI |
 | `CLAUDE.md` | Imports `AGENTS.md`, adds the Claude-only delegation workflow | Claude Code |
 | `.claude/skills/<name>` | Symlinks to `.agents/skills/<name>` | Claude Code |
-| `.claude/agents/`, `.claude/commands/` | Claude-only subagents and `/orchestrate` | Claude Code |
+| `.claude/agents/` | Claude-only `coder`/`reviewer` subagents (model and tool pins; role prompts live in `.agents/skills/orchestrate/references/`) | Claude Code |
+
+Plan -> implement -> audit for non-trivial changes is the shared
+`orchestrate` skill (`/orchestrate`). Tools with subagents dispatch the
+`coder` and `reviewer` roles to them; tools without subagents run the phases
+in sequence, with the audit as a separate read-only pass.
 
 To add a skill, create `.agents/skills/<name>/SKILL.md` and link it for Claude
 Code: `ln -s ../../.agents/skills/<name> .claude/skills/<name>`. On Windows,
