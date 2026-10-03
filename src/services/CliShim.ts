@@ -21,16 +21,21 @@ function crlf(lines: string[]): string {
   return lines.join('\r\n') + '\r\n';
 }
 
+/** Electron < 27 (VS Code < 1.86) requires the run-as-node switch; Electron 27+ and plain Node reject it. */
+export function needsRunAsNodeSwitch(electronVersion: string | undefined): boolean {
+  return electronVersion !== undefined && parseInt(electronVersion, 10) < 27;
+}
+
 /** Script that runs the bundled CLI on VS Code's own runtime (no system Node.js needed). */
 export function renderCliLauncher(
   platform: NodeJS.Platform,
   execPath: string,
   cliPath: string,
-  isElectron: boolean
+  runAsNodeSwitch: boolean
 ): string {
-  // VS Code's Electron only honours ELECTRON_RUN_AS_NODE together with this switch;
-  // a plain Node binary (remote hosts) would reject it.
-  const sw = isElectron ? ' --ms-enable-electron-run-as-node' : '';
+  // Electron < 27 only honours ELECTRON_RUN_AS_NODE together with this switch;
+  // newer Electron and plain Node (remote hosts) reject it.
+  const sw = runAsNodeSwitch ? ' --ms-enable-electron-run-as-node' : '';
   if (isWindows(platform)) {
     return crlf([
       '@echo off',

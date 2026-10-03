@@ -33,12 +33,12 @@ export async function writeCliLauncher(
   execPath: string,
   extensionPath: string,
   platform: NodeJS.Platform,
-  isElectron: boolean
+  runAsNodeSwitch: boolean
 ): Promise<string> {
   await fs.mkdir(binDir, { recursive: true });
   const launcherPath = path.join(binDir, cliScriptName(platform));
   const cliPath = path.join(extensionPath, 'dist', 'cli.js');
-  await writeAtomic(launcherPath, renderCliLauncher(platform, execPath, cliPath, isElectron));
+  await writeAtomic(launcherPath, renderCliLauncher(platform, execPath, cliPath, runAsNodeSwitch));
   return launcherPath;
 }
 

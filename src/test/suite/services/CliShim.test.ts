@@ -4,12 +4,26 @@ import {
   cliScriptName,
   externalShimDir,
   isDirOnPath,
+  needsRunAsNodeSwitch,
   removePathEntry,
   renderCliLauncher,
   renderCliShim,
 } from '../../../services/CliShim';
 
 describe('CliShim', () => {
+  describe('needsRunAsNodeSwitch', () => {
+    it.each<[string | undefined, boolean]>([
+      [undefined, false],
+      ['22.3.14', true],
+      ['25.9.7', true],
+      ['26.6.10', true],
+      ['27.2.1', false],
+      ['37.0.0', false],
+    ])('%s -> %s', (version, expected) => {
+      expect(needsRunAsNodeSwitch(version)).toBe(expected);
+    });
+  });
+
   describe.each<NodeJS.Platform>(['linux', 'darwin'])('POSIX (%s)', (platform) => {
     it('names the script ipcraft', () => {
       expect(cliScriptName(platform)).toBe('ipcraft');

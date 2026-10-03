@@ -4,7 +4,13 @@ import * as path from 'path';
 import * as fs from 'fs/promises';
 import { Logger } from '../utils/Logger';
 import { safeRegisterCommand } from '../utils/vscodeHelpers';
-import { addPathEntry, externalShimDir, isDirOnPath, removePathEntry } from '../services/CliShim';
+import {
+  addPathEntry,
+  externalShimDir,
+  isDirOnPath,
+  needsRunAsNodeSwitch,
+  removePathEntry,
+} from '../services/CliShim';
 import {
   installCliShim,
   readWindowsUserPath,
@@ -27,7 +33,7 @@ function writeLauncher(context: vscode.ExtensionContext): Promise<string> {
     process.execPath,
     context.extensionPath,
     process.platform,
-    process.versions.electron !== undefined
+    needsRunAsNodeSwitch(process.versions.electron)
   );
 }
 
