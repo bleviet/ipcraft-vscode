@@ -18,7 +18,7 @@
 #   component.xml          - the Spirit 1685-2009 IP-XACT component descriptor
 #   busdef/                - (optional) custom bus definition XML files
 #
-# Exit: 0 = PASS, 1 = FAIL
+# Exit: 0 = PASS, 1 = FAIL (any ERROR or CRITICAL WARNING fails)
 
 set xilinx_dir [lindex $argv 0]
 if {$xilinx_dir eq ""} {
@@ -69,6 +69,19 @@ if {$vendor eq "" || $library eq "" || $name eq "" || $version eq ""} {
 # In-memory project -- no disk artefacts. Structural validation only.
 create_project -in_memory -part $part
 
+# Everything after this point concerns the generated IP. get_msg_config -count
+# counts each message more than once, so only the change from here decides
+# PASS/FAIL; the messages are printed between the markers for vivado.test.ts.
+set errors_before   [get_msg_config -count -severity ERROR]
+set critical_before [get_msg_config -count -severity {CRITICAL WARNING}]
+puts "=== block design begin ==="
+
+# Exporting a memory-mapped slave creates an external address space only as
+# wide as the slave's own address port, which cannot hold its segment; in a
+# real design an interconnect master provides the address space. The resulting
+# "segment not assigned" (BD 41-1356) is a harness artefact, not an IP defect.
+set_msg_config -id {BD 41-1356} -new_severity WARNING
+
 # Register the generated directory (and any custom bus definitions) as an IP
 # repository so Vivado can resolve the component VLNV and its bus interfaces.
 set repo_paths [list $xilinx_dir]
@@ -104,23 +117,21 @@ if {[llength $pins] > 0} {
 puts "Exported interfaces: [llength $intf_pins]   ports: [llength $pins]"
 
 # Validate the assembled design. validate_bd_design itself returns non-zero on
-# hard failures; we additionally count tool-level ERROR messages (same mechanism
-# as validate.tcl) to catch issues reported without a non-zero return.
+# hard failures; ERROR and CRITICAL WARNING messages are counted as well, since
+# Vivado reports port-map and interface defects without a non-zero return.
 catch {validate_bd_design} validate_out
 puts $validate_out
+puts "=== block design end ==="
 
-set n_errors   [get_msg_config -count -severity ERROR]
-set n_warnings [get_msg_config -count -severity WARNING]
-
-puts "\nErrors   : $n_errors"
-puts "Warnings : $n_warnings"
+set new_errors   [expr {[get_msg_config -count -severity ERROR] - $errors_before}]
+set new_critical [expr {[get_msg_config -count -severity {CRITICAL WARNING}] - $critical_before}]
 
 close_project -delete
 
-if {$n_errors == 0} {
+if {$new_errors == 0 && $new_critical == 0} {
     puts "\nPASS: $vlnv -- block-design instantiation and validation passed"
     exit 0
 } else {
-    puts "\nFAIL: $vlnv -- $n_errors error(s) detected during block-design validation"
+    puts "\nFAIL: $vlnv -- ERRORs or CRITICAL WARNINGs during block-design validation (listed above)"
     exit 1
 }

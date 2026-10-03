@@ -52,23 +52,25 @@ if {$vlnv eq ":::"} {
 # Run integrity check. Not -quiet, and CRITICAL WARNINGs fail too: Vivado
 # reports real port-map defects (e.g. IP_Flow 19-4729, logical-name case
 # mismatch) only at that severity.
+#
+# get_msg_config -count counts each message more than once, so only the change
+# across check_integrity decides PASS/FAIL. The messages themselves are printed
+# between the markers below; vivado.test.ts reads their IDs from there.
+set errors_before   [get_msg_config -count -severity ERROR]
+set critical_before [get_msg_config -count -severity {CRITICAL WARNING}]
+puts "=== check_integrity begin ==="
 catch {ipx::check_integrity $core}
-
-set n_errors    [get_msg_config -count -severity ERROR]
-set n_critical  [get_msg_config -count -severity {CRITICAL WARNING}]
-set n_warnings  [get_msg_config -count -severity WARNING]
-
-puts "\nErrors            : $n_errors"
-puts "Critical warnings : $n_critical"
-puts "Warnings          : $n_warnings"
+puts "=== check_integrity end ==="
+set new_errors   [expr {[get_msg_config -count -severity ERROR] - $errors_before}]
+set new_critical [expr {[get_msg_config -count -severity {CRITICAL WARNING}] - $critical_before}]
 
 ipx::unload_core $core
 close_project -delete
 
-if {$n_errors == 0 && $n_critical == 0} {
+if {$new_errors == 0 && $new_critical == 0} {
     puts "\nPASS: $vlnv — integrity check passed"
     exit 0
 } else {
-    puts "\nFAIL: $vlnv — $n_errors error(s), $n_critical critical warning(s) detected"
+    puts "\nFAIL: $vlnv — check_integrity raised ERRORs or CRITICAL WARNINGs (listed above)"
     exit 1
 }

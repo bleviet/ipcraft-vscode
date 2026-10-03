@@ -92,7 +92,9 @@ with clear initiator and responder roles may use `master` and `slave`.
 
 For Vivado, IPCraft can generate the bus-definition and abstraction-definition
 XML needed to describe a custom type. One definition is generated per type,
-even when several interfaces use it.
+even when several interfaces use it. Vivado has no conduit concept, so an
+interface of the generic `ipcraft:busif:conduit:1.0` type is not a Vivado bus
+interface: its signals appear in `component.xml` as plain component ports.
 
 For Quartus Platform Designer, custom signals are emitted as a generic conduit.
 The signals remain grouped, but Platform Designer does not infer protocol

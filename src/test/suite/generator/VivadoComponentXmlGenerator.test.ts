@@ -211,44 +211,144 @@ describe('generateComponentXml', () => {
   });
 
   describe('Avalon-MM bus interface', () => {
-    const avalonBusDefs: BusDefinitions = {
-      ...BUS_DEFS,
-      AVALON_MEMORY_MAPPED: {
-        ports: [
-          { name: 'address', width: 32, direction: 'out', presence: 'optional' },
-          { name: 'read', direction: 'out', presence: 'optional' },
-          { name: 'write', direction: 'out', presence: 'optional' },
-          { name: 'writedata', width: 32, direction: 'out', presence: 'optional' },
-          { name: 'readdata', width: 32, direction: 'in', presence: 'optional' },
-        ],
-      },
-    };
+    // The shipped IPCraft library, not a stub: the defects below came from
+    // library ports that no hand-written fixture used.
+    const avalonLibrary = yaml.load(
+      fs.readFileSync(
+        path.resolve(__dirname, '../../../../ipcraft-spec/bus_definitions/avalon_mm.yml'),
+        'utf8'
+      )
+    ) as BusDefinitions;
+    const avalonBusDefs: BusDefinitions = { ...BUS_DEFS, ...avalonLibrary };
+    const allOptionalPorts = (avalonLibrary.AVALON_MEMORY_MAPPED.ports ?? [])
+      .map((p) => String(p.name))
+      .filter((n) => n !== 'clk' && n !== 'reset');
 
-    // Vivado's avalon_rtl abstraction declares uppercase logical names and
-    // rejects case-insensitive matches with IP_Flow 19-4729 (issue #215).
-    it('writes uppercase logical names and keeps physical names', async () => {
-      const xml = await generateComponentXml(
-        makeIp({
-          busInterfaces: [
-            {
-              name: 's0',
-              type: 'ipcraft:busif:avalon_mm:1.0',
-              mode: 'slave',
-              physicalPrefix: 's0_',
-              useOptionalPorts: ['address', 'read', 'write', 'writedata', 'readdata'],
-              portWidthOverrides: {},
-            },
-          ],
-        }),
-        avalonBusDefs
+    // Logical port names of Vivado 2024.2 data/ip/interfaces/avalon_v1_0/avalon_rtl.xml.
+    const AVALON_RTL = [
+      'ADDRESS',
+      'READDATA',
+      'READDATAVALID',
+      'WAITREQUEST',
+      'BYTEENABLE',
+      'READ',
+      'RESPONSE',
+      'WRITE',
+      'WRITEDATA',
+      'LOCK',
+      'WRITERESPONSEVALID',
+      'BURSTCOUNT',
+      'BEGINBURSTTRANSFER',
+    ];
+
+    function avalonIp(mode: string): IpCoreData {
+      return makeIp({
+        busInterfaces: [
+          {
+            name: 's0',
+            type: 'ipcraft:busif:avalon_mm:1.0',
+            mode,
+            physicalPrefix: 's0_',
+            useOptionalPorts: allOptionalPorts,
+            portWidthOverrides: { address: 12, burstcount: 4 },
+          },
+        ],
+      });
+    }
+
+    function logicalNames(xml: string): string[] {
+      const block = xml.slice(
+        xml.indexOf('<spirit:name>s0</spirit:name>'),
+        xml.indexOf('</spirit:busInterface>', xml.indexOf('<spirit:name>s0</spirit:name>'))
       );
-      expect(xml).toContain('spirit:name="avalon_rtl"');
-      for (const name of ['address', 'read', 'write', 'writedata', 'readdata']) {
+      return [...block.matchAll(/<spirit:logicalPort>\s*<spirit:name>([^<]+)</g)].map((m) => m[1]);
+    }
+
+    // Vivado matches logical names exactly (IP_Flow 19-4729, issue #215) and
+    // rejects names avalon_rtl does not declare (IP_Flow 19-568).
+    it.each(['slave', 'master'])(
+      'maps every %s port avalon_rtl declares, in its uppercase spelling, and no other',
+      async (mode) => {
+        const xml = await generateComponentXml(avalonIp(mode), avalonBusDefs);
+        expect(xml).toContain('spirit:name="avalon_rtl"');
+        expect([...logicalNames(xml)].sort()).toEqual([...AVALON_RTL].sort());
         expect(xml).toContain(
-          `<spirit:logicalPort>\n            <spirit:name>${name.toUpperCase()}</spirit:name>\n          </spirit:logicalPort>\n          <spirit:physicalPort>\n            <spirit:name>s0_${name}</spirit:name>`
+          '<spirit:logicalPort>\n            <spirit:name>ADDRESS</spirit:name>\n          </spirit:logicalPort>\n          <spirit:physicalPort>\n            <spirit:name>s0_address</spirit:name>'
         );
       }
-      expect(xml).not.toMatch(/<spirit:logicalPort>\s*<spirit:name>[a-z]/);
+    );
+
+    it('keeps ports avalon_rtl lacks as plain component ports', async () => {
+      const xml = await generateComponentXml(avalonIp('slave'), avalonBusDefs);
+      const model = xml.slice(xml.indexOf('<spirit:model>'));
+      for (const name of [
+        'debugaccess',
+        'byteenable_n',
+        'readdatavalid_n',
+        'waitrequest_n',
+        'read_n',
+        'write_n',
+      ]) {
+        expect(logicalNames(xml)).not.toContain(name.toUpperCase());
+        expect(model).toContain(`<spirit:name>s0_${name}</spirit:name>`);
+      }
+    });
+
+    it('re-imports as IPCraft Avalon-MM with library-spelled overrides', async () => {
+      const xml = await generateComponentXml(avalonIp('slave'), avalonBusDefs);
+      const ip = yaml.load(parseComponentXmlText(xml).ipYamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+      const iface = ip.busInterfaces.find((b) => b.name === 's0');
+      expect(iface).toMatchObject({
+        type: 'ipcraft:busif:avalon_mm:1.0',
+        mode: 'slave',
+        physicalPrefix: 's0_',
+        portWidthOverrides: { address: 12, burstcount: 4 },
+      });
+      expect(iface?.rawPortMaps).toBeUndefined();
+      expect([...(iface?.useOptionalPorts as string[])].sort()).toEqual(
+        AVALON_RTL.map((n) => n.toLowerCase()).sort()
+      );
+    });
+  });
+
+  describe('generic conduit interface', () => {
+    const conduitIp = makeIp({
+      busInterfaces: [
+        {
+          name: 'DBG',
+          type: 'ipcraft:busif:conduit:1.0',
+          mode: 'conduit',
+          physicalPrefix: 'dbg_',
+          associatedClock: 'clk',
+          conduitPorts: [
+            { name: 'trace_data', direction: 'out', width: 8 },
+            { name: 'trigger', direction: 'in', width: 4 },
+          ],
+          useOptionalPorts: [],
+          portWidthOverrides: {},
+        },
+      ],
+    });
+
+    // Vivado has no busdef for the generic conduit VLNV (IP_Flow 19-569/19-570).
+    it('emits no bus interface and no clock association for it', async () => {
+      const xml = await generateComponentXml(conduitIp, BUS_DEFS);
+      expect(xml).not.toContain('conduit');
+      expect(xml).not.toContain('<spirit:name>DBG</spirit:name>');
+      expect(xml).not.toMatch(/ASSOCIATED_BUSIF[^<]*>[^<]*DBG/);
+    });
+
+    it('declares its ports as plain component ports', async () => {
+      const xml = await generateComponentXml(conduitIp, BUS_DEFS);
+      const model = xml.slice(xml.indexOf('<spirit:model>'));
+      expect(model).toMatch(
+        /<spirit:name>dbg_trace_data<\/spirit:name>\s*<spirit:wire>\s*<spirit:direction>out<\/spirit:direction>\s*<spirit:vector>\s*<spirit:left[^>]*>7</
+      );
+      expect(model).toMatch(
+        /<spirit:name>dbg_trigger<\/spirit:name>\s*<spirit:wire>\s*<spirit:direction>in<\/spirit:direction>\s*<spirit:vector>\s*<spirit:left[^>]*>3</
+      );
     });
   });
 

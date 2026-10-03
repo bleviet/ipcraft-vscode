@@ -11,6 +11,7 @@ const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
 const AXIMM_BUS_FULL = BUS_VLNV.AXI4_FULL;
 const AXIMM_BUS_LITE = BUS_VLNV.AXI4_LITE;
 const AXIS_BUS = BUS_VLNV.AXI_STREAM;
+const AVALON_MM_BUS = BUS_VLNV.AVALON_MM;
 
 export interface ComponentXmlParseOptions {
   library?: string;
@@ -383,6 +384,9 @@ export function parseComponentXmlText(
       busType = logPorts.has('ARLEN') || logPorts.has('AWLEN') ? AXIMM_BUS_FULL : AXIMM_BUS_LITE;
     } else if (btName === 'axis') {
       busType = AXIS_BUS;
+    } else if (btName === 'avalon' && attr(busTypeEl, SPIRIT_NS, 'vendor') === 'xilinx.com') {
+      // The Vivado generator writes IPCraft Avalon-MM as xilinx.com:interface:avalon.
+      busType = AVALON_MM_BUS;
     } else {
       // Unknown bus type — preserve raw VLNV components and port maps so the
       // generator can reconstruct the exact XML without re-splitting the
@@ -458,6 +462,7 @@ export function parseComponentXmlText(
       // Extract portWidthOverrides: where the actual port width in <spirit:ports>
       // differs from the bus-definition default, record the actual width so the
       // generator reproduces the original port sizes faithfully on re-export.
+      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
       const defaultWidths = new Map(
         busDef
           .filter((def): def is typeof def & { width: number } => typeof def.width === 'number')
@@ -479,7 +484,10 @@ export function parseComponentXmlText(
             }
             const defaultWidth = defaultWidths.get(logName.toUpperCase());
             if (defaultWidth !== undefined && attrs.width !== defaultWidth) {
-              portWidthOverrides[logName] = attrs.width;
+              // Key by the library's spelling: Vivado abstractions use uppercase
+              // logical names where the IPCraft library may not (Avalon).
+              portWidthOverrides[defByUpper.get(logName.toUpperCase())?.name ?? logName] =
+                attrs.width;
             }
           }
           if (Object.keys(portWidthOverrides).length > 0) {
@@ -494,7 +502,6 @@ export function parseComponentXmlText(
       // renamed suffix). Recording the actual observed suffix keeps physicalPrefix +
       // portNameOverrides losslessly reconstructing the original physical names on
       // re-export. With no common prefix, the suffix is the whole physical name.
-      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
       const portMapsEl = childEl(busIf, 'portMaps');
       if (portMapsEl) {
         const prefix = physicalPrefix ?? '';

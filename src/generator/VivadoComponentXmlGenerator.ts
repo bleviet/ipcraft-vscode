@@ -67,7 +67,7 @@ function busDefPortMaps(
   ports: BusPortDefinition[],
   iface: BusInterfaceDef,
   mode: string,
-  logicalName: (name: string) => string = (name) => name
+  vivadoLogicalPorts?: ReadonlySet<string>
 ): string[] {
   const activePorts = getActiveBusPortsFromDefinition(
     ports,
@@ -79,19 +79,27 @@ function busDefPortMaps(
     iface.portNameOverrides,
     iface.absentPorts
   );
-  if (activePorts.length === 0) {
+  const portMaps = activePorts.flatMap((port) => {
+    const logical = String(port.logical_name);
+    if (!vivadoLogicalPorts) {
+      return [{ logical, physical: String(port.name) }];
+    }
+    // A port the Xilinx abstraction does not declare stays a plain component
+    // port, outside the bus interface.
+    const upper = logical.toUpperCase();
+    return vivadoLogicalPorts.has(upper) ? [{ logical: upper, physical: String(port.name) }] : [];
+  });
+  if (portMaps.length === 0) {
     return [];
   }
   const lines: string[] = ['      <spirit:portMaps>'];
-  for (const port of activePorts) {
+  for (const port of portMaps) {
     lines.push('        <spirit:portMap>');
     lines.push('          <spirit:logicalPort>');
-    lines.push(
-      `            <spirit:name>${x(logicalName(String(port.logical_name)))}</spirit:name>`
-    );
+    lines.push(`            <spirit:name>${x(port.logical)}</spirit:name>`);
     lines.push('          </spirit:logicalPort>');
     lines.push('          <spirit:physicalPort>');
-    lines.push(`            <spirit:name>${x(String(port.name))}</spirit:name>`);
+    lines.push(`            <spirit:name>${x(port.physical)}</spirit:name>`);
     lines.push('          </spirit:physicalPort>');
     lines.push('        </spirit:portMap>');
   }
@@ -225,12 +233,33 @@ interface VivadoBusTypeInfo {
   protocol?: string;
   libraryKey: string;
   /**
-   * Vivado matches logical port names exactly (IP_Flow 19-4729). Set when the
-   * Xilinx abstraction spells them in uppercase but the IPCraft bus library
-   * does not.
+   * Logical port names declared by the Xilinx abstraction. Vivado matches them
+   * exactly (IP_Flow 19-4729) and rejects any name it does not declare
+   * (IP_Flow 19-568), so IPCraft library names are uppercased and filtered
+   * against this set.
    */
-  upperCaseLogicalNames?: boolean;
+  logicalPorts: ReadonlySet<string>;
 }
+
+// From Vivado's data/ip/interfaces/<name>_v1_0/<name>_rtl.xml.
+const AXIMM_RTL_PORTS: ReadonlySet<string> = new Set(
+  (
+    'AWID AWADDR AWLEN AWSIZE AWBURST AWLOCK AWCACHE AWPROT AWREGION AWQOS AWUSER AWVALID ' +
+    'AWREADY WID WDATA WSTRB WLAST WUSER WVALID WREADY BID BRESP BUSER BVALID BREADY ARID ' +
+    'ARADDR ARLEN ARSIZE ARBURST ARLOCK ARCACHE ARPROT ARREGION ARQOS ARUSER ARVALID ARREADY ' +
+    'RID RDATA RRESP RLAST RUSER RVALID RREADY'
+  ).split(' ')
+);
+const AXIS_RTL_PORTS: ReadonlySet<string> = new Set(
+  'TID TDEST TDATA TSTRB TKEEP TLAST TUSER TVALID TREADY'.split(' ')
+);
+// avalon_rtl has no active-low (*_n) variants and no DEBUGACCESS.
+const AVALON_RTL_PORTS: ReadonlySet<string> = new Set(
+  (
+    'ADDRESS READDATA READDATAVALID WAITREQUEST BYTEENABLE READ RESPONSE WRITE WRITEDATA ' +
+    'LOCK WRITERESPONSEVALID BURSTCOUNT BEGINBURSTTRANSFER'
+  ).split(' ')
+);
 
 const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
   [BUS_VLNV.AXI4_LITE]: {
@@ -240,6 +269,7 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     abstraction: 'aximm_rtl',
     protocol: 'AXI4LITE',
     libraryKey: 'AXI4_LITE',
+    logicalPorts: AXIMM_RTL_PORTS,
   },
   [BUS_VLNV.AXI4_FULL]: {
     vendor: 'xilinx.com',
@@ -248,6 +278,7 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     abstraction: 'aximm_rtl',
     protocol: 'AXI4',
     libraryKey: 'AXI4_FULL',
+    logicalPorts: AXIMM_RTL_PORTS,
   },
   [BUS_VLNV.AXI_STREAM]: {
     vendor: 'xilinx.com',
@@ -255,6 +286,7 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     name: 'axis',
     abstraction: 'axis_rtl',
     libraryKey: 'AXI_STREAM',
+    logicalPorts: AXIS_RTL_PORTS,
   },
   [BUS_VLNV.AVALON_MM]: {
     vendor: 'xilinx.com',
@@ -262,7 +294,7 @@ const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
     name: 'avalon',
     abstraction: 'avalon_rtl',
     libraryKey: 'AVALON_MEMORY_MAPPED',
-    upperCaseLogicalNames: true,
+    logicalPorts: AVALON_RTL_PORTS,
   },
 };
 
@@ -282,6 +314,17 @@ function resolveVivadoBusType(ifaceType: string): VivadoBusTypeInfo | undefined 
     return undefined;
   }
   return Object.values(IPCRAFT_TO_VIVADO).find((v) => v.libraryKey === libraryKey);
+}
+
+/**
+ * Vivado has no conduit concept and no busdef for IPCraft's generic conduit
+ * VLNV (IP_Flow 19-569/19-570), so a generic conduit's ports are emitted as
+ * plain component ports instead of a bus interface. Bundling a busdef is not an
+ * option: every IP would ship a different abstraction under the same VLNV.
+ */
+function isPlainConduit(iface: BusInterfaceDef, busDefinitions: BusDefinitions): boolean {
+  const ifaceType = String(iface.type ?? '');
+  return ifaceType === BUS_VLNV.CONDUIT && !findCustomBusDef(ifaceType, busDefinitions);
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
@@ -350,7 +393,8 @@ export async function generateComponentXml(
   const clocks = ipCore.clocks ?? [];
   const resets = ipCore.resets ?? [];
   // Use expanded bus interfaces so array-type entries produce one entry per instance.
-  const busInterfaces = expandBusInterfaces(ipCore);
+  const allBusInterfaces = expandBusInterfaces(ipCore);
+  const busInterfaces = allBusInterfaces.filter((bi) => !isPlainConduit(bi, busDefinitions));
   const userPorts = ipCore.ports ?? [];
   const parameters = ipCore.parameters ?? [];
   const interrupts =
@@ -447,7 +491,7 @@ export async function generateComponentXml(
     ...renderPorts(
       clocks,
       resets,
-      busInterfaces,
+      allBusInterfaces,
       userPorts,
       interrupts,
       busDefinitions,
@@ -569,10 +613,7 @@ function renderBusInterface(iface: BusInterfaceDef, busDefinitions: BusDefinitio
   if (vivadoType) {
     const busDef = busDefinitions[vivadoType.libraryKey];
     if (busDef?.ports) {
-      const logicalName = vivadoType.upperCaseLogicalNames
-        ? (name: string) => name.toUpperCase()
-        : undefined;
-      lines.push(...busDefPortMaps(busDef.ports, iface, mode, logicalName));
+      lines.push(...busDefPortMaps(busDef.ports, iface, mode, vivadoType.logicalPorts));
     }
   } else if (iface.conduitPorts && (iface.conduitPorts as unknown[]).length > 0) {
     // Ports already authored directly on the interface take priority over a
@@ -1169,9 +1210,13 @@ function renderPorts(
     const ifaceType = String(iface.type ?? '');
     const mode = String(iface.mode ?? 'slave').toLowerCase();
     const vivadoType = resolveVivadoBusType(ifaceType);
+    // Same precedence as renderBusInterface's portMaps.
+    const conduitPorts = iface.conduitPorts as BusPortDefinition[] | undefined;
     const sourcePorts: BusPortDefinition[] | undefined = vivadoType
       ? busDefinitions[vivadoType.libraryKey]?.ports
-      : findCustomBusDef(ifaceType, busDefinitions)?.ports;
+      : conduitPorts && conduitPorts.length > 0
+        ? conduitPorts
+        : findCustomBusDef(ifaceType, busDefinitions)?.ports;
 
     if (!sourcePorts) {
       // Unknown bus type with preserved rawPortMaps: emit physical ports directly

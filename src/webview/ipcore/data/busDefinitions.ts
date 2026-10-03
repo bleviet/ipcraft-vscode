@@ -129,6 +129,7 @@ const AVALON_MM: BusPortDef[] = [
     endianRole: 'byteQualifier',
   },
   { name: 'chipselect', direction: 'out', presence: 'optional' },
+  { name: 'lock', direction: 'out', presence: 'optional' },
   {
     name: 'writedata',
     width: 32,
@@ -144,6 +145,7 @@ const AVALON_MM: BusPortDef[] = [
     endianRole: 'data',
   },
   { name: 'readdatavalid', direction: 'in', presence: 'optional' },
+  { name: 'writeresponsevalid', direction: 'in', presence: 'optional' },
   { name: 'waitrequest', direction: 'in', presence: 'optional' },
   { name: 'burstcount', width: 8, direction: 'out', presence: 'optional' },
   { name: 'beginbursttransfer', direction: 'out', presence: 'optional' },

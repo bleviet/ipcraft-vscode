@@ -3,7 +3,7 @@
  *
  * For each template IP core that produces an xilinx/component.xml, runs Vivado
  * in batch mode with scripts/integration/vivado/validate.tcl and asserts that
- * ipx::check_integrity reports 0 errors.
+ * ipx::check_integrity reports no ERRORs or CRITICAL WARNINGs.
  *
  * Requires Vivado to be installed on the host. Set VIVADO_BIN to override the
  * default path (/home/balevision/tools/Xilinx/Vivado/2024.2/bin/vivado).
@@ -34,20 +34,102 @@ let xilinxes: Fixture[] = [];
 
 /**
  * Fixtures that validate.tcl is known to reject, keyed by fixture name, with
- * the Vivado message ID the rejection must carry. Matching on the ID keeps an
- * unrelated new defect in the same fixture from hiding behind the entry; a
- * fixture that starts passing fails the test so its entry gets removed.
+ * the exact set of Vivado message IDs the rejection carries. Any other ERROR or
+ * CRITICAL WARNING ID fails the test, so a new defect in the same fixture
+ * cannot hide behind the entry; a fixture that starts passing fails the test so
+ * its entry gets removed.
  */
-const KNOWN_INTEGRITY_FAILURES: Record<string, string> = {
-  // The IP has no ports at all, which Vivado refuses to package.
-  minimal_vhdl: 'IP_Flow 19-748',
-  minimal_sv: 'IP_Flow 19-748',
-  'examples/minimal_vhdl': 'IP_Flow 19-748',
-  'examples/minimal_sv': 'IP_Flow 19-748',
-  // The generic ipcraft:busif:conduit type has no bundled busdef XML.
-  'examples/comprehensive_axi_vhdl': 'IP_Flow 19-570',
-  'examples/comprehensive_axi_sv': 'IP_Flow 19-570',
+const KNOWN_INTEGRITY_FAILURES: Record<string, string[]> = {
+  // The IP has no ports at all, which Vivado refuses to package. Ipptcl
+  // 7-1485 is check_integrity's own "Integrity check failed" summary.
+  minimal_vhdl: ['IP_Flow 19-748', 'Ipptcl 7-1485'],
+  minimal_sv: ['IP_Flow 19-748', 'Ipptcl 7-1485'],
+  'examples/minimal_vhdl': ['IP_Flow 19-748', 'Ipptcl 7-1485'],
+  'examples/minimal_sv': ['IP_Flow 19-748', 'Ipptcl 7-1485'],
 };
+
+/** Fixtures validate_bd.tcl is known to reject, matched the same way. */
+const KNOWN_BD_FAILURES: Record<string, string[]> = {
+  // The ipcraft-spec example ties RST_SYS to CLK_SYS (100 MHz) and CLK_USB
+  // (60 MHz); the fix belongs in the example, not the generator.
+  'examples/system_controller_vhdl': ['BD 41-1761'],
+  'examples/system_controller_sv': ['BD 41-1761'],
+};
+
+/**
+ * Runs a validator script in Vivado batch mode. Vivado prints ERRORs to stderr
+ * and everything else to stdout, so both go to one file to keep their order
+ * relative to the section markers.
+ */
+function runValidator(
+  script: string,
+  xilinxDir: string
+): { status: number | null; output: string } {
+  const logPath = path.join(xilinxDir, `${path.basename(script, '.tcl')}.out`);
+  const fd = fs.openSync(logPath, 'w');
+  try {
+    const result = spawnSync(
+      VIVADO_BIN,
+      ['-mode', 'batch', '-nojournal', '-nolog', '-source', script, '-tclargs', xilinxDir],
+      { stdio: ['ignore', fd, fd], timeout: 120_000 }
+    );
+    if (result.error) {
+      return { status: null, output: `failed to spawn Vivado — ${result.error.message}` };
+    }
+    return { status: result.status, output: fs.readFileSync(logPath, 'utf8') };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
+/**
+ * Checks one validator run against the known-failure table: a listed fixture
+ * must fail with exactly its listed message IDs, any other must pass.
+ * Returns a failure description, or undefined when the run is as expected.
+ */
+function checkRun(
+  fixtureName: string,
+  run: { status: number | null; output: string },
+  section: string,
+  known: Record<string, string[]>,
+  tableName: string
+): string | undefined {
+  const passed = run.status === 0;
+  const expected = [...(known[fixtureName] ?? [])].sort();
+  if (expected.length === 0) {
+    return passed ? undefined : `${fixtureName}: FAIL (exit ${run.status})\n${run.output}`;
+  }
+  if (passed) {
+    return `${fixtureName}: now passes — remove it from ${tableName}`;
+  }
+  const ids = messageIds(run.output, section);
+  if (ids.join(',') !== expected.join(',')) {
+    return (
+      `${fixtureName}: FAIL with [${ids.join(', ')}], expected exactly ` +
+      `[${expected.join(', ')}] (exit ${run.status})\n${run.output}`
+    );
+  }
+  return undefined;
+}
+
+/**
+ * IDs of the ERROR and CRITICAL WARNING messages Vivado printed between a
+ * validator's "=== <section> begin/end ===" markers. Batch mode also echoes
+ * each Tcl command with a "# " prefix, so only exact marker lines count.
+ */
+function messageIds(stdout: string, section: string): string[] {
+  const lines = stdout.split('\n');
+  const begin = lines.indexOf(`=== ${section} begin ===`);
+  const end = lines.indexOf(`=== ${section} end ===`);
+  if (begin < 0 || end < begin) {
+    return [];
+  }
+  const ids = lines
+    .slice(begin + 1, end)
+    .map((line) => /^(?:ERROR|CRITICAL WARNING): \[([^\]]+)\]/.exec(line)?.[1])
+    .filter((id): id is string => id !== undefined);
+  return [...new Set(ids)].sort();
+}
 
 beforeAll(async () => {
   const all = await generateFixtures();
@@ -78,43 +160,18 @@ it('all Xilinx fixtures pass Vivado ipx::check_integrity', () => {
   for (const fixture of xilinxes) {
     const xilinxDir = path.join(fixture.outputDir, 'xilinx');
 
-    const result = spawnSync(
-      VIVADO_BIN,
-      ['-mode', 'batch', '-source', VALIDATE_TCL, '-tclargs', xilinxDir],
-      { encoding: 'utf8', timeout: 120_000 }
+    const failure = checkRun(
+      fixture.name,
+      runValidator(VALIDATE_TCL, xilinxDir),
+      'check_integrity',
+      KNOWN_INTEGRITY_FAILURES,
+      'KNOWN_INTEGRITY_FAILURES'
     );
-
-    if (result.error) {
-      failures.push(`${fixture.name}: failed to spawn Vivado — ${result.error.message}`);
-      continue;
-    }
-
-    // validate.tcl exits 0 on success; it also prints "PASS: <vlnv>"
-    const passed = result.status === 0;
-    const knownFailure = KNOWN_INTEGRITY_FAILURES[fixture.name];
-    if (knownFailure) {
-      if (passed) {
-        failures.push(`${fixture.name}: now passes — remove it from KNOWN_INTEGRITY_FAILURES`);
-      } else if (!`${result.stdout}${result.stderr}`.includes(knownFailure)) {
-        failures.push(
-          [
-            `${fixture.name}: FAIL without the expected ${knownFailure} (exit ${result.status})`,
-            `stdout:\n${result.stdout}`,
-            `stderr:\n${result.stderr}`,
-          ].join('\n')
-        );
-      }
-    } else if (passed) {
-      // eslint-disable-next-line no-console
-      console.log(`  PASS: ${fixture.name}`);
+    if (failure) {
+      failures.push(failure);
     } else {
-      failures.push(
-        [
-          `${fixture.name}: FAIL (exit ${result.status})`,
-          `stdout:\n${result.stdout}`,
-          `stderr:\n${result.stderr}`,
-        ].join('\n')
-      );
+      // eslint-disable-next-line no-console
+      console.log(`  OK: ${fixture.name}`);
     }
   }
 
@@ -146,29 +203,18 @@ it('all Xilinx fixtures pass Vivado block-design instantiation + export (validat
   for (const fixture of xilinxes) {
     const xilinxDir = path.join(fixture.outputDir, 'xilinx');
 
-    const result = spawnSync(
-      VIVADO_BIN,
-      ['-mode', 'batch', '-source', VALIDATE_BD_TCL, '-tclargs', xilinxDir],
-      { encoding: 'utf8', timeout: 120_000 }
+    const failure = checkRun(
+      fixture.name,
+      runValidator(VALIDATE_BD_TCL, xilinxDir),
+      'block design',
+      KNOWN_BD_FAILURES,
+      'KNOWN_BD_FAILURES'
     );
-
-    if (result.error) {
-      failures.push(`${fixture.name}: failed to spawn Vivado — ${result.error.message}`);
-      continue;
-    }
-
-    // validate_bd.tcl exits 0 on success; it also prints "PASS: <vlnv>"
-    if (result.status === 0) {
-      // eslint-disable-next-line no-console
-      console.log(`  PASS: ${fixture.name}`);
+    if (failure) {
+      failures.push(failure);
     } else {
-      failures.push(
-        [
-          `${fixture.name}: block-design validation FAIL (exit ${result.status})`,
-          `stdout:\n${result.stdout}`,
-          `stderr:\n${result.stderr}`,
-        ].join('\n')
-      );
+      // eslint-disable-next-line no-console
+      console.log(`  OK: ${fixture.name}`);
     }
   }
 
