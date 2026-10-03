@@ -16,6 +16,7 @@ import { registerGeneratorCommands } from './commands/GenerateCommands';
 import { registerHdlCrossCheckCommands } from './commands/HdlCrossCheckCommands';
 import { registerConsistencyCheckCommands } from './commands/ConsistencyCheckCommands';
 import { registerBuildCommands } from './commands/BuildCommands';
+import { registerCliPathCommands } from './commands/CliPathCommands';
 import { editInIpPackagerCommand } from './commands/editInIpPackager';
 import { editInPlatformDesignerCommand } from './commands/editInPlatformDesigner';
 import { openInVivadoCommand } from './commands/openInVivado';
@@ -253,6 +254,8 @@ export function activate(context: vscode.ExtensionContext): void {
 
   // Register Scaffold Pack Commands (preview + export + watchers)
   registerScaffoldPackCommands(context, templatePreviewProvider, resourceRoots);
+
+  registerCliPathCommands(context, logger);
 
   // Register VHDL Generator Commands
   registerGeneratorCommands(context, resourceRoots);

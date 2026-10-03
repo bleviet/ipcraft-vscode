@@ -4,6 +4,10 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **The extension now ships the `ipcraft` CLI and puts it on `PATH`.** It is available in VS Code integrated terminals automatically, and `IPCraft: Install 'ipcraft' Command in PATH` installs it for external terminals on this machine without sudo or Node.js. CI runners without VS Code are not covered. ([#206](https://github.com/bleviet/ipcraft-vscode/issues/206))
+
 ### Fixed
 
 - **Generated AXI4-Lite slaves (VHDL and SystemVerilog) no longer lose a transaction or deadlock when the master offers several at once.** The wrapper accepted the next write's W beat while the previous write response was still pending (overwriting the latched write data) and the next AR while RVALID was still pending (that read was never answered). It now takes one write and one read at a time. Masters with transactions in flight, such as an AXI SmartConnect forwarding posted PCIe writes, hit this; on a PCIe host the hung slave caused completion timeouts. A new behavioral suite (`axil-handshake`, GHDL and Icarus Verilog) offers write and read transactions back to back.
