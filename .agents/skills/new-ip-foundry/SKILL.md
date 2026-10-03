@@ -1,5 +1,6 @@
 ---
-description: 'Step-by-step workflow to go from an IP core idea to a generated project.'
+name: new-ip-foundry
+description: 'Step-by-step workflow to go from an IP core idea to a generated project. Use when the user wants to design a new IP core and generate its RTL and vendor files with IPCraft.'
 ---
 
 # New IP Foundry Workflow
@@ -23,7 +24,7 @@ Follow these steps to design and generate a new IP core using IPCraft.
 
 4. **YAML Generation**
    - Provide the complete, valid YAML for both files.
-   - Save to the `ipcraft-spec/examples/` or a new project directory.
+   - Save to a new project directory. Do not write into `ipcraft-spec/` (it is a git submodule).
 
 5. **RTL Generation**
    - Instruct the user to open the IP core in the IPCraft VS Code extension.

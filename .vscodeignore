@@ -35,6 +35,7 @@ skills-lock.json
 knip.jsonc
 .agents/**
 .claude/**
+.gemini/**
 .worktrees/**
 .superpowers/**
 build/**

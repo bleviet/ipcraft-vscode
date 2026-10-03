@@ -1855,7 +1855,7 @@ describe('IpCoreScaffolder', () => {
     // quartus_sdc.j2's clock-comment line used an inline
     // `{% if clock.frequency %} — {{ clock.frequency }}{% endif %}` whose
     // trailing `{% endif %}` had its newline consumed by trimBlocks: true
-    // (this repo's own documented gotcha, see CLAUDE.md) -- the following
+    // (this repo's own documented gotcha, see AGENTS.md) -- the following
     // `create_clock ...` line was merged onto the same (comment) line and
     // silently swallowed as part of the Tcl comment, so the constraint was
     // never actually applied. Confirmed on a real Quartus 25.1std run: the
