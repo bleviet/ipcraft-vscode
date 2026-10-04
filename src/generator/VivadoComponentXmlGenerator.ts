@@ -71,20 +71,27 @@ function renderPortMaps(portMaps: readonly PortMap[]): string[] {
 }
 
 /**
- * Xilinx abstractions declare their logical ports in uppercase and Vivado rejects
- * any name they do not declare (IP_Flow 19-4729, 19-568). A port outside the
- * abstraction stays a plain component port, outside the bus interface.
+ * Keeps only the port maps whose logical name the bus type declares, matched
+ * case-insensitively and emitted under the declared spelling. Xilinx abstractions
+ * reject any logical name they do not declare (IP_Flow 19-4729, 19-568). A port
+ * outside the abstraction stays a plain component port, outside the bus interface.
+ * Without a resolved type (raw port maps) the maps pass through unchanged.
  */
-function filterToXilinxLogicalPorts(
+function filterToDeclaredLogicalPorts(
   portMaps: readonly PortMap[],
-  vivadoType: VivadoBusTypeInfo | undefined
+  vivadoType: VivadoBusTypeInfo | undefined,
+  customBus: CustomBusInfo | null
 ): PortMap[] {
-  if (!vivadoType) {
+  const declared = vivadoType
+    ? [...vivadoType.logicalPorts]
+    : customBus?.ports.flatMap((port) => port.interfaceRoles ?? [port.name]);
+  if (!declared) {
     return [...portMaps];
   }
+  const byUpper = new Map(declared.map((name) => [name.toUpperCase(), name]));
   return portMaps.flatMap((pm) => {
-    const logical = pm.logical.toUpperCase();
-    return vivadoType.logicalPorts.has(logical) ? [{ logical, physical: pm.physical }] : [];
+    const logical = byUpper.get(pm.logical.toUpperCase());
+    return logical ? [{ logical, physical: pm.physical }] : [];
   });
 }
 
@@ -165,17 +172,18 @@ function planBusInterface(
 
   const conduitPorts = iface.conduitPorts as BusPortDefinition[] | undefined;
   if (conduitPorts && conduitPorts.length > 0) {
-    // Ports already authored directly on the interface take priority over a
-    // newly-discovered library match (e.g. from the Vivado interface catalog):
-    // the user's physical port names are presumably already wired up in their real
-    // HDL, and a library match alone doesn't tell us how to remap them to the
-    // library's official logical names. Silently switching here would produce a
-    // component.xml with physical names that don't exist on the actual entity.
+    // Ports authored directly on the interface take priority over a library match,
+    // but a library bus type only accepts the logical ports it declares. Authored
+    // ports named after a declared logical port are mapped (portNameOverrides sets
+    // the physical name); the rest stay plain component ports. If none match,
+    // portMaps is empty, the interface is omitted, and renderPorts still declares
+    // every authored port as a plain model port.
     return {
       ...plan,
-      portMaps: filterToXilinxLogicalPorts(
+      portMaps: filterToDeclaredLogicalPorts(
         busDefPortMaps(conduitPorts, iface, mode, effectiveDirections),
-        vivadoType
+        vivadoType,
+        customBus
       ),
     };
   }
@@ -193,7 +201,7 @@ function planBusInterface(
     );
     return {
       ...plan,
-      portMaps: filterToXilinxLogicalPorts(projectedPortMaps(projected), vivadoType),
+      portMaps: filterToDeclaredLogicalPorts(projectedPortMaps(projected), vivadoType, null),
     };
   }
   return { ...plan, portMaps: rawPortMaps };
