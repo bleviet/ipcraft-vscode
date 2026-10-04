@@ -831,7 +831,7 @@ describe('generateComponentXml', () => {
       expect(modelPort('fifo_almost_full')).toContain('<spirit:direction>in</spirit:direction>');
     });
 
-    it('keeps using already-authored conduitPorts even when the type also matches a known busDefinitions entry', async () => {
+    describe('conduitPorts on a type that matches a known busDefinitions entry', () => {
       const defsWithFifoWrite: BusDefinitions = {
         ...BUS_DEFS,
         FIFO_WRITE: {
@@ -848,35 +848,168 @@ describe('generateComponentXml', () => {
           ],
         },
       };
-      const ip = makeIp({
-        busInterfaces: [
-          {
-            name: 'fifo_write',
-            type: 'xilinx.com:interface:fifo_write:1.0',
-            mode: 'conduit',
-            physicalPrefix: null,
-            conduitPorts: [
-              { name: 'fifo_wr_en', direction: 'out', presence: 'required', width: 1 },
-              { name: 'fifo_wr_data', direction: 'out', presence: 'required', width: 8 },
+      const fifoIp = (
+        conduitPorts: Array<Record<string, unknown>>,
+        portNameOverrides?: Record<string, string>
+      ): IpCoreData =>
+        makeIp({
+          busInterfaces: [
+            {
+              name: 'fifo_write',
+              type: 'xilinx.com:interface:fifo_write:1.0',
+              mode: 'conduit',
+              physicalPrefix: null,
+              conduitPorts,
+              ...(portNameOverrides ? { portNameOverrides } : {}),
+              useOptionalPorts: [],
+              portWidthOverrides: {},
+            },
+          ],
+        });
+
+      it('keeps conduitPorts the bus type does not declare as plain ports outside any bus interface', async () => {
+        const xml = await generateComponentXml(
+          fifoIp([
+            { name: 'fifo_wr_en', direction: 'out', presence: 'required', width: 1 },
+            { name: 'fifo_wr_data', direction: 'out', presence: 'required', width: 8 },
+            { name: 'fifo_almost_full', direction: 'in', presence: 'required', width: 1 },
+          ]),
+          defsWithFifoWrite
+        );
+        expect(xml).not.toContain('<spirit:name>fifo_write</spirit:name>');
+        const model = xml.slice(xml.indexOf('<spirit:model>'));
+        for (const name of ['fifo_wr_en', 'fifo_wr_data', 'fifo_almost_full']) {
+          expect(model).toContain(`<spirit:name>${name}</spirit:name>`);
+        }
+      });
+
+      it('maps conduitPorts authored under a declared logical name and leaves the rest plain', async () => {
+        const xml = await generateComponentXml(
+          fifoIp(
+            [
+              { name: 'WR_EN', direction: 'out', presence: 'required', width: 1 },
+              { name: 'WR_DATA', direction: 'out', presence: 'required', width: 8 },
               { name: 'fifo_almost_full', direction: 'in', presence: 'required', width: 1 },
             ],
-            useOptionalPorts: [],
-            portWidthOverrides: {},
-          },
-        ],
+            { WR_EN: 'fifo_wr_en', WR_DATA: 'fifo_wr_data' }
+          ),
+          defsWithFifoWrite
+        );
+        const idx = xml.indexOf('<spirit:name>fifo_write</spirit:name>');
+        expect(idx).toBeGreaterThan(-1);
+        const block = xml.slice(idx, xml.indexOf('</spirit:busInterface>', idx));
+        expect(block).toContain('spirit:vendor="xilinx.com"');
+        expect(block).toMatch(
+          /<spirit:logicalPort>\s*<spirit:name>WR_EN<\/spirit:name>\s*<\/spirit:logicalPort>\s*<spirit:physicalPort>\s*<spirit:name>fifo_wr_en<\/spirit:name>/
+        );
+        expect(block).toMatch(
+          /<spirit:logicalPort>\s*<spirit:name>WR_DATA<\/spirit:name>\s*<\/spirit:logicalPort>\s*<spirit:physicalPort>\s*<spirit:name>fifo_wr_data<\/spirit:name>/
+        );
+        expect(block).not.toContain('fifo_almost_full');
+        const model = xml.slice(xml.indexOf('<spirit:model>'));
+        expect(model).toContain('<spirit:name>fifo_almost_full</spirit:name>');
       });
-      const xml = await generateComponentXml(ip, defsWithFifoWrite);
-      const idx = xml.indexOf('<spirit:name>fifo_write</spirit:name>');
-      const block = xml.slice(idx, xml.indexOf('</spirit:busInterface>', idx));
 
-      // busType/abstractionType still correctly declare the real Xilinx interface...
-      expect(block).toContain('spirit:vendor="xilinx.com"');
-      expect(block).toContain('spirit:name="fifo_write"');
-      // ...but the portMaps still reflect the user's own already-wired conduitPorts,
-      // not the library's official logical names — switching silently would produce
-      // physical port names that don't exist on the user's real HDL entity.
-      expect(block).toContain('<spirit:name>fifo_wr_en</spirit:name>');
-      expect(block).not.toContain('<spirit:name>WR_EN</spirit:name>');
+      it('matches conduitPorts to declared logical names case-insensitively and emits the declared spelling', async () => {
+        const xml = await generateComponentXml(
+          fifoIp(
+            [
+              { name: 'wr_en', direction: 'out', presence: 'required', width: 1 },
+              { name: 'wr_data', direction: 'out', presence: 'required', width: 8 },
+            ],
+            { wr_en: 'fifo_wr_en', wr_data: 'fifo_wr_data' }
+          ),
+          defsWithFifoWrite
+        );
+        const idx = xml.indexOf('<spirit:name>fifo_write</spirit:name>');
+        expect(idx).toBeGreaterThan(-1);
+        const block = xml.slice(idx, xml.indexOf('</spirit:busInterface>', idx));
+        expect(block).toMatch(
+          /<spirit:logicalPort>\s*<spirit:name>WR_EN<\/spirit:name>\s*<\/spirit:logicalPort>\s*<spirit:physicalPort>\s*<spirit:name>fifo_wr_en<\/spirit:name>/
+        );
+        expect(block).toMatch(
+          /<spirit:logicalPort>\s*<spirit:name>WR_DATA<\/spirit:name>\s*<\/spirit:logicalPort>\s*<spirit:physicalPort>\s*<spirit:name>fifo_wr_data<\/spirit:name>/
+        );
+        expect(block).not.toContain('<spirit:name>wr_en</spirit:name>');
+      });
+    });
+
+    describe('conduitPorts on a library contract with polarity roles (custom bus path)', () => {
+      const polarityDefinitions = {
+        ACME_STROBE: {
+          busType: { vendor: 'acme.com', library: 'interface', name: 'strobe', version: '1.0' },
+          contract: {
+            version: 1,
+            interfaceKind: 'streaming',
+            modePolicy: { producer: 'initiator', consumer: 'target', aliases: {} },
+            interfaceProperties: {},
+            constraints: [],
+          },
+          ports: [
+            {
+              name: 'strobe',
+              width: 1,
+              direction: 'out',
+              presence: 'optional',
+              role: 'control',
+              widthPolicy: 'fixed',
+              polarity: {
+                default: 'activeHigh',
+                roles: { activeHigh: 'strobe_p', activeLow: 'strobe_n' },
+              },
+            },
+          ],
+        },
+      } as unknown as BusDefinitionFile;
+      const strobeIp = (conduitPorts: Array<Record<string, unknown>>): IpCoreData =>
+        makeIp({
+          busInterfaces: [
+            {
+              name: 'strobe_if',
+              type: 'acme.com:interface:strobe:1.0',
+              mode: 'conduit',
+              physicalPrefix: null,
+              conduitPorts,
+              useOptionalPorts: [],
+              portWidthOverrides: {},
+            },
+          ],
+        });
+      const generateStrobe = (conduitPorts: Array<Record<string, unknown>>) =>
+        generateComponentXmlImpl(
+          strobeIp(conduitPorts),
+          {},
+          {
+            busLibrary: normalizeBusLibrary([
+              {
+                sourceFile: '/workspace/strobe.yml',
+                sourceKind: 'workspace',
+                definitions: polarityDefinitions,
+              },
+            ]),
+          }
+        );
+
+      it('maps conduitPorts named after a polarity role', async () => {
+        const xml = await generateStrobe([
+          { name: 'strobe_n', direction: 'out', presence: 'required', width: 1 },
+        ]);
+        const idx = xml.indexOf('<spirit:name>strobe_if</spirit:name>');
+        expect(idx).toBeGreaterThan(-1);
+        const block = xml.slice(idx, xml.indexOf('</spirit:busInterface>', idx));
+        expect(block).toMatch(
+          /<spirit:logicalPort>\s*<spirit:name>strobe_n<\/spirit:name>\s*<\/spirit:logicalPort>\s*<spirit:physicalPort>\s*<spirit:name>strobe_n<\/spirit:name>/
+        );
+      });
+
+      it('does not map a conduit port named after the canonical port name when only roles are declared', async () => {
+        const xml = await generateStrobe([
+          { name: 'strobe', direction: 'out', presence: 'required', width: 1 },
+        ]);
+        expect(xml).not.toContain('<spirit:name>strobe_if</spirit:name>');
+        const model = xml.slice(xml.indexOf('<spirit:model>'));
+        expect(model).toContain('<spirit:name>strobe</spirit:name>');
+      });
     });
 
     it('falls back to user.org with the raw type as name when type is not a valid VLNV', async () => {

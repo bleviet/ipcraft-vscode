@@ -3,6 +3,7 @@ import {
   blocksImportWrite,
   checkBusConformance,
 } from '../../../shared/busConformance';
+import { BUS_VLNV } from '../../../shared/busVlnv';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 describe('bus conformance enforcement policy', () => {
@@ -173,6 +174,51 @@ describe('bus conformance enforcement policy', () => {
   it('accepts a conduit that has no ports yet', () => {
     const report = checkBusConformance(
       { busInterfaces: [{ name: 'leds', type: 'CONDUIT', mode: 'conduit' }] },
+      library
+    );
+
+    expect(report.issues).toEqual([]);
+    expect(blocksGeneration(report)).toBe(false);
+  });
+
+  it('accepts the generic conduit placeholder VLNV with no ports', () => {
+    const report = checkBusConformance(
+      { busInterfaces: [{ name: 'leds', type: BUS_VLNV.CONDUIT, mode: 'conduit' }] },
+      library
+    );
+
+    expect(report.issues).toEqual([]);
+    expect(blocksGeneration(report)).toBe(false);
+  });
+
+  it('blocks an unresolved VLNV conduit that has no conduitPorts', () => {
+    const report = checkBusConformance(
+      {
+        busInterfaces: [
+          { name: 'fifo_write', type: 'xilinx.com:interface:fifo_write:1.0', mode: 'conduit' },
+        ],
+      },
+      library
+    );
+
+    expect(report.issues).toContainEqual(
+      expect.objectContaining({ code: 'BUS_TYPE_UNRESOLVED', severity: 'warning' })
+    );
+    expect(blocksGeneration(report)).toBe(true);
+  });
+
+  it('accepts an unresolved VLNV conduit that carries conduitPorts', () => {
+    const report = checkBusConformance(
+      {
+        busInterfaces: [
+          {
+            name: 'fifo_write',
+            type: 'xilinx.com:interface:fifo_write:1.0',
+            mode: 'conduit',
+            conduitPorts: [{ name: 'fifo_wr_en', direction: 'out', width: 1 }],
+          },
+        ],
+      },
       library
     );
 

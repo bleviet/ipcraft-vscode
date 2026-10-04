@@ -4,6 +4,8 @@ import {
   type NormalizedBusLibrary,
   validateBusInterfaces,
 } from './busContracts';
+import { BUS_VLNV } from './busVlnv';
+import { isValidVlnv } from '../utils/vlnv';
 import { deduplicateIssues, type ConformanceReport, type IpcraftIssue } from './issues';
 
 export interface BusConformanceInput {
@@ -29,9 +31,15 @@ export function checkBusConformance(
     if (canonicalizeBusType(busInterface.type, library)) {
       return;
     }
-    // Inline conduits carry their complete signal contract in the document and do not
-    // require an external bus definition.
-    if (busInterface.mode === 'conduit') {
+    // The generic conduit placeholder and any conduit carrying authored ports need no
+    // external bus definition. A conduit with another full VLNV type and no authored
+    // ports has no contract at all, so it is reported like any other type.
+    if (
+      busInterface.mode === 'conduit' &&
+      (busInterface.conduitPorts?.length ||
+        busInterface.type === BUS_VLNV.CONDUIT ||
+        !isValidVlnv(busInterface.type))
+    ) {
       return;
     }
     // Imported vendor interfaces keep their literal port maps, which the generator
