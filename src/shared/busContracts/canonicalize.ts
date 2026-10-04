@@ -1,3 +1,4 @@
+import { shortAliasKey } from './aliases';
 import type { BusDefinitionContract, CanonicalBusMatch, NormalizedBusLibrary } from './types';
 
 interface ParsedVlnv {
@@ -51,9 +52,9 @@ export function canonicalizeBusType(
     return toMatch(canonical, 'canonicalVlnv');
   }
 
-  const shortValue = trimmed.toLowerCase();
+  const shortKey = shortAliasKey(trimmed);
   const shortAlias = library.aliases.find(
-    (alias) => alias.kind === 'short' && alias.shortValue === shortValue
+    (alias) => alias.kind === 'short' && shortAliasKey(alias.shortValue ?? '') === shortKey
   );
   if (shortAlias) {
     const contract = Object.values(library.definitions).find(

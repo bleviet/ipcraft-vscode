@@ -11,6 +11,7 @@ import { parseVlnv, isValidVlnv } from '../utils/vlnv';
 import {
   dataLaneKind,
   isDeclarativeContract,
+  parameterExpression,
   resolveBusInterface,
   resolveDataLane,
   type BusInterfaceResolution,
@@ -312,8 +313,9 @@ export async function generateComponentXml(
 
   const busIfLines: string[] = [];
 
+  const parameterNames = parameters.map((p) => String(p.name ?? ''));
   for (const plan of busPlans) {
-    busIfLines.push(...renderBusInterface(plan));
+    busIfLines.push(...renderBusInterface(plan, parameterNames));
   }
 
   for (const clock of clocks) {
@@ -426,7 +428,7 @@ export async function generateComponentXml(
 
 // ── Render helpers ────────────────────────────────────────────────────────────
 
-function renderBusInterface(plan: BusInterfacePlan): string[] {
+function renderBusInterface(plan: BusInterfacePlan, paramNames: string[]): string[] {
   const { iface, resolution: contractResolution, vivadoType, customBus, portMaps } = plan;
   const ifaceName = String(iface.name ?? '');
   const ifaceType = String(iface.type ?? '');
@@ -498,8 +500,21 @@ function renderBusInterface(plan: BusInterfacePlan): string[] {
   )
     .sort()
     .flatMap((name) => {
-      const value = contractResolution.properties[name]?.value;
-      return value === undefined ? [] : [{ name, value }];
+      const resolved = contractResolution.properties[name];
+      if (resolved?.value === undefined) {
+        return [];
+      }
+      const expression = parameterExpression(resolved);
+      const dependency = expression
+        ? buildIpxactDependency(serialize(expression, 'canonical').code, paramNames)
+        : IPXACT_UNSUPPORTED;
+      return [
+        {
+          name,
+          value: resolved.value,
+          ...(dependency !== IPXACT_UNSUPPORTED ? { dependency } : {}),
+        },
+      ];
     });
   const authoredProperties = iface.interfaceProperties ?? {};
   const mirroredSemanticProperties = semanticProperties.filter((property) =>
@@ -522,8 +537,11 @@ function renderBusInterface(plan: BusInterfacePlan): string[] {
     for (const property of semanticProperties) {
       lines.push('        <spirit:parameter>');
       lines.push(`          <spirit:name>${x(property.name)}</spirit:name>`);
+      const dependent = property.dependency
+        ? ` spirit:format="long" spirit:resolve="dependent" spirit:dependency="${property.dependency}"`
+        : '';
       lines.push(
-        `          <spirit:value spirit:id="BUSIFPARAM_VALUE.${x(ifaceUpper)}.${x(property.name)}">${x(String(property.value))}</spirit:value>`
+        `          <spirit:value${dependent} spirit:id="BUSIFPARAM_VALUE.${x(ifaceUpper)}.${x(property.name)}">${x(String(property.value))}</spirit:value>`
       );
       lines.push('        </spirit:parameter>');
     }
@@ -1218,6 +1236,22 @@ function renderPorts(
   return ['    <spirit:ports>', ...portLines, '    </spirit:ports>'];
 }
 
+/** The IP-XACT XPATH dependency for a parameter expression, or IPXACT_UNSUPPORTED. */
+function buildIpxactDependency(expression: string, paramNames: string[]): string {
+  const upperParamNames = paramNames.map((p) => p.toUpperCase());
+  const ast = parse(expression);
+  return ast
+    ? serialize(ast, 'ipxact', {
+        paramRef: (name) => {
+          const upper = name.toUpperCase();
+          return upperParamNames.includes(upper)
+            ? `spirit:decode(id(&apos;MODELPARAM_VALUE.${upper}&apos;))`
+            : name;
+        },
+      }).code
+    : IPXACT_UNSUPPORTED;
+}
+
 function renderModelPort(
   name: string,
   direction: string,
@@ -1245,18 +1279,7 @@ function renderModelPort(
         // Complex expression (e.g. "AxiDataWidth_g/8" or "clog2(DEPTH)"): expand
         // to an IP-XACT XPATH dependency, substituting each known parameter with
         // its spirit:decode(id('MODELPARAM_VALUE.NAME')) form (UG1118).
-        const upperParamNames = paramNames.map((p) => p.toUpperCase());
-        const ast = parse(widthParamName);
-        const dependency = ast
-          ? serialize(ast, 'ipxact', {
-              paramRef: (name) => {
-                const upper = name.toUpperCase();
-                return upperParamNames.includes(upper)
-                  ? `spirit:decode(id(&apos;MODELPARAM_VALUE.${upper}&apos;))`
-                  : name;
-              },
-            }).code
-          : IPXACT_UNSUPPORTED;
+        const dependency = buildIpxactDependency(widthParamName, paramNames);
         if (dependency === IPXACT_UNSUPPORTED) {
           // No parameterized XPATH form (e.g. max/min, or an unparseable
           // expression) — fall back to the resolved literal width.

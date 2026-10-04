@@ -35,6 +35,7 @@ export function customBusInfoFromContract(contract: BusDefinitionContract): Cust
     ports: contract.ports.map((port) => ({
       name: port.name,
       width: port.width,
+      widthPolicy: port.widthPolicy,
       direction: port.direction,
       presence: port.presence,
       interfaceRoles: port.polarity
@@ -102,7 +103,12 @@ export function renderAbstractionDefinitionXml(busInfo: CustomBusInfo): string {
     const presence = interfaceRoles.length > 1 ? 'optional' : (port.presence ?? 'required');
     const masterDirection = port.direction ?? 'out';
     const slaveDirection = masterDirection === 'out' ? 'in' : 'out';
-    const width = port.width ?? 1;
+    // The abstraction is shared by every interface of this VLNV, so only widths
+    // that no interface can override are declared.
+    const widthLine =
+      port.widthPolicy === 'fixed' && typeof port.width === 'number'
+        ? [`          <spirit:width>${port.width}</spirit:width>`]
+        : [];
 
     for (const logicalName of interfaceRoles) {
       lines.push('    <spirit:port>');
@@ -110,12 +116,12 @@ export function renderAbstractionDefinitionXml(busInfo: CustomBusInfo): string {
       lines.push('      <spirit:wire>');
       lines.push('        <spirit:onMaster>');
       lines.push(`          <spirit:presence>${escapeXml(presence)}</spirit:presence>`);
-      lines.push(`          <spirit:width>${width}</spirit:width>`);
+      lines.push(...widthLine);
       lines.push(`          <spirit:direction>${escapeXml(masterDirection)}</spirit:direction>`);
       lines.push('        </spirit:onMaster>');
       lines.push('        <spirit:onSlave>');
       lines.push(`          <spirit:presence>${escapeXml(presence)}</spirit:presence>`);
-      lines.push(`          <spirit:width>${width}</spirit:width>`);
+      lines.push(...widthLine);
       lines.push(`          <spirit:direction>${escapeXml(slaveDirection)}</spirit:direction>`);
       lines.push('        </spirit:onSlave>');
       lines.push('      </spirit:wire>');
@@ -135,13 +141,6 @@ export function generateCustomBusDefs(
 ): Record<string, string> {
   const files: Record<string, string> = {};
   const seen = new Set<string>();
-  const parameterDefaults: Record<string, number> = {};
-  for (const parameter of ipCore.parameters ?? []) {
-    if (parameter.name && typeof parameter.value === 'number') {
-      parameterDefaults[String(parameter.name)] = parameter.value;
-    }
-  }
-
   for (const iface of ipCore.busInterfaces ?? []) {
     const ifaceType = String(iface.type ?? '');
     const resolution = resolveBusInterface({
@@ -163,14 +162,8 @@ export function generateCustomBusDefs(
     if (custom.source === 'vivado') {
       continue;
     }
-    const resolvedPorts = custom.ports.map((port) => ({
-      ...port,
-      width:
-        typeof port.width === 'string' ? (parameterDefaults[port.width] ?? 1) : (port.width ?? 1),
-    }));
-    const resolved: CustomBusInfo = { ...custom, ports: resolvedPorts };
-    files[`busdef/${custom.name}.xml`] = renderBusDefinitionXml(resolved);
-    files[`busdef/${custom.name}_rtl.xml`] = renderAbstractionDefinitionXml(resolved);
+    files[`busdef/${custom.name}.xml`] = renderBusDefinitionXml(custom);
+    files[`busdef/${custom.name}_rtl.xml`] = renderAbstractionDefinitionXml(custom);
   }
   return files;
 }

@@ -124,6 +124,10 @@ const ALIASES = {
     'AVST',
     'AVALONST',
     'AVALONSTREAMING',
+    'Avalon-ST',
+    'AVALON_STREAMING_',
+    'Avalon.Streaming',
+    'avalon_streaming',
     'avalon_st',
     'avalon-st',
     'avalon_stream',
@@ -142,6 +146,10 @@ const CANONICAL_BY_KEY = {
 
 describe('bus contract migration characterization', () => {
   const library = builtinBusLibrary();
+
+  it('builtin aliases do not collide under separator-insensitive matching', () => {
+    expect(library.diagnostics.filter((d) => d.code === 'BUS_DEF_ALIAS_COLLISION')).toEqual([]);
+  });
 
   it.each(Object.entries(ALIASES))('%s retains the complete alias closure', (key, aliases) => {
     for (const alias of aliases) {

@@ -1,4 +1,4 @@
-import { matchBusPortRole } from './polarity';
+import { matchBusPortRole, resolveDefaultPhysicalSuffix } from './polarity';
 import type { NormalizedBusPort, PortPolarity } from './types';
 
 export interface ObservedBusPort {
@@ -46,9 +46,7 @@ export function reconcileObservedBusPorts(
       ? observed.physicalName.slice(physicalPrefix.length)
       : observed.physicalName;
     const selectedPolarity = match.polarity ?? definition.polarity?.default;
-    const defaultSuffix = definition.polarity
-      ? definition.polarity.roles[selectedPolarity ?? definition.polarity.default]
-      : definition.name.toLowerCase();
+    const defaultSuffix = resolveDefaultPhysicalSuffix(definition, selectedPolarity);
     if (suffix !== defaultSuffix) {
       portNameOverrides[definition.name] = suffix;
     } else {

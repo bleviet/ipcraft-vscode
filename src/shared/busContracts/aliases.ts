@@ -3,6 +3,14 @@ import type { NormalizedBusAlias } from './types';
 
 const nonEmpty = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 
+/** Separator- and case-insensitive key, so `AVALON_STREAMING` and `Avalon-ST` compare like `AVALONST`. */
+export function shortAliasKey(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_.-]/g, '');
+}
+
 export function normalizeBusAlias(
   alias: BusAlias,
   canonicalVlnv: string
@@ -31,6 +39,6 @@ export function normalizeBusAlias(
 
 export function busAliasIdentity(alias: NormalizedBusAlias): string {
   return alias.kind === 'short'
-    ? `short:${alias.shortValue}`
+    ? `short:${shortAliasKey(alias.shortValue ?? '')}`
     : `vlnv:${alias.vendor}:${alias.library}:${alias.name}:${alias.version}`;
 }

@@ -1,6 +1,6 @@
 import type { Parameter } from '../../domain/ipcore.types';
-import { evaluate, parse, type WidthExprNode } from '../widthExprAst';
-import type { ResolvedNumericValue } from './types';
+import { containsParamRef, evaluate, parse, type WidthExprNode } from '../widthExprAst';
+import type { ResolvedNumericValue, ResolvedSemanticValue } from './types';
 
 export interface ParameterContext {
   names: ReadonlySet<string>;
@@ -251,4 +251,30 @@ export function evaluateResolved(
     return evaluate(value.expression, environment);
   }
   return value.value;
+}
+
+/** The expression of a resolved integer property when it references parameters. */
+export function parameterExpression(
+  value: ResolvedSemanticValue | undefined
+): WidthExprNode | undefined {
+  return typeof value?.value === 'number' &&
+    'expression' in value &&
+    value.expression &&
+    containsParamRef(value.expression)
+    ? value.expression
+    : undefined;
+}
+
+/** True when the expression calls a predefined function (clog2, min, ...). */
+export function usesFunctionCall(expression: WidthExprNode): boolean {
+  switch (expression.type) {
+    case 'Call':
+      return true;
+    case 'Unary':
+      return usesFunctionCall(expression.operand);
+    case 'Binary':
+      return usesFunctionCall(expression.left) || usesFunctionCall(expression.right);
+    default:
+      return false;
+  }
 }

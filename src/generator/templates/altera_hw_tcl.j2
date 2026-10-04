@@ -27,7 +27,15 @@ set_module_property EDITABLE true
 set_module_property REPORT_TO_TALKBACK false
 set_module_property ALLOW_GREYBOX_GENERATION false
 set_module_property REPORT_HIERARCHY false
-{% if elaborate_port_widths | length > 0 %}
+{% set elab_needed = elaborate_port_widths | length > 0 %}
+{% for iface in expanded_bus_interfaces %}
+{% for prop in iface.interface_properties or [] %}
+{% if prop.tcl_elaborate_value and iface.altera_type == 'avalon_streaming' %}
+{% set elab_needed = true %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% if elab_needed %}
 set_module_property ELABORATION_CALLBACK elaborate
 {% endif %}
 
@@ -192,7 +200,7 @@ add_interface_port {{ intr.name }} {{ intr.name }} irq {{ 'Input' if intr.direct
 {% endfor %}
 {% endif %}
 
-{% if elaborate_port_widths | length > 0 %}
+{% if elab_needed %}
 # -----------------------------------------------------------------------------
 # Elaborate callback — declares parameterized ports with HDL generic widths.
 # add_interface_port with parameter-dependent widths must live here;
@@ -201,6 +209,13 @@ add_interface_port {{ intr.name }} {{ intr.name }} irq {{ 'Input' if intr.direct
 proc elaborate {} {
 {% for ep in elaborate_port_widths %}
     add_interface_port {{ ep.iface_name }} {{ ep.port_name }} {{ ep.interface_role }} {{ 'Input' if ep.direction == 'in' else 'Output' }} {{ ep.tcl_width }}
+{% endfor %}
+{% for iface in expanded_bus_interfaces %}
+{% for prop in iface.interface_properties or [] %}
+{% if prop.tcl_elaborate_value and iface.altera_type == 'avalon_streaming' %}
+    set_interface_property {{ iface.name }} {{ prop.name }} {{ prop.tcl_elaborate_value }}
+{% endif %}
+{% endfor %}
 {% endfor %}
 }
 {% endif %}

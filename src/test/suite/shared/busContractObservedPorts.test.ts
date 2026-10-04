@@ -1,4 +1,5 @@
 import { reconcileObservedBusPorts } from '../../../shared/busContracts';
+import type { NormalizedBusPort } from '../../../shared/busContracts/types';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 const avalonMmPorts = builtinBusLibrary().definitions.AVALON_MEMORY_MAPPED.ports;
@@ -62,5 +63,38 @@ describe('reconcileObservedBusPorts polarity roles', () => {
       portWidthOverrides: { byteenable: 3 },
       portNameOverrides: { byteenable: 'byteenable_n' },
     });
+  });
+});
+
+describe('reconcileObservedBusPorts default suffix casing', () => {
+  const resetPorts: NormalizedBusPort[] = [
+    {
+      name: 'reset',
+      presence: 'required',
+      role: 'reset',
+      widthPolicy: 'fixed',
+      width: 1,
+      polarity: { default: 'activeLow', roles: { activeHigh: 'RST', activeLow: 'RST_N' } },
+    },
+  ];
+
+  it('records a name override for an upper-case suffix because the generator lowercases', () => {
+    expect(
+      reconcileObservedBusPorts(
+        resetPorts,
+        [{ logicalName: 'reset', physicalName: 'x_RST_N' }],
+        'x_'
+      )
+    ).toEqual({ portNameOverrides: { reset: 'RST_N' } });
+  });
+
+  it('records no override for the lower-case default suffix', () => {
+    expect(
+      reconcileObservedBusPorts(
+        resetPorts,
+        [{ logicalName: 'reset', physicalName: 'x_rst_n' }],
+        'x_'
+      )
+    ).toEqual({});
   });
 });

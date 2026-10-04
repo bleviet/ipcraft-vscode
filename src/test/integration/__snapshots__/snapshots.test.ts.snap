@@ -14302,7 +14302,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>symbolsPerBeat</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.symbolsPerBeat">8</spirit:value>
+          <spirit:value spirit:format="long" spirit:resolve="dependent" spirit:dependency="spirit:decode(id(&apos;MODELPARAM_VALUE.ST_DATA_W&apos;))/8" spirit:id="BUSIFPARAM_VALUE.SRC_ST.symbolsPerBeat">8</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>firstSymbolInHighOrderBits</spirit:name>
@@ -15297,7 +15297,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>symbolsPerBeat</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.SRC_ST.symbolsPerBeat">8</spirit:value>
+          <spirit:value spirit:format="long" spirit:resolve="dependent" spirit:dependency="spirit:decode(id(&apos;MODELPARAM_VALUE.ST_DATA_W&apos;))/8" spirit:id="BUSIFPARAM_VALUE.SRC_ST.symbolsPerBeat">8</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>firstSymbolInHighOrderBits</spirit:name>
@@ -36578,6 +36578,7 @@ add_interface_port o_evt_fall o_evt_fall irq Output 1
 # -----------------------------------------------------------------------------
 proc elaborate {} {
     add_interface_port SRC_ST aso_data data Output [get_parameter_value ST_DATA_W]
+    set_interface_property SRC_ST symbolsPerBeat [expr [get_parameter_value ST_DATA_W]/8]
 }
 
 # -----------------------------------------------------------------------------
@@ -36795,6 +36796,7 @@ add_interface_port o_evt_fall o_evt_fall irq Output 1
 # -----------------------------------------------------------------------------
 proc elaborate {} {
     add_interface_port SRC_ST aso_data data Output [get_parameter_value ST_DATA_W]
+    set_interface_property SRC_ST symbolsPerBeat [expr [get_parameter_value ST_DATA_W]/8]
 }
 
 # -----------------------------------------------------------------------------

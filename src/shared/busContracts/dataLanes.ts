@@ -1,4 +1,6 @@
 import type { BusInterface } from '../../domain/ipcore.types';
+import { serialize } from '../widthExprAst';
+import { parameterExpression, usesFunctionCall } from './expression';
 import type { BusDefinitionContract, BusInterfaceResolution } from './types';
 
 export const BYTE_LANE_WIDTH = 8;
@@ -28,7 +30,16 @@ export function resolveDataLane(
     return { kind, width: BYTE_LANE_WIDTH };
   }
 
-  const resolvedWidth = resolution.properties.dataBitsPerSymbol?.value;
+  const property = resolution.properties.dataBitsPerSymbol;
+  // A parameter-valued lane stays symbolic so generated HDL follows the instantiated
+  // value. HDL has no portable function spelling, so a function call stays concrete.
+  const expression = parameterExpression(property);
+  if (expression && !usesFunctionCall(expression)) {
+    const code = serialize(expression, 'canonical').code;
+    return { kind, width: expression.type === 'ParamRef' ? code : `(${code})` };
+  }
+
+  const resolvedWidth = property?.value;
   if (typeof resolvedWidth === 'number') {
     return { kind: 'symbol', width: resolvedWidth };
   }

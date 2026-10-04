@@ -5,7 +5,7 @@ export * from './canonicalize';
 export * from './contractVersion';
 export * from './dataLanes';
 export * from './dependencies';
-export { resolveParameterDefaults } from './expression';
+export { parameterExpression, resolveParameterDefaults } from './expression';
 export * from './normalize';
 export * from './observedPorts';
 export * from './polarity';

@@ -10,10 +10,15 @@ import {
 } from '../registerProcessor';
 import { needsBitReverse, needsLaneSwap } from './endiannessPolicy';
 import type { BusInterfaceDef, ProjectedBusPort } from '../types';
-import { widthExprUsesMathReal } from '../../shared/widthExprAst';
+import { serialize, widthExprUsesMathReal } from '../../shared/widthExprAst';
 import { buildInterruptPorts } from './interrupts';
 import { busSupportsMemoryMap } from '../../shared/busVlnv';
-import { BYTE_LANE_WIDTH, resolveBusInterface, resolveDataLane } from '../../shared/busContracts';
+import {
+  BYTE_LANE_WIDTH,
+  parameterExpression,
+  resolveBusInterface,
+  resolveDataLane,
+} from '../../shared/busContracts';
 import type { BusInterface, Parameter } from '../../domain/ipcore.types';
 import { buildBoundaryTransforms } from './boundaryTransforms';
 
@@ -223,10 +228,20 @@ export const busResolver: ContextResolver = {
             if (property?.value === undefined) {
               return [];
             }
+            // A parameter-dependent integer keeps its concrete default as the static
+            // value and is recomputed from the parameters during elaboration.
+            const propertyExpression = parameterExpression(property);
+            const tclElaborateValue = propertyExpression
+              ? toTclWidthExpression(
+                  serialize(propertyExpression, 'canonical').code,
+                  parameterNames
+                )
+              : undefined;
             return [
               {
                 name,
                 value: property.value,
+                ...(tclElaborateValue ? { tcl_elaborate_value: tclElaborateValue } : {}),
                 tcl_value:
                   typeof property.value === 'boolean'
                     ? property.value

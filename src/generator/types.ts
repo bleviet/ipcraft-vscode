@@ -223,6 +223,8 @@ export type BusPortDefinition = {
   role?: 'data' | 'byteQualifier';
   /** Vendor logical roles declared for this canonical port. */
   interfaceRoles?: string[];
+  /** Only `fixed` ports have a width every interface shares; others vary per interface. */
+  widthPolicy?: 'root' | 'derived' | 'fixed';
 };
 
 /** Camel-case generator projection of one canonical resolved bus port. */
