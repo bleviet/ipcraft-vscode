@@ -11,6 +11,12 @@ export interface TclInterface {
   type: string;
   mode: string;
   properties: Map<string, string>;
+  /** Properties whose last value is a `$var` or `[...]` substitution in the source. */
+  symbolicProperties: Set<string>;
+  /** The last literal value written for each property, e.g. before an elaboration override. */
+  staticProperties: Map<string, string>;
+  /** Set when any line defining this interface could not be read statically. */
+  staticallyIncomplete: boolean;
   ports: TclPort[];
 }
 

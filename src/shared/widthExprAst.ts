@@ -30,7 +30,7 @@ export type WidthExprNode =
 
 export type WidthFunctionName = 'clog2' | 'log2' | 'ceil' | 'floor' | 'abs' | 'min' | 'max';
 
-export type WidthDialect = 'systemverilog' | 'vhdl' | 'tcl' | 'ipxact';
+export type WidthDialect = 'canonical' | 'systemverilog' | 'vhdl' | 'tcl' | 'ipxact';
 
 /** Number of arguments each predefined function takes. */
 const FUNCTION_ARITY: Record<WidthFunctionName, number> = {
@@ -107,7 +107,7 @@ export function parse(expr: string): WidthExprNode | undefined {
     if (ch >= '0' && ch <= '9') {
       return parseNumber();
     }
-    if (/[A-Za-z_]/.test(ch)) {
+    if (typeof ch === 'string' && /[A-Za-z_]/.test(ch)) {
       const ident = parseIdentifier();
       if (peek() === '(') {
         // Function call.
@@ -400,6 +400,8 @@ export function serialize(
   const serializeCall = (node: Extract<WidthExprNode, { type: 'Call' }>): string => {
     const a = node.args.map(visit);
     switch (dialect) {
+      case 'canonical':
+        return `${node.fn}(${a.join(',')})`;
       case 'systemverilog':
         return serializeSvCall(node.fn, a);
       case 'vhdl':

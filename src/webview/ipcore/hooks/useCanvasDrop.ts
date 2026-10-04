@@ -161,7 +161,7 @@ function addBusInterface(
   const newBus: BusInterface = {
     name,
     type: payload.type ?? '',
-    mode: mode as BusInterface['mode'],
+    mode,
     physicalPrefix: prefix,
   };
 

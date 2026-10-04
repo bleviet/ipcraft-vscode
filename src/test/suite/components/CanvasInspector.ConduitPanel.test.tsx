@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { CanvasInspector } from '../../../webview/ipcore/components/canvas/CanvasInspector';
 import type { IpCore } from '../../../webview/types/ipCore';
 import type { CanvasElement } from '../../../webview/ipcore/hooks/useCanvasSelection';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 const BUS_SELECTION: CanvasElement = { kind: 'busInterface', index: 0, id: 'bus:0' };
 
@@ -77,6 +78,7 @@ describe('CanvasInspector ConduitPanel — clock/reset associations', () => {
       <CanvasInspector
         selected={BUS_SELECTION}
         ipCore={ipCore}
+        imports={{ busLibrary: builtinBusLibrary() }}
         onUpdate={onUpdate}
         onClose={jest.fn()}
       />
@@ -102,6 +104,7 @@ describe('CanvasInspector ConduitPanel — clock/reset associations', () => {
       <CanvasInspector
         selected={BUS_SELECTION}
         ipCore={ipCore}
+        imports={{ busLibrary: builtinBusLibrary() }}
         onUpdate={onUpdate}
         onClose={jest.fn()}
       />
@@ -129,6 +132,7 @@ describe('CanvasInspector BusPanel — Avalon-ST configuration', () => {
       <CanvasInspector
         selected={BUS_SELECTION}
         ipCore={ipCore}
+        imports={{ busLibrary: builtinBusLibrary() }}
         onUpdate={onUpdate}
         onClose={jest.fn()}
       />

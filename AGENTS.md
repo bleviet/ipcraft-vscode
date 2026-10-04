@@ -170,6 +170,8 @@ When adding register- or block-level layout operations, extend `LayoutEngine.ts`
 
 `ipcraft-spec/schemas/*.schema.json` define `.ip.yml` / `.mm.yml` structure. `npm run generate-types` regenerates `src/domain/*.types.ts` and `src/generator/contract/templateContext.types.ts` from them — do not hand-edit those. `src/webview/types/ipCore.d.ts` / `memoryMap.d.ts` are an older, still widely-imported pair of hand-maintained type files that the generator script no longer touches; when a schema field changes, update these by hand alongside `src/domain/*.types.ts`. Bus definitions and schemas are copied into `dist/resources/` at build time.
 
+- **Bus-interface contracts** are defined in `ipcraft-spec/bus_definitions/` and documented in `ipcraft-spec/docs/bus-interface-conformance.md`. Use the contract metadata instead of adding protocol-name or alias heuristics.
+
 ## Key conventions
 
 - **Two YAML libraries, used deliberately:** `js-yaml` (v4) for read-only parse / simple dump; `yaml` (v2) for any modify-and-write-back path (preserves comments + hex literals). Never use `js-yaml` to write back.

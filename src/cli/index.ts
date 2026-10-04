@@ -2,6 +2,7 @@
 import * as path from 'path';
 import { resolveResourceRoots } from '../services/ResourceRoots';
 import { runCliGenerate } from './generate';
+import { runCliMigrate } from './migrate';
 import { runCliVerify } from './verify';
 import { parseArgs, usageText } from './argv';
 
@@ -25,6 +26,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     return 1;
+  }
+
+  if (parsed.kind === 'migrate') {
+    return runMigrate(parsed.args, resourceRoots);
   }
 
   if (parsed.kind === 'verify') {
@@ -61,6 +66,35 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     console.log(`  ${f}`);
   }
   return 0;
+}
+
+/** Runs `ipcraft migrate`, printing one line per file; exit 1 on errors or (--check) pending upgrades. */
+async function runMigrate(
+  args: Parameters<typeof runCliMigrate>[0],
+  resourceRoots: Parameters<typeof runCliMigrate>[1]
+): Promise<number> {
+  let exitCode = 0;
+  for (const result of await runCliMigrate(args, resourceRoots)) {
+    switch (result.status) {
+      case 'upgraded':
+        console.log(
+          `Upgraded ${result.path} (${result.fromVersion} -> ${result.toVersion}, ${result.mutationCount} change(s))`
+        );
+        break;
+      case 'needsUpgrade':
+        console.log(`Needs upgrade: ${result.path} (${result.fromVersion} -> ${result.toVersion})`);
+        exitCode = 1;
+        break;
+      case 'upToDate':
+        console.log(`Up to date: ${result.path} (${result.version})`);
+        break;
+      case 'error':
+        console.error(`Error: ${result.path}: ${result.error}`);
+        exitCode = 1;
+        break;
+    }
+  }
+  return exitCode;
 }
 
 /** Prints non-fatal generation warnings (e.g. issue #156's framework-testbench ambiguity). */

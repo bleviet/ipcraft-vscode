@@ -1,7 +1,12 @@
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import * as fsPromises from 'fs/promises';
-import { parseHwTclContent, parseHwTclFile, extractSourcePath } from '../../../parser/HwTclParser';
+import {
+  parseHwTclContent,
+  parseHwTclFile as parseHwTclFileImpl,
+  extractSourcePath,
+} from '../../../parser/HwTclParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 jest.mock('fs/promises', () => {
   const actual = jest.requireActual<typeof fsPromises>('fs/promises');
@@ -13,8 +18,14 @@ const mockReadFile = fsPromises.readFile as jest.Mock;
 const FAKE_PATH = '/project/intel/my_core_hw.tcl';
 
 function parse(content: string, opts?: { library?: string; outputDir?: string }) {
-  return parseHwTclContent(content, FAKE_PATH, opts);
+  return parseHwTclContent(content, FAKE_PATH, {
+    ...opts,
+    busLibrary: builtinBusLibrary(),
+  });
 }
+
+const parseHwTclFile = (filePath: string, options: { library?: string } = {}) =>
+  parseHwTclFileImpl(filePath, { ...options, busLibrary: builtinBusLibrary() });
 
 function parseYaml(content: string) {
   return yaml.load(content) as Record<string, unknown>;
@@ -181,6 +192,24 @@ describe('HwTclParser', () => {
       // physical port name, keyed in Avalon-ST's canonical lowercase casing.
       expect(sink0.portNameOverrides).toEqual({ valid: 'valid_0_i', data: 'data_0_i' });
       expect(sink1.portNameOverrides).toEqual({ valid: 'valid_1_i', data: 'data_1_i' });
+    });
+
+    it('preserves logical polarity and literal physical suffix independently', () => {
+      const tcl = `
+        add_interface avs avalon end
+        add_interface_port avs avs_byteenable byteenable_n Input 2
+      `;
+      const doc = parseYaml(parse(tcl).yamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+      };
+
+      expect(doc.busInterfaces[0]).toMatchObject({
+        physicalPrefix: 'avs_',
+        useOptionalPorts: ['byteenable'],
+        portWidthOverrides: { byteenable: 2 },
+        portNameOverrides: { byteenable: 'byteenable' },
+        portPolarityOverrides: { byteenable: 'activeLow' },
+      });
     });
 
     it('maps start mode to master', () => {
@@ -1172,6 +1201,117 @@ add_interface_port avl avl_rdata    readdata  Output DATA_WIDTH
     // Uppercase variants must NOT appear
     expect(overrides?.['WRITEDATA']).toBeUndefined();
     expect(overrides?.['READDATA']).toBeUndefined();
+  });
+});
+
+describe('Avalon-ST contract properties', () => {
+  const streamTcl = (symbolProperty: string) => `
+set_module_property NAME stream_core
+add_interface stream avalon_streaming start
+set_interface_property stream ${symbolProperty} 1
+set_interface_property stream symbolsPerBeat 5
+set_interface_property stream readyLatency 0
+set_interface_property stream firstSymbolInHighOrderBits true
+add_interface_port stream stream_data data Output 5
+add_interface_port stream stream_valid valid Output 1
+`;
+
+  it.each(['dataBitsPerSymbol', 'bitsPerSymbol'])(
+    'normalizes %s and canonical streaming semantics',
+    (symbolProperty) => {
+      const doc = parseYaml(parse(streamTcl(symbolProperty)).yamlText);
+      expect((doc.busInterfaces as Array<Record<string, unknown>>)[0]).toEqual(
+        expect.objectContaining({
+          mode: 'source',
+          endianness: 'big',
+          interfaceProperties: {
+            dataBitsPerSymbol: 1,
+            symbolsPerBeat: 5,
+            readyLatency: 0,
+          },
+        })
+      );
+    }
+  );
+
+  it('rejects conflicting current and legacy symbol-width spellings with source context', () => {
+    expect(() =>
+      parse(`
+add_interface stream avalon_streaming start
+set_interface_property stream dataBitsPerSymbol 1
+set_interface_property stream bitsPerSymbol 8
+add_interface_port stream stream_data data Output 8
+`)
+    ).toThrow(`${FAKE_PATH}: interface 'stream' declares conflicting dataBitsPerSymbol`);
+  });
+  // Pattern from Intel IP such as altera_rs_ser_enc_hw.tcl.
+  it('imports a stream whose properties are computed from parameters, with warnings', () => {
+    const result = parse(`
+add_parameter BITSPERSYMBOL INTEGER 8
+add_interface out avalon_streaming start
+set_interface_property out dataBitsPerSymbol [get_parameter_value BITSPERSYMBOL]
+set_interface_property out maxChannel $MAX_CH
+set_interface_property out readyLatency 0
+add_interface_port out out_data data Output 8
+add_interface_port out out_valid valid Output 1
+`);
+    const iface = (parseYaml(result.yamlText).busInterfaces as Array<Record<string, unknown>>)[0];
+
+    expect(iface.interfaceProperties).toEqual({ readyLatency: 0 });
+    expect(result.warnings).toEqual([
+      expect.stringContaining("dataBitsPerSymbol: computed value 'BITSPERSYMBOL' is not a literal"),
+      expect.stringContaining('maxChannel: computed value'),
+    ]);
+  });
+
+  // Pattern from Intel dispatcher_hw.tcl: a static default, then an elaboration override.
+  it('keeps the static default when an elaboration override is computed', () => {
+    const result = parse(`
+add_interface snk avalon_streaming end
+set_interface_property snk dataBitsPerSymbol 256
+set_interface_property snk symbolsPerBeat 1
+add_interface_port snk snk_data data Input 256
+proc elaborate {} {
+  set_interface_property snk dataBitsPerSymbol [get_parameter_value DESCRIPTOR_WIDTH]
+}
+`);
+    const iface = (parseYaml(result.yamlText).busInterfaces as Array<Record<string, unknown>>)[0];
+
+    expect(iface.interfaceProperties).toEqual({ dataBitsPerSymbol: 256, symbolsPerBeat: 1 });
+    expect(result.warnings).toEqual([expect.stringContaining("imported the static default '256'")]);
+  });
+
+  it('marks interfaces whose Tcl cannot be read statically', () => {
+    const result = parse(`
+add_interface static_st avalon_streaming start
+set_interface_property static_st dataBitsPerSymbol 8
+add_interface_port static_st s_data data Output 8
+add_interface computed avalon_streaming start
+add_interface_port computed c_data data Output [expr {$W*8}]
+add_interface terminated avalon_streaming start
+add_interface_port terminated t_data data Output 8
+add_interface_port terminated t_empty empty Output 1
+set_port_property t_empty termination true
+add_interface placeholder avalon_mm end
+add_interface_port placeholder p_address address Input -1
+for {set i 0} {$i < 2} {incr i} {
+  add_interface sink\${i} avalon_streaming end
+}
+`);
+
+    // 'terminated' (literal termination) and the 'sink${i}' loop are resolved statically,
+    // so they are complete; only unresolved widths and placeholder widths remain.
+    expect(result.staticallyIncompleteInterfaces).toEqual(['computed', 'placeholder']);
+  });
+
+  it('still rejects a malformed literal property value', () => {
+    expect(() =>
+      parse(`
+add_interface out avalon_streaming start
+set_interface_property out readyLatency 1.5
+add_interface_port out out_data data Output 8
+`)
+    ).toThrow("invalid integer value '1.5' for readyLatency");
   });
 });
 

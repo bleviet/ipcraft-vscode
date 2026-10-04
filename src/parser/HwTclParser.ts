@@ -1,7 +1,12 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
-import { lookupBusDef } from '../webview/ipcore/data/busDefinitions';
+import {
+  canonicalizeBusType,
+  importVendorContractMetadata,
+  reconcileObservedBusPorts,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
 import { resolveVendor } from '../utils/resolveVendor';
 import { titleCaseIdentifier } from '../utils/titleCase';
 import { BUS_VLNV } from '../shared/busVlnv';
@@ -18,8 +23,10 @@ import { collectIfChain, selectIfBranches } from './hwTclConditionals';
 import { computeProcDefaults, hasCeilLog2Proc } from './hwTclProcs';
 import { hasLegacyPortDeclarations, readLegacyPorts, type LegacyPort } from './hwTclLegacyPorts';
 import { applyPortProperty, finalizeInterfaces, type TclInterface } from './hwTclPortEffects';
+import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 
 export interface HwTclParseOptions {
+  busLibrary: NormalizedBusLibrary;
   library?: string;
   outputDir?: string;
   vendor?: string;
@@ -30,6 +37,12 @@ export interface HwTclParseResult {
   yamlText: string;
   /** De-duplicated, first-seen-order notes about Tcl the importer could not resolve. */
   warnings: string[];
+  /**
+   * Interfaces whose Tcl uses runtime constructs (substitutions, elaboration-time port
+   * properties, re-declaration). Their imported values may be placeholders, so protocol
+   * errors on them must not block the import; generation still validates them.
+   */
+  staticallyIncompleteInterfaces?: string[];
 }
 
 interface TclFileSet {
@@ -73,6 +86,9 @@ const READ_INTERFACE_PROPERTIES = new Set([
   'synchronousEdges',
 ]);
 
+/** A `set_interface_property <iface> <prop> <value>` whose value uses `$` or `[...]`. */
+const SUBSTITUTED_PROPERTY_VALUE = /^set_interface_property\s+\S+\s+\S+\s+.*[$[]/;
+
 const BUS_TYPE_MAP: Record<string, string> = {
   axi4lite: BUS_VLNV.AXI4_LITE,
   axi4: BUS_VLNV.AXI4_FULL,
@@ -107,7 +123,7 @@ const FILESET_DESC_MAP: Record<string, string> = {
 
 export async function parseHwTclFile(
   tclPath: string,
-  options: HwTclParseOptions = {}
+  options: HwTclParseOptions
 ): Promise<HwTclParseResult> {
   const content = await fs.readFile(tclPath, 'utf8');
   const flattened = await flattenTclContent(content, tclPath, new Set(), false);
@@ -265,7 +281,7 @@ async function flattenTclContent(
 export function parseHwTclContent(
   content: string,
   tclPath: string,
-  options: HwTclParseOptions = {},
+  options: HwTclParseOptions,
   legacyPorts?: ReadonlyMap<string, LegacyPort>
 ): HwTclParseResult {
   const moduleProps = new Map<string, string>();
@@ -365,6 +381,10 @@ export function parseHwTclContent(
             type: type.toLowerCase(),
             mode: mode.toLowerCase(),
             properties: new Map(),
+            symbolicProperties: new Set(),
+            staticProperties: new Map(),
+            // A second declaration means conditional branches or an elaboration rebuild.
+            staticallyIncomplete: interfaces.has(name),
             ports: [],
           });
         }
@@ -374,16 +394,34 @@ export function parseHwTclContent(
         const staticKept = unresolved || hasTclSyntax(value);
         if (iface && !staticKept) {
           iface.properties.set(prop, value);
+          if (SUBSTITUTED_PROPERTY_VALUE.test(line)) {
+            iface.symbolicProperties.add(prop);
+            iface.staticallyIncomplete = true;
+          } else {
+            iface.symbolicProperties.delete(prop);
+            iface.staticProperties.set(prop, value);
+          }
+        } else if (iface && unresolved) {
+          iface.staticallyIncomplete = true;
+          if (READ_INTERFACE_PROPERTIES.has(prop)) {
+            warn(
+              `Interface "${ifaceName}": property "${prop}" is set under a condition that could not be evaluated, so the static value was kept.`
+            );
+          }
         } else if (iface && READ_INTERFACE_PROPERTIES.has(prop)) {
+          iface.staticallyIncomplete = true;
           warn(
-            unresolved
-              ? `Interface "${ifaceName}": property "${prop}" is set under a condition that could not be evaluated, so the static value was kept.`
-              : `Interface "${ifaceName}": property "${prop}" value "${value}" uses Tcl that could not be resolved, so the static value was kept.`
+            `Interface "${ifaceName}": property "${prop}" value "${value}" uses Tcl that could not be resolved, so the static value was kept.`
           );
+        } else if (iface) {
+          // The contract importer warns and falls back to the static default.
+          iface.properties.set(prop, value);
+          iface.symbolicProperties.add(prop);
+          iface.staticallyIncomplete = true;
         }
       } else if (cmd === 'set_port_property' && args.length >= 3) {
         const [portName, prop, value] = args;
-        for (const message of applyPortProperty(
+        const messages = applyPortProperty(
           interfaces,
           portName,
           prop,
@@ -391,19 +429,29 @@ export function parseHwTclContent(
           new Set(parameters.map((p) => p.name)),
           numericParamValues(parameters),
           unresolved
-        )) {
-          warn(message);
+        );
+        messages.forEach(warn);
+        if (messages.length > 0) {
+          for (const iface of interfaces.values()) {
+            if (iface.ports.some((port) => port.portName === portName)) {
+              iface.staticallyIncomplete = true;
+            }
+          }
         }
       } else if (cmd === 'add_interface_port' && args.length >= 5) {
         const [ifaceName, portName, logicalName, direction, widthStr] = args;
         const iface = interfaces.get(ifaceName);
         if (hasTclSyntax(portName)) {
+          if (iface) {
+            iface.staticallyIncomplete = true;
+          }
           warn(
             `Port "${portName}" on interface "${ifaceName}" was not imported: its name uses Tcl that could not be resolved.`
           );
         } else if (iface) {
           const width = resolveTclWidth(widthStr, new Set(parameters.map((p) => p.name)));
           if (width === undefined) {
+            iface.staticallyIncomplete = true;
             warn(
               `Port "${portName}" on interface "${ifaceName}": width "${widthStr}" could not be resolved and was left out.`
             );
@@ -422,6 +470,7 @@ export function parseHwTclContent(
             width: hdlPort.width,
           });
         } else if (iface) {
+          iface.staticallyIncomplete = true;
           warn(
             `Port "${portName}" on interface "${ifaceName}" was not imported: add_port_to_interface declares no direction or width and the port was not found in the HDL source.`
           );
@@ -507,6 +556,11 @@ export function parseHwTclContent(
   const finalized = finalizeInterfaces(interfaces, numericParamValues(parameters));
   interfaces = finalized.interfaces;
   finalized.warnings.forEach(warn);
+  for (const iface of interfaces.values()) {
+    if (iface.ports.some((port) => port.width === undefined)) {
+      iface.staticallyIncomplete = true;
+    }
+  }
 
   // ── Derived values ─────────────────────────────────────────────────────────
 
@@ -523,6 +577,7 @@ export function parseHwTclContent(
   const vendor = authorFromTcl || resolveVendor(options.vendor);
 
   const yamlData: Record<string, unknown> = {
+    apiVersion: IP_CORE_FORMAT_VERSION,
     vlnv: {
       vendor,
       library: options.library ?? 'ip',
@@ -613,7 +668,15 @@ export function parseHwTclContent(
   // ── Bus interfaces ──────────────────────────────────────────────────────────
 
   const busEntries = busIfaces.map((bi) => {
-    const mode = ['start', 'source', 'master'].includes(bi.mode) ? 'master' : 'slave';
+    const contractMatch = canonicalizeBusType(BUS_TYPE_MAP[bi.type], options.busLibrary);
+    const isProducer = ['start', 'source', 'master'].includes(bi.mode);
+    const mode = contractMatch
+      ? isProducer
+        ? contractMatch.contract.modePolicy.producer
+        : contractMatch.contract.modePolicy.consumer
+      : isProducer
+        ? 'master'
+        : 'slave';
 
     const portNames = bi.ports.map((p) => p.portName);
     const physicalPrefix = computePhysicalPrefix(portNames);
@@ -637,69 +700,34 @@ export function parseHwTclContent(
       entry.associatedReset = resetPort;
     }
 
-    const firstSymbolInHighOrderBits = bi.properties.get('firstSymbolInHighOrderBits');
-    if (bi.type === 'avalon_streaming' && firstSymbolInHighOrderBits !== undefined) {
-      entry.endianness = /^(?:1|true)$/i.test(firstSymbolInHighOrderBits) ? 'big' : 'little';
+    if (contractMatch) {
+      const dataWidth = bi.ports.find((port) => port.logicalName.toLowerCase() === 'data')?.width;
+      const { warnings: metadataWarnings = [], ...metadata } = importVendorContractMetadata({
+        contract: contractMatch.contract,
+        rawProperties: bi.properties,
+        symbolicProperties: bi.symbolicProperties,
+        staticProperties: bi.staticProperties,
+        dataWidth,
+        location: `${tclPath}: interface '${bi.name}'`,
+      });
+      Object.assign(entry, metadata);
+      metadataWarnings.forEach(warn);
     }
 
-    // Detect optional ports and portWidthOverrides from bus definition
-    const busDef = lookupBusDef(BUS_TYPE_MAP[bi.type]);
+    const busDef = contractMatch?.contract.ports;
     if (busDef) {
-      const presentLogical = new Set(bi.ports.map((p) => p.logicalName.toLowerCase()));
-      const useOptionalPorts = busDef
-        .filter((def) => def.presence === 'optional' && presentLogical.has(def.name.toLowerCase()))
-        .map((def) => def.name);
-      if (useOptionalPorts.length > 0) {
-        entry.useOptionalPorts = useOptionalPorts;
-      }
-
-      // Emit portWidthOverrides for bus ports whose actual width differs from the
-      // bus-definition default (numeric mismatch) or is a parameter expression
-      // (string) — so the generator reproduces the original port sizes faithfully.
-      // Keys use the bus definition's original case (e.g. uppercase for AXI, lowercase
-      // for Avalon) so the canvas lookup `overrides[portDef.name]` matches directly.
-      const defByUpper = new Map(busDef.map((def) => [def.name.toUpperCase(), def]));
-      const hasWidthDefs = busDef.some((def) => typeof def.width === 'number');
-      if (hasWidthDefs) {
-        const portWidthOverrides: Record<string, number | string> = {};
-        for (const p of bi.ports) {
-          const logUpper = p.logicalName.toUpperCase();
-          const def = defByUpper.get(logUpper);
-          if (!def || typeof def.width !== 'number' || p.width === undefined) {
-            continue;
-          }
-          const canonicalKey = def.name;
-          if (typeof p.width === 'string') {
-            portWidthOverrides[canonicalKey] = p.width;
-          } else if (p.width !== def.width) {
-            portWidthOverrides[canonicalKey] = p.width;
-          }
-        }
-        if (Object.keys(portWidthOverrides).length > 0) {
-          entry.portWidthOverrides = portWidthOverrides;
-        }
-      }
-
-      // Emit portNameOverrides for any physical port whose suffix (after the shared
-      // physicalPrefix) does not match the conventional lowercase logical name. This
-      // is lossless: physicalPrefix + suffix always reconstructs the original portName,
-      // even when multiple interfaces of the same protocol share one physicalPrefix
-      // (e.g. two Avalon-ST sinks both prefixed "asi_" but distinguished by an index/
-      // direction-tag suffix like "_0_i" / "_1_i").
-      const portNameOverrides: Record<string, string> = {};
-      for (const p of bi.ports) {
-        const suffix = p.portName.startsWith(physicalPrefix)
-          ? p.portName.slice(physicalPrefix.length)
-          : p.portName;
-        if (suffix !== p.logicalName.toLowerCase()) {
-          const def = defByUpper.get(p.logicalName.toUpperCase());
-          const canonicalKey = def ? def.name : p.logicalName;
-          portNameOverrides[canonicalKey] = suffix;
-        }
-      }
-      if (Object.keys(portNameOverrides).length > 0) {
-        entry.portNameOverrides = portNameOverrides;
-      }
+      Object.assign(
+        entry,
+        reconcileObservedBusPorts(
+          busDef,
+          bi.ports.map((port) => ({
+            logicalName: port.logicalName,
+            physicalName: port.portName,
+            width: port.width,
+          })),
+          physicalPrefix
+        )
+      );
     }
 
     return entry;
@@ -764,7 +792,15 @@ export function parseHwTclContent(
 
   const yamlText = yaml.dump(yamlData, { noRefs: true, sortKeys: false, lineWidth: -1, indent: 2 });
 
-  return { componentName, yamlText, warnings };
+  const incomplete = Array.from(interfaces.values())
+    .filter((iface) => iface.staticallyIncomplete)
+    .map((iface) => iface.name);
+  return {
+    componentName,
+    yamlText,
+    warnings,
+    ...(incomplete.length > 0 ? { staticallyIncompleteInterfaces: incomplete } : {}),
+  };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

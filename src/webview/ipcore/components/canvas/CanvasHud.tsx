@@ -5,6 +5,7 @@ import { CanvasSelectionActions } from './CanvasSelectionActions';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
 import type { CanvasSearchMatches } from './IpBlockDiagram';
+import type { BusDefinitionLookup } from '../../utils/protocolMatcher';
 
 interface MarqueeRect {
   left: number;
@@ -34,6 +35,7 @@ interface CanvasHudProps {
   searchInputRef: React.RefObject<HTMLInputElement>;
   showHelp: boolean;
   onToggleHelp: () => void;
+  busDefs: BusDefinitionLookup;
 }
 
 /**
@@ -63,6 +65,7 @@ export const CanvasHud: React.FC<CanvasHudProps> = ({
   searchInputRef,
   showHelp,
   onToggleHelp,
+  busDefs,
 }) => {
   return (
     <>
@@ -96,6 +99,7 @@ export const CanvasHud: React.FC<CanvasHudProps> = ({
             ipCore={ipCore}
             batchUpdate={batchUpdate}
             onDismiss={onExitSelectMode}
+            busDefs={busDefs}
           />
         )}
 

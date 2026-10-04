@@ -10,6 +10,7 @@ import {
 import { CONFIG_KEY_IPCRAFT_IMPORT } from '../utils/configKeys';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { stringify } from 'yaml';
+import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 import { createEmptyRecipe } from '../dataInspector/recipe';
 
 function generateMemoryMapTemplate(name: string): string {
@@ -59,19 +60,20 @@ function nameFromFilePath(fsPath: string): string {
   return base;
 }
 
-function generateIpCoreTemplate(vendor: string, name: string): string {
+export function generateIpCoreTemplate(vendor: string, name: string): string {
   return `vlnv:
   vendor: ${vendor}
   library: my_library
   name: ${name}
   version: 1.0.0
+apiVersion: '${IP_CORE_FORMAT_VERSION}'
 
 description: A new IP Core definition
 
 `;
 }
 
-function generateIpCoreWithMemoryMapTemplate(
+export function generateIpCoreWithMemoryMapTemplate(
   vendor: string,
   name: string,
   memoryMapFileName: string
@@ -81,6 +83,7 @@ function generateIpCoreWithMemoryMapTemplate(
   library: my_library
   name: ${name}
   version: 1.0.0
+apiVersion: '${IP_CORE_FORMAT_VERSION}'
 
 description: A new IP Core definition
 

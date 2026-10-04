@@ -8,6 +8,7 @@ import {
   portToDict,
   parseParameterValue,
 } from './VhdlParser';
+import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 import { parse as parseWidthExpr, stripRedundantOuterParens } from '../shared/widthExprAst';
 
 interface VerilogParsedParameter extends ParsedParameter {
@@ -37,7 +38,8 @@ export async function parseVerilogFile(
   const ports = extractPorts(cleaned);
 
   const clockReset = classifyClocksResets(ports);
-  const busDetection = options.detectBus !== false ? detectBusInterfaces(ports, clockReset) : null;
+  const busDetection =
+    options.detectBus !== false ? detectBusInterfaces(ports, clockReset, options.busLibrary) : null;
 
   const excludedNames = new Set<string>();
   busDetection?.busPortNames.forEach((n) => excludedNames.add(n));
@@ -48,6 +50,7 @@ export async function parseVerilogFile(
   const outputDir = options.outputDir ?? path.dirname(filePath);
 
   const yamlData: Record<string, unknown> = {
+    apiVersion: IP_CORE_FORMAT_VERSION,
     vlnv: {
       vendor: options.vendor ?? 'user',
       library: options.library ?? 'ip',
@@ -107,6 +110,9 @@ export async function parseVerilogFile(
       }
       if (bus.portNameOverrides && Object.keys(bus.portNameOverrides).length > 0) {
         entry.portNameOverrides = bus.portNameOverrides;
+      }
+      if (bus.portPolarityOverrides && Object.keys(bus.portPolarityOverrides).length > 0) {
+        entry.portPolarityOverrides = bus.portPolarityOverrides;
       }
       return entry;
     });

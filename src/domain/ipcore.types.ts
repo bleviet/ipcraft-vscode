@@ -177,9 +177,9 @@ export type Name5 = string;
  */
 export type Type3 = string;
 /**
- * Interface mode: 'master' or 'slave'
+ * Interface mode declared by the resolved bus contract. Built-ins use master/slave, source/sink, or conduit; custom contracts may declare other mode names.
  */
-export type BusInterfaceMode = 'master' | 'slave' | 'source' | 'sink' | 'conduit';
+export type BusInterfaceMode = string;
 /**
  * Prefix for physical port names (e.g., 's_axi_')
  */
@@ -249,7 +249,7 @@ export type Description6 = string | null;
  */
 export type Presence = ('required' | 'optional') | null;
 /**
- * Byte order applied to this interface's data port(s) (e.g. WDATA/RDATA). Little-endian is the default; only relevant when the data width is a multiple of 8 bits.
+ * Lane order applied to this interface's data port(s). AXI and Avalon-MM use byte lanes; Avalon-ST uses symbol lanes declared by dataBitsPerSymbol. Little-endian is the default.
  */
 export type Endianness1 = 'little' | 'big';
 /**
@@ -566,9 +566,9 @@ export interface IpCore {
    */
   targets?: string[];
   /**
-   * Schema version for this IP core file (e.g. '1.0').
+   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Tools must not read a file that declares a newer version than they support.
    */
-  apiVersion?: string;
+  apiVersion?: '1.0' | '1.1';
   /**
    * Bus interfaces (snake_case alias for busInterfaces).
    */
@@ -669,6 +669,19 @@ export interface BusInterface {
   memoryMapRef?: Memorymapref;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;
+  /**
+   * Physical port-name overrides keyed by canonical bus port name.
+   */
+  portNameOverrides?: {
+    [k: string]: string;
+  };
+  /**
+   * Per-port assertion polarity overrides keyed by canonical bus port name.
+   */
+  portPolarityOverrides?: {
+    [k: string]: 'activeHigh' | 'activeLow';
+  };
+  interfaceProperties?: Interfaceproperties;
   absentPorts?: AbsentPorts;
   /**
    * Array configuration for multiple instances
@@ -684,6 +697,12 @@ export interface BusInterface {
  */
 export interface Portwidthoverrides {
   [k: string]: number | string;
+}
+/**
+ * Semantic interface properties. Recognized bus contracts validate the supported keys and values.
+ */
+export interface Interfaceproperties {
+  [k: string]: number | string | boolean;
 }
 /**
  * Configuration for array of bus interfaces.

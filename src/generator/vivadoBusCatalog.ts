@@ -1,5 +1,10 @@
-import { normalizeBusType } from './registerProcessor';
+import { BUS_REGISTRY } from './buses/builtin';
 import { BUS_VLNV } from '../shared/busVlnv';
+import {
+  canonicalizeBusType,
+  type BusInterfaceResolution,
+  type NormalizedBusLibrary,
+} from '../shared/busContracts';
 
 // Vivado bus type mapping: IPCraft bus types to the Xilinx bus and abstraction
 // definitions Vivado ships, with the logical ports each abstraction declares.
@@ -78,19 +83,41 @@ export const IPCRAFT_TO_VIVADO: Record<string, VivadoBusTypeInfo> = {
 };
 
 /**
- * Resolves an interface type string (short alias, VLNV, or full VLNV) to a
- * VivadoBusTypeInfo entry. Falls back to normalizeBusType() alias resolution so
- * that short tokens produced by the parser (e.g. 'AXI4L', 'AXI4F', 'AXI4S')
- * map correctly even if not listed as explicit keys in IPCRAFT_TO_VIVADO.
+ * Vivado's native abstractions declare only the canonical (active-high) logical ports,
+ * e.g. avalon_rtl has READ but no READ_N. An interface that uses an alternate polarity
+ * role cannot be mapped onto them without inverting the signal's meaning.
  */
-export function resolveVivadoBusType(ifaceType: string): VivadoBusTypeInfo | undefined {
-  const direct = IPCRAFT_TO_VIVADO[ifaceType];
+export function usesAlternatePolarityRole(resolution: BusInterfaceResolution): boolean {
+  return resolution.activePorts.some((port) => port.interfaceRole !== port.name);
+}
+
+/**
+ * The native Vivado bus for one interface, or undefined when the interface must use
+ * IPCraft's own bus definition because of {@link usesAlternatePolarityRole}.
+ */
+export function resolveVivadoBusTypeForInterface(
+  ifaceType: string,
+  busLibrary: NormalizedBusLibrary,
+  resolution: BusInterfaceResolution
+): VivadoBusTypeInfo | undefined {
+  return usesAlternatePolarityRole(resolution)
+    ? undefined
+    : resolveVivadoBusType(ifaceType, busLibrary);
+}
+
+/** Resolve an IPCraft alias or canonical VLNV to Vivado's native bus metadata. */
+export function resolveVivadoBusType(
+  ifaceType: string,
+  busLibrary: NormalizedBusLibrary
+): VivadoBusTypeInfo | undefined {
+  const canonical = canonicalizeBusType(ifaceType, busLibrary)?.canonicalVlnv ?? ifaceType;
+  const direct = IPCRAFT_TO_VIVADO[canonical];
   if (direct) {
     return direct;
   }
-  const { libraryKey } = normalizeBusType(ifaceType);
+  const { libraryKey } = BUS_REGISTRY.normalize(ifaceType, busLibrary);
   if (!libraryKey) {
     return undefined;
   }
-  return Object.values(IPCRAFT_TO_VIVADO).find((v) => v.libraryKey === libraryKey);
+  return Object.values(IPCRAFT_TO_VIVADO).find((entry) => entry.libraryKey === libraryKey);
 }

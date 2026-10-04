@@ -1,10 +1,11 @@
 import { useRef, useState, useCallback } from 'react';
+import type { IpCoreImports } from './useIpCoreState';
 
 interface UseCanvasUndoOptions {
   rawYaml: string;
-  updateFromYaml: (text: string, fileName: string, imports?: Record<string, unknown>) => void;
+  updateFromYaml: (text: string, fileName: string, imports?: IpCoreImports) => void;
   fileName: string;
-  imports?: Record<string, unknown>;
+  imports?: IpCoreImports;
 }
 
 /**

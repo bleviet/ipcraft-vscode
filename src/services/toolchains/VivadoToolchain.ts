@@ -90,7 +90,16 @@ export class VivadoToolchain implements SynthesisToolchain {
   }
 
   async scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Promise<Record<string, string>> {
-    const { name, templateContext, templates, ipCoreData, busDefinitions, isSv, memoryMaps } = ctx;
+    const {
+      name,
+      templateContext,
+      templates,
+      ipCoreData,
+      busDefinitions,
+      busLibrary,
+      isSv,
+      memoryMaps,
+    } = ctx;
     const files: Record<string, string> = {};
 
     const versionStr = String(ipCoreData?.vlnv?.version ?? '1.0').replace(/\./g, '_');
@@ -129,9 +138,10 @@ export class VivadoToolchain implements SynthesisToolchain {
           isSv,
           memoryMaps,
           ipCoreDir: ctx.ipCoreDir,
+          busLibrary,
         });
 
-    const customBusDefs = generateCustomBusDefs(ipCoreData, busDefinitions);
+    const customBusDefs = generateCustomBusDefs(ipCoreData, busLibrary);
     for (const [relPath, content] of Object.entries(customBusDefs)) {
       files[`xilinx/${relPath}`] = content;
     }

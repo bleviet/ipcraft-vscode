@@ -3,11 +3,12 @@ import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { getIpcraftConfigDir } from '../utils/configDir';
 import {
-  renderBusDefinitionXml,
+  customBusInfoFromContract,
   renderAbstractionDefinitionXml,
-  CustomBusInfo,
-} from './VivadoComponentXmlGenerator';
-import type { BusDefinitions } from './types';
+  renderBusDefinitionXml,
+} from './VivadoCustomBusDefinitions';
+import type { BusDefinitionFile } from '../domain/busDefinition.types';
+import { normalizeBusLibrary, type BusDefinitionSource } from '../shared/busContracts';
 import { Logger } from '../utils/Logger';
 
 const logger = new Logger('VivadoBusDefInstaller');
@@ -20,18 +21,23 @@ export async function installGlobalBusDefinitions(busDefinitionsDir: string): Pr
   const currentDir = busDefinitionsDir;
   const files = await fs.readdir(currentDir);
 
-  const busDefinitions: BusDefinitions = {};
-
+  const sources: BusDefinitionSource[] = [];
   for (const file of files) {
     if (file.endsWith('.yml') || file.endsWith('.yaml')) {
       const filePath = path.join(currentDir, file);
-      const yamlText = await fs.readFile(filePath, 'utf-8');
-      const parsed = yaml.load(yamlText) as Record<string, unknown>;
+      const parsed = yaml.load(await fs.readFile(filePath, 'utf-8'));
       if (parsed && typeof parsed === 'object') {
-        Object.assign(busDefinitions, parsed);
+        sources.push({
+          sourceFile: filePath,
+          sourceKind: 'builtin',
+          definitions: parsed as BusDefinitionFile,
+        });
       }
     }
   }
+  // Built from the normalized contracts with the same builder as per-IP definitions,
+  // so both copies of one VLNV declare the same logical ports (including read_n).
+  const library = normalizeBusLibrary(sources);
 
   const configDir = getIpcraftConfigDir();
   const vivadoBusDefsDir = path.join(configDir, 'vivado', 'busdefs');
@@ -40,31 +46,18 @@ export async function installGlobalBusDefinitions(busDefinitionsDir: string): Pr
 
   let installedCount = 0;
 
-  for (const def of Object.values(busDefinitions)) {
-    const bt = def.busType;
-    if (!bt?.vendor || !bt.library || !bt.name || !bt.version) {
-      continue;
-    }
-
+  for (const contract of Object.values(library.definitions)) {
+    const customBusInfo = customBusInfoFromContract(contract);
     // Only install our own custom buses (e.g. avalon_st, conduit) globally
-    if (bt.vendor !== 'ipcraft') {
+    if (customBusInfo.vendor !== 'ipcraft') {
       continue;
     }
-
-    const customBusInfo: CustomBusInfo = {
-      vendor: bt.vendor,
-      library: bt.library,
-      name: bt.name,
-      version: bt.version,
-      description: bt.description ?? '',
-      ports: def.ports ?? [],
-    };
 
     const busDefXml = renderBusDefinitionXml(customBusInfo);
     const absDefXml = renderAbstractionDefinitionXml(customBusInfo);
 
-    await fs.writeFile(path.join(vivadoBusDefsDir, `${bt.name}.xml`), busDefXml);
-    await fs.writeFile(path.join(vivadoBusDefsDir, `${bt.name}_rtl.xml`), absDefXml);
+    await fs.writeFile(path.join(vivadoBusDefsDir, `${customBusInfo.name}.xml`), busDefXml);
+    await fs.writeFile(path.join(vivadoBusDefsDir, `${customBusInfo.name}_rtl.xml`), absDefXml);
     installedCount++;
   }
 

@@ -8,9 +8,11 @@ import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
-import { normalizeBusType } from '../../generator/registerProcessor';
+import { BUS_REGISTRY } from '../../generator/buses/builtin';
+import type { NormalizedBusLibrary } from '../../shared/busContracts';
 import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
 import type { IpCoreData } from '../../generator/types';
+import { applyPlatformDesignerRoleCase } from './platformDesignerRoles';
 import {
   resolveExecutionLauncher,
   type DockerConfig,
@@ -149,11 +151,14 @@ const TEMPLATE_TYPE_TO_ALTERA: Record<string, string> = {
   avst: 'avalon_streaming',
 };
 
-export function mapBusTypeToAltera(typeName: string | undefined): string {
+export function mapBusTypeToAltera(
+  typeName: string | undefined,
+  library: NormalizedBusLibrary
+): string {
   if (!typeName) {
     return 'conduit';
   }
-  const info = normalizeBusType(typeName);
+  const info = BUS_REGISTRY.normalize(typeName, library);
   return TEMPLATE_TYPE_TO_ALTERA[info.templateType] ?? 'conduit';
 }
 
@@ -344,7 +349,7 @@ export class QuartusToolchain implements SynthesisToolchain {
   }
 
   async scaffold(ctx: ScaffoldContext, opts: ScaffoldOptions): Promise<Record<string, string>> {
-    const { name, templateContext, templates, ipCoreData, isSv } = ctx;
+    const { name, templateContext, templates, ipCoreData, isSv, busLibrary } = ctx;
     const files: Record<string, string> = {};
 
     // Inject altera_type onto each expanded bus interface so the _hw.tcl
@@ -355,7 +360,8 @@ export class QuartusToolchain implements SynthesisToolchain {
     if (Array.isArray(expanded)) {
       for (const iface of expanded) {
         iface.altera_type = mapBusTypeToAltera(
-          typeof iface.type === 'string' ? iface.type : undefined
+          typeof iface.type === 'string' ? iface.type : undefined,
+          busLibrary
         );
       }
     }
@@ -367,8 +373,14 @@ export class QuartusToolchain implements SynthesisToolchain {
       name,
       ctx.ipCoreDir
     );
+    const roles = applyPlatformDesignerRoleCase(
+      expanded ?? [],
+      (templateContext.elaborate_port_widths as Array<Record<string, unknown>> | undefined) ?? []
+    );
     files[`altera/${name}_hw.tcl`] = templates.render('altera_hw_tcl.j2', {
       ...templateContext,
+      expanded_bus_interfaces: roles.interfaces,
+      elaborate_port_widths: roles.elaboratePortWidths,
       rtl_files: rtlFileEntries,
     });
 

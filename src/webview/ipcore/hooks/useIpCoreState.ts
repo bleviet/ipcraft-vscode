@@ -1,29 +1,76 @@
 import { useState, useCallback } from 'react';
 import * as yaml from 'yaml';
-import { applyPathEdits, applyPathDeletes } from '../../../yamledit';
 import { busSupportsMemoryMap } from '../../../shared/busVlnv';
+import type { BusInterfacePortMutation, NormalizedBusLibrary } from '../../../shared/busContracts';
+import {
+  applyYamlMutation,
+  canonicalizeParsedIpCore,
+  getAuthoredBusInterfaceRoot,
+  remapBusInterfacePath,
+} from '../../../shared/busContracts/ipCoreCanonicalize';
+import {
+  isBehindLatestFormat,
+  migrateIpCoreYaml,
+  readIpCoreFormatVersion,
+} from '../../../shared/ipCoreFormat';
+
+export interface IpCoreImports {
+  memoryMaps?: Record<string, unknown>[];
+  fileSets?: Record<string, unknown>[];
+  busLibrary?: NormalizedBusLibrary;
+}
 
 export interface IpCoreState {
   ipCore: Record<string, unknown> | null;
   rawYaml: string;
   parseError: string | null;
   fileName: string;
-  imports: {
-    memoryMaps?: Record<string, unknown>[];
-    fileSets?: Record<string, unknown>[];
-    busLibrary?: Record<string, unknown>;
+  imports: IpCoreImports;
+}
+
+interface InternalIpCoreState extends IpCoreState {
+  /** Legacy-content canonicalization of a file already at the latest format version. */
+  pendingBusCanonicalization: readonly BusInterfacePortMutation[];
+  /** The file is behind the latest format version: the next edit upgrades it as a whole. */
+  pendingFormatUpgrade: boolean;
+}
+
+/** Reads the parsed document into editor data, rejecting a format version this IPCraft cannot read. */
+function deriveIpCoreState(
+  parsed: Record<string, unknown>,
+  library: NormalizedBusLibrary | undefined
+): Pick<InternalIpCoreState, 'ipCore' | 'pendingBusCanonicalization' | 'pendingFormatUpgrade'> {
+  const version = readIpCoreFormatVersion(parsed);
+  if (!version.ok) {
+    throw new Error(version.message);
+  }
+  const { ipCore, mutations } = canonicalizeParsedIpCore(parsed, library);
+  // Without a bus library the upgrade cannot canonicalize, so it is not offered either.
+  const pendingFormatUpgrade = isBehindLatestFormat(version.version) && library !== undefined;
+  return {
+    ipCore,
+    pendingBusCanonicalization: pendingFormatUpgrade ? [] : mutations,
+    pendingFormatUpgrade,
   };
+}
+
+/**
+ * The document text an edit starts from: a file behind the latest format version is upgraded
+ * by the same migration `ipcraft migrate` runs; otherwise the pending canonicalization applies.
+ * Either way the edit and its prerequisite land in one document update.
+ */
+function textBeforeEdit(prev: InternalIpCoreState): string {
+  if (prev.pendingFormatUpgrade && prev.imports.busLibrary) {
+    return migrateIpCoreYaml(prev.rawYaml, prev.imports.busLibrary).text;
+  }
+  return prev.pendingBusCanonicalization.reduce(applyYamlMutation, prev.rawYaml);
 }
 
 export interface UpdateMessage {
   type: 'update';
   text: string;
   fileName: string;
-  imports?: {
-    memoryMaps?: Record<string, unknown>[];
-    fileSets?: Record<string, unknown>[];
-    busLibrary?: Record<string, unknown>;
-  };
+  imports?: IpCoreImports;
 }
 
 export interface ValidationError {
@@ -31,19 +78,6 @@ export interface ValidationError {
   section: 'busInterfaces';
   entityName: string;
   field: string;
-}
-
-/**
- * The schema documents `bus_interfaces` as a snake_case alias for `busInterfaces`
- * (ip_core.schema.json). Unlike the Memory Map domain layer, the IP Core webview
- * reads the parsed YAML object directly without going through domain/parse.ts, so
- * that alias must be resolved here or bus interfaces silently vanish from the canvas.
- */
-function aliasBusInterfaces(data: Record<string, unknown>): Record<string, unknown> {
-  if (data.busInterfaces === undefined && Array.isArray(data.bus_interfaces)) {
-    return { ...data, busInterfaces: data.bus_interfaces };
-  }
-  return data;
 }
 
 /**
@@ -56,47 +90,46 @@ function aliasBusInterfaces(data: Record<string, unknown>): Record<string, unkno
  * - Reference validation
  */
 export function useIpCoreState() {
-  const [state, setState] = useState<IpCoreState>({
+  const [state, setState] = useState<InternalIpCoreState>({
     ipCore: null,
     rawYaml: '',
     parseError: null,
     fileName: '',
     imports: {},
+    pendingBusCanonicalization: [],
+    pendingFormatUpgrade: false,
   });
 
   /**
    * Update state from YAML text
    * Called when extension sends new document content
    */
-  const updateFromYaml = useCallback(
-    (text: string, fileName: string, imports?: Record<string, unknown>) => {
-      try {
-        const parsed = yaml.parse(text) as unknown;
+  const updateFromYaml = useCallback((text: string, fileName: string, imports?: IpCoreImports) => {
+    try {
+      const parsed = yaml.parse(text) as unknown;
 
-        if (!parsed || typeof parsed !== 'object') {
-          throw new Error('Invalid YAML: must be an object');
-        }
-
-        const data = aliasBusInterfaces(parsed as Record<string, unknown>);
-
-        setState({
-          ipCore: data,
-          rawYaml: text,
-          parseError: null,
-          fileName,
-          imports: imports ?? {},
-        });
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          rawYaml: text,
-          parseError: (error as Error).message,
-          fileName,
-        }));
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid YAML: must be an object');
       }
-    },
-    []
-  );
+
+      const derived = deriveIpCoreState(parsed as Record<string, unknown>, imports?.busLibrary);
+
+      setState({
+        ...derived,
+        rawYaml: text,
+        parseError: null,
+        fileName,
+        imports: imports ?? {},
+      });
+    } catch (error) {
+      setState((prev) => ({
+        ...prev,
+        rawYaml: text,
+        parseError: (error as Error).message,
+        fileName,
+      }));
+    }
+  }, []);
 
   /**
    * Update IP core data at a specific path
@@ -111,16 +144,23 @@ export function useIpCoreState() {
       }
 
       try {
-        const newYaml =
-          value === undefined
-            ? applyPathDeletes(prev.rawYaml, [path])
-            : applyPathEdits(prev.rawYaml, [{ path, value }]);
+        let newYaml = textBeforeEdit(prev);
+        const busInterfaceRoot = getAuthoredBusInterfaceRoot(newYaml);
+        newYaml = applyYamlMutation(newYaml, [
+          remapBusInterfacePath(path, busInterfaceRoot),
+          value,
+        ]);
 
-        const newIpCore = aliasBusInterfaces(yaml.parse(newYaml) as Record<string, unknown>);
+        // Keep any canonicalization the edit introduced pending, so the next
+        // index-based edit applies it first and the raw YAML matches ipCore.
+        const derived = deriveIpCoreState(
+          yaml.parse(newYaml) as Record<string, unknown>,
+          prev.imports.busLibrary
+        );
 
         return {
           ...prev,
-          ipCore: newIpCore,
+          ...derived,
           rawYaml: newYaml,
         };
       } catch (error) {
@@ -146,19 +186,25 @@ export function useIpCoreState() {
       }
 
       try {
-        let currentYaml = prev.rawYaml;
+        let currentYaml = textBeforeEdit(prev);
+        const busInterfaceRoot = getAuthoredBusInterfaceRoot(currentYaml);
         for (const [path, value] of mutations) {
-          currentYaml =
-            value === undefined
-              ? applyPathDeletes(currentYaml, [path])
-              : applyPathEdits(currentYaml, [{ path, value }]);
+          currentYaml = applyYamlMutation(currentYaml, [
+            remapBusInterfacePath(path, busInterfaceRoot),
+            value,
+          ]);
         }
 
-        const newIpCore = aliasBusInterfaces(yaml.parse(currentYaml) as Record<string, unknown>);
+        // Keep any canonicalization the edit introduced pending, so the next
+        // index-based edit applies it first and the raw YAML matches ipCore.
+        const derived = deriveIpCoreState(
+          yaml.parse(currentYaml) as Record<string, unknown>,
+          prev.imports.busLibrary
+        );
 
         return {
           ...prev,
-          ipCore: newIpCore,
+          ...derived,
           rawYaml: currentYaml,
         };
       } catch (error) {
@@ -224,7 +270,14 @@ export function useIpCoreState() {
               entityName: String(bus.name),
               field: 'memoryMapRef',
             });
-          } else if (!busSupportsMemoryMap(String(bus.type ?? ''), String(bus.mode ?? ''))) {
+          } else if (
+            state.imports.busLibrary &&
+            !busSupportsMemoryMap(
+              String(bus.type ?? ''),
+              String(bus.mode ?? ''),
+              state.imports.busLibrary
+            )
+          ) {
             errors.push({
               message: `Bus interface '${String(bus.name)}' of type '${String(bus.type)}' in '${String(bus.mode)}' mode does not support memory map references`,
               section: 'busInterfaces',
@@ -259,8 +312,14 @@ export function useIpCoreState() {
     return errors;
   }, [state.ipCore, state.imports]);
 
+  const {
+    pendingBusCanonicalization: _pendingBusCanonicalization,
+    pendingFormatUpgrade: _pendingFormatUpgrade,
+    ...publicState
+  } = state;
+
   return {
-    ...state,
+    ...publicState,
     updateFromYaml,
     updateIpCore,
     updateIpCoreBatch,

@@ -81,6 +81,7 @@ export async function handleGenerateRequest({
   }
 
   const outputBaseDir = folderUris[0].fsPath;
+  const sourceRevision = document.getText();
 
   const generator = new IpCoreScaffolder(
     logger,
@@ -96,7 +97,7 @@ export async function handleGenerateRequest({
     includeRegs: message.options?.includeRegfile !== false,
     includeVhdl: message.options?.includeVhdl !== false,
     updateYaml: false,
-    sourceText: document.getText(),
+    sourceText: sourceRevision,
   });
 
   if (!result.success) {
@@ -104,6 +105,8 @@ export async function handleGenerateRequest({
       type: 'generateResult',
       success: false,
       error: result.error ?? 'Generation failed',
+      issues: result.issues,
+      sourceRevision,
     });
     return;
   }
@@ -115,6 +118,7 @@ export async function handleGenerateRequest({
     type: 'generateResult',
     success: true,
     files: writtenFiles,
+    sourceRevision,
   });
 
   const action = await vscode.window.showInformationMessage(

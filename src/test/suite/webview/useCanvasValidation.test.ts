@@ -1,7 +1,29 @@
-import { useCanvasValidation } from '../../../webview/ipcore/hooks/useCanvasValidation';
+import { useCanvasValidation as validateCanvas } from '../../../webview/ipcore/hooks/useCanvasValidation';
 import { IpCore } from '../../../webview/types/ipCore';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
+import { normalizeBusLibrary } from '../../../shared/busContracts';
+import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
+
+const busLibrary = builtinBusLibrary();
+const useCanvasValidation = (ipCore: IpCore) => validateCanvas(ipCore, busLibrary);
 
 describe('useCanvasValidation', () => {
+  it('uses canonical roles and the canonical Avalon-MM optional-port set', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      busInterfaces: [
+        {
+          name: 'avalon',
+          type: 'xilinx.com:interface:avalon:1.0',
+          mode: 'slave',
+          physicalPrefix: 'avs_',
+          useOptionalPorts: ['byteenable_n', 'writeresponsevalid'],
+        },
+      ],
+    };
+
+    expect(useCanvasValidation(ipCore)['bus:0']).toBeUndefined();
+  });
   it('should return no annotations for a valid IP core', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
@@ -101,6 +123,76 @@ describe('useCanvasValidation', () => {
         message: 'Endianness "big" has no effect on WDATA: width must be a multiple of 8 bits',
       }),
     ]);
+  });
+
+  it('accepts five one-bit Avalon-ST symbols for big-endian lane reversal', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      busInterfaces: [
+        {
+          name: 'stream',
+          type: 'ipcraft:busif:avalon_st:1.0',
+          mode: 'source',
+          physicalPrefix: 'stream_',
+          endianness: 'big',
+          portWidthOverrides: { data: 5 },
+          interfaceProperties: { dataBitsPerSymbol: 1, symbolsPerBeat: 5 },
+        },
+      ],
+    };
+
+    expect(useCanvasValidation(ipCore)['bus:0']).toBeUndefined();
+  });
+
+  it('uses custom contract symbol metadata when validating big-endian lane reversal', () => {
+    const definitions: BusDefinitionFile = {
+      CUSTOM_SYMBOL_STREAM: {
+        busType: {
+          vendor: 'acme',
+          library: 'busif',
+          name: 'custom_symbol_stream',
+          version: '1.0',
+        },
+        contract: {
+          version: 1,
+          interfaceKind: 'streaming',
+          modePolicy: { producer: 'source', consumer: 'sink', aliases: {} },
+          interfaceProperties: {
+            dataBitsPerSymbol: { type: 'integer', minimum: 1 },
+          },
+          constraints: [],
+        },
+        ports: [
+          {
+            name: 'payload',
+            width: 5,
+            direction: 'out',
+            presence: 'required',
+            role: 'data',
+            widthPolicy: 'root',
+          },
+        ],
+      },
+    };
+    const customLibrary = normalizeBusLibrary([
+      { sourceFile: '/workspace/custom-symbol.yml', sourceKind: 'workspace', definitions },
+    ]);
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      busInterfaces: [
+        {
+          name: 'stream',
+          type: 'acme:busif:custom_symbol_stream:1.0',
+          mode: 'source',
+          physicalPrefix: 'stream_',
+          endianness: 'big',
+          portWidthOverrides: { payload: 5 },
+          interfaceProperties: { dataBitsPerSymbol: 1 },
+        },
+      ],
+    };
+
+    expect(validateCanvas(ipCore, customLibrary)['bus:0']).toBeUndefined();
   });
 
   it('warns when a big-endian built-in interface has no enabled data port', () => {
@@ -240,7 +332,7 @@ describe('useCanvasValidation', () => {
           associatedClock: 'clk',
           portNameOverrides: { data: 'data_1_i', valid: 'valid_1_i' },
         },
-      ] as any,
+      ],
     };
 
     const annotations = useCanvasValidation(ipCore);
@@ -269,7 +361,7 @@ describe('useCanvasValidation', () => {
           physicalPrefix: 'asi_',
           associatedClock: 'clk',
         },
-      ] as any,
+      ],
     };
 
     const annotations = useCanvasValidation(ipCore);
@@ -519,6 +611,23 @@ describe('useCanvasValidation', () => {
     };
 
     expect(useCanvasValidation(ipCore)['interrupt:0']).toBeUndefined();
+  });
+
+  it('defers contract-dependent interrupt validation until the bus library arrives', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      busInterfaces: [
+        {
+          name: 's_axi',
+          type: 'ipcraft:busif:axi4_lite:1.0',
+          mode: 'slave',
+          physicalPrefix: 's_axi_',
+        },
+      ],
+      interrupts: [{ name: 'irq', associatedBusInterface: 's_axi' }],
+    };
+
+    expect(validateCanvas(ipCore)['interrupt:0']).toBeUndefined();
   });
 
   it('rejects stale or ineligible interrupt associations', () => {

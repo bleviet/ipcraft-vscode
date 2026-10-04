@@ -2,6 +2,7 @@ import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { CanvasInspector } from '../../../webview/ipcore/components/canvas/CanvasInspector';
 import type { IpCore } from '../../../webview/types/ipCore';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 const ipCore = {
   vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
@@ -56,6 +57,7 @@ describe('InterruptPanel associations', () => {
       <CanvasInspector
         selected={{ kind: 'interrupt', index: 0, id: 'interrupt:0' }}
         ipCore={ipCore}
+        imports={{ busLibrary: builtinBusLibrary() }}
         onUpdate={jest.fn()}
         onClose={jest.fn()}
       />
@@ -81,6 +83,7 @@ describe('InterruptPanel associations', () => {
       <CanvasInspector
         selected={{ kind: 'interrupt', index: 0, id: 'interrupt:0' }}
         ipCore={ipCore}
+        imports={{ busLibrary: builtinBusLibrary() }}
         onUpdate={onUpdate}
         onClose={jest.fn()}
       />

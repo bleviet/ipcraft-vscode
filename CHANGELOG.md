@@ -6,11 +6,22 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- Bus interfaces are now checked against one canonical contract library across the editor, importers, consistency checks, and generators. The Issues panel groups protocol errors and warnings, links them to the affected canvas signal and Inspector field, and blocks generation when a known error or unresolved generation constraint remains.
+- **Configurable port polarity.** A bus contract can declare an active-high and an active-low role for the same logical port, and an interface selects one per port through `portPolarityOverrides`. The Inspector exposes a per-port polarity selector, the canvas marks the resolved role, and vendor artifacts (`_hw.tcl`, IP-XACT) carry the polarity-specific interface role while generated HDL keeps canonical active-high internals and inverts at the boundary. Only a nondefault choice is stored; returning a port to its contract default removes the entry. Avalon-MM `byteenable`, `readdatavalid`, `waitrequest`, `read`, and `write` are polarity-configurable, replacing the separate `_n` logical ports, which are still accepted when reading existing documents.
 - **The extension now ships the `ipcraft` CLI and puts it on `PATH`.** It is available in VS Code integrated terminals automatically, and `IPCraft: Install 'ipcraft' Command in PATH` installs it for external terminals on this machine without sudo or Node.js. CI runners without VS Code are not covered. ([#206](https://github.com/bleviet/ipcraft-vscode/issues/206))
+
+### Changed
+
+- Avalon-MM now uses its canonical logical port set and optionality in the canvas and generated artifacts. Legacy aliases are accepted only at the document boundary and resolve to the canonical IPCraft VLNV.
+- Avalon-ST uses `source` and `sink` modes and preserves `dataBitsPerSymbol`, `symbolsPerBeat`, `readyLatency`, `maxChannel`, and endianness through Platform Designer Tcl and custom IP-XACT. Big-endian generated RTL reverses Avalon-ST data in symbol-sized lanes; AXI, Avalon-MM, and standalone ports retain eight-bit lanes.
 
 ### Fixed
 
 - **Generated AXI4-Lite slaves (VHDL and SystemVerilog) no longer lose a transaction or deadlock when the master offers several at once.** The wrapper accepted the next write's W beat while the previous write response was still pending (overwriting the latched write data) and the next AR while RVALID was still pending (that read was never answered). It now takes one write and one read at a time. Masters with transactions in flight, such as an AXI SmartConnect forwarding posted PCIe writes, hit this; on a PCIe host the hung slave caused completion timeouts. A new behavioral suite (`axil-handshake`, GHDL and Icarus Verilog) offers write and read transactions back to back.
+
+### Compatibility
+
+- Bus-interface compatibility is forward-only for port polarity. This version reads every bus-interface document the 1.0.0 release supported, and existing active-high documents keep their behavior and generated port names. A document that selects an active-low port through `portPolarityOverrides` requires this version or later: an older IPCraft ignores the field and would generate the active-high role instead.
 
 ## [1.0.0] - 2026-08-09
 

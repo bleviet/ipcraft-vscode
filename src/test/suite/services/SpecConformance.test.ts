@@ -7,6 +7,8 @@ const REPO_ROOT = path.resolve(__dirname, '../../../..');
 const FIXTURES_DIR = path.join(REPO_ROOT, 'src', 'test', 'fixtures');
 const TEMPLATES_DIR = path.join(REPO_ROOT, 'ipcraft-spec', 'templates');
 const EXAMPLES_DIR = path.join(REPO_ROOT, 'ipcraft-spec', 'examples');
+const REPO_EXAMPLES_DIR = path.join(REPO_ROOT, 'examples');
+const BUS_DEFINITIONS_DIR = path.join(REPO_ROOT, 'ipcraft-spec', 'bus_definitions');
 
 const IP_CORE_SCHEMA_PATH = path.join(REPO_ROOT, 'ipcraft-spec', 'schemas', 'ip_core.schema.json');
 const MEMORY_MAP_SCHEMA_PATH = path.join(
@@ -21,12 +23,19 @@ const DATA_INSPECTOR_SCHEMA_PATH = path.join(
   'schemas',
   'data_inspector.schema.json'
 );
+const BUS_DEFINITION_SCHEMA_PATH = path.join(
+  REPO_ROOT,
+  'ipcraft-spec',
+  'schemas',
+  'bus_definition.schema.json'
+);
 
 describe('Spec Conformance Tests', () => {
   let ajv: Ajv;
   let validateIpCore: ReturnType<Ajv['compile']>;
   let validateMemoryMap: ReturnType<Ajv['compile']>;
   let validateDataInspector: ReturnType<Ajv['compile']>;
+  let validateBusDefinition: ReturnType<Ajv['compile']>;
 
   beforeAll(() => {
     ajv = new Ajv({ strict: false, allowUnionTypes: true });
@@ -45,6 +54,9 @@ describe('Spec Conformance Tests', () => {
 
     const dataInspectorSchema = JSON.parse(fs.readFileSync(DATA_INSPECTOR_SCHEMA_PATH, 'utf8'));
     validateDataInspector = ajv.compile(dataInspectorSchema);
+
+    const busDefinitionSchema = JSON.parse(fs.readFileSync(BUS_DEFINITION_SCHEMA_PATH, 'utf8'));
+    validateBusDefinition = ajv.compile(busDefinitionSchema);
   });
 
   function getYamlFiles(dir: string): string[] {
@@ -86,6 +98,8 @@ describe('Spec Conformance Tests', () => {
     ...getYamlFiles(FIXTURES_DIR),
     ...getYamlFiles(TEMPLATES_DIR),
     ...getYamlFiles(EXAMPLES_DIR),
+    // Repository examples also hold tool configs, so only take IP core and memory map files.
+    ...getYamlFiles(REPO_EXAMPLES_DIR).filter((f) => /\.(ip|mm)\.ya?ml$/.test(f)),
   ].filter((f) => !f.includes('invalid-syntax'));
 
   for (const filePath of allYamlFiles) {
@@ -133,6 +147,23 @@ describe('Spec Conformance Tests', () => {
             : 'Unknown validation error';
           expect(`Memory Map schema validation errors for ${relativePath}:\n${errors}`).toBe('');
         }
+      }
+    });
+  }
+
+  for (const fileName of fs
+    .readdirSync(BUS_DEFINITIONS_DIR)
+    .filter((file) => file.endsWith('.yml'))) {
+    it(`should validate bus definition: ${fileName}`, () => {
+      const filePath = path.join(BUS_DEFINITIONS_DIR, fileName);
+      const definition = jsyaml.load(fs.readFileSync(filePath, 'utf8'));
+      const valid = validateBusDefinition(definition);
+
+      if (!valid) {
+        const errors = validateBusDefinition.errors
+          ? JSON.stringify(validateBusDefinition.errors, null, 2)
+          : 'Unknown validation error';
+        fail(`Bus definition schema validation failed for ${fileName}:\n${errors}`);
       }
     });
   }

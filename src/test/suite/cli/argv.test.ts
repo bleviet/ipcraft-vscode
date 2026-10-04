@@ -169,4 +169,31 @@ describe('ipcraft CLI argv parsing', () => {
       expect(result.kind).toBe('error');
     });
   });
+
+  describe('migrate', () => {
+    it('parses multiple paths and --check', () => {
+      expect(parseArgs(['migrate', 'a.ip.yml', 'b.ip.yml'])).toEqual({
+        kind: 'migrate',
+        args: { paths: ['a.ip.yml', 'b.ip.yml'], check: false },
+      });
+      expect(parseArgs(['migrate', '--check', 'a.ip.yml'])).toEqual({
+        kind: 'migrate',
+        args: { paths: ['a.ip.yml'], check: true },
+      });
+    });
+
+    it('errors when no path is given', () => {
+      expect(parseArgs(['migrate', '--check']).kind).toBe('error');
+    });
+
+    it('rejects generate/verify options', () => {
+      expect(parseArgs(['migrate', 'a.ip.yml', '--target', 'quartus']).kind).toBe('error');
+      expect(parseArgs(['migrate', 'a.ip.yml', '--out', 'gen']).kind).toBe('error');
+    });
+
+    it('rejects --check for generate and verify', () => {
+      expect(parseArgs(['generate', 'a.ip.yml', '--check']).kind).toBe('error');
+      expect(parseArgs(['verify', 'a.ip.yml', 'gen', '--check']).kind).toBe('error');
+    });
+  });
 });

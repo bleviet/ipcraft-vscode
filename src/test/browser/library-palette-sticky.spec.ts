@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import type { BusDefinitionFile } from '../../domain/busDefinition.types';
+import { normalizeBusLibrary } from '../../shared/busContracts';
 
 test('keeps the current Library section heading visible while its items scroll', async ({
   page,
@@ -16,7 +18,7 @@ test('keeps the current Library section heading visible while its items scroll',
   await page.waitForSelector('#ipcore-root');
   await readyPromise;
 
-  const busLibrary = Object.fromEntries(
+  const definitions = Object.fromEntries(
     Array.from({ length: 12 }, (_, index) => [
       `XILINX_INTERFACE_${index}`,
       {
@@ -25,10 +27,26 @@ test('keeps the current Library section heading visible while its items scroll',
           library: 'interface',
           name: `interface_${index}`,
           version: '1.0',
+          displayName: `Interface ${index}`,
         },
+        contract: {
+          version: 1 as const,
+          interfaceKind: 'conduit' as const,
+          modePolicy: { producer: 'source', consumer: 'sink', aliases: {} },
+          interfaceProperties: {},
+          constraints: [],
+        },
+        ports: [],
       },
     ])
-  );
+  ) as BusDefinitionFile;
+  const busLibrary = normalizeBusLibrary([
+    {
+      sourceFile: '/workspace/test-buses.yml',
+      sourceKind: 'workspace',
+      definitions,
+    },
+  ]);
 
   await page.evaluate((library) => {
     window.postMessage(

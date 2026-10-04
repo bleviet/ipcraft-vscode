@@ -1,6 +1,7 @@
 import * as fsPromises from 'fs/promises';
 import * as yaml from 'js-yaml';
 import { parseHwTclContent, parseHwTclFile } from '../../../parser/HwTclParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 jest.mock('fs/promises', () => {
   const actual = jest.requireActual<typeof fsPromises>('fs/promises');
@@ -21,7 +22,7 @@ interface Doc {
 }
 
 function run(tcl: string): { doc: Doc; warnings: string[] } {
-  const r = parseHwTclContent(tcl, '/project/core_hw.tcl');
+  const r = parseHwTclContent(tcl, '/project/core_hw.tcl', { busLibrary: builtinBusLibrary() });
   return { doc: yaml.load(r.yamlText) as Doc, warnings: r.warnings };
 }
 
@@ -204,7 +205,7 @@ endmodule
 
   it('resolves directions, widths and modes from the HDL top module', async () => {
     mockFiles({ [TCL_PATH]: TCL, '/project/spi/spiphyslave.v': VERILOG });
-    const r = await parseHwTclFile(TCL_PATH);
+    const r = await parseHwTclFile(TCL_PATH, { busLibrary: builtinBusLibrary() });
     const doc = yaml.load(r.yamlText) as Doc;
 
     expect(doc.clocks?.map((c) => c.name)).toEqual(['sysclk', 'nreset']);
@@ -215,7 +216,7 @@ endmodule
       { name: 'miso', direction: 'out' },
     ]);
     const modes = Object.fromEntries((doc.busInterfaces ?? []).map((b) => [b.name, b.mode]));
-    expect(modes).toEqual({ src: 'master', snk: 'slave' });
+    expect(modes).toEqual({ src: 'source', snk: 'sink' });
     expect(r.warnings).toEqual([
       'Port "absent" on interface "snk" was not imported: add_port_to_interface declares no direction or width and the port was not found in the HDL source.',
     ]);
@@ -223,7 +224,7 @@ endmodule
 
   it('warns once when the source file cannot be read', async () => {
     mockFiles({ [TCL_PATH]: TCL });
-    const r = await parseHwTclFile(TCL_PATH);
+    const r = await parseHwTclFile(TCL_PATH, { busLibrary: builtinBusLibrary() });
     const unresolved = r.warnings.filter((w) => w.includes('could not be resolved'));
     expect(unresolved).toHaveLength(1);
     expect(unresolved[0]).toContain('spiphyslave.v');
@@ -231,11 +232,11 @@ endmodule
 
   it('warns when set_source_file is missing or not Verilog', async () => {
     mockFiles({ [TCL_PATH]: TCL.replace('set_source_file "spiphyslave.v"', '') });
-    const missing = await parseHwTclFile(TCL_PATH);
+    const missing = await parseHwTclFile(TCL_PATH, { busLibrary: builtinBusLibrary() });
     expect(missing.warnings.some((w) => w.includes('no set_source_file'))).toBe(true);
 
     mockFiles({ [TCL_PATH]: TCL.replace('spiphyslave.v', 'spiphyslave.vhd') });
-    const vhdl = await parseHwTclFile(TCL_PATH);
+    const vhdl = await parseHwTclFile(TCL_PATH, { busLibrary: builtinBusLibrary() });
     expect(vhdl.warnings.some((w) => w.includes('not Verilog'))).toBe(true);
   });
 });

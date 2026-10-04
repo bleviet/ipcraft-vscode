@@ -1,38 +1,29 @@
 import { BusRuleRegistry } from './registry';
+import { BUS_VLNV } from '../../shared/busVlnv';
 
 export const BUS_REGISTRY = new BusRuleRegistry()
   .register({
     id: 'axil',
-    vlnvNames: ['axi4_lite'],
-    aliases: ['AXI4L', 'AXI4LITE', 'AXILITE', 'AXIL'],
+    canonicalVlnv: BUS_VLNV.AXI4_LITE,
     libraryKey: 'AXI4_LITE',
-    isMemoryMapped: true,
   })
   .register({
     id: 'axi4',
-    vlnvNames: ['axi4_full'],
-    aliases: ['AXI4F', 'AXI4FULL', 'AXI4'],
+    canonicalVlnv: BUS_VLNV.AXI4_FULL,
     libraryKey: 'AXI4_FULL',
-    isMemoryMapped: true,
   })
   .register({
     id: 'avmm',
-    vlnvNames: ['avalon_mm'],
-    aliases: ['AVALONMM', 'AVMM', 'AVALONMEMORYMAPPED'],
+    canonicalVlnv: BUS_VLNV.AVALON_MM,
     libraryKey: 'AVALON_MEMORY_MAPPED',
-    isMemoryMapped: true,
   })
   .register({
     id: 'axis',
-    vlnvNames: ['axi_stream'],
-    aliases: ['AXI4S', 'AXISTREAM', 'AXIS'],
+    canonicalVlnv: BUS_VLNV.AXI_STREAM,
     libraryKey: 'AXI_STREAM',
-    isMemoryMapped: false,
   })
   .register({
     id: 'avst',
-    vlnvNames: ['avalon_st'],
-    aliases: ['AVALONSTREAMING', 'AVALONST', 'AVST'],
+    canonicalVlnv: BUS_VLNV.AVALON_ST,
     libraryKey: 'AVALON_STREAMING',
-    isMemoryMapped: false,
   });

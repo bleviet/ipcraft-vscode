@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { parseHwTclContent } from '../../../parser/HwTclParser';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 interface Doc {
   ports?: Array<{ name: string; width?: number | string }>;
@@ -8,7 +9,7 @@ interface Doc {
 }
 
 function run(tcl: string): { doc: Doc; warnings: string[] } {
-  const r = parseHwTclContent(tcl, '/project/core_hw.tcl');
+  const r = parseHwTclContent(tcl, '/project/core_hw.tcl', { busLibrary: builtinBusLibrary() });
   return { doc: yaml.load(r.yamlText) as Doc, warnings: r.warnings };
 }
 
@@ -178,7 +179,12 @@ describe('HwTclParser elaboration effects', () => {
       set_interface_property sink maxChannel [ expr {2**3} ]
     `);
     expect(warnings.filter((w) => w.includes('associatedClock'))).toHaveLength(1);
-    expect(warnings.some((w) => w.includes('maxChannel'))).toBe(false);
+    // The parser itself stays silent about properties it does not read; the contract
+    // importer reports the computed value instead.
+    expect(warnings.some((w) => w.includes('maxChannel') && w.includes('static value'))).toBe(
+      false
+    );
+    expect(warnings.filter((w) => w.includes('maxChannel: computed value'))).toHaveLength(1);
   });
 
   it('applies a proc declared before the static ports', () => {
@@ -249,7 +255,7 @@ proc generate_sim {n} {
 }`,
     ],
   ])('attaches fileset callback files to the file set current at the proc', (tcl) => {
-    const r = parseHwTclContent(tcl, '/project/core_hw.tcl');
+    const r = parseHwTclContent(tcl, '/project/core_hw.tcl', { busLibrary: builtinBusLibrary() });
     const doc = yaml.load(r.yamlText) as {
       fileSets: Array<{ name: string; files: Array<{ path: string }> }>;
     };
