@@ -44,6 +44,7 @@ describe('registerGeneratorCommands registration surface', () => {
       { command: 'fpga-ip-core.parseHwTcl', requiresWorkspaceTrust: true },
       { command: 'fpga-ip-core.parseComponentXml', requiresWorkspaceTrust: true },
       { command: 'fpga-ip-core.viewBusDefinitions', requiresWorkspaceTrust: false },
+      { command: 'fpga-ip-core.upgradeIpCore', requiresWorkspaceTrust: true },
     ]);
   });
 });

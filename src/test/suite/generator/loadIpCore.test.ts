@@ -29,4 +29,14 @@ describe('loadIpCoreData schema diagnostics', () => {
       ],
     } satisfies Partial<IpCoreSchemaValidationError>);
   });
+
+  it('rejects a newer format version before schema validation', async () => {
+    const repoRoot = path.resolve(__dirname, '../../../..');
+    const sourceText =
+      "apiVersion: '1.2'\nvlnv:\n  vendor: acme\n  library: ip\n  name: demo\n  version: '1.0'\n";
+
+    await expect(
+      loadIpCoreData('/tmp/demo.ip.yml', devResourceRoots(repoRoot), sourceText)
+    ).rejects.toThrow(/apiVersion 1\.2.*up to 1\.1/);
+  });
 });

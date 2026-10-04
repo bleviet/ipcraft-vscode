@@ -8,6 +8,7 @@ import { normalizeIpCoreData } from './registerProcessor';
 import type { IpCoreData } from './types';
 import { schemaIssuesFromValidation } from '../shared/schemaIssues';
 import type { IpcraftIssue } from '../shared/issues';
+import { readIpCoreFormatVersion } from '../shared/ipCoreFormat';
 
 const validator = new YamlValidator();
 
@@ -35,6 +36,12 @@ export async function loadIpCoreData(
   const parsed = yaml.load(content);
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('Invalid IP core YAML');
+  }
+  // Check the file format version first so a newer file reports the version problem,
+  // not a schema enum error.
+  const version = readIpCoreFormatVersion(parsed as Record<string, unknown>);
+  if (!version.ok) {
+    throw new Error(version.message);
   }
   // Canonicalise HDL parameter types (e.g. `positive` -> `natural`) so that
   // hand-written specs validate and the generator emits a valid HDL generic

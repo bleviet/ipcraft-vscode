@@ -46,6 +46,9 @@ export const workspace = {
       return entries.map((e) => [e.name, e.isDirectory() ? FileType.Directory : FileType.File]);
     },
     readFile: async (uri: { fsPath: string }): Promise<Uint8Array> => fs.readFileSync(uri.fsPath),
+    stat: async (uri: { fsPath: string }): Promise<{ type: FileType }> => ({
+      type: fs.statSync(uri.fsPath).isDirectory() ? FileType.Directory : FileType.File,
+    }),
     writeFile: async (uri: { fsPath: string }, content: Uint8Array): Promise<void> => {
       fs.writeFileSync(uri.fsPath, content);
     },

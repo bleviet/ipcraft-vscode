@@ -566,9 +566,9 @@ export interface IpCore {
    */
   targets?: string[];
   /**
-   * Schema version for this IP core file (e.g. '1.0').
+   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Tools must not read a file that declares a newer version than they support.
    */
-  apiVersion?: string;
+  apiVersion?: '1.0' | '1.1';
   /**
    * Bus interfaces (snake_case alias for busInterfaces).
    */

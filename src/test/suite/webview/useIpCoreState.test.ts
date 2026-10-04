@@ -93,6 +93,19 @@ describe('useIpCoreState', () => {
       expect(result.current.rawYaml).toBe(LEGACY_POLARITY_YAML);
     });
 
+    it('reports a newer format version as a parse error', () => {
+      const { result } = renderHook(() => useIpCoreState());
+
+      act(() =>
+        result.current.updateFromYaml(`apiVersion: '1.2'\n${BASE_YAML}`, 'future.ip.yml', {
+          busLibrary: builtinBusLibrary(),
+        })
+      );
+
+      expect(result.current.parseError).toMatch(/apiVersion 1\.2.*up to 1\.1/);
+      expect(result.current.ipCore).toBeNull();
+    });
+
     it('preserves the authored bus_interfaces root while deferring canonicalization', () => {
       const { result } = renderHook(() => useIpCoreState());
 
@@ -179,6 +192,85 @@ describe('useIpCoreState', () => {
 
       act(() => result.current.updateIpCore(['parameters', 0, 'name'], 'BASE'));
       expect(result.current.rawYaml).toContain('useOptionalPorts: [ read ]');
+      expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
+    });
+
+    it('upgrades a 1.0 file to apiVersion 1.1 with the first edit in one update', () => {
+      const rawYamlHistory: string[] = [];
+      const { result } = renderHook(() => {
+        const hook = useIpCoreState();
+        useEffect(() => {
+          rawYamlHistory.push(hook.rawYaml);
+        }, [hook.rawYaml]);
+        return hook;
+      });
+
+      act(() =>
+        result.current.updateFromYaml(
+          `apiVersion: '1.0'\n${LEGACY_POLARITY_YAML}`,
+          'legacy.ip.yml',
+          {
+            busLibrary: builtinBusLibrary(),
+          }
+        )
+      );
+      act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
+
+      expect(rawYamlHistory).toHaveLength(3);
+      expect(result.current.rawYaml).toContain("apiVersion: '1.1'");
+      expect(result.current.rawYaml).not.toContain("'1.0'\n#");
+      expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
+      expect(result.current.rawYaml).toContain('name: sys_clk');
+      expect(result.current.ipCore?.apiVersion).toBe('1.1');
+    });
+
+    it('keeps hex spellings and flush sequences when upgrading on the first edit', () => {
+      const source = `vlnv:
+  vendor: acme
+  library: user
+  name: my_core
+  version: "1.0"
+clocks:
+- name: clk
+ports:
+- name: data_in
+  direction: in
+  width: 0x0010
+`;
+      const { result } = renderHook(() => useIpCoreState());
+      act(() =>
+        result.current.updateFromYaml(source, 'hex.ip.yml', { busLibrary: builtinBusLibrary() })
+      );
+      act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
+
+      expect(result.current.rawYaml).toContain('width: 0x0010');
+      expect(result.current.rawYaml).toContain('ports:\n- name: data_in\n  direction: in');
+      expect(result.current.rawYaml).toContain("apiVersion: '1.1'");
+    });
+
+    it('stamps apiVersion 1.1 on a file that declares none', () => {
+      const { result } = renderHook(() => useIpCoreState());
+      act(() =>
+        result.current.updateFromYaml(BASE_YAML, 'plain.ip.yml', {
+          busLibrary: builtinBusLibrary(),
+        })
+      );
+      act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
+
+      expect(result.current.ipCore?.apiVersion).toBe('1.1');
+      expect(result.current.rawYaml).toMatch(/^apiVersion: ["']1\.1["']$/m);
+    });
+
+    it('does not touch apiVersion of a file already at 1.1', () => {
+      const source = `apiVersion: '1.1'\n${LEGACY_POLARITY_YAML}`;
+      const { result } = renderHook(() => useIpCoreState());
+      act(() =>
+        result.current.updateFromYaml(source, 'current.ip.yml', { busLibrary: builtinBusLibrary() })
+      );
+      act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
+
+      expect(result.current.rawYaml.startsWith("apiVersion: '1.1'\n")).toBe(true);
+      expect(result.current.rawYaml.match(/apiVersion/g)).toHaveLength(1);
       expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
     });
 

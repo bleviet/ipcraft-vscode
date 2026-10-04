@@ -23,6 +23,7 @@ import { collectIfChain, selectIfBranches } from './hwTclConditionals';
 import { computeProcDefaults, hasCeilLog2Proc } from './hwTclProcs';
 import { hasLegacyPortDeclarations, readLegacyPorts, type LegacyPort } from './hwTclLegacyPorts';
 import { applyPortProperty, finalizeInterfaces, type TclInterface } from './hwTclPortEffects';
+import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 
 export interface HwTclParseOptions {
   busLibrary: NormalizedBusLibrary;
@@ -576,6 +577,7 @@ export function parseHwTclContent(
   const vendor = authorFromTcl || resolveVendor(options.vendor);
 
   const yamlData: Record<string, unknown> = {
+    apiVersion: IP_CORE_FORMAT_VERSION,
     vlnv: {
       vendor,
       library: options.library ?? 'ip',

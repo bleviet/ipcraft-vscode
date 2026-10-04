@@ -350,10 +350,10 @@ describe('ComponentXmlParser', () => {
       expect(componentName).toBe('my_ip');
     });
 
-    it('always sets apiVersion to 1.0', () => {
+    it('always sets apiVersion to the latest format version', () => {
       const { ipYamlText } = parseComponentXmlText(MINIMAL_XML);
       const doc = parseYaml(ipYamlText) as { apiVersion: string };
-      expect(doc.apiVersion).toBe('1.0');
+      expect(doc.apiVersion).toBe('1.1');
     });
   });
 

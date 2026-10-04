@@ -1,5 +1,6 @@
 import type { CliGenerateArgs } from './generate';
 import { DEFAULT_QUARTUS_DEVICE, DEFAULT_VIVADO_PART } from './generate';
+import type { CliMigrateArgs } from './migrate';
 import type { CliVerifyArgs } from './verify';
 import type { HdlLanguage } from '../generator/types';
 import type { IndentStyle } from '../generator/reindent';
@@ -11,6 +12,7 @@ export function usageText(): string {
 Usage:
   ipcraft generate <ip.yml> [options]
   ipcraft verify <ip.yml> <generated-dir> [options]
+  ipcraft migrate <ip.yml>... [--check]   Upgrade .ip.yml files to the latest format version
 
 Options:
   --target <quartus|vivado>[,<...>]  Vendor target(s) to scaffold a project for
@@ -27,11 +29,14 @@ Options:
                                       sources (default: ${DEFAULT_INDENT_STYLE})
   --indent-size <n>                   Spaces per indentation level when --indent-style is
                                       'spaces' (default: ${DEFAULT_INDENT_SIZE}); ignored for 'tab'
+  --check                            [migrate only] Report files that are not at the latest
+                                      format version without writing; exit 1 if any are
   -h, --help                          Show this help
 
 Examples:
   ipcraft generate path/to.ip.yml --target quartus --lang systemverilog --out gen/
   ipcraft verify path/to.ip.yml gen/ --target quartus --lang systemverilog
+  ipcraft migrate path/to.ip.yml --check
 `;
 }
 
@@ -39,7 +44,8 @@ export type ParsedArgv =
   | { kind: 'help' }
   | { kind: 'error'; message: string }
   | { kind: 'generate'; args: CliGenerateArgs }
-  | { kind: 'verify'; args: CliVerifyArgs };
+  | { kind: 'verify'; args: CliVerifyArgs }
+  | { kind: 'migrate'; args: CliMigrateArgs };
 
 interface CommonOptions {
   targets: string[];
@@ -76,6 +82,8 @@ function parseCommonOptions(
       return rest[i];
     };
     switch (arg) {
+      case '--check':
+        return { error: "Option '--check' is only valid for 'migrate'" };
       case '--target':
         targets.push(
           ...next()
@@ -140,17 +148,39 @@ function parseCommonOptions(
   };
 }
 
+/** Parses `migrate` argv: only `--check` and positional .ip.yml paths are accepted. */
+function parseMigrateArgs(rest: string[]): ParsedArgv {
+  const paths: string[] = [];
+  let check = false;
+  for (const arg of rest) {
+    if (arg === '--check') {
+      check = true;
+    } else if (arg.startsWith('--')) {
+      return { kind: 'error', message: `Unknown option '${arg}' for 'migrate'` };
+    } else {
+      paths.push(arg);
+    }
+  }
+  if (paths.length === 0) {
+    return { kind: 'error', message: 'Missing required argument: <ip.yml>' };
+  }
+  return { kind: 'migrate', args: { paths, check } };
+}
+
 /** Parses ipcraft CLI argv (excluding the node/script prefix). Pure — no I/O, no process.exit. */
 export function parseArgs(argv: string[]): ParsedArgv {
   if (argv.length === 0 || argv.includes('-h') || argv.includes('--help')) {
     return { kind: 'help' };
   }
   const [command, ...rest] = argv;
-  if (command !== 'generate' && command !== 'verify') {
+  if (command !== 'generate' && command !== 'verify' && command !== 'migrate') {
     return {
       kind: 'error',
-      message: `Unknown command '${command}'. Expected 'generate' or 'verify'.`,
+      message: `Unknown command '${command}'. Expected 'generate', 'verify' or 'migrate'.`,
     };
+  }
+  if (command === 'migrate') {
+    return parseMigrateArgs(rest);
   }
 
   const parsed = parseCommonOptions(rest);

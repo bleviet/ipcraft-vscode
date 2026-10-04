@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';
 import { BUS_VLNV } from '../shared/busVlnv';
+import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 import {
   canonicalizeBusType,
   portNameCandidates,
@@ -74,6 +75,7 @@ export async function parseVhdlFile(
   const outputDir = options.outputDir ?? path.dirname(vhdlPath);
 
   const yamlData: Record<string, unknown> = {
+    apiVersion: IP_CORE_FORMAT_VERSION,
     vlnv: {
       vendor: options.vendor ?? 'user',
       library: options.library ?? 'ip',

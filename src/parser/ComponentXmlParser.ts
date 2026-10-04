@@ -10,6 +10,7 @@ import {
   type NormalizedBusLibrary,
 } from '../shared/busContracts';
 import { BUS_VLNV } from '../shared/busVlnv';
+import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 
 // IP-XACT 1685-2009 namespace
 const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
@@ -928,7 +929,7 @@ export function parseComponentXmlText(
   }
 
   const ipObj: Record<string, unknown> = {
-    apiVersion: '1.0',
+    apiVersion: IP_CORE_FORMAT_VERSION,
     vlnv: { vendor, library, name: componentName, version },
   };
   if (description) {

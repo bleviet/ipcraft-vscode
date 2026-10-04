@@ -1,14 +1,18 @@
 import { useState, useCallback } from 'react';
 import * as yaml from 'yaml';
-import { applyPathEdits, applyPathDeletes } from '../../../yamledit';
 import { busSupportsMemoryMap } from '../../../shared/busVlnv';
+import type { BusInterfacePortMutation, NormalizedBusLibrary } from '../../../shared/busContracts';
 import {
-  canonicalizeBusInterfacePorts,
-  canonicalizeBusType,
-  type BusInterfacePortMutation,
-  type NormalizedBusLibrary,
-} from '../../../shared/busContracts';
-import type { BusInterface } from '../../../domain/ipcore.types';
+  applyYamlMutation,
+  canonicalizeParsedIpCore,
+  getAuthoredBusInterfaceRoot,
+  remapBusInterfacePath,
+} from '../../../shared/busContracts/ipCoreCanonicalize';
+import {
+  isBehindLatestFormat,
+  migrateIpCoreYaml,
+  readIpCoreFormatVersion,
+} from '../../../shared/ipCoreFormat';
 
 export interface IpCoreImports {
   memoryMaps?: Record<string, unknown>[];
@@ -25,7 +29,41 @@ export interface IpCoreState {
 }
 
 interface InternalIpCoreState extends IpCoreState {
+  /** Legacy-content canonicalization of a file already at the latest format version. */
   pendingBusCanonicalization: readonly BusInterfacePortMutation[];
+  /** The file is behind the latest format version: the next edit upgrades it as a whole. */
+  pendingFormatUpgrade: boolean;
+}
+
+/** Reads the parsed document into editor data, rejecting a format version this IPCraft cannot read. */
+function deriveIpCoreState(
+  parsed: Record<string, unknown>,
+  library: NormalizedBusLibrary | undefined
+): Pick<InternalIpCoreState, 'ipCore' | 'pendingBusCanonicalization' | 'pendingFormatUpgrade'> {
+  const version = readIpCoreFormatVersion(parsed);
+  if (!version.ok) {
+    throw new Error(version.message);
+  }
+  const { ipCore, mutations } = canonicalizeParsedIpCore(parsed, library);
+  // Without a bus library the upgrade cannot canonicalize, so it is not offered either.
+  const pendingFormatUpgrade = isBehindLatestFormat(version.version) && library !== undefined;
+  return {
+    ipCore,
+    pendingBusCanonicalization: pendingFormatUpgrade ? [] : mutations,
+    pendingFormatUpgrade,
+  };
+}
+
+/**
+ * The document text an edit starts from: a file behind the latest format version is upgraded
+ * by the same migration `ipcraft migrate` runs; otherwise the pending canonicalization applies.
+ * Either way the edit and its prerequisite land in one document update.
+ */
+function textBeforeEdit(prev: InternalIpCoreState): string {
+  if (prev.pendingFormatUpgrade && prev.imports.busLibrary) {
+    return migrateIpCoreYaml(prev.rawYaml, prev.imports.busLibrary).text;
+  }
+  return prev.pendingBusCanonicalization.reduce(applyYamlMutation, prev.rawYaml);
 }
 
 export interface UpdateMessage {
@@ -40,93 +78,6 @@ export interface ValidationError {
   section: 'busInterfaces';
   entityName: string;
   field: string;
-}
-
-/**
- * The schema documents `bus_interfaces` as a snake_case alias for `busInterfaces`
- * (ip_core.schema.json). Unlike the Memory Map domain layer, the IP Core webview
- * reads the parsed YAML object directly without going through domain/parse.ts, so
- * that alias must be resolved here or bus interfaces silently vanish from the canvas.
- */
-function aliasBusInterfaces(data: Record<string, unknown>): Record<string, unknown> {
-  if (data.busInterfaces === undefined && Array.isArray(data.bus_interfaces)) {
-    return { ...data, busInterfaces: data.bus_interfaces };
-  }
-  return data;
-}
-
-type BusInterfaceRoot = 'busInterfaces' | 'bus_interfaces';
-
-function getBusInterfaceRoot(data: Record<string, unknown>): BusInterfaceRoot {
-  return data.busInterfaces === undefined && Array.isArray(data.bus_interfaces)
-    ? 'bus_interfaces'
-    : 'busInterfaces';
-}
-
-function getAuthoredBusInterfaceRoot(text: string): BusInterfaceRoot {
-  const parsed = yaml.parse(text) as unknown;
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return 'busInterfaces';
-  }
-  return getBusInterfaceRoot(parsed as Record<string, unknown>);
-}
-
-function remapBusInterfacePath(
-  path: readonly (string | number)[],
-  root: BusInterfaceRoot
-): Array<string | number> {
-  return path[0] === 'busInterfaces' ? [root, ...path.slice(1)] : [...path];
-}
-
-function canonicalizeParsedIpCore(
-  data: Record<string, unknown>,
-  library: NormalizedBusLibrary | undefined
-): {
-  ipCore: Record<string, unknown>;
-  mutations: readonly BusInterfacePortMutation[];
-} {
-  const busInterfaceRoot = getBusInterfaceRoot(data);
-  const aliased = aliasBusInterfaces(data);
-  if (!library || !Array.isArray(aliased.busInterfaces)) {
-    return { ipCore: aliased, mutations: [] };
-  }
-
-  const parsedBusInterfaces = aliased.busInterfaces as unknown[];
-  const mutations: BusInterfacePortMutation[] = [];
-  const busInterfaces = parsedBusInterfaces.map((rawBus, index) => {
-    if (!rawBus || typeof rawBus !== 'object' || Array.isArray(rawBus)) {
-      return rawBus;
-    }
-
-    const busInterface = rawBus as BusInterface;
-    const match = canonicalizeBusType(String(busInterface.type ?? ''), library);
-    if (!match) {
-      return rawBus;
-    }
-
-    const canonicalized = canonicalizeBusInterfacePorts(match.contract, busInterface, index);
-    mutations.push(
-      ...canonicalized.mutations.map<BusInterfacePortMutation>(([path, value]) => [
-        remapBusInterfacePath(path, busInterfaceRoot),
-        value,
-      ])
-    );
-    return canonicalized.busInterface;
-  });
-
-  return {
-    ipCore: { ...aliased, busInterfaces },
-    mutations,
-  };
-}
-
-function applyYamlMutation(
-  text: string,
-  [path, value]: readonly [readonly (string | number)[], unknown]
-): string {
-  return value === undefined
-    ? applyPathDeletes(text, [[...path]])
-    : applyPathEdits(text, [{ path: [...path], value }]);
 }
 
 /**
@@ -146,6 +97,7 @@ export function useIpCoreState() {
     fileName: '',
     imports: {},
     pendingBusCanonicalization: [],
+    pendingFormatUpgrade: false,
   });
 
   /**
@@ -160,18 +112,14 @@ export function useIpCoreState() {
         throw new Error('Invalid YAML: must be an object');
       }
 
-      const { ipCore, mutations } = canonicalizeParsedIpCore(
-        parsed as Record<string, unknown>,
-        imports?.busLibrary
-      );
+      const derived = deriveIpCoreState(parsed as Record<string, unknown>, imports?.busLibrary);
 
       setState({
-        ipCore,
+        ...derived,
         rawYaml: text,
         parseError: null,
         fileName,
         imports: imports ?? {},
-        pendingBusCanonicalization: mutations,
       });
     } catch (error) {
       setState((prev) => ({
@@ -196,11 +144,8 @@ export function useIpCoreState() {
       }
 
       try {
-        let newYaml = prev.rawYaml;
+        let newYaml = textBeforeEdit(prev);
         const busInterfaceRoot = getAuthoredBusInterfaceRoot(newYaml);
-        for (const mutation of prev.pendingBusCanonicalization) {
-          newYaml = applyYamlMutation(newYaml, mutation);
-        }
         newYaml = applyYamlMutation(newYaml, [
           remapBusInterfacePath(path, busInterfaceRoot),
           value,
@@ -208,16 +153,15 @@ export function useIpCoreState() {
 
         // Keep any canonicalization the edit introduced pending, so the next
         // index-based edit applies it first and the raw YAML matches ipCore.
-        const { ipCore, mutations: pendingBusCanonicalization } = canonicalizeParsedIpCore(
+        const derived = deriveIpCoreState(
           yaml.parse(newYaml) as Record<string, unknown>,
           prev.imports.busLibrary
         );
 
         return {
           ...prev,
-          ipCore,
+          ...derived,
           rawYaml: newYaml,
-          pendingBusCanonicalization,
         };
       } catch (error) {
         console.error('Failed to update YAML:', error);
@@ -242,11 +186,8 @@ export function useIpCoreState() {
       }
 
       try {
-        let currentYaml = prev.rawYaml;
+        let currentYaml = textBeforeEdit(prev);
         const busInterfaceRoot = getAuthoredBusInterfaceRoot(currentYaml);
-        for (const mutation of prev.pendingBusCanonicalization) {
-          currentYaml = applyYamlMutation(currentYaml, mutation);
-        }
         for (const [path, value] of mutations) {
           currentYaml = applyYamlMutation(currentYaml, [
             remapBusInterfacePath(path, busInterfaceRoot),
@@ -256,16 +197,15 @@ export function useIpCoreState() {
 
         // Keep any canonicalization the edit introduced pending, so the next
         // index-based edit applies it first and the raw YAML matches ipCore.
-        const { ipCore, mutations: pendingBusCanonicalization } = canonicalizeParsedIpCore(
+        const derived = deriveIpCoreState(
           yaml.parse(currentYaml) as Record<string, unknown>,
           prev.imports.busLibrary
         );
 
         return {
           ...prev,
-          ipCore,
+          ...derived,
           rawYaml: currentYaml,
-          pendingBusCanonicalization,
         };
       } catch (error) {
         console.error('Failed to apply batch YAML update:', error);
@@ -372,7 +312,11 @@ export function useIpCoreState() {
     return errors;
   }, [state.ipCore, state.imports]);
 
-  const { pendingBusCanonicalization: _pendingBusCanonicalization, ...publicState } = state;
+  const {
+    pendingBusCanonicalization: _pendingBusCanonicalization,
+    pendingFormatUpgrade: _pendingFormatUpgrade,
+    ...publicState
+  } = state;
 
   return {
     ...publicState,

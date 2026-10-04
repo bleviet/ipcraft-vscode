@@ -3,13 +3,7 @@ const path = require('path');
 const { compile } = require('json-schema-to-typescript');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
-const IP_CORE_SCHEMA_PATH = path.join(
-  REPO_ROOT,
-  'node_modules',
-  'ipcraft-spec',
-  'schemas',
-  'ip_core.schema.json'
-);
+const IP_CORE_SCHEMA_PATH = path.join(REPO_ROOT, 'ipcraft-spec', 'schemas', 'ip_core.schema.json');
 const DATA_INSPECTOR_SCHEMA_PATH = path.join(
   REPO_ROOT,
   'ipcraft-spec',

@@ -8,6 +8,7 @@ import {
   portToDict,
   parseParameterValue,
 } from './VhdlParser';
+import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 import { parse as parseWidthExpr, stripRedundantOuterParens } from '../shared/widthExprAst';
 
 interface VerilogParsedParameter extends ParsedParameter {
@@ -49,6 +50,7 @@ export async function parseVerilogFile(
   const outputDir = options.outputDir ?? path.dirname(filePath);
 
   const yamlData: Record<string, unknown> = {
+    apiVersion: IP_CORE_FORMAT_VERSION,
     vlnv: {
       vendor: options.vendor ?? 'user',
       library: options.library ?? 'ip',
