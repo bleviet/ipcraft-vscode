@@ -3,6 +3,7 @@ import {
   canonicalizeBusType,
   type CanonicalPortRole,
   type NormalizedBusLibrary,
+  type NormalizedBusPort,
   type NormalizedPortPolarity,
 } from '../../../shared/busContracts';
 
@@ -15,6 +16,7 @@ export interface BusPortDef {
   presence: 'required' | 'optional';
   role: CanonicalPortRole;
   polarity?: NormalizedPortPolarity;
+  widthPolicy?: NormalizedBusPort['widthPolicy'];
 }
 
 export function isAssociatedPort(port: Pick<BusPortDef, 'role'>): boolean {

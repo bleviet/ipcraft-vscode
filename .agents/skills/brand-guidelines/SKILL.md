@@ -1,6 +1,6 @@
 ---
 name: brand-guidelines
-description: Applies bahonavi's official brand colors, gradients, and typography to any artifact that may benefit from having bahonavi's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply.
+description: Applies bahonavi's official brand colors, gradients, and typography to any artifact that may benefit from having bahonavi's look-and-feel. Use it when brand colors or style guidelines, visual formatting, or company design standards apply. Not for the IPCraft extension webviews, which follow the VS Code theme via var(--vscode-*) (see AGENTS.md).
 ---
 
 # bahonavi Brand Styling

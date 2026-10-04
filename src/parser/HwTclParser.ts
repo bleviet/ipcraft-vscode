@@ -11,6 +11,18 @@ import { resolveVendor } from '../utils/resolveVendor';
 import { titleCaseIdentifier } from '../utils/titleCase';
 import { BUS_VLNV } from '../shared/busVlnv';
 import { normalizeParameterDataType } from './paramDataType';
+import {
+  evaluateTclCondition,
+  hasTclSyntax,
+  numericParamValues,
+  resolveTclWidth,
+} from './hwTclExpr';
+import { parseTclTokens, substituteTclVariables } from './hwTclTokens';
+import { collectLoopBody, parseTclList, resolveLoop } from './hwTclLoops';
+import { collectIfChain, selectIfBranches } from './hwTclConditionals';
+import { computeProcDefaults, hasCeilLog2Proc } from './hwTclProcs';
+import { hasLegacyPortDeclarations, readLegacyPorts, type LegacyPort } from './hwTclLegacyPorts';
+import { applyPortProperty, finalizeInterfaces, type TclInterface } from './hwTclPortEffects';
 
 export interface HwTclParseOptions {
   busLibrary: NormalizedBusLibrary;
@@ -22,35 +34,14 @@ export interface HwTclParseOptions {
 export interface HwTclParseResult {
   componentName: string;
   yamlText: string;
-  /** Vendor values that could not be imported; the import itself succeeded. */
-  warnings?: string[];
+  /** De-duplicated, first-seen-order notes about Tcl the importer could not resolve. */
+  warnings: string[];
   /**
    * Interfaces whose Tcl uses runtime constructs (substitutions, elaboration-time port
    * properties, re-declaration). Their imported values may be placeholders, so protocol
    * errors on them must not block the import; generation still validates them.
    */
   staticallyIncompleteInterfaces?: string[];
-}
-
-interface TclInterface {
-  name: string;
-  type: string;
-  mode: string;
-  properties: Map<string, string>;
-  /** Properties whose last value is a `$var` or `[...]` substitution in the source. */
-  symbolicProperties: Set<string>;
-  /** The last literal value written for each property, e.g. before an elaboration override. */
-  staticProperties: Map<string, string>;
-  /** Set when any line defining this interface could not be read statically. */
-  staticallyIncomplete: boolean;
-  ports: TclPort[];
-}
-
-interface TclPort {
-  portName: string;
-  logicalName: string;
-  direction: string;
-  width: number | string;
 }
 
 interface TclFileSet {
@@ -86,6 +77,17 @@ interface TclDisplayLayout {
   displayNames: Map<string, string>;
 }
 
+/** Interface properties the importer reads; a kept-static value for these is worth a warning. */
+const READ_INTERFACE_PROPERTIES = new Set([
+  'associatedClock',
+  'associatedReset',
+  'firstSymbolInHighOrderBits',
+  'synchronousEdges',
+]);
+
+/** A `set_interface_property <iface> <prop> <value>` whose value uses `$` or `[...]`. */
+const SUBSTITUTED_PROPERTY_VALUE = /^set_interface_property\s+\S+\s+\S+\s+.*[$[]/;
+
 const BUS_TYPE_MAP: Record<string, string> = {
   axi4lite: BUS_VLNV.AXI4_LITE,
   axi4: BUS_VLNV.AXI4_FULL,
@@ -113,12 +115,6 @@ const FILESET_NAME_MAP: Record<string, string> = {
   SIMULATION: 'Simulation_Resources',
 };
 
-/** A Tcl line using a substitution or a quoted word, which static parsing cannot evaluate. */
-const RUNTIME_VALUE = /[$["]/;
-
-/** A `set_interface_property <iface> <prop> <value>` whose value uses `$` or `[...]`. */
-const SUBSTITUTED_PROPERTY_VALUE = /^set_interface_property\s+\S+\s+\S+\s+.*[$[]/;
-
 const FILESET_DESC_MAP: Record<string, string> = {
   RTL_Sources: 'RTL source files',
   Simulation_Resources: 'Simulation files',
@@ -130,7 +126,14 @@ export async function parseHwTclFile(
 ): Promise<HwTclParseResult> {
   const content = await fs.readFile(tclPath, 'utf8');
   const flattened = await flattenTclContent(content, tclPath, new Set(), false);
-  return parseHwTclContent(flattened, tclPath, options);
+  const legacy = hasLegacyPortDeclarations(flattened)
+    ? await readLegacyPorts(flattened, path.dirname(tclPath))
+    : null;
+  const result = parseHwTclContent(flattened, tclPath, options, legacy?.ports ?? undefined);
+  if (legacy?.warning && !result.warnings.includes(legacy.warning)) {
+    result.warnings.push(legacy.warning);
+  }
+  return result;
 }
 
 // ── Source-file flattening ────────────────────────────────────────────────────
@@ -277,11 +280,11 @@ async function flattenTclContent(
 export function parseHwTclContent(
   content: string,
   tclPath: string,
-  options: HwTclParseOptions
+  options: HwTclParseOptions,
+  legacyPorts?: ReadonlyMap<string, LegacyPort>
 ): HwTclParseResult {
   const moduleProps = new Map<string, string>();
-  const warnings: string[] = [];
-  const interfaces = new Map<string, TclInterface>();
+  let interfaces = new Map<string, TclInterface>();
   const fileSets = new Map<string, TclFileSet>();
   const parameters: TclParameter[] = [];
   const displayLayout: TclDisplayLayout = {
@@ -290,120 +293,271 @@ export function parseHwTclContent(
     displayNames: new Map(),
   };
   const variables = new Map<string, string>();
-  const runtimePorts = new Set<string>();
+  const warnings: string[] = [];
+  const warn = (message: string): void => {
+    if (!warnings.includes(message)) {
+      warnings.push(message);
+    }
+  };
   let currentFileSet: TclFileSet | null = null;
+  // Proc bodies (elaboration callbacks) run after the main script, in source order.
+  const pendingProcs: Array<{
+    name: string;
+    body: string[];
+    unresolved: boolean;
+    fileSet: TclFileSet | null;
+  }> = [];
+  const contentLines = content.split('\n');
+  const procDefaults = computeProcDefaults(contentLines);
+  const rewriteLog2ceil = hasCeilLog2Proc(contentLines);
 
-  for (const rawLine of content.split('\n')) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith('#')) {
-      continue;
-    }
+  // `unresolved` is set inside `if` branches whose condition could not be evaluated;
+  // it is inherited by nested blocks and keeps static declarations unchanged.
+  const processLines = (lines: readonly string[], unresolved = false): void => {
+    for (let idx = 0; idx < lines.length; idx++) {
+      const rawLine = lines[idx];
+      const line = rawLine.trim();
+      if (!line || line.startsWith('#')) {
+        continue;
+      }
 
-    const tokens = parseTclTokens(line, variables);
-    if (tokens.length === 0) {
-      continue;
-    }
+      const tokens = parseTclTokens(line, variables, rewriteLog2ceil);
+      if (tokens.length === 0) {
+        continue;
+      }
 
-    const [cmd, ...args] = tokens;
+      const [cmd, ...args] = tokens;
 
-    if (cmd === 'set' && args.length >= 2) {
-      variables.set(args[0], args[1]);
-    } else if (cmd === 'set_module_property' && args.length >= 2) {
-      moduleProps.set(args[0], args[1]);
-    } else if (cmd === 'add_interface' && args.length >= 3) {
-      const [name, type, mode] = args;
-      interfaces.set(name, {
-        name,
-        type: type.toLowerCase(),
-        mode: mode.toLowerCase(),
-        properties: new Map(),
-        symbolicProperties: new Set(),
-        staticProperties: new Map(),
-        ports: [],
-        // A second declaration means conditional branches or an elaboration rebuild.
-        staticallyIncomplete: interfaces.has(name) || RUNTIME_VALUE.test(line),
-      });
-    } else if (cmd === 'set_interface_property' && args.length >= 3) {
-      const [ifaceName, prop, value] = args;
-      const iface = interfaces.get(ifaceName);
-      iface?.properties.set(prop, value);
-      if (SUBSTITUTED_PROPERTY_VALUE.test(line)) {
-        iface?.symbolicProperties.add(prop);
-        if (iface) {
+      if (cmd === 'proc') {
+        const { body, next } = collectLoopBody(lines, idx);
+        idx = next - 1;
+        pendingProcs.push({ name: args[0] ?? '', body, unresolved, fileSet: currentFileSet });
+      } else if (cmd === 'if') {
+        const chain = collectIfChain(lines, idx);
+        idx = chain.next - 1;
+        const { bodies, resolved } = selectIfBranches(chain, (condition) =>
+          evaluateTclCondition(
+            substituteTclVariables(condition, variables),
+            numericParamValues(parameters)
+          )
+        );
+        for (const body of bodies) {
+          processLines(body, unresolved || !resolved);
+        }
+      } else if (cmd === 'for' || cmd === 'foreach') {
+        const { body, next } = collectLoopBody(lines, idx);
+        idx = next - 1;
+        const paramValues = numericParamValues(parameters);
+        const loop = resolveLoop(line, {
+          substitute: (text) => substituteTclVariables(text, variables),
+          getVariable: (name) => variables.get(name),
+          isParameter: (name) => parameters.some((p) => p.name === name),
+          paramValues,
+        });
+        if (loop) {
+          for (const value of loop.values) {
+            variables.set(loop.variable, value);
+            processLines(body, unresolved);
+          }
+        } else if (body.some((bodyLine) => bodyLine.includes('add_interface'))) {
+          warn(
+            `Skipped Tcl loop "${line}": its bounds could not be resolved, so the interfaces it creates were not imported.`
+          );
+        }
+      } else if (cmd === 'set' && args.length >= 2) {
+        variables.set(args[0], args[1]);
+      } else if (cmd === 'set_module_property' && args.length >= 2) {
+        moduleProps.set(args[0], args[1]);
+      } else if (cmd === 'add_interface' && args.length >= 3) {
+        const [name, type, mode] = args;
+        if (hasTclSyntax(name)) {
+          warn(
+            `Interface "${name}" was not imported: its name uses Tcl that could not be resolved.`
+          );
+        } else {
+          interfaces.set(name, {
+            name,
+            type: type.toLowerCase(),
+            mode: mode.toLowerCase(),
+            properties: new Map(),
+            symbolicProperties: new Set(),
+            staticProperties: new Map(),
+            // A second declaration means conditional branches or an elaboration rebuild.
+            staticallyIncomplete: interfaces.has(name),
+            ports: [],
+          });
+        }
+      } else if (cmd === 'set_interface_property' && args.length >= 3) {
+        const [ifaceName, prop, value] = args;
+        const iface = interfaces.get(ifaceName);
+        const staticKept = unresolved || hasTclSyntax(value);
+        if (iface && !staticKept) {
+          iface.properties.set(prop, value);
+          if (SUBSTITUTED_PROPERTY_VALUE.test(line)) {
+            iface.symbolicProperties.add(prop);
+            iface.staticallyIncomplete = true;
+          } else {
+            iface.symbolicProperties.delete(prop);
+            iface.staticProperties.set(prop, value);
+          }
+        } else if (iface && unresolved) {
+          iface.staticallyIncomplete = true;
+          if (READ_INTERFACE_PROPERTIES.has(prop)) {
+            warn(
+              `Interface "${ifaceName}": property "${prop}" is set under a condition that could not be evaluated, so the static value was kept.`
+            );
+          }
+        } else if (iface && READ_INTERFACE_PROPERTIES.has(prop)) {
+          iface.staticallyIncomplete = true;
+          warn(
+            `Interface "${ifaceName}": property "${prop}" value "${value}" uses Tcl that could not be resolved, so the static value was kept.`
+          );
+        } else if (iface) {
+          // The contract importer warns and falls back to the static default.
+          iface.properties.set(prop, value);
+          iface.symbolicProperties.add(prop);
           iface.staticallyIncomplete = true;
         }
-      } else {
-        iface?.symbolicProperties.delete(prop);
-        iface?.staticProperties.set(prop, value);
-      }
-    } else if (cmd === 'add_interface_port' && args.length >= 5) {
-      const [ifaceName, portName, logicalName, direction, widthStr] = args;
-      const parsedWidth = parseInt(widthStr, 10);
-      const iface = interfaces.get(ifaceName);
-      if (iface && (RUNTIME_VALUE.test(line) || parsedWidth < 0)) {
-        iface.staticallyIncomplete = true;
-      }
-      iface?.ports.push({
-        portName,
-        logicalName,
-        direction,
-        width: Number.isNaN(parsedWidth) ? (widthStr ?? 1) : parsedWidth,
-      });
-    } else if (cmd === 'set_port_property' && args.length >= 2) {
-      // Termination and width changes are applied during elaboration.
-      if (/^(termination|width|width_expr|width_value)$/i.test(args[1])) {
-        runtimePorts.add(args[0]);
-      }
-    } else if (cmd === 'add_port_to_interface' && args.length >= 1) {
-      const iface = interfaces.get(args[0]);
-      if (iface) {
-        iface.staticallyIncomplete = true;
-      }
-    } else if (cmd === 'add_fileset' && args.length >= 1) {
-      const fsName = args[0];
-      if (!fileSets.has(fsName)) {
-        const entry: TclFileSet = { name: fsName, files: [] };
-        fileSets.set(fsName, entry);
-        currentFileSet = entry;
-      } else {
-        currentFileSet = fileSets.get(fsName)!;
-      }
-    } else if (cmd === 'add_fileset_file' && args.length >= 4 && currentFileSet) {
-      // add_fileset_file <name> <lang> PATH <path> [TOP_LEVEL_FILE]
-      const pathIdx = args.indexOf('PATH');
-      if (pathIdx !== -1 && pathIdx + 1 < args.length) {
-        currentFileSet.files.push({ lang: args[1], filePath: args[pathIdx + 1] });
-      }
-    } else if (cmd === 'add_parameter' && args.length >= 2) {
-      parameters.push({ name: args[0], type: args[1], defaultValue: args[2] });
-    } else if (cmd === 'set_parameter_property' && args.length >= 3) {
-      const param = parameters.find((p) => p.name === args[0]);
-      if (param) {
-        if (args[1] === 'DEFAULT_VALUE') {
-          param.defaultValue = args[2];
-        } else if (args[1] === 'DESCRIPTION') {
-          param.description = args[2];
-        } else if (args[1] === 'DISPLAY_NAME') {
-          param.displayName = args[2];
-        } else if (args[1] === 'ALLOWED_RANGES') {
-          param.allowedRanges = args[2];
-        } else if (args[1] === 'GROUP') {
-          param.legacyGroup = args[2];
+      } else if (cmd === 'set_port_property' && args.length >= 3) {
+        const [portName, prop, value] = args;
+        const messages = applyPortProperty(
+          interfaces,
+          portName,
+          prop,
+          value,
+          new Set(parameters.map((p) => p.name)),
+          numericParamValues(parameters),
+          unresolved
+        );
+        messages.forEach(warn);
+        if (messages.length > 0) {
+          for (const iface of interfaces.values()) {
+            if (iface.ports.some((port) => port.portName === portName)) {
+              iface.staticallyIncomplete = true;
+            }
+          }
         }
+      } else if (cmd === 'add_interface_port' && args.length >= 5) {
+        const [ifaceName, portName, logicalName, direction, widthStr] = args;
+        const iface = interfaces.get(ifaceName);
+        if (hasTclSyntax(portName)) {
+          if (iface) {
+            iface.staticallyIncomplete = true;
+          }
+          warn(
+            `Port "${portName}" on interface "${ifaceName}" was not imported: its name uses Tcl that could not be resolved.`
+          );
+        } else if (iface) {
+          const width = resolveTclWidth(widthStr, new Set(parameters.map((p) => p.name)));
+          if (width === undefined) {
+            iface.staticallyIncomplete = true;
+            warn(
+              `Port "${portName}" on interface "${ifaceName}": width "${widthStr}" could not be resolved and was left out.`
+            );
+          }
+          iface.ports.push({ portName, logicalName, direction, width });
+        }
+      } else if (cmd === 'add_port_to_interface' && args.length >= 3) {
+        const [ifaceName, portName, role] = args;
+        const iface = interfaces.get(ifaceName);
+        const hdlPort = legacyPorts?.get(portName);
+        if (iface && hdlPort) {
+          iface.ports.push({
+            portName,
+            logicalName: role,
+            direction: hdlPort.direction,
+            width: hdlPort.width,
+          });
+        } else if (iface) {
+          iface.staticallyIncomplete = true;
+          warn(
+            `Port "${portName}" on interface "${ifaceName}" was not imported: add_port_to_interface declares no direction or width and the port was not found in the HDL source.`
+          );
+        }
+      } else if (cmd === 'add_fileset' && args.length >= 1) {
+        const fsName = args[0];
+        if (!fileSets.has(fsName)) {
+          const entry: TclFileSet = { name: fsName, files: [] };
+          fileSets.set(fsName, entry);
+          currentFileSet = entry;
+        } else {
+          currentFileSet = fileSets.get(fsName)!;
+        }
+      } else if (cmd === 'add_fileset_file' && args.length >= 4 && currentFileSet) {
+        // add_fileset_file <name> <lang> PATH <path> [TOP_LEVEL_FILE]
+        const pathIdx = args.indexOf('PATH');
+        if (pathIdx !== -1 && pathIdx + 1 < args.length) {
+          const rawPath = args[pathIdx + 1];
+          const joined = /^\s*\[\s*file\s+join\s+([\s\S]*)\]\s*$/.exec(rawPath);
+          const filePath = joined ? path.join(...parseTclList(joined[1])) : rawPath;
+          if (hasTclSyntax(filePath)) {
+            warn(
+              `File "${rawPath}" in file set "${currentFileSet.name}" was not imported: its path uses Tcl that could not be resolved.`
+            );
+          } else {
+            currentFileSet.files.push({ lang: args[1], filePath });
+          }
+        }
+      } else if (cmd === 'add_parameter' && args.length >= 2) {
+        parameters.push({ name: args[0], type: args[1], defaultValue: args[2] });
+      } else if (cmd === 'set_parameter_property' && args.length >= 3) {
+        const param = parameters.find((p) => p.name === args[0]);
+        if (param) {
+          if (args[1] === 'DEFAULT_VALUE') {
+            param.defaultValue = args[2];
+          } else if (args[1] === 'DESCRIPTION') {
+            param.description = args[2];
+          } else if (args[1] === 'DISPLAY_NAME') {
+            param.displayName = args[2];
+          } else if (args[1] === 'ALLOWED_RANGES') {
+            param.allowedRanges = args[2];
+          } else if (args[1] === 'GROUP') {
+            param.legacyGroup = args[2];
+          }
+        }
+      } else if (cmd === 'add_display_item' && args.length >= 3) {
+        const [parent, id, kind] = args;
+        if (kind.toUpperCase() === 'GROUP') {
+          displayLayout.groupParents.set(id, parent);
+        } else if (kind.toUpperCase() === 'PARAMETER') {
+          displayLayout.paramParents.set(id, parent);
+        }
+      } else if (
+        cmd === 'set_display_item_property' &&
+        args.length >= 3 &&
+        args[1].toUpperCase() === 'DISPLAY_NAME'
+      ) {
+        displayLayout.displayNames.set(args[0], args[2]);
       }
-    } else if (cmd === 'add_display_item' && args.length >= 3) {
-      const [parent, id, kind] = args;
-      if (kind.toUpperCase() === 'GROUP') {
-        displayLayout.groupParents.set(id, parent);
-      } else if (kind.toUpperCase() === 'PARAMETER') {
-        displayLayout.paramParents.set(id, parent);
+    }
+  };
+
+  processLines(contentLines);
+  for (let i = 0; i < pendingProcs.length; i++) {
+    // Fileset callbacks add files to the file set current where the proc was declared.
+    currentFileSet = pendingProcs[i].fileSet;
+    // Default argument bindings are scoped to this proc body.
+    const bindings = procDefaults.get(pendingProcs[i].name) ?? new Map<string, string>();
+    const saved = new Map([...bindings.keys()].map((k) => [k, variables.get(k)]));
+    bindings.forEach((value, name) => variables.set(name, value));
+    processLines(pendingProcs[i].body, pendingProcs[i].unresolved);
+    saved.forEach((previous, name) => {
+      if (previous === undefined) {
+        variables.delete(name);
+      } else {
+        variables.set(name, previous);
       }
-    } else if (
-      cmd === 'set_display_item_property' &&
-      args.length >= 3 &&
-      args[1].toUpperCase() === 'DISPLAY_NAME'
-    ) {
-      displayLayout.displayNames.set(args[0], args[2]);
+    });
+  }
+
+  // ── Elaboration effects ────────────────────────────────────────────────────
+
+  const finalized = finalizeInterfaces(interfaces, numericParamValues(parameters));
+  interfaces = finalized.interfaces;
+  finalized.warnings.forEach(warn);
+  for (const iface of interfaces.values()) {
+    if (iface.ports.some((port) => port.width === undefined)) {
+      iface.staticallyIncomplete = true;
     }
   }
 
@@ -484,7 +638,10 @@ export function parseHwTclContent(
         name: p.portName,
         direction: mapDirection(p.direction),
       };
-      if (typeof p.width === 'string' ? p.width.length > 0 : p.width > 1) {
+      if (
+        p.width !== undefined &&
+        (typeof p.width === 'string' ? p.width.length > 0 : p.width > 1)
+      ) {
         entry.width = p.width;
       }
       return entry;
@@ -510,11 +667,12 @@ export function parseHwTclContent(
 
   const busEntries = busIfaces.map((bi) => {
     const contractMatch = canonicalizeBusType(BUS_TYPE_MAP[bi.type], options.busLibrary);
+    const isProducer = ['start', 'source', 'master'].includes(bi.mode);
     const mode = contractMatch
-      ? bi.mode === 'start'
+      ? isProducer
         ? contractMatch.contract.modePolicy.producer
         : contractMatch.contract.modePolicy.consumer
-      : bi.mode === 'start'
+      : isProducer
         ? 'master'
         : 'slave';
 
@@ -551,7 +709,7 @@ export function parseHwTclContent(
         location: `${tclPath}: interface '${bi.name}'`,
       });
       Object.assign(entry, metadata);
-      warnings.push(...metadataWarnings);
+      metadataWarnings.forEach(warn);
     }
 
     const busDef = contractMatch?.contract.ports;
@@ -587,7 +745,11 @@ export function parseHwTclContent(
         dataType,
         description: p.description ?? '',
         ...resolveParameterDisplayName(p),
-        ...resolveParameterConstraint(p.allowedRanges, dataType),
+        ...resolveParameterConstraint(p.allowedRanges, dataType, (raw) =>
+          warn(
+            `Parameter "${p.name}": ALLOWED_RANGES "${raw}" uses Tcl that could not be resolved and was left out.`
+          )
+        ),
         ...resolveParameterPlacement(p, displayLayout),
       };
     });
@@ -628,187 +790,18 @@ export function parseHwTclContent(
 
   const yamlText = yaml.dump(yamlData, { noRefs: true, sortKeys: false, lineWidth: -1, indent: 2 });
 
-  const staticallyIncompleteInterfaces = Array.from(interfaces.values())
-    .filter(
-      (iface) =>
-        iface.staticallyIncomplete || iface.ports.some((port) => runtimePorts.has(port.portName))
-    )
+  const incomplete = Array.from(interfaces.values())
+    .filter((iface) => iface.staticallyIncomplete)
     .map((iface) => iface.name);
   return {
     componentName,
     yamlText,
-    ...(warnings.length > 0 ? { warnings } : {}),
-    ...(staticallyIncompleteInterfaces.length > 0 ? { staticallyIncompleteInterfaces } : {}),
+    warnings,
+    ...(incomplete.length > 0 ? { staticallyIncompleteInterfaces: incomplete } : {}),
   };
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function parseTclTokens(
-  line: string,
-  variables: ReadonlyMap<string, string> = new Map()
-): string[] {
-  const tokens: string[] = [];
-  let i = 0;
-
-  while (i < line.length) {
-    const ch = line[i];
-
-    if (ch === ' ' || ch === '\t') {
-      i++;
-      continue;
-    }
-
-    if (ch === '"') {
-      i++;
-      let val = '';
-      while (i < line.length && line[i] !== '"') {
-        if (line[i] === '\\' && i + 1 < line.length) {
-          const escaped = line[i + 1];
-          val += escaped === '$' ? `\\${escaped}` : escaped;
-          i += 2;
-          continue;
-        } else {
-          val += line[i];
-        }
-        i++;
-      }
-      i++; // closing quote
-      tokens.push(substituteTclVariables(val, variables));
-      continue;
-    }
-
-    if (ch === '{') {
-      i++;
-      let val = '';
-      let depth = 1;
-      while (i < line.length && depth > 0) {
-        if (line[i] === '\\' && i + 1 < line.length) {
-          // An escaped brace is literal and must not affect the outer braced
-          // word's nesting. Preserve the escape for a later Tcl-list parse.
-          val += line[i];
-          val += line[i + 1];
-          i += 2;
-          continue;
-        }
-        if (line[i] === '{') {
-          depth++;
-        } else if (line[i] === '}') {
-          depth--;
-          if (depth === 0) {
-            break;
-          }
-        }
-        val += line[i];
-        i++;
-      }
-      i++; // closing brace
-      tokens.push(val);
-      continue;
-    }
-
-    if (ch === '[') {
-      // Command substitution. Capture the bracket body so we can recover the
-      // one form that carries port information: `[get_parameter_value PARAM]`,
-      // which Quartus (and our own generator) use for parameter-dependent port
-      // widths inside the elaborate callback.
-      let depth = 1;
-      i++;
-      let body = '';
-      while (i < line.length && depth > 0) {
-        if (line[i] === '[') {
-          depth++;
-        } else if (line[i] === ']') {
-          depth--;
-          if (depth === 0) {
-            break;
-          }
-        }
-        body += line[i];
-        i++;
-      }
-      i++; // closing bracket
-      const paramRef = /^\s*get_parameter_value\s+(\S+)\s*$/.exec(body);
-      if (paramRef) {
-        tokens.push(substituteTclVariables(paramRef[1], variables));
-      } else {
-        // A more complex expression this parser can't reduce to a single parameter
-        // reference — e.g. a clog2-style width `[expr int(ceil(log([get_parameter_value
-        // P])/log(2)))]`. Push the raw body as a fallback token rather than dropping
-        // the argument outright: silently vanishing a token shifts every argument
-        // after it, which can drop the enclosing command entirely once its arg count
-        // falls below the command's minimum (e.g. add_interface_port's width arg).
-        // add_interface_port's own width parsing already falls back to keeping a
-        // non-numeric widthStr as-is, so this just surfaces the port with an
-        // unresolved (string) width instead of losing it.
-        tokens.push(substituteTclVariables(body, variables));
-      }
-      continue;
-    }
-
-    // Plain token
-    let val = '';
-    while (i < line.length && line[i] !== ' ' && line[i] !== '\t') {
-      val += line[i];
-      i++;
-    }
-    tokens.push(substituteTclVariables(val, variables));
-  }
-
-  return tokens;
-}
-
-/**
- * Applies the two common Tcl variable-reference forms to a word. Unknown
- * variables stay verbatim so an unsupported or out-of-scope reference is not
- * silently discarded. Braced Tcl words bypass this helper in parseTclTokens,
- * matching Tcl's rule that braces suppress substitutions.
- */
-function substituteTclVariables(value: string, variables: ReadonlyMap<string, string>): string {
-  let result = '';
-  let i = 0;
-
-  while (i < value.length) {
-    if (value[i] === '\\' && value[i + 1] === '$') {
-      result += '$';
-      i += 2;
-      continue;
-    }
-
-    if (value[i] !== '$') {
-      result += value[i];
-      i++;
-      continue;
-    }
-
-    let name = '';
-    let end = i + 1;
-    if (value[end] === '{') {
-      const closingBrace = value.indexOf('}', end + 1);
-      if (closingBrace === -1) {
-        result += '$';
-        i++;
-        continue;
-      }
-      name = value.slice(end + 1, closingBrace);
-      end = closingBrace + 1;
-    } else {
-      const nameMatch = /^[A-Za-z0-9_:]+/.exec(value.slice(end));
-      if (!nameMatch) {
-        result += '$';
-        i++;
-        continue;
-      }
-      name = nameMatch[0];
-      end += name.length;
-    }
-
-    result += variables.get(name) ?? value.slice(i, end);
-    i = end;
-  }
-
-  return result;
-}
 
 function mapDirection(dir: string): string {
   switch (dir.toLowerCase()) {
@@ -868,7 +861,7 @@ function resolveParameterDisplayName(param: TclParameter): { displayName?: strin
 
 /**
  * ALLOWED_RANGES is either a `min:max` span or a Tcl list of discrete choices
- * (the tokenizer already unwraps the braces). Choices may be quoted for string
+ * (the tokenizer already unwraps the braces, or `[list ...]`). Choices may be quoted for string
  * parameters.
  *
  * For a STRING-typed parameter, every choice is kept as a string even when it
@@ -878,7 +871,8 @@ function resolveParameterDisplayName(param: TclParameter): { displayName?: strin
  */
 function resolveParameterConstraint(
   allowedRanges: string | undefined,
-  dataType: string
+  dataType: string,
+  onUnresolved: (raw: string) => void
 ): { min?: number; max?: number } | { allowedValues?: Array<number | string> } {
   if (!allowedRanges) {
     return {};
@@ -888,10 +882,17 @@ function resolveParameterConstraint(
     return { min: Number(span[1]), max: Number(span[2]) };
   }
   const isString = dataType === 'string';
-  // Quoted choices are one token even when they contain spaces.
-  const tokens = parseTclTokens(allowedRanges);
-  const choices = tokens.map((token) => {
-    const unquoted = token.replace(/^"(.*)"$/, '$1');
+  // Quoted choices are one item even when they contain spaces.
+  let listText = allowedRanges;
+  if (/^\s*\[/.test(allowedRanges)) {
+    const listCmd = /^\s*\[\s*list\b([\s\S]*)\]\s*$/.exec(allowedRanges);
+    if (!listCmd) {
+      onUnresolved(allowedRanges);
+      return {};
+    }
+    listText = listCmd[1];
+  }
+  const choices = parseTclList(listText).map((unquoted) => {
     if (isString) {
       return unquoted;
     }

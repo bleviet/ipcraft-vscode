@@ -1,5 +1,6 @@
 ---
-description: 'Workflow for extracting IPCraft specifications from existing VHDL entities.'
+name: legacy-vhdl-importer
+description: 'Workflow for extracting IPCraft specifications from existing VHDL entities. Use when the user wants to migrate an existing VHDL component into .ip.yml/.mm.yml.'
 ---
 
 # Legacy VHDL Importer Workflow

@@ -5,7 +5,7 @@ import {
   type NormalizedBusLibrary,
 } from '../shared/busContracts';
 import type { BusInterface, Parameter } from '../domain/ipcore.types';
-import { resolveVivadoBusType, resolveVivadoBusTypeForInterface } from './VivadoBusTypes';
+import { resolveVivadoBusType, resolveVivadoBusTypeForInterface } from './vivadoBusCatalog';
 import type { BusPortDefinition, IpCoreData } from './types';
 
 export interface CustomBusInfo {

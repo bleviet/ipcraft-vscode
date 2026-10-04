@@ -21,8 +21,8 @@ const exactAllowedFiles = new Set([
 ]);
 
 const allowedPatterns = [
-  /^extension\/dist\/(extension|webview|ipcore|dataInspector)\.js$/,
-  /^extension\/dist\/(extension|webview|ipcore|dataInspector)\.js\.LICENSE\.txt$/,
+  /^extension\/dist\/(extension|cli|webview|ipcore|dataInspector)\.js$/,
+  /^extension\/dist\/(extension|cli|webview|ipcore|dataInspector)\.js\.LICENSE\.txt$/,
   /^extension\/dist\/(webview|ipcore|dataInspector)\.css$/,
   /^extension\/dist\/[a-f0-9]+\.ttf$/,
   /^extension\/dist\/packs\/[A-Za-z0-9._/-]+\.(j2|md|yml)$/,
@@ -35,6 +35,7 @@ const allowedPatterns = [
 const requiredFiles = new Set([
   ...exactAllowedFiles,
   'extension/dist/extension.js',
+  'extension/dist/cli.js',
   'extension/dist/webview.js',
   'extension/dist/webview.css',
   'extension/dist/ipcore.js',

@@ -437,15 +437,18 @@ describe('HwTclParser', () => {
         add_interface_port data escaped escaped Input "\\$dataWidth"
         add_interface_port data unknown unknown Input $missingWidth
       `;
-      const doc = parseYaml(parse(tcl).yamlText) as {
+      const result = parse(tcl);
+      const doc = parseYaml(result.yamlText) as {
         ports: Array<Record<string, unknown>>;
       };
 
-      expect(doc.ports.map((port) => port.width)).toEqual([
-        '$dataWidth',
-        '$dataWidth',
-        '$missingWidth',
-      ]);
+      // No substitution happened, and unresolved widths are never written (#212).
+      expect(doc.ports).toHaveLength(3);
+      expect(doc.ports.every((port) => !('width' in port))).toBe(true);
+      expect(result.warnings).toHaveLength(3);
+      expect(result.warnings[0]).toContain('"$dataWidth"');
+      expect(result.warnings[1]).toContain('"$dataWidth"');
+      expect(result.warnings[2]).toContain('"$missingWidth"');
     });
   });
 
@@ -688,6 +691,50 @@ describe('HwTclParser', () => {
         parameters: Array<Record<string, unknown>>;
       };
       expect(doc.parameters[0]).toMatchObject({ allowedValues: ['Fast Mode', 'Low Power'] });
+    });
+
+    it('parses [list ...] ALLOWED_RANGES and warns on other command substitutions', () => {
+      const tcl = `
+        add_parameter W INTEGER 8
+        add_parameter S STRING "01"
+        add_parameter X INTEGER 8
+        set_parameter_property W ALLOWED_RANGES [list 8 16 32]
+        set_parameter_property S ALLOWED_RANGES [list "01" "1"]
+        set_parameter_property X ALLOWED_RANGES [get_choices]
+      `;
+      const result = parse(tcl);
+      const doc = parseYaml(result.yamlText) as { parameters: Array<Record<string, unknown>> };
+      expect(doc.parameters[0].allowedValues).toEqual([8, 16, 32]);
+      expect(doc.parameters[1].allowedValues).toEqual(['01', '1']);
+      expect(doc.parameters[2].allowedValues).toBeUndefined();
+      expect(result.warnings).toHaveLength(1);
+      expect(result.warnings[0]).toContain('Parameter "X"');
+    });
+
+    it('resolves [file join ...] fileset paths and drops unresolved ones with a warning', () => {
+      const tcl = `
+        add_fileset QUARTUS_SYNTH QUARTUS_SYNTH "" "Quartus Synthesis"
+        add_fileset_file a.vhd VHDL PATH [file join .. ../rtl/a.vhd]
+        add_fileset_file b.vhd VHDL PATH [file join .. ../rtl/b.vhd] TOP_LEVEL_FILE
+        add_fileset_file c.vhd VHDL PATH [get_path c]
+      `;
+      const result = parse(tcl);
+      const doc = parseYaml(result.yamlText) as {
+        fileSets: Array<{ files: Array<{ path: string }> }>;
+      };
+      expect(doc.fileSets[0].files.map((f) => f.path)).toEqual([
+        path.relative(
+          path.dirname(FAKE_PATH),
+          path.resolve(path.dirname(FAKE_PATH), '../../rtl/a.vhd')
+        ),
+        path.relative(
+          path.dirname(FAKE_PATH),
+          path.resolve(path.dirname(FAKE_PATH), '../../rtl/b.vhd')
+        ),
+      ]);
+      expect(result.warnings).toEqual([
+        'File "[get_path c]" in file set "QUARTUS_SYNTH" was not imported: its path uses Tcl that could not be resolved.',
+      ]);
     });
 
     it('unescapes quotes and braces in string ALLOWED_RANGES choices', () => {
@@ -1252,12 +1299,9 @@ for {set i 0} {$i < 2} {incr i} {
 }
 `);
 
-    expect(result.staticallyIncompleteInterfaces).toEqual([
-      'computed',
-      'terminated',
-      'placeholder',
-      'sink${i}',
-    ]);
+    // 'terminated' (literal termination) and the 'sink${i}' loop are resolved statically,
+    // so they are complete; only unresolved widths and placeholder widths remain.
+    expect(result.staticallyIncompleteInterfaces).toEqual(['computed', 'placeholder']);
   });
 
   it('still rejects a malformed literal property value', () => {
@@ -1268,5 +1312,205 @@ set_interface_property out readyLatency 1.5
 add_interface_port out out_data data Output 8
 `)
     ).toThrow("invalid integer value '1.5' for readyLatency");
+  });
+});
+
+describe('Tcl loops and expr widths (#212)', () => {
+  type Doc = {
+    ports?: Array<Record<string, unknown>>;
+    busInterfaces?: Array<Record<string, unknown>>;
+  };
+  const doc = (tcl: string) => parseYaml(parse(tcl).yamlText) as Doc;
+
+  it('expands a literal-bound for loop and reduces [expr] widths', () => {
+    const tcl = `
+      set iwords 4
+      for {set j 0} {$j < 4} {incr j} {
+        add_interface tx_ch\${j}_datain avalon_streaming end
+        add_interface_port tx_ch\${j}_datain tx_ch\${j}_data data Input [expr $iwords * 64]
+      }
+    `;
+    const d = doc(tcl);
+    expect(d.busInterfaces?.map((b) => b.name)).toEqual([
+      'tx_ch0_datain',
+      'tx_ch1_datain',
+      'tx_ch2_datain',
+      'tx_ch3_datain',
+    ]);
+    expect(d.busInterfaces?.[0].portWidthOverrides).toEqual({ data: 256 });
+    expect(yaml.dump(d)).not.toMatch(/\$|expr/);
+  });
+
+  it('expands a loop bounded by a parameter default', () => {
+    const tcl = `
+      add_parameter NUM_CHANNELS INTEGER 2
+      set num_chan [get_parameter_value NUM_CHANNELS]
+      for {set i 0} {$i < $num_chan} {incr i} {
+        add_interface ch$i conduit end
+        add_interface_port ch$i ch\${i}_d d Input 1
+      }
+    `;
+    expect(doc(tcl).ports?.map((p) => p.name)).toEqual(['ch0_d', 'ch1_d']);
+  });
+
+  it('expands foreach with per-iteration parameter widths', () => {
+    const tcl = `
+      foreach i {0 1} {
+        add_interface m\${i} conduit end
+        add_interface_port m\${i} addr\${i} a Input [get_parameter_value TCIM_W\${i}]
+      }
+    `;
+    expect(doc(tcl).ports).toEqual([
+      { name: 'addr0', direction: 'in', width: 'TCIM_W0' },
+      { name: 'addr1', direction: 'in', width: 'TCIM_W1' },
+    ]);
+  });
+
+  it('expands foreach over a list variable', () => {
+    const tcl = `
+      set names {a b}
+      foreach n $names {
+        add_interface c_$n conduit end
+        add_interface_port c_$n p_$n d Input 1
+      }
+    `;
+    expect(doc(tcl).ports?.map((p) => p.name)).toEqual(['p_a', 'p_b']);
+  });
+
+  it('expands nested loops', () => {
+    const tcl = `
+      for {set i 0} {$i < 2} {incr i} {
+        for {set j 0} {$j <= 1} {incr j} {
+          add_interface c_\${i}_\${j} conduit end
+          add_interface_port c_\${i}_\${j} p_\${i}_\${j} d Input 1
+        }
+      }
+    `;
+    expect(doc(tcl).ports?.map((p) => p.name)).toEqual(['p_0_0', 'p_0_1', 'p_1_0', 'p_1_1']);
+  });
+
+  it('skips a loop with an unresolvable bound and warns', () => {
+    const tcl = `
+      for {set i 0} {$i < $unknown} {incr i} {
+        add_interface c$i conduit end
+        add_interface_port c$i p$i d Input 1
+      }
+    `;
+    const result = parse(tcl);
+    expect((parseYaml(result.yamlText) as Doc).ports).toBeUndefined();
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('Skipped Tcl loop "for {set i 0} {$i < $unknown}');
+  });
+
+  it('reduces [expr {$w+2}] with a set variable', () => {
+    const tcl = `
+      set w_add 8
+      add_interface c conduit end
+      add_interface_port c p p Input [expr {$w_add+2}]
+    `;
+    expect(doc(tcl).ports?.[0].width).toBe(10);
+  });
+
+  it('keeps parameter expressions symbolic', () => {
+    const tcl = `
+      add_parameter DMA_WIDTH INTEGER 32
+      set DMA_WIDTH [get_parameter_value DMA_WIDTH]
+      add_interface c conduit end
+      add_interface_port c p p Input [expr $DMA_WIDTH/8]
+    `;
+    expect(doc(tcl).ports?.[0].width).toBe('DMA_WIDTH/8');
+  });
+
+  it('keeps a port with an unresolved width but omits the width', () => {
+    const tcl = `
+      add_interface c conduit end
+      add_interface_port c p p Input [expr {int(ceil(log(4)/log(2)))}]
+    `;
+    const result = parse(tcl);
+    const d = parseYaml(result.yamlText) as Doc;
+    expect(d.ports).toEqual([{ name: 'p', direction: 'in' }]);
+    expect(result.warnings).toEqual([
+      'Port "p" on interface "c": width "expr {int(ceil(log(4)/log(2)))}" could not be resolved and was left out.',
+    ]);
+  });
+
+  it('omits portWidthOverrides entries for unresolved bus port widths', () => {
+    const tcl = `
+      add_interface s avalon_streaming end
+      add_interface_port s data data Input [expr {int(log(4))}]
+    `;
+    const d = doc(tcl);
+    expect(d.busInterfaces?.[0].portWidthOverrides).toBeUndefined();
+  });
+
+  it('parses quoted foreach items without leaking quotes', () => {
+    const tcl = `
+      foreach suffix { "_a" "_b" } {
+        add_interface m$suffix conduit end
+        add_interface_port m$suffix p$suffix d Input 1
+      }
+    `;
+    expect(doc(tcl).ports?.map((p) => p.name)).toEqual(['p_a', 'p_b']);
+  });
+
+  it('expands foreach over a [list ...] variable', () => {
+    const tcl = `
+      set ii_list [list "1" "2"]
+      foreach ii $ii_list {
+        add_interface c$ii conduit end
+        add_interface_port c$ii p$ii d Input 1
+      }
+    `;
+    expect(doc(tcl).ports?.map((p) => p.name)).toEqual(['p1', 'p2']);
+  });
+
+  it('skips foreach over a parameter-valued variable and warns', () => {
+    const tcl = `
+      add_parameter CHANS INTEGER 2
+      set chans [get_parameter_value CHANS]
+      foreach n $chans {
+        add_interface c$n conduit end
+        add_interface_port c$n p$n d Input 1
+      }
+    `;
+    const result = parse(tcl);
+    expect((parseYaml(result.yamlText) as Doc).ports).toBeUndefined();
+    expect(result.warnings).toHaveLength(1);
+  });
+
+  it('does not import unknown command substitutions as widths', () => {
+    const tcl = `
+      add_interface c conduit end
+      add_interface_port c p p Input [log2ceil "SYMBOLS_PER_BEAT"]
+    `;
+    const result = parse(tcl);
+    expect((parseYaml(result.yamlText) as Doc).ports).toEqual([{ name: 'p', direction: 'in' }]);
+    expect(result.warnings).toHaveLength(1);
+  });
+
+  it('strips quotes from get_parameter_value names', () => {
+    const tcl = `
+      add_parameter DATA_WIDTH INTEGER 8
+      add_interface c conduit end
+      add_interface_port c p p Input [get_parameter_value "DATA_WIDTH"]
+      add_interface_port c q q Input [expr {[get_parameter_value "DATA_WIDTH"] + 1}]
+    `;
+    expect(doc(tcl).ports?.map((p) => p.width)).toEqual(['DATA_WIDTH', 'DATA_WIDTH + 1']);
+  });
+
+  it('drops interfaces and ports whose names contain Tcl syntax', () => {
+    const tcl = `
+      add_interface bad$x conduit end
+      add_interface_port bad$x p p Input 1
+      add_interface c conduit end
+      add_interface_port c q$y q Input 1
+      add_interface_port c ok ok Input 1
+    `;
+    const result = parse(tcl);
+    expect((parseYaml(result.yamlText) as Doc).ports?.map((p) => p.name)).toEqual(['ok']);
+    expect(result.warnings).toEqual([
+      'Interface "bad$x" was not imported: its name uses Tcl that could not be resolved.',
+      'Port "q$y" on interface "c" was not imported: its name uses Tcl that could not be resolved.',
+    ]);
   });
 });

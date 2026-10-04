@@ -9,8 +9,6 @@ src/**
 packages/**
 node_modules/**
 out/**
-dist/cli.js
-dist/cli.js.LICENSE.txt
 .gitignore
 .prettierrc.js
 .prettierignore
@@ -35,6 +33,7 @@ skills-lock.json
 knip.jsonc
 .agents/**
 .claude/**
+.gemini/**
 .worktrees/**
 .superpowers/**
 build/**

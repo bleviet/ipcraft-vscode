@@ -41,6 +41,7 @@ describe('import bus-conformance boundary', () => {
     (parseHwTclFile as jest.Mock).mockResolvedValue({
       componentName: 'example',
       yamlText: 'vlnv: { name: example }\n',
+      warnings: [],
     });
     (loadIpCoreData as jest.Mock).mockResolvedValue({ busInterfaces: [] });
     (loadRuntimeBusLibrary as jest.Mock).mockResolvedValue({ contracts: [] });
@@ -91,5 +92,26 @@ describe('import bus-conformance boundary', () => {
     expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
       expect.stringContaining('Bus type could not be resolved.')
     );
+  });
+
+  it('reports parse warnings in one summary message', async () => {
+    (checkBusConformance as jest.Mock).mockReturnValue({
+      issues: [],
+      hasKnownErrors: false,
+      hasUnresolved: false,
+    });
+    (parseHwTclFile as jest.Mock).mockResolvedValue({
+      componentName: 'example',
+      yamlText: 'vlnv: { name: example }\n',
+      warnings: ['first warning', 'second warning'],
+    });
+
+    await parseHwTcl(context, sourceUri);
+
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledTimes(1);
+    expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+      expect.stringContaining('first warning; second warning')
+    );
+    expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
   });
 });

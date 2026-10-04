@@ -2,7 +2,7 @@
 
 Thanks for considering a contribution. This file covers what you need to get
 a change through CI and review. For architecture and module-level
-conventions, read [CLAUDE.md](CLAUDE.md) first — it is the canonical map of
+conventions, read [AGENTS.md](AGENTS.md) first — it is the canonical map of
 the codebase and is binding for any change.
 
 ## Setup
@@ -46,13 +46,11 @@ for the full setup reference, including the optional CMake target wrapper.
 Read before changing code that crosses the extension/webview boundary or
 touches the YAML round-trip:
 
-- [CLAUDE.md](CLAUDE.md) — module boundaries, dependency direction, the
+- [AGENTS.md](AGENTS.md) — module boundaries, dependency direction, the
   domain round-trip (`parse.ts` / `serialize.ts` / `rowId`), the revisioned
   sync protocol, table-editor and drag-reorder conventions.
 - [docs/architecture/](docs/architecture/) — webview ownership map and
   architecture overview.
-- `.agents/rules/architecture.md` — the binding version of the module
-  guardrails summarized in CLAUDE.md.
 
 ## Formatting, lint, type-check
 
@@ -117,7 +115,7 @@ if it touches editor UI, also run `npm run test:browser`.
 
 1. Create a branch from `main`.
 2. Make focused changes — see the module-size and single-responsibility
-   guidance in [CLAUDE.md](CLAUDE.md).
+   guidance in [AGENTS.md](AGENTS.md).
 3. Add or update tests.
 4. Run the validation checklist above.
 5. Open a PR using the pull request template; it mirrors this checklist.

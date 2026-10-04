@@ -283,7 +283,6 @@ export async function parseHwTcl(
           library: cfg.get<string>('library'),
           vendor: resolveVendor(cfg.get<string>('vendor')),
         });
-        showParseWarnings(result.warnings);
 
         if (
           !(await allowImportedYamlWrite(
@@ -301,6 +300,14 @@ export async function parseHwTcl(
         void vscode.window.showInformationMessage(
           `Imported (experimental) — ${summary ? `${summary}; ` : ''}${describeOutcome(path.basename(outputPath), outcome)}. Review the .ip.yml carefully before generating code.`
         );
+
+        if (result.warnings.length > 0) {
+          const shown = result.warnings.slice(0, 3).join('; ');
+          const more = result.warnings.length > 3 ? ' ...' : '';
+          void vscode.window.showWarningMessage(
+            `${result.warnings.length} import warning(s) for ${path.basename(tclPath)}: ${shown}${more}`
+          );
+        }
 
         // 'merged' means the merge editor is now open on this file; opening the
         // custom visual editor would replace it before the user can resolve.

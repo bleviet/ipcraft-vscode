@@ -9028,7 +9028,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>address</spirit:name>
+            <spirit:name>ADDRESS</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_address</spirit:name>
@@ -9036,7 +9036,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>READ</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_read</spirit:name>
@@ -9044,7 +9044,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>WRITE</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_write</spirit:name>
@@ -9052,7 +9052,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>writedata</spirit:name>
+            <spirit:name>WRITEDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_writedata</spirit:name>
@@ -9060,7 +9060,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdata</spirit:name>
+            <spirit:name>READDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_readdata</spirit:name>
@@ -9068,7 +9068,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>READDATAVALID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_readdatavalid</spirit:name>
@@ -9076,7 +9076,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>WAITREQUEST</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_waitrequest</spirit:name>
@@ -9749,7 +9749,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:portMaps>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>address</spirit:name>
+            <spirit:name>ADDRESS</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_address</spirit:name>
@@ -9757,7 +9757,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>read</spirit:name>
+            <spirit:name>READ</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_read</spirit:name>
@@ -9765,7 +9765,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>write</spirit:name>
+            <spirit:name>WRITE</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_write</spirit:name>
@@ -9773,7 +9773,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>writedata</spirit:name>
+            <spirit:name>WRITEDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_writedata</spirit:name>
@@ -9781,7 +9781,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdata</spirit:name>
+            <spirit:name>READDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_readdata</spirit:name>
@@ -9789,7 +9789,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>readdatavalid</spirit:name>
+            <spirit:name>READDATAVALID</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_readdatavalid</spirit:name>
@@ -9797,7 +9797,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>waitrequest</spirit:name>
+            <spirit:name>WAITREQUEST</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_avmm_waitrequest</spirit:name>
@@ -16831,38 +16831,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:portMaps>
     </spirit:busInterface>
     <spirit:busInterface>
-      <spirit:name>DBG</spirit:name>
-      <spirit:busType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="conduit" spirit:version="1.0" />
-      <spirit:abstractionType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="conduit_rtl" spirit:version="1.0" />
-      <spirit:slave />
-      <spirit:portMaps>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>trace_data</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>dbg_trace_data</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>trace_valid</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>dbg_trace_valid</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>trigger</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>dbg_trigger</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-      </spirit:portMaps>
-    </spirit:busInterface>
-    <spirit:busInterface>
       <spirit:name>i_clk_axi</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock_rtl" spirit:version="1.0" />
@@ -16910,7 +16878,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:parameters>
         <spirit:parameter>
           <spirit:name>ASSOCIATED_BUSIF</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.I_CLK_PROC.ASSOCIATED_BUSIF">M_AXI:M_AXIS_CH1:M_AXIS_CH2:S_AXIS:DBG</spirit:value>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.I_CLK_PROC.ASSOCIATED_BUSIF">M_AXI:M_AXIS_CH1:M_AXIS_CH2:S_AXIS</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>ASSOCIATED_RESET</spirit:name>
@@ -19774,38 +19742,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       </spirit:portMaps>
     </spirit:busInterface>
     <spirit:busInterface>
-      <spirit:name>DBG</spirit:name>
-      <spirit:busType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="conduit" spirit:version="1.0" />
-      <spirit:abstractionType spirit:vendor="ipcraft" spirit:library="busif" spirit:name="conduit_rtl" spirit:version="1.0" />
-      <spirit:slave />
-      <spirit:portMaps>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>trace_data</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>dbg_trace_data</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>trace_valid</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>dbg_trace_valid</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>trigger</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>dbg_trigger</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-      </spirit:portMaps>
-    </spirit:busInterface>
-    <spirit:busInterface>
       <spirit:name>i_clk_axi</spirit:name>
       <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock" spirit:version="1.0" />
       <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock_rtl" spirit:version="1.0" />
@@ -19853,7 +19789,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:parameters>
         <spirit:parameter>
           <spirit:name>ASSOCIATED_BUSIF</spirit:name>
-          <spirit:value spirit:id="BUSIFPARAM_VALUE.I_CLK_PROC.ASSOCIATED_BUSIF">M_AXI:M_AXIS_CH1:M_AXIS_CH2:S_AXIS:DBG</spirit:value>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.I_CLK_PROC.ASSOCIATED_BUSIF">M_AXI:M_AXIS_CH1:M_AXIS_CH2:S_AXIS</spirit:value>
         </spirit:parameter>
         <spirit:parameter>
           <spirit:name>ASSOCIATED_RESET</spirit:name>

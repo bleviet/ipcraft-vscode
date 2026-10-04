@@ -7,6 +7,7 @@ import {
   generateComponentXml as generateComponentXmlImpl,
   generateCustomBusDefs as generateCustomBusDefsCurrent,
 } from '../../../generator/VivadoComponentXmlGenerator';
+import { AVALON_RTL_PORTS } from '../../../generator/vivadoBusCatalog';
 import { parseComponentXmlText as parseComponentXmlTextImpl } from '../../../parser/ComponentXmlParser';
 import type { BusDefinitions, IpCoreData } from '../../../generator/types';
 import type { NormalizedMemoryMap } from '../../../domain/internal.types';
@@ -262,6 +263,7 @@ describe('generateComponentXml', () => {
       {
         label: 'active-low semantic role with a positive-looking physical suffix',
         logicalRole: 'byteenable_n',
+        generatedLogicalRole: 'byteenable_n',
         physicalName: 'avs_byteenable',
         polarity: 'activeLow',
         nameOverride: 'byteenable',
@@ -269,13 +271,15 @@ describe('generateComponentXml', () => {
       {
         label: 'active-high semantic role with an _n-looking physical suffix',
         logicalRole: 'byteenable',
+        // Native avalon_rtl: Vivado requires the uppercase logical name.
+        generatedLogicalRole: 'BYTEENABLE',
         physicalName: 'avs_byteenable_n',
         polarity: undefined,
         nameOverride: 'byteenable_n',
       },
     ])(
       'preserves $label across IP-XACT import, generation, and re-import',
-      async ({ logicalRole, physicalName, polarity, nameOverride }) => {
+      async ({ logicalRole, generatedLogicalRole, physicalName, polarity, nameOverride }) => {
         const imported = importedAvalon(logicalRole, physicalName);
         expect(imported.busInterfaces?.[0]).toMatchObject({
           physicalPrefix: 'avs_',
@@ -291,9 +295,12 @@ describe('generateComponentXml', () => {
           generated.indexOf('</spirit:busInterface>', interfaceStart)
         );
 
+        // An alternate polarity role cannot map onto Xilinx's avalon_rtl, which declares
+        // only the active-high ports; it uses IPCraft's own bus definition instead.
+        expect(interfaceBlock.includes('spirit:name="avalon_rtl"')).toBe(!polarity);
         expect(interfaceBlock).toMatch(
           new RegExp(
-            `<spirit:logicalPort>[\\s\\S]*?<spirit:name>${logicalRole}</spirit:name>[\\s\\S]*?` +
+            `<spirit:logicalPort>[\\s\\S]*?<spirit:name>${generatedLogicalRole}</spirit:name>[\\s\\S]*?` +
               `<spirit:physicalPort>[\\s\\S]*?<spirit:name>${physicalName}</spirit:name>`
           )
         );
@@ -548,6 +555,219 @@ describe('generateComponentXml', () => {
     });
   });
 
+  describe('Avalon-MM bus interface', () => {
+    // The shipped IPCraft library, not a stub: the defects below came from
+    // library ports that no hand-written fixture used.
+    const avalonLibrary = yaml.load(
+      fs.readFileSync(
+        path.resolve(__dirname, '../../../../ipcraft-spec/bus_definitions/avalon_mm.yml'),
+        'utf8'
+      )
+    ) as BusDefinitions;
+    const avalonBusDefs: BusDefinitions = { ...BUS_DEFS, ...avalonLibrary };
+    const allOptionalPorts = (avalonLibrary.AVALON_MEMORY_MAPPED.ports ?? [])
+      .map((p) => String(p.name))
+      .filter((n) => n !== 'clk' && n !== 'reset');
+
+    function avalonIp(mode: string): IpCoreData {
+      return makeIp({
+        busInterfaces: [
+          {
+            name: 's0',
+            type: 'ipcraft:busif:avalon_mm:1.0',
+            mode,
+            physicalPrefix: 's0_',
+            useOptionalPorts: allOptionalPorts,
+            portWidthOverrides: { address: 12, burstcount: 4 },
+          },
+        ],
+      });
+    }
+
+    function logicalNames(xml: string): string[] {
+      const block = xml.slice(
+        xml.indexOf('<spirit:name>s0</spirit:name>'),
+        xml.indexOf('</spirit:busInterface>', xml.indexOf('<spirit:name>s0</spirit:name>'))
+      );
+      return [...block.matchAll(/<spirit:logicalPort>\s*<spirit:name>([^<]+)</g)].map((m) => m[1]);
+    }
+
+    // Vivado matches logical names exactly (IP_Flow 19-4729, issue #215) and
+    // rejects names avalon_rtl does not declare (IP_Flow 19-568).
+    it.each(['slave', 'master'])(
+      'maps every %s port avalon_rtl declares, in its uppercase spelling, and no other',
+      async (mode) => {
+        const xml = await generateComponentXml(avalonIp(mode), avalonBusDefs);
+        expect(xml).toContain('spirit:name="avalon_rtl"');
+        expect([...logicalNames(xml)].sort()).toEqual([...AVALON_RTL_PORTS].sort());
+        expect(xml).toContain(
+          '<spirit:logicalPort>\n            <spirit:name>ADDRESS</spirit:name>\n          </spirit:logicalPort>\n          <spirit:physicalPort>\n            <spirit:name>s0_address</spirit:name>'
+        );
+      }
+    );
+
+    it('keeps ports avalon_rtl lacks as plain component ports', async () => {
+      const xml = await generateComponentXml(avalonIp('slave'), avalonBusDefs);
+      const model = xml.slice(xml.indexOf('<spirit:model>'));
+      // Active-low variants are polarity overrides of read/write/..., not separate ports,
+      // so debugaccess is the only library port avalon_rtl lacks.
+      expect(logicalNames(xml)).not.toContain('DEBUGACCESS');
+      expect(model).toContain('<spirit:name>s0_debugaccess</spirit:name>');
+    });
+
+    it('re-imports as IPCraft Avalon-MM with library-spelled overrides', async () => {
+      const xml = await generateComponentXml(avalonIp('slave'), avalonBusDefs);
+      const ip = yaml.load(parseComponentXmlText(xml).ipYamlText) as {
+        busInterfaces: Array<Record<string, unknown>>;
+        ports?: Array<{ name: string }>;
+      };
+      const iface = ip.busInterfaces.find((b) => b.name === 's0');
+      expect(iface).toMatchObject({
+        type: 'ipcraft:busif:avalon_mm:1.0',
+        mode: 'slave',
+        physicalPrefix: 's0_',
+        portWidthOverrides: { address: 12, burstcount: 4 },
+      });
+      expect(iface?.rawPortMaps).toBeUndefined();
+      // Ports avalon_rtl lacks are plain ports in component.xml; import folds them back.
+      expect([...(iface?.useOptionalPorts as string[])].sort()).toEqual(
+        [...allOptionalPorts].sort()
+      );
+      expect((ip.ports ?? []).filter((p) => p.name.startsWith('s0_'))).toEqual([]);
+    });
+  });
+
+  describe('Avalon-MM interface with only ports avalon_rtl lacks', () => {
+    it('emits no bus interface and declares its ports as plain ports', async () => {
+      const avalonLibrary = yaml.load(
+        fs.readFileSync(
+          path.resolve(__dirname, '../../../../ipcraft-spec/bus_definitions/avalon_mm.yml'),
+          'utf8'
+        )
+      ) as BusDefinitions;
+      const xml = await generateComponentXml(
+        makeIp({
+          busInterfaces: [
+            {
+              name: 's0',
+              type: 'ipcraft:busif:avalon_mm:1.0',
+              mode: 'slave',
+              physicalPrefix: 's0_',
+              associatedClock: 'clk',
+              useOptionalPorts: ['debugaccess'],
+            },
+          ],
+        }),
+        avalonLibrary
+      );
+      expect(xml).not.toContain('<spirit:busInterface>\n      <spirit:name>s0<');
+      expect(xml).not.toMatch(/ASSOCIATED_BUSIF[^<]*>[^<]*S0/);
+      const model = xml.slice(xml.indexOf('<spirit:model>'));
+      expect(model).toContain('<spirit:name>s0_debugaccess</spirit:name>');
+    });
+  });
+
+  describe('interfaces Vivado cannot resolve as a bus', () => {
+    const conduitPorts = [{ name: 'trace_data', direction: 'out', width: 8 }];
+
+    it.each([
+      ['a conduit type spelled differently', 'acme:busif:my_conduit:1.0'],
+      ['a user VLNV with no busdef', 'acme:busif:debug_port:1.0'],
+    ])('declares the ports of %s as plain ports', async (_label, type) => {
+      const xml = await generateComponentXml(
+        makeIp({
+          busInterfaces: [
+            {
+              name: 'DBG',
+              type,
+              mode: 'conduit',
+              physicalPrefix: 'dbg_',
+              associatedClock: 'clk',
+              conduitPorts,
+            },
+          ],
+        }),
+        BUS_DEFS
+      );
+      expect(xml).not.toContain('<spirit:name>DBG</spirit:name>');
+      expect(xml).not.toMatch(/ASSOCIATED_BUSIF[^<]*>[^<]*DBG/);
+      expect(xml.slice(xml.indexOf('<spirit:model>'))).toContain(
+        '<spirit:name>dbg_trace_data</spirit:name>'
+      );
+    });
+
+    it('keeps an imported unknown bus type with raw port maps as a bus interface', async () => {
+      const xml = await generateComponentXml(
+        makeIp({
+          busInterfaces: [
+            {
+              name: 'FIFO',
+              type: 'acme:busif:fifo:1.0',
+              mode: 'master',
+              busTypeVlnv: { vendor: 'acme', library: 'busif', name: 'fifo', version: '1.0' },
+              rawPortMaps: [{ logical: 'DATA', physical: 'fifo_data', direction: 'out', width: 8 }],
+            },
+          ],
+        }),
+        BUS_DEFS
+      );
+      expect(xml).toContain('<spirit:name>FIFO</spirit:name>');
+      expect(xml).toContain('<spirit:name>fifo_data</spirit:name>');
+    });
+  });
+
+  describe('generic conduit interface', () => {
+    const conduitIp = makeIp({
+      busInterfaces: [
+        {
+          name: 'DBG',
+          type: 'ipcraft:busif:conduit:1.0',
+          mode: 'conduit',
+          physicalPrefix: 'dbg_',
+          associatedClock: 'clk',
+          conduitPorts: [
+            { name: 'trace_data', direction: 'out', width: 8 },
+            { name: 'trigger', direction: 'in', width: 4 },
+          ],
+          useOptionalPorts: [],
+          portWidthOverrides: {},
+        },
+      ],
+    });
+
+    // Vivado has no busdef for the generic conduit VLNV (IP_Flow 19-569/19-570).
+    it('emits no bus interface and no clock association for it', async () => {
+      const xml = await generateComponentXml(conduitIp, BUS_DEFS);
+      expect(xml).not.toContain('conduit');
+      expect(xml).not.toContain('<spirit:name>DBG</spirit:name>');
+      expect(xml).not.toMatch(/ASSOCIATED_BUSIF[^<]*>[^<]*DBG/);
+    });
+
+    // Documented limitation: the conduit grouping is not recoverable from component.xml.
+    it('re-imports its ports as top-level ports', async () => {
+      const xml = await generateComponentXml(conduitIp, BUS_DEFS);
+      const ip = yaml.load(parseComponentXmlText(xml).ipYamlText) as {
+        busInterfaces?: Array<{ name: string }>;
+        ports?: Array<{ name: string }>;
+      };
+      expect(ip.busInterfaces?.some((b) => b.name === 'DBG') ?? false).toBe(false);
+      expect((ip.ports ?? []).map((p) => p.name)).toEqual(
+        expect.arrayContaining(['dbg_trace_data', 'dbg_trigger'])
+      );
+    });
+
+    it('declares its ports as plain component ports', async () => {
+      const xml = await generateComponentXml(conduitIp, BUS_DEFS);
+      const model = xml.slice(xml.indexOf('<spirit:model>'));
+      expect(model).toMatch(
+        /<spirit:name>dbg_trace_data<\/spirit:name>\s*<spirit:wire>\s*<spirit:direction>out<\/spirit:direction>\s*<spirit:vector>\s*<spirit:left[^>]*>7</
+      );
+      expect(model).toMatch(
+        /<spirit:name>dbg_trigger<\/spirit:name>\s*<spirit:wire>\s*<spirit:direction>in<\/spirit:direction>\s*<spirit:vector>\s*<spirit:left[^>]*>3</
+      );
+    });
+  });
+
   describe('unknown bus type (no bus definition)', () => {
     it('splits a well-formed VLNV type into its real components when busTypeVlnv is absent', async () => {
       const xml = await gen({
@@ -557,6 +777,7 @@ describe('generateComponentXml', () => {
             type: 'custom:busif:mybus:1.0',
             mode: 'slave',
             physicalPrefix: 'custom_',
+            rawPortMaps: [{ logical: 'DATA', physical: 'custom_data', direction: 'out', width: 8 }],
             useOptionalPorts: [],
             portWidthOverrides: {},
           },
@@ -568,7 +789,7 @@ describe('generateComponentXml', () => {
       expect(xml).not.toContain('spirit:vendor="user.org"');
     });
 
-    it('emits portMaps from conduitPorts for an unsaved custom interface (no busDefinitions entry)', async () => {
+    it('declares conduitPorts as plain ports for an interface with no busDefinitions entry', async () => {
       const xml = await gen({
         busInterfaces: [
           {
@@ -586,15 +807,15 @@ describe('generateComponentXml', () => {
           },
         ],
       });
-      const idx = xml.indexOf('<spirit:name>fifo_write</spirit:name>');
-      const block = xml.slice(idx, xml.indexOf('</spirit:busInterface>', idx));
-      expect(block).toContain('<spirit:portMaps>');
-      // Conduit ports carry their final physical name already — no AXI-style
-      // 's_axi_' prefix should be injected when physicalPrefix is unset/null.
+      // Vivado cannot resolve the type without a busdef, so the ports stay plain
+      // component ports instead of a bus interface that would fail check_integrity.
+      expect(xml).not.toContain('<spirit:name>fifo_write</spirit:name>');
+      const model = xml.slice(xml.indexOf('<spirit:model>'));
       for (const name of ['fifo_wr_en', 'fifo_wr_data', 'fifo_almost_full']) {
-        expect(block).toContain(`<spirit:name>${name}</spirit:name>`);
+        expect(model).toContain(`<spirit:name>${name}</spirit:name>`);
       }
-      expect(block).not.toContain('s_axi_');
+      // No 's_axi_' prefix should be injected when physicalPrefix is null.
+      expect(model).not.toContain('s_axi_');
 
       const modelStart = xml.indexOf('<spirit:model>');
       const modelBlock = xml.slice(modelStart, xml.indexOf('</spirit:model>', modelStart));
@@ -666,6 +887,7 @@ describe('generateComponentXml', () => {
             type: 'mybus',
             mode: 'slave',
             physicalPrefix: 'custom_',
+            rawPortMaps: [{ logical: 'DATA', physical: 'custom_data', direction: 'out', width: 8 }],
             useOptionalPorts: [],
             portWidthOverrides: {},
           },
@@ -688,6 +910,7 @@ describe('generateComponentXml', () => {
               version: '19.1',
             },
             mode: 'master',
+            rawPortMaps: [{ logical: 'data', physical: 'st_data', direction: 'out', width: 8 }],
             useOptionalPorts: [],
             portWidthOverrides: {},
           },
