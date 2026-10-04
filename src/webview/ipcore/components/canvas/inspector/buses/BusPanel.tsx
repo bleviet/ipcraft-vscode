@@ -243,9 +243,9 @@ export const BusPanel: React.FC<BusPanelProps> = ({
             onSave={(v) => onUpdate(['busInterfaces', index, 'physicalPrefix'], v || null)}
             hint={
               !bus.physicalPrefix && !isArray
-                ? 'Defaults to s_axi_ at generation'
+                ? 'No prefix: ports use their logical names'
                 : isArray
-                  ? `Auto-pattern: ${bus.physicalPrefix ?? 's_axi_'}{index}_`
+                  ? `Auto-pattern: ${bus.physicalPrefix ?? ''}{index}_`
                   : undefined
             }
             mono

@@ -173,21 +173,53 @@ export function hasMemoryMappedConsumerInterface(
 }
 
 /**
+ * Physical port names of an interface that authors `conduitPorts`. The HDL bus
+ * resolver emits exactly these through getActiveBusPortsFromDefinition whenever
+ * conduitPorts are present, regardless of whether the bus type resolves.
+ */
+function conduitPortNameSet(iface: BusInterfaceDef): Set<string> {
+  const ports = getActiveBusPortsFromDefinition(
+    (iface.conduitPorts ?? []) as Array<{
+      name: string;
+      width?: number | string;
+      direction?: string;
+      presence?: string;
+    }>,
+    iface.useOptionalPorts ?? [],
+    iface.physicalPrefix ?? '',
+    iface.mode ?? '',
+    iface.portWidthOverrides ?? {},
+    undefined,
+    iface.portNameOverrides,
+    iface.absentPorts
+  );
+  return new Set(ports.map((port) => String(port.name).toLowerCase()));
+}
+
+/**
  * Checks whether any two expanded bus interfaces would emit conflicting physical
- * port names in generated HDL. Two interfaces sharing the same physicalPrefix are
- * only a real conflict when their reconstructed physical port names actually
- * intersect — distinct instances of the same protocol (e.g. two Avalon-ST sinks)
- * can legitimately share a prefix as long as portNameOverrides disambiguate them.
- * When an interface can't be reconstructed (conduit / unrecognized bus type),
- * falls back to the legacy raw-prefix comparison for that pair.
+ * port names in generated HDL. Sharing a physicalPrefix is only a real conflict
+ * when the physical port names each interface emits actually intersect — distinct
+ * instances of the same protocol (e.g. two Avalon-ST sinks) can legitimately share
+ * a prefix as long as portNameOverrides disambiguate them. When both name sets are
+ * known they alone decide. An interface with authored conduitPorts is reconstructed
+ * from the names actually emitted for those ports. Only when a set cannot be
+ * reconstructed (unrecognized bus type without ports) does the check fall back to
+ * comparing non-empty raw prefixes for that pair.
  * Returns a descriptive error string on collision, or null when there is none.
  */
 export function checkDuplicatePhysicalPrefixes(
   ipCore: IpCoreData,
   library: NormalizedBusLibrary
 ): string | null {
-  const expanded = expandBusInterfaces(ipCore).filter((iface) => Boolean(iface.physicalPrefix));
-  const nameSets = expanded.map((iface) => reconstructBusPortNameSet(iface, library));
+  const expanded = expandBusInterfaces(ipCore);
+  // Authored conduitPorts are what the generator emits whenever they are present, so
+  // such an interface is compared by its exact emitted names (not the contract's).
+  const nameSets = expanded.map((iface) =>
+    iface.conduitPorts && iface.conduitPorts.length > 0
+      ? conduitPortNameSet(iface)
+      : reconstructBusPortNameSet(iface, library)
+  );
   const duplicates: string[] = [];
 
   for (let i = 0; i < expanded.length; i++) {
@@ -197,8 +229,9 @@ export function checkDuplicatePhysicalPrefixes(
       const collides =
         setI && setJ
           ? [...setI].some((n) => setJ.has(n))
-          : (expanded[i].physicalPrefix ?? '').toLowerCase() ===
-            (expanded[j].physicalPrefix ?? '').toLowerCase();
+          : Boolean(expanded[i].physicalPrefix) &&
+            (expanded[i].physicalPrefix ?? '').toLowerCase() ===
+              (expanded[j].physicalPrefix ?? '').toLowerCase();
       if (collides) {
         duplicates.push(
           `'${expanded[i].physicalPrefix ?? ''}' (shared by '${expanded[i].name ?? ''}' and '${expanded[j].name ?? ''}')`
@@ -222,10 +255,8 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
 
   for (const iface of busInterfaces) {
     const mode = getString(iface.mode).toLowerCase();
-    // Conduit ports are typically authored with their final, literal physical
-    // names already (e.g. via conduitPorts), so an unset prefix means "no
-    // prefix" — not the AXI-style 's_axi_' default used for standard buses.
-    const defaultPrefix = mode === 'conduit' ? '' : 's_axi_';
+    // An unset (null or absent) physicalPrefix means "no prefix" for every bus
+    // type; ports then use their bare logical names.
     const arrayDef = iface.array;
     if (arrayDef) {
       const count = Number(arrayDef.count ?? 1);
@@ -234,8 +265,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
         const idx = start + i;
         const namePattern = arrayDef.namingPattern ?? `${String(iface.name)}_{index}`;
         const prefixPattern =
-          arrayDef.physicalPrefixPattern ??
-          `${String(iface.physicalPrefix ?? defaultPrefix)}{index}_`;
+          arrayDef.physicalPrefixPattern ?? `${String(iface.physicalPrefix ?? '')}{index}_`;
         expanded.push({
           name: String(namePattern).replace('{index}', String(idx)),
           type: getString(iface.type),
@@ -265,7 +295,7 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
       busTypeVlnv: iface.busTypeVlnv,
       rawPortMaps: iface.rawPortMaps,
       mode,
-      physicalPrefix: iface.physicalPrefix ?? defaultPrefix,
+      physicalPrefix: iface.physicalPrefix ?? '',
       useOptionalPorts: iface.useOptionalPorts ?? [],
       portWidthOverrides: iface.portWidthOverrides ?? {},
       interfaceProperties: iface.interfaceProperties,

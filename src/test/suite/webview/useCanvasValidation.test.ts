@@ -311,6 +311,35 @@ describe('useCanvasValidation', () => {
     ).toBe('warning');
   });
 
+  it('should flag two prefix-less AXI4-Lite slaves whose port names collide', () => {
+    const ipCore: IpCore = {
+      vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },
+      clocks: [{ name: 'clk' }],
+      busInterfaces: [
+        {
+          name: 'bus_a',
+          type: 'AXI4-Lite',
+          mode: 'slave',
+          physicalPrefix: null,
+          associatedClock: 'clk',
+        },
+        {
+          name: 'bus_b',
+          type: 'AXI4-Lite',
+          mode: 'slave',
+          physicalPrefix: null,
+          associatedClock: 'clk',
+        },
+      ],
+    };
+
+    const annotations = useCanvasValidation(ipCore);
+    for (const id of ['bus:0', 'bus:1']) {
+      const msgs = annotations[id]?.map((a) => a.message) ?? [];
+      expect(msgs.some((m) => m.includes('collides with another bus interface'))).toBe(true);
+    }
+  });
+
   it('should not flag two same-protocol interfaces sharing a physicalPrefix when disjoint portNameOverrides disambiguate them', () => {
     const ipCore: IpCore = {
       vlnv: { vendor: 'test', library: 'lib', name: 'TestCore', version: '1.0' },

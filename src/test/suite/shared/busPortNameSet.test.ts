@@ -19,6 +19,19 @@ describe('reconstructBusPortNameSet', () => {
     expect(names).not.toContain('m_tkeep');
   });
 
+  it('reports unknown (null) for an interface with authored conduitPorts', () => {
+    expect(
+      reconstructBusPortNameSet(
+        {
+          type: 'AXI4-Lite',
+          mode: 'conduit',
+          conduitPorts: [{ name: 'custom_sig' }],
+        },
+        builtinBusLibrary()
+      )
+    ).toBeNull();
+  });
+
   it('preserves physical ports for a contract-less imported custom interface', () => {
     expect(
       reconstructBusPortNameSet(

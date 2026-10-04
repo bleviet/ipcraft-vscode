@@ -14,6 +14,8 @@ All notable changes to this project are documented in this file.
 
 - Avalon-MM now uses its canonical logical port set and optionality in the canvas and generated artifacts. Legacy aliases are accepted only at the document boundary and resolve to the canonical IPCraft VLNV.
 - Avalon-ST uses `source` and `sink` modes and preserves `dataBitsPerSymbol`, `symbolsPerBeat`, `readyLatency`, `maxChannel`, and endianness through Platform Designer Tcl and custom IP-XACT. Big-endian generated RTL reverses Avalon-ST data in symbol-sized lanes; AXI, Avalon-MM, and standalone ports retain eight-bit lanes.
+- **A bus interface with no `physicalPrefix` now generates unprefixed port names** (`awaddr`, `address`, ...) in the Inspector, the canvas, and every generated artifact. Previously every non-conduit interface fell back to `s_axi_` regardless of its type, so an AXI-Stream master or a FIFO interface got AXI-style names that the canvas never showed. The duplicate-port check now also covers prefix-less interfaces and authored `conduitPorts`.
+- The AXI4-Lite and Avalon-MM bus wrappers name their internal signals `<logical>_int` (for example `awaddr_int`), so a prefix-less slave elaborates instead of colliding with its own ports. Port names and register-bank signals are unchanged.
 
 ### Fixed
 
@@ -22,6 +24,7 @@ All notable changes to this project are documented in this file.
 ### Compatibility
 
 - Bus-interface compatibility is forward-only for port polarity. This version reads every bus-interface document the 1.0.0 release supported, and existing active-high documents keep their behavior and generated port names. A document that selects an active-low port through `portPolarityOverrides` requires this version or later: an older IPCraft ignores the field and would generate the active-high role instead.
+- An existing IP that relied on the implicit `s_axi_` prefix now gets unprefixed port names in the generated HDL, `component.xml`, `_hw.tcl`, and the cocotb testbench, which breaks instantiations that use the old names. Set `physicalPrefix: s_axi_` on the interface to keep them.
 
 ## [1.0.0] - 2026-08-09
 

@@ -156,6 +156,27 @@ describe('busResolver endianness', () => {
     );
   });
 
+  it('exposes an empty bus_prefix for a prefix-less primary interface', () => {
+    const result = busResolver.resolve(
+      makeInput({ busInterfaces: [{ name: 's_axi', type: 'AXI4L', mode: 'slave' }] }, AXI4_LITE_DEF)
+    );
+    expect(result.bus_prefix).toBe('');
+  });
+
+  it("strips the trailing underscore from a 's_axi_' bus_prefix", () => {
+    const result = busResolver.resolve(
+      makeInput(
+        {
+          busInterfaces: [
+            { name: 's_axi', type: 'AXI4L', mode: 'slave', physicalPrefix: 's_axi_' },
+          ],
+        },
+        AXI4_LITE_DEF
+      )
+    );
+    expect(result.bus_prefix).toBe('s_axi');
+  });
+
   it('marks no ports for swap when no interfaces are big-endian', () => {
     const result = busResolver.resolve(
       makeInput(
@@ -183,9 +204,9 @@ describe('busResolver endianness', () => {
     const byName = Object.fromEntries(swapPorts.map((p) => [p.name, p.swap_kind]));
     // Data payload byte-reversed; the WSTRB mask bit-reversed in lockstep.
     expect(byName).toEqual({
-      s_axi_wdata: 'lane',
-      s_axi_rdata: 'lane',
-      s_axi_wstrb: 'bit',
+      wdata: 'lane',
+      rdata: 'lane',
+      wstrb: 'bit',
     });
     // Only fixed-width byte swaps need a swap_bytes_<width>() helper; WSTRB is a bit reversal.
     expect(result.endian_swap_widths).toEqual([32]);
@@ -258,12 +279,12 @@ describe('busResolver endianness', () => {
     const byName = Object.fromEntries(swapPorts.map((p) => [p.name, p]));
     // Parameterized data ports byte-swap via a width-generic generate loop, so they
     // contribute no fixed-width swap_bytes_<N>() helper.
-    expect(byName['s_axi_wdata'].is_parameterized).toBe(true);
-    expect(byName['s_axi_rdata'].is_parameterized).toBe(true);
-    expect(byName['s_axi_wdata'].swap_kind).toBe('lane');
-    expect(byName['s_axi_wdata'].lane_width).toBe(8);
+    expect(byName['wdata'].is_parameterized).toBe(true);
+    expect(byName['rdata'].is_parameterized).toBe(true);
+    expect(byName['wdata'].swap_kind).toBe('lane');
+    expect(byName['wdata'].lane_width).toBe(8);
     // WSTRB (byteQualifier) is a fixed 4-bit mask, reversed as bits — never a swap_bytes helper.
-    expect(byName['s_axi_wstrb'].swap_kind).toBe('bit');
+    expect(byName['wstrb'].swap_kind).toBe('bit');
     expect(result.endian_swap_widths).toEqual([]);
   });
 
@@ -295,7 +316,7 @@ describe('busResolver endianness', () => {
     expect(swapPorts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          name: 's_axi_wstrb',
+          name: 'wstrb',
           width: 1,
           is_parameterized: true,
           swap_kind: 'bit',

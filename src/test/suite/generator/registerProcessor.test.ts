@@ -13,7 +13,9 @@ import {
 } from '../../../generator/registerProcessor';
 import { normalizeMemoryMap } from '../../../domain/parse';
 import { BUS_REGISTRY } from '../../../generator/buses/builtin';
-import { builtinBusLibrary } from '../../helpers/busLibrary';
+import { builtinBusLibrary, builtinBusDefinitionSources } from '../../helpers/busLibrary';
+import { normalizeBusLibrary } from '../../../shared/busContracts';
+import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
 
 const normalizeBusType = (type: string) => BUS_REGISTRY.normalize(type, builtinBusLibrary());
 const getBusTypeForTemplate = (ipCore: Parameters<typeof getBusTypeForTemplateImpl>[0]) =>
@@ -133,12 +135,30 @@ describe('registerProcessor', () => {
       expect(result[1].name).toBe('M_CH1');
     });
 
-    it('defaults missing physicalPrefix to s_axi_ for a standard bus interface', () => {
+    it('treats a missing physicalPrefix as no prefix for a standard bus interface', () => {
       const ipCore = {
         busInterfaces: [{ name: 'bus', type: 'AXI4-Lite', mode: 'slave' }],
       };
       const result = expandBusInterfaces(ipCore as any);
-      expect(result[0].physicalPrefix).toBe('s_axi_');
+      expect(result[0].physicalPrefix).toBe('');
+    });
+
+    it('treats a null physicalPrefix as no prefix for a standard bus interface', () => {
+      const ipCore = {
+        busInterfaces: [{ name: 'bus', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: null }],
+      };
+      const result = expandBusInterfaces(ipCore as any);
+      expect(result[0].physicalPrefix).toBe('');
+    });
+
+    it('builds array prefixes from {index} alone when no prefix or pattern is given', () => {
+      const ipCore = {
+        busInterfaces: [
+          { name: 'CH', type: 'AXIS', mode: 'master', array: { count: 2, indexStart: 0 } },
+        ],
+      };
+      const result = expandBusInterfaces(ipCore as any);
+      expect(result.map((r) => r.physicalPrefix)).toEqual(['0_', '1_']);
     });
 
     it('defaults a null physicalPrefix to empty (no prefix) for a conduit interface', () => {
@@ -596,6 +616,112 @@ describe('registerProcessor', () => {
       expect(result).toContain('s_axi_');
     });
 
+    it('reports a collision between two prefix-less AXI4-Lite slaves', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          { name: 'bus_a', type: 'AXI4-Lite', mode: 'slave' },
+          { name: 'bus_b', type: 'AXI4-Lite', mode: 'slave' },
+        ],
+      });
+      const result = checkDuplicatePhysicalPrefixes(ipCore);
+      expect(result).not.toBeNull();
+      expect(result).toContain("shared by 'bus_a' and 'bus_b'");
+    });
+
+    it('does not report a collision between two prefix-less conduits', () => {
+      const conduit = (name: string) => ({
+        name,
+        type: 'xilinx.com:interface:fifo_write:1.0',
+        mode: 'conduit',
+        conduitPorts: [{ name: `${name}_en`, direction: 'out', presence: 'required' }],
+      });
+      const ipCore = normalizeIpCoreData({ busInterfaces: [conduit('fifo_a'), conduit('fifo_b')] });
+      expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
+    });
+
+    it('reports a prefix-less AXI4-Lite slave colliding with a conduit port named awaddr', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          { name: 'axil', type: 'AXI4-Lite', mode: 'slave' },
+          {
+            name: 'side',
+            type: 'xilinx.com:interface:fifo_write:1.0',
+            mode: 'conduit',
+            conduitPorts: [{ name: 'awaddr', direction: 'out', presence: 'required' }],
+          },
+        ],
+      });
+      const result = checkDuplicatePhysicalPrefixes(ipCore);
+      expect(result).not.toBeNull();
+      expect(result).toContain("shared by 'axil' and 'side'");
+    });
+
+    it('applies portNameOverrides to conduit ports when checking for collisions', () => {
+      const ipCore = normalizeIpCoreData({
+        busInterfaces: [
+          { name: 'axil', type: 'AXI4-Lite', mode: 'slave' },
+          {
+            name: 'side',
+            type: 'xilinx.com:interface:fifo_write:1.0',
+            mode: 'conduit',
+            conduitPorts: [{ name: 'AWADDR', direction: 'out', presence: 'required' }],
+            portNameOverrides: { AWADDR: 'side_addr' },
+          },
+        ],
+      });
+      expect(checkDuplicatePhysicalPrefixes(ipCore)).toBeNull();
+    });
+
+    describe('with a library that resolves xilinx.com:interface:fifo_write', () => {
+      const FIFO = 'xilinx.com:interface:fifo_write:1.0';
+      const fifoLibrary = normalizeBusLibrary([
+        ...builtinBusDefinitionSources(),
+        {
+          sourceFile: '/workspace/fifo_write.yml',
+          sourceKind: 'workspace',
+          definitions: {
+            XILINX_COM_INTERFACE_FIFO_WRITE_1_0: {
+              busType: {
+                vendor: 'xilinx.com',
+                library: 'interface',
+                name: 'fifo_write',
+                version: '1.0',
+              },
+              source: 'vivado',
+              ports: [
+                { name: 'WR_DATA', direction: 'out', presence: 'required' },
+                { name: 'WR_EN', width: 1, direction: 'out', presence: 'required' },
+              ],
+            },
+          },
+        } as unknown as { definitions: BusDefinitionFile } & any,
+      ]);
+      const check = (busInterfaces: unknown[]) =>
+        checkDuplicatePhysicalPrefixesImpl(normalizeIpCoreData({ busInterfaces }), fifoLibrary);
+      const conduit = (name: string, port: string) => ({
+        name,
+        type: FIFO,
+        mode: 'conduit',
+        conduitPorts: [{ name: port, direction: 'out', presence: 'required' }],
+      });
+
+      it('does not flag two prefix-less conduits with distinct conduitPorts', () => {
+        expect(check([conduit('a', 'fifo_a_en'), conduit('b', 'fifo_b_en')])).toBeNull();
+      });
+
+      it('does not flag a conduit-less master next to a conduit with disjoint names', () => {
+        expect(
+          check([{ name: 'fifo', type: FIFO, mode: 'master' }, conduit('b', 'fifo_b_en')])
+        ).toBeNull();
+      });
+
+      it('flags a conduit whose conduitPorts emit awaddr next to a prefix-less AXI4-Lite slave', () => {
+        expect(
+          check([{ name: 'axil', type: 'AXI4-Lite', mode: 'slave' }, conduit('side', 'awaddr')])
+        ).not.toBeNull();
+      });
+    });
+
     it('returns null when a single interface has no duplicates', () => {
       const ipCore = normalizeIpCoreData({
         busInterfaces: [
@@ -671,7 +797,31 @@ describe('registerProcessor', () => {
       expect(result).toContain('asi_');
     });
 
-    it('still flags a conduit interface sharing a manual prefix with another interface (legacy fallback)', () => {
+    const sharedPrefixPair = (conduitPort: string) =>
+      normalizeIpCoreData({
+        busInterfaces: [
+          {
+            name: 'custom_if',
+            type: 'ipcraft:busif:conduit:1.0',
+            mode: 'conduit',
+            physicalPrefix: 'shared_',
+            conduitPorts: [{ name: conduitPort, direction: 'in' }],
+          },
+          { name: 'bus_b', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: 'shared_' },
+        ],
+      });
+
+    it('does not flag a conduit sharing a prefix when its emitted port names are disjoint', () => {
+      expect(checkDuplicatePhysicalPrefixes(sharedPrefixPair('sig'))).toBeNull();
+    });
+
+    it('flags a conduit sharing a prefix when a conduit port emits the same name', () => {
+      const result = checkDuplicatePhysicalPrefixes(sharedPrefixPair('awaddr'));
+      expect(result).not.toBeNull();
+      expect(result).toContain('shared_');
+    });
+
+    it('falls back to raw prefix equality when one side has no reconstructable port set', () => {
       const ipCore = normalizeIpCoreData({
         busInterfaces: [
           {
@@ -679,7 +829,6 @@ describe('registerProcessor', () => {
             type: 'ipcraft:busif:conduit:1.0',
             mode: 'conduit',
             physicalPrefix: 'shared_',
-            conduitPorts: [{ name: 'sig', direction: 'in' }],
           },
           { name: 'bus_b', type: 'AXI4-Lite', mode: 'slave', physicalPrefix: 'shared_' },
         ],

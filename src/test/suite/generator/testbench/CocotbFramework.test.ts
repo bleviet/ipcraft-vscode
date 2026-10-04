@@ -446,6 +446,28 @@ describe('CocotbFramework — rtlSourceFiles-driven sources', () => {
     expect(testPy).toContain('_FULL_BYTE_ENABLE ^ byte_enable');
   });
 
+  it('avmm cocotb transport falls back to bare logical names when the bus prefix is empty', () => {
+    const ctx = makeCtx({
+      hasMmSlave: true,
+      templateContext: {
+        entity_name: 'test_core',
+        clock_port: 'clk',
+        reset_port: 'rst_n',
+        reset_active_high: false,
+        bus_type: 'avmm',
+        bus_prefix: '',
+        has_memory_mapped_slave: true,
+        memmap_relpath: '../test_core.mmap.yml',
+        ports: [],
+        parameters: [],
+        bus_ports: [],
+      },
+    });
+    const testPy = framework.generate(ctx, new GhdlEngine())['tb/test_core_test.py'];
+    expect(testPy).toContain('getattr(dut, "address")');
+    expect(testPy).not.toContain('"_address"');
+  });
+
   it('keeps Avalon transport metadata scoped to the test template', () => {
     const renderSpy = jest.spyOn(templates, 'render');
 

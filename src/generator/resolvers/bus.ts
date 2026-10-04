@@ -36,9 +36,6 @@ function getString(value: unknown): string {
 }
 
 function normalizePrefix(prefix: string): string {
-  if (!prefix) {
-    return 's_axi';
-  }
   return prefix.endsWith('_') ? prefix.slice(0, -1) : prefix;
 }
 
