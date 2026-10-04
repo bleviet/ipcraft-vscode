@@ -41,7 +41,12 @@ function buildAvalonTransportContext(
     );
     const activeLow = port?.effective_polarity === 'activeLow';
     return {
-      name: typeof port?.name === 'string' ? port.name : `${prefix}_${logicalName}`,
+      name:
+        typeof port?.name === 'string'
+          ? port.name
+          : prefix
+            ? `${prefix}_${logicalName}`
+            : logicalName,
       asserted: activeLow ? 0 : 1,
       deasserted: activeLow ? 1 : 0,
       active_low: activeLow,

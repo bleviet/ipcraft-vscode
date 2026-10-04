@@ -96,7 +96,7 @@ architecture rtl of {{ entity_name }}_axil is
 {% else %}
 {% set sig_init = "(others => '0')" %}
 {% endif %}
-  signal {{ "%-8s"|format(port.logical_name | lower) }} : {{ "%-48s"|format(port.type) }} := {{ sig_init }};
+  signal {{ "%-11s"|format((port.logical_name | lower) ~ "_int") }} : {{ "%-48s"|format(port.type) }} := {{ sig_init }};
 {% endif %}
 {% endif %}
 {% endfor %}
@@ -178,28 +178,28 @@ begin
 {% set arvalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'ARVALID') | list) %}
 {% set rready_port  = (bus_ports | selectattr('logical_name', 'equalto', 'RREADY')  | list) %}
 {% if awready_port | length > 0 %}
-  {{ awready_port[0].name }} <= awready;
+  {{ awready_port[0].name }} <= awready_int;
 {% endif %}
 {% if wready_port | length > 0 %}
-  {{ wready_port[0].name }} <= wready;
+  {{ wready_port[0].name }} <= wready_int;
 {% endif %}
 {% if bresp_port | length > 0 %}
-  {{ bresp_port[0].name }} <= bresp;
+  {{ bresp_port[0].name }} <= bresp_int;
 {% endif %}
 {% if bvalid_port | length > 0 %}
-  {{ bvalid_port[0].name }} <= bvalid;
+  {{ bvalid_port[0].name }} <= bvalid_int;
 {% endif %}
 {% if arready_port | length > 0 %}
-  {{ arready_port[0].name }} <= arready;
+  {{ arready_port[0].name }} <= arready_int;
 {% endif %}
 {% if rdata_port | length > 0 %}
-  {{ rdata_port[0].name }} <= rdata;
+  {{ rdata_port[0].name }} <= rdata_int;
 {% endif %}
 {% if rresp_port | length > 0 %}
-  {{ rresp_port[0].name }} <= rresp;
+  {{ rresp_port[0].name }} <= rresp_int;
 {% endif %}
 {% if rvalid_port | length > 0 %}
-  {{ rvalid_port[0].name }} <= rvalid;
+  {{ rvalid_port[0].name }} <= rvalid_int;
 {% endif %}
 
   ----------------------------------------------------------------------------
@@ -210,24 +210,24 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        awready             <= '0';
+        awready_int             <= '0';
         write_txn.aw_en     <= '1';
-        awaddr              <= (others => '0');
+        awaddr_int              <= (others => '0');
         write_txn.addr_received <= '0';
       else
-        if (awready = '0' and {{ awvalid_port[0].name if awvalid_port | length > 0 else "'0'" }} = '1' and write_txn.aw_en = '1') then
+        if (awready_int = '0' and {{ awvalid_port[0].name if awvalid_port | length > 0 else "'0'" }} = '1' and write_txn.aw_en = '1') then
           -- Ready to accept write address; latch address from port
-          awready             <= '1';
+          awready_int             <= '1';
           write_txn.aw_en     <= '0';
-          awaddr              <= {{ awaddr_port[0].name if awaddr_port | length > 0 else "(others => '0')" }};
+          awaddr_int              <= {{ awaddr_port[0].name if awaddr_port | length > 0 else "(others => '0')" }};
           write_txn.addr_received <= '1';
-        elsif (bvalid = '1' and {{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1') then
+        elsif (bvalid_int = '1' and {{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1') then
           -- Write response completed, ready for next transaction
           write_txn.aw_en         <= '1';
           write_txn.addr_received <= '0';
-          awready             <= '0';
+          awready_int             <= '0';
         else
-          awready <= '0';
+          awready_int <= '0';
         end if;
       end if;
     end if;
@@ -245,21 +245,21 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        wready              <= '0';
+        wready_int              <= '0';
         write_txn.data_received <= '0';
       else
-        if (wready = '0' and {{ wvalid_port[0].name if wvalid_port | length > 0 else "'0'" }} = '1' and write_txn.data_received = '0') then
+        if (wready_int = '0' and {{ wvalid_port[0].name if wvalid_port | length > 0 else "'0'" }} = '1' and write_txn.data_received = '0') then
           -- Ready to accept write data; latch data and strobe immediately
-          wready              <= '1';
+          wready_int              <= '1';
           write_txn.data_received <= '1';
           wdata_latch         <= {{ wdata_port[0].name if wdata_port | length > 0 else "(others => '0')" }};
           wstrb_latch         <= {{ wstrb_port[0].name if wstrb_port | length > 0 else "(others => '1')" }};
-        elsif (bvalid = '1' and {{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1') then
+        elsif (bvalid_int = '1' and {{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1') then
           -- Write response completed, ready for next transaction
           write_txn.data_received <= '0';
-          wready              <= '0';
+          wready_int              <= '0';
         else
-          wready <= '0';
+          wready_int <= '0';
         end if;
       end if;
     end if;
@@ -287,7 +287,7 @@ begin
   -- Generate write enable to register bank when both address and data received
   ----------------------------------------------------------------------------
   wr_en   <= write_txn.addr_received and write_txn.data_received and not wr_pending;
-  wr_addr <= awaddr(C_ADDR_WIDTH-1 downto 0);
+  wr_addr <= awaddr_int(C_ADDR_WIDTH-1 downto 0);
   wr_data <= wdata_latch;
   wr_strb <= wstrb_latch;
 
@@ -298,20 +298,20 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        bvalid <= '0';
-        bresp  <= C_RESP_OKAY;
+        bvalid_int <= '0';
+        bresp_int  <= C_RESP_OKAY;
       else
-        if (write_txn.addr_received = '1' and write_txn.data_received = '1' and bvalid = '0') then
+        if (write_txn.addr_received = '1' and write_txn.data_received = '1' and bvalid_int = '0') then
           -- Both address and data received, assert write response
-          bvalid <= '1';
-          if to_integer(unsigned(awaddr(C_ADDR_WIDTH-1 downto 0))) < {{ addr_map_size }} then
-            bresp <= C_RESP_OKAY;
+          bvalid_int <= '1';
+          if to_integer(unsigned(awaddr_int(C_ADDR_WIDTH-1 downto 0))) < {{ addr_map_size }} then
+            bresp_int <= C_RESP_OKAY;
           else
-            bresp <= C_RESP_SLVERR;
+            bresp_int <= C_RESP_SLVERR;
           end if;
-        elsif ({{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1' and bvalid = '1') then
+        elsif ({{ bready_port[0].name if bready_port | length > 0 else "'1'" }} = '1' and bvalid_int = '1') then
           -- Write response accepted by master
-          bvalid <= '0';
+          bvalid_int <= '0';
         end if;
       end if;
     end if;
@@ -324,17 +324,17 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        arready <= '0';
-        araddr  <= (others => '0');
+        arready_int <= '0';
+        araddr_int  <= (others => '0');
         rd_busy <= '0';
       else
-        if (arready = '0' and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} = '1' and rd_busy = '0') then
-          arready <= '1';
+        if (arready_int = '0' and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} = '1' and rd_busy = '0') then
+          arready_int <= '1';
           rd_busy <= '1';
-          araddr  <= {{ araddr_port[0].name if araddr_port | length > 0 else "(others => '0')" }};  -- latch address from port
+          araddr_int  <= {{ araddr_port[0].name if araddr_port | length > 0 else "(others => '0')" }};  -- latch address from port
         else
-          arready <= '0';
-          if (rvalid = '1' and {{ rready_port[0].name if rready_port | length > 0 else "'1'" }} = '1') then
+          arready_int <= '0';
+          if (rvalid_int = '1' and {{ rready_port[0].name if rready_port | length > 0 else "'1'" }} = '1') then
             rd_busy <= '0';
           end if;
         end if;
@@ -346,8 +346,8 @@ begin
   -- Register Read Control
   -- Trigger read from register bank when address is accepted
   ----------------------------------------------------------------------------
-  rd_en   <= arready and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} and not rvalid;
-  rd_addr <= araddr(C_ADDR_WIDTH-1 downto 0);
+  rd_en   <= arready_int and {{ arvalid_port[0].name if arvalid_port | length > 0 else "'0'" }} and not rvalid_int;
+  rd_addr <= araddr_int(C_ADDR_WIDTH-1 downto 0);
 
   ----------------------------------------------------------------------------
   -- Invalid Read Address Detection
@@ -381,23 +381,23 @@ begin
   begin
     if rising_edge(clk) then
       if rst = '1' then
-        rvalid <= '0';
-        rresp  <= C_RESP_OKAY;
-        rdata  <= (others => '0');
+        rvalid_int <= '0';
+        rresp_int  <= C_RESP_OKAY;
+        rdata_int  <= (others => '0');
       else
         if rd_invalid_d = '1' then
           -- Unmapped read address: complete transaction with SLVERR and zero data
-          rvalid <= '1';
-          rresp  <= C_RESP_SLVERR;
-          rdata  <= (others => '0');
+          rvalid_int <= '1';
+          rresp_int  <= C_RESP_SLVERR;
+          rdata_int  <= (others => '0');
         elsif rd_valid = '1' then
           -- Register bank has valid data
-          rvalid <= '1';
-          rresp  <= C_RESP_OKAY;
-          rdata  <= rd_data;
-        elsif (rvalid = '1' and {{ rready_port[0].name if rready_port | length > 0 else "'1'" }} = '1') then
+          rvalid_int <= '1';
+          rresp_int  <= C_RESP_OKAY;
+          rdata_int  <= rd_data;
+        elsif (rvalid_int = '1' and {{ rready_port[0].name if rready_port | length > 0 else "'1'" }} = '1') then
           -- Master accepted read data
-          rvalid <= '0';
+          rvalid_int <= '0';
         end if;
       end if;
     end if;

@@ -91,7 +91,7 @@ export const useCanvasValidation = (
   // name collision is flagged.
   const busList = ipCore.busInterfaces ?? [];
   const reconstructedSets = busList.map((bus) =>
-    bus.physicalPrefix && busLibrary ? reconstructBusPortNameSet(bus, busLibrary) : null
+    busLibrary ? reconstructBusPortNameSet(bus, busLibrary) : null
   );
   const collisionMessages = new Map<number, string[]>();
   for (let i = 0; i < busList.length; i++) {

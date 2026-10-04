@@ -55,14 +55,14 @@ end entity {{ entity_name }}_avmm;
 architecture rtl of {{ entity_name }}_avmm is
 
   -- Bus Internal Signals
-  signal address       : std_logic_vector(C_ADDR_WIDTH-1 downto 0);
-  signal read          : std_logic;
-  signal write         : std_logic;
-  signal writedata     : std_logic_vector(C_DATA_WIDTH-1 downto 0);
-  signal byteenable    : std_logic_vector((C_DATA_WIDTH/8)-1 downto 0);
-  signal readdata      : std_logic_vector(C_DATA_WIDTH-1 downto 0);
-  signal readdatavalid : std_logic;
-  signal waitrequest   : std_logic;
+  signal address_int       : std_logic_vector(C_ADDR_WIDTH-1 downto 0);
+  signal read_int          : std_logic;
+  signal write_int         : std_logic;
+  signal writedata_int     : std_logic_vector(C_DATA_WIDTH-1 downto 0);
+  signal byteenable_int    : std_logic_vector((C_DATA_WIDTH/8)-1 downto 0);
+  signal readdata_int      : std_logic_vector(C_DATA_WIDTH-1 downto 0);
+  signal readdatavalid_int : std_logic;
+  signal waitrequest_int   : std_logic;
 
 begin
 
@@ -85,23 +85,23 @@ begin
     Avalon-MM slave and altera_nios2_gen2's data_master). Slicing a port
     narrower than C_ADDR_WIDTH is an out-of-range VHDL slice; reconstruct the
     byte address instead by zero-padding the word address's low bits. -#}
-  address   <= {{ (address_port[0].name ~ " & \"" ~ ("0" | repeat(addr_pad)) ~ "\"") if address_port | length > 0 and addr_pad > 0 else (address_port[0].name ~ "(C_ADDR_WIDTH-1 downto 0)" if address_port | length > 0 else "(others => '0')") }};
-  read      <= {{ read_port[0].name      if read_port      | length > 0 else "'0'" }};
-  write     <= {{ write_port[0].name     if write_port     | length > 0 else "'0'" }};
-  writedata <= {{ writedata_port[0].name if writedata_port | length > 0 else "(others => '0')" }};
+  address_int   <= {{ (address_port[0].name ~ " & \"" ~ ("0" | repeat(addr_pad)) ~ "\"") if address_port | length > 0 and addr_pad > 0 else (address_port[0].name ~ "(C_ADDR_WIDTH-1 downto 0)" if address_port | length > 0 else "(others => '0')") }};
+  read_int      <= {{ read_port[0].name      if read_port      | length > 0 else "'0'" }};
+  write_int     <= {{ write_port[0].name     if write_port     | length > 0 else "'0'" }};
+  writedata_int <= {{ writedata_port[0].name if writedata_port | length > 0 else "(others => '0')" }};
 {% if byteenable_port | length > 0 %}
-  byteenable <= {{ byteenable_port[0].name }};
+  byteenable_int <= {{ byteenable_port[0].name }};
 {% else %}
-  byteenable <= (others => '1');
+  byteenable_int <= (others => '1');
 {% endif %}
 {% if readdata_port | length > 0 %}
-  {{ readdata_port[0].name }} <= readdata;
+  {{ readdata_port[0].name }} <= readdata_int;
 {% endif %}
 {% if readdatavalid_port | length > 0 %}
-  {{ readdatavalid_port[0].name }} <= readdatavalid;
+  {{ readdatavalid_port[0].name }} <= readdatavalid_int;
 {% endif %}
 {% if waitrequest_port | length > 0 %}
-  {{ waitrequest_port[0].name }} <= waitrequest;
+  {{ waitrequest_port[0].name }} <= waitrequest_int;
 {% endif %}
 
   ----------------------------------------------------------------------------
@@ -109,7 +109,7 @@ begin
   ----------------------------------------------------------------------------
 
   -- No wait states
-  waitrequest <= '0';
+  waitrequest_int <= '0';
 
   ----------------------------------------------------------------------------
   -- Register Bank Instantiation
@@ -118,14 +118,14 @@ begin
     port map (
       clk      => clk,
       rst      => rst,
-      wr_en    => write,
-      wr_addr  => address,
-      wr_data  => writedata,
-      wr_strb  => byteenable,
-      rd_en    => read,
-      rd_addr  => address,
-      rd_data  => readdata,
-      rd_valid => readdatavalid{{ "," if sw_registers | length > 0 or has_regs_in else "" }}
+      wr_en    => write_int,
+      wr_addr  => address_int,
+      wr_data  => writedata_int,
+      wr_strb  => byteenable_int,
+      rd_en    => read_int,
+      rd_addr  => address_int,
+      rd_data  => readdata_int,
+      rd_valid => readdatavalid_int{{ "," if sw_registers | length > 0 or has_regs_in else "" }}
 {% if sw_registers | length > 0 %}
       regs_out => regs_out{{ "," if has_regs_in else "" }}
 {% endif %}

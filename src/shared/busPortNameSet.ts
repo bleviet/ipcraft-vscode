@@ -12,6 +12,7 @@ export interface ReconstructableBusInterface {
   absentPorts?: string[] | null;
   ports?: Array<{ name?: string | null }> | null;
   rawPortMaps?: Array<{ physical?: string | null }> | null;
+  conduitPorts?: unknown[] | null;
 }
 
 /** Reconstruct the physical port names emitted for one bus interface. */
@@ -19,6 +20,11 @@ export function reconstructBusPortNameSet(
   iface: ReconstructableBusInterface,
   library: NormalizedBusLibrary
 ): Set<string> | null {
+  // Authored conduitPorts replace the contract's ports in generated output, so the
+  // contract's names are not what gets emitted; the emitted set is unknown here.
+  if (iface.conduitPorts && iface.conduitPorts.length > 0) {
+    return null;
+  }
   const resolution = resolveBusInterface({
     busInterface: { ...iface, mode: iface.mode ?? '' } as BusInterface,
     busIndex: 0,

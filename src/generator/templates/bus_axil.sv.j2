@@ -59,7 +59,7 @@ module {{ entity_name }}_axil
 {% set comb_driven = ['AWADDR', 'AWVALID', 'WDATA', 'WSTRB', 'WVALID', 'BREADY', 'ARADDR', 'ARVALID', 'RREADY'] %}
 {% for port in bus_ports %}
 {% if port.logical_name != 'AWPROT' and port.logical_name != 'ARPROT' %}
-  {{ "%-34s"|format(port.sv_type) }} {{ port.logical_name | lower }}{{ ";" if port.logical_name in comb_driven else " = '0;" }}
+  {{ "%-34s"|format(port.sv_type) }} {{ port.logical_name | lower }}_int{{ ";" if port.logical_name in comb_driven else " = '0;" }}
 {% endif %}
 {% endfor %}
 
@@ -136,41 +136,41 @@ module {{ entity_name }}_axil
 
   // Inputs (master → slave)
   always_comb begin
-    awaddr  = {{ awaddr_port[0].name  if awaddr_port  | length > 0 else "'0" }};
-    awvalid = {{ awvalid_port[0].name if awvalid_port | length > 0 else "1'b0" }};
-    wdata   = {{ wdata_port[0].name   if wdata_port   | length > 0 else "'0" }};
-    wstrb   = {{ wstrb_port[0].name   if wstrb_port   | length > 0 else "'1" }};
-    wvalid  = {{ wvalid_port[0].name  if wvalid_port  | length > 0 else "1'b0" }};
-    bready  = {{ bready_port[0].name  if bready_port  | length > 0 else "1'b1" }};
-    araddr  = {{ araddr_port[0].name  if araddr_port  | length > 0 else "'0" }};
-    arvalid = {{ arvalid_port[0].name if arvalid_port | length > 0 else "1'b0" }};
-    rready  = {{ rready_port[0].name  if rready_port  | length > 0 else "1'b1" }};
+    awaddr_int  = {{ awaddr_port[0].name  if awaddr_port  | length > 0 else "'0" }};
+    awvalid_int = {{ awvalid_port[0].name if awvalid_port | length > 0 else "1'b0" }};
+    wdata_int   = {{ wdata_port[0].name   if wdata_port   | length > 0 else "'0" }};
+    wstrb_int   = {{ wstrb_port[0].name   if wstrb_port   | length > 0 else "'1" }};
+    wvalid_int  = {{ wvalid_port[0].name  if wvalid_port  | length > 0 else "1'b0" }};
+    bready_int  = {{ bready_port[0].name  if bready_port  | length > 0 else "1'b1" }};
+    araddr_int  = {{ araddr_port[0].name  if araddr_port  | length > 0 else "'0" }};
+    arvalid_int = {{ arvalid_port[0].name if arvalid_port | length > 0 else "1'b0" }};
+    rready_int  = {{ rready_port[0].name  if rready_port  | length > 0 else "1'b1" }};
   end
 
   // Outputs (slave → master)
 {% if awready_port | length > 0 %}
-  assign {{ awready_port[0].name }} = awready;
+  assign {{ awready_port[0].name }} = awready_int;
 {% endif %}
 {% if wready_port | length > 0 %}
-  assign {{ wready_port[0].name }} = wready;
+  assign {{ wready_port[0].name }} = wready_int;
 {% endif %}
 {% if bresp_port | length > 0 %}
-  assign {{ bresp_port[0].name }} = bresp;
+  assign {{ bresp_port[0].name }} = bresp_int;
 {% endif %}
 {% if bvalid_port | length > 0 %}
-  assign {{ bvalid_port[0].name }} = bvalid;
+  assign {{ bvalid_port[0].name }} = bvalid_int;
 {% endif %}
 {% if arready_port | length > 0 %}
-  assign {{ arready_port[0].name }} = arready;
+  assign {{ arready_port[0].name }} = arready_int;
 {% endif %}
 {% if rdata_port | length > 0 %}
-  assign {{ rdata_port[0].name }} = rdata;
+  assign {{ rdata_port[0].name }} = rdata_int;
 {% endif %}
 {% if rresp_port | length > 0 %}
-  assign {{ rresp_port[0].name }} = rresp;
+  assign {{ rresp_port[0].name }} = rresp_int;
 {% endif %}
 {% if rvalid_port | length > 0 %}
-  assign {{ rvalid_port[0].name }} = rvalid;
+  assign {{ rvalid_port[0].name }} = rvalid_int;
 {% endif %}
 
   ////////////////////////////////////////////////////////////////////////////
@@ -179,21 +179,21 @@ module {{ entity_name }}_axil
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : write_addr_proc
     if (rst) begin
-      awready       <= 1'b0;
+      awready_int       <= 1'b0;
       aw_en         <= 1'b1;
       addr_received <= 1'b0;
     end else begin
-      if (!awready && awvalid && aw_en) begin
-        awready       <= 1'b1;
+      if (!awready_int && awvalid_int && aw_en) begin
+        awready_int       <= 1'b1;
         aw_en         <= 1'b0;
         addr_received <= 1'b1;
-        awaddr_lat    <= awaddr[C_ADDR_WIDTH-1:0];
-      end else if (bvalid && bready) begin
+        awaddr_lat    <= awaddr_int[C_ADDR_WIDTH-1:0];
+      end else if (bvalid_int && bready_int) begin
         aw_en         <= 1'b1;
         addr_received <= 1'b0;
-        awready       <= 1'b0;
+        awready_int       <= 1'b0;
       end else begin
-        awready <= 1'b0;
+        awready_int <= 1'b0;
       end
     end
   end
@@ -208,19 +208,19 @@ module {{ entity_name }}_axil
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : write_data_proc
     if (rst) begin
-      wready        <= 1'b0;
+      wready_int        <= 1'b0;
       data_received <= 1'b0;
     end else begin
-      if (!wready && wvalid && !data_received) begin
-        wready        <= 1'b1;
+      if (!wready_int && wvalid_int && !data_received) begin
+        wready_int        <= 1'b1;
         data_received <= 1'b1;
-        wdata_latch   <= wdata;
-        wstrb_latch   <= wstrb;
-      end else if (bvalid && bready) begin
+        wdata_latch   <= wdata_int;
+        wstrb_latch   <= wstrb_int;
+      end else if (bvalid_int && bready_int) begin
         data_received <= 1'b0;
-        wready        <= 1'b0;
+        wready_int        <= 1'b0;
       end else begin
-        wready <= 1'b0;
+        wready_int <= 1'b0;
       end
     end
   end
@@ -250,15 +250,15 @@ module {{ entity_name }}_axil
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : write_response_proc
     if (rst) begin
-      bvalid <= 1'b0;
-      bresp  <= C_RESP_OKAY;
+      bvalid_int <= 1'b0;
+      bresp_int  <= C_RESP_OKAY;
     end else begin
-      if (addr_received && data_received && !bvalid) begin
-        bvalid <= 1'b1;
-        bresp  <= ($unsigned(awaddr_lat[C_ADDR_WIDTH-1:0]) < {{ addr_map_size }})
+      if (addr_received && data_received && !bvalid_int) begin
+        bvalid_int <= 1'b1;
+        bresp_int  <= ($unsigned(awaddr_lat[C_ADDR_WIDTH-1:0]) < {{ addr_map_size }})
                   ? C_RESP_OKAY : C_RESP_SLVERR;
-      end else if (bready && bvalid) begin
-        bvalid <= 1'b0;
+      end else if (bready_int && bvalid_int) begin
+        bvalid_int <= 1'b0;
       end
     end
   end
@@ -268,16 +268,16 @@ module {{ entity_name }}_axil
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : read_addr_proc
     if (rst) begin
-      arready <= 1'b0;
+      arready_int <= 1'b0;
       rd_busy <= 1'b0;
     end else begin
-      if (!arready && arvalid && !rd_busy) begin
-        arready    <= 1'b1;
+      if (!arready_int && arvalid_int && !rd_busy) begin
+        arready_int    <= 1'b1;
         rd_busy    <= 1'b1;
-        araddr_lat <= araddr[C_ADDR_WIDTH-1:0];
+        araddr_lat <= araddr_int[C_ADDR_WIDTH-1:0];
       end else begin
-        arready <= 1'b0;
-        if (rvalid && rready) begin
+        arready_int <= 1'b0;
+        if (rvalid_int && rready_int) begin
           rd_busy <= 1'b0;
         end
       end
@@ -287,7 +287,7 @@ module {{ entity_name }}_axil
   ////////////////////////////////////////////////////////////////////////////
   // Register Read Control
   ////////////////////////////////////////////////////////////////////////////
-  assign rd_en   = arready & arvalid & ~rvalid;
+  assign rd_en   = arready_int & arvalid_int & ~rvalid_int;
   assign rd_addr = araddr_lat[C_ADDR_WIDTH-1:0];
 
   ////////////////////////////////////////////////////////////////////////////
@@ -308,20 +308,20 @@ module {{ entity_name }}_axil
   ////////////////////////////////////////////////////////////////////////////
   always_ff @(posedge clk) begin : read_valid_proc
     if (rst) begin
-      rvalid <= 1'b0;
-      rresp  <= C_RESP_OKAY;
-      rdata  <= '0;
+      rvalid_int <= 1'b0;
+      rresp_int  <= C_RESP_OKAY;
+      rdata_int  <= '0;
     end else begin
       if (rd_invalid_d) begin
-        rvalid <= 1'b1;
-        rresp  <= C_RESP_SLVERR;
-        rdata  <= '0;
+        rvalid_int <= 1'b1;
+        rresp_int  <= C_RESP_SLVERR;
+        rdata_int  <= '0;
       end else if (rd_valid) begin
-        rvalid <= 1'b1;
-        rresp  <= C_RESP_OKAY;
-        rdata  <= rd_data;
-      end else if (rvalid && rready) begin
-        rvalid <= 1'b0;
+        rvalid_int <= 1'b1;
+        rresp_int  <= C_RESP_OKAY;
+        rdata_int  <= rd_data;
+      end else if (rvalid_int && rready_int) begin
+        rvalid_int <= 1'b0;
       end
     end
   end

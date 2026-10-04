@@ -438,9 +438,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       physicalPrefix:
         bus.physicalPrefix === null || bus.physical_prefix === null
           ? ''
-          : String(
-              bus.physicalPrefix ?? bus.physical_prefix ?? (mode === 'conduit' ? '' : 's_axi_')
-            ),
+          : String(bus.physicalPrefix ?? bus.physical_prefix ?? ''),
       useOptionalPorts,
       portWidthOverrides,
       ...(interfaceProperties &&

@@ -148,7 +148,7 @@ describe('serializeValue strips UI-only field properties', () => {
 });
 
 describe('parseIpCore physicalPrefix handling', () => {
-  it('should default to s_axi_ for non-conduit bus interfaces when absent', () => {
+  it('should default to empty string for non-conduit bus interfaces when absent', () => {
     const yamlStr = `
 vlnv: foo:bar:baz:1.0
 busInterfaces:
@@ -157,7 +157,7 @@ busInterfaces:
     mode: slave
 `;
     const parsed = parseIpCore(yamlStr);
-    expect(parsed.busInterfaces?.[0]?.physicalPrefix).toBe('s_axi_');
+    expect(parsed.busInterfaces?.[0]?.physicalPrefix).toBe('');
   });
 
   it('should default to empty string for conduit bus interfaces when absent', () => {
