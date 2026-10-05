@@ -10,7 +10,7 @@ interface BlockLike {
   registers?: BlockRegisterLike[];
 }
 
-function parseSizeString(val: string): number | null {
+export function parseSizeString(val: string): number | null {
   const cleaned = val.trim();
 
   // Try parsing directly (handles standard decimals and hex like 0x1000)

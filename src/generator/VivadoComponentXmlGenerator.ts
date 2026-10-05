@@ -8,6 +8,7 @@ import { parse, serialize, IPXACT_UNSUPPORTED } from '../shared/widthExprAst';
 import { detectVivadoVersion } from '../utils/detectVivadoVersion';
 import { resolveFileSetRtlFiles } from '../utils/compilationOrder';
 import { parseVlnv, isValidVlnv } from '../utils/vlnv';
+import { parseSizeString } from '../webview/utils/blockSize';
 import {
   dataLaneKind,
   isDeclarativeContract,
@@ -860,8 +861,8 @@ function resolveBlockRange(
     return block.range;
   }
   if (typeof block.range === 'string') {
-    const parsed = Number(block.range);
-    if (Number.isFinite(parsed) && parsed > 0) {
+    const parsed = parseSizeString(block.range);
+    if (parsed !== null && parsed > 0) {
       return parsed;
     }
   }

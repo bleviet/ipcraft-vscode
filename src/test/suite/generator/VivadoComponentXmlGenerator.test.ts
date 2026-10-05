@@ -2668,6 +2668,18 @@ describe('generateComponentXml memory maps', () => {
     expect(xml.indexOf('<spirit:memoryMaps>')).toBeLessThan(xml.indexOf('<spirit:model>'));
   });
 
+  it('parses a size-suffixed range (4K) for a register-less memory block', async () => {
+    const base = map();
+    const block = {
+      ...base.addressBlocks[0],
+      range: '4K',
+      usage: 'memory' as const,
+      registers: [],
+    };
+    const xml = await gen({}, { memoryMaps: [map({ addressBlocks: [block] })] });
+    expect(xml).toContain('<spirit:range spirit:format="long">4096</spirit:range>');
+  });
+
   it('references the map from its owning slave interface so it is not orphaned', async () => {
     // IP_Flow 19-1980: a memory map must be referenced by a bus interface.
     const ip = makeIp({

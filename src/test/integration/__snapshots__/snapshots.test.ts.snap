@@ -14604,7 +14604,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:addressBlock>
         <spirit:name>MAILBOX</spirit:name>
         <spirit:baseAddress spirit:format="long">1024</spirit:baseAddress>
-        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:range spirit:format="long">1024</spirit:range>
         <spirit:width spirit:format="long">32</spirit:width>
         <spirit:usage>memory</spirit:usage>
       </spirit:addressBlock>
@@ -15599,7 +15599,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:addressBlock>
         <spirit:name>MAILBOX</spirit:name>
         <spirit:baseAddress spirit:format="long">1024</spirit:baseAddress>
-        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:range spirit:format="long">1024</spirit:range>
         <spirit:width spirit:format="long">32</spirit:width>
         <spirit:usage>memory</spirit:usage>
       </spirit:addressBlock>
@@ -17393,7 +17393,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:addressBlock>
         <spirit:name>BUF_RAM</spirit:name>
         <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
-        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:range spirit:format="long">4096</spirit:range>
         <spirit:width spirit:format="long">32</spirit:width>
         <spirit:usage>memory</spirit:usage>
       </spirit:addressBlock>
@@ -20304,7 +20304,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:addressBlock>
         <spirit:name>BUF_RAM</spirit:name>
         <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
-        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:range spirit:format="long">4096</spirit:range>
         <spirit:width spirit:format="long">32</spirit:width>
         <spirit:usage>memory</spirit:usage>
       </spirit:addressBlock>
@@ -22621,7 +22621,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:addressBlock>
         <spirit:name>SAMPLE_BUFFER</spirit:name>
         <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
-        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:range spirit:format="long">4096</spirit:range>
         <spirit:width spirit:format="long">32</spirit:width>
         <spirit:usage>memory</spirit:usage>
       </spirit:addressBlock>
@@ -22696,7 +22696,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">11</spirit:left>
+            <spirit:left spirit:format="long">12</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -22859,7 +22859,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">11</spirit:left>
+            <spirit:left spirit:format="long">12</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -23769,7 +23769,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:addressBlock>
         <spirit:name>SAMPLE_BUFFER</spirit:name>
         <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
-        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:range spirit:format="long">4096</spirit:range>
         <spirit:width spirit:format="long">32</spirit:width>
         <spirit:usage>memory</spirit:usage>
       </spirit:addressBlock>
@@ -23844,7 +23844,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">11</spirit:left>
+            <spirit:left spirit:format="long">12</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -24007,7 +24007,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
           <spirit:vector>
-            <spirit:left spirit:format="long">11</spirit:left>
+            <spirit:left spirit:format="long">12</spirit:left>
             <spirit:right spirit:format="long">0</spirit:right>
           </spirit:vector>
           <spirit:wireTypeDefs>
@@ -25296,7 +25296,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:addressBlock>
         <spirit:name>LOCAL_RAM</spirit:name>
         <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
-        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:range spirit:format="long">4096</spirit:range>
         <spirit:width spirit:format="long">32</spirit:width>
         <spirit:usage>memory</spirit:usage>
       </spirit:addressBlock>
@@ -26971,7 +26971,7 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
       <spirit:addressBlock>
         <spirit:name>LOCAL_RAM</spirit:name>
         <spirit:baseAddress spirit:format="long">4096</spirit:baseAddress>
-        <spirit:range spirit:format="long">4</spirit:range>
+        <spirit:range spirit:format="long">4096</spirit:range>
         <spirit:width spirit:format="long">32</spirit:width>
         <spirit:usage>memory</spirit:usage>
       </spirit:addressBlock>
@@ -37724,7 +37724,7 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 12
+add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 13
 add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
 add_interface_port S_AXI_LITE s_axil_awready awready Output 1
 add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
@@ -37735,7 +37735,7 @@ add_interface_port S_AXI_LITE s_axil_wready wready Output 1
 add_interface_port S_AXI_LITE s_axil_bresp bresp Output 2
 add_interface_port S_AXI_LITE s_axil_bvalid bvalid Output 1
 add_interface_port S_AXI_LITE s_axil_bready bready Input 1
-add_interface_port S_AXI_LITE s_axil_araddr araddr Input 12
+add_interface_port S_AXI_LITE s_axil_araddr araddr Input 13
 add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axil_arready arready Output 1
 add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
@@ -37852,7 +37852,7 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 # Type-specific properties
 
 # Ports
-add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 12
+add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 13
 add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
 add_interface_port S_AXI_LITE s_axil_awready awready Output 1
 add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
@@ -37863,7 +37863,7 @@ add_interface_port S_AXI_LITE s_axil_wready wready Output 1
 add_interface_port S_AXI_LITE s_axil_bresp bresp Output 2
 add_interface_port S_AXI_LITE s_axil_bvalid bvalid Output 1
 add_interface_port S_AXI_LITE s_axil_bready bready Input 1
-add_interface_port S_AXI_LITE s_axil_araddr araddr Input 12
+add_interface_port S_AXI_LITE s_axil_araddr araddr Input 13
 add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axil_arready arready Output 1
 add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
