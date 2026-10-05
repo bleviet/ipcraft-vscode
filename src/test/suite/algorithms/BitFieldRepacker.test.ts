@@ -8,9 +8,9 @@ describe('BitFieldRepacker', () => {
     it('should move fields toward MSB (Up) starting from index', () => {
       // Input sorted LSB-Ascending
       const fields = [
-        { name: 'field1', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
-        { name: 'field2', bits: '[7:0]', bit_offset: 0, bit_width: 8 }, // Overlap
-        { name: 'field3', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
+        { name: 'field1', bits: '[7:0]', offset: 0, width: 8 },
+        { name: 'field2', bits: '[7:0]', offset: 0, width: 8 }, // Overlap
+        { name: 'field3', bits: '[7:0]', offset: 0, width: 8 },
       ];
 
       // Repack 1..2 forward (should prevent overlap with 0)
@@ -26,8 +26,8 @@ describe('BitFieldRepacker', () => {
 
     it('should start from MSB+1 of previous field', () => {
       const fields = [
-        { name: 'field1', bits: '[3:0]', bit_offset: 0, bit_width: 4 },
-        { name: 'field2', bits: '[3:0]', bit_offset: 0, bit_width: 4 },
+        { name: 'field1', bits: '[3:0]', offset: 0, width: 4 },
+        { name: 'field2', bits: '[3:0]', offset: 0, width: 4 },
       ];
 
       const result = repackFieldsForward(fields, 1, 32);
@@ -39,8 +39,8 @@ describe('BitFieldRepacker', () => {
     it('should preserve gaps if there is no overlap', () => {
       // field1: [0:0], field2: [3:3] (gap at [2:1])
       const fields = [
-        { name: 'field1', bits: '[0:0]', bit_offset: 0, bit_width: 1 },
-        { name: 'field2', bits: '[3:3]', bit_offset: 3, bit_width: 1 },
+        { name: 'field1', bits: '[0:0]', offset: 0, width: 1 },
+        { name: 'field2', bits: '[3:3]', offset: 3, width: 1 },
       ];
 
       const result = repackFieldsForward(fields, 1, 32);
@@ -55,9 +55,9 @@ describe('BitFieldRepacker', () => {
     it('should move fields toward LSB (Down) going backward from index', () => {
       // Input sorted LSB-Ascending
       const fields = [
-        { name: 'field1', bits: '[15:8]', bit_offset: 8, bit_width: 8 },
-        { name: 'field2', bits: '[15:8]', bit_offset: 8, bit_width: 8 }, // Overlap
-        { name: 'field3', bits: '[23:16]', bit_offset: 16, bit_width: 8 },
+        { name: 'field1', bits: '[15:8]', offset: 8, width: 8 },
+        { name: 'field2', bits: '[15:8]', offset: 8, width: 8 }, // Overlap
+        { name: 'field3', bits: '[23:16]', offset: 16, width: 8 },
       ];
 
       // Repack 1..0 backward (should prevent overlap with 2)
@@ -74,9 +74,9 @@ describe('BitFieldRepacker', () => {
 
     it('should start from LSB-1 of next field only if there is overlap', () => {
       const fields = [
-        { name: 'field1', bits: '[10:5]', bit_offset: 5, bit_width: 6 },
-        { name: 'field2', bits: '[10:9]', bit_offset: 9, bit_width: 2 }, // overlaps field1
-        { name: 'field3', bits: '[20:16]', bit_offset: 16, bit_width: 5 },
+        { name: 'field1', bits: '[10:5]', offset: 5, width: 6 },
+        { name: 'field2', bits: '[10:9]', offset: 9, width: 2 }, // overlaps field1
+        { name: 'field3', bits: '[20:16]', offset: 16, width: 5 },
       ];
 
       // Assume we repack index 1 down.
@@ -93,8 +93,8 @@ describe('BitFieldRepacker', () => {
     it('should preserve gaps if there is no overlap', () => {
       // field1: [0:0], field2: [3:3] (gap at [2:1])
       const fields = [
-        { name: 'field1', bits: '[0:0]', bit_offset: 0, bit_width: 1 },
-        { name: 'field2', bits: '[3:3]', bit_offset: 3, bit_width: 1 },
+        { name: 'field1', bits: '[0:0]', offset: 0, width: 1 },
+        { name: 'field2', bits: '[3:3]', offset: 3, width: 1 },
       ];
 
       const result = repackFieldsBackward(fields, 0, 32);
@@ -105,8 +105,8 @@ describe('BitFieldRepacker', () => {
 
     it('should return an unchanged copy for out-of-range fromIndex', () => {
       const fields = [
-        { name: 'field1', bits: '[3:0]', bit_offset: 0, bit_width: 4 },
-        { name: 'field2', bits: '[7:4]', bit_offset: 4, bit_width: 4 },
+        { name: 'field1', bits: '[3:0]', offset: 0, width: 4 },
+        { name: 'field2', bits: '[7:4]', offset: 4, width: 4 },
       ];
 
       expect(repackFieldsForward(fields, -1, 32)).toEqual(fields);

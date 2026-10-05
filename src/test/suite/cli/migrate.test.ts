@@ -122,4 +122,51 @@ describe('runCliMigrate', () => {
     expect(results.map((r) => r.status)).toEqual(['error', 'error', 'upgraded']);
     expect(fs.readFileSync(good, 'utf-8')).not.toBe(LEGACY);
   });
+
+  describe('.mm.yml files', () => {
+    const LEGACY_MM = `# keep
+address_blocks:
+  - name: A
+    base_address: 0x10
+    registers:
+      - name: R
+        address_offset: 0
+`;
+
+    it('converts legacy keys without loading a bus library', async () => {
+      const file = write('legacy.mm.yml', LEGACY_MM);
+      const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
+      expect(result).toEqual({ path: file, status: 'upgraded', mutationCount: 3 });
+      const text = fs.readFileSync(file, 'utf-8');
+      expect(text).toContain('# keep');
+      expect(text).toContain('baseAddress: 0x10');
+      expect(text).not.toContain('address_blocks');
+      expect(loadRuntimeBusLibrary).not.toHaveBeenCalled();
+
+      const [second] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
+      expect(second).toEqual({ path: file, status: 'upToDate' });
+    });
+
+    it('also accepts the .mm.yaml extension', async () => {
+      const file = write('legacy.mm.yaml', LEGACY_MM);
+      const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
+      expect(result).toMatchObject({ status: 'upgraded' });
+      expect(loadRuntimeBusLibrary).not.toHaveBeenCalled();
+    });
+
+    it('reports it with --check without writing', async () => {
+      const file = write('legacy.mm.yml', LEGACY_MM);
+      const [result] = await runCliMigrate({ paths: [file], check: true }, resourceRoots);
+      expect(result).toEqual({ path: file, status: 'needsUpgrade' });
+      expect(fs.readFileSync(file, 'utf-8')).toBe(LEGACY_MM);
+    });
+  });
+
+  it('writes a current-version .ip.yml that only has legacy keys', async () => {
+    const source = "apiVersion: '1.1'\nfile_sets: []\n";
+    const file = write('keys.ip.yml', source);
+    const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
+    expect(result).toMatchObject({ status: 'upgraded', fromVersion: '1.1', toVersion: '1.1' });
+    expect(fs.readFileSync(file, 'utf-8')).toBe("apiVersion: '1.1'\nfileSets: []\n");
+  });
 });

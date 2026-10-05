@@ -1,17 +1,16 @@
 /**
- * domain/parse.ts is the ONE supported compatibility boundary for reading
- * `.ip.yml` / `.mm.yml` input. Legacy snake_case spellings (e.g. `address_offset`,
- * `base_address`, `default_reg_width`, `reset_value`, `address_blocks`) are
- * tolerated and normalized to their canonical camelCase form HERE and only here.
+ * domain/parse.ts reads canonical camelCase `.ip.yml` / `.mm.yml` input only.
+ * Legacy snake_case spellings (e.g. `address_offset`, `base_address`, `memory_maps`)
+ * are NOT read here: they are converted ahead of time by `ipcraft migrate`
+ * (src/shared/ipCoreFormat/legacyKeys.ts), the single source of truth for them.
  *
- * Every consumer downstream of this module — domain serialization, the layout
- * engine, webview components — operates on canonical camelCase properties only
- * and must NOT re-introduce `camelCase ?? snake_case` fallbacks. The generated
- * Nunjucks template context (src/generator/**) is the only other place where
- * snake_case is intentional, because HDL templates require it.
+ * Every consumer downstream of this module operates on canonical camelCase
+ * properties only. The generated Nunjucks template context (src/generator/**)
+ * is the only place where snake_case is intentional, because HDL templates
+ * require it.
  *
  * A guard test (src/test/suite/architecture/noSnakeCaseRuntime.test.ts) enforces
- * that no new snake_case fallbacks appear in the runtime memory-map model.
+ * that no snake_case input spellings appear in production code.
  */
 import jsyaml from 'js-yaml';
 import type { IpCore } from './ipcore.types';
@@ -24,87 +23,6 @@ import type {
   MemoryMapRootStyle,
 } from './internal.types';
 import { reconcileRowIds, type TableRowWrapper } from '../webview/utils/rowIdentity';
-
-/**
- * Rename `legacyKey` to `canonicalKey` on a shallow copy of `obj`, in place on
- * the copy. If `canonicalKey` is already present, the legacy spelling is
- * dropped rather than overwriting it, so no duplicate spellings are emitted.
- * Does not touch any other property, including nested opaque maps.
- */
-function renameKey(obj: Record<string, unknown>, legacyKey: string, canonicalKey: string): void {
-  if (!(legacyKey in obj)) {
-    return;
-  }
-  if (!(canonicalKey in obj)) {
-    obj[canonicalKey] = obj[legacyKey];
-  }
-  delete obj[legacyKey];
-}
-
-function canonicalizeFieldKeys(raw: Record<string, unknown>): Record<string, unknown> {
-  const out = { ...raw };
-  renameKey(out, 'bit_offset', 'offset');
-  renameKey(out, 'bit_width', 'width');
-  renameKey(out, 'bit_range', 'bitRange');
-  renameKey(out, 'reset_value', 'resetValue');
-  // `enumeratedValues` is an opaque map of enum-value-name -> description; its
-  // entries are NOT property names and must never be touched by this renamer.
-  renameKey(out, 'enumerated_values', 'enumeratedValues');
-  renameKey(out, 'monitor_change_of', 'monitorChangeOf');
-  return out;
-}
-
-function canonicalizeRegisterKeys(raw: Record<string, unknown>): Record<string, unknown> {
-  const out = { ...raw };
-  renameKey(out, 'address_offset', 'offset');
-  renameKey(out, 'reset_value', 'resetValue');
-  if (Array.isArray(out.fields)) {
-    out.fields = out.fields.map((f) => canonicalizeFieldKeys(f as Record<string, unknown>));
-  }
-  // Register arrays nest template registers under `registers`.
-  if (Array.isArray(out.registers)) {
-    out.registers = out.registers.map((r) =>
-      canonicalizeRegisterKeys(r as Record<string, unknown>)
-    );
-  }
-  return out;
-}
-
-function canonicalizeBlockKeys(raw: Record<string, unknown>): Record<string, unknown> {
-  const out = { ...raw };
-  renameKey(out, 'base_address', 'baseAddress');
-  renameKey(out, 'default_reg_width', 'defaultRegWidth');
-  if (Array.isArray(out.registers)) {
-    out.registers = out.registers.map((r) =>
-      canonicalizeRegisterKeys(r as Record<string, unknown>)
-    );
-  }
-  return out;
-}
-
-/**
- * Rename legacy snake_case property names to their canonical camelCase spelling
- * on the KNOWN memory-map node shapes (map / address block / register / field)
- * only, preserving every other property verbatim — including schema-additional
- * custom metadata and opaque value maps such as `enumeratedValues` (whose own
- * entries are enum names, not schema property names, and must never be renamed).
- *
- * Unlike {@link normalizeMemoryMap}, this does not reconstruct nodes to a fixed
- * field set, so unknown properties survive. It is part of the one compatibility
- * boundary: callers that must hand a possibly-legacy raw map to the camelCase-only
- * runtime services use this instead of re-introducing `?? snake_case` fallbacks
- * downstream.
- */
-export function canonicalizeLegacyKeys(raw: Record<string, unknown>): Record<string, unknown> {
-  const out = { ...raw };
-  renameKey(out, 'address_blocks', 'addressBlocks');
-  if (Array.isArray(out.addressBlocks)) {
-    out.addressBlocks = out.addressBlocks.map((b) =>
-      canonicalizeBlockKeys(b as Record<string, unknown>)
-    );
-  }
-  return out;
-}
 
 function parseNumber(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -149,8 +67,8 @@ function parseBits(bits: string): { offset: number; width: number } {
 }
 
 function normalizeField(raw: Record<string, unknown>): Omit<NormalizedField, 'rowId'> {
-  let offset = parseNumber(raw.offset ?? raw.bit_offset ?? raw.bitOffset ?? raw.bit_range, 0);
-  let width = parseNumber(raw.width ?? raw.bit_width ?? raw.bitWidth, 1);
+  let offset = parseNumber(raw.offset ?? raw.bitOffset, 0);
+  let width = parseNumber(raw.width ?? raw.bitWidth, 1);
 
   if (raw.bits && typeof raw.bits === 'string') {
     const parsed = parseBits(raw.bits);
@@ -167,13 +85,10 @@ function normalizeField(raw: Record<string, unknown>): Omit<NormalizedField, 'ro
     offset,
     width,
     access: raw.access !== undefined ? String(raw.access) : undefined,
-    resetValue: parseNumber(raw.resetValue ?? raw.reset_value ?? raw.reset, 0),
+    resetValue: parseNumber(raw.resetValue ?? raw.reset, 0),
     description: String(raw.description ?? ''),
-    enumeratedValues: (raw.enumeratedValues ?? raw.enumerated_values ?? null) as Record<
-      string,
-      string
-    > | null,
-    monitorChangeOf: (raw.monitorChangeOf ?? raw.monitor_change_of ?? null) as string | null,
+    enumeratedValues: (raw.enumeratedValues ?? null) as Record<string, string> | null,
+    monitorChangeOf: (raw.monitorChangeOf ?? null) as string | null,
   };
 }
 
@@ -195,10 +110,10 @@ function normalizeRegister(
 
   const baseReg = {
     name: String(raw.name ?? ''),
-    offset: parseNumber(raw.offset ?? raw.address_offset ?? raw.addressOffset, 0),
+    offset: parseNumber(raw.offset ?? raw.addressOffset, 0),
     size,
     access: raw.access !== undefined ? String(raw.access) : undefined,
-    resetValue: parseNumber(raw.resetValue ?? raw.reset_value, 0),
+    resetValue: parseNumber(raw.resetValue, 0),
     description: String(raw.description ?? ''),
     fields: fields as NormalizedField[],
   };
@@ -220,7 +135,7 @@ function normalizeRegister(
 }
 
 function normalizeBlock(raw: Record<string, unknown>): Omit<NormalizedAddressBlock, 'rowId'> {
-  const defaultRegWidth = parseNumber(raw.defaultRegWidth ?? raw.default_reg_width, 32);
+  const defaultRegWidth = parseNumber(raw.defaultRegWidth, 32);
   const defaultRegBytes = Math.max(1, Math.floor(defaultRegWidth / 8));
 
   // Determine register list
@@ -234,7 +149,7 @@ function normalizeBlock(raw: Record<string, unknown>): Omit<NormalizedAddressBlo
   const registers = normalizedRegsWithoutOffsets.map(
     (reg: Omit<NormalizedRegister, 'rowId'>, idx: number) => {
       const rawReg = rawRegs[idx] as Record<string, unknown>;
-      const explicitOffset = rawReg.offset ?? rawReg.address_offset ?? rawReg.addressOffset;
+      const explicitOffset = rawReg.offset ?? rawReg.addressOffset;
       if (explicitOffset !== undefined) {
         currentOffset = parseNumber(explicitOffset, currentOffset);
       }
@@ -258,7 +173,7 @@ function normalizeBlock(raw: Record<string, unknown>): Omit<NormalizedAddressBlo
 
   return {
     name: String(raw.name ?? ''),
-    baseAddress: parseNumber(raw.baseAddress ?? raw.base_address ?? raw.offset, 0),
+    baseAddress: parseNumber(raw.baseAddress ?? raw.offset, 0),
     range: (raw.range as number | string | null | undefined) ?? null,
     usage: String(raw.usage ?? 'register'),
     access: raw.access !== undefined ? String(raw.access) : undefined,
@@ -347,11 +262,7 @@ export function normalizeMemoryMap(
   rawMap: Record<string, unknown>,
   prevMap?: NormalizedMemoryMap
 ): NormalizedMemoryMap {
-  const rawBlocks = Array.isArray(rawMap.addressBlocks)
-    ? rawMap.addressBlocks
-    : Array.isArray(rawMap.address_blocks)
-      ? rawMap.address_blocks
-      : [];
+  const rawBlocks = Array.isArray(rawMap.addressBlocks) ? rawMap.addressBlocks : [];
 
   const nextBlocksWithoutIds = rawBlocks.map((b: unknown) =>
     normalizeBlock(b as Record<string, unknown>)
@@ -384,10 +295,7 @@ export function parseMemoryMap(text: string, prevMap?: NormalizedMemoryMap): Mem
     rawMap = (rootObj[0] as Record<string, unknown>) ?? {};
   } else if (rootObj && typeof rootObj === 'object') {
     const rootRecord = rootObj;
-    if (Array.isArray(rootRecord.memory_maps)) {
-      rootStyle = 'nested';
-      rawMap = (rootRecord.memory_maps[0] as Record<string, unknown>) ?? {};
-    } else if (Array.isArray(rootRecord.memoryMaps)) {
+    if (Array.isArray(rootRecord.memoryMaps)) {
       rootStyle = 'nested';
       rawMap = (rootRecord.memoryMaps[0] as Record<string, unknown>) ?? {};
     } else {
@@ -416,13 +324,13 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
 
   const normalizedBusInterfaces = busInterfaces.map((b: unknown) => {
     const bus = b as Record<string, unknown>;
-    const useOptionalPorts = bus.use_optional_ports ?? bus.useOptionalPorts ?? [];
-    const portWidthOverrides = bus.port_width_overrides ?? bus.portWidthOverrides ?? {};
+    const useOptionalPorts = bus.useOptionalPorts ?? [];
+    const portWidthOverrides = bus.portWidthOverrides ?? {};
     const interfaceProperties = bus.interfaceProperties;
-    const portNameOverrides = bus.port_name_overrides ?? bus.portNameOverrides;
+    const portNameOverrides = bus.portNameOverrides;
     const portPolarityOverrides = normalizePortPolarityOverrides(bus.portPolarityOverrides);
-    const absentPorts = bus.absent_ports ?? bus.absentPorts;
-    const conduitPorts = bus.conduit_ports ?? bus.conduitPorts;
+    const absentPorts = bus.absentPorts;
+    const conduitPorts = bus.conduitPorts;
 
     const array = bus.array as Record<string, unknown> | undefined;
     const mode = String(bus.mode ?? '').toLowerCase();
@@ -431,10 +339,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       name: String(bus.name ?? ''),
       type: String(bus.type ?? ''),
       mode,
-      physicalPrefix:
-        bus.physicalPrefix === null || bus.physical_prefix === null
-          ? ''
-          : String(bus.physicalPrefix ?? bus.physical_prefix ?? ''),
+      physicalPrefix: bus.physicalPrefix === null ? '' : String(bus.physicalPrefix ?? ''),
       useOptionalPorts,
       portWidthOverrides,
       ...(interfaceProperties &&
@@ -446,8 +351,8 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       ...(portPolarityOverrides ? { portPolarityOverrides } : {}),
       absentPorts,
       conduitPorts,
-      associatedClock: String(bus.associatedClock ?? bus.associated_clock ?? ''),
-      associatedReset: String(bus.associatedReset ?? bus.associated_reset ?? ''),
+      associatedClock: String(bus.associatedClock ?? ''),
+      associatedReset: String(bus.associatedReset ?? ''),
       // Preserve an explicitly authored value while leaving an absent default absent.
       ...(bus.endianness === 'big' || bus.endianness === 'little'
         ? { endianness: bus.endianness }
@@ -456,11 +361,9 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
         ? {
             array: {
               count: parseNumber(array.count, 1),
-              indexStart: parseNumber(array.indexStart ?? array.index_start, 0),
-              namingPattern: String(array.namingPattern ?? array.naming_pattern ?? ''),
-              physicalPrefixPattern: String(
-                array.physicalPrefixPattern ?? array.physical_prefix_pattern ?? ''
-              ),
+              indexStart: parseNumber(array.indexStart, 0),
+              namingPattern: String(array.namingPattern ?? ''),
+              physicalPrefixPattern: String(array.physicalPrefixPattern ?? ''),
             },
           }
         : {}),
@@ -510,9 +413,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       return {
         name: String(clock.name ?? ''),
         ...(clock.frequency !== undefined ? { frequency: clock.frequency } : {}),
-        ...((clock.associatedReset ?? clock.associated_reset)
-          ? { associatedReset: String(clock.associatedReset ?? clock.associated_reset) }
-          : {}),
+        ...(clock.associatedReset ? { associatedReset: String(clock.associatedReset) } : {}),
       };
     }),
     resets: resets.map((r: unknown) => {
@@ -520,12 +421,10 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
       return {
         name: String(reset.name ?? ''),
         polarity: String(reset.polarity ?? ''),
-        ...((reset.associatedClock ?? reset.associated_clock)
-          ? { associatedClock: String(reset.associatedClock ?? reset.associated_clock) }
-          : {}),
+        ...(reset.associatedClock ? { associatedClock: String(reset.associatedClock) } : {}),
       };
     }),
-    memoryMaps: rootObj.memoryMaps ?? rootObj.memory_maps,
+    memoryMaps: rootObj.memoryMaps,
     subcores: (Array.isArray(rootObj.subcores) ? rootObj.subcores : []).map((s: unknown) => {
       if (typeof s === 'string') {
         return { vlnv: s };

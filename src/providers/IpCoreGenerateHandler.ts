@@ -141,17 +141,10 @@ export async function handleGenerateRequest({
     const currentData = doc.toJSON() as Record<string, unknown>;
     const fileSets: FileSet[] = Array.isArray(currentData.fileSets)
       ? (currentData.fileSets as FileSet[])
-      : Array.isArray(currentData.file_sets)
-        ? (currentData.file_sets as FileSet[])
-        : [];
+      : [];
 
-    const key = currentData.fileSets
-      ? 'fileSets'
-      : currentData.file_sets
-        ? 'file_sets'
-        : 'fileSets';
     const updatedFileSets = updateFileSets(fileSets, yamlRelativeFiles) as FileSet[];
-    doc.setIn([key], updatedFileSets);
+    doc.setIn(['fileSets'], updatedFileSets);
 
     const newText = doc.toString();
     const updateResult = await documentManager.updateDocument(document, newText);

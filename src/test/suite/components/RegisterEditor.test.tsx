@@ -91,10 +91,10 @@ const register = {
   name: 'CTRL',
   description: 'Control register',
   size: 32,
-  fields: [{ name: 'enable', bit_range: [0, 0], reset_value: 1 }],
+  fields: [{ name: 'enable', bitRange: [0, 0], resetValue: 1 }],
 } as unknown as Parameters<typeof RegisterEditor>[0]['register'];
 
-const fields: BitFieldRecord[] = [{ name: 'enable', bit_range: [0, 0], reset_value: 1 }];
+const fields: BitFieldRecord[] = [{ name: 'enable', bitRange: [0, 0], resetValue: 1 }];
 
 const noop = jest.fn();
 

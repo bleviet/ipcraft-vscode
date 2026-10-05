@@ -1,4 +1,6 @@
+import * as path from 'path';
 import * as yaml from 'js-yaml';
+import { YamlValidator } from '../../../services/YamlValidator';
 import { generateComponentXml as generateComponentXmlImpl } from '../../../generator/VivadoComponentXmlGenerator';
 import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
 import type { BusDefinitions, IpCoreData } from '../../../generator/types';
@@ -1549,5 +1551,53 @@ describe('XML prolog normalization', () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>\n${BODY}`;
     const result = parseComponentXmlText(xml);
     expect(result.componentName).toBe('axi_prolog');
+  });
+});
+
+describe('unknown bus type import validates against the ip core schema', () => {
+  const UNKNOWN_BUS_XML = `<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009">
+  <spirit:vendor>acme.com</spirit:vendor>
+  <spirit:library>ip</spirit:library>
+  <spirit:name>custom_bus_ip</spirit:name>
+  <spirit:version>1.0</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>CUSTOM</spirit:name>
+      <spirit:busType spirit:vendor="acme.com" spirit:library="interface" spirit:name="widget" spirit:version="2.1"/>
+      <spirit:slave/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort><spirit:name>data</spirit:name></spirit:logicalPort>
+          <spirit:physicalPort><spirit:name>custom_data</spirit:name></spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+  <spirit:model><spirit:ports>
+    <spirit:port>
+      <spirit:name>custom_data</spirit:name>
+      <spirit:wire><spirit:direction>in</spirit:direction><spirit:vector><spirit:left>7</spirit:left><spirit:right>0</spirit:right></spirit:vector></spirit:wire>
+    </spirit:port>
+  </spirit:ports></spirit:model>
+</spirit:component>`;
+
+  it('emits busTypeVlnv and rawPortMaps that pass the strict schema', () => {
+    const { ipYamlText } = parseComponentXmlText(UNKNOWN_BUS_XML);
+    const doc = parseYaml(ipYamlText) as { busInterfaces: Array<Record<string, unknown>> };
+    expect(doc.busInterfaces[0].busTypeVlnv).toEqual({
+      vendor: 'acme.com',
+      library: 'interface',
+      name: 'widget',
+      version: '2.1',
+    });
+    expect(doc.busInterfaces[0].rawPortMaps).toBeDefined();
+
+    const schemaPath = path.resolve(
+      __dirname,
+      '../../../../ipcraft-spec/schemas/ip_core.schema.json'
+    );
+    const result = new YamlValidator().validateAgainstSchema(doc, schemaPath);
+    expect(result).toEqual({ valid: true });
   });
 });

@@ -35,7 +35,7 @@ function parseAndNormalize(text: string) {
 }
 
 function blockRegWidth(block: Record<string, unknown> | undefined): number {
-  const raw = block?.defaultRegWidth ?? block?.default_reg_width;
+  const raw = block?.defaultRegWidth;
   return typeof raw === 'number' && raw > 0 ? raw : 32;
 }
 
@@ -142,9 +142,7 @@ function uiAddRegisterOutline(text: string, blockIndex: number): string {
   const result = insertElement(mapObj, 'register', 'after', regs.length - 1, { blockIndex });
   expect(result.errors).toEqual([]);
 
-  const blocks = (result.memoryMap.addressBlocks ??
-    result.memoryMap.address_blocks ??
-    []) as Record<string, unknown>[];
+  const blocks = (result.memoryMap.addressBlocks ?? []) as Record<string, unknown>[];
   const block = blocks[blockIndex];
   const width = blockRegWidth(block);
   const sanitized = ((block.registers ?? []) as Record<string, unknown>[]).map(
@@ -317,9 +315,7 @@ function uiAddRegisterInsideArrayOutline(
   );
   expect(result.errors).toEqual([]);
 
-  const blocks = (result.memoryMap.addressBlocks ??
-    result.memoryMap.address_blocks ??
-    []) as Record<string, unknown>[];
+  const blocks = (result.memoryMap.addressBlocks ?? []) as Record<string, unknown>[];
   const block = blocks[blockIndex];
   const width = blockRegWidth(block);
 

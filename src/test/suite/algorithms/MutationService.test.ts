@@ -21,8 +21,8 @@ function makeMap(overrides?: Partial<LayoutMemoryMap>): LayoutMemoryMap {
             name: 'REG0',
             offset: 0,
             fields: [
-              { name: 'field0', bits: '[7:0]', bit_offset: 0, bit_width: 8 },
-              { name: 'field1', bits: '[15:8]', bit_offset: 8, bit_width: 8 },
+              { name: 'field0', bits: '[7:0]', offset: 0, width: 8 },
+              { name: 'field1', bits: '[15:8]', offset: 8, width: 8 },
             ],
           },
           {

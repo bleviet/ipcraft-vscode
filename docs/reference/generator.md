@@ -263,6 +263,7 @@ explicitly, run:
 ```bash
 ipcraft migrate path/to/core.ip.yml other.ip.yml
 ipcraft migrate path/to/core.ip.yml --check
+ipcraft migrate path/to/map.mm.yml
 ```
 
 Each file is rewritten in place only when it changes, preserving comments and
@@ -289,6 +290,19 @@ Its npm release is tracked by
 separate, explicitly manual release after the matching extension version has
 been published. Shipping the CLI inside the extension and putting it on `PATH`
 is tracked by [issue #206](https://github.com/bleviet/ipcraft-vscode/issues/206).
+
+### Converting legacy snake_case keys
+
+IPCraft reads camelCase keys only. Old files may still use snake_case spellings
+such as `address_blocks`, `base_address`, `address_offset`, `reset_value`,
+`memory_maps`, `file_sets`, `use_optional_ports` or `physical_prefix`. Run
+`ipcraft migrate` to convert them. It works for `.ip.yml` and `.mm.yml` files,
+renames the keys in place, and keeps comments, key order and hex literals. For
+an `.ip.yml` file the conversion runs together with the version upgrade, and a
+file that is already at the latest version is still rewritten when it has
+legacy keys. If a node has both spellings, the camelCase key wins and the
+legacy key is removed. A `.mm.yml` file has no `apiVersion`, so only keys are
+renamed. The VS Code Upgrade command handles `.ip.yml` files the same way.
 
 ## Contributor implementation
 

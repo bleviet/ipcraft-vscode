@@ -171,3 +171,43 @@ ports:
     expect(text).toBe(`apiVersion: '1.1'\n${source}`);
   });
 });
+
+describe('migrateIpCoreYaml legacy snake_case keys', () => {
+  const legacyKeys = `apiVersion: '1.1'
+vlnv:
+  vendor: acme
+  library: demo
+  name: core
+  version: 1.0.0
+file_sets:
+  - name: rtl # keep
+busInterfaces:
+  - name: s_axi
+    type: ${BUS_VLNV.AXI4_LITE}
+    mode: slave
+    physical_prefix: s_axi_ # prefix
+    associated_clock: clk
+`;
+
+  it('renames legacy keys in a file already at the latest apiVersion', () => {
+    const result = migrateIpCoreYaml(legacyKeys, library);
+    expect(result).toMatchObject({
+      changed: true,
+      fromVersion: '1.1',
+      toVersion: '1.1',
+      mutationCount: 3,
+    });
+    expect(result.text).toContain('fileSets:');
+    expect(result.text).toContain('physicalPrefix: s_axi_ # prefix');
+    expect(result.text).toContain('associatedClock: clk');
+    expect(result.text).not.toMatch(/file_sets|physical_prefix|associated_clock/);
+  });
+
+  it('renames before running the version steps and counts the renames', () => {
+    const result = migrateIpCoreYaml(legacyKeys.replace("'1.1'", "'1.0'"), library);
+    expect(result).toMatchObject({ changed: true, fromVersion: '1.0', toVersion: '1.1' });
+    expect(result.mutationCount).toBeGreaterThanOrEqual(4);
+    expect(result.text).toContain("apiVersion: '1.1'");
+    expect(result.text).not.toMatch(/file_sets|physical_prefix|associated_clock/);
+  });
+});

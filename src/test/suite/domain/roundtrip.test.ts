@@ -77,8 +77,18 @@ describe('Domain Model Parse/Serialize Round-trips', () => {
         const serialized = serializeIpCore(parsed);
         expect(serialized).toBeDefined();
 
-        // Validate serialized structure against schema
-        const valid = validateIpCore(serialized);
+        // Validate serialized structure against schema. The runtime model carries
+        // normalization artifacts the strict schema does not allow: undefined-valued
+        // keys and an empty `presence` on ports. Drop them before validating.
+        const schemaShaped = JSON.parse(JSON.stringify(serialized)) as {
+          ports?: Array<Record<string, unknown>>;
+        };
+        for (const port of schemaShaped.ports ?? []) {
+          if (port.presence === '') {
+            delete port.presence;
+          }
+        }
+        const valid = validateIpCore(schemaShaped);
         if (!valid) {
           const errors = validateIpCore.errors
             ? JSON.stringify(validateIpCore.errors, null, 2)

@@ -2,36 +2,43 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 /**
- * Architecture guard: the runtime memory-map model is camelCase-only.
+ * Architecture guard: production code reads camelCase `.ip.yml` / `.mm.yml` input only.
  *
- * Legacy snake_case spellings are tolerated in exactly ONE place — the
- * compatibility boundary adapter `src/domain/parse.ts` — where raw `.mm.yml` /
- * `.ip.yml` input is normalized to canonical camelCase. `YamlPathResolver.ts`
- * is the separate on-disk format-preserving edit path that must still address
- * legacy keys already written to a user's file, so it is exempt too.
+ * Legacy snake_case spellings live in exactly ONE place, `src/shared/ipCoreFormat/legacyKeys.ts`,
+ * which `ipcraft migrate` uses to convert old files. No runtime code (parser, webview,
+ * services, providers) may read them or fall back to them.
  *
- * Everywhere else downstream of the boundary (domain serialization, the layout
- * engine, mutation/insertion services, webview components) must operate on
- * canonical camelCase properties only. This test fails the build if a new
- * `camelCase ?? snake_case` fallback (or any legacy snake_case property token)
- * sneaks back into the runtime model. See the header comment in parse.ts.
+ * The only other allowed matches are the generated Nunjucks template context in
+ * `src/generator/**`, where snake_case is intentional because HDL templates require it.
+ * Each allowlisted generator file below states why. This test scans all of `src` (except
+ * tests and mocks) and fails if a legacy token appears anywhere else.
  */
 
 const REPO_ROOT = path.resolve(__dirname, '../../../..');
-const SCAN_ROOTS = [path.join(REPO_ROOT, 'src', 'domain'), path.join(REPO_ROOT, 'src', 'webview')];
+const SRC_DIR = path.join(REPO_ROOT, 'src');
+const TEST_DIR = path.join(SRC_DIR, 'test');
+const SCAN_ROOTS = [SRC_DIR];
 
 /** Files that are allowed to reference legacy snake_case spellings. */
 const ALLOWLIST = new Set(
   [
-    // The one documented compatibility boundary adapter.
-    'src/domain/parse.ts',
-    // The on-disk, format-preserving edit path: it navigates the raw YAML
-    // document, which may still contain legacy keys written to disk earlier.
-    'src/webview/services/YamlPathResolver.ts',
+    // The single source of truth for legacy spellings (used by `ipcraft migrate`).
+    'src/shared/ipCoreFormat/legacyKeys.ts',
+    // Nunjucks template context: `associated_clock` is a template variable name.
+    'src/generator/resolvers/interrupts.ts',
+    'src/generator/resolvers/clockReset.ts',
+    // Nunjucks template context: `memory_maps` is a template variable name.
+    'src/generator/IpCoreScaffolder.ts',
+    'src/services/toolchains/VivadoToolchain.ts',
+    // Nunjucks template context: register/field/block shapes use snake_case keys.
+    'src/generator/registerProcessor.ts',
+    'src/generator/resolvers/shadowRegisters.ts',
+    // Generated from the template-context JSON schema (snake_case by contract).
+    'src/generator/contract/templateContext.types.ts',
   ].map((p) => path.join(REPO_ROOT, p))
 );
 
-/** Legacy snake_case property tokens that must not appear in the runtime model. */
+/** Legacy snake_case property tokens that must not appear in production code. */
 const LEGACY_TOKENS = [
   'address_offset',
   'base_address',
@@ -43,6 +50,20 @@ const LEGACY_TOKENS = [
   'bit_range',
   'enumerated_values',
   'monitor_change_of',
+  'memory_maps',
+  'file_sets',
+  'use_optional_ports',
+  'port_width_overrides',
+  'port_name_overrides',
+  'absent_ports',
+  'conduit_ports',
+  'physical_prefix',
+  'associated_clock',
+  'associated_reset',
+  'index_start',
+  'naming_pattern',
+  'physical_prefix_pattern',
+  'bus_interfaces',
 ];
 
 function collectSourceFiles(dir: string): string[] {
@@ -53,7 +74,7 @@ function collectSourceFiles(dir: string): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === '__mocks__' || entry.name === 'node_modules') {
+      if (entry.name === '__mocks__' || entry.name === 'node_modules' || full === TEST_DIR) {
         continue;
       }
       out.push(...collectSourceFiles(full));
@@ -68,7 +89,7 @@ function collectSourceFiles(dir: string): string[] {
   return out;
 }
 
-describe('Architecture: no snake_case in the runtime memory-map model', () => {
+describe('Architecture: no snake_case input spellings in production code', () => {
   const files = SCAN_ROOTS.flatMap(collectSourceFiles).filter((f) => !ALLOWLIST.has(f));
 
   const tokenRegex = new RegExp(`\\b(${LEGACY_TOKENS.join('|')})\\b`);
@@ -93,14 +114,14 @@ describe('Architecture: no snake_case in the runtime memory-map model', () => {
       if (offending.length > 0) {
         throw new Error(
           `${path.relative(REPO_ROOT, absolute)} contains legacy snake_case ` +
-            `property tokens. Normalize legacy input in src/domain/parse.ts (the one ` +
-            `boundary adapter) instead of adding fallbacks here:\n${offending.join('\n')}`
+            `property tokens. Read camelCase only; legacy spellings are converted by ` +
+            `src/shared/ipCoreFormat/legacyKeys.ts (ipcraft migrate):\n${offending.join('\n')}`
         );
       }
     }
   );
 
-  it('keeps the boundary adapter in the allowlist actually present', () => {
+  it('keeps every allowlisted file present', () => {
     // Guards against the allowlist silently pointing at a moved/renamed file.
     for (const allowed of ALLOWLIST) {
       expect(fs.existsSync(allowed)).toBe(true);

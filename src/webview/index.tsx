@@ -27,7 +27,6 @@ import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine'
 import { YamlService } from './services/YamlService';
 import { YamlPathResolver } from './services/YamlPathResolver';
 import { serializeValue } from '../domain/serialize';
-import { canonicalizeLegacyKeys } from '../domain/parse';
 import { calculateBlockSize } from './utils/blockSize';
 import type { YamlPath } from './types/editor';
 
@@ -159,12 +158,7 @@ const App = () => {
     const rawMapObj = (
       selectionRootPath.length > 0 ? YamlPathResolver.getAtPath(root, selectionRootPath) : root
     ) as Record<string, unknown>;
-    // The mutation services operate on the canonical camelCase model. Canonicalize
-    // legacy snake_case keys (preserving any custom metadata) so structural edits
-    // on legacy files work instead of reporting "Block not found". The write path
-    // (YamlService.applyPathEdits) maps the canonical path back onto the on-disk
-    // key, so a legacy file is edited in place without a duplicate key.
-    const mapObj = canonicalizeLegacyKeys(rawMapObj) as LayoutMemoryMap;
+    const mapObj = rawMapObj as LayoutMemoryMap;
 
     const targetIdx = regIndex ?? -1;
 
@@ -339,10 +333,7 @@ const App = () => {
     const rawMapObj = (
       selectionRootPath.length > 0 ? YamlPathResolver.getAtPath(root, selectionRootPath) : root
     ) as Record<string, unknown>;
-    // Canonicalize legacy keys (preserving custom metadata) before the
-    // camelCase-only mutation service. The write path maps canonical paths back
-    // onto the on-disk key.
-    const mapObj = canonicalizeLegacyKeys(rawMapObj) as LayoutMemoryMap;
+    const mapObj = rawMapObj as LayoutMemoryMap;
 
     let result;
     if (action === 'delete') {

@@ -647,7 +647,6 @@ export interface Port {
   type?: Type2;
   description?: Description4;
   endianness?: Endianness;
-  [k: string]: unknown;
 }
 /**
  * Bus interface definition for an IP core.
@@ -658,6 +657,24 @@ export interface Port {
 export interface BusInterface {
   name: Name5;
   type: Type3;
+  /**
+   * IP-XACT bus type VLNV of an imported interface whose type has no bus definition in the library. Written by the component.xml importer; generators use it to re-emit the original bus type.
+   */
+  busTypeVlnv?: {
+    vendor: string;
+    library: string;
+    name: string;
+    version: string;
+  };
+  /**
+   * Logical-to-physical port maps of an imported interface whose type has no bus definition in the library. Written by the component.xml importer; generators use it instead of a bus definition.
+   */
+  rawPortMaps?: {
+    logical: string;
+    physical: string;
+    direction: 'in' | 'out';
+    width: number;
+  }[];
   mode: BusInterfaceMode;
   physicalPrefix?: Physicalprefix;
   associatedClock?: Associatedclock2;
@@ -686,7 +703,6 @@ export interface BusInterface {
   description?: Description5;
   conduitPorts?: ConduitPorts;
   endianness?: Endianness1;
-  [k: string]: unknown;
 }
 /**
  * Port width overrides {port_name: width_or_parameter_name}
