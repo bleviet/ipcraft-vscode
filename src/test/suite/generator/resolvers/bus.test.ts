@@ -687,6 +687,31 @@ describe('busResolver canonical port projection', () => {
     });
   });
 
+  it('derives Avalon-ST symbolsPerBeat with a TCL elaborate expression for a parameterized data width', () => {
+    const result = busResolver.resolve(
+      makeInput({
+        parameters: [{ name: 'ST_DATA_W', dataType: 'integer', value: 64 }],
+        busInterfaces: [
+          {
+            name: 'SRC_ST',
+            type: 'ipcraft:busif:avalon_st:1.0',
+            mode: 'source',
+            physicalPrefix: 'src_st_',
+            portWidthOverrides: { data: 'ST_DATA_W' },
+          },
+        ],
+      })
+    );
+
+    const iface = (result.expanded_bus_interfaces as Array<Record<string, unknown>>)[0];
+    const properties = iface.interface_properties as Array<Record<string, unknown>>;
+    expect(properties.find((prop) => prop.name === 'symbolsPerBeat')).toMatchObject({
+      value: 8,
+      tcl_value: '8',
+      tcl_elaborate_value: '[expr [get_parameter_value ST_DATA_W]/8]',
+    });
+  });
+
   it('keeps the interface role, physical suffix, polarity inversion, and parameterized width distinct', () => {
     const result = busResolver.resolve(
       makeInput({

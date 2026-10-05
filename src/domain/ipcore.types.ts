@@ -570,10 +570,6 @@ export interface IpCore {
    */
   apiVersion?: '1.0' | '1.1';
   /**
-   * Bus interfaces (snake_case alias for busInterfaces).
-   */
-  bus_interfaces?: BusInterface[];
-  /**
    * Path to a custom bus library directory relative to this file.
    */
   useBusLibrary?: string;

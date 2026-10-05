@@ -2504,6 +2504,60 @@ describe('IpCoreScaffolder', () => {
     expect(tclContent).not.toMatch(/^\s*add_interface_port S_AXI \S+ [A-Z]/m);
   });
 
+  it('elaborates the derived Avalon-ST symbolsPerBeat from a parameterized data width in _hw.tcl', async () => {
+    const tmpPath = path.join(os.tmpdir(), `ipcraft_avst_symbols_${Date.now()}.ip.yml`);
+    const yaml = [
+      'vlnv:',
+      '  vendor: test',
+      '  library: lib',
+      '  name: avst_core',
+      '  version: 1.0.0',
+      'parameters:',
+      '  - name: ST_DATA_W',
+      '    dataType: integer',
+      '    value: 64',
+      'clocks:',
+      '  - name: clk',
+      '    direction: in',
+      'resets:',
+      '  - name: rst',
+      '    direction: in',
+      '    polarity: activeHigh',
+      'busInterfaces:',
+      '  - name: SRC_ST',
+      '    type: ipcraft:busif:avalon_st:1.0',
+      '    mode: source',
+      '    physicalPrefix: src_st_',
+      '    portWidthOverrides:',
+      '      data: ST_DATA_W',
+    ].join('\n');
+    const realFs = jest.requireActual('fs/promises') as typeof import('fs/promises');
+    await realFs.writeFile(tmpPath, yaml, 'utf-8');
+
+    try {
+      const result = await scaffolder.generateAll(tmpPath, '/tmp/avst-symbols', {
+        targets: ['quartus'],
+        includeVhdl: false,
+        includeRegs: false,
+        includeTestbench: false,
+      });
+      expect(result.success).toBe(true);
+
+      const tclContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
+        String(call[0]).endsWith('avst_core_hw.tcl')
+      )?.[1] as string | undefined;
+      expect(tclContent).toBeDefined();
+      expect(tclContent).toContain('set_module_property ELABORATION_CALLBACK elaborate');
+      // Static value matches the default width (64 / 8-bit symbols).
+      expect(tclContent).toContain('set_interface_property SRC_ST symbolsPerBeat 8');
+      expect(tclContent).toContain(
+        '    set_interface_property SRC_ST symbolsPerBeat [expr [get_parameter_value ST_DATA_W]/8]'
+      );
+    } finally {
+      await realFs.unlink(tmpPath).catch(() => undefined);
+    }
+  });
+
   it('places arithmetic expression user ports in the elaborate proc (Rb_ByteEna pattern)', async () => {
     // No custom bus library needed — this IP has no bus interfaces.
     (BusLibraryService as jest.Mock).mockImplementation(() => createBusLibraryServiceMock());

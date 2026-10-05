@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { clearRuntimeBusDefinitionFileCaches } from '../services/loadRuntimeBusLibrary';
 import { VivadoInterfaceScanner } from '../services/VivadoInterfaceScanner';
 import { resolveLocalVivadoVersionForInterfaceScan } from '../services/toolchains/resolveToolchainVersion';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
@@ -26,6 +27,7 @@ export async function scanVivadoInterfacesCommand(): Promise<void> {
       const scanner = new VivadoInterfaceScanner();
       try {
         const result = await scanner.scan(choice, cfg, resourceUri);
+        clearRuntimeBusDefinitionFileCaches();
         void vscode.window.showInformationMessage(
           `Found ${result.count} interfaces (Vivado ${result.version}). Cached to ${result.cacheDir}`
         );

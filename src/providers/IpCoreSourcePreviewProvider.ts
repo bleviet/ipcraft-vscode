@@ -189,11 +189,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
         return;
       }
       try {
-        const busLibrary = await loadRuntimeBusLibrary(
-          this.logger,
-          this.resourceRoots,
-          document.uri
-        );
+        const busLibrary = await loadRuntimeBusLibrary(this.resourceRoots, document.uri);
         const parsed = await parseSource(document.uri.fsPath, kind, busLibrary);
         currentYaml = parsed.yamlText;
         componentName = parsed.name;
@@ -367,7 +363,7 @@ export class IpCoreSourcePreviewProvider implements vscode.CustomTextEditorProvi
       yamlText: currentYaml,
       resourceRoots: this.resourceRoots,
       loadBusLibrary: (ipCoreData) =>
-        loadRuntimeBusLibrary(this.logger, this.resourceRoots, sourceUri, ipCoreData),
+        loadRuntimeBusLibrary(this.resourceRoots, sourceUri, ipCoreData),
       staticallyIncompleteInterfaces,
     });
     if (blocksImportWrite(report)) {

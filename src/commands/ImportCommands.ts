@@ -12,25 +12,18 @@ import { CONFIG_KEY_IPCRAFT_IMPORT } from '../utils/configKeys';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 import { resolveResourceRoots } from '../services/ResourceRoots';
 import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
-import { Logger } from '../utils/Logger';
 import { checkImportedIpCore } from '../services/importedIpCoreCheck';
 import { blocksImportWrite } from '../shared/busConformance';
 import type { ConformanceReport } from '../shared/issues';
 
 const HIDE_EXPERIMENTAL_IMPORT_WARNING = 'ipcraft.hideExperimentalImportWarning';
-const logger = new Logger('ImportCommands');
 
 async function loadImportBusLibrary(
   context: vscode.ExtensionContext,
   sourceUri: vscode.Uri,
   ipCoreData?: Record<string, unknown>
 ) {
-  return loadRuntimeBusLibrary(
-    logger,
-    resolveResourceRoots(context.extensionPath),
-    sourceUri,
-    ipCoreData
-  );
+  return loadRuntimeBusLibrary(resolveResourceRoots(context.extensionPath), sourceUri, ipCoreData);
 }
 
 async function checkImportedYaml(

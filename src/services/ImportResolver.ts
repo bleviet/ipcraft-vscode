@@ -38,8 +38,33 @@ export class ImportResolver {
   private readonly logger: Logger;
   private busLibraryCache: Map<string, LoadedBusDefinitionSources> = new Map();
   private busLibraryService: BusLibraryService;
+  // Stable reference so the memo can hit when no user paths are configured.
+  private readonly noConfiguredSources: LoadedBusDefinitionSources = {
+    sources: [],
+    diagnostics: [],
+  };
+  /**
+   * Normalized-library memo keyed by the ipLocal sources reference. A hit needs the
+   * builtin, configured and workspace-scan library references to be unchanged; each
+   * is a cached reference upstream, so config/Vivado/workspace changes invalidate it.
+   */
+  private normalizedLibraryMemo = new Map<
+    LoadedBusDefinitionSources | undefined,
+    {
+      builtin: LoadedBusDefinitionSources;
+      configured: LoadedBusDefinitionSources;
+      workspaceLibrary: unknown;
+      library: NormalizedBusLibrary;
+    }
+  >();
 
-  constructor(logger: Logger, busDefinitionsDir: string, busDefinitionSchemaPath?: string) {
+  constructor(
+    logger: Logger,
+    busDefinitionsDir: string,
+    busDefinitionSchemaPath?: string,
+    /** Called with each definition root (directory or file) this resolver loads from. */
+    private readonly onDefinitionRoot?: (absolutePath: string) => void
+  ) {
     this.logger = logger;
     this.busLibraryService = new BusLibraryService(
       logger,
@@ -62,19 +87,7 @@ export class ImportResolver {
   ): Promise<ResolvedImports> {
     const resolved: ResolvedImports = {};
 
-    let ipLocal: LoadedBusDefinitionSources | undefined;
-    if (ipCoreData.useBusLibrary) {
-      try {
-        ipLocal = await this.resolveBusLibrary(ipCoreData.useBusLibrary, baseDir);
-      } catch (busError) {
-        this.logger.warn(
-          `Could not load bus library from '${String(ipCoreData.useBusLibrary)}' ` +
-            `(resolved to: ${path.resolve(baseDir, String(ipCoreData.useBusLibrary))}). ` +
-            `Falling back to default bus library. Reason: ${(busError as Error).message}`
-        );
-      }
-    }
-    resolved.busLibrary = await this.loadDefaultBusLibrary(resourceUri, ipLocal);
+    resolved.busLibrary = await this.loadBusLibrary(ipCoreData, baseDir, resourceUri);
 
     // Resolve memory map imports
     if (ipCoreData.memoryMaps) {
@@ -105,6 +118,30 @@ export class ImportResolver {
   }
 
   /**
+   * Load the precedence-ordered bus library for an IP core: builtin, workspace,
+   * configured paths, then the IP's own `useBusLibrary` (when it loads).
+   */
+  async loadBusLibrary(
+    ipCoreData: IpCoreDataNode,
+    baseDir: string,
+    resourceUri: vscode.Uri = vscode.Uri.file(baseDir)
+  ): Promise<NormalizedBusLibrary> {
+    let ipLocal: LoadedBusDefinitionSources | undefined;
+    if (ipCoreData.useBusLibrary) {
+      try {
+        ipLocal = await this.resolveBusLibrary(ipCoreData.useBusLibrary, baseDir);
+      } catch (busError) {
+        this.logger.warn(
+          `Could not load bus library from '${String(ipCoreData.useBusLibrary)}' ` +
+            `(resolved to: ${path.resolve(baseDir, String(ipCoreData.useBusLibrary))}). ` +
+            `Falling back to default bus library. Reason: ${(busError as Error).message}`
+        );
+      }
+    }
+    return this.loadDefaultBusLibrary(resourceUri, ipLocal);
+  }
+
+  /**
    * Load default bus library from ipcore_spec, extended with any user-defined paths
    * configured via the `ipcraft.busLibraryPaths` VS Code setting, plus the cached
    * Vivado interface catalog (if "Scan Vivado Interface Catalog" has been run).
@@ -127,8 +164,11 @@ export class ImportResolver {
     }
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
 
-    let configured: LoadedBusDefinitionSources = { sources: [], diagnostics: [] };
+    let configured = this.noConfiguredSources;
     if (userPaths.length > 0) {
+      for (const userPath of userPaths) {
+        this.onDefinitionRoot?.(path.resolve(workspaceRoot ?? process.cwd(), userPath));
+      }
       configured = await this.busLibraryService.loadFromUserPaths(userPaths, workspaceRoot);
     }
 
@@ -144,6 +184,14 @@ export class ImportResolver {
     // fires `onDidScan` on completion; `IpCoreEditorProvider` is subscribed
     // to that event and refreshes the webview once results are in.
     const workspaceResult = getWorkspaceBusDefinitionScanner().peekAndScanInBackground();
+    const memo = this.normalizedLibraryMemo.get(ipLocal);
+    if (
+      memo?.builtin === builtin &&
+      memo.configured === configured &&
+      memo.workspaceLibrary === workspaceResult.library
+    ) {
+      return memo.library;
+    }
     const workspace = this.busLibraryService.loadWorkspaceScan(workspaceResult);
     const library = this.busLibraryService.normalizeSources(
       builtin,
@@ -159,6 +207,12 @@ export class ImportResolver {
     this.logger.info(
       `Loaded ${Object.keys(library.definitions).length} bus types from local library`
     );
+    this.normalizedLibraryMemo.set(ipLocal, {
+      builtin,
+      configured,
+      workspaceLibrary: workspaceResult.library,
+      library,
+    });
     return library;
   }
 
@@ -261,6 +315,7 @@ export class ImportResolver {
     baseDir: string
   ): Promise<LoadedBusDefinitionSources> {
     const absolutePath = path.resolve(baseDir, libraryPath);
+    this.onDefinitionRoot?.(absolutePath);
 
     // Check cache
     if (this.busLibraryCache.has(absolutePath)) {
@@ -292,10 +347,21 @@ export class ImportResolver {
   }
 
   /**
+   * Drop cached bus definition files (ipLocal, builtin, configured, memo) but keep the
+   * workspace scanner, whose clear would trigger a full workspace rescan.
+   */
+  clearDefinitionFileCache(): void {
+    this.busLibraryCache.clear();
+    this.normalizedLibraryMemo.clear();
+    this.busLibraryService.clearCache();
+  }
+
+  /**
    * Clear the bus library cache.
    */
   clearCache(): void {
     this.busLibraryCache.clear();
+    this.normalizedLibraryMemo.clear();
     this.busLibraryService.clearCache();
     getWorkspaceBusDefinitionScanner().clearCache();
     this.logger.info('Bus library cache cleared');

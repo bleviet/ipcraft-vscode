@@ -565,13 +565,20 @@ function renderBusInterface(plan: BusInterfacePlan, paramNames: string[]): strin
     lines.push('      </spirit:parameters>');
   }
 
-  if (mirrorsContract) {
-    const mirrored = [
-      ...mirroredSemanticProperties,
-      ...(iface.endianness === 'little' || iface.endianness === 'big'
-        ? [{ name: 'endianness', value: iface.endianness }]
-        : []),
-    ].sort((left, right) => left.name.localeCompare(right.name));
+  const mirrored = mirrorsContract
+    ? [
+        ...mirroredSemanticProperties,
+        ...(iface.endianness === 'little' || iface.endianness === 'big'
+          ? [{ name: 'endianness', value: iface.endianness }]
+          : []),
+      ].sort((left, right) => left.name.localeCompare(right.name))
+    : [];
+  // An empty mirror only matters when standard BUSIFPARAMs would be read back
+  // (see getMirroredContractProperties); otherwise absence round-trips identically.
+  if (
+    mirrorsContract &&
+    (mirrored.length > 0 || semanticProperties.length > 0 || hasSymbolSemantics)
+  ) {
     lines.push('      <spirit:vendorExtensions>');
     lines.push('        <ipcraft:interfaceContract version="1">');
     for (const property of mirrored) {

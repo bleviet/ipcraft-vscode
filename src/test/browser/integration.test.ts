@@ -618,7 +618,7 @@ vlnv:
   name: test_core
   version: 1.0.0
 description: Smoke test IP core
-bus_interfaces:
+busInterfaces:
   - name: S_AXI
     type: AXI4L
     mode: slave
@@ -631,7 +631,7 @@ vlnv:
   name: param_core
   version: 2.0.0
 description: Core with parameters
-bus_interfaces:
+busInterfaces:
   - name: S_AXI
     type: AXI4L
     mode: slave
@@ -651,7 +651,7 @@ vlnv:
   name: dual_bus_core
   version: 1.0.0
 description: Core with two bus interfaces
-bus_interfaces:
+busInterfaces:
   - name: S_AXI
     type: AXI4L
     mode: slave

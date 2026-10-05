@@ -407,11 +407,7 @@ export function parseMemoryMap(text: string, prevMap?: NormalizedMemoryMap): Mem
  * Normalize a raw parsed IP Core object into canonical camelCase IpCore.
  */
 export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
-  const busInterfaces = Array.isArray(rootObj.bus_interfaces)
-    ? rootObj.bus_interfaces
-    : Array.isArray(rootObj.busInterfaces)
-      ? rootObj.busInterfaces
-      : [];
+  const busInterfaces = Array.isArray(rootObj.busInterfaces) ? rootObj.busInterfaces : [];
 
   const parameters = Array.isArray(rootObj.parameters) ? rootObj.parameters : [];
   const ports = Array.isArray(rootObj.ports) ? rootObj.ports : [];

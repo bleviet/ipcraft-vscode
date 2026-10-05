@@ -9,7 +9,8 @@ import { HtmlGenerator } from '../services/HtmlGenerator';
 import { WebviewRouter } from '../services/WebviewRouter';
 import { YamlValidator } from '../services/YamlValidator';
 import { DocumentManager } from '../services/DocumentManager';
-import { ImportResolver } from '../services/ImportResolver';
+import type { ImportResolver } from '../services/ImportResolver';
+import { getRuntimeImportResolver } from '../services/loadRuntimeBusLibrary';
 import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
 import { getGeneratedArtifactsEmitter } from '../services/GeneratedArtifactsEmitter';
 import { SubcoreResolver } from '../services/SubcoreResolver';
@@ -95,11 +96,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     const services = createSharedProviderServices(context);
     this.htmlGenerator = services.htmlGenerator;
     this.documentManager = services.documentManager;
-    this.importResolver = new ImportResolver(
-      this.logger,
-      resourceRoots.busDefinitionsDir,
-      resourceRoots.busDefinitionSchemaPath
-    );
+    this.importResolver = getRuntimeImportResolver(resourceRoots);
     this.subcoreResolver = new SubcoreResolver(context);
     void this.subcoreResolver.initialize();
 

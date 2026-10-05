@@ -5,8 +5,6 @@ import type { BusInterfacePortMutation, NormalizedBusLibrary } from '../../../sh
 import {
   applyYamlMutation,
   canonicalizeParsedIpCore,
-  getAuthoredBusInterfaceRoot,
-  remapBusInterfacePath,
 } from '../../../shared/busContracts/ipCoreCanonicalize';
 import {
   isBehindLatestFormat,
@@ -145,11 +143,7 @@ export function useIpCoreState() {
 
       try {
         let newYaml = textBeforeEdit(prev);
-        const busInterfaceRoot = getAuthoredBusInterfaceRoot(newYaml);
-        newYaml = applyYamlMutation(newYaml, [
-          remapBusInterfacePath(path, busInterfaceRoot),
-          value,
-        ]);
+        newYaml = applyYamlMutation(newYaml, [path, value]);
 
         // Keep any canonicalization the edit introduced pending, so the next
         // index-based edit applies it first and the raw YAML matches ipCore.
@@ -187,12 +181,8 @@ export function useIpCoreState() {
 
       try {
         let currentYaml = textBeforeEdit(prev);
-        const busInterfaceRoot = getAuthoredBusInterfaceRoot(currentYaml);
         for (const [path, value] of mutations) {
-          currentYaml = applyYamlMutation(currentYaml, [
-            remapBusInterfacePath(path, busInterfaceRoot),
-            value,
-          ]);
+          currentYaml = applyYamlMutation(currentYaml, [path, value]);
         }
 
         // Keep any canonicalization the edit introduced pending, so the next

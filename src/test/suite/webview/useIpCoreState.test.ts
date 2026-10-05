@@ -34,8 +34,6 @@ busInterfaces:
     useOptionalPorts: [read_n]
 `;
 
-const LEGACY_ROOT_POLARITY_YAML = LEGACY_POLARITY_YAML.replace('busInterfaces:', 'bus_interfaces:');
-
 describe('useIpCoreState', () => {
   describe('updateFromYaml', () => {
     it('parses YAML into ipCore state', () => {
@@ -45,20 +43,6 @@ describe('useIpCoreState', () => {
       expect(result.current.parseError).toBeNull();
       expect(result.current.fileName).toBe('my_core.ip.yml');
       expect((result.current.ipCore as { clocks?: unknown[] })?.clocks).toHaveLength(1);
-    });
-
-    it('aliases snake_case bus_interfaces to camelCase busInterfaces', () => {
-      const { result } = renderHook(() => useIpCoreState());
-      act(() =>
-        result.current.updateFromYaml(
-          'bus_interfaces:\n  - name: S_AXI\n    type: axi4_lite\n',
-          'x.ip.yml'
-        )
-      );
-
-      const ipCore = result.current.ipCore as { busInterfaces?: Array<{ name: string }> };
-      expect(ipCore?.busInterfaces).toHaveLength(1);
-      expect(ipCore?.busInterfaces?.[0].name).toBe('S_AXI');
     });
 
     it('sets a parse error for invalid YAML without clobbering fileName', () => {
@@ -105,29 +89,6 @@ describe('useIpCoreState', () => {
       expect(result.current.parseError).toMatch(/apiVersion 1\.2.*up to 1\.1/);
       expect(result.current.ipCore).toBeNull();
     });
-
-    it('preserves the authored bus_interfaces root while deferring canonicalization', () => {
-      const { result } = renderHook(() => useIpCoreState());
-
-      act(() =>
-        result.current.updateFromYaml(LEGACY_ROOT_POLARITY_YAML, 'legacy-root.ip.yml', {
-          busLibrary: builtinBusLibrary(),
-        })
-      );
-
-      expect(
-        (result.current.ipCore as { busInterfaces?: Array<{ useOptionalPorts?: string[] }> })
-          .busInterfaces?.[0]?.useOptionalPorts
-      ).toEqual(['read']);
-      expect(result.current.rawYaml).toBe(LEGACY_ROOT_POLARITY_YAML);
-
-      act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
-
-      expect(result.current.rawYaml).toContain('bus_interfaces:');
-      expect(result.current.rawYaml).not.toContain('\nbusInterfaces:');
-      expect(result.current.rawYaml).toContain('useOptionalPorts: [ read ]');
-      expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
-    });
   });
 
   describe('updateIpCore', () => {
@@ -148,22 +109,6 @@ describe('useIpCoreState', () => {
 
       const ipCore = result.current.ipCore as { ports?: unknown[] };
       expect(ipCore?.ports ?? []).toHaveLength(0);
-    });
-
-    it('keeps a single bus interface edit under the authored bus_interfaces root', () => {
-      const { result } = renderHook(() => useIpCoreState());
-      act(() =>
-        result.current.updateFromYaml(LEGACY_ROOT_POLARITY_YAML, 'legacy-root.ip.yml', {
-          busLibrary: builtinBusLibrary(),
-        })
-      );
-
-      act(() => result.current.updateIpCore(['busInterfaces', 0, 'physicalPrefix'], 'avs_'));
-
-      expect(result.current.rawYaml).toContain('bus_interfaces:');
-      expect(result.current.rawYaml).not.toContain('\nbusInterfaces:');
-      expect(result.current.rawYaml).toContain('physicalPrefix: avs_');
-      expect(result.current.rawYaml).toContain('useOptionalPorts: [ read ]');
     });
 
     it('persists pending canonicalization with the first user edit in one state transition', () => {
@@ -345,27 +290,6 @@ ports:
       );
 
       expect(batched.result.current.rawYaml).toBe(sequential.result.current.rawYaml);
-    });
-
-    it('keeps batched bus interface edits under the authored bus_interfaces root', () => {
-      const { result } = renderHook(() => useIpCoreState());
-      act(() =>
-        result.current.updateFromYaml(LEGACY_ROOT_POLARITY_YAML, 'legacy-root.ip.yml', {
-          busLibrary: builtinBusLibrary(),
-        })
-      );
-
-      act(() =>
-        result.current.updateIpCoreBatch([
-          [['busInterfaces', 0, 'physicalPrefix'], 'avs_'],
-          [['busInterfaces', 0, 'associatedClock'], 'clk'],
-        ])
-      );
-
-      expect(result.current.rawYaml).toContain('bus_interfaces:');
-      expect(result.current.rawYaml).not.toContain('\nbusInterfaces:');
-      expect(result.current.rawYaml).toContain('physicalPrefix: avs_');
-      expect(result.current.rawYaml).toContain('associatedClock: clk');
     });
 
     it('is a no-op when there is no ipCore loaded yet', () => {

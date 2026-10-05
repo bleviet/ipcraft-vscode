@@ -144,18 +144,6 @@ describe('YamlValidator', () => {
       expect(prefixes).toEqual(['x_', 'y_']);
     });
 
-    it('supports snake_case bus_interfaces key', () => {
-      const data = {
-        bus_interfaces: [
-          { name: 'axi_a', physical_prefix: 's_axi_' },
-          { name: 'axi_b', physical_prefix: 's_axi_' },
-        ],
-      };
-      const result = validator.findDuplicatePhysicalPrefixes(data);
-      expect(result).toHaveLength(1);
-      expect(result[0].prefix).toBe('s_axi_');
-    });
-
     it('skips interfaces without a physicalPrefix', () => {
       const data = {
         busInterfaces: [{ name: 'no_prefix' }, { name: 'has_prefix', physicalPrefix: 'p_' }],
@@ -177,6 +165,17 @@ describe('YamlValidator', () => {
       const result = validator.validateAgainstSchema(data, IP_CORE_SCHEMA_PATH);
       expect(result.valid).toBe(true);
       expect(result.error).toBeUndefined();
+    });
+
+    it('rejects the removed snake_case bus_interfaces root', () => {
+      const result = validator.validateAgainstSchema(
+        {
+          vlnv: { vendor: 'test', library: 'lib', name: 'core', version: '1.0' },
+          bus_interfaces: [],
+        },
+        IP_CORE_SCHEMA_PATH
+      );
+      expect(result.valid).toBe(false);
     });
 
     it('accepts a per-port polarity override', () => {

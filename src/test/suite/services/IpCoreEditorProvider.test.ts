@@ -1,11 +1,14 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { IpCoreEditorProvider } from '../../../providers/IpCoreEditorProvider';
+import { clearRuntimeBusDefinitionFileCaches } from '../../../services/loadRuntimeBusLibrary';
 import { devResourceRoots } from '../../../services/ResourceRoots';
 import { normalizeBusLibrary } from '../../../shared/busContracts';
 import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
 
 describe('IpCoreEditorProvider bus contract transport', () => {
+  beforeEach(() => clearRuntimeBusDefinitionFileCaches());
+
   it('posts the normalized library unchanged in a revisioned update message', async () => {
     const definitions: BusDefinitionFile = {
       CUSTOM: {
