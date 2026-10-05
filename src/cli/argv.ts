@@ -12,7 +12,8 @@ export function usageText(): string {
 Usage:
   ipcraft generate <ip.yml> [options]
   ipcraft verify <ip.yml> <generated-dir> [options]
-  ipcraft migrate <ip.yml>... [--check]   Upgrade .ip.yml files to the latest format version
+  ipcraft migrate <file>... [--check]     Upgrade .ip.yml files to the latest format version and
+                                          convert legacy snake_case keys in .ip.yml / .mm.yml files
 
 Options:
   --target <quartus|vivado>[,<...>]  Vendor target(s) to scaffold a project for
@@ -29,8 +30,8 @@ Options:
                                       sources (default: ${DEFAULT_INDENT_STYLE})
   --indent-size <n>                   Spaces per indentation level when --indent-style is
                                       'spaces' (default: ${DEFAULT_INDENT_SIZE}); ignored for 'tab'
-  --check                            [migrate only] Report files that are not at the latest
-                                      format version without writing; exit 1 if any are
+  --check                            [migrate only] Report files that need an upgrade or key
+                                      conversion without writing; exit 1 if any do
   -h, --help                          Show this help
 
 Examples:
@@ -148,7 +149,7 @@ function parseCommonOptions(
   };
 }
 
-/** Parses `migrate` argv: only `--check` and positional .ip.yml paths are accepted. */
+/** Parses `migrate` argv: only `--check` and positional .ip.yml / .mm.yml paths are accepted. */
 function parseMigrateArgs(rest: string[]): ParsedArgv {
   const paths: string[] = [];
   let check = false;

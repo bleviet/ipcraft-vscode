@@ -77,16 +77,24 @@ async function runMigrate(
   for (const result of await runCliMigrate(args, resourceRoots)) {
     switch (result.status) {
       case 'upgraded':
+        if (result.fromVersion && result.fromVersion === result.toVersion) {
+          console.log(
+            `Converted legacy keys in ${result.path} (${result.mutationCount} change(s))`
+          );
+          break;
+        }
         console.log(
-          `Upgraded ${result.path} (${result.fromVersion} -> ${result.toVersion}, ${result.mutationCount} change(s))`
+          `Upgraded ${result.path} (${result.fromVersion ? `${result.fromVersion} -> ${result.toVersion}, ` : ''}${result.mutationCount} change(s))`
         );
         break;
       case 'needsUpgrade':
-        console.log(`Needs upgrade: ${result.path} (${result.fromVersion} -> ${result.toVersion})`);
+        console.log(
+          `Needs upgrade: ${result.path}${result.fromVersion ? ` (${result.fromVersion} -> ${result.toVersion})` : ''}`
+        );
         exitCode = 1;
         break;
       case 'upToDate':
-        console.log(`Up to date: ${result.path} (${result.version})`);
+        console.log(`Up to date: ${result.path}${result.version ? ` (${result.version})` : ''}`);
         break;
       case 'error':
         console.error(`Error: ${result.path}: ${result.error}`);

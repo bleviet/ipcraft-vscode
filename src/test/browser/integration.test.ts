@@ -52,15 +52,15 @@ test.describe('IPCraft Webview UI Integration', () => {
 addressBlocks:
   - name: REGS
     description: Test registers
-    base_address: 0
+    baseAddress: 0
     registers:
       - name: CTRL
         description: Control register
-        address_offset: 0
+        offset: 0
         fields:
           - name: ENABLE
             bits: "[0:0]"
-            reset_value: "0x0"
+            resetValue: "0x0"
 `;
       const send = () => {
         if ((window as any).__RENDER__) {
@@ -181,22 +181,22 @@ addressBlocks:
     const multiYaml = `
 addressBlocks:
   - name: REGS
-    base_address: 0
+    baseAddress: 0
     registers:
       - name: CTRL
         description: Control register
-        address_offset: 0
+        offset: 0
         fields:
           - name: ENABLE
             bits: "[0:0]"
-            reset_value: "0x0"
+            resetValue: "0x0"
       - name: STATUS
         description: Status register
-        address_offset: 4
+        offset: 4
         fields:
           - name: READY
             bits: "[0:0]"
-            reset_value: "0x0"
+            resetValue: "0x0"
 `;
     await page.evaluate((yaml) => {
       (window as any).__RENDER__(yaml);
@@ -303,15 +303,15 @@ addressBlocks:
     const multiYaml = `
 addressBlocks:
   - name: REGS
-    base_address: 0
+    baseAddress: 0
     registers:
       - name: CTRL
-        address_offset: 0
+        offset: 0
         fields:
           - name: ENABLE
             bits: "[0:0]"
       - name: STATUS
-        address_offset: 4
+        offset: 4
         fields:
           - name: READY
             bits: "[0:0]"
@@ -537,18 +537,18 @@ addressBlocks:
     const twoBlockYaml = `
 addressBlocks:
   - name: REGS_A
-    base_address: 0
+    baseAddress: 0
     registers:
       - name: CTRL
-        address_offset: 0
+        offset: 0
         fields:
           - name: ENABLE
             bits: "[0:0]"
   - name: REGS_B
-    base_address: 256
+    baseAddress: 256
     registers:
       - name: STATUS
-        address_offset: 0
+        offset: 0
         fields:
           - name: READY
             bits: "[0:0]"

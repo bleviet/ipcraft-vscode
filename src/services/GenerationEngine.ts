@@ -244,23 +244,17 @@ async function updateFileSetsInYaml(
     });
 
     const currentData = doc.toJSON() as Record<string, unknown>;
-    let fileSets = (currentData.fileSets ?? currentData.file_sets ?? []) as Array<{
+    let fileSets = (currentData.fileSets ?? []) as Array<{
       name?: string;
       description?: string;
       files?: Array<{ path?: string; type?: string }>;
     }>;
-    const key = currentData.fileSets
-      ? 'fileSets'
-      : currentData.file_sets
-        ? 'file_sets'
-        : 'fileSets';
-
     if (!Array.isArray(fileSets)) {
       fileSets = [];
     }
     fileSets = updateFileSets(fileSets, yamlRelativeFiles);
 
-    doc.setIn([key], fileSets);
+    doc.setIn(['fileSets'], fileSets);
     const newText = doc.toString();
     const edit = new vscode.WorkspaceEdit();
     const lastLine = document.lineAt(Math.max(0, document.lineCount - 1));

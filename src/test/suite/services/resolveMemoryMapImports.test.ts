@@ -48,17 +48,17 @@ describe('resolveMemoryMapImports', () => {
       async readText(): Promise<string> {
         return `
 - name: IMPORTED
-  base_address: 0x1000
+  baseAddress: 0x1000
   addressBlocks:
     - name: BLK0
-      base_address: 0x0
+      baseAddress: 0x0
       registers:
         - name: REG0
-          address_offset: 0x4
+          offset: 0x4
 `;
       },
     };
-    const memoryMaps = [{ import: 'maps/core.mm.yml', name: 'CORE', base_address: 0x2000 }];
+    const memoryMaps = [{ import: 'maps/core.mm.yml', name: 'CORE', baseAddress: 0x2000 }];
     const { resolved, errors } = await resolveMemoryMapImports({
       memoryMaps,
       baseDir: '/ip',
@@ -68,12 +68,12 @@ describe('resolveMemoryMapImports', () => {
     expect(resolved).toHaveLength(1);
     // Entry-level fields override the imported file's top-level fields...
     expect(resolved[0].name).toBe('CORE');
-    expect(resolved[0].base_address).toBe(0x2000);
+    expect(resolved[0].baseAddress).toBe(0x2000);
     // ...but nested blocks/registers are carried through verbatim (no offset shift).
     const blocks = resolved[0].addressBlocks as Array<Record<string, unknown>>;
-    expect(blocks[0].base_address).toBe(0x0);
+    expect(blocks[0].baseAddress).toBe(0x0);
     const registers = blocks[0].registers as Array<Record<string, unknown>>;
-    expect(registers[0].address_offset).toBe(0x4);
+    expect(registers[0].offset).toBe(0x4);
   });
 
   it('collects errors for invalid imports', async () => {

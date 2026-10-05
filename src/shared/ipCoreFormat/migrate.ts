@@ -2,6 +2,7 @@ import * as yaml from 'yaml';
 import { collectHexSpellings, detectIndentSeq, restoreHexSpellings } from '../../yamledit';
 import { applyYamlMutation, canonicalizeParsedIpCore } from '../busContracts/ipCoreCanonicalize';
 import type { NormalizedBusLibrary } from '../busContracts/types';
+import { renameLegacyKeys } from './legacyKeys';
 import {
   IP_CORE_FORMAT_VERSION,
   IP_CORE_FORMAT_VERSIONS,
@@ -68,7 +69,7 @@ export interface IpCoreMigrationResult {
   changed: boolean;
   fromVersion: IpCoreFormatVersion;
   toVersion: IpCoreFormatVersion;
-  /** Content changes made by the steps, plus one for stamping `apiVersion`. */
+  /** Legacy keys renamed and content changes made by the steps, plus one for stamping `apiVersion`. */
   mutationCount: number;
 }
 
@@ -82,17 +83,22 @@ export function isBehindLatestFormat(version: IpCoreFormatVersion): boolean {
 
 /**
  * Upgrade the whole document to the latest format version in one format-preserving pass:
- * run the steps from the file's version, then set `apiVersion`. A file already at the latest
- * version is returned unchanged; a newer or unknown version throws.
+ * rename legacy snake_case keys, run the steps from the file's version, then set
+ * `apiVersion`. A file already at the latest version only has its legacy keys renamed; a
+ * newer or unknown version throws.
  */
 export function migrateIpCoreYaml(
   text: string,
   library: NormalizedBusLibrary
 ): IpCoreMigrationResult {
-  const parsed = yaml.parse(text) as unknown;
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+  const original = yaml.parse(text) as unknown;
+  if (!original || typeof original !== 'object' || Array.isArray(original)) {
     throw new Error('Invalid YAML: must be an object');
   }
+
+  // Rename first so the version steps (and the version read) see canonical camelCase.
+  const renamed = renameLegacyKeys(text, 'ipCore');
+  const parsed = renamed.renamedCount > 0 ? (yaml.parse(renamed.text) as unknown) : original;
 
   const read = readIpCoreFormatVersion(parsed as Record<string, unknown>);
   if (!read.ok) {
@@ -101,16 +107,16 @@ export function migrateIpCoreYaml(
   const fromVersion = read.version;
   if (!isBehindLatestFormat(fromVersion)) {
     return {
-      text,
-      changed: false,
+      text: renamed.text,
+      changed: renamed.renamedCount > 0,
       fromVersion,
       toVersion: fromVersion,
-      mutationCount: 0,
+      mutationCount: renamed.renamedCount,
     };
   }
 
-  let migrated = text;
-  let mutationCount = 0;
+  let migrated = renamed.text;
+  let mutationCount = renamed.renamedCount;
   let data = parsed as Record<string, unknown>;
   for (const step of MIGRATION_STEPS.slice(IP_CORE_FORMAT_VERSIONS.indexOf(fromVersion))) {
     const result = step.migrate(migrated, data, library);
@@ -126,4 +132,17 @@ export function migrateIpCoreYaml(
     toVersion: IP_CORE_FORMAT_VERSION,
     mutationCount: mutationCount + 1,
   };
+}
+
+export interface MemoryMapMigrationResult {
+  text: string;
+  changed: boolean;
+  /** Legacy keys renamed (or dropped because the canonical key already existed). */
+  mutationCount: number;
+}
+
+/** Convert a `.mm.yml` file's legacy snake_case keys to camelCase. Memory maps have no `apiVersion`. */
+export function migrateMemoryMapYaml(text: string): MemoryMapMigrationResult {
+  const { text: migrated, renamedCount } = renameLegacyKeys(text, 'memoryMap');
+  return { text: migrated, changed: renamedCount > 0, mutationCount: renamedCount };
 }
