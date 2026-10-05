@@ -109,7 +109,6 @@ export async function runConsistencyCheck(
   }
   const ipCoreDir = path.dirname(ipCoreUri.fsPath);
   const busLibrary = await loadRuntimeBusLibrary(
-    logger,
     resourceRoots,
     ipCoreUri,
     ipCoreData as Record<string, unknown>

@@ -72,7 +72,6 @@ describe('runCliMigrate', () => {
     const file = write('legacy.ip.yml', `useBusLibrary: ./lib\n${LEGACY}`);
     await runCliMigrate({ paths: [file], check: true }, resourceRoots);
     expect(loadRuntimeBusLibrary).toHaveBeenCalledWith(
-      expect.anything(),
       resourceRoots,
       expect.objectContaining({ fsPath: file }),
       expect.objectContaining({ useBusLibrary: './lib' })

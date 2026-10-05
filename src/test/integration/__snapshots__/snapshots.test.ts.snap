@@ -14211,10 +14211,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
-      <spirit:vendorExtensions>
-        <ipcraft:interfaceContract version="1">
-        </ipcraft:interfaceContract>
-      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>SRC_ST</spirit:name>
@@ -15206,10 +15202,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:physicalPort>
         </spirit:portMap>
       </spirit:portMaps>
-      <spirit:vendorExtensions>
-        <ipcraft:interfaceContract version="1">
-        </ipcraft:interfaceContract>
-      </spirit:vendorExtensions>
     </spirit:busInterface>
     <spirit:busInterface>
       <spirit:name>SRC_ST</spirit:name>

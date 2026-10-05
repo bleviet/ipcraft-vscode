@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { Logger, LogLevel } from './utils/Logger';
 import { MemoryMapEditorProvider } from './providers/MemoryMapEditorProvider';
+import { registerRuntimeBusLibraryInvalidation } from './services/loadRuntimeBusLibrary';
 import { IpCoreEditorProvider } from './providers/IpCoreEditorProvider';
 import { resolveResourceRoots, ResourceRoots } from './services/ResourceRoots';
 import { ReportsTreeProvider } from './providers/ReportsTreeProvider';
@@ -108,6 +109,8 @@ export function activate(context: vscode.ExtensionContext): void {
     );
     return;
   }
+
+  registerRuntimeBusLibraryInvalidation(context);
 
   registerCustomProvider(
     context,

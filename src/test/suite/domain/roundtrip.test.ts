@@ -147,6 +147,19 @@ describe('serializeValue strips UI-only field properties', () => {
   });
 });
 
+describe('parseIpCore root key handling', () => {
+  it('does not treat a snake_case bus_interfaces root as bus interfaces', () => {
+    const yamlStr = `
+vlnv: foo:bar:baz:1.0
+bus_interfaces:
+  - name: my_bus
+    type: my_type
+    mode: slave
+`;
+    expect(parseIpCore(yamlStr).busInterfaces).toEqual([]);
+  });
+});
+
 describe('parseIpCore physicalPrefix handling', () => {
   it('should default to empty string for non-conduit bus interfaces when absent', () => {
     const yamlStr = `

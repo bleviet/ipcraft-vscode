@@ -5,7 +5,7 @@ import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 const library = builtinBusLibrary();
 
-function legacyAvalon(root: 'busInterfaces' | 'bus_interfaces'): string {
+function legacyAvalon(): string {
   return `# Leading comment
 apiVersion: '1.0'
 vlnv:
@@ -13,7 +13,7 @@ vlnv:
   library: demo
   name: core
   version: 1.0.0
-${root}:
+busInterfaces:
   - name: avalon # trailing comment
     type: ${BUS_VLNV.AVALON_MM}
     mode: master
@@ -28,7 +28,7 @@ ${root}:
 
 describe('migrateIpCoreYaml', () => {
   it('canonicalizes legacy Avalon-MM polarity names into portPolarityOverrides', () => {
-    const result = migrateIpCoreYaml(legacyAvalon('busInterfaces'), library);
+    const result = migrateIpCoreYaml(legacyAvalon(), library);
 
     expect(result.changed).toBe(true);
     expect(result).toMatchObject({ fromVersion: '1.0', toVersion: '1.1' });
@@ -56,14 +56,14 @@ describe('migrateIpCoreYaml', () => {
   });
 
   it('preserves comments and hex literals', () => {
-    const { text } = migrateIpCoreYaml(legacyAvalon('busInterfaces'), library);
+    const { text } = migrateIpCoreYaml(legacyAvalon(), library);
     expect(text).toContain('# Leading comment');
     expect(text).toContain('# trailing comment');
     expect(text).toContain('0x20');
   });
 
   it('is idempotent', () => {
-    const first = migrateIpCoreYaml(legacyAvalon('busInterfaces'), library);
+    const first = migrateIpCoreYaml(legacyAvalon(), library);
     const second = migrateIpCoreYaml(first.text, library);
     expect(second).toEqual({
       text: first.text,
@@ -72,16 +72,6 @@ describe('migrateIpCoreYaml', () => {
       toVersion: '1.1',
       mutationCount: 0,
     });
-  });
-
-  it('respects the bus_interfaces snake_case root', () => {
-    const { text, changed } = migrateIpCoreYaml(legacyAvalon('bus_interfaces'), library);
-    expect(changed).toBe(true);
-    const data = yaml.parse(text) as Record<string, unknown>;
-    expect(data.busInterfaces).toBeUndefined();
-    const bus = (data.bus_interfaces as Array<Record<string, unknown>>)[0];
-    expect(bus.useOptionalPorts).toContain('read');
-    expect(bus.portPolarityOverrides).toMatchObject({ read: 'activeLow' });
   });
 
   it('stamps apiVersion on a file that declares none, even without bus interfaces', () => {
@@ -98,7 +88,7 @@ describe('migrateIpCoreYaml', () => {
   });
 
   it('leaves a 1.1 file unchanged, even with legacy content (the editor handles that)', () => {
-    const source = legacyAvalon('busInterfaces').replace("apiVersion: '1.0'", "apiVersion: '1.1'");
+    const source = legacyAvalon().replace("apiVersion: '1.0'", "apiVersion: '1.1'");
     expect(migrateIpCoreYaml(source, library)).toEqual({
       text: source,
       changed: false,

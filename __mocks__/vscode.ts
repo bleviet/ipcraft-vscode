@@ -40,6 +40,7 @@ export const workspace = {
   isTrusted: true,
   onDidChangeTextDocument: jest.fn(),
   findFiles: jest.fn(),
+  createFileSystemWatcher: jest.fn(),
   applyEdit: jest.fn(),
   asRelativePath: jest.fn((path) => path.toString()),
   getConfiguration: jest.fn(() => ({
@@ -100,6 +101,13 @@ export const Uri = {
     toString: () => paths.join('/'),
   })),
 };
+
+export class RelativePattern {
+  constructor(
+    public base: unknown,
+    public pattern: string
+  ) {}
+}
 
 export class Range {
   constructor(

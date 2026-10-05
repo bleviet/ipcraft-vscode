@@ -103,7 +103,7 @@ export class YamlValidator {
       return [];
     }
     const raw = data as Record<string, unknown>;
-    const busInterfaces = (raw.busInterfaces ?? raw.bus_interfaces) as unknown[] | undefined;
+    const busInterfaces = raw.busInterfaces as unknown[] | undefined;
     if (!Array.isArray(busInterfaces) || busInterfaces.length === 0) {
       return [];
     }

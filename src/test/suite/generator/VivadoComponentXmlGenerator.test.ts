@@ -1241,6 +1241,45 @@ describe('generateComponentXml', () => {
       expect(parsed.busInterfaces?.[0].endianness).toBeUndefined();
     });
 
+    it('omits the contract mirror when nothing would be read back from it', async () => {
+      const contractDefinitions: BusDefinitionFile = {
+        MY_PROTO: {
+          ...CUSTOM_BUS_DEFS.MY_PROTO,
+          contract: {
+            version: 1,
+            interfaceKind: 'streaming',
+            modePolicy: { producer: 'initiator', consumer: 'target', aliases: {} },
+            interfaceProperties: {},
+            constraints: [],
+          },
+          ports: CUSTOM_BUS_DEFS.MY_PROTO.ports!.map((port) => ({
+            ...port,
+            presence: 'required',
+            role: port.name === 'DATA' ? 'data' : 'control',
+            widthPolicy: 'root',
+          })),
+        },
+      } as BusDefinitionFile;
+      const library = normalizeBusLibrary([
+        {
+          sourceFile: '/workspace/my_proto.yml',
+          sourceKind: 'workspace',
+          definitions: contractDefinitions,
+        },
+      ]);
+
+      const xml = await generateComponentXmlImpl(makeCustomIp('initiator'), CUSTOM_BUS_DEFS, {
+        busLibrary: library,
+      });
+
+      expect(xml).not.toContain('ipcraft:interfaceContract');
+      const parsed = yaml.load(
+        parseComponentXmlTextImpl(xml, { busLibrary: library }).ipYamlText
+      ) as IpCoreData;
+      expect(parsed.busInterfaces?.[0].interfaceProperties).toBeUndefined();
+      expect(parsed.busInterfaces?.[0].endianness).toBeUndefined();
+    });
+
     it('builds portMaps from custom bus definition (slave reverses direction)', async () => {
       const xml = await generateComponentXml(makeCustomIp('slave'), CUSTOM_BUS_DEFS);
       // DATA is out from master → slave receives it (physical input)

@@ -7,9 +7,6 @@ import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
 import { IP_CORE_FORMAT_VERSION, migrateIpCoreYaml } from '../shared/ipCoreFormat';
 import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
-import { Logger } from '../utils/Logger';
-
-const logger = new Logger('UpgradeIpCoreCommand');
 
 /** Explorer multi-select passes the clicked item plus all selected items. */
 function resolveTargets(uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefined): vscode.Uri[] {
@@ -37,12 +34,7 @@ async function upgradeDocument(
     throw new Error('Invalid YAML: must be an object');
   }
 
-  const library = await loadRuntimeBusLibrary(
-    logger,
-    resourceRoots,
-    uri,
-    ipCoreData as IpCoreDataNode
-  );
+  const library = await loadRuntimeBusLibrary(resourceRoots, uri, ipCoreData as IpCoreDataNode);
   const result = migrateIpCoreYaml(text, library);
   if (!result.changed) {
     return 'current';

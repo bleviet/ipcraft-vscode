@@ -45,7 +45,6 @@ async function migrateFile(
   }
 
   const library = await loadRuntimeBusLibrary(
-    logger,
     resourceRoots,
     vscode.Uri.file(absolutePath),
     ipCoreData as IpCoreDataNode

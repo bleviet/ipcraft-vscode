@@ -38,7 +38,6 @@ export async function runHdlCrossCheck(
 ): Promise<HdlCrossCheckFinding[]> {
   const ipCoreData = await loadIpCoreData(ipCoreUri.fsPath, resourceRoots);
   const busLibrary = await loadRuntimeBusLibrary(
-    logger,
     resourceRoots,
     ipCoreUri,
     ipCoreData as Record<string, unknown>
