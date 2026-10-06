@@ -17,6 +17,17 @@ common tasks below; the later tables are the complete reference.
 All commands are in the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`). A
 blank cell in the location tables means the command is not available there.
 
+## Command map
+
+The diagram groups every command by workflow stage. Follow the arrows from
+creating or importing a specification to generating, validating, and building.
+`Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) is context-sensitive: on a VHDL,
+Verilog, SystemVerilog, `_hw.tcl`, or `component.xml` file it opens a read-only
+preview from which you can save an `.ip.yml`; on an `.ip.yml` or `.mm.yml` file
+it switches between the text and visual editors. The editable source is [`commands-map.drawio`](../images/commands-map.drawio).
+
+![Map of IPCraft commands grouped by workflow stage: create or import, specification, generate, validate, build, and vendor tools](../images/commands-map-light.png)
+
 ## Workspace Trust and Restricted Mode
 
 IPCraft has limited support for untrusted workspaces. In Restricted Mode, the
