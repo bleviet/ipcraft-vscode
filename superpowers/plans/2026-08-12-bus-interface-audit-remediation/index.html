@@ -1,0 +1,3012 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/superpowers/plans/2026-08-12-bus-interface-audit-remediation/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Bus Interface Audit Remediation Implementation Plan - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bus-interface-audit-remediation-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Bus Interface Audit Remediation Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/development/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../how-to/create-your-first-ip-core/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../concepts/yaml-data-flow/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/de10-nano-case-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DE10-Nano Case Study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/create-your-first-ip-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Your First IP Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/defining-a-custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Defining a Custom Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/importing-an-existing-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing an Existing Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/customizing-generated-files-with-scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customizing Generated Files with Scaffold Packs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/check-consistency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking Consistency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/use-data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/using-arithmetic-functions-in-port-widths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Arithmetic Functions in Port Widths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-cocotb-simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a Cocotb Simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/vivado-interface-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vivado Interface Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Template Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-feature-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Feature Coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/bit-field-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/vsix-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSIX Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Developer Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/docs-screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Docs Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../images/codicons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codicon Attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#completion-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Constraints
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Global Constraints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-1-canonical-observed-port-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Canonical observed-port reconciliation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-2-declarative-contract-predicate-and-vendor-metadata-precedence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Declarative-contract predicate and vendor metadata precedence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-3-authored-only-ip-xact-mirror-round-trips" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Authored-only IP-XACT mirror round trips
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-4-canonical-only-custom-bus-lookup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Canonical-only custom bus lookup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-5-remove-the-conformance-middle-man" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Remove the conformance middle man
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6-make-vendor-suites-feature-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Make vendor suites feature evidence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7-record-format-boundary-and-revision-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Record format-boundary and revision decisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-8-final-regression-and-audit-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8: Final regression and audit verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/superpowers/plans/2026-08-12-bus-interface-audit-remediation.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="bus-interface-audit-remediation-implementation-plan">Bus Interface Audit Remediation Implementation Plan<a class="headerlink" href="#bus-interface-audit-remediation-implementation-plan" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use
+<code>superpowers:executing-plans</code> to implement this plan task-by-task. Steps use
+checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Remove the confirmed audit defects while preserving vendor behavior,
+authored document state, and the existing V-3/V-4 revision protocol.</p>
+<p><strong>Architecture:</strong> Vendor parsers adapt XML/Tcl syntax into pure bus-contract
+inputs. Shared contract modules own reusable reconciliation, typed metadata,
+and declarative-contract policy. Vendor generators emit resolved standard
+metadata for tools and authored-only IPCraft mirror metadata for lossless
+re-import.</p>
+<p><strong>Tech Stack:</strong> TypeScript, Jest with <code>config/jest.config.js</code>, integration Jest
+with <code>config/jest.integration.js</code>, IP-XACT XML, Quartus <code>_hw.tcl</code>, YAML bus
+contracts.</p>
+<h2 id="completion-status">Completion status<a class="headerlink" href="#completion-status" title="Permanent link">&para;</a></h2>
+<p>All 44 implementation steps are complete. <code>npm run lint</code>, <code>npm run type-check</code>,
+and the unit suite pass, and the vendor validation recorded on the pull request
+covers Vivado 2026.1 (including <code>ipx::check_integrity</code>) and Quartus 25.1std
+Lite (all 24 <code>_hw.tcl</code> files validated). The <code>qsys-generate</code> BFM tier is not
+distributed with Quartus Lite and was deliberately skipped.</p>
+<h2 id="global-constraints">Global Constraints<a class="headerlink" href="#global-constraints" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Work only in <code>.worktrees/bus-interface-conformance</code>; preserve all existing
+  uncommitted work.</li>
+<li>Do not stage, commit, or push files automatically.</li>
+<li>Keep TypeScript and schema properties camelCase; snake_case remains confined
+  to Nunjucks template contexts.</li>
+<li>Preserve V-3/V-4 <code>docVersion</code>, <code>editId</code>, <code>baseDocVersion</code>, and
+  <code>sourceEditId</code> behavior.</li>
+<li>Keep standard IP-XACT parameters resolved for vendor consumption, but mirror
+  only authored semantic keys and explicitly authored endianness.</li>
+<li>A malformed non-builtin bus definition rejected by normalization must not be
+  resurrected by raw generator lookup.</li>
+<li>Logic with a second consumer belongs in <code>src/shared/busContracts/</code> when it
+  neither reads/emits XML or Tcl syntax nor depends on vendor source ordering.</li>
+<li>Run <code>npm run lint</code>, <code>npm run type-check</code>, and <code>npm run compile</code> before
+  completion.</li>
+</ul>
+<hr />
+<h3 id="task-1-canonical-observed-port-reconciliation">Task 1: Canonical observed-port reconciliation<a class="headerlink" href="#task-1-canonical-observed-port-reconciliation" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/shared/busContracts/observedPorts.ts</code></li>
+<li>Create: <code>src/test/suite/shared/observedBusPorts.test.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/index.ts</code></li>
+<li>Modify: <code>src/parser/ComponentXmlParser.ts:589-655</code></li>
+<li>Modify: <code>src/parser/HwTclParser.ts:509-566</code></li>
+<li>Verify: <code>src/test/suite/parser/ComponentXmlParser.test.ts</code></li>
+<li>Verify: <code>src/test/suite/parser/HwTclParser.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumes: <code>readonly NormalizedBusPort[]</code>, observed logical/physical names and
+  widths, and a physical prefix.</li>
+<li>Produces:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ObservedBusPort</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">logicalName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">physicalName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">ObservedBusPortSelections</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">useOptionalPorts?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">portWidthOverrides?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">portNameOverrides?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">reconcileObservedBusPorts</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">contractPorts</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">NormalizedBusPort</span><span class="p">[],</span>
+<span class="w">  </span><span class="nx">observedPorts</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">ObservedBusPort</span><span class="p">[],</span>
+<span class="w">  </span><span class="nx">physicalPrefix</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">ObservedBusPortSelections</span><span class="p">;</span>
+</code></pre></div>
+<ul>
+<li>[x] <strong>Step 1: Write the failing pure-function tests</strong></li>
+</ul>
+<p>Add table-driven tests with literal expectations. Include mixed-case logical
+  names, an enabled optional port, a numeric default-width match, a numeric
+  mismatch, a symbolic width, and a renamed physical suffix:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">reconcileObservedBusPorts</span><span class="p">(</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">      </span><span class="nx">port</span><span class="p">(</span><span class="s1">'DATA'</span><span class="p">,</span><span class="w"> </span><span class="mf">32</span><span class="p">,</span><span class="w"> </span><span class="s1">'required'</span><span class="p">),</span>
+<span class="w">      </span><span class="nx">port</span><span class="p">(</span><span class="s1">'KEEP'</span><span class="p">,</span><span class="w"> </span><span class="mf">4</span><span class="p">,</span><span class="w"> </span><span class="s1">'optional'</span><span class="p">),</span>
+<span class="w">      </span><span class="nx">port</span><span class="p">(</span><span class="s1">'READY'</span><span class="p">,</span><span class="w"> </span><span class="mf">1</span><span class="p">,</span><span class="w"> </span><span class="s1">'required'</span><span class="p">),</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="p">[</span>
+<span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nx">logicalName</span><span class="o">:</span><span class="w"> </span><span class="s1">'data'</span><span class="p">,</span><span class="w"> </span><span class="nx">physicalName</span><span class="o">:</span><span class="w"> </span><span class="s1">'s_data'</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="kt">64</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nx">logicalName</span><span class="o">:</span><span class="w"> </span><span class="s1">'keep'</span><span class="p">,</span><span class="w"> </span><span class="nx">physicalName</span><span class="o">:</span><span class="w"> </span><span class="s1">'s_keep_i'</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="s1">'DATA_W/8'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nx">logicalName</span><span class="o">:</span><span class="w"> </span><span class="s1">'ready'</span><span class="p">,</span><span class="w"> </span><span class="nx">physicalName</span><span class="o">:</span><span class="w"> </span><span class="s1">'ready_external'</span><span class="p">,</span><span class="w"> </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">],</span>
+<span class="w">    </span><span class="s1">'s_'</span>
+<span class="w">  </span><span class="p">)</span>
+<span class="p">).</span><span class="nx">toEqual</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">useOptionalPorts</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">'KEEP'</span><span class="p">],</span>
+<span class="w">  </span><span class="nx">portWidthOverrides</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">DATA</span><span class="o">:</span><span class="w"> </span><span class="kt">64</span><span class="p">,</span><span class="w"> </span><span class="nx">KEEP</span><span class="o">:</span><span class="w"> </span><span class="s1">'DATA_W/8'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nx">portNameOverrides</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">KEEP</span><span class="o">:</span><span class="w"> </span><span class="s1">'keep_i'</span><span class="p">,</span><span class="w"> </span><span class="nx">READY</span><span class="o">:</span><span class="w"> </span><span class="s1">'ready_external'</span><span class="w"> </span><span class="p">},</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>Add a second case proving empty maps and arrays are omitted from the result.</p>
+<ul>
+<li>[x] <strong>Step 2: Run the new test and verify RED</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/observedBusPorts.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because <code>reconcileObservedBusPorts</code> is not yet exported.</p>
+<ul>
+<li>[x] <strong>Step 3: Implement the pure reconciler</strong></li>
+</ul>
+<p>Build one case-insensitive definition map. Preserve each contract port's
+  canonical name when constructing result keys. Treat a string observed width
+  as an override whenever the contract default is numeric. Compare physical
+  suffixes against <code>logicalName.toLowerCase()</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">definitionByUpper</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">Map</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">contractPorts</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">port</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">[</span><span class="nx">port</span><span class="p">.</span><span class="nx">name</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">(),</span><span class="w"> </span><span class="nx">port</span><span class="p">])</span>
+<span class="p">);</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">present</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">Set</span><span class="p">(</span><span class="nx">observedPorts</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">port</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">port</span><span class="p">.</span><span class="nx">logicalName</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">()));</span>
+</code></pre></div>
+<p>Return only non-empty properties and export the module through the package
+  barrel.</p>
+<ul>
+<li>[x] <strong>Step 4: Run the pure test and verify GREEN</strong></li>
+</ul>
+<p>Run the Step 2 command. Expected: PASS.</p>
+<ul>
+<li>[x] <strong>Step 5: Replace both importer copies</strong></li>
+</ul>
+<p>In <code>ComponentXmlParser</code>, adapt <code>extractPortMap(busIf, modelPortAttrs)</code> to
+  <code>ObservedBusPort[]</code> and assign the returned selections to the bus entry.
+  Confirm that <code>entry</code> is newly constructed for each interface before using
+  <code>Object.assign</code>; no prior selection maps may survive an empty result.</p>
+<p>In <code>HwTclParser</code>, adapt <code>bi.ports</code> as follows:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">observedPorts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">bi</span><span class="p">.</span><span class="nx">ports</span><span class="p">.</span><span class="nx">map</span><span class="p">((</span><span class="nx">port</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">({</span>
+<span class="w">  </span><span class="nx">logicalName</span><span class="o">:</span><span class="w"> </span><span class="kt">port.logicalName</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">physicalName</span><span class="o">:</span><span class="w"> </span><span class="kt">port.portName</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="kt">port.width</span><span class="p">,</span>
+<span class="p">}));</span>
+<span class="nb">Object</span><span class="p">.</span><span class="nx">assign</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">entry</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">reconcileObservedBusPorts</span><span class="p">(</span><span class="nx">contractMatch</span><span class="p">.</span><span class="nx">contract</span><span class="p">.</span><span class="nx">ports</span><span class="p">,</span><span class="w"> </span><span class="nx">observedPorts</span><span class="p">,</span><span class="w"> </span><span class="nx">physicalPrefix</span><span class="p">)</span>
+<span class="p">);</span>
+</code></pre></div>
+<p>Delete the local optional-port, width-override, and name-override loops from
+  both parsers.</p>
+<ul>
+<li>[x] <strong>Step 6: Verify importer behavior remains green</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/observedBusPorts.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.test.ts<span class="w"> </span>--runInBand
+git<span class="w"> </span>diff<span class="w"> </span>--check
+</code></pre></div>
+<p>Expected: all tests PASS and no whitespace errors.</p>
+<hr />
+<h3 id="task-2-declarative-contract-predicate-and-vendor-metadata-precedence">Task 2: Declarative-contract predicate and vendor metadata precedence<a class="headerlink" href="#task-2-declarative-contract-predicate-and-vendor-metadata-precedence" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/shared/busContracts/contractVersion.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/index.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/vendorProperties.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/propertyResolution.ts:43</code></li>
+<li>Modify: <code>src/parser/ComponentXmlParser.ts:185-307</code></li>
+<li>Modify: <code>src/test/suite/shared/vendorContractProperties.test.ts</code></li>
+<li>Modify: <code>src/test/suite/parser/ComponentXmlParser.test.ts:1196-1290</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Produces:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">isDeclarativeContract</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">contract</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionContract</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">contract</span><span class="w"> </span><span class="nx">is</span><span class="w"> </span><span class="nx">BusDefinitionContract</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">version</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="w"> </span><span class="p">};</span>
+</code></pre></div>
+<ul>
+<li>Extends <code>importVendorContractMetadata</code> with:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nx">mirroredProperties?</span><span class="o">:</span><span class="w"> </span><span class="kt">ReadonlyMap</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+</code></pre></div>
+<p><code>undefined</code> means no supported mirror; <code>new Map()</code> means a supported empty
+  version-one mirror.</p>
+<p><strong>Mirror precedence matrix:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Supported mirror</th>
+<th>Standard value</th>
+<th>Mirror value</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Absent</td>
+<td>Absent</td>
+<td>N/A</td>
+<td>Import nothing</td>
+</tr>
+<tr>
+<td>Absent</td>
+<td>Present</td>
+<td>N/A</td>
+<td>Import standard value</td>
+</tr>
+<tr>
+<td>Empty/key absent</td>
+<td>Present</td>
+<td>Absent</td>
+<td>Validate, then discard standard value</td>
+</tr>
+<tr>
+<td>Key present</td>
+<td>Absent</td>
+<td>Present</td>
+<td>Import mirrored value</td>
+</tr>
+<tr>
+<td>Key present</td>
+<td>Same</td>
+<td>Present</td>
+<td>Import mirrored value</td>
+</tr>
+<tr>
+<td>Key present</td>
+<td>Different</td>
+<td>Present</td>
+<td>Throw source-located conflict</td>
+</tr>
+<tr>
+<td>Key undeclared by contract</td>
+<td>Any</td>
+<td>Present</td>
+<td>Throw source-located unknown-property error</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>[x] <strong>Step 1: Add failing precedence tests</strong></li>
+</ul>
+<p>Extend <code>vendorContractProperties.test.ts</code> with one literal test per matrix
+  row. The empty-mirror case must assert exactly <code>{}</code>. The partial case must
+  prove that a standard-only <code>symbolsPerBeat</code> and ordering value are discarded:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">importVendorContractMetadata</span><span class="p">({</span>
+<span class="w">    </span><span class="nx">contract</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">rawProperties</span><span class="o">:</span><span class="w"> </span><span class="kt">new</span><span class="w"> </span><span class="nb">Map</span><span class="p">([</span>
+<span class="w">      </span><span class="p">[</span><span class="s1">'dataBitsPerSymbol'</span><span class="p">,</span><span class="w"> </span><span class="s1">'1'</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s1">'symbolsPerBeat'</span><span class="p">,</span><span class="w"> </span><span class="s1">'5'</span><span class="p">],</span>
+<span class="w">      </span><span class="p">[</span><span class="s1">'firstSymbolInHighOrderBits'</span><span class="p">,</span><span class="w"> </span><span class="s1">'true'</span><span class="p">],</span>
+<span class="w">    </span><span class="p">]),</span>
+<span class="w">    </span><span class="nx">mirroredProperties</span><span class="o">:</span><span class="w"> </span><span class="kt">new</span><span class="w"> </span><span class="nb">Map</span><span class="p">([[</span><span class="s1">'dataBitsPerSymbol'</span><span class="p">,</span><span class="w"> </span><span class="s1">'1'</span><span class="p">]]),</span>
+<span class="w">    </span><span class="nx">location</span><span class="o">:</span><span class="w"> </span><span class="s1">'component.xml busInterfaces.stream'</span><span class="p">,</span>
+<span class="w">  </span><span class="p">})</span>
+<span class="p">).</span><span class="nx">toEqual</span><span class="p">({</span><span class="w"> </span><span class="nx">interfaceProperties</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">dataBitsPerSymbol</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">});</span>
+</code></pre></div>
+<p>Add a conflict test for standard <code>symbolsPerBeat=5</code> versus mirrored <code>4</code>.
+  Add an absent-standard/absent-mirror case that returns <code>{}</code>, and an unknown
+  mirrored key case that reports the key and source location.</p>
+<ul>
+<li>[x] <strong>Step 2: Run precedence tests and verify RED</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/vendorContractProperties.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because <code>mirroredProperties</code> is ignored or unsupported.</p>
+<ul>
+<li>[x] <strong>Step 3: Implement mirror-aware shared metadata import</strong></li>
+</ul>
+<p>Parse and validate standard values first. When <code>mirroredProperties</code> is
+  defined, parse mirror values, compare only keys present in both maps, and
+  select authored output exclusively from mirror keys. Derive
+  <code>symbolsPerBeat</code> from data width only when no supported mirror exists.</p>
+<p>Before selecting values, reject every mirrored key other than <code>endianness</code>
+  that is absent from <code>contract.interfaceProperties</code>. The error must include
+  <code>location</code>, the mirror key, and that the property is undeclared.</p>
+<p>Use the same rule for <code>firstSymbolInHighOrderBits</code> versus mirrored
+  <code>endianness</code>; absence on either side is not a conflict.</p>
+<ul>
+<li>[x] <strong>Step 4: Add and implement the named version predicate</strong></li>
+</ul>
+<p>Add focused assertions for <code>undefined</code>, <code>version: null</code>, and <code>version: 1</code>,
+  then implement:</p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">isDeclarativeContract</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">contract</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionContract</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">contract</span><span class="w"> </span><span class="nx">is</span><span class="w"> </span><span class="nx">BusDefinitionContract</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">version</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">contract</span><span class="o">?</span><span class="p">.</span><span class="nx">version</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="mf">1</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Replace the direct sentinel in <code>propertyResolution.ts</code>.</p>
+<ul>
+<li>[x] <strong>Step 5: Refactor component XML metadata through the shared importer</strong></li>
+</ul>
+<p>Change <code>getMirroredContractProperties</code> to return <code>Map&lt;string, string&gt; |
+  undefined</code>, preserving the distinction between absent/unsupported and a
+  supported empty mirror. Remove <code>coerceContractProperty</code> and the duplicated
+  property/ordering reconciliation from <code>readContractMetadata</code>.</p>
+<p>Build <code>rawProperties</code> from declared contract property names plus
+  <code>firstSymbolInHighOrderBits</code>, then call:</p>
+<div class="highlight"><pre><span></span><code><span class="k">return</span><span class="w"> </span><span class="nx">importVendorContractMetadata</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">contract</span><span class="o">:</span><span class="w"> </span><span class="kt">match.contract</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">rawProperties</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">mirroredProperties</span><span class="o">:</span><span class="w"> </span><span class="kt">getMirroredContractProperties</span><span class="p">(</span><span class="nx">busIfEl</span><span class="p">),</span>
+<span class="w">  </span><span class="nx">location</span><span class="o">:</span><span class="w"> </span><span class="sb">`component.xml busInterfaces.</span><span class="si">${</span><span class="nx">ifName</span><span class="si">}</span><span class="sb">`</span><span class="p">,</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>Gate the call with <code>isDeclarativeContract(match?.contract)</code>.</p>
+<ul>
+<li>[x] <strong>Step 6: Verify shared and parser behavior</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/vendorContractProperties.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.test.ts<span class="w"> </span>src/test/suite/shared/busConformance.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: all tests PASS, including legacy <code>_hw.tcl</code> symbol aliases and
+  component XML conflict diagnostics.</p>
+<hr />
+<h3 id="task-3-authored-only-ip-xact-mirror-round-trips">Task 3: Authored-only IP-XACT mirror round trips<a class="headerlink" href="#task-3-authored-only-ip-xact-mirror-round-trips" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/generator/VivadoComponentXmlGenerator.ts:419-477</code></li>
+<li>Modify: <code>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts:180-225,638-683</code></li>
+<li>Modify: <code>src/test/suite/parser/ComponentXmlParser.test.ts:1143-1194</code></li>
+<li>Modify: <code>src/test/integration/roundtrip.test.ts:261-316</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Standard IP-XACT properties: all concrete resolved contract properties.</li>
+<li>IPCraft mirror properties: only keys authored in
+  <code>iface.interfaceProperties</code>, using their validated resolved values.</li>
+<li>Mirrored endianness: only an explicitly authored <code>little</code> or <code>big</code> value.</li>
+<li>
+<p>Eligible version-one custom contracts always emit the mirror element, even
+  with zero children.</p>
+</li>
+<li>
+<p>[x] <strong>Step 1: Write the named empty-mirror round-trip test</strong></p>
+</li>
+</ul>
+<p>Add a test named:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">it</span><span class="p">(</span><span class="s1">'keeps resolved standard properties unauthored through an empty IPCraft mirror'</span><span class="p">,</span><span class="w"> </span><span class="k">async</span><span class="w"> </span><span class="p">()</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Export an Avalon-ST interface with data width but no interfaceProperties</span>
+<span class="w">  </span><span class="c1">// and no endianness.</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>Assert all three boundaries independently:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">'&lt;spirit:name&gt;dataBitsPerSymbol&lt;/spirit:name&gt;'</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">'&lt;spirit:name&gt;symbolsPerBeat&lt;/spirit:name&gt;'</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toMatch</span><span class="p">(</span>
+<span class="w">  </span><span class="sr">/&lt;ipcraft:interfaceContract version="1"&gt;\s*&lt;\/ipcraft:interfaceContract&gt;/</span>
+<span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">parsed</span><span class="p">.</span><span class="nx">busInterfaces</span><span class="o">?</span><span class="p">.[</span><span class="mf">0</span><span class="p">].</span><span class="nx">interfaceProperties</span><span class="p">).</span><span class="nx">toBeUndefined</span><span class="p">();</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">parsed</span><span class="p">.</span><span class="nx">busInterfaces</span><span class="o">?</span><span class="p">.[</span><span class="mf">0</span><span class="p">].</span><span class="nx">endianness</span><span class="p">).</span><span class="nx">toBeUndefined</span><span class="p">();</span>
+</code></pre></div>
+<ul>
+<li>[x] <strong>Step 2: Add partial and explicit-little tests</strong></li>
+</ul>
+<p>Add one custom-contract case with an authored <code>lanes</code> value and an unauthored
+  default <code>interleaved: false</code>. Assert that both appear as standard parameters,
+  only <code>lanes</code> appears in the mirror, and only <code>lanes</code> returns in
+  <code>interfaceProperties</code>.</p>
+<p>Add one case with explicit <code>endianness: little</code> and assert it survives the
+  export/import cycle. This distinguishes authored little from absent default
+  little.</p>
+<ul>
+<li>[x] <strong>Step 3: Run generator/parser tests and verify RED</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because resolved defaults and little endianness are currently
+  mirrored unconditionally.</p>
+<ul>
+<li>[x] <strong>Step 4: Split standard and mirrored property selections</strong></li>
+</ul>
+<p>Keep <code>semanticProperties</code> unchanged for standard parameter emission. Add an
+  authored selection:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">authoredPropertyNames</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="ow">new</span><span class="w"> </span><span class="nb">Set</span><span class="p">(</span><span class="nb">Object</span><span class="p">.</span><span class="nx">keys</span><span class="p">(</span><span class="nx">iface</span><span class="p">.</span><span class="nx">interfaceProperties</span><span class="w"> </span><span class="o">??</span><span class="w"> </span><span class="p">{}));</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">mirroredProperties</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">semanticProperties</span><span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">property</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span>
+<span class="w">  </span><span class="nx">authoredPropertyNames</span><span class="p">.</span><span class="nx">has</span><span class="p">(</span><span class="nx">property</span><span class="p">.</span><span class="nx">name</span><span class="p">)</span>
+<span class="p">);</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nx">iface</span><span class="p">.</span><span class="nx">endianness</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">'little'</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">iface</span><span class="p">.</span><span class="nx">endianness</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="s1">'big'</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">mirroredProperties</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s1">'endianness'</span><span class="p">,</span><span class="w"> </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">iface.endianness</span><span class="w"> </span><span class="p">});</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Use <code>isDeclarativeContract(contract)</code> for the mirror gate. Always emit the
+  eligible mirror wrapper; sort only the mirrored values before rendering.</p>
+<ul>
+<li>[x] <strong>Step 5: Verify GREEN and round-trip coverage</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:roundtrip<span class="w"> </span>--<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: all tests PASS; authored properties remain authored, resolved
+  defaults remain standard vendor metadata only.</p>
+<hr />
+<h3 id="task-4-canonical-only-custom-bus-lookup">Task 4: Canonical-only custom bus lookup<a class="headerlink" href="#task-4-canonical-only-custom-bus-lookup" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/generator/VivadoCustomBusDefinitions.ts:17-64,133-165</code></li>
+<li>Modify: <code>src/generator/VivadoComponentXmlGenerator.ts:309,1031</code></li>
+<li>Modify: <code>src/services/toolchains/VivadoToolchain.ts:134-145</code></li>
+<li>Modify: <code>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts</code></li>
+<li>Modify: <code>src/test/integration/roundtrip.test.ts:286-290</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li><code>findCustomBusDef(ifaceType, busLibrary): CustomBusInfo | null</code></li>
+<li><code>generateCustomBusDefs(ipCore, busLibrary): Record&lt;string, string&gt;</code></li>
+<li>A valid legacy definition normalized with <code>version: null</code> remains eligible.</li>
+<li>
+<p>A malformed raw-only definition absent from the normalized library returns no
+  custom artifact.</p>
+</li>
+<li>
+<p>[x] <strong>Step 1: Write the malformed-definition characterization test</strong></p>
+</li>
+</ul>
+<p>Construct a raw definition with valid VLNV metadata but duplicate logical
+  ports so <code>normalizeBusLibrary</code> rejects it. Call the current public generator
+  boundary and assert that it produces no bus-definition files:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">library</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">normalizeBusLibrary</span><span class="p">([</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">sourceFile</span><span class="o">:</span><span class="w"> </span><span class="s1">'/workspace/malformed.yml'</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">sourceKind</span><span class="o">:</span><span class="w"> </span><span class="s1">'workspace'</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">definitions</span><span class="o">:</span><span class="w"> </span><span class="kt">malformedDefinitions</span><span class="p">,</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="p">]);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">library</span><span class="p">.</span><span class="nx">definitions</span><span class="p">.</span><span class="nx">MALFORMED</span><span class="p">).</span><span class="nx">toBeUndefined</span><span class="p">();</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">generateCustomBusDefsCurrent</span><span class="p">(</span><span class="nx">ip</span><span class="p">,</span><span class="w"> </span><span class="nx">malformedDefinitions</span><span class="p">,</span><span class="w"> </span><span class="nx">library</span><span class="p">)).</span><span class="nx">toEqual</span><span class="p">({});</span>
+</code></pre></div>
+<p>Rename the existing test-local import alias for the current production export
+  to <code>generateCustomBusDefsCurrent</code>; this RED test deliberately uses the current
+  three-argument API. Step 4 changes the public API to two arguments only after
+  the behavior is green.</p>
+<p>This assertion must fail against the current fallback loop, which resurrects
+  the raw definition.</p>
+<ul>
+<li>[x] <strong>Step 2: Write the valid legacy characterization test</strong></li>
+</ul>
+<p>Normalize a contract-less definition and assert <code>version</code> is <code>null</code>, then
+  assert its bus and abstraction XML files are generated. This test must pass
+  before and after fallback removal.</p>
+<ul>
+<li>[x] <strong>Step 3: Run the focused tests and verify RED for malformed input</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts<span class="w"> </span>-t<span class="w"> </span><span class="s2">"malformed|legacy contract-less"</span><span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: malformed case FAILS because raw lookup still generates files;
+  valid legacy case PASSES.</p>
+<ul>
+<li>[x] <strong>Step 4: Remove the raw fallback</strong></li>
+</ul>
+<p>Delete the <code>Object.values(busDefinitions)</code> scan. Resolve custom metadata only
+  from <code>canonicalizeBusType</code>. Keep the existing native Vivado exclusion.</p>
+<p>First retain the existing outer function signatures long enough to make the
+  behavioral tests green. Then, as a green refactor, remove the now-unused
+  <code>busDefinitions</code> argument from <code>findCustomBusDef</code> and
+  <code>generateCustomBusDefs</code>, updating production and test call sites.</p>
+<ul>
+<li>[x] <strong>Step 5: Inject normalized custom definitions in tests</strong></li>
+</ul>
+<p>Add a local helper based on the existing test sources:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">function</span><span class="w"> </span><span class="nx">libraryWithDefinitions</span><span class="p">(</span><span class="nx">definitions</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionFile</span><span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">NormalizedBusLibrary</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="nx">normalizeBusLibrary</span><span class="p">([</span>
+<span class="w">    </span><span class="p">...</span><span class="nx">builtinBusDefinitionSources</span><span class="p">(),</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">sourceFile</span><span class="o">:</span><span class="w"> </span><span class="s1">'/workspace/test-bus-definitions.yml'</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">sourceKind</span><span class="o">:</span><span class="w"> </span><span class="s1">'workspace'</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">definitions</span><span class="p">,</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">  </span><span class="p">]);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Use it for custom and workspace-sourced definitions instead of relying on the
+  removed raw scan. Native <code>BUS_DEFS</code> remain available for Vivado-native port
+  rendering.</p>
+<ul>
+<li>[x] <strong>Step 6: Verify canonical and malformed behavior</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts<span class="w"> </span>src/test/suite/services/BusLibraryService.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:roundtrip<span class="w"> </span>--<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: valid normalized legacy/custom definitions generate; malformed
+  raw-only definitions do not.</p>
+<hr />
+<h3 id="task-5-remove-the-conformance-middle-man">Task 5: Remove the conformance middle man<a class="headerlink" href="#task-5-remove-the-conformance-middle-man" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Delete: <code>src/services/BusConformanceService.ts</code></li>
+<li>Delete: <code>src/test/suite/services/BusConformanceService.test.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busConformancePolicy.test.ts</code></li>
+<li>Modify: <code>src/commands/ConsistencyCheckCommands.ts</code></li>
+<li>Modify: <code>src/commands/ImportCommands.ts</code></li>
+<li>Modify: <code>src/generator/IpCoreScaffolder.ts</code></li>
+<li>Modify: <code>src/providers/IpCoreSourcePreviewProvider.ts</code></li>
+<li>Modify: <code>src/test/suite/services/AllExamplesConformance.test.ts</code></li>
+<li>Modify: <code>src/test/suite/commands/ConsistencyCheckCommands.test.ts</code></li>
+<li>Modify: <code>src/test/suite/commands/ImportCommands.test.ts</code></li>
+<li>Modify: <code>src/test/suite/providers/IpCoreSourcePreviewProvider.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Consumers import <code>checkBusConformance</code>, <code>blocksGeneration</code>, and
+  <code>blocksImportWrite</code> from <code>src/shared/busConformance.ts</code>.</li>
+<li>
+<p>Consumers import <code>ConformanceReport</code> from <code>src/shared/issues.ts</code> when needed.</p>
+</li>
+<li>
+<p>[x] <strong>Step 1: Establish the enforcement-policy characterization baseline</strong></p>
+</li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusConformanceService.test.ts<span class="w"> </span>src/test/suite/commands/ConsistencyCheckCommands.test.ts<span class="w"> </span>src/test/suite/commands/ImportCommands.test.ts<span class="w"> </span>src/test/suite/providers/IpCoreSourcePreviewProvider.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: PASS before refactoring.</p>
+<ul>
+<li>[x] <strong>Step 2: Move the policy test to the shared boundary</strong></li>
+</ul>
+<p>Preserve the five existing consumer-visible assertions unchanged, but import
+  directly from <code>../../../shared/busConformance</code> and rename the suite to
+  <code>busConformance enforcement policy</code>.</p>
+<ul>
+<li>[x] <strong>Step 3: Update production and test imports</strong></li>
+</ul>
+<p>Replace every <code>services/BusConformanceService</code> import and Jest mock with the
+  shared module. Keep mocks only where command/provider boundary behavior is
+  under test; use the real shared implementation in policy and example tests.</p>
+<ul>
+<li>[x] <strong>Step 4: Delete the middle-man module and obsolete test path</strong></li>
+</ul>
+<p>Remove the 19-line wrapper and the superseded services test file. Verify no
+  references remain:</p>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">"BusConformanceService"</span><span class="w"> </span>src
+</code></pre></div>
+<p>Expected: zero matches.</p>
+<ul>
+<li>[x] <strong>Step 5: Verify enforcement boundaries remain green</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busConformancePolicy.test.ts<span class="w"> </span>src/test/suite/services/AllExamplesConformance.test.ts<span class="w"> </span>src/test/suite/commands/ConsistencyCheckCommands.test.ts<span class="w"> </span>src/test/suite/commands/ImportCommands.test.ts<span class="w"> </span>src/test/suite/providers/IpCoreSourcePreviewProvider.test.ts<span class="w"> </span>src/test/suite/generator/IpCoreScaffolder.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: all enforcement decisions and mock boundaries remain unchanged.</p>
+<hr />
+<h3 id="task-6-make-vendor-suites-feature-evidence">Task 6: Make vendor suites feature evidence<a class="headerlink" href="#task-6-make-vendor-suites-feature-evidence" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>ipcraft-spec/examples/comprehensive_avalon/comprehensive_avalon.ip.yml</code></li>
+<li>Modify: <code>ipcraft-spec/examples/comprehensive_avalon/README.md</code></li>
+<li>Modify: <code>src/test/integration/vivado.test.ts</code></li>
+<li>Modify: <code>src/test/integration/quartus.test.ts</code></li>
+<li>Modify after intentional review:
+  <code>src/test/integration/__snapshots__/snapshots.test.ts.snap</code></li>
+<li>Verify: <code>src/test/integration/roundtrip.test.ts</code></li>
+<li>Verify: <code>src/test/integration/endianness.test.ts</code></li>
+<li>Verify: <code>src/test/integration/snapshots.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li><code>SNK_ST</code> retains data width <code>16</code>, renamed physical ports, and only the
+  existing <code>ready</code> optional port.</li>
+<li>It authors only the non-default symbol width:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nt">interfaceProperties</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">dataBitsPerSymbol</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+</code></pre></div>
+<ul>
+<li>Vivado evidence includes version-one mirror metadata and generated
+  <code>busdef/avalon_st.xml</code> plus <code>busdef/avalon_st_rtl.xml</code>.</li>
+<li>Vivado standard parameters include authored <code>dataBitsPerSymbol: 1</code> and
+  derived <code>symbolsPerBeat: 16</code>, while the IPCraft mirror includes only the
+  authored <code>dataBitsPerSymbol</code> key.</li>
+<li>
+<p>Quartus evidence includes authored <code>dataBitsPerSymbol</code>, derived
+  <code>symbolsPerBeat</code>, and default <code>readyLatency</code> as standard interface properties.</p>
+</li>
+<li>
+<p>[x] <strong>Step 1: Add failing Vivado fixture assertions</strong></p>
+</li>
+</ul>
+<p>In <code>vivado.test.ts</code>, locate
+  <code>examples/comprehensive_avalon_vhdl</code>, read its <code>component.xml</code>, and assert:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">xml</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">'&lt;ipcraft:interfaceContract version="1"&gt;'</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">fs</span><span class="p">.</span><span class="nx">existsSync</span><span class="p">(</span><span class="nx">path</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">xilinxDir</span><span class="p">,</span><span class="w"> </span><span class="s1">'busdef'</span><span class="p">,</span><span class="w"> </span><span class="s1">'avalon_st.xml'</span><span class="p">))).</span><span class="nx">toBe</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">fs</span><span class="p">.</span><span class="nx">existsSync</span><span class="p">(</span><span class="nx">path</span><span class="p">.</span><span class="nx">join</span><span class="p">(</span><span class="nx">xilinxDir</span><span class="p">,</span><span class="w"> </span><span class="s1">'busdef'</span><span class="p">,</span><span class="w"> </span><span class="s1">'avalon_st_rtl.xml'</span><span class="p">))).</span><span class="nx">toBe</span><span class="p">(</span><span class="kc">true</span><span class="p">);</span>
+</code></pre></div>
+<p>Isolate the <code>SNK_ST</code> bus-interface block. Assert its standard parameters
+  contain <code>dataBitsPerSymbol=1</code> and <code>symbolsPerBeat=16</code>; isolate its IPCraft
+  mirror and assert it contains <code>dataBitsPerSymbol=1</code> but not
+  <code>symbolsPerBeat</code>. This fails if resolved defaults are mirrored again.</p>
+<p>Also parse or inspect the <code>SNK_ST</code> port map and assert the physical data port
+  remains <code>asi_rx_bits</code> with width 16. This makes the packet/data-width promise
+  observable. Assert that <code>SRC_ST</code> still maps <code>aso_startofpacket</code>,
+  <code>aso_endofpacket</code>, and the three-bit <code>aso_empty</code> port so the existing packet
+  contract cannot change as incidental fixture churn.</p>
+<ul>
+<li>[x] <strong>Step 2: Add failing Quartus fixture assertions</strong></li>
+</ul>
+<p>In <code>quartus.test.ts</code>, locate the same fixture's <code>_hw.tcl</code> and assert literal
+  properties and unchanged port structure:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">tcl</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">'set_interface_property SNK_ST dataBitsPerSymbol 1'</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">tcl</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">'set_interface_property SNK_ST symbolsPerBeat 16'</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">tcl</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">'set_interface_property SNK_ST readyLatency 0'</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">tcl</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">'add_interface_port SNK_ST asi_rx_bits data Input 16'</span><span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">tcl</span><span class="p">).</span><span class="nx">toContain</span><span class="p">(</span><span class="s1">'add_interface_port SRC_ST aso_empty empty Output 3'</span><span class="p">);</span>
+</code></pre></div>
+<ul>
+<li>[x] <strong>Step 3: Run vendor scripts without external tools and verify RED</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">VIVADO_BIN</span><span class="o">=</span>/nonexistent/ipcraft-vivado<span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>test:integration:vivado<span class="w"> </span>--<span class="w"> </span>--runInBand
+<span class="nv">SKIP_DOCKER</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="nv">QUARTUS_TCLSH_BIN</span><span class="o">=</span><span class="w"> </span><span class="nv">QUARTUS_SH_BIN</span><span class="o">=</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>test:integration:quartus<span class="w"> </span>--<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: the new symbol-property assertions FAIL because the example still
+  uses default eight-bit symbol semantics. The bus-definition existence and
+  unchanged port-structure assertions already PASS as characterization tests.
+  The existing 11 vendor-tool tests remain regression evidence; the failing
+  symbol assertions establish the missing feature evidence.</p>
+<ul>
+<li>[x] <strong>Step 4: Author non-default symbol semantics in the shared example</strong></li>
+</ul>
+<p>Add the exact authored-only <code>interfaceProperties</code> block above to <code>SNK_ST</code>.
+  Update the README to explain that the source demonstrates default byte
+  symbols while the sink authors a one-bit symbol width and derives sixteen
+  symbols per beat. Do not change <code>data: 16</code>, <code>useOptionalPorts</code>, or
+  <code>portNameOverrides</code>.</p>
+<ul>
+<li>[x] <strong>Step 5: Run vendor scripts and verify GREEN</strong></li>
+</ul>
+<p>Repeat the Step 3 commands. Expected: structural assertions PASS and external
+  tool invocations are explicitly skipped.</p>
+<ul>
+<li>[x] <strong>Step 6: Update and audit the shared fixture snapshot</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:integration:snapshots<span class="w"> </span>--<span class="w"> </span>--runInBand<span class="w"> </span>-u
+git<span class="w"> </span>diff<span class="w"> </span>--<span class="w"> </span>src/test/integration/__snapshots__/snapshots.test.ts.snap
+</code></pre></div>
+<p>Accept only comprehensive-Avalon changes caused by the authored sink symbol
+  properties and any mirror-authorship corrections from Task 3. Reject
+  unrelated snapshot churn. Named expected corrections include <code>SRC_ST</code>
+  retaining authored <code>endianness: big</code> and <code>SNK_ST</code> no longer materializing
+  unauthored <code>endianness: little</code> on re-import or in IPCraft mirror metadata.</p>
+<ul>
+<li>[x] <strong>Step 7: Verify the fixture blast radius</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>test:integration:roundtrip<span class="w"> </span>--<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:hdl<span class="w"> </span>--<span class="w"> </span>--runInBand
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.integration.js<span class="w"> </span>--testPathPatterns<span class="o">=</span>endianness<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: round-trip semantics, generated HDL, packet/data widths, and symbol
+  ordering all PASS. No docs screenshot update is expected because the example
+  YAML change does not alter a documented UI screenshot; confirm with
+  <code>git status --short docs/</code>.</p>
+<hr />
+<h3 id="task-7-record-format-boundary-and-revision-decisions">Task 7: Record format-boundary and revision decisions<a class="headerlink" href="#task-7-record-format-boundary-and-revision-decisions" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>docs/architecture/extension-host.md:84-98</code></li>
+<li>Verify: <code>docs/architecture/webview.md:62-81</code></li>
+</ul>
+<p><strong>Interfaces:</strong> Human-facing architecture guidance; no production behavior.</p>
+<ul>
+<li>[x] <strong>Step 1: Add the format-boundary responsibility review</strong></li>
+</ul>
+<p>Document that <code>ComponentXmlParser</code>, <code>HwTclParser</code>, and
+  <code>VivadoComponentXmlGenerator</code> each own one ordered vendor format
+  transformation. Record the enforceable extraction rule verbatim:</p>
+<blockquote>
+<p>Logic with a second consumer belongs in <code>src/shared/busContracts/</code> when it
+neither reads nor emits XML/Tcl syntax nor depends on vendor source ordering.</p>
+</blockquote>
+<p>Explain that syntax traversal, source ordering, and ordered document assembly
+  remain local, while policy and transformations are extracted.</p>
+<ul>
+<li>[x] <strong>Step 2: Record source-result correlation beside revision guidance</strong></li>
+</ul>
+<p>Add one concise paragraph stating that <code>sourceRevision</code> compares exact source
+  text only when applying asynchronous conformance/generation results. It is
+  intentionally separate from and does not advance/filter V-3/V-4 document
+  revisions. Mention the full-text comparison cost so future changes can assess
+  it deliberately.</p>
+<ul>
+<li>[x] <strong>Step 3: Review documentation constraints</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>diff<span class="w"> </span>--check<span class="w"> </span>--<span class="w"> </span>docs/architecture/extension-host.md<span class="w"> </span>docs/architecture/webview.md<span class="w"> </span>docs/superpowers/specs/2026-08-12-bus-interface-audit-remediation-design.md
+rg<span class="w"> </span>-nP<span class="w"> </span><span class="s2">"[\x{1F600}-\x{1F64F}]"</span><span class="w"> </span>docs/architecture/extension-host.md<span class="w"> </span>docs/superpowers/specs/2026-08-12-bus-interface-audit-remediation-design.md<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+</code></pre></div>
+<p>Expected: no whitespace errors and no documentation emojis.</p>
+<hr />
+<h3 id="task-8-final-regression-and-audit-verification">Task 8: Final regression and audit verification<a class="headerlink" href="#task-8-final-regression-and-audit-verification" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Verify all files changed by Tasks 1-7.</li>
+<li>
+<p>Do not stage, commit, or push.</p>
+</li>
+<li>
+<p>[x] <strong>Step 1: Run focused unit suites</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/observedBusPorts.test.ts<span class="w"> </span>src/test/suite/shared/vendorContractProperties.test.ts<span class="w"> </span>src/test/suite/shared/busConformance.test.ts<span class="w"> </span>src/test/suite/shared/busConformancePolicy.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.test.ts<span class="w"> </span>src/test/suite/generator/VivadoComponentXmlGenerator.test.ts<span class="w"> </span>src/test/suite/services/BusLibraryService.test.ts<span class="w"> </span>src/test/suite/webview/useCanvasValidation.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: all focused tests PASS. The existing pending-library test named
+  <code>defers contract-dependent interrupt validation until the bus library arrives</code>
+  remains green; do not add a duplicate.</p>
+<ul>
+<li>[x] <strong>Step 2: Run boundary suites</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/AllExamplesConformance.test.ts<span class="w"> </span>src/test/suite/commands/ConsistencyCheckCommands.test.ts<span class="w"> </span>src/test/suite/commands/ImportCommands.test.ts<span class="w"> </span>src/test/suite/providers/IpCoreSourcePreviewProvider.test.ts<span class="w"> </span>src/test/suite/generator/IpCoreScaffolder.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:roundtrip<span class="w"> </span>--<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:snapshots<span class="w"> </span>--<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: all PASS.</p>
+<ul>
+<li>[x] <strong>Step 3: Run vendor feature suites</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nv">VIVADO_BIN</span><span class="o">=</span>/nonexistent/ipcraft-vivado<span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>test:integration:vivado<span class="w"> </span>--<span class="w"> </span>--runInBand
+<span class="nv">SKIP_DOCKER</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="nv">QUARTUS_TCLSH_BIN</span><span class="o">=</span><span class="w"> </span><span class="nv">QUARTUS_SH_BIN</span><span class="o">=</span><span class="w"> </span>npm<span class="w"> </span>run<span class="w"> </span>test:integration:quartus<span class="w"> </span>--<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: feature assertions PASS. Record external-tool skips accurately; do
+  not represent skipped Vivado/Quartus execution as vendor-tool validation.</p>
+<ul>
+<li>[x] <strong>Step 4: Run static and build gates</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>lint
+npm<span class="w"> </span>run<span class="w"> </span>type-check
+npm<span class="w"> </span>run<span class="w"> </span>compile
+git<span class="w"> </span>diff<span class="w"> </span>--check
+</code></pre></div>
+<p>Expected: all commands exit 0 with no warnings.</p>
+<ul>
+<li>[x] <strong>Step 5: Re-run audit queries</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">"BusConformanceService"</span><span class="w"> </span>src<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">"contract\.version === 1|contract\.version !== 1|contract\.version === null"</span><span class="w"> </span>src/shared/busContracts<span class="w"> </span>src/parser/ComponentXmlParser.ts<span class="w"> </span>src/generator/VivadoComponentXmlGenerator.ts<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span>
+rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">"portWidthOverrides|portNameOverrides|useOptionalPorts"</span><span class="w"> </span>src/parser/ComponentXmlParser.ts<span class="w"> </span>src/parser/HwTclParser.ts
+wc<span class="w"> </span>-l<span class="w"> </span>src/parser/ComponentXmlParser.ts<span class="w"> </span>src/parser/HwTclParser.ts<span class="w"> </span>src/generator/VivadoComponentXmlGenerator.ts
+git<span class="w"> </span>status<span class="w"> </span>--short
+</code></pre></div>
+<p>Expected: no middle-man references, declarative checks use the named
+  predicate, importer reconciliation is delegated to the shared module, and the
+  line counts are reported for reviewer context. Coverage by the architecture
+  note is established by Task 7's documentation review, not by <code>wc -l</code>.</p>
+<ul>
+<li>[x] <strong>Step 6: Report outcomes without committing</strong></li>
+</ul>
+<p>Summarize confirmed audit fixes, rejected findings, exact test results,
+  external-tool skips, snapshot changes, remaining dirty submodule state, and
+  any pre-existing failures. Leave the worktree unstaged for developer review.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
