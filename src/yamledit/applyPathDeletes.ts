@@ -1,6 +1,6 @@
 import { parseDocument } from 'yaml';
-import { detectIndentSeq } from './detectIndentSeq';
-import { collectHexSpellings, restoreHexSpellings } from './restoreHexSpellings';
+import { collectHexSpellings } from './restoreHexSpellings';
+import { serializeEdit } from './serializeEdit';
 
 /**
  * Delete specified paths from YAML text while preserving the formatting
@@ -27,9 +27,5 @@ export function applyPathDeletes(text: string, paths: (string | number)[][]): st
   }
 
   const hexFix = collectHexSpellings(doc);
-  // lineWidth: 0 disables folding so untouched long scalars are not reflowed; see
-  // the matching note in applyPathEdits.ts.
-  let out = doc.toString({ indentSeq: detectIndentSeq(text), lineWidth: 0 });
-  out = restoreHexSpellings(out, hexFix);
-  return out;
+  return serializeEdit(text, doc, hexFix);
 }

@@ -380,4 +380,31 @@ mask: 0xABCD
       expect(result).toBe(text);
     });
   });
+
+  describe('untouched-node formatting (#231)', () => {
+    const text = `name: a
+vlnv: { vendor: example.com, name: x }
+ports: [TLAST]
+description: >-
+  First line
+  second line.
+`;
+
+    it('applyPathEdits keeps unrelated flow collections and folded scalars', () => {
+      expect(applyPathEdits(text, [{ path: ['name'], value: 'b' }])).toBe(
+        text.replace('name: a', 'name: b')
+      );
+    });
+
+    it('applyPathDeletes keeps unrelated flow collections and folded scalars', () => {
+      const withExtra = text + 'extra: 1\n';
+      expect(applyPathDeletes(withExtra, [['extra']])).toBe(text);
+    });
+
+    it('applyPathEdits edits a value inside a flow collection', () => {
+      const out = applyPathEdits(text, [{ path: ['ports', 0], value: 'TVALID' }]);
+      expect(parseDocument(out).toJS()).toMatchObject({ ports: ['TVALID'], name: 'a' });
+      expect(out).toContain('First line\n  second line.');
+    });
+  });
 });

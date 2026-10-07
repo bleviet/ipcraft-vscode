@@ -1,6 +1,6 @@
 import { parseDocument, isScalar } from 'yaml';
-import { detectIndentSeq } from './detectIndentSeq';
-import { collectHexSpellings, restoreHexSpellings } from './restoreHexSpellings';
+import { collectHexSpellings } from './restoreHexSpellings';
+import { serializeEdit } from './serializeEdit';
 import { mergeNode } from './mergeNode';
 
 export interface PathEdit {
@@ -74,12 +74,5 @@ export function applyPathEdits(text: string, edits: PathEdit[]): string {
   if (!changed) {
     return text;
   }
-  // lineWidth: 0 disables line folding. The pre-V-2 serializer used the `yaml`
-  // default (80), which silently re-wraps any scalar longer than 80 columns —
-  // reflowing untouched long descriptions and breaking the "one edit, one changed
-  // line" goal. Disabling folding keeps every untouched line intact (pinned by the
-  // "long untouched line" test in yamledit.test.ts).
-  let out = doc.toString({ indentSeq: detectIndentSeq(text), lineWidth: 0 });
-  out = restoreHexSpellings(out, hexFix);
-  return out;
+  return serializeEdit(text, doc, hexFix);
 }

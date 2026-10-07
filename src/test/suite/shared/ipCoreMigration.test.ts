@@ -1,5 +1,5 @@
 import * as yaml from 'yaml';
-import { migrateIpCoreYaml } from '../../../shared/ipCoreFormat';
+import { IP_CORE_FORMAT_VERSION, migrateIpCoreYaml } from '../../../shared/ipCoreFormat';
 import { BUS_VLNV } from '../../../shared/busVlnv';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
 
@@ -276,5 +276,32 @@ busInterfaces:
       expect(result.text).toContain('type: acme.busif.unknown.1.0');
       expect(result.text).toContain(`type: ${BUS_VLNV.AXI_STREAM}`);
     });
+  });
+});
+
+describe('migrateIpCoreYaml untouched-node formatting (#231)', () => {
+  const body = `vlnv: { vendor: example.com, library: ip, name: my_ip, version: '1.0' }
+description: >-
+  First line of a long description
+  continued on a second line.
+busInterfaces:
+  - name: s_axis_in
+    type: ipcraft:busif:axi_stream:1.0
+    mode: slave
+    useOptionalPorts: [TLAST]
+`;
+
+  it('changes only the apiVersion line', () => {
+    const input = `apiVersion: '1.0'\n${body}`;
+    const result = migrateIpCoreYaml(input, library);
+    expect(result.text).toBe(input.replace("'1.0'", `'${IP_CORE_FORMAT_VERSION}'`));
+  });
+
+  it('keeps the rest byte-identical when apiVersion is inserted', () => {
+    const result = migrateIpCoreYaml(body, library);
+    const [vlnvLine, ...rest] = body.split('\n');
+    expect(result.text).toBe(
+      [vlnvLine, `apiVersion: '${IP_CORE_FORMAT_VERSION}'`, ...rest].join('\n')
+    );
   });
 });

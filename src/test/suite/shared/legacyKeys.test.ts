@@ -187,3 +187,20 @@ resets:
     expect(renameLegacyKeys(text, 'ipCore')).toEqual({ text, renamedCount: 0 });
   });
 });
+
+describe('renameLegacyKeys untouched-node formatting (#231)', () => {
+  it('leaves unrelated flow sequences and folded scalars unchanged', () => {
+    const text = `description: >-
+  First line
+  second line.
+busInterfaces:
+  - name: s_axis_in
+    physical_prefix: s_
+    useOptionalPorts: [TLAST]
+    absentPorts: [A]
+`;
+    const result = renameLegacyKeys(text, 'ipCore');
+    expect(result.renamedCount).toBe(1);
+    expect(result.text).toBe(text.replace('physical_prefix', 'physicalPrefix'));
+  });
+});

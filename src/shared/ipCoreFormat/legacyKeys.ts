@@ -1,5 +1,5 @@
 import * as yaml from 'yaml';
-import { collectHexSpellings, detectIndentSeq, restoreHexSpellings } from '../../yamledit';
+import { collectHexSpellings, serializeEdit } from '../../yamledit';
 
 /**
  * Single source of truth for legacy snake_case spellings of `.ip.yml` / `.mm.yml` keys.
@@ -155,10 +155,7 @@ export function renameLegacyKeys(
     return { text, renamedCount };
   }
   return {
-    text: restoreHexSpellings(
-      doc.toString({ indentSeq: detectIndentSeq(text), lineWidth: 0 }),
-      hexFix
-    ),
+    text: serializeEdit(text, doc, hexFix),
     renamedCount,
   };
 }

@@ -1,5 +1,5 @@
 import * as yaml from 'yaml';
-import { collectHexSpellings, detectIndentSeq, restoreHexSpellings } from '../../yamledit';
+import { collectHexSpellings, serializeEdit } from '../../yamledit';
 import {
   applyYamlMutation,
   canonicalizeParsedIpCore,
@@ -49,8 +49,7 @@ function stampApiVersion(text: string): string {
   const doc: yaml.Document = yaml.parseDocument(text);
   const root = doc.contents;
   const hexFix = collectHexSpellings(doc);
-  const serialize = (): string =>
-    restoreHexSpellings(doc.toString({ indentSeq: detectIndentSeq(text), lineWidth: 0 }), hexFix);
+  const serialize = (): string => serializeEdit(text, doc, hexFix);
   if (!yaml.isMap(root)) {
     throw new Error('Invalid YAML: must be an object');
   }
