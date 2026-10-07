@@ -1,6 +1,6 @@
 import { applyPathEdits, applyPathDeletes } from '../../yamledit';
 import type { BusInterface } from '../../domain/ipcore.types';
-import { canonicalizeBusType } from './canonicalize';
+import { canonicalizeBusType, canonicalizeDottedBusType } from './canonicalize';
 import { canonicalizeBusInterfacePorts } from './polarity';
 import type { BusInterfacePortMutation, NormalizedBusLibrary } from './types';
 
@@ -22,10 +22,16 @@ export function canonicalizeParsedIpCore(
       return rawBus;
     }
 
-    const busInterface = rawBus as BusInterface;
-    const match = canonicalizeBusType(String(busInterface.type ?? ''), library);
+    let busInterface = rawBus as BusInterface;
+    const type = String(busInterface.type ?? '');
+    let match = canonicalizeBusType(type, library);
     if (!match) {
-      return rawBus;
+      match = canonicalizeDottedBusType(type, library);
+      if (!match) {
+        return rawBus;
+      }
+      busInterface = { ...busInterface, type: match.canonicalVlnv };
+      mutations.push([['busInterfaces', index, 'type'], match.canonicalVlnv]);
     }
 
     const canonicalized = canonicalizeBusInterfacePorts(match.contract, busInterface, index);
@@ -37,6 +43,31 @@ export function canonicalizeParsedIpCore(
     ipCore: { ...data, busInterfaces },
     mutations,
   };
+}
+
+/** Type rewrites for bus interfaces spelled with a dotted VLNV that resolves to a contract. */
+export function dottedBusTypeMutations(
+  data: Record<string, unknown>,
+  library: NormalizedBusLibrary
+): BusInterfacePortMutation[] {
+  if (!Array.isArray(data.busInterfaces)) {
+    return [];
+  }
+  const mutations: BusInterfacePortMutation[] = [];
+  (data.busInterfaces as unknown[]).forEach((rawBus, index) => {
+    if (!rawBus || typeof rawBus !== 'object' || Array.isArray(rawBus)) {
+      return;
+    }
+    const type = (rawBus as BusInterface).type;
+    if (canonicalizeBusType(type, library)) {
+      return;
+    }
+    const match = canonicalizeDottedBusType(type, library);
+    if (match) {
+      mutations.push([['busInterfaces', index, 'type'], match.canonicalVlnv]);
+    }
+  });
+  return mutations;
 }
 
 export function applyYamlMutation(

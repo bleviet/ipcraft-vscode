@@ -210,4 +210,71 @@ busInterfaces:
     expect(result.text).toContain("apiVersion: '1.1'");
     expect(result.text).not.toMatch(/file_sets|physical_prefix|associated_clock/);
   });
+
+  describe('dotted bus type VLNVs', () => {
+    const dottedCore = (
+      types: [string, string],
+      apiVersion = '1.0'
+    ): string => `apiVersion: '${apiVersion}'
+vlnv:
+  vendor: acme
+  library: demo
+  name: core
+  version: 1.0.0
+busInterfaces:
+  - name: S_AXI
+    type: ${types[0]} # bus type
+    mode: slave
+    memoryMapRef: MY_MAP
+  - name: s_axis_in
+    type: ${types[1]}
+    mode: slave
+`;
+
+    it('rewrites dotted types to the canonical colon form and stays idempotent', () => {
+      const result = migrateIpCoreYaml(
+        dottedCore(['ipcraft.busif.axi4_lite.1.0', 'ipcraft.busif.axi_stream.1.0']),
+        library
+      );
+      const buses = (yaml.parse(result.text) as { busInterfaces: Array<{ type: string }> })
+        .busInterfaces;
+      expect(buses.map((b) => b.type)).toEqual([BUS_VLNV.AXI4_LITE, BUS_VLNV.AXI_STREAM]);
+      expect(result.mutationCount).toBe(3);
+      expect(result.text).toContain('# bus type');
+
+      const again = migrateIpCoreYaml(result.text, library);
+      expect(again.changed).toBe(false);
+      expect(again.text).toBe(result.text);
+    });
+
+    it('rewrites dotted types in a file already at the latest version', () => {
+      const result = migrateIpCoreYaml(
+        dottedCore(['ipcraft.busif.axi4_lite.1.0', 'ipcraft.busif.axi_stream.1.0'], '1.1'),
+        library
+      );
+      const buses = (yaml.parse(result.text) as { busInterfaces: Array<{ type: string }> })
+        .busInterfaces;
+      expect(buses.map((b) => b.type)).toEqual([BUS_VLNV.AXI4_LITE, BUS_VLNV.AXI_STREAM]);
+      expect(result).toMatchObject({
+        changed: true,
+        fromVersion: '1.1',
+        toVersion: '1.1',
+        mutationCount: 2,
+      });
+      expect(result.text).toContain('# bus type');
+
+      const again = migrateIpCoreYaml(result.text, library);
+      expect(again.changed).toBe(false);
+      expect(again.text).toBe(result.text);
+    });
+
+    it('leaves a dotted type unchanged when its colon form does not resolve', () => {
+      const result = migrateIpCoreYaml(
+        dottedCore(['acme.busif.unknown.1.0', 'ipcraft.busif.axi_stream.1.0']),
+        library
+      );
+      expect(result.text).toContain('type: acme.busif.unknown.1.0');
+      expect(result.text).toContain(`type: ${BUS_VLNV.AXI_STREAM}`);
+    });
+  });
 });

@@ -169,4 +169,32 @@ address_blocks:
     expect(result).toMatchObject({ status: 'upgraded', fromVersion: '1.1', toVersion: '1.1' });
     expect(fs.readFileSync(file, 'utf-8')).toBe("apiVersion: '1.1'\nfileSets: []\n");
   });
+
+  describe('dotted bus types in a current-version file', () => {
+    const DOTTED = `apiVersion: '1.1'
+busInterfaces:
+  - name: S_AXI
+    type: ipcraft.busif.axi4_lite.1.0
+    mode: slave
+`;
+
+    it('flags it with --check without writing', async () => {
+      const file = write('dotted.ip.yml', DOTTED);
+      const [result] = await runCliMigrate({ paths: [file], check: true }, resourceRoots);
+      expect(result).toEqual({
+        path: file,
+        status: 'needsUpgrade',
+        fromVersion: '1.1',
+        toVersion: '1.1',
+      });
+      expect(fs.readFileSync(file, 'utf-8')).toBe(DOTTED);
+    });
+
+    it('writes the canonical colon type', async () => {
+      const file = write('dotted.ip.yml', DOTTED);
+      const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
+      expect(result).toMatchObject({ status: 'upgraded', fromVersion: '1.1', toVersion: '1.1' });
+      expect(fs.readFileSync(file, 'utf-8')).toContain(`type: ${BUS_VLNV.AXI4_LITE}`);
+    });
+  });
 });

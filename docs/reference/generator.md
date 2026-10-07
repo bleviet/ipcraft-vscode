@@ -302,7 +302,10 @@ an `.ip.yml` file the conversion runs together with the version upgrade, and a
 file that is already at the latest version is still rewritten when it has
 legacy keys. If a node has both spellings, the camelCase key wins and the
 legacy key is removed. A `.mm.yml` file has no `apiVersion`, so only keys are
-renamed. The VS Code Upgrade command handles `.ip.yml` files the same way.
+renamed. In an `.ip.yml` file, `ipcraft migrate` also rewrites a dot-separated
+bus `type` such as `ipcraft.busif.axi4_lite.1.0` (the spelling the IPCraft
+Python CLI uses) to its colon VLNV `ipcraft:busif:axi4_lite:1.0` when that
+VLNV resolves in the active bus library, at any format version. The VS Code Upgrade command handles `.ip.yml` files the same way.
 
 ## Contributor implementation
 

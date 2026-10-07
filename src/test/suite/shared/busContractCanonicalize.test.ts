@@ -1,10 +1,17 @@
 import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
 import {
   canonicalizeBusType,
+  dottedVlnvToColon,
   isConsumerInterface,
   normalizeBusLibrary,
   normalizeInterfaceMode,
 } from '../../../shared/busContracts';
+import {
+  canonicalizeParsedIpCore,
+  dottedBusTypeMutations,
+} from '../../../shared/busContracts/ipCoreCanonicalize';
+import { BUS_VLNV } from '../../../shared/busVlnv';
+import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 const definitions: BusDefinitionFile = {
   TEST: {
@@ -126,5 +133,52 @@ describe('interface mode normalization', () => {
     expect(isConsumerInterface(contract, 'slave')).toBe(true);
     expect(isConsumerInterface(contract, 'source')).toBe(false);
     expect(isConsumerInterface(contract, 'unknown')).toBe(false);
+  });
+});
+
+describe('dottedVlnvToColon', () => {
+  it('joins the remaining parts as the version', () => {
+    expect(dottedVlnvToColon(' ipcraft.busif.axi4_lite.1.0 ')).toBe('ipcraft:busif:axi4_lite:1.0');
+  });
+
+  it.each(['ipcraft:busif:axi4_lite:1.0', 'ipcraft.busif.axi4_lite', 'ipcraft..axi4_lite.1.0'])(
+    'returns null for %s',
+    (type) => {
+      expect(dottedVlnvToColon(type)).toBeNull();
+    }
+  );
+});
+
+describe('canonicalizeParsedIpCore dotted types', () => {
+  it('records a type mutation and returns the canonical type', () => {
+    const result = canonicalizeParsedIpCore(
+      { busInterfaces: [{ name: 'bus', type: 'ipcraft.busif.axi_stream.1.0', mode: 'slave' }] },
+      builtinBusLibrary()
+    );
+    expect(result.mutations).toContainEqual([['busInterfaces', 0, 'type'], BUS_VLNV.AXI_STREAM]);
+    expect((result.ipCore.busInterfaces as Array<{ type: string }>)[0].type).toBe(
+      BUS_VLNV.AXI_STREAM
+    );
+  });
+});
+
+describe('dottedBusTypeMutations', () => {
+  it('rewrites only dotted types that resolve', () => {
+    const mutations = dottedBusTypeMutations(
+      {
+        busInterfaces: [
+          { name: 'a', type: 'ipcraft.busif.axi_stream.1.0' },
+          { name: 'b', type: BUS_VLNV.AXI4_LITE },
+          { name: 'c', type: 'acme.busif.unknown.1.0' },
+          'not-an-object',
+        ],
+      },
+      builtinBusLibrary()
+    );
+    expect(mutations).toEqual([[['busInterfaces', 0, 'type'], BUS_VLNV.AXI_STREAM]]);
+  });
+
+  it('returns nothing without a busInterfaces array', () => {
+    expect(dottedBusTypeMutations({}, builtinBusLibrary())).toEqual([]);
   });
 });

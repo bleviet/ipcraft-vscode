@@ -1,6 +1,10 @@
 import * as yaml from 'yaml';
 import { collectHexSpellings, detectIndentSeq, restoreHexSpellings } from '../../yamledit';
-import { applyYamlMutation, canonicalizeParsedIpCore } from '../busContracts/ipCoreCanonicalize';
+import {
+  applyYamlMutation,
+  canonicalizeParsedIpCore,
+  dottedBusTypeMutations,
+} from '../busContracts/ipCoreCanonicalize';
 import type { NormalizedBusLibrary } from '../busContracts/types';
 import { renameLegacyKeys } from './legacyKeys';
 import {
@@ -69,7 +73,10 @@ export interface IpCoreMigrationResult {
   changed: boolean;
   fromVersion: IpCoreFormatVersion;
   toVersion: IpCoreFormatVersion;
-  /** Legacy keys renamed and content changes made by the steps, plus one for stamping `apiVersion`. */
+  /**
+   * Legacy keys renamed, dotted bus types rewritten (at any version) and content changes made by
+   * the steps, plus one for stamping `apiVersion`.
+   */
   mutationCount: number;
 }
 
@@ -83,9 +90,10 @@ export function isBehindLatestFormat(version: IpCoreFormatVersion): boolean {
 
 /**
  * Upgrade the whole document to the latest format version in one format-preserving pass:
- * rename legacy snake_case keys, run the steps from the file's version, then set
- * `apiVersion`. A file already at the latest version only has its legacy keys renamed; a
- * newer or unknown version throws.
+ * rename legacy snake_case keys, rewrite dotted bus types (`ipcraft.busif.axi4_lite.1.0`) to
+ * their canonical colon VLNV, run the steps from the file's version, then set `apiVersion`.
+ * The renames and rewrites apply at any version, so a file already at the latest version only
+ * gets those; a newer or unknown version throws.
  */
 export function migrateIpCoreYaml(
   text: string,
@@ -98,26 +106,33 @@ export function migrateIpCoreYaml(
 
   // Rename first so the version steps (and the version read) see canonical camelCase.
   const renamed = renameLegacyKeys(text, 'ipCore');
-  const parsed = renamed.renamedCount > 0 ? (yaml.parse(renamed.text) as unknown) : original;
+  let normalizedText = renamed.text;
+  let normalized = renamed.renamedCount > 0 ? (yaml.parse(normalizedText) as unknown) : original;
+  const dotted = dottedBusTypeMutations(normalized as Record<string, unknown>, library);
+  if (dotted.length > 0) {
+    normalizedText = dotted.reduce(applyYamlMutation, normalizedText);
+    normalized = yaml.parse(normalizedText) as unknown;
+  }
+  const normalizedCount = renamed.renamedCount + dotted.length;
 
-  const read = readIpCoreFormatVersion(parsed as Record<string, unknown>);
+  const read = readIpCoreFormatVersion(normalized as Record<string, unknown>);
   if (!read.ok) {
     throw new Error(read.message);
   }
   const fromVersion = read.version;
   if (!isBehindLatestFormat(fromVersion)) {
     return {
-      text: renamed.text,
-      changed: renamed.renamedCount > 0,
+      text: normalizedText,
+      changed: normalizedCount > 0,
       fromVersion,
       toVersion: fromVersion,
-      mutationCount: renamed.renamedCount,
+      mutationCount: normalizedCount,
     };
   }
 
-  let migrated = renamed.text;
-  let mutationCount = renamed.renamedCount;
-  let data = parsed as Record<string, unknown>;
+  let migrated = normalizedText;
+  let mutationCount = normalizedCount;
+  let data = normalized as Record<string, unknown>;
   for (const step of MIGRATION_STEPS.slice(IP_CORE_FORMAT_VERSIONS.indexOf(fromVersion))) {
     const result = step.migrate(migrated, data, library);
     migrated = result.text;

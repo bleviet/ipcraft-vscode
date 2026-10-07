@@ -21,6 +21,23 @@ function parseVlnv(value: string): ParsedVlnv | null {
   };
 }
 
+/**
+ * Files written for the IPCraft Python CLI spell bus types with dots
+ * (`ipcraft.busif.axi4_lite.1.0`). This is only a migration input: it maps the
+ * spelling to a colon VLNV, while `canonicalizeBusType` stays strict.
+ */
+export function dottedVlnvToColon(type: string): string | null {
+  const trimmed = type.trim();
+  if (trimmed.includes(':')) {
+    return null;
+  }
+  const parts = trimmed.split('.');
+  if (parts.length < 4 || parts.slice(0, 3).some((part) => part.length === 0)) {
+    return null;
+  }
+  return `${parts[0]}:${parts[1]}:${parts[2]}:${parts.slice(3).join('.')}`;
+}
+
 function toMatch(
   contract: BusDefinitionContract,
   matchedBy: CanonicalBusMatch['matchedBy']
@@ -112,4 +129,16 @@ export function isConsumerInterface(contract: BusDefinitionContract, mode: unkno
  */
 export function isMemoryMappedConsumer(contract: BusDefinitionContract, mode: unknown): boolean {
   return contract.interfaceKind === 'memoryMapped' && isConsumerInterface(contract, mode);
+}
+
+/** The contract a dotted-spelling type (`ipcraft.busif.axi4_lite.1.0`) resolves to, if any. */
+export function canonicalizeDottedBusType(
+  type: unknown,
+  library: NormalizedBusLibrary
+): CanonicalBusMatch | null {
+  if (typeof type !== 'string') {
+    return null;
+  }
+  const colonType = dottedVlnvToColon(type);
+  return colonType ? canonicalizeBusType(colonType, library) : null;
 }
