@@ -33,6 +33,18 @@ export function validateBusInterfaces(
         path: ['busInterfaces', busIndex, 'memoryMapRef'],
         message: `Interface '${busInterface.name}' cannot expose a memory map in its current type and mode.`,
       });
+      return;
+    }
+    if (input.memoryMapNames && !input.memoryMapNames.includes(busInterface.memoryMapRef)) {
+      diagnostics.push({
+        code: 'BUS_MEMORY_MAP_UNKNOWN',
+        ruleId: 'BUS_MEMORY_MAP_UNKNOWN',
+        severity: 'error',
+        state: 'invalid',
+        interfaceName: busInterface.name,
+        path: ['busInterfaces', busIndex, 'memoryMapRef'],
+        message: `Interface '${busInterface.name}' references unknown memory map '${busInterface.memoryMapRef}'.`,
+      });
     }
   });
 

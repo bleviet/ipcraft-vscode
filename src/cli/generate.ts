@@ -98,7 +98,10 @@ export async function runCliGenerate(
     buildGenerateOptions(args)
   );
   if (!result.success) {
-    return { success: false, error: result.error };
+    return {
+      success: false,
+      error: [result.error, ...(result.issues ?? []).map((issue) => issue.message)].join('\n'),
+    };
   }
 
   return {

@@ -3,6 +3,7 @@ import { collectHexSpellings, serializeEdit } from '../../yamledit';
 import {
   applyYamlMutation,
   canonicalizeParsedIpCore,
+  danglingMemoryMapRefMutations,
   dottedBusTypeMutations,
 } from '../busContracts/ipCoreCanonicalize';
 import type { NormalizedBusLibrary } from '../busContracts/types';
@@ -73,7 +74,7 @@ export interface IpCoreMigrationResult {
   fromVersion: IpCoreFormatVersion;
   toVersion: IpCoreFormatVersion;
   /**
-   * Legacy keys renamed, dotted bus types rewritten (at any version) and content changes made by
+   * Legacy keys renamed, dotted bus types rewritten and a dangling memory map ref repaired (at any version) and content changes made by
    * the steps, plus one for stamping `apiVersion`.
    */
   mutationCount: number;
@@ -92,11 +93,13 @@ export function isBehindLatestFormat(version: IpCoreFormatVersion): boolean {
  * rename legacy snake_case keys, rewrite dotted bus types (`ipcraft.busif.axi4_lite.1.0`) to
  * their canonical colon VLNV, run the steps from the file's version, then set `apiVersion`.
  * The renames and rewrites apply at any version, so a file already at the latest version only
- * gets those; a newer or unknown version throws.
+ * gets those; a newer or unknown version throws. When `memoryMapNames` is given, a single
+ * dangling `memoryMapRef` is repointed at the only defined map (omitted names skip the repair).
  */
 export function migrateIpCoreYaml(
   text: string,
-  library: NormalizedBusLibrary
+  library: NormalizedBusLibrary,
+  memoryMapNames?: readonly string[]
 ): IpCoreMigrationResult {
   const original = yaml.parse(text) as unknown;
   if (!original || typeof original !== 'object' || Array.isArray(original)) {
@@ -112,7 +115,14 @@ export function migrateIpCoreYaml(
     normalizedText = dotted.reduce(applyYamlMutation, normalizedText);
     normalized = yaml.parse(normalizedText) as unknown;
   }
-  const normalizedCount = renamed.renamedCount + dotted.length;
+  const repair = memoryMapNames
+    ? danglingMemoryMapRefMutations(normalized as Record<string, unknown>, library, memoryMapNames)
+    : [];
+  if (repair.length > 0) {
+    normalizedText = repair.reduce(applyYamlMutation, normalizedText);
+    normalized = yaml.parse(normalizedText) as unknown;
+  }
+  const normalizedCount = renamed.renamedCount + dotted.length + repair.length;
 
   const read = readIpCoreFormatVersion(normalized as Record<string, unknown>);
   if (!read.ok) {

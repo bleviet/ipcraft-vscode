@@ -7,6 +7,8 @@ import {
   migrateMemoryMapYaml,
   type IpCoreFormatVersion,
 } from '../shared/ipCoreFormat';
+import { normalizeMemoryMap } from '../domain/parse';
+import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImports';
 import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
 import type { IpCoreDataNode } from '../services/ImportResolver';
 import type { ResourceRoots } from '../services/ResourceRoots';
@@ -76,7 +78,17 @@ async function migrateFile(
     vscode.Uri.file(absolutePath),
     ipCoreData as IpCoreDataNode
   );
-  const result = migrateIpCoreYaml(text, library);
+  // A failed import leaves the set of map names unknown, so skip the ref repair entirely.
+  const { resolved, errors } = await resolveMemoryMapImports({
+    memoryMaps: (ipCoreData as Record<string, unknown>).memoryMaps,
+    baseDir: path.dirname(absolutePath),
+    reader: { readText: (absPath) => fs.readFile(absPath, 'utf8') },
+  });
+  const result = migrateIpCoreYaml(
+    text,
+    library,
+    errors.length > 0 ? undefined : resolved.map((rawMap) => normalizeMemoryMap(rawMap).name)
+  );
   if (!result.changed) {
     return { path: filePath, status: 'upToDate', version: result.toVersion };
   }

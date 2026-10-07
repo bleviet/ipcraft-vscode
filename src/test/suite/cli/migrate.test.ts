@@ -197,4 +197,45 @@ busInterfaces:
       expect(fs.readFileSync(file, 'utf-8')).toContain(`type: ${BUS_VLNV.AXI4_LITE}`);
     });
   });
+
+  describe('dangling memoryMapRef', () => {
+    const DANGLING = `apiVersion: '1.1'
+busInterfaces:
+  - name: S_AXI
+    type: ${BUS_VLNV.AXI4_LITE}
+    mode: slave
+    memoryMapRef: FOO
+memoryMaps:
+  import: csr.mm.yml
+`;
+    const setup = (): string => {
+      write('csr.mm.yml', '- name: CSR\n  addressBlocks: []\n');
+      return write('dangling.ip.yml', DANGLING);
+    };
+
+    it('flags it with --check without writing', async () => {
+      const file = setup();
+      const [result] = await runCliMigrate({ paths: [file], check: true }, resourceRoots);
+      expect(result).toMatchObject({ status: 'needsUpgrade' });
+      expect(fs.readFileSync(file, 'utf-8')).toBe(DANGLING);
+    });
+
+    it('skips the repair when a memory map import fails to resolve', async () => {
+      const text = DANGLING.replace('memoryMapRef: FOO', 'memoryMapRef: CSR').replace(
+        'csr.mm.yml',
+        'missing.mm.yml'
+      );
+      const file = write('missing.ip.yml', text);
+      const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
+      expect(result).toMatchObject({ status: 'upToDate' });
+      expect(fs.readFileSync(file, 'utf-8')).toBe(text);
+    });
+
+    it('rewrites the ref to the only map', async () => {
+      const file = setup();
+      const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
+      expect(result).toMatchObject({ status: 'upgraded' });
+      expect(fs.readFileSync(file, 'utf-8')).toContain('memoryMapRef: CSR');
+    });
+  });
 });

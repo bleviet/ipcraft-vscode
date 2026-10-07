@@ -183,6 +183,8 @@ export interface ValidateBusInterfacesInput {
   busInterfaces: readonly BusInterface[];
   parameters: readonly Parameter[];
   library: NormalizedBusLibrary;
+  /** Names of the defined/imported memory maps; when omitted the reference is not checked (callers without resolved imports). */
+  memoryMapNames?: readonly string[];
 }
 
 export interface BusConformanceDiagnostic {

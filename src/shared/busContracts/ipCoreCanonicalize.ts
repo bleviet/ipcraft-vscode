@@ -1,6 +1,10 @@
 import { applyPathEdits, applyPathDeletes } from '../../yamledit';
 import type { BusInterface } from '../../domain/ipcore.types';
-import { canonicalizeBusType, canonicalizeDottedBusType } from './canonicalize';
+import {
+  canonicalizeBusType,
+  canonicalizeDottedBusType,
+  isMemoryMappedConsumer,
+} from './canonicalize';
 import { canonicalizeBusInterfacePorts } from './polarity';
 import type { BusInterfacePortMutation, NormalizedBusLibrary } from './types';
 
@@ -68,6 +72,39 @@ export function dottedBusTypeMutations(
     }
   });
   return mutations;
+}
+
+/**
+ * Repoint a dangling `memoryMapRef` at the only defined memory map. Unambiguous only when exactly
+ * one map exists and exactly one bus interface names a missing map and is a memory-mapped slave.
+ */
+export function danglingMemoryMapRefMutations(
+  data: Record<string, unknown>,
+  library: NormalizedBusLibrary,
+  memoryMapNames: readonly string[]
+): BusInterfacePortMutation[] {
+  if (memoryMapNames.length !== 1 || !Array.isArray(data.busInterfaces)) {
+    return [];
+  }
+  const dangling: number[] = [];
+  (data.busInterfaces as unknown[]).forEach((rawBus, index) => {
+    if (!rawBus || typeof rawBus !== 'object' || Array.isArray(rawBus)) {
+      return;
+    }
+    const { memoryMapRef } = rawBus as BusInterface;
+    if (typeof memoryMapRef === 'string' && !memoryMapNames.includes(memoryMapRef)) {
+      dangling.push(index);
+    }
+  });
+  if (dangling.length !== 1) {
+    return [];
+  }
+  const bus = (data.busInterfaces as BusInterface[])[dangling[0]];
+  const match = canonicalizeBusType(bus.type, library);
+  if (!match || !isMemoryMappedConsumer(match.contract, bus.mode)) {
+    return [];
+  }
+  return [[['busInterfaces', dangling[0], 'memoryMapRef'], memoryMapNames[0]]];
 }
 
 export function applyYamlMutation(

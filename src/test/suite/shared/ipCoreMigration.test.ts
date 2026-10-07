@@ -279,6 +279,43 @@ busInterfaces:
   });
 });
 
+describe('migrateIpCoreYaml dangling memoryMapRef', () => {
+  const bus = (name: string, ref: string, type: string = BUS_VLNV.AXI4_LITE): string =>
+    `  - name: ${name}\n    type: ${type}\n    mode: slave\n    memoryMapRef: ${ref}\n`;
+  const core = (...buses: string[]): string =>
+    `apiVersion: '1.1'\nbusInterfaces:\n${buses.join('')}`;
+  const refs = (text: string): string[] =>
+    (yaml.parse(text) as { busInterfaces: Array<{ memoryMapRef: string }> }).busInterfaces.map(
+      (b) => b.memoryMapRef
+    );
+
+  it('repoints the only dangling ref at the only map, at the latest version, idempotently', () => {
+    const result = migrateIpCoreYaml(core(bus('S_AXI', 'FOO')), library, ['CSR']);
+    expect(refs(result.text)).toEqual(['CSR']);
+    expect(result).toMatchObject({ changed: true, fromVersion: '1.1', mutationCount: 1 });
+
+    const again = migrateIpCoreYaml(result.text, library, ['CSR']);
+    expect(again.changed).toBe(false);
+    expect(again.text).toBe(result.text);
+  });
+
+  it('leaves ambiguous or unchecked refs alone', () => {
+    const single = core(bus('S_AXI', 'FOO'));
+    expect(migrateIpCoreYaml(single, library, ['A', 'B'])).toMatchObject({
+      text: single,
+      changed: false,
+    });
+    expect(migrateIpCoreYaml(single, library)).toMatchObject({ text: single, changed: false });
+    const two = core(bus('S_A', 'FOO'), bus('S_B', 'BAR'));
+    expect(migrateIpCoreYaml(two, library, ['CSR']).text).toBe(two);
+  });
+
+  it('does not repair a ref on a non memory-mapped interface', () => {
+    const text = core(bus('s_axis', 'FOO', BUS_VLNV.AXI_STREAM));
+    expect(migrateIpCoreYaml(text, library, ['CSR']).text).toBe(text);
+  });
+});
+
 describe('migrateIpCoreYaml untouched-node formatting (#231)', () => {
   const body = `vlnv: { vendor: example.com, library: ip, name: my_ip, version: '1.0' }
 description: >-

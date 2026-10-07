@@ -15,7 +15,8 @@ export interface BusConformanceInput {
 
 export function checkBusConformance(
   ipCore: BusConformanceInput,
-  library: NormalizedBusLibrary
+  library: NormalizedBusLibrary,
+  memoryMapNames?: readonly string[]
 ): ConformanceReport {
   // Documents reach this shared boundary through generated domain types, the
   // tolerant generator model, and the legacy webview model. Runtime schema
@@ -23,7 +24,7 @@ export function checkBusConformance(
   // adaptation here instead of repeating type erosion at every caller.
   const busInterfaces = (ipCore.busInterfaces ?? []) as readonly BusInterface[];
   const parameters = (ipCore.parameters ?? []) as readonly Parameter[];
-  const diagnostics = validateBusInterfaces({ busInterfaces, parameters, library });
+  const diagnostics = validateBusInterfaces({ busInterfaces, parameters, library, memoryMapNames });
   const unresolvedIssues: IpcraftIssue[] = [];
   let hasBlockingUnresolvedType = false;
 

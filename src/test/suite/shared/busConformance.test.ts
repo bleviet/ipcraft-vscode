@@ -5,6 +5,7 @@ import {
   resolveBusInterface,
   validateBusInterfaces,
 } from '../../../shared/busContracts';
+import { blocksGeneration, checkBusConformance } from '../../../shared/busConformance';
 import { builtinBusLibrary } from '../../helpers/busLibrary';
 
 const library = builtinBusLibrary();
@@ -461,5 +462,34 @@ describe('legacy contract-less definitions', () => {
     expect(diagnostics).not.toContainEqual(
       expect.objectContaining({ code: 'BUS_UNKNOWN_INTERFACE_PROPERTY' })
     );
+  });
+});
+
+describe('unknown memory map reference', () => {
+  const bus = { name: 'bus', type: 'AXI4L', mode: 'slave', memoryMapRef: 'FOO' } as BusInterface;
+  const validate = (memoryMapNames?: readonly string[]) =>
+    validateBusInterfaces({ busInterfaces: [bus], parameters: [], library, memoryMapNames });
+
+  it('reports a ref that names no defined map', () => {
+    expect(validate(['CSR'])).toContainEqual(
+      expect.objectContaining({
+        code: 'BUS_MEMORY_MAP_UNKNOWN',
+        severity: 'error',
+        state: 'invalid',
+        path: ['busInterfaces', 0, 'memoryMapRef'],
+        message: "Interface 'bus' references unknown memory map 'FOO'.",
+      })
+    );
+  });
+
+  it('blocks generation through checkBusConformance', () => {
+    const report = checkBusConformance({ busInterfaces: [bus] }, library, ['CSR']);
+    expect(blocksGeneration(report)).toBe(true);
+    expect(report.issues.some((issue) => issue.code === 'BUS_MEMORY_MAP_UNKNOWN')).toBe(true);
+  });
+
+  it('accepts a known ref and skips the check when names are omitted', () => {
+    expect(validate(['FOO']).some((d) => d.code === 'BUS_MEMORY_MAP_UNKNOWN')).toBe(false);
+    expect(validate().some((d) => d.code === 'BUS_MEMORY_MAP_UNKNOWN')).toBe(false);
   });
 });

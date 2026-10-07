@@ -359,4 +359,30 @@ describe('runCliGenerate', () => {
       fs2.rmSync(tmp, { recursive: true, force: true });
     }
   });
+
+  it('fails with the unknown memory map message for a dangling memoryMapRef', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-dangling-'));
+    try {
+      const fixtures = path.resolve(__dirname, '../../fixtures');
+      const source = fs2
+        .readFileSync(path.join(fixtures, 'sample-ipcore.yml'), 'utf-8')
+        .replace('memoryMapRef: MAP', 'memoryMapRef: FOO');
+      const inputPath = path.join(tmp, 'sample-ipcore.yml');
+      fs2.writeFileSync(inputPath, source);
+      fs2.copyFileSync(
+        path.join(fixtures, 'sample-memmap.yml'),
+        path.join(tmp, 'sample-memmap.yml')
+      );
+
+      const result = await runCliGenerate(
+        { ipYamlPath: inputPath, outDir: path.join(tmp, 'out'), targets: [], hdlLanguage: 'vhdl' },
+        resourceRoots
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("references unknown memory map 'FOO'");
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
 });

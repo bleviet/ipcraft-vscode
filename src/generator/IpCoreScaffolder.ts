@@ -104,7 +104,14 @@ export class IpCoreScaffolder {
     try {
       const ipCoreData = await this.loadIpCore(inputPath, options.sourceText);
       await this.ensureBusDefinitions(inputPath, ipCoreData);
-      const conformance = checkBusConformance(ipCoreData, this.busLibrary!);
+      // Resolve memory maps once: shared by the template context (RTL/testbench)
+      // and the vendor packaging step (component.xml <spirit:memoryMaps>).
+      const resolvedMemoryMaps = await resolveMemoryMaps(ipCoreData, inputPath);
+      const conformance = checkBusConformance(
+        ipCoreData,
+        this.busLibrary!,
+        resolvedMemoryMaps.map((map) => map.name)
+      );
       if (blocksGeneration(conformance)) {
         return {
           success: false,
@@ -116,9 +123,6 @@ export class IpCoreScaffolder {
 
       const busType = getBusTypeForTemplate(ipCoreData, this.busLibrary!);
       const hasMmSlave = hasMemoryMappedConsumerInterface(ipCoreData, this.busLibrary!);
-      // Resolve memory maps once: shared by the template context (RTL/testbench)
-      // and the vendor packaging step (component.xml <spirit:memoryMaps>).
-      const resolvedMemoryMaps = await resolveMemoryMaps(ipCoreData, inputPath);
       const context = await this.buildTemplateContext(
         ipCoreData,
         busType,
