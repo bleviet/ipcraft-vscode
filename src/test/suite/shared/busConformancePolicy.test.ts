@@ -91,7 +91,12 @@ describe('bus conformance enforcement policy', () => {
     );
 
     expect(report.issues).toContainEqual(
-      expect.objectContaining({ code: 'AXIS_PREFERRED_DATA_WIDTH', severity: 'warning' })
+      expect.objectContaining({
+        code: 'AXIS_PREFERRED_DATA_WIDTH',
+        severity: 'warning',
+        message:
+          "Interface 'stream': TDATA width should be a power of two from 8 to 1024 (currently 24). This is a recommendation; generation is not blocked.",
+      })
     );
     expect(report.hasKnownErrors).toBe(false);
     expect(report.hasUnresolved).toBe(false);

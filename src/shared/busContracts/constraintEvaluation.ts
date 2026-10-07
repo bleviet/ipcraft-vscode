@@ -1,4 +1,5 @@
 import type { BusInterface, Parameter } from '../../domain/ipcore.types';
+import { describeConstraint } from './constraintMessages';
 import {
   binaryExpression,
   collectParameterNames,
@@ -280,11 +281,19 @@ function constraintPath(
   return ['busInterfaces', input.busIndex, 'type'];
 }
 
+const STATE_DETAIL: Readonly<Record<ResolutionState, string | undefined>> = {
+  concrete: undefined,
+  invalid: 'a referenced value is invalid',
+  unresolved: 'a referenced value could not be resolved',
+  symbolic: 'could not be checked for every parameter value',
+};
+
 function diagnosticFor(
   constraint: NormalizedBusConstraint,
   input: ConstraintEvaluationInput,
   state: ResolutionState,
-  suggestedValue?: number
+  suggestedValue?: number,
+  detail: string | undefined = STATE_DETAIL[state]
 ): BusConformanceDiagnostic {
   return {
     code: constraint.code,
@@ -293,11 +302,42 @@ function diagnosticFor(
     state,
     interfaceName: input.busInterface.name,
     path: constraintPath(constraint, input),
-    message: constraint.message ?? `${constraint.ruleId} is not satisfied.`,
+    message: constraint.message ?? describeConstraint(constraint, input.busInterface.name, detail),
     ...(suggestedValue !== undefined && Number.isSafeInteger(suggestedValue)
       ? { suggestedValue }
       : {}),
   };
+}
+
+const CURRENT_VALUE_KINDS: ReadonlySet<NormalizedBusConstraint['kind']> = new Set([
+  'range',
+  'allowedValues',
+  'multipleOf',
+  'powerOfTwo',
+  'portWidthQuotient',
+  'productEqualsPort',
+]);
+
+function currentValueDetail(
+  constraint: NormalizedBusConstraint,
+  values: readonly ResolvedNumericValue[],
+  input: ConstraintEvaluationInput,
+  suggestedValue: number | undefined
+): string | undefined {
+  if (!CURRENT_VALUE_KINDS.has(constraint.kind)) {
+    return undefined;
+  }
+  const current = valueAt(values[0], input.parameterContext.defaults);
+  if (current === undefined) {
+    return undefined;
+  }
+  const expected =
+    (constraint.kind === 'portWidthQuotient' || constraint.kind === 'productEqualsPort') &&
+    suggestedValue !== undefined &&
+    Number.isSafeInteger(suggestedValue)
+      ? `, expected ${suggestedValue}`
+      : '';
+  return `currently ${current}${expected}`;
 }
 
 function parameterNamesFor(values: readonly ResolvedNumericValue[]): string[] {
@@ -354,7 +394,15 @@ export function evaluateContractConstraints(
 
     const defaultResult = evaluateRelation(constraint, input, input.parameterContext.defaults);
     if (defaultResult.valid === false) {
-      diagnostics.push(diagnosticFor(constraint, input, 'concrete', defaultResult.suggestedValue));
+      diagnostics.push(
+        diagnosticFor(
+          constraint,
+          input,
+          'concrete',
+          defaultResult.suggestedValue,
+          currentValueDetail(constraint, values, input, defaultResult.suggestedValue)
+        )
+      );
     }
 
     const parameterNames = parameterNamesFor(values);
@@ -395,7 +443,15 @@ export function evaluateContractConstraints(
         (combination) => evaluateRelation(constraint, input, combination).valid === false
       )
     ) {
-      diagnostics.push(diagnosticFor(constraint, input, 'concrete'));
+      diagnostics.push(
+        diagnosticFor(
+          constraint,
+          input,
+          'concrete',
+          undefined,
+          `fails for some allowed values of ${parameterNames.join(', ')}`
+        )
+      );
     }
   }
 

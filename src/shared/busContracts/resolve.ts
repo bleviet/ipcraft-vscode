@@ -2,6 +2,7 @@ import type { BusInterface } from '../../domain/ipcore.types';
 import { buildActivePorts, isPortActive } from './activePorts';
 import { canonicalizeBusType, normalizeInterfaceMode } from './canonicalize';
 import { evaluateContractConstraints } from './constraintEvaluation';
+import { describeConstraint } from './constraintMessages';
 import { deriveOperation, resolveToFixpoint, sameResolution } from './derivation';
 import { createParameterContext, expressionsEqual, resolveNumericValue } from './expression';
 import { resolveProperties } from './propertyResolution';
@@ -87,7 +88,15 @@ function linkedOverrideDiagnostic(
     state: 'invalid',
     interfaceName: busInterface.name,
     path: ['busInterfaces', busIndex, 'portWidthOverrides', port.name],
-    message: constraint.message ?? `${constraint.ruleId} is not satisfied.`,
+    message:
+      constraint.message ??
+      describeConstraint(
+        constraint,
+        busInterface.name,
+        expected.value !== undefined
+          ? `${port.name} width is derived as ${expected.value}`
+          : undefined
+      ),
     ...(expected.value !== undefined ? { suggestedValue: expected.value } : {}),
   };
 }

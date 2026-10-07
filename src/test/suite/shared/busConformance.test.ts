@@ -281,7 +281,7 @@ describe('built-in conformance rules', () => {
 });
 
 describe('bounded allowed-value domains', () => {
-  function domainLibrary() {
+  function domainLibrary(message?: string) {
     const definitions: BusDefinitionFile = {
       DOMAIN: {
         busType: { vendor: 'acme', library: 'busif', name: 'domain', version: '1.0' },
@@ -297,6 +297,7 @@ describe('bounded allowed-value domains', () => {
               kind: 'portWidthsEqual',
               ports: ['left', 'right'],
               severity: 'error',
+              ...(message ? { message } : {}),
             },
           ],
         },
@@ -355,10 +356,29 @@ describe('bounded allowed-value domains', () => {
     });
 
     expect(result.diagnostics).toContainEqual(
-      expect.objectContaining({ code: 'DOMAIN_EQUAL', state: 'concrete', severity: 'error' })
+      expect.objectContaining({
+        code: 'DOMAIN_EQUAL',
+        state: 'concrete',
+        severity: 'error',
+        message:
+          "Interface 'domain': ports left, right must have the same width (fails for some allowed values of LEFT, RIGHT).",
+      })
     );
     expect(result.diagnostics).not.toContainEqual(
       expect.objectContaining({ code: 'CONFORMANCE_DOMAIN_NOT_EXHAUSTIVE' })
+    );
+  });
+
+  it('emits an authored constraint message verbatim', () => {
+    const result = resolveBusInterface({
+      busInterface: { name: 'domain', type: 'acme:busif:domain:1.0', mode: 'master' },
+      busIndex: 0,
+      parameters: parameters(16),
+      library: domainLibrary('left and right differ'),
+    });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({ code: 'DOMAIN_EQUAL', message: 'left and right differ' })
     );
   });
 
@@ -491,5 +511,78 @@ describe('unknown memory map reference', () => {
   it('accepts a known ref and skips the check when names are omitted', () => {
     expect(validate(['FOO']).some((d) => d.code === 'BUS_MEMORY_MAP_UNKNOWN')).toBe(false);
     expect(validate().some((d) => d.code === 'BUS_MEMORY_MAP_UNKNOWN')).toBe(false);
+  });
+});
+
+describe('constraint message details', () => {
+  it('names the invalid state for an illegal width', () => {
+    const result = resolve({
+      name: 'stream',
+      type: 'AXIS',
+      mode: 'master',
+      portWidthOverrides: { TDATA: -1 },
+    });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        ruleId: 'AXIS_DATA_BYTE_ALIGNED',
+        message:
+          "Interface 'stream': TDATA width must be a multiple of 8 (a referenced value is invalid).",
+      })
+    );
+  });
+
+  it('names the unresolved state for an undeclared parameter', () => {
+    const result = resolve({
+      name: 'stream',
+      type: 'AXIS',
+      mode: 'master',
+      portWidthOverrides: { TDATA: 'MISSING' },
+    });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        ruleId: 'AXIS_DATA_BYTE_ALIGNED',
+        message:
+          "Interface 'stream': TDATA width must be a multiple of 8 (a referenced value could not be resolved).",
+      })
+    );
+  });
+
+  it('reports the current and expected width for a quotient failure', () => {
+    const result = resolve({
+      name: 'stream',
+      type: 'AXIS',
+      mode: 'master',
+      useOptionalPorts: ['TSTRB'],
+      portWidthOverrides: { TDATA: 24, TSTRB: 4 },
+    });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        ruleId: 'AXIS_TSTRB_WIDTH',
+        message:
+          "Interface 'stream': TSTRB width must equal TDATA width / 8 (currently 4, expected 3).",
+      })
+    );
+  });
+
+  it('reports the expected value for a rejected derived-width override', () => {
+    const result = resolve({
+      name: 'stream',
+      type: 'AVST',
+      mode: 'source',
+      useOptionalPorts: ['empty'],
+      portWidthOverrides: { data: 32, empty: 3 },
+      interfaceProperties: { dataBitsPerSymbol: 8, symbolsPerBeat: 4 },
+    });
+
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        ruleId: 'AVALON_ST_EMPTY_WIDTH',
+        message:
+          "Interface 'stream': interface property 'symbolsPerBeat' must be set when port empty is present (empty width is derived as 2).",
+      })
+    );
   });
 });
