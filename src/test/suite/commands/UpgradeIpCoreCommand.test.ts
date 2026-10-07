@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { upgradeIpCore } from '../../../commands/UpgradeIpCoreCommand';
@@ -61,6 +63,8 @@ describe('upgradeIpCore', () => {
   let replace: jest.Mock;
 
   beforeEach(() => {
+    // resetMocks wipes the mock's default Uri.file implementation before every test.
+    (vscode.Uri.file as jest.Mock).mockImplementation((p: string) => ({ fsPath: p }));
     (loadRuntimeBusLibrary as jest.Mock).mockResolvedValue(builtinBusLibrary());
     (vscode.workspace.applyEdit as jest.Mock).mockResolvedValue(true);
     replace = jest.fn();
@@ -96,7 +100,7 @@ describe('upgradeIpCore', () => {
     expect(vscode.workspace.applyEdit).toHaveBeenCalledTimes(2);
     expect(save).toHaveBeenCalledTimes(2);
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-      'Upgraded 2 file(s) to format 1.1; 1 already current'
+      'Migrated 2 file(s) to the latest format; 1 already current'
     );
   });
 
@@ -108,7 +112,7 @@ describe('upgradeIpCore', () => {
     expect(replace).not.toHaveBeenCalled();
     expect(save).not.toHaveBeenCalled();
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-      'Upgraded 0 file(s) to format 1.1; 1 already current'
+      'Migrated 0 file(s) to the latest format; 1 already current'
     );
   });
 
@@ -136,7 +140,7 @@ describe('upgradeIpCore', () => {
     );
     expect(replace).toHaveBeenCalledTimes(1);
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-      'Upgraded 1 file(s) to format 1.1; 0 already current'
+      'Migrated 1 file(s) to the latest format; 0 already current'
     );
   });
 
@@ -165,7 +169,7 @@ describe('upgradeIpCore', () => {
     expect(replace).toHaveBeenCalledTimes(2);
     expect(save).toHaveBeenCalledTimes(1);
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-      'Upgraded 1 file(s) to format 1.1; 1 left unsaved because they had unsaved changes; 0 already current'
+      'Migrated 1 file(s) to the latest format; 1 left unsaved because they had unsaved changes; 0 already current'
     );
   });
 
@@ -180,7 +184,72 @@ describe('upgradeIpCore', () => {
       expect.anything()
     );
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
-      'Upgraded 0 file(s) to format 1.1; 0 already current'
+      'Migrated 0 file(s) to the latest format; 0 already current'
     );
+  });
+
+  it('migrates a .mm.yml with legacy keys', async () => {
+    installDocuments({
+      '/legacy.mm.yml': 'address_blocks:\n  - name: A\n    base_address: 0x10\n',
+    });
+
+    await upgradeIpCore(resourceRoots, uriFor('/legacy.mm.yml'));
+
+    expect(loadRuntimeBusLibrary).not.toHaveBeenCalled();
+    expect(replace.mock.calls[0][2]).toContain('baseAddress: 0x10');
+    expect(replace.mock.calls[0][2]).not.toContain('address_blocks');
+    expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+      'Migrated 1 file(s) to the latest format; 0 already current'
+    );
+  });
+
+  it('repairs a dangling memoryMapRef from the imported memory map', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-upgrade-'));
+    try {
+      fs.writeFileSync(path.join(dir, 'csr.mm.yml'), '- name: CSR\n  addressBlocks: []\n');
+      const ipPath = path.join(dir, 'dangling.ip.yml');
+      installDocuments({
+        [ipPath]: `apiVersion: '1.1'
+busInterfaces:
+  - name: S_AXI
+    type: ${BUS_VLNV.AXI4_LITE}
+    mode: slave
+    memoryMapRef: FOO
+memoryMaps:
+  import: csr.mm.yml
+`,
+      });
+
+      await upgradeIpCore(resourceRoots, uriFor(ipPath));
+
+      expect(replace).toHaveBeenCalledTimes(1);
+      expect(replace.mock.calls[0][2]).toContain('memoryMapRef: CSR');
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('uses the active .mm.yml when invoked without a uri', async () => {
+    installDocuments({ '/active.mm.yml': 'address_blocks: []\n' });
+    (vscode.window as { activeTextEditor?: unknown }).activeTextEditor = {
+      document: { fileName: '/active.mm.yml', uri: uriFor('/active.mm.yml') },
+    };
+
+    await upgradeIpCore(resourceRoots);
+
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(replace.mock.calls[0][0].fsPath).toBe('/active.mm.yml');
+  });
+
+  it('shows an error when invoked without a uri and no spec file is active', async () => {
+    installDocuments({});
+
+    await upgradeIpCore(resourceRoots);
+
+    expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+      'No active .ip.yml or .mm.yml file. Please open one.'
+    );
+    expect(replace).not.toHaveBeenCalled();
+    expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
   });
 });

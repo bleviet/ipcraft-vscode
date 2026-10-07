@@ -1,18 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as vscode from 'vscode';
-import * as yaml from 'yaml';
-import {
-  migrateIpCoreYaml,
-  migrateMemoryMapYaml,
-  type IpCoreFormatVersion,
-} from '../shared/ipCoreFormat';
-import { normalizeMemoryMap } from '../domain/parse';
-import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImports';
-import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
-import type { IpCoreDataNode } from '../services/ImportResolver';
+import type { IpCoreFormatVersion } from '../shared/ipCoreFormat';
+import { migrateSpecText } from '../services/migrateSpecText';
 import type { ResourceRoots } from '../services/ResourceRoots';
-import { Logger } from '../utils/Logger';
 
 export interface CliMigrateArgs {
   paths: string[];
@@ -38,66 +28,29 @@ export type CliMigrateFileResult =
   | { path: string; status: 'upToDate'; version?: IpCoreFormatVersion }
   | { path: string; status: 'error'; error: string };
 
-function isMemoryMapPath(filePath: string): boolean {
-  return filePath.toLowerCase().endsWith('.mm.yml') || filePath.toLowerCase().endsWith('.mm.yaml');
-}
-
-/** Convert legacy keys in a `.mm.yml` file; no bus library is needed. */
-async function migrateMemoryMapFile(
-  filePath: string,
-  check: boolean
-): Promise<CliMigrateFileResult> {
-  const absolutePath = path.resolve(filePath);
-  const text = await fs.readFile(absolutePath, 'utf-8');
-  const result = migrateMemoryMapYaml(text);
-  if (!result.changed) {
-    return { path: filePath, status: 'upToDate' };
-  }
-  if (check) {
-    return { path: filePath, status: 'needsUpgrade' };
-  }
-  await fs.writeFile(absolutePath, result.text, 'utf-8');
-  return { path: filePath, status: 'upgraded', mutationCount: result.mutationCount };
-}
-
 async function migrateFile(
   filePath: string,
   check: boolean,
-  logger: Logger,
   resourceRoots: ResourceRoots
 ): Promise<CliMigrateFileResult> {
   const absolutePath = path.resolve(filePath);
   const text = await fs.readFile(absolutePath, 'utf-8');
-  const ipCoreData = yaml.parse(text) as unknown;
-  if (!ipCoreData || typeof ipCoreData !== 'object' || Array.isArray(ipCoreData)) {
-    throw new Error('Invalid YAML: must be an object');
-  }
-
-  const library = await loadRuntimeBusLibrary(
-    resourceRoots,
-    vscode.Uri.file(absolutePath),
-    ipCoreData as IpCoreDataNode
-  );
-  // A failed import leaves the set of map names unknown, so skip the ref repair entirely.
-  const { resolved, errors } = await resolveMemoryMapImports({
-    memoryMaps: (ipCoreData as Record<string, unknown>).memoryMaps,
-    baseDir: path.dirname(absolutePath),
-    reader: { readText: (absPath) => fs.readFile(absPath, 'utf8') },
-  });
-  const result = migrateIpCoreYaml(
-    text,
-    library,
-    errors.length > 0 ? undefined : resolved.map((rawMap) => normalizeMemoryMap(rawMap).name)
-  );
+  const migration = await migrateSpecText(absolutePath, text, resourceRoots);
+  const { result } = migration;
   if (!result.changed) {
-    return { path: filePath, status: 'upToDate', version: result.toVersion };
+    return migration.kind === 'memoryMap'
+      ? { path: filePath, status: 'upToDate' }
+      : { path: filePath, status: 'upToDate', version: migration.result.toVersion };
   }
-  const { fromVersion, toVersion, mutationCount } = result;
+  const versions =
+    migration.kind === 'ipCore'
+      ? { fromVersion: migration.result.fromVersion, toVersion: migration.result.toVersion }
+      : {};
   if (check) {
-    return { path: filePath, status: 'needsUpgrade', fromVersion, toVersion };
+    return { path: filePath, status: 'needsUpgrade', ...versions };
   }
   await fs.writeFile(absolutePath, result.text, 'utf-8');
-  return { path: filePath, status: 'upgraded', fromVersion, toVersion, mutationCount };
+  return { path: filePath, status: 'upgraded', ...versions, mutationCount: result.mutationCount };
 }
 
 /**
@@ -110,15 +63,10 @@ export async function runCliMigrate(
   args: CliMigrateArgs,
   resourceRoots: ResourceRoots
 ): Promise<CliMigrateFileResult[]> {
-  const logger = new Logger('ipcraft-cli');
   const results: CliMigrateFileResult[] = [];
   for (const filePath of args.paths) {
     try {
-      results.push(
-        isMemoryMapPath(filePath)
-          ? await migrateMemoryMapFile(filePath, args.check)
-          : await migrateFile(filePath, args.check, logger, resourceRoots)
-      );
+      results.push(await migrateFile(filePath, args.check, resourceRoots));
     } catch (err) {
       results.push({
         path: filePath,

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { isIpCoreFile } from './fileExtensions';
+import { isIpCoreFile, isMmFile } from './fileExtensions';
 
 interface FindActiveIpCoreFileOptions {
   /**
@@ -50,4 +50,23 @@ export function getActiveIpCoreFile(): vscode.Uri | undefined {
     void vscode.window.showErrorMessage('No active IP core file. Please open a .ip.yml file.');
   }
   return uri;
+}
+
+/** Resolve the active .ip.yml or .mm.yml file with no side effects (no notifications). */
+export function findActiveSpecFile(): vscode.Uri | undefined {
+  const isSpec = (fsPath: string): boolean => isIpCoreFile(fsPath) || isMmFile(fsPath);
+  const editor = vscode.window.activeTextEditor;
+  if (editor && isSpec(editor.document.fileName)) {
+    return editor.document.uri;
+  }
+
+  const activeTab = vscode.window.tabGroups.activeTabGroup.activeTab;
+  if (activeTab?.input instanceof vscode.TabInputCustom) {
+    const { uri } = activeTab.input;
+    if (isSpec(uri.fsPath)) {
+      return uri;
+    }
+  }
+
+  return undefined;
 }

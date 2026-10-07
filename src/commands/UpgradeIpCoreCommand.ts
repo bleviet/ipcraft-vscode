@@ -1,11 +1,8 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as yaml from 'yaml';
 import type { ResourceRoots } from '../services/ResourceRoots';
-import type { IpCoreDataNode } from '../services/ImportResolver';
-import { loadRuntimeBusLibrary } from '../services/loadRuntimeBusLibrary';
-import { IP_CORE_FORMAT_VERSION, migrateIpCoreYaml } from '../shared/ipCoreFormat';
-import { getActiveIpCoreFile } from '../utils/activeIpCoreFile';
+import { migrateSpecText } from '../services/migrateSpecText';
+import { findActiveSpecFile } from '../utils/activeIpCoreFile';
 import { handleErrorWithUserNotification } from '../utils/ErrorHandler';
 
 /** Explorer multi-select passes the clicked item plus all selected items. */
@@ -13,8 +10,12 @@ function resolveTargets(uri: vscode.Uri | undefined, uris: vscode.Uri[] | undefi
   if (uris && uris.length > 0) {
     return uris;
   }
-  const target = uri ?? getActiveIpCoreFile();
-  return target ? [target] : [];
+  const target = uri ?? findActiveSpecFile();
+  if (!target) {
+    void vscode.window.showErrorMessage('No active .ip.yml or .mm.yml file. Please open one.');
+    return [];
+  }
+  return [target];
 }
 
 type UpgradeOutcome = 'upgraded' | 'unsaved' | 'current';
@@ -28,14 +29,7 @@ async function upgradeDocument(
   resourceRoots: ResourceRoots
 ): Promise<UpgradeOutcome> {
   const document = await vscode.workspace.openTextDocument(uri);
-  const text = document.getText();
-  const ipCoreData = yaml.parse(text) as unknown;
-  if (!ipCoreData || typeof ipCoreData !== 'object' || Array.isArray(ipCoreData)) {
-    throw new Error('Invalid YAML: must be an object');
-  }
-
-  const library = await loadRuntimeBusLibrary(resourceRoots, uri, ipCoreData as IpCoreDataNode);
-  const result = migrateIpCoreYaml(text, library);
+  const { result } = await migrateSpecText(uri.fsPath, document.getText(), resourceRoots);
   if (!result.changed) {
     return 'current';
   }
@@ -56,7 +50,10 @@ async function upgradeDocument(
   return 'upgraded';
 }
 
-/** Upgrade `.ip.yml` files to the latest file format version. */
+/**
+ * Migrate `.ip.yml` and `.mm.yml` files like `ipcraft migrate`: upgrade to the latest format
+ * version, convert legacy keys, and repair a dangling `memoryMapRef`.
+ */
 export async function upgradeIpCore(
   resourceRoots: ResourceRoots,
   uri?: vscode.Uri,
@@ -75,7 +72,7 @@ export async function upgradeIpCore(
       await handleErrorWithUserNotification(
         error,
         'upgradeIpCore',
-        `Could not upgrade ${path.basename(target.fsPath)}: ${error instanceof Error ? error.message : String(error)}`
+        `Could not migrate ${path.basename(target.fsPath)}: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -83,6 +80,6 @@ export async function upgradeIpCore(
   const unsaved =
     counts.unsaved > 0 ? `; ${counts.unsaved} left unsaved because they had unsaved changes` : '';
   void vscode.window.showInformationMessage(
-    `Upgraded ${counts.upgraded} file(s) to format ${IP_CORE_FORMAT_VERSION}${unsaved}; ${counts.current} already current`
+    `Migrated ${counts.upgraded} file(s) to the latest format${unsaved}; ${counts.current} already current`
   );
 }

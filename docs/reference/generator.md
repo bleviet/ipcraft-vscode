@@ -275,9 +275,11 @@ be read or parsed, or that declares a newer version, is reported and makes the
 exit status 1, but the remaining files are still processed. The bus library
 honors `useBusLibrary` from each file.
 
-In VS Code, the same upgrade is available as **IPCraft: Upgrade .ip.yml to
-Latest Format Version**, from the Explorer context menu (multi-select is
-supported) or the Command Palette for the active `.ip.yml`. It applies one
+In VS Code, the same migration is available as **IPCraft: Migrate .ip.yml /
+.mm.yml to Latest Format**, from the Explorer context menu (multi-select is
+supported) or the Command Palette for the active `.ip.yml` or `.mm.yml`. Like
+`ipcraft migrate`, it also converts legacy keys in `.mm.yml` files and repairs a
+dangling `memoryMapRef`. It applies one
 undoable edit per file and saves it. If a file already has unsaved changes in
 the editor, the upgrade is applied to the open buffer but the file is not
 saved, so your unrelated edits are not written to disk unasked; the summary
@@ -305,7 +307,7 @@ legacy key is removed. A `.mm.yml` file has no `apiVersion`, so only keys are
 renamed. In an `.ip.yml` file, `ipcraft migrate` also rewrites a dot-separated
 bus `type` such as `ipcraft.busif.axi4_lite.1.0` (the spelling the IPCraft
 Python CLI uses) to its colon VLNV `ipcraft:busif:axi4_lite:1.0` when that
-VLNV resolves in the active bus library, at any format version. The VS Code Upgrade command handles `.ip.yml` files the same way.
+VLNV resolves in the active bus library, at any format version. The VS Code Migrate command handles `.ip.yml` files the same way.
 
 ## Contributor implementation
 

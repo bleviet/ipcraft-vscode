@@ -284,7 +284,7 @@
       },
       {
         "command": "fpga-ip-core.upgradeIpCore",
-        "title": "Upgrade .ip.yml to Latest Format Version",
+        "title": "Migrate .ip.yml / .mm.yml to Latest Format",
         "category": "IPCraft",
         "enablement": "isWorkspaceTrusted"
       },
@@ -720,7 +720,7 @@
       "explorer/context": [
         {
           "command": "fpga-ip-core.upgradeIpCore",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/",
           "group": "ipcraft@8"
         }
       ],
@@ -791,7 +791,7 @@
         },
         {
           "command": "fpga-ip-core.upgradeIpCore",
-          "when": "resourceFilename =~ /\\.ip\\.yml$/"
+          "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/"
         },
         {
           "command": "fpga-ip-core.generateAndBuildVivado",
