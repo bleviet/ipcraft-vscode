@@ -95,6 +95,14 @@ const SW_WRITE_ACCESSES = new Set([
   'read-write-self-clearing',
   'write-self-clearing',
 ]);
+const UNIFORM_PRESERVED_ACCESSES = new Set([
+  'write-self-clearing',
+  'read-write-self-clearing',
+  'write-1-to-clear',
+  'read-write-1-to-clear',
+]);
+const W1C_CLASS_ACCESSES = new Set(['write-1-to-clear', 'read-write-1-to-clear']);
+const SC_CLASS_ACCESSES = new Set(['write-self-clearing', 'read-write-self-clearing']);
 const HW_READ_ONLY_ACCESSES = new Set(['read-only', 'ro']);
 const SW_READ_ACCESSES = new Set([
   'read-write',
@@ -106,21 +114,28 @@ const SW_READ_ACCESSES = new Set([
 ]);
 
 function deriveRegisterAccess(fieldAccesses: string[], explicitAccess?: string): string {
-  if (explicitAccess) {
-    return explicitAccess;
-  }
+  // Field accesses win; register-level access applies only to field-less registers.
   if (fieldAccesses.length === 0) {
-    return 'read-write';
+    return explicitAccess ?? 'read-write';
   }
   if (fieldAccesses.every((a) => HW_READ_ONLY_ACCESSES.has(a))) {
     return 'read-only';
   }
-  // Preserve SC type when all fields share the same SC access so the VHDL
-  // template can distinguish SC-only registers from plain write-only ones.
-  if (fieldAccesses.every((a) => a === 'write-self-clearing')) {
-    return 'write-self-clearing';
+  // Preserve a uniform SC/W1C field access so templates and docs can
+  // distinguish those registers from plain write-only / read-write ones.
+  if (
+    UNIFORM_PRESERVED_ACCESSES.has(fieldAccesses[0]) &&
+    fieldAccesses.every((a) => a === fieldAccesses[0])
+  ) {
+    return fieldAccesses[0];
   }
-  if (fieldAccesses.every((a) => a === 'read-write-self-clearing')) {
+  // Read-only fields mixed with only W1C (or only SC) fields keep that class.
+  const isClassOrReadOnly = (classSet: Set<string>) =>
+    fieldAccesses.every((a) => classSet.has(a) || HW_READ_ONLY_ACCESSES.has(a));
+  if (isClassOrReadOnly(W1C_CLASS_ACCESSES)) {
+    return 'read-write-1-to-clear';
+  }
+  if (isClassOrReadOnly(SC_CLASS_ACCESSES)) {
     return 'read-write-self-clearing';
   }
   const hasSwWrite = fieldAccesses.some((a) => SW_WRITE_ACCESSES.has(a));

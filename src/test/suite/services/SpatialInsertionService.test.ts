@@ -322,3 +322,28 @@ describe('SpatialInsertionService — address blocks', () => {
     });
   });
 });
+
+describe('SpatialInsertionService — access defaults (issue #238)', () => {
+  it('creates registers without a register-level access', () => {
+    const result = SpatialInsertionService.insertRegisterAfter([], 0);
+    expect(result.items[0]).not.toHaveProperty('access');
+  });
+
+  it('creates the default register of a new block without a register-level access', () => {
+    const result = SpatialInsertionService.insertBlockAfter([], 0);
+    expect(result.items[0].registers![0]).not.toHaveProperty('access');
+  });
+
+  it('does not add access to existing registers on the repack path', () => {
+    const existing = { name: 'reg0', offset: 0, description: '' } as RegisterRuntimeDef;
+    const result = SpatialInsertionService.insertRegisterAfter([existing], 0);
+    for (const reg of result.items) {
+      expect(reg).not.toHaveProperty('access');
+    }
+  });
+
+  it('still creates fields with read-write access', () => {
+    const result = SpatialInsertionService.insertFieldAfter([], 0, 32);
+    expect(result.items[0].access).toBe('read-write');
+  });
+});

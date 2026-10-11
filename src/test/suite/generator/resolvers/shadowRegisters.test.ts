@@ -96,6 +96,85 @@ describe('buildShadowRegisters', () => {
   });
 });
 
+describe('buildShadowRegisters register plan (issue #238)', () => {
+  const plan = (reg: Record<string, unknown>) => {
+    const r = buildShadowRegisters([reg]).registers[0] as Record<string, any>;
+    return {
+      needsWrite: r.needs_write_branch,
+      writeFields: (r.write_fields as Array<{ name: string }>).map((f) => f.name),
+      readSource: r.read_source,
+    };
+  };
+
+  it('A: register read-write + all read-only fields reads regs_in, no write branch', () => {
+    expect(
+      plan(makeReg('STATUS_A', 'read-write', [{ name: 'BUSY', access: 'read-only' }]))
+    ).toEqual({ needsWrite: false, writeFields: [], readSource: 'regs_in' });
+  });
+
+  it('B: no register access + all read-only fields behaves like A', () => {
+    const reg = makeReg('STATUS_B', 'read-write', [{ name: 'BUSY', access: 'read-only' }]);
+    delete reg.access;
+    expect(plan(reg)).toEqual({ needsWrite: false, writeFields: [], readSource: 'regs_in' });
+  });
+
+  it('C: register read-write + all write-1-to-clear fields has no write branch', () => {
+    expect(
+      plan(makeReg('EVENTS_C', 'read-write', [{ name: 'FLAG', access: 'write-1-to-clear' }]))
+    ).toEqual({ needsWrite: false, writeFields: [], readSource: 'composed' });
+  });
+
+  it('D: register read-only + read-write field has a write branch and reads regs', () => {
+    expect(plan(makeReg('CTRL_D', 'read-only', [{ name: 'EN', access: 'read-write' }]))).toEqual({
+      needsWrite: true,
+      writeFields: ['EN'],
+      readSource: 'regs',
+    });
+  });
+
+  it('E: register write-only + all read-only fields reads regs_in, no write branch', () => {
+    expect(
+      plan(makeReg('STATUS_E', 'write-only', [{ name: 'BUSY', access: 'read-only' }]))
+    ).toEqual({ needsWrite: false, writeFields: [], readSource: 'regs_in' });
+  });
+
+  it('F: mixed read-write + read-only fields writes only the rw field and reads composed', () => {
+    expect(
+      plan(
+        makeReg('MIXED_F', 'read-write', [
+          { name: 'EN', access: 'read-write' },
+          { name: 'BUSY', access: 'read-only' },
+        ])
+      )
+    ).toEqual({ needsWrite: true, writeFields: ['EN'], readSource: 'composed' });
+  });
+
+  it('treats a missing field access as read-write', () => {
+    const reg = makeReg('CTRL', 'read-only', [{ name: 'EN', access: 'read-write' }]);
+    delete (reg.fields as Array<Record<string, unknown>>)[0].access;
+    expect(plan(reg)).toEqual({ needsWrite: true, writeFields: ['EN'], readSource: 'regs' });
+  });
+
+  it.each([
+    ['read-write', true, 'regs'],
+    ['rw', true, 'regs'],
+    ['write-only', true, 'none'],
+    ['wo', true, 'none'],
+    ['read-only', false, 'regs_in'],
+    ['ro', false, 'regs_in'],
+    ['read-write-1-to-clear', false, 'regs'],
+    ['read-write-self-clearing', false, 'regs'],
+    ['write-1-to-clear', false, 'none'],
+    ['write-self-clearing', false, 'none'],
+  ])('field-less register with access %s', (access, needsWrite, readSource) => {
+    expect(plan(makeReg('R', access, []))).toEqual({
+      needsWrite,
+      writeFields: [],
+      readSource,
+    });
+  });
+});
+
 describe('validateShadowRegisters', () => {
   it('returns no diagnostics for valid registers', () => {
     const reg = makeReg('IRQ', 'read-write', [

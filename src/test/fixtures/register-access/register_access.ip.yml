@@ -1,0 +1,38 @@
+vlnv:
+  vendor: ipcraft
+  library: test
+  name: register_access
+  version: 1.0.0
+apiVersion: '1.0'
+scaffold_pack: builtin-ipcraft
+description: >
+  Regression fixture for ipcraft-vscode#238: register-level access that
+  disagrees with field accesses must still generate compilable register files.
+targets: []
+clocks:
+  - name: clk
+    logicalName: CLK
+    direction: in
+    associatedReset: reset_n
+resets:
+  - name: reset_n
+    logicalName: RESET_N
+    direction: in
+    polarity: activeLow
+    associatedClock: clk
+busInterfaces:
+  - name: S_AXI_LITE
+    type: ipcraft:busif:axi4_lite:1.0
+    mode: slave
+    physicalPrefix: s_axil_
+    associatedClock: clk
+    associatedReset: reset_n
+    memoryMapRef: CSR_MAP
+    portWidthOverrides:
+      AWADDR: 8
+      ARADDR: 8
+      WDATA: 32
+      RDATA: 32
+      WSTRB: 4
+memoryMaps:
+  import: register_access.mm.yml

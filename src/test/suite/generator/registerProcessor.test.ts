@@ -440,6 +440,50 @@ describe('registerProcessor', () => {
               name: 'DERIVED_STATUS',
               fields: [{ name: 'READY', access: 'read-only' }],
             },
+            {
+              name: 'EVENTS_RW1C',
+              access: 'read-write-1-to-clear',
+              fields: [{ name: 'FLAG', access: 'read-write-1-to-clear' }],
+            },
+            {
+              name: 'EVENTS_W1C',
+              access: 'write-1-to-clear',
+              fields: [{ name: 'FLAG', access: 'write-1-to-clear' }],
+            },
+            {
+              name: 'MIX_W1C',
+              fields: [
+                { name: 'F0', access: 'read-only' },
+                { name: 'F1', access: 'write-1-to-clear' },
+              ],
+            },
+            {
+              name: 'MIX_RW1C',
+              fields: [
+                { name: 'F0', access: 'read-only' },
+                { name: 'F1', access: 'read-write-1-to-clear' },
+              ],
+            },
+            {
+              name: 'MIX_WSC',
+              fields: [
+                { name: 'F0', access: 'read-only' },
+                { name: 'F1', access: 'write-self-clearing' },
+              ],
+            },
+            {
+              name: 'MIX_W1C_RW',
+              fields: [
+                { name: 'F0', access: 'read-only' },
+                { name: 'F1', access: 'write-1-to-clear' },
+                { name: 'F2', access: 'read-write' },
+              ],
+            },
+            {
+              name: 'EDITOR_STATUS',
+              access: 'read-write',
+              fields: [{ name: 'BUSY', access: 'read-only' }],
+            },
           ],
         },
       ],
@@ -520,7 +564,7 @@ describe('registerProcessor', () => {
       expect(fields.map((field) => field.reset_value)).toEqual([0x34, 0x12]);
     });
 
-    it('preserves explicit access for fieldless registers and derives access when unset', async () => {
+    it('preserves explicit access for fieldless registers and derives access from fields (field access wins)', async () => {
       const ipCore = normalizeIpCoreData({});
 
       const result = await prepareRegisters(
@@ -533,6 +577,13 @@ describe('registerProcessor', () => {
         { name: 'COMMAND', access: 'write-only' },
         { name: 'CONTROL', access: 'read-write' },
         { name: 'DERIVED_STATUS', access: 'read-only' },
+        { name: 'EVENTS_RW1C', access: 'read-write-1-to-clear' },
+        { name: 'EVENTS_W1C', access: 'write-1-to-clear' },
+        { name: 'MIX_W1C', access: 'read-write-1-to-clear' },
+        { name: 'MIX_RW1C', access: 'read-write-1-to-clear' },
+        { name: 'MIX_WSC', access: 'read-write-self-clearing' },
+        { name: 'MIX_W1C_RW', access: 'read-write' },
+        { name: 'EDITOR_STATUS', access: 'read-only' },
       ]);
     });
 
@@ -547,6 +598,13 @@ describe('registerProcessor', () => {
         { name: 'COMMAND', access: 'write-only' },
         { name: 'CONTROL', access: 'read-write' },
         { name: 'DERIVED_STATUS', access: 'read-only' },
+        { name: 'EVENTS_RW1C', access: 'read-write-1-to-clear' },
+        { name: 'EVENTS_W1C', access: 'write-1-to-clear' },
+        { name: 'MIX_W1C', access: 'read-write-1-to-clear' },
+        { name: 'MIX_RW1C', access: 'read-write-1-to-clear' },
+        { name: 'MIX_WSC', access: 'read-write-self-clearing' },
+        { name: 'MIX_W1C_RW', access: 'read-write' },
+        { name: 'EDITOR_STATUS', access: 'read-only' },
       ]);
     });
   });

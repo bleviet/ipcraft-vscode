@@ -2812,6 +2812,42 @@ describe('generateComponentXml memory maps', () => {
     expect(ctrl).toContain('<spirit:access>read-write</spirit:access>');
   });
 
+  it('ignores an explicit register access that disagrees with its fields', async () => {
+    const base = map();
+    const block = base.addressBlocks[0];
+    const statusA = {
+      rowId: 'r9',
+      name: 'STATUS_A',
+      offset: 8,
+      size: 32,
+      resetValue: 0,
+      description: '',
+      access: 'read-write',
+      fields: [
+        {
+          rowId: 'f9',
+          name: 'BUSY',
+          bits: '[0:0]',
+          offset: 0,
+          width: 1,
+          access: 'read-only',
+          resetValue: 0,
+          description: '',
+        },
+      ],
+    } as NormalizedMemoryMap['addressBlocks'][number]['registers'][number];
+    const xml = await gen(
+      {},
+      { memoryMaps: [map({ addressBlocks: [{ ...block, registers: [statusA] }] })] }
+    );
+    const reg = xml.slice(
+      xml.indexOf('<spirit:name>STATUS_A</spirit:name>'),
+      xml.indexOf('</spirit:register>', xml.indexOf('STATUS_A'))
+    );
+    expect(reg).toContain('<spirit:access>read-only</spirit:access>');
+    expect(reg).not.toContain('<spirit:access>read-write</spirit:access>');
+  });
+
   it('omits the section entirely when there are no memory maps', async () => {
     expect(await gen()).not.toContain('<spirit:memoryMaps>');
     expect(await gen({}, { memoryMaps: [] })).not.toContain('<spirit:memoryMaps>');

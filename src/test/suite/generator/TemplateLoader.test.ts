@@ -55,7 +55,17 @@ describe('TemplateLoader', () => {
     // Let's use register_file.vhdl.j2 which is complex but uses many filters
     const context = {
       entity_name: 'test',
-      registers: [{ name: 'REG', offset: 4, fields: [], access: 'read-write' }],
+      registers: [
+        {
+          name: 'REG',
+          offset: 4,
+          fields: [],
+          access: 'read-write',
+          needs_write_branch: true,
+          write_fields: [],
+          read_source: 'regs',
+        },
+      ],
     };
     const result = loader.render('register_file.vhdl.j2', context);
     expect(result).toContain('REG_REG');

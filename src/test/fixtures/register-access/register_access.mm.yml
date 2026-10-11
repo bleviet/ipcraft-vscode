@@ -1,0 +1,62 @@
+- name: CSR_MAP
+  description: >
+    Cases A-F of ipcraft-vscode#238: register-level access that disagrees with
+    the field accesses. Field accesses must win.
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0
+      usage: register
+      registers:
+        - name: STATUS_A
+          offset: 0x00
+          access: read-write
+          description: A - editor default register access over read-only fields
+          fields:
+            - name: BUSY
+              bits: '[0:0]'
+              access: read-only
+            - name: COUNT
+              bits: '[15:8]'
+              access: read-only
+        - name: STATUS_B
+          offset: 0x04
+          description: B - no register access, read-only fields (control case)
+          fields:
+            - name: BUSY
+              bits: '[0:0]'
+              access: read-only
+        - name: EVENTS_C
+          offset: 0x08
+          access: read-write
+          description: C - register read-write over write-1-to-clear fields
+          fields:
+            - name: FLAGS
+              bits: '[3:0]'
+              access: write-1-to-clear
+        - name: CTRL_D
+          offset: 0x0C
+          access: read-only
+          description: D - register read-only over a read-write field
+          fields:
+            - name: EN
+              bits: '[0:0]'
+              access: read-write
+        - name: STATUS_E
+          offset: 0x10
+          access: write-only
+          description: E - register write-only over read-only fields
+          fields:
+            - name: BUSY
+              bits: '[0:0]'
+              access: read-only
+        - name: MIXED_F
+          offset: 0x14
+          access: read-write
+          description: F - register read-write over read-write and read-only fields
+          fields:
+            - name: EN
+              bits: '[0:0]'
+              access: read-write
+            - name: BUSY
+              bits: '[5:2]'
+              access: read-only

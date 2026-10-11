@@ -773,16 +773,14 @@ function toSpiritAccess(access: string | undefined): string {
 }
 
 /**
- * Register-level access: use the register's own access when set, otherwise
- * derive it from its fields (read-only iff every field is read-only, etc.).
+ * Register-level access: derive it from the fields when there are any (field
+ * access wins; read-only iff every field is read-only, etc.). The register's
+ * own access applies only to field-less registers.
  */
 function registerSpiritAccess(reg: FlatRegister): string {
-  if (reg.access) {
-    return toSpiritAccess(reg.access);
-  }
   const fieldAccesses = reg.fields.map((f) => toSpiritAccess(f.access));
   if (fieldAccesses.length === 0) {
-    return 'read-write';
+    return reg.access ? toSpiritAccess(reg.access) : 'read-write';
   }
   if (fieldAccesses.every((a) => a === 'read-only')) {
     return 'read-only';

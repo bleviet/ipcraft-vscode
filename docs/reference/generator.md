@@ -158,8 +158,11 @@ Common template values:
 The versioned template-data schema is
 `src/generator/contract/template_context.schema.json`. Template variables use
 snake case by design; TypeScript and IPCraft schema properties use camel case.
-The current contract version is 1.3.0. Version 1.3.0 adds `display_items`,
-display labels and Tcl-safe renderings for parameter metadata and defaults.
+The current contract version is 1.5.0. Version 1.5.0 adds per-register
+`write_fields`, `needs_write_branch` and `read_source`, and register `access`
+is derived from field accesses when a register has fields. Version 1.3.0 adds
+`display_items`, display labels and Tcl-safe renderings for parameter metadata
+and defaults.
 Platform Designer group entries use stable internal IDs with their authored
 `uiPage`/`uiGroup` text in `display_name`; templates should not treat the ID as
 the visible label. Packs pinned to `~1.2` or an earlier minor must update their

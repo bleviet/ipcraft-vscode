@@ -63,7 +63,7 @@ export interface BitFieldRuntimeDef {
 export interface RegisterRuntimeDef {
   name: string;
   offset?: number;
-  access: string;
+  access?: string;
   description: string;
   __kind?: string;
   count?: number;
@@ -138,7 +138,6 @@ function toRegisterRuntime(reg: Record<string, unknown>, index: number): Registe
     ...reg,
     name: String(reg.name ?? `reg${index}`),
     offset,
-    access: String(reg.access ?? 'read-write'),
     description: String(reg.description ?? ''),
   };
 }
@@ -174,7 +173,6 @@ export class SpatialInsertionService {
     return {
       name: regName,
       offset,
-      access: 'read-write',
       description: '',
     };
   }
@@ -190,7 +188,6 @@ export class SpatialInsertionService {
         {
           name: 'reg0',
           offset: 0,
-          access: 'read-write',
           description: '',
         },
       ],

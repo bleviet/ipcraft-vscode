@@ -135,7 +135,6 @@ function defaultRegister(name: string): LayoutRegister {
   return {
     name,
     offset: 0,
-    access: 'read-write',
     description: '',
   };
 }

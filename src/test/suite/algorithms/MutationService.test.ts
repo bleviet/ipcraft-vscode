@@ -359,6 +359,29 @@ describe('MutationService.insertElement', () => {
   });
 });
 
+describe('MutationService new-element access defaults (issue #238)', () => {
+  it('creates registers without a register-level access', () => {
+    const result = insertElement(makeMap(), 'register', 'after', 1, { blockIndex: 0 });
+    const reg = getBlocks(result.memoryMap)[0].registers![result.newIndex];
+    expect(reg).not.toHaveProperty('access');
+  });
+
+  it('creates the default register of a new block without a register-level access', () => {
+    const result = insertElement(makeMap(), 'block', 'after', 0);
+    const block = getBlocks(result.memoryMap)[result.newIndex];
+    expect(block.registers![0]).not.toHaveProperty('access');
+  });
+
+  it('still creates fields with read-write access', () => {
+    const result = insertElement(makeMap(), 'field', 'after', 0, {
+      blockIndex: 0,
+      registerIndex: 0,
+    });
+    const field = getBlocks(result.memoryMap)[0].registers![0].fields![1];
+    expect(field.access).toBe('read-write');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // deleteElement
 // ---------------------------------------------------------------------------

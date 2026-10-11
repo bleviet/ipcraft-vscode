@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://ipcraft.dev/schemas/template_context/1.4.0",
+  "$id": "https://ipcraft.dev/schemas/template_context/1.5.0",
   "title": "TemplateContext",
   "description": "Versioned template context passed to all Nunjucks/Jinja2 templates during IP core generation. This is the public API for third-party scaffold packs.",
   "type": "object",
@@ -47,7 +47,7 @@
   "properties": {
     "contract_version": {
       "type": "string",
-      "const": "1.4.0",
+      "const": "1.5.0",
       "description": "Semantic version of the template context contract."
     },
     "name": { "type": "string" },
@@ -206,7 +206,10 @@
         "reset_value",
         "fields",
         "has_cos_fields",
-        "has_mixed_fields"
+        "has_mixed_fields",
+        "write_fields",
+        "needs_write_branch",
+        "read_source"
       ],
       "additionalProperties": false,
       "properties": {
@@ -220,6 +223,20 @@
         "has_mixed_fields": {
           "type": "boolean",
           "description": "True when this register needs per-field read composition (appears in mixed_registers), whether or not it also uses monitorChangeOf."
+        },
+        "write_fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Field" },
+          "description": "Fields with replace-on-write semantics (read-write, write-only), assigned in the write case branch. Field accesses decide this; register-level access is ignored when fields exist."
+        },
+        "needs_write_branch": {
+          "type": "boolean",
+          "description": "True when the write process needs a case branch for this register: write_fields is non-empty, or the register has no fields and its access is writable."
+        },
+        "read_source": {
+          "type": "string",
+          "enum": ["composed", "regs_in", "regs", "none"],
+          "description": "Where the read process takes this register from: composed field by field (has_mixed_fields), hardware input record (regs_in), software storage record (regs), or not readable."
         }
       }
     },

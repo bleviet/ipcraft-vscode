@@ -11,7 +11,7 @@ export interface TemplateContext {
   /**
    * Semantic version of the template context contract.
    */
-  contract_version: '1.4.0';
+  contract_version: '1.5.0';
   name: string;
   entity_name: string;
   has_memory_mapped_slave: boolean;
@@ -99,6 +99,18 @@ export interface AnnotatedRegister {
    * True when this register needs per-field read composition (appears in mixed_registers), whether or not it also uses monitorChangeOf.
    */
   has_mixed_fields: boolean;
+  /**
+   * Fields with replace-on-write semantics (read-write, write-only), assigned in the write case branch. Field accesses decide this; register-level access is ignored when fields exist.
+   */
+  write_fields: Field[];
+  /**
+   * True when the write process needs a case branch for this register: write_fields is non-empty, or the register has no fields and its access is writable.
+   */
+  needs_write_branch: boolean;
+  /**
+   * Where the read process takes this register from: composed field by field (has_mixed_fields), hardware input record (regs_in), software storage record (regs), or not readable.
+   */
+  read_source: 'composed' | 'regs_in' | 'regs' | 'none';
 }
 export interface Field {
   name: string;

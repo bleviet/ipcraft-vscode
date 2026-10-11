@@ -7,6 +7,15 @@ const NON_READABLE_ACCESS = new Set([
   'write-1-to-clear',
   'write-self-clearing',
 ]);
+// Replace-on-write fields (and field-less registers) get a plain write `case` branch.
+const REPLACE_ON_WRITE_ACCESS = new Set(['read-write', 'rw', 'write-only', 'wo']);
+// Field-less registers with these accesses are readable from SW storage.
+const READABLE_REGISTER_ACCESS = new Set([
+  'read-write',
+  'rw',
+  'read-write-1-to-clear',
+  'read-write-self-clearing',
+]);
 
 function getString(value: unknown): string {
   if (value === null || value === undefined) {
@@ -196,11 +205,35 @@ export function buildShadowRegisters(
     };
   });
 
-  const annotatedRegisters = registers.map((reg) => ({
-    ...reg,
-    has_cos_fields: cosRegNames.has(getString(reg.name)),
-    has_mixed_fields: readComposedRegNames.has(getString(reg.name)),
-  }));
+  const annotatedRegisters = registers.map((reg) => {
+    const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+    const regAccess = getString(reg.access) || 'read-write';
+    const writeFields = fields.filter((f) =>
+      REPLACE_ON_WRITE_ACCESS.has(getString(f.access) || 'read-write')
+    );
+    const hasFields = fields.length > 0;
+    let readSource: 'composed' | 'regs_in' | 'regs' | 'none' = 'none';
+    if (readComposedRegNames.has(getString(reg.name))) {
+      readSource = 'composed';
+    } else if (hwRegisters.includes(reg)) {
+      readSource = 'regs_in';
+    } else if (
+      swRegisters.includes(reg) &&
+      (hasFields || READABLE_REGISTER_ACCESS.has(regAccess))
+    ) {
+      readSource = 'regs';
+    }
+    return {
+      ...reg,
+      has_cos_fields: cosRegNames.has(getString(reg.name)),
+      has_mixed_fields: readComposedRegNames.has(getString(reg.name)),
+      write_fields: writeFields,
+      needs_write_branch: hasFields
+        ? writeFields.length > 0
+        : REPLACE_ON_WRITE_ACCESS.has(regAccess),
+      read_source: readSource,
+    };
+  });
 
   return {
     registers: annotatedRegisters,
