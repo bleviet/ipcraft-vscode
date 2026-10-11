@@ -4,6 +4,30 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-11
+
+### Added
+
+- **Self-contained IP packages.** The new **IPCraft: Package IP Core (Self-Contained)** command and `ipcraft package <ip.yml> --out <path> [--zip]` bundle an `.ip.yml` with every file it references (memory map and file-set imports, file-set files, the `useBusLibrary` file or folder, and subcores with a path, transitively) into a folder or `.zip`. Files outside the IP directory are copied under `deps/` and their references are rewritten in place, so all other files stay byte-identical. Missing files, path conflicts and symlink loops are reported together before anything is written. ([#234](https://github.com/bleviet/ipcraft-vscode/issues/234))
+- **Bit fields can be added with the mouse.** The fields table shows a hover insert bar (+) at gaps where a free bit exists, and the field-table and visualizer context menus offer Insert Above/Below and Insert Before/After. The new field's name cell is focused. An insert that would shift an existing field is rejected with an error instead. ([#235](https://github.com/bleviet/ipcraft-vscode/issues/235))
+- **Regeneration tells hand edits from generator changes.** IPCraft records what it last generated under `<output>/.ipcraft/baseline` and classifies each modified file against it. Both staging views offer per-file **Auto-merge** (clean three-way merge), **Sync interface** (replace only the entity/module header), **Overwrite** and **Keep**. Hand-edited and locked files default to Keep or Auto-merge, never Overwrite. The merge editor uses the baseline as its base, and the baseline is updated when a merge is saved. Locked (`managed: false`) files that already exist now appear in staging when their interface is out of date; they are still never written without an explicit choice. ([#236](https://github.com/bleviet/ipcraft-vscode/issues/236))
+
+### Changed
+
+- The "Generation failed" message shows the first conformance issue.
+- New registers created in the Memory Map editor no longer get an explicit `access: read-write`.
+
+### Fixed
+
+- **Generated register files compile when register-level `access` disagrees with the field accesses.** For example, the editor's old default `access: read-write` over read-only fields produced VHDL and SystemVerilog that did not compile. Field accesses now decide the access of a register that has fields; register-level `access` applies only to field-less registers, in the HDL, `component.xml`, `memmap.yml` and docs. Dead W1C write branches are no longer emitted. The template context contract is now 1.5.0 and adds `write_fields`, `needs_write_branch` and `read_source` per register. ([#238](https://github.com/bleviet/ipcraft-vscode/issues/238))
+- A workspace IP-XACT bus definition without an IPCraft contract, such as the `avalon_mm.xml` that Vivado packaging exports, no longer replaces the builtin definition with the same VLNV. Before, it turned a memory-mapped slave into a conduit and blocked generation. It is now skipped with a `BUS_DEF_CONTRACTLESS_OVERRIDE_IGNORED` warning.
+- Resizing or moving a bit field masks its reset value to the new width, so a bit that no longer fits does not come back when the field grows again. Files already saved with an out-of-range reset value display consistently. ([#237](https://github.com/bleviet/ipcraft-vscode/issues/237))
+- After a Ctrl+Drag of a bit field, the fields table no longer keeps a stale drag preview that froze its Bit(s) cell and hid later Shift+Drag resizes.
+
+### Compatibility
+
+- Generated HDL changes for registers whose register-level `access` disagrees with their fields. Such output did not compile before, so no working design is affected. The template context contract keys are additive, so custom packs declaring `apiVersion: "^1.x"` keep working; a pack pinned with `~1.4` or an exact `1.4.0` must widen its range.
+
 ## [1.1.0] - 2026-10-07
 
 ### Added
