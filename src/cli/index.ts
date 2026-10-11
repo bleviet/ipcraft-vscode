@@ -3,6 +3,7 @@ import * as path from 'path';
 import { resolveResourceRoots } from '../services/ResourceRoots';
 import { runCliGenerate } from './generate';
 import { runCliMigrate } from './migrate';
+import { runCliPackage } from './package';
 import { runCliVerify } from './verify';
 import { parseArgs, usageText } from './argv';
 
@@ -17,6 +18,17 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     console.error(parsed.message);
     console.log(usageText());
     return 1;
+  }
+
+  if (parsed.kind === 'package') {
+    const result = await runCliPackage(parsed.args);
+    if (!result.success) {
+      console.error(`Packaging failed: ${result.error}`);
+      return 1;
+    }
+    printWarnings(result.warnings);
+    console.log(`Packaged ${result.fileCount} file(s) into ${result.outputPath}`);
+    return 0;
   }
 
   let resourceRoots;

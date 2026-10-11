@@ -248,6 +248,34 @@ other generation flags) used to produce the committed output, or affected
 generated source files will be reported stale against the default 2-space
 regeneration.
 
+### Packaging a self-contained IP
+
+`package` bundles an `.ip.yml` and every file it references into one folder or
+`.zip`, including files outside the IP directory:
+
+```bash
+ipcraft package path/to/core.ip.yml --out dist/core_1.0.0
+ipcraft package path/to/core.ip.yml --out dist/core_1.0.0.zip --zip
+```
+
+Referenced files are the memory map and file set imports, `fileSets[].files`,
+`useBusLibrary`, and subcores that have a `path:` (bundled transitively). Files
+inside the IP directory keep their relative paths; external files are copied
+under `deps/` and the references in the packaged `.ip.yml` are rewritten, with
+comments and hex literals preserved. Subcores given only as a VLNV are not
+bundled and produce a warning. The folder must not exist or must be empty; with
+`--zip` the file must not exist, and `.zip` is appended to `--out` if it is
+missing.
+
+Limits: all problems (missing paths, file references that are directories,
+symlink loops in the bus library, package-path conflicts) are reported together
+and nothing is written. A package-path conflict occurs when the IP already has
+its own `deps/` folder that collides with the copied externals, or when a file
+set lists a file that packaging rewrites, such as a subcore's own `.ip.yml`
+that has external references. Plain files inside a subcore folder are
+deduplicated. In VS Code the same service is available as
+**IPCraft: Package IP Core (Self-Contained)**.
+
 ### Upgrading `.ip.yml` to the latest format version
 
 An `.ip.yml` declares its file format version in `apiVersion` (`1.0` or `1.1`);

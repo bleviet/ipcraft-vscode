@@ -1,6 +1,7 @@
 import type { CliGenerateArgs } from './generate';
 import { DEFAULT_QUARTUS_DEVICE, DEFAULT_VIVADO_PART } from './generate';
 import type { CliMigrateArgs } from './migrate';
+import type { CliPackageArgs } from './package';
 import type { CliVerifyArgs } from './verify';
 import type { HdlLanguage } from '../generator/types';
 import type { IndentStyle } from '../generator/reindent';
@@ -12,6 +13,9 @@ export function usageText(): string {
 Usage:
   ipcraft generate <ip.yml> [options]
   ipcraft verify <ip.yml> <generated-dir> [options]
+  ipcraft package <ip.yml> --out <path> [--zip]
+                                          Bundle an .ip.yml and every file it references into a
+                                          self-contained folder (or .zip with --zip)
   ipcraft migrate <file>... [--check]     Upgrade .ip.yml files to the latest format version and
                                           convert legacy snake_case keys in .ip.yml / .mm.yml files
 
@@ -30,6 +34,7 @@ Options:
                                       sources (default: ${DEFAULT_INDENT_STYLE})
   --indent-size <n>                   Spaces per indentation level when --indent-style is
                                       'spaces' (default: ${DEFAULT_INDENT_SIZE}); ignored for 'tab'
+  --zip                              [package only] Write a .zip file; --out is the file path
   --check                            [migrate only] Report files that need an upgrade or key
                                       conversion without writing; exit 1 if any do
   -h, --help                          Show this help
@@ -38,6 +43,7 @@ Examples:
   ipcraft generate path/to.ip.yml --target quartus --lang systemverilog --out gen/
   ipcraft verify path/to.ip.yml gen/ --target quartus --lang systemverilog
   ipcraft migrate path/to.ip.yml --check
+  ipcraft package path/to.ip.yml --out dist/my_ip --zip
 `;
 }
 
@@ -46,7 +52,8 @@ export type ParsedArgv =
   | { kind: 'error'; message: string }
   | { kind: 'generate'; args: CliGenerateArgs }
   | { kind: 'verify'; args: CliVerifyArgs }
-  | { kind: 'migrate'; args: CliMigrateArgs };
+  | { kind: 'migrate'; args: CliMigrateArgs }
+  | { kind: 'package'; args: CliPackageArgs };
 
 interface CommonOptions {
   targets: string[];
@@ -168,17 +175,58 @@ function parseMigrateArgs(rest: string[]): ParsedArgv {
   return { kind: 'migrate', args: { paths, check } };
 }
 
+/** Parses `package` argv: `<ip.yml> --out <path> [--zip]`. */
+function parsePackageArgs(rest: string[]): ParsedArgv {
+  const positional: string[] = [];
+  let out: string | undefined;
+  let zip = false;
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    if (arg === '--zip') {
+      zip = true;
+    } else if (arg === '--out') {
+      i += 1;
+      out = rest[i];
+    } else if (arg.startsWith('--')) {
+      return { kind: 'error', message: `Unknown option '${arg}' for 'package'` };
+    } else {
+      positional.push(arg);
+    }
+  }
+  if (positional.length === 0) {
+    return { kind: 'error', message: 'Missing required argument: <ip.yml>' };
+  }
+  if (positional.length > 1) {
+    return { kind: 'error', message: `Unexpected argument '${positional[1]}'` };
+  }
+  if (!out) {
+    return { kind: 'error', message: "Missing required option: '--out <path>'" };
+  }
+  if (zip && !/\.zip$/i.test(out)) {
+    out += '.zip';
+  }
+  return { kind: 'package', args: { ipYamlPath: positional[0], out, zip } };
+}
+
 /** Parses ipcraft CLI argv (excluding the node/script prefix). Pure — no I/O, no process.exit. */
 export function parseArgs(argv: string[]): ParsedArgv {
   if (argv.length === 0 || argv.includes('-h') || argv.includes('--help')) {
     return { kind: 'help' };
   }
   const [command, ...rest] = argv;
-  if (command !== 'generate' && command !== 'verify' && command !== 'migrate') {
+  if (
+    command !== 'generate' &&
+    command !== 'verify' &&
+    command !== 'migrate' &&
+    command !== 'package'
+  ) {
     return {
       kind: 'error',
-      message: `Unknown command '${command}'. Expected 'generate', 'verify' or 'migrate'.`,
+      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate' or 'package'.`,
     };
+  }
+  if (command === 'package') {
+    return parsePackageArgs(rest);
   }
   if (command === 'migrate') {
     return parseMigrateArgs(rest);

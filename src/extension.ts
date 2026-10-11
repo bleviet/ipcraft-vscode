@@ -27,6 +27,7 @@ import { selectQuartusVersionCommand } from './commands/selectQuartusVersion';
 import { scanVivadoCatalogCommand } from './commands/scanVivadoCatalog';
 import { scanVivadoInterfacesCommand } from './commands/scanVivadoInterfaces';
 import { scanWorkspaceBusDefinitionsCommand } from './commands/scanWorkspaceBusDefinitions';
+import { packageIpCoreCommand } from './commands/PackageIpCoreCommand';
 import { openAsTextCommand, openAsVisualCommand } from './commands/toggleEditorMode';
 import { IpCoreSourcePreviewProvider } from './providers/IpCoreSourcePreviewProvider';
 import { safeRegisterCommand } from './utils/vscodeHelpers';
@@ -202,6 +203,9 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.quartusNotConfigured', quartusNotConfiguredCommand);
   safeRegisterCommand(context, 'fpga-ip-core.qsysEditNotConfigured', qsysEditNotConfiguredCommand);
   safeRegisterCommand(context, 'fpga-ip-core.buildNotConfigured', buildNotConfiguredCommand);
+  safeRegisterCommand(context, 'fpga-ip-core.packageIpCore', packageIpCoreCommand, {
+    requiresWorkspaceTrust: true,
+  });
   safeRegisterCommand(context, 'fpga-ip-core.openAsText', openAsTextCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openAsVisual', openAsVisualCommand);
   safeRegisterCommand(context, 'fpga-ip-core.migrateLegacy', migrateLegacyIpCoreCommand);

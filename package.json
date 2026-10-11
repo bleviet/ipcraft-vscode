@@ -289,6 +289,12 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "fpga-ip-core.packageIpCore",
+        "title": "Package IP Core (Self-Contained)",
+        "category": "IPCraft",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "fpga-ip-core.openInVivado",
         "title": "Open in Vivado",
         "category": "IPCraft",
@@ -722,6 +728,11 @@
           "command": "fpga-ip-core.upgradeIpCore",
           "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/",
           "group": "ipcraft@8"
+        },
+        {
+          "command": "fpga-ip-core.packageIpCore",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/",
+          "group": "ipcraft@9"
         }
       ],
       "commandPalette": [
@@ -792,6 +803,10 @@
         {
           "command": "fpga-ip-core.upgradeIpCore",
           "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.packageIpCore",
+          "when": "resourceFilename =~ /\\.ip\\.yml$/"
         },
         {
           "command": "fpga-ip-core.generateAndBuildVivado",
@@ -1795,6 +1810,7 @@
     "@xmldom/xmldom": "^0.9.10",
     "@xyflow/react": "^12.11.2",
     "ajv": "^8.20.0",
+    "fflate": "^0.8.3",
     "js-yaml": "^4.1.0",
     "nunjucks": "^3.2.4",
     "react": "^18.2.0",
