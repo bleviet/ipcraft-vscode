@@ -2,6 +2,12 @@ import * as vscode from 'vscode';
 import * as StagingContentProvider from '../../../providers/StagingContentProvider';
 import { WebviewStagingBridge } from '../../../providers/WebviewStagingBridge';
 import { mergeStagedFile, type StagedFile } from '../../../providers/StagingPanel';
+import { Logger } from '../../../utils/Logger';
+import { writeBaselines } from '../../../generator/generationBaseline';
+
+jest.mock('../../../generator/generationBaseline', () => ({
+  writeBaselines: jest.fn().mockResolvedValue(undefined),
+}));
 
 const fsMock = vscode.workspace.fs as unknown as {
   readFile: jest.Mock;
@@ -32,7 +38,10 @@ beforeEach(() => {
   (vscode.Uri.from as unknown as jest.Mock).mockImplementation(
     (parts: { scheme?: string; path?: string }) => ({ scheme: parts.scheme, path: parts.path })
   );
-  (vscode.Uri.file as unknown as jest.Mock).mockImplementation((p: string) => ({ fsPath: p }));
+  (vscode.Uri.file as unknown as jest.Mock).mockImplementation((p: string) => ({
+    fsPath: p,
+    toString: () => `file://${p}`,
+  }));
 });
 
 describe('WebviewStagingBridge merge tracking', () => {
@@ -182,5 +191,137 @@ describe('mergeStagedFile', () => {
 
     expect(opened).toBe(false);
     expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+  });
+});
+
+describe('mergeStagedFile baseline update on merge completion', () => {
+  type DocListener = (doc: { uri: { fsPath: string } }) => void;
+  const onSave = vscode.workspace.onDidSaveTextDocument as unknown as jest.Mock;
+  const onClose = vscode.workspace.onDidCloseTextDocument as unknown as jest.Mock;
+  const writeBaselinesMock = writeBaselines as unknown as jest.Mock;
+  let saveListener: DocListener | undefined;
+  let closeListener: DocListener | undefined;
+  let saveDispose: jest.Mock;
+  let closeDispose: jest.Mock;
+  const uriOf = (fsPath: string) => ({ fsPath, toString: () => `file://${fsPath}` });
+  const doc = (fsPath: string) => ({ uri: uriOf(fsPath) });
+  const TabInputTextMerge = (
+    vscode as unknown as {
+      TabInputTextMerge: new (b: unknown, i1: unknown, i2: unknown, r: unknown) => object;
+    }
+  ).TabInputTextMerge;
+  const mergeTab = (fsPath: string) => ({
+    input: new TabInputTextMerge(undefined, undefined, undefined, uriOf(fsPath)),
+  });
+  const tabGroups = vscode.window.tabGroups as unknown as {
+    all: Array<{ tabs: unknown[] }>;
+    onDidChangeTabs: jest.Mock;
+  };
+  let tabsListener: ((e: { closed: unknown[] }) => void) | undefined;
+  let tabsDispose: jest.Mock;
+
+  beforeEach(() => {
+    saveListener = undefined;
+    closeListener = undefined;
+    saveDispose = jest.fn();
+    closeDispose = jest.fn();
+    onSave.mockImplementation((l: DocListener) => {
+      saveListener = l;
+      return { dispose: saveDispose };
+    });
+    onClose.mockImplementation((l: DocListener) => {
+      closeListener = l;
+      return { dispose: closeDispose };
+    });
+    tabsListener = undefined;
+    tabsDispose = jest.fn();
+    tabGroups.onDidChangeTabs.mockImplementation((l: typeof tabsListener) => {
+      tabsListener = l;
+      return { dispose: tabsDispose };
+    });
+    tabGroups.all = [{ tabs: [mergeTab('/out/rtl/core.vhd')] }];
+    writeBaselinesMock.mockResolvedValue(undefined);
+    fsMock.readFile.mockResolvedValue(bytes('on disk content'));
+  });
+
+  it('writes the generated content as the baseline when the merged document is saved', async () => {
+    await mergeStagedFile(file('rtl/core.vhd'));
+
+    saveListener?.(doc('/out/rtl/core.vhd'));
+
+    expect(writeBaselinesMock).toHaveBeenCalledWith('/out', [
+      { relativePath: 'rtl/core.vhd', content: 'generated:rtl/core.vhd' },
+    ]);
+    expect(saveDispose).toHaveBeenCalled();
+    expect(closeDispose).toHaveBeenCalled();
+  });
+
+  it('writes nothing and disposes when the merge tab was closed before the save', async () => {
+    await mergeStagedFile(file('rtl/core.vhd'));
+    const closed = tabGroups.all[0].tabs;
+    tabGroups.all = [{ tabs: [] }];
+
+    tabsListener?.({ closed });
+    expect(tabsDispose).toHaveBeenCalled();
+    expect(saveDispose).toHaveBeenCalled();
+
+    saveListener?.(doc('/out/rtl/core.vhd'));
+    expect(writeBaselinesMock).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing when saved while only a normal tab is open', async () => {
+    await mergeStagedFile(file('rtl/core.vhd'));
+    tabGroups.all = [{ tabs: [{ input: {} }] }];
+
+    saveListener?.(doc('/out/rtl/core.vhd'));
+
+    expect(writeBaselinesMock).not.toHaveBeenCalled();
+    expect(saveDispose).toHaveBeenCalled();
+    expect(tabsDispose).toHaveBeenCalled();
+  });
+
+  it('disposes without writing when the document is closed unsaved', async () => {
+    await mergeStagedFile(file('rtl/core.vhd'));
+
+    closeListener?.(doc('/out/rtl/core.vhd'));
+
+    // Disposed subscriptions are never invoked by VS Code again.
+    expect(saveDispose).toHaveBeenCalled();
+    expect(closeDispose).toHaveBeenCalled();
+    expect(writeBaselinesMock).not.toHaveBeenCalled();
+  });
+
+  it('ignores saves of other documents', async () => {
+    await mergeStagedFile(file('rtl/core.vhd'));
+
+    saveListener?.(doc('/out/rtl/other.vhd'));
+    closeListener?.(doc('/out/rtl/other.vhd'));
+
+    expect(writeBaselinesMock).not.toHaveBeenCalled();
+    expect(saveDispose).not.toHaveBeenCalled();
+  });
+
+  it('registers no listener when the merge editor fails to open', async () => {
+    executeCommand.mockImplementation(async (command: string) => {
+      if (command === '_open.mergeEditor') {
+        throw new Error('command not found');
+      }
+    });
+
+    await mergeStagedFile(file('rtl/core.vhd'));
+
+    expect(onSave).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('does not throw when the baseline write fails', async () => {
+    const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    writeBaselinesMock.mockRejectedValue(new Error('disk full'));
+    await mergeStagedFile(file('rtl/core.vhd'));
+
+    expect(() => saveListener?.(doc('/out/rtl/core.vhd'))).not.toThrow();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('disk full'));
+    warn.mockRestore();
   });
 });

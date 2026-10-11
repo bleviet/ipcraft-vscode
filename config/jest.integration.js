@@ -15,6 +15,7 @@ module.exports = {
         '^@services/(.*)$': '<rootDir>/src/services/$1',
         '^@utils/(.*)$': '<rootDir>/src/utils/$1',
     },
+    modulePathIgnorePatterns: ['<rootDir>/.vscode-test/', '<rootDir>/.test-fixtures/'],
     setupFilesAfterEnv: [],
     setupFiles: ['<rootDir>/src/test/integration/setup.ts'],
     transform: {

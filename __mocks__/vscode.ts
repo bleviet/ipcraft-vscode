@@ -23,6 +23,8 @@ export const window = {
   withProgress: jest.fn(),
   activeTextEditor: undefined as { document: { fileName: string; uri: unknown } } | undefined,
   tabGroups: {
+    all: [] as Array<{ tabs: Array<{ input: unknown }> }>,
+    onDidChangeTabs: jest.fn(),
     activeTabGroup: {
       activeTab: undefined as { input: unknown } | undefined,
     },
@@ -36,9 +38,20 @@ export class TabInputCustom {
   ) {}
 }
 
+export class TabInputTextMerge {
+  constructor(
+    public base: unknown,
+    public input1: unknown,
+    public input2: unknown,
+    public result: unknown
+  ) {}
+}
+
 export const workspace = {
   isTrusted: true,
   onDidChangeTextDocument: jest.fn(),
+  onDidSaveTextDocument: jest.fn(),
+  onDidCloseTextDocument: jest.fn(),
   findFiles: jest.fn(),
   createFileSystemWatcher: jest.fn(),
   applyEdit: jest.fn(),

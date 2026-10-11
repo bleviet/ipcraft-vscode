@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { randomBytes } from 'crypto';
 import { STAGING_SCHEME, setStagingContent, clearStagingContent } from './StagingContentProvider';
 import { openMergeEditorForConflict } from '../utils/importWrite';
+import { writeBaselines } from '../generator/generationBaseline';
+import { Logger } from '../utils/Logger';
 import {
   renderFileTree,
   escHtml,
@@ -22,6 +25,8 @@ import {
 } from '../shared/staging';
 
 export type { InterfaceDrift, StagingAction };
+
+const logger = new Logger('StagingPanel');
 
 export interface StagedFile {
   relativePath: string;
@@ -69,9 +74,74 @@ export interface StagingDecision {
   actions: Record<string, StagingAction>;
 }
 
+// TabInputTextMerge is missing from the pinned @types/vscode (1.80) typings; the class exists at runtime.
+type MergeTabInputCtor = new (...args: never[]) => { result: vscode.Uri };
+const MergeTabInput = (vscode as unknown as { TabInputTextMerge?: MergeTabInputCtor })
+  .TabInputTextMerge;
+
+/**
+ * Records the generated content as the file's baseline once the user completes the merge
+ * (the merge editor saves the real document at `diskUri`). The baseline is only written for a
+ * save made while the merge editor is still open; closing the merge editor (or the document)
+ * disposes the listeners, so an abandoned merge leaves the old baseline and a later 3-way
+ * merge still sees the generator's changes.
+ */
+function updateBaselineOnMergeSave(file: StagedFile, diskUri: vscode.Uri): void {
+  // diskPath = <outputDir>/<relativePath>
+  const outputDir = path.resolve(
+    file.diskPath,
+    ...path
+      .normalize(file.relativePath)
+      .split(path.sep)
+      .map(() => '..')
+  );
+  const subscriptions: vscode.Disposable[] = [];
+  const disposeAll = () => {
+    for (const s of subscriptions) {
+      s.dispose();
+    }
+  };
+  const target = diskUri.toString();
+  const isMerged = (doc: vscode.TextDocument) => doc.uri.toString() === target;
+  const isMergeTab = (tab: vscode.Tab) =>
+    MergeTabInput !== undefined &&
+    tab.input instanceof MergeTabInput &&
+    tab.input.result.toString() === target;
+
+  subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument((doc) => {
+      if (!isMerged(doc)) {
+        return;
+      }
+      const mergeOpen = vscode.window.tabGroups.all.some((g) => g.tabs.some(isMergeTab));
+      disposeAll();
+      if (!mergeOpen) {
+        return;
+      }
+      writeBaselines(outputDir, [{ relativePath: file.relativePath, content: file.content }]).catch(
+        (err: unknown) =>
+          logger.warn(
+            `Failed to write generation baseline for ${file.relativePath}: ${err instanceof Error ? err.message : String(err)}`
+          )
+      );
+    }),
+    vscode.window.tabGroups.onDidChangeTabs((e) => {
+      if (e.closed.some(isMergeTab)) {
+        disposeAll();
+      }
+    }),
+    vscode.workspace.onDidCloseTextDocument((doc) => {
+      if (isMerged(doc)) {
+        disposeAll();
+      }
+    })
+  );
+}
+
 /**
  * Opens the 3-way merge editor for one staged file (current on disk vs. the
  * generated content). Shared by both staging UIs. Returns true if it opened.
+ * Completing the merge (saving the result) updates the file's generation baseline.
  */
 export async function mergeStagedFile(file: StagedFile): Promise<boolean> {
   const diskUri = vscode.Uri.file(file.diskPath);
@@ -81,7 +151,17 @@ export async function mergeStagedFile(file: StagedFile): Promise<boolean> {
   } catch {
     current = ''; // file vanished since categorization — treat as empty base
   }
-  return openMergeEditorForConflict(diskUri, current, file.content, 'Generated', file.baseline);
+  const opened = await openMergeEditorForConflict(
+    diskUri,
+    current,
+    file.content,
+    'Generated',
+    file.baseline
+  );
+  if (opened) {
+    updateBaselineOnMergeSave(file, diskUri);
+  }
+  return opened;
 }
 
 export class StagingPanel {
