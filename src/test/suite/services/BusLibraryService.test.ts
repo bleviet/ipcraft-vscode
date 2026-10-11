@@ -359,6 +359,58 @@ describe('BusLibraryService normalized contract loading', () => {
     expect(result.definitions.SECOND.ports[0].name).toBe('new');
   });
 
+  it('keeps a contract definition when a later contract-less entry has the same canonical VLNV', () => {
+    const definitions = (text: string) => yaml.load(text) as BusDefinitionSource['definitions'];
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+    const contractless = definitions(completeDefinition('XML_KEY', 'shared', 'xml'));
+    delete contractless.XML_KEY.contract;
+
+    const result = service.normalizeSources({
+      sources: [
+        {
+          sourceFile: '/builtin/shared.yml',
+          sourceKind: 'builtin',
+          definitions: definitions(completeDefinition('BUILTIN_KEY', 'shared', 'builtin')),
+        },
+        { sourceFile: '/workspace/shared.xml', sourceKind: 'workspace', definitions: contractless },
+      ],
+      diagnostics: [],
+    });
+
+    expect(Object.keys(result.definitions)).toEqual(['BUILTIN_KEY']);
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'BUS_DEF_CONTRACTLESS_OVERRIDE_IGNORED',
+        severity: 'warning',
+        sourceFile: '/workspace/shared.xml',
+        path: ['XML_KEY'],
+        message: expect.stringContaining('/builtin/shared.yml'),
+      })
+    );
+  });
+
+  it('lets a contract-less entry replace an earlier contract-less entry with the same VLNV', () => {
+    const definitions = (text: string) => yaml.load(text) as BusDefinitionSource['definitions'];
+    const service = new BusLibraryService(logger as Logger, MOCK_DIR, SCHEMA_PATH);
+    const first = definitions(completeDefinition('FIRST', 'shared', 'old'));
+    const second = definitions(completeDefinition('SECOND', 'shared', 'new'));
+    delete first.FIRST.contract;
+    delete second.SECOND.contract;
+
+    const result = service.normalizeSources({
+      sources: [
+        { sourceFile: '/workspace/first.xml', sourceKind: 'workspace', definitions: first },
+        { sourceFile: '/workspace/second.xml', sourceKind: 'workspace', definitions: second },
+      ],
+      diagnostics: [],
+    });
+
+    expect(Object.keys(result.definitions)).toEqual(['SECOND']);
+    expect(result.diagnostics).not.toContainEqual(
+      expect.objectContaining({ code: 'BUS_DEF_CONTRACTLESS_OVERRIDE_IGNORED' })
+    );
+  });
+
   it('keeps a valid lower-precedence definition when an override is semantically invalid', () => {
     const definitions = (text: string) => yaml.load(text) as BusDefinitionSource['definitions'];
     const builtin = definitions(completeDefinition('SHARED', 'shared', 'builtin'));

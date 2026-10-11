@@ -70,6 +70,7 @@ const DEFAULT_EXCLUDED_DIR_NAMES = [
   '.gen',
   '.metadata',
   '.qsys_edit',
+  '.test-fixtures',
 ];
 
 /**

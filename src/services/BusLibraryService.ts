@@ -330,10 +330,30 @@ export class BusLibraryService {
           continue;
         }
 
+        // IP-XACT-derived entries carry no contract, so they must not replace
+        // a contract definition that owns the same canonical VLNV.
+        const canonical = canonicalVlnv(entry);
+        if (canonical && !('contract' in entry)) {
+          const owner = selectedSources.find((winner) =>
+            Object.values(winner.definitions).some(
+              (existing) => 'contract' in existing && canonicalVlnv(existing) === canonical
+            )
+          );
+          if (owner) {
+            semanticDiagnostics.push({
+              code: 'BUS_DEF_CONTRACTLESS_OVERRIDE_IGNORED',
+              severity: 'warning',
+              sourceFile: source.sourceFile,
+              path: [key],
+              message: `Definition '${key}' for '${canonical}' has no IPCraft contract and cannot replace the contract definition from '${owner.sourceFile}'; keeping the existing definition.`,
+            });
+            continue;
+          }
+        }
+
         // Fast path: a new key and canonical VLNV whose aliases are free cannot
         // displace or change any selected definition, so normalizing the whole
         // library again would give the same result plus this candidate.
-        const canonical = canonicalVlnv(entry);
         if (
           canonical &&
           !selectedKeys.has(key) &&

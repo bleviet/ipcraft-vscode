@@ -555,6 +555,7 @@ describe('WorkspaceBusDefinitionScanner', () => {
       expect(excludeArg).toContain('node_modules');
       expect(excludeArg).toContain('.runs');
       expect(excludeArg).toContain('.ip_user_files');
+      expect(excludeArg).toContain('.test-fixtures');
     });
 
     it('also prunes directories configured via files.exclude / search.exclude', async () => {
