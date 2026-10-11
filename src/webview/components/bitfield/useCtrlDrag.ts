@@ -11,9 +11,25 @@ export function useCtrlDrag({ onCommitPreview, onCancelPreview }: UseCtrlDragOpt
   const ctrlDragRef = useRef<CtrlDragState>(ctrlDrag);
   const [ctrlHeld, setCtrlHeld] = useState(false);
 
+  const onCancelPreviewRef = useRef(onCancelPreview);
+  const wasActiveRef = useRef(false);
+
+  useEffect(() => {
+    onCancelPreviewRef.current = onCancelPreview;
+  }, [onCancelPreview]);
+
   useEffect(() => {
     ctrlDragRef.current = ctrlDrag;
   }, [ctrlDrag]);
+
+  // Backstop: a pending render can re-arm the drag after commit, letting a stray
+  // pointermove re-emit the preview. Clear it whenever the drag ends.
+  useEffect(() => {
+    if (wasActiveRef.current && !ctrlDrag.active) {
+      onCancelPreviewRef.current?.();
+    }
+    wasActiveRef.current = ctrlDrag.active;
+  }, [ctrlDrag.active]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,6 +65,7 @@ export function useCtrlDrag({ onCommitPreview, onCancelPreview }: UseCtrlDragOpt
       if (ctrlDrag.previewSegments && ctrlDrag.previewValid) {
         onCommitPreview?.(ctrlDrag.previewSegments);
       }
+      ctrlDragRef.current = CTRL_DRAG_INITIAL;
       onCancelPreview?.();
       requestAnimationFrame(() => {
         setCtrlDrag(CTRL_DRAG_INITIAL);
@@ -56,6 +73,7 @@ export function useCtrlDrag({ onCommitPreview, onCancelPreview }: UseCtrlDragOpt
     };
 
     const cancelCtrlDrag = () => {
+      ctrlDragRef.current = CTRL_DRAG_INITIAL;
       onCancelPreview?.();
       setCtrlDrag(CTRL_DRAG_INITIAL);
     };

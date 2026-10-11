@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import BitFieldVisualizer from '../../../webview/components/BitFieldVisualizer';
 
 describe('BitFieldVisualizer vertical layout', () => {
@@ -98,4 +98,45 @@ describe('BitFieldVisualizer out-of-range reset values', () => {
       expect(screen.queryByText('0x8')).toBeNull();
     }
   );
+});
+
+describe('BitFieldVisualizer ctrl-drag preview after commit', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('does not re-emit a drag preview for a pointermove between pointerup and the animation frame', () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation((cb) => {
+      rafCallbacks.push(cb);
+      return rafCallbacks.length;
+    });
+    const onDragPreview = jest.fn();
+    const onBatchUpdateFields = jest.fn();
+    const { container } = render(
+      <BitFieldVisualizer
+        fields={[{ name: 'low', bitRange: [1, 0], resetValue: 0 }]}
+        registerSize={8}
+        layout="vertical"
+        onDragPreview={onDragPreview}
+        onBatchUpdateFields={onBatchUpdateFields}
+      />
+    );
+    const cells = Array.from(container.querySelectorAll<HTMLElement>('.touch-none'));
+    const fieldCell = cells[0];
+    const otherCell = cells[cells.length - 1];
+
+    fireEvent.pointerDown(fieldCell, { ctrlKey: true, button: 0 });
+    fireEvent.pointerMove(otherCell);
+    expect(onDragPreview.mock.calls.some(([arg]) => arg !== null)).toBe(true);
+
+    fireEvent.pointerUp(window);
+    // Cells are re-rendered while the preview is shown, so query again.
+    const cellsAfterCommit = container.querySelectorAll<HTMLElement>('.touch-none');
+    fireEvent.pointerMove(cellsAfterCommit[cellsAfterCommit.length - 1]);
+
+    expect(onDragPreview).toHaveBeenLastCalledWith(null);
+    expect(onBatchUpdateFields).toHaveBeenCalledTimes(1);
+    act(() => rafCallbacks.forEach((cb) => cb(0)));
+  });
 });

@@ -298,11 +298,12 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
   };
 
   const handleCtrlPointerMove = (bit: number) => {
-    if (!ctrlDrag.active || ctrlDrag.draggedFieldIndex === null) {
+    const { active, draggedFieldIndex } = ctrlDragRef.current;
+    if (!active || draggedFieldIndex === null) {
       return;
     }
 
-    const preview = computeCtrlDragPreview(bit, ctrlDrag.draggedFieldIndex, fields, registerSize);
+    const preview = computeCtrlDragPreview(bit, draggedFieldIndex, fields, registerSize);
     if (preview) {
       setCtrlDrag((prev) => ({ ...prev, previewSegments: preview.segments, previewValid: true }));
       onDragPreview?.(preview.updates);
