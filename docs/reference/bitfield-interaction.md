@@ -71,6 +71,8 @@ Direction maps to the layout's orientation.
 | Create | `Shift` + drag inside a gap | New field over the dragged span | `onCreateField` |
 | Relocate | `Ctrl`/`Cmd` + drag a field | Field moved; others part to receive it (live preview) | `onBatchUpdateFields` |
 | Toggle reset bit | Click a bit cell | Flip that bit of the owning field's `resetValue` | `onUpdateFieldReset` |
+| Insert (visualizer) | Right-click a field, choose Insert Before / Insert After | New 1-bit field on the adjacent lower / higher bit; errors if occupied | `onInsertField` |
+| Insert (table) | Hover a gap and click the (+) bar, or right-click a row and choose Insert Above / Insert Below | Same insertion; the (+) bar is shown only where a free bit exists | `useFieldEditor.insertFieldAt` / `insertFieldAtGap` |
 
 Relocate commits atomically through `onBatchUpdateFields`; sequential per-field
 updates would pass through overlapping intermediate states.
@@ -83,6 +85,7 @@ updates would pass through overlapping intermediate states.
 | `onBatchUpdateFields` | `(updates: { idx: number; range: [hi, lo] }[])` | Many ranges changed atomically |
 | `onCreateField` | `({ bitRange: [hi, lo]; name: string })` | New field from a gap drag |
 | `onUpdateFieldReset` | `(idx: number, value: number \| null)` | A reset bit toggled |
+| `onInsertField` | `(idx: number, after: boolean)` | Insert a 1-bit field before (`false`) or after (`true`) the field at `idx` |
 | `onDragPreview` | `(updates \| null)` | Transient Ctrl-drag preview (no YAML write) |
 
 ## Function reference

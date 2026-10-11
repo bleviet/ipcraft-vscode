@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { YamlUpdateHandler } from '../../types/editor';
-import { EditableTable, TableContextMenu } from '../../shared/components';
+import { EditableTable, HoverInsertBar, TableContextMenu } from '../../shared/components';
 import { computeReorderPreview } from '../../utils/reorderPreview';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import FieldTableRow from './FieldTableRow';
@@ -52,7 +52,8 @@ export interface FieldsTableProps {
 
 /**
  * Renders the editable bit fields table for a register, including the
- * move-up/move-down toolbar.
+ * move-up/move-down toolbar, the hover (+) insert bar (shown only at gaps with
+ * free bits), and the row context menu (Insert Above/Below, Delete).
  * Delegates insertion/deletion/editing to the useFieldEditor hook state.
  */
 export function FieldsTable({
@@ -79,6 +80,13 @@ export function FieldsTable({
     onPointerEnterRow,
     onDragMove,
     deleteField,
+    insertFieldAt,
+    insertFieldAtGap,
+    canInsertFieldAtGap,
+    insertHoverGap,
+    insertBarScrollY,
+    insertBarTbodyProps,
+    insertBarHoverProps,
   } = fieldEditor;
 
   const [contextMenu, setContextMenu] = useState<{
@@ -103,6 +111,15 @@ export function FieldsTable({
       (realIdx) => base[realIdx]
     );
   }, [wrappedFields, dragState]);
+
+  // Only offer the hover insert bar where a field can really be placed
+  // (free bits next to the gap), and never while dragging.
+  const showInsertBar =
+    !dragState.active && insertHoverGap !== null && canInsertFieldAtGap(insertHoverGap);
+
+  const contextMenuRowIndex = contextMenu
+    ? wrappedFields.findIndex((w) => w.rowId === contextMenu.rowId)
+    : -1;
 
   const handleRowContextMenu = (rowId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -231,7 +248,7 @@ export function FieldsTable({
             ref={focusRef as React.RefObject<HTMLDivElement>}
             tabIndex={0}
             data-fields-table="true"
-            className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none${dragState.active ? ' cursor-grabbing select-none' : ''}`}
+            className={`flex-1 overflow-auto min-h-0 outline-none focus:outline-none relative${dragState.active ? ' cursor-grabbing select-none' : ''}`}
             style={{ overflowY: 'auto', overflowX: 'auto' }}
           >
             {insertError ? (
@@ -266,7 +283,7 @@ export function FieldsTable({
                       <th className="px-6 py-3 border-b vscode-border align-middle">Description</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y vscode-border text-sm">
+                  <tbody className="divide-y vscode-border text-sm" {...insertBarTbodyProps}>
                     {displayFields.map(({ wrapped, index }) => (
                       <FieldTableRow
                         key={wrapped.rowId}
@@ -295,11 +312,20 @@ export function FieldsTable({
                 </>
               )}
             />
+            <HoverInsertBar
+              itemLabel="field"
+              onInsert={insertFieldAtGap}
+              {...insertBarHoverProps}
+              gapIndex={showInsertBar ? insertHoverGap : null}
+              positionY={showInsertBar ? insertBarScrollY : null}
+            />
           </div>
         )}
       </div>
       <TableContextMenu
         position={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : null}
+        onInsertAbove={() => insertFieldAt(contextMenuRowIndex, false)}
+        onInsertBelow={() => insertFieldAt(contextMenuRowIndex, true)}
         onDelete={() => {
           if (contextMenu) {
             deleteField(contextMenu.rowId);

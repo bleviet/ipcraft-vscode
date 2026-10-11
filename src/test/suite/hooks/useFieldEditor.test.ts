@@ -291,3 +291,99 @@ describe('useFieldEditor — reorder synchronization', () => {
     expect(result.current.resetDrafts[rowId0]).toBe('0x1');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Mouse insertion (issue #235)
+// ---------------------------------------------------------------------------
+
+describe('useFieldEditor — mouse insertion', () => {
+  // [0:0] and [7:4] leave gap 1 free; [8:8] is adjacent to [7:4] (gap 2 is full).
+  const fields: BitFieldRecord[] = [
+    makeField('A', 0, 1),
+    makeField('B', 4, 4),
+    makeField('C', 8, 1),
+  ];
+
+  const single = [makeField('B', 4, 4)];
+  const pair = [makeField('B', 4, 4), makeField('C', 12, 1)];
+  const full = [makeField('ALL', 0, 32)];
+
+  const bitsOf = (items: BitFieldRecord[]) => items.map((f) => `${f.name}:${f.bits}`);
+
+  it('insertFieldAt(after) adds a 1-bit field after the anchor without moving others', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor(fields, 32, onUpdate, true));
+
+    act(() => result.current.insertFieldAt(0, true));
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    const [path, items] = onUpdate.mock.calls[0] as [string[], BitFieldRecord[]];
+    expect(path).toEqual(['fields']);
+    expect(items).toHaveLength(4);
+    expect(items[1].bits).toBe('[1:1]');
+    expect(bitsOf([items[0], items[2], items[3]])).toEqual(['A:[0:0]', 'B:[7:4]', 'C:[8:8]']);
+  });
+
+  it('insertFieldAt(before) adds a 1-bit field before the anchor', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor(fields, 32, onUpdate, true));
+
+    act(() => result.current.insertFieldAt(1, false));
+
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    const items = onUpdate.mock.calls[0][1] as BitFieldRecord[];
+    expect(items[1].bits).toBe('[3:3]');
+    expect(bitsOf([items[0], items[2], items[3]])).toEqual(['A:[0:0]', 'B:[7:4]', 'C:[8:8]']);
+  });
+
+  it('canInsertFieldAtGap reflects free bits only', () => {
+    const { result } = renderHook(() => useFieldEditor(fields, 32, jest.fn(), true));
+
+    expect(result.current.canInsertFieldAtGap(0)).toBe(false); // bit -1 out of range
+    expect(result.current.canInsertFieldAtGap(1)).toBe(true); // bits 1..3 free
+    expect(result.current.canInsertFieldAtGap(2)).toBe(false); // B[7:4] next to C[8:8]
+    expect(result.current.canInsertFieldAtGap(3)).toBe(true); // bit 9 free
+  });
+
+  it('canInsertFieldAtGap is true at gap 0 when the bit below the first field is free', () => {
+    const { result } = renderHook(() => useFieldEditor(single, 32, jest.fn(), true));
+    expect(result.current.canInsertFieldAtGap(0)).toBe(true); // bit 3 is free
+  });
+
+  it('insertFieldAtGap maps gap 0 to before row 0 and gap g to after row g-1', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor(pair, 32, onUpdate, true));
+
+    act(() => result.current.insertFieldAtGap(0));
+    expect((onUpdate.mock.calls[0][1] as BitFieldRecord[])[0].bits).toBe('[3:3]');
+
+    act(() => result.current.insertFieldAtGap(1));
+    expect((onUpdate.mock.calls[1][1] as BitFieldRecord[])[1].bits).toBe('[8:8]');
+
+    act(() => result.current.insertFieldAtGap(2));
+    expect((onUpdate.mock.calls[2][1] as BitFieldRecord[])[2].bits).toBe('[13:13]');
+    expect(onUpdate).toHaveBeenCalledTimes(3);
+  });
+
+  it('sets insertError and does not update on a full register', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor(full, 32, onUpdate, true));
+
+    act(() => result.current.insertFieldAt(0, true));
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(result.current.insertError).toBeTruthy();
+  });
+
+  it('refuses inserts that would shift existing fields (MSB-first row order)', () => {
+    const onUpdate = jest.fn();
+    const msbFirst = [makeField('B', 4, 4), makeField('A', 0, 2)];
+    const { result } = renderHook(() => useFieldEditor(msbFirst, 32, onUpdate, true));
+
+    expect(result.current.canInsertFieldAtGap(1)).toBe(false);
+    act(() => result.current.insertFieldAt(0, true));
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(result.current.insertError).toBeTruthy();
+  });
+});

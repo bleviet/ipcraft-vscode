@@ -5,6 +5,10 @@ export interface TableContextMenuProps {
   position: { x: number; y: number } | null;
   onInsertAbove?: () => void;
   onInsertBelow?: () => void;
+  /** Label for the insert-above item. Defaults to 'Insert Above'. */
+  insertAboveLabel?: string;
+  /** Label for the insert-below item. Defaults to 'Insert Below'. */
+  insertBelowLabel?: string;
   onDelete: () => void;
   onClose: () => void;
 }
@@ -13,6 +17,8 @@ export function TableContextMenu({
   position,
   onInsertAbove,
   onInsertBelow,
+  insertAboveLabel = 'Insert Above',
+  insertBelowLabel = 'Insert Below',
   onDelete,
   onClose,
 }: TableContextMenuProps) {
@@ -60,7 +66,7 @@ export function TableContextMenu({
           }}
         >
           <span className="codicon codicon-arrow-up text-xs" />
-          Insert Above
+          {insertAboveLabel}
         </button>
       )}
       {onInsertBelow && (
@@ -72,7 +78,7 @@ export function TableContextMenu({
           }}
         >
           <span className="codicon codicon-arrow-down text-xs" />
-          Insert Below
+          {insertBelowLabel}
         </button>
       )}
       {(onInsertAbove ?? onInsertBelow) && <div className="border-t vscode-border my-0.5" />}

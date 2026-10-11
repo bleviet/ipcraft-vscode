@@ -389,6 +389,7 @@ const FieldTableRow = ({
   return (
     <tr
       data-row-id={rowId}
+      data-row-idx={index}
       className={`group vscode-row-solid transition-colors border-l-4 border-transparent h-12 ${
         isDragSource
           ? ''

@@ -114,7 +114,7 @@ export function useFieldEditor(
     columnOrder: COLUMN_ORDER,
     onUpdate,
     rowSelectorAttr: 'data-row-id',
-    enableHoverInsert: false, // fields don't use HoverInsertBar
+    enableHoverInsert: true, // HoverInsertBar is shown only at gaps with free bits
     isActive,
     onAfterRevert: (snapshot: BitFieldRecord[]) => {
       const rowId = editorState.activeCell.rowId;
@@ -268,32 +268,90 @@ export function useFieldEditor(
   }, [dragState, wrappedFields, fields, onUpdate, clearAllDrafts]);
 
   const pendingSelectRef = useRef<PendingSelectTarget<EditKey> | null>(null);
+  const pendingInsertFocusRef = useRef<PendingSelectTarget<EditKey> | null>(null);
 
-  usePendingSelect<BitFieldRecord, EditKey>(wrappedFields, editorState, pendingSelectRef);
+  usePendingSelect<BitFieldRecord, EditKey>(
+    wrappedFields,
+    editorState,
+    pendingSelectRef,
+    pendingInsertFocusRef
+  );
 
   // ---- Internal helpers ----
-  const tryInsertField = useCallback(
-    (after: boolean) => {
-      setInsertError(null);
-      const typedFields = toRuntimeFields(fields);
+  // Single source of truth for "would inserting here work, and what does it produce".
+  const planFieldInsert = useCallback(
+    (after: boolean, anchorIndex: number) => {
+      const runtimeFields = toRuntimeFields(fields);
       const result = SpatialInsertionService.insertField(
         after ? 'after' : 'before',
-        typedFields,
-        editorState.selectedIndex,
+        runtimeFields,
+        anchorIndex,
         registerSize
       );
+      if (result.error) {
+        return result;
+      }
+      // The service may repack neighbours (e.g. MSB-first row order). Existing
+      // fields must never move, so treat any shifted field as a failed insert.
+      const moved = runtimeFields.find((old) => {
+        const next = result.items.find((item) => item.name === old.name);
+        return !next || fieldToBitsString(next) !== fieldToBitsString(old);
+      });
+      if (moved) {
+        return {
+          ...result,
+          newIndex: -1,
+          error: `Cannot insert: no free bits next to ${moved.name}; existing fields are never moved`,
+        };
+      }
+      return result;
+    },
+    [fields, registerSize]
+  );
+
+  const tryInsertField = useCallback(
+    (after: boolean, anchorIndex = editorState.selectedIndex, autoFocus = false) => {
+      setInsertError(null);
+      const result = planFieldInsert(after, anchorIndex);
 
       if (result.error) {
         setInsertError(result.error);
         return;
       }
 
-      const newIndex = result.newIndex;
-      pendingSelectRef.current = { name: result.items[newIndex].name, key: 'name' };
+      const target = { name: result.items[result.newIndex].name, key: 'name' as const };
+      if (autoFocus) {
+        pendingInsertFocusRef.current = target;
+      } else {
+        pendingSelectRef.current = target;
+      }
       onUpdate(['fields'], result.items);
       clearAllDrafts();
+      editorState.clearInsertBar();
     },
-    [fields, editorState.selectedIndex, registerSize, onUpdate, editorState, clearAllDrafts]
+    [planFieldInsert, editorState, onUpdate, clearAllDrafts]
+  );
+
+  // Gap g lies between rows g-1 and g: gap 0 inserts before row 0, gap g>0 after row g-1.
+  const gapToInsertion = (gapIndex: number) =>
+    gapIndex === 0 ? { after: false, anchorIndex: 0 } : { after: true, anchorIndex: gapIndex - 1 };
+
+  const insertFieldAtGap = useCallback(
+    (gapIndex: number) => {
+      const { after, anchorIndex } = gapToInsertion(gapIndex);
+      tryInsertField(after, anchorIndex, true);
+    },
+    [tryInsertField]
+  );
+
+  const canInsertFieldAtGap = (gapIndex: number): boolean => {
+    const { after, anchorIndex } = gapToInsertion(gapIndex);
+    return !planFieldInsert(after, anchorIndex).error;
+  };
+
+  const insertFieldAt = useCallback(
+    (index: number, after: boolean) => tryInsertField(after, index, true),
+    [tryInsertField]
   );
 
   /** Moves the currently selected field up (-1) or down (+1). */
@@ -361,7 +419,14 @@ export function useFieldEditor(
     cancelEditRef: editorState.cancelEditRef,
 
     // helpers
-    insertField: () => tryInsertField(true),
+    insertField: () => tryInsertField(true, editorState.selectedIndex, true),
+    insertFieldAt,
+    insertFieldAtGap,
+    canInsertFieldAtGap,
+    insertHoverGap: editorState.insertHoverGap,
+    insertBarScrollY: editorState.insertBarScrollY,
+    insertBarTbodyProps: editorState.insertBarTbodyProps,
+    insertBarHoverProps: editorState.insertBarHoverProps,
     deleteField,
     ensureDraftsInitialized: (rowId: string, index: number) =>
       ensureDraftsInitialized(rowId, fields[index]),

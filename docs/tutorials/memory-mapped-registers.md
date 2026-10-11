@@ -77,6 +77,10 @@ Add these fields:
 | `MODE` | `2:1` | Read/write | `0` | Select an operating mode |
 | `START` | `3` | Write-only | `0` | Start one operation |
 
+To add a field, hover between two rows and click the (+) button, right-click a
+field and choose Insert Above or Insert Below, or press `o` with the table
+focused.
+
 Bit ranges are written from the highest bit to the lowest bit. `2:1` therefore
 covers two bits.
 

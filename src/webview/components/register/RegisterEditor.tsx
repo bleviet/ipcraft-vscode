@@ -260,6 +260,8 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       setHoveredFieldIndex,
       registerSize,
       onUpdateFieldReset: handleUpdateFieldReset,
+      onInsertField: (fieldIndex: number, after: boolean) =>
+        fieldEditor.insertFieldAt(fieldIndex, after),
       onUpdateFieldRange: (fieldIndex: number, newRange: [number, number]) => {
         const [hi, lo] = newRange;
         const field = fields[fieldIndex];

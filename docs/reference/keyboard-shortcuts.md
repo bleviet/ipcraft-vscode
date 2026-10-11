@@ -81,6 +81,18 @@ When a field in the visualizer has keyboard focus (Tab to it, or click then use 
 |--------|--------|
 | Existing field | Reorder (drag to new position, live preview) |
 
+### Adding fields with the mouse
+
+| Target | Action |
+|--------|--------|
+| Gap between table rows | Hover to show the (+) bar, then click it to insert a 1-bit field. The bar appears only where a free bit exists next to the gap; fields are never shifted to make room. |
+| Field table row | Right-click, then choose Insert Above or Insert Below |
+| Field in the visualizer | Right-click, then choose Insert Before (toward lower bits) or Insert After (toward higher bits) |
+| Empty register | Click the round (+) button |
+
+The new field's name is focused so you can type it right away. If the adjacent
+bit is occupied or outside the register, an error is shown and nothing changes.
+
 ## Reset Value Cells
 
 | Interaction | Action |

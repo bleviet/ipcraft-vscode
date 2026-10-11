@@ -94,6 +94,12 @@ interface BitFieldVisualizerProps {
   onDragPreview?: (preview: { idx: number; range: [number, number] }[] | null) => void;
   /** Delete a bit field by index (no repack / shift). Right-click on a field. */
   onDeleteField?: (fieldIndex: number) => void;
+  /**
+   * Insert a new 1-bit field next to the field at `fieldIndex` (right-click menu).
+   * `after` true places it toward higher bits, false toward lower bits. Fails
+   * without shifting anything when the adjacent bit is occupied.
+   */
+  onInsertField?: (fieldIndex: number, after: boolean) => void;
 }
 
 const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
@@ -108,6 +114,7 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
   onCreateField,
   onDragPreview,
   onDeleteField,
+  onInsertField,
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [dragSetTo, setDragSetTo] = useState<0 | 1>(0);
@@ -134,6 +141,18 @@ const BitFieldVisualizerInner: React.FC<BitFieldVisualizerProps> = ({
   const fieldContextMenuNode = (
     <TableContextMenu
       position={fieldContextMenu ? { x: fieldContextMenu.x, y: fieldContextMenu.y } : null}
+      onInsertAbove={
+        onInsertField
+          ? () => fieldContextMenu && onInsertField(fieldContextMenu.fieldIndex, false)
+          : undefined
+      }
+      onInsertBelow={
+        onInsertField
+          ? () => fieldContextMenu && onInsertField(fieldContextMenu.fieldIndex, true)
+          : undefined
+      }
+      insertAboveLabel="Insert Before"
+      insertBelowLabel="Insert After"
       onDelete={() => {
         if (fieldContextMenu && onDeleteField) {
           onDeleteField(fieldContextMenu.fieldIndex);
@@ -478,7 +497,8 @@ const BitFieldVisualizer = React.memo(
     prev.onBatchUpdateFields === next.onBatchUpdateFields &&
     prev.onCreateField === next.onCreateField &&
     prev.onDragPreview === next.onDragPreview &&
-    prev.onDeleteField === next.onDeleteField
+    prev.onDeleteField === next.onDeleteField &&
+    prev.onInsertField === next.onInsertField
 );
 
 export default BitFieldVisualizer;
