@@ -1,0 +1,3134 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/superpowers/plans/2026-08-16-bus-port-polarity/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Bus Port Polarity Implementation Plan - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#bus-port-polarity-implementation-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Bus Port Polarity Implementation Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../getting-started/development/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../how-to/create-your-first-ip-core/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../concepts/yaml-data-flow/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../tutorials/de10-nano-case-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DE10-Nano Case Study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/create-your-first-ip-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Your First IP Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/defining-a-custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Defining a Custom Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/importing-an-existing-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing an Existing Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/customizing-generated-files-with-scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customizing Generated Files with Scaffold Packs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/check-consistency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking Consistency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/use-data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/using-arithmetic-functions-in-port-widths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Arithmetic Functions in Port Widths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-cocotb-simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a Cocotb Simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../how-to/run-eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/vivado-interface-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vivado Interface Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Template Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/generator-feature-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Feature Coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/bit-field-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture/vsix-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSIX Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Developer Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../concepts/docs-screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Docs Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../images/codicons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codicon Attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#completion-status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Completion status
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Constraints
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-focused-modules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New focused modules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#existing-responsibilities-extended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Existing responsibilities extended
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-1-replace-the-mutual-exclusion-contract-with-polarity-declarations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 1: Replace the Mutual-Exclusion Contract with Polarity Declarations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-2-add-pure-polarity-resolution-and-legacy-canonicalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 2: Add Pure Polarity Resolution and Legacy Canonicalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-3-propagate-instance-state-and-add-deferred-webview-migration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 3: Propagate Instance State and Add Deferred Webview Migration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-4-preserve-semantic-polarity-and-literal-names-in-structured-imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 4: Preserve Semantic Polarity and Literal Names in Structured Imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-5-infer-and-edit-polarity-for-raw-hdl-grouping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 5: Infer and Edit Polarity for Raw HDL Grouping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-6-project-canonical-ports-into-generator-and-vendor-artifacts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 6: Project Canonical Ports into Generator and Vendor Artifacts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-7-insert-polarity-conversion-at-the-hdl-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 7: Insert Polarity Conversion at the HDL Boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-8-add-polarity-controls-to-the-inspector-and-canvas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 8: Add Polarity Controls to the Inspector and Canvas
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-9-prove-compatibility-and-complete-the-branch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task 9: Prove Compatibility and Complete the Branch
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/superpowers/plans/2026-08-16-bus-port-polarity.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="bus-port-polarity-implementation-plan">Bus Port Polarity Implementation Plan<a class="headerlink" href="#bus-port-polarity-implementation-plan" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Replace duplicate positive/<code>_n</code> Avalon-MM ports with one canonical port whose assertion polarity is declared by the bus contract and overridden per interface instance.</p>
+<p><strong>Architecture:</strong> A shared polarity module owns vendor-role matching, legacy alias canonicalization, effective polarity, and default physical suffixes. The resolver exposes canonical identity, vendor role, effective polarity, and physical suffix separately; importers and generators consume those values instead of inferring semantics from physical names. The webview keeps canonical in-memory state while deferring format-preserving legacy YAML edits until the first user mutation.</p>
+<p><strong>Tech Stack:</strong> TypeScript, React, YAML v2 format-preserving edits, JSON Schema, generated TypeScript types, Nunjucks, Jest, Playwright, VHDL, SystemVerilog, Intel <code>_hw.tcl</code>, IP-XACT.</p>
+<h2 id="completion-status">Completion status<a class="headerlink" href="#completion-status" title="Permanent link">&para;</a></h2>
+<p>All 55 implementation steps are complete. One review follow-up refines Task 8
+Step 3: the Inspector polarity selector now drops the override entry when the
+contract default is chosen explicitly, not only when <code>Default</code> is selected, so
+the editor and the importer agree that a default-equal override is never
+stored.</p>
+<h2 id="global-constraints">Global Constraints<a class="headerlink" href="#global-constraints" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Work only in <code>/Users/bachleviet/workspace/opensource/ipcraft-vscode/.worktrees/bus-interface-conformance</code>.</li>
+<li>Preserve <code>types/pure utilities -&gt; services/controllers/hooks -&gt; components -&gt; app roots</code>.</li>
+<li>Use camelCase for TypeScript, React, and JSON Schema. Do not add snake_case source-domain fields or dual-case fallbacks.</li>
+<li>Use <code>yaml</code> v2 and existing <code>applyPathEdits</code>/<code>applyPathDeletes</code> for document writes. Do not use <code>js-yaml</code> to write YAML.</li>
+<li>Preserve update atomicity, undo granularity, protocol payloads, selection, and focus behavior.</li>
+<li>Treat physical spelling and semantic polarity as independent.</li>
+<li>Built-in configurable polarity is limited to Avalon-MM <code>byteenable</code>, <code>readdatavalid</code>, <code>waitrequest</code>, <code>read</code>, and <code>write</code>.</li>
+<li>AXI and Avalon-ST transaction ports remain unchanged. Reset polarity remains in the reset model.</li>
+<li>Accept legacy aliases from <code>main</code> on input, but never emit duplicate <code>_n</code> logical selections.</li>
+<li>Do not automatically stage, commit, or push. Every task ends at an unstaged review checkpoint.</li>
+<li>Every Jest command must include <code>--config config/jest.config.js</code>.</li>
+<li>Run <code>npm run generate-types</code> after schema changes and <code>npm run compile</code> after generation.</li>
+</ul>
+<hr />
+<h2 id="file-structure">File Structure<a class="headerlink" href="#file-structure" title="Permanent link">&para;</a></h2>
+<h3 id="new-focused-modules">New focused modules<a class="headerlink" href="#new-focused-modules" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>src/shared/busContracts/polarity.ts</code>: role matching, effective polarity, physical suffixes, and legacy interface canonicalization.</li>
+<li><code>src/test/suite/shared/busContractPolarity.test.ts</code>: direct pure-policy coverage.</li>
+<li><code>src/generator/resolvers/boundaryTransforms.ts</code>: collision-free HDL inversion/reflow projection, kept outside the already 490-line bus resolver.</li>
+<li><code>src/test/suite/generator/resolvers/boundaryTransforms.test.ts</code>: direct boundary transformation coverage.</li>
+</ul>
+<h3 id="existing-responsibilities-extended">Existing responsibilities extended<a class="headerlink" href="#existing-responsibilities-extended" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>ipcraft-spec/schemas/bus_definition.schema.json</code> and <code>ipcraft-spec/schemas/ip_core.schema.json</code>: raw contract and instance shapes.</li>
+<li><code>src/shared/busContracts/types.ts</code>, <code>normalizeValues.ts</code>, <code>normalize.ts</code>, <code>activePorts.ts</code>, and <code>resolve.ts</code>: normalized and resolved polarity.</li>
+<li><code>src/shared/busContracts/observedPorts.ts</code>: structured vendor import reconciliation.</li>
+<li><code>src/webview/ipcore/hooks/useIpCoreState.ts</code>: canonical in-memory view plus deferred YAML migrations.</li>
+<li><code>src/generator/resolvers/bus.ts</code>: consumes resolved ports and delegates transforms.</li>
+<li><code>src/webview/ipcore/hooks/useBusContractEditor.ts</code>: polarity edit model.</li>
+<li><code>src/webview/ipcore/components/canvas/canvasLayout.ts</code>: resolved labels and H/L badge data.</li>
+</ul>
+<hr />
+<h3 id="task-1-replace-the-mutual-exclusion-contract-with-polarity-declarations">Task 1: Replace the Mutual-Exclusion Contract with Polarity Declarations<a class="headerlink" href="#task-1-replace-the-mutual-exclusion-contract-with-polarity-declarations" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>ipcraft-spec/schemas/bus_definition.schema.json</code></li>
+<li>Modify: <code>ipcraft-spec/schemas/ip_core.schema.json</code></li>
+<li>Modify: <code>ipcraft-spec/bus_definitions/avalon_mm.yml</code></li>
+<li>Modify: <code>ipcraft-spec/docs/bus-interface-conformance.md</code></li>
+<li>Modify generated: <code>src/domain/busDefinition.types.ts</code></li>
+<li>Modify generated: <code>src/domain/ipcore.types.ts</code></li>
+<li>Modify manually: <code>src/webview/types/ipCore.d.ts</code></li>
+<li>Modify: <code>src/generator/types.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/types.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/normalizeValues.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/normalize.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/dependencies.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/constraintEvaluation.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/activePorts.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/index.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/IpBlockCanvas.tsx</code></li>
+<li>Modify: <code>src/test/suite/services/BusDefinitionSchema.test.ts</code></li>
+<li>Modify: <code>src/test/suite/services/YamlValidator.test.ts</code></li>
+<li>Modify: <code>src/test/suite/services/BuiltinBusContracts.test.ts</code></li>
+<li>Modify: <code>src/test/suite/shared/busContractNormalize.test.ts</code></li>
+<li>Modify: <code>src/test/suite/shared/busContractResolve.test.ts</code></li>
+<li>Modify: <code>src/test/browser/subport-click-toggle.spec.ts</code></li>
+<li>Delete: <code>src/test/suite/shared/busContractActivePorts.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">BusPortPolarity</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="k">default</span><span class="o">:</span><span class="w"> </span><span class="s1">'activeHigh'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'activeLow'</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">roles</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">activeHigh</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">    </span><span class="nx">activeLow</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="p">};</span>
+<span class="p">}</span>
+
+<span class="kr">type</span><span class="w"> </span><span class="nx">PortPolarity</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'activeHigh'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'activeLow'</span><span class="p">;</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">NormalizedPortPolarity</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">default</span><span class="o">:</span><span class="w"> </span><span class="kt">PortPolarity</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">roles</span><span class="o">:</span><span class="w"> </span><span class="kt">Readonly</span><span class="o">&lt;</span><span class="nx">Record</span><span class="o">&lt;</span><span class="nx">PortPolarity</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>NormalizedBusPort</code> gains <code>polarity?: NormalizedPortPolarity</code>. The raw and normalized <code>portsMutuallyExclusive</code> variants and <code>activateOptionalPort</code> are removed.</p>
+<p><code>BusInterface</code> gains <code>portPolarityOverrides?: Record&lt;string, PortPolarity&gt;</code> so the resolver work in Task 2 is typed from the start. The already-supported <code>portNameOverrides?: Record&lt;string, string&gt;</code> is also declared in the schema so generated domain code can preserve literal physical names without relying on the schema's open-object index signature.</p>
+<ul>
+<li>[x] <strong>Step 1: Write failing schema and built-in tests</strong></li>
+</ul>
+<p>Add valid declarations plus malformed-role, duplicate-role, colliding-role, and <code>inout</code> cases. Also validate an IP-core instance with <code>portPolarityOverrides: { read: activeLow }</code>, and reject <code>low</code>, <code>ACTIVE_LOW</code>, booleans, and arrays:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">polarityPort</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s1">'request'</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">direction</span><span class="o">:</span><span class="w"> </span><span class="s1">'out'</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">presence</span><span class="o">:</span><span class="w"> </span><span class="s1">'optional'</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">polarity</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">default</span><span class="o">:</span><span class="w"> </span><span class="s1">'activeHigh'</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">roles</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">activeHigh</span><span class="o">:</span><span class="w"> </span><span class="s1">'request'</span><span class="p">,</span><span class="w"> </span><span class="nx">activeLow</span><span class="o">:</span><span class="w"> </span><span class="s1">'request_n'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="p">};</span>
+
+<span class="nx">expect</span><span class="p">(</span><span class="nx">validate</span><span class="p">(</span><span class="nx">definitionWithPort</span><span class="p">(</span><span class="nx">polarityPort</span><span class="p">))).</span><span class="nx">toEqual</span><span class="p">({</span><span class="w"> </span><span class="nx">valid</span><span class="o">:</span><span class="w"> </span><span class="kt">true</span><span class="w"> </span><span class="p">});</span>
+<span class="nx">expect</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">validate</span><span class="p">(</span>
+<span class="w">    </span><span class="nx">definitionWithPort</span><span class="p">({</span>
+<span class="w">      </span><span class="p">...</span><span class="nx">polarityPort</span><span class="p">,</span>
+<span class="w">      </span><span class="nx">polarity</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">default</span><span class="o">:</span><span class="w"> </span><span class="s1">'activeHigh'</span><span class="p">,</span><span class="w"> </span><span class="nx">roles</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">activeHigh</span><span class="o">:</span><span class="w"> </span><span class="s1">'request'</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="p">})</span>
+<span class="w">  </span><span class="p">).</span><span class="nx">valid</span>
+<span class="p">).</span><span class="nx">toBe</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+</code></pre></div>
+<p>Assert the Avalon contract exposes only canonical capable ports:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">avalon</span><span class="p">.</span><span class="nx">ports</span><span class="p">.</span><span class="nx">filter</span><span class="p">((</span><span class="nx">port</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">port</span><span class="p">.</span><span class="nx">polarity</span><span class="p">).</span><span class="nx">map</span><span class="p">((</span><span class="nx">port</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">port</span><span class="p">.</span><span class="nx">name</span><span class="p">)).</span><span class="nx">toEqual</span><span class="p">([</span>
+<span class="w">  </span><span class="s1">'read'</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">'write'</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">'byteenable'</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">'readdatavalid'</span><span class="p">,</span>
+<span class="w">  </span><span class="s1">'waitrequest'</span><span class="p">,</span>
+<span class="p">]);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">avalon</span><span class="p">.</span><span class="nx">ports</span><span class="p">.</span><span class="nx">some</span><span class="p">((</span><span class="nx">port</span><span class="p">)</span><span class="w"> </span><span class="p">=&gt;</span><span class="w"> </span><span class="nx">port</span><span class="p">.</span><span class="nx">name</span><span class="p">.</span><span class="nx">endsWith</span><span class="p">(</span><span class="s1">'_n'</span><span class="p">))).</span><span class="nx">toBe</span><span class="p">(</span><span class="kc">false</span><span class="p">);</span>
+</code></pre></div>
+<ul>
+<li>[x] <strong>Step 2: Verify the tests fail for the intended reason</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusDefinitionSchema.test.ts<span class="w"> </span>src/test/suite/services/BuiltinBusContracts.test.ts<span class="w"> </span>src/test/suite/services/YamlValidator.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because contract polarity and instance overrides are rejected and duplicate <code>_n</code> ports remain.</p>
+<ul>
+<li>[x] <strong>Step 3: Add the raw schema and consolidate Avalon-MM</strong></li>
+</ul>
+<p>Add:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">"PortPolarity"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">"default"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enum"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"activeHigh"</span><span class="p">,</span><span class="w"> </span><span class="s2">"activeLow"</span><span class="p">]</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">"roles"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nt">"activeHigh"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"$ref"</span><span class="p">:</span><span class="w"> </span><span class="s2">"#/$defs/NonEmptyString"</span><span class="w"> </span><span class="p">},</span>
+<span class="w">        </span><span class="nt">"activeLow"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"$ref"</span><span class="p">:</span><span class="w"> </span><span class="s2">"#/$defs/NonEmptyString"</span><span class="w"> </span><span class="p">}</span>
+<span class="w">      </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"activeHigh"</span><span class="p">,</span><span class="w"> </span><span class="s2">"activeLow"</span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">"required"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"default"</span><span class="p">,</span><span class="w"> </span><span class="s2">"roles"</span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Reference it from <code>BusContractPort</code>. Remove <code>ConstraintPortsMutuallyExclusive</code> from <code>BusConstraint</code>.</p>
+<p>In <code>avalon_mm.yml</code>, remove the five <code>_n</code> port declarations and five exclusivity constraints. Add explicit polarity metadata to each canonical port. Keep one canonical byte-enable width quotient and delete the duplicate <code>_N_WIDTH</code> rule.</p>
+<p>Add this camelCase instance field to the bus-interface schema:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">"portPolarityOverrides"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"object"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Per-port assertion polarity overrides keyed by canonical bus port name."</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"additionalProperties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enum"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"activeHigh"</span><span class="p">,</span><span class="w"> </span><span class="s2">"activeLow"</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Also formalize the existing <code>portNameOverrides</code> string map in the same schema object; this is backward-compatible because <code>BusInterface</code> already allows additional properties and current parsers/editor types already use the field.</p>
+<p>Run type generation and update the legacy <code>src/webview/types/ipCore.d.ts</code> plus generator <code>BusInterfaceDef</code> manually. Do not hand-edit generated domain types.</p>
+<ul>
+<li>[x] <strong>Step 4: Normalize polarity and reject role collisions</strong></li>
+</ul>
+<p>Extend <code>normalizePort</code>. Invalid declarations, equal activeHigh/activeLow roles, and polarity on <code>inout</code> produce <code>BUS_DEF_INVALID_PORT_POLARITY</code> at the precise path. In <code>normalizeEntry</code>, build a case-insensitive owner map for canonical names and polarity roles. Allow one role to equal its own port name; reject collisions with another port/role as <code>BUS_DEF_PORT_ROLE_COLLISION</code> at the exact role path.</p>
+<p>Remove <code>portsMutuallyExclusive</code> from normalized types, dependency extraction, evaluator, and diagnostic routing. Remove <code>activateOptionalPort</code>. Restore canonical append-only activation temporarily:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">const</span><span class="w"> </span><span class="nx">updated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[...</span><span class="nx">current</span><span class="p">,</span><span class="w"> </span><span class="nx">portName</span><span class="p">];</span>
+<span class="nx">onUpdate</span><span class="o">?</span><span class="p">.([</span><span class="s1">'busInterfaces'</span><span class="p">,</span><span class="w"> </span><span class="nx">busIndex</span><span class="p">,</span><span class="w"> </span><span class="s1">'useOptionalPorts'</span><span class="p">],</span><span class="w"> </span><span class="nx">updated</span><span class="p">);</span>
+</code></pre></div>
+<p>Delete the superseded direct policy test and browser coexistence case.</p>
+<ul>
+<li>[x] <strong>Step 5: Regenerate and pass the contract slice</strong></li>
+</ul>
+<p>Run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>generate-types
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/services/BusDefinitionSchema.test.ts<span class="w"> </span>src/test/suite/services/BuiltinBusContracts.test.ts<span class="w"> </span>src/test/suite/services/YamlValidator.test.ts<span class="w"> </span>src/test/suite/shared/busContractNormalize.test.ts<span class="w"> </span>src/test/suite/shared/busContractResolve.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>type-check
+npm<span class="w"> </span>run<span class="w"> </span>compile
+</code></pre></div>
+<p>Expected: PASS; generated and normalized unions contain polarity and no mutual-exclusion member.</p>
+<ul>
+<li>[x] <strong>Step 6: Document and review unstaged changes</strong></li>
+</ul>
+<p>Document declaration, defaults, roles, built-in scope, and physical-name independence. Run <code>git diff --check</code> and <code>git status --short</code>. Expected: no whitespace errors and nothing staged.</p>
+<hr />
+<h3 id="task-2-add-pure-polarity-resolution-and-legacy-canonicalization">Task 2: Add Pure Polarity Resolution and Legacy Canonicalization<a class="headerlink" href="#task-2-add-pure-polarity-resolution-and-legacy-canonicalization" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/shared/busContracts/polarity.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busContractPolarity.test.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/types.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/activePorts.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/resolve.ts</code></li>
+<li>Modify: <code>src/shared/busContracts/index.ts</code></li>
+<li>Modify: <code>src/test/suite/shared/busContractResolve.test.ts</code></li>
+<li>Modify: <code>src/test/suite/shared/busContractMigration.characterization.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">MatchedBusPortRole</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">port</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusPort</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">polarity?</span><span class="o">:</span><span class="w"> </span><span class="kt">PortPolarity</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kr">type</span><span class="w"> </span><span class="nx">BusInterfacePortMutation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">readonly</span><span class="w"> </span><span class="p">[</span>
+<span class="w">  </span><span class="nx">path</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="p">(</span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">number</span><span class="p">)[],</span>
+<span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">unknown</span><span class="p">,</span>
+<span class="p">];</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">interface</span><span class="w"> </span><span class="nx">CanonicalizedBusInterface</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">busInterface</span><span class="o">:</span><span class="w"> </span><span class="kt">BusInterface</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">mutations</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">BusInterfacePortMutation</span><span class="p">[];</span>
+<span class="p">}</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">matchBusPortRole</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">ports</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">NormalizedBusPort</span><span class="p">[],</span>
+<span class="w">  </span><span class="nx">authoredName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">MatchedBusPortRole</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">canonicalizeBusInterfacePorts</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">contract</span><span class="o">:</span><span class="w"> </span><span class="kt">BusDefinitionContract</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">busInterface</span><span class="o">:</span><span class="w"> </span><span class="kt">BusInterface</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">busIndex</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">CanonicalizedBusInterface</span><span class="p">;</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">resolveEffectivePortPolarity</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">port</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusPort</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">busInterface</span><span class="o">:</span><span class="w"> </span><span class="kt">BusInterface</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">PortPolarity</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span><span class="p">;</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">resolveInterfaceRole</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">port</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusPort</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">busInterface</span><span class="o">:</span><span class="w"> </span><span class="kt">BusInterface</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+
+<span class="k">export</span><span class="w"> </span><span class="kd">function</span><span class="w"> </span><span class="nx">resolvePhysicalSuffix</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">port</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusPort</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">busInterface</span><span class="o">:</span><span class="w"> </span><span class="kt">BusInterface</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+</code></pre></div>
+<p><code>ResolvedBusPort</code> gains <code>effectivePolarity?</code>, <code>interfaceRole</code>, and <code>physicalSuffix</code>. <code>BusInterfaceResolution</code> gains <code>canonicalBusInterface: BusInterface | null</code>.</p>
+<ul>
+<li>[x] <strong>Step 1: Write failing pure-policy tests</strong></li>
+</ul>
+<p>Cover case-insensitive matching, literal physical overrides, all five aliases, inactive overrides, last-occurrence wins, and explicit new override precedence:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">expect</span><span class="p">(</span><span class="nx">matchBusPortRole</span><span class="p">(</span><span class="nx">contract</span><span class="p">.</span><span class="nx">ports</span><span class="p">,</span><span class="w"> </span><span class="s1">'BYTEENABLE_N'</span><span class="p">)).</span><span class="nx">toMatchObject</span><span class="p">({</span>
+<span class="w">  </span><span class="nx">port</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s1">'byteenable'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="nx">polarity</span><span class="o">:</span><span class="w"> </span><span class="s1">'activeLow'</span><span class="p">,</span>
+<span class="p">});</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">canonicalizeBusInterfacePorts</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">contract</span><span class="p">,</span>
+<span class="w">  </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="s1">'S'</span><span class="p">,</span>
+<span class="w">    </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="nx">contract</span><span class="p">.</span><span class="nx">canonicalVlnv</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">mode</span><span class="o">:</span><span class="w"> </span><span class="s1">'slave'</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">useOptionalPorts</span><span class="o">:</span><span class="w"> </span><span class="p">[</span><span class="s1">'read'</span><span class="p">,</span><span class="w"> </span><span class="s1">'write'</span><span class="p">,</span><span class="w"> </span><span class="s1">'read_n'</span><span class="p">],</span>
+<span class="w">    </span><span class="nx">portWidthOverrides</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">read_n</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nx">portNameOverrides</span><span class="o">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">read_n</span><span class="o">:</span><span class="w"> </span><span class="s1">'odd_read'</span><span class="w"> </span><span class="p">},</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="mf">0</span>
+<span class="p">);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">busInterface</span><span class="p">.</span><span class="nx">useOptionalPorts</span><span class="p">).</span><span class="nx">toEqual</span><span class="p">([</span><span class="s1">'write'</span><span class="p">,</span><span class="w"> </span><span class="s1">'read'</span><span class="p">]);</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">busInterface</span><span class="p">.</span><span class="nx">portPolarityOverrides</span><span class="p">).</span><span class="nx">toEqual</span><span class="p">({</span><span class="w"> </span><span class="nx">read</span><span class="o">:</span><span class="w"> </span><span class="s1">'activeLow'</span><span class="w"> </span><span class="p">});</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">busInterface</span><span class="p">.</span><span class="nx">portWidthOverrides</span><span class="p">).</span><span class="nx">toEqual</span><span class="p">({</span><span class="w"> </span><span class="nx">read</span><span class="o">:</span><span class="w"> </span><span class="kt">1</span><span class="w"> </span><span class="p">});</span>
+<span class="nx">expect</span><span class="p">(</span><span class="nx">result</span><span class="p">.</span><span class="nx">busInterface</span><span class="p">.</span><span class="nx">portNameOverrides</span><span class="p">).</span><span class="nx">toEqual</span><span class="p">({</span><span class="w"> </span><span class="nx">read</span><span class="o">:</span><span class="w"> </span><span class="s1">'odd_read'</span><span class="w"> </span><span class="p">});</span>
+</code></pre></div>
+<ul>
+<li>[x] <strong>Step 2: Verify the API is absent</strong></li>
+</ul>
+<p>Run <code>npx jest --config config/jest.config.js src/test/suite/shared/busContractPolarity.test.ts --runInBand</code>.</p>
+<p>Expected: FAIL because the module and result fields do not exist.</p>
+<ul>
+<li>[x] <strong>Step 3: Implement matching and canonicalization without suffix inference</strong></li>
+</ul>
+<p>Use declared canonical names and roles only. A canonical authored name means the declared default polarity; a declared role means that role's polarity. Canonicalize <code>useOptionalPorts</code>, <code>portWidthOverrides</code>, <code>portNameOverrides</code>, and <code>absentPorts</code>. Preserve unknown entries for diagnostics. Duplicate aliases use last occurrence/property order; unrelated order remains stable.</p>
+<p>Explicit canonical <code>portPolarityOverrides</code> wins over legacy inferred polarity. If that makes the legacy authored role differ from the newly-derived physical suffix, preserve the old suffix as a literal canonical <code>portNameOverrides</code> entry. Return whole-field mutations only when values differ; use <code>undefined</code> for whole-field deletion so the existing YAML edit adapter chooses <code>applyPathDeletes</code>.</p>
+<ul>
+<li>[x] <strong>Step 4: Resolve metadata and diagnose invalid overrides</strong></li>
+</ul>
+<p>Canonicalize immediately after contract matching. Use the canonical interface for all resolution. Diagnose unknown/incapable overrides at <code>['busInterfaces', index, 'portPolarityOverrides', name]</code> with <code>BUS_PORT_POLARITY_OVERRIDE</code>, then use the contract default. Inactive capable overrides are valid.</p>
+<p>Build active ports with:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="p">...</span><span class="nx">port</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">effectivePolarity</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">interfaceRole</span><span class="o">:</span><span class="w"> </span><span class="kt">resolveInterfaceRole</span><span class="p">(</span><span class="nx">port</span><span class="p">,</span><span class="w"> </span><span class="nx">canonicalBusInterface</span><span class="p">),</span>
+<span class="w">  </span><span class="nx">physicalSuffix</span><span class="o">:</span><span class="w"> </span><span class="kt">resolvePhysicalSuffix</span><span class="p">(</span><span class="nx">port</span><span class="p">,</span><span class="w"> </span><span class="nx">canonicalBusInterface</span><span class="p">),</span>
+<span class="w">  </span><span class="nx">effectiveDirection</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">effectiveWidth</span><span class="p">,</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[x] <strong>Step 5: Run policy, migration, and resolver tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractPolarity.test.ts<span class="w"> </span>src/test/suite/shared/busContractResolve.test.ts<span class="w"> </span>src/test/suite/shared/busContractMigration.characterization.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>type-check
+</code></pre></div>
+<p>Expected: PASS with exact paths and one canonical identity per function.</p>
+<ul>
+<li>[x] <strong>Step 6: Review dependency direction</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>. Confirm <code>polarity.ts</code> imports no webview, component, service, or generator module.</p>
+<hr />
+<h3 id="task-3-propagate-instance-state-and-add-deferred-webview-migration">Task 3: Propagate Instance State and Add Deferred Webview Migration<a class="headerlink" href="#task-3-propagate-instance-state-and-add-deferred-webview-migration" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/domain/parse.ts</code></li>
+<li>Modify: <code>src/generator/registerProcessor.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useIpCoreState.ts</code></li>
+<li>Modify: <code>src/test/suite/domain/roundtrip.test.ts</code></li>
+<li>Modify: <code>src/test/suite/webview/useIpCoreState.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<ul>
+<li>Uses <code>BusInterface.portPolarityOverrides?: Record&lt;string, 'activeHigh' | 'activeLow'&gt;</code> added in Task 1.</li>
+<li>
+<p>Uses a private <code>InternalIpCoreState extends IpCoreState</code> with <code>pendingBusCanonicalization</code>; destructure that field out before returning the public hook result. This keeps the migration queue atomic with YAML state without exposing or serializing it.</p>
+</li>
+<li>
+<p>[x] <strong>Step 1: Write failing round-trip and hook tests</strong></p>
+</li>
+</ul>
+<p>Assert domain normalize/serialize preserves a valid override map.</p>
+<p>Load commented legacy YAML with <code>useOptionalPorts: [read_n]</code>. Assert canonical in-memory <code>read</code> plus activeLow override, but byte-for-byte unchanged <code>rawYaml</code>.</p>
+<ul>
+<li>[x] <strong>Step 2: Verify tests fail</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/domain/roundtrip.test.ts<span class="w"> </span>src/test/suite/webview/useIpCoreState.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because domain propagation and deferred migration are absent.</p>
+<ul>
+<li>[x] <strong>Step 3: Propagate the typed instance field</strong></li>
+</ul>
+<p>Copy <code>portPolarityOverrides</code> in both <code>expandBusInterfaces</code> branches. Make <code>normalizeIpCore</code> preserve only a plain-object camelCase map; do not add a snake_case fallback.</p>
+<ul>
+<li>[x] <strong>Step 4: Canonicalize state without editing on open</strong></li>
+</ul>
+<p>Add:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">function</span><span class="w"> </span><span class="nx">canonicalizeParsedIpCore</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">data</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">library</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedBusLibrary</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">undefined</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">ipCore</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">unknown</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">mutations</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">BusInterfacePortMutation</span><span class="p">[];</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>For recognized interfaces call <code>canonicalizeBusInterfacePorts</code>. Store canonical interfaces in <code>state.ipCore</code>, original text in <code>rawYaml</code>, and pending mutations in private internal hook state:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">InternalIpCoreState</span><span class="w"> </span><span class="k">extends</span><span class="w"> </span><span class="nx">IpCoreState</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">pendingBusCanonicalization</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">BusInterfacePortMutation</span><span class="p">[];</span>
+<span class="p">}</span>
+
+<span class="kd">const</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">pendingBusCanonicalization</span><span class="o">:</span><span class="w"> </span><span class="kt">_pendingBusCanonicalization</span><span class="p">,</span>
+<span class="w">  </span><span class="p">...</span><span class="nx">publicState</span>
+<span class="p">}</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">state</span><span class="p">;</span>
+</code></pre></div>
+<p>In <code>updateIpCore</code> and <code>updateIpCoreBatch</code>, apply pending migration mutations first and the user mutation second inside one updater. Return <code>pendingBusCanonicalization: []</code> in the successful state object and reparse through the helper. Loading alone must not dirty or rewrite the document. Do not mutate a ref from inside a React state updater.</p>
+<ul>
+<li>[x] <strong>Step 5: Prove one format-preserving mutation</strong></li>
+</ul>
+<p>After an unrelated edit, assert comments and hex spellings remain, aliases migrate, one state transition occurs, and pending mutations clear.</p>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/webview/useIpCoreState.test.ts<span class="w"> </span>src/test/suite/domain/roundtrip.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>type-check
+npm<span class="w"> </span>run<span class="w"> </span>compile
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[x] <strong>Step 6: Review unstaged output</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and <code>git status --short</code>. Confirm the load-only test sends no migration edit.</p>
+<hr />
+<h3 id="task-4-preserve-semantic-polarity-and-literal-names-in-structured-imports">Task 4: Preserve Semantic Polarity and Literal Names in Structured Imports<a class="headerlink" href="#task-4-preserve-semantic-polarity-and-literal-names-in-structured-imports" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/shared/busContracts/observedPorts.ts</code></li>
+<li>Modify: <code>src/parser/HwTclParser.ts</code></li>
+<li>Modify: <code>src/parser/ComponentXmlParser.ts</code></li>
+<li>Create: <code>src/test/suite/shared/busContractObservedPorts.test.ts</code></li>
+<li>Modify: <code>src/test/suite/parser/HwTclParser.test.ts</code></li>
+<li>Modify: <code>src/test/suite/parser/HwTclParser.altera.test.ts</code></li>
+<li>Modify: <code>src/test/suite/parser/ComponentXmlParser.test.ts</code></li>
+<li>Modify: relevant parser round-trip and IP-XACT integration tests</li>
+</ul>
+<p><strong>Interface:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">ObservedBusPortSelections</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">useOptionalPorts?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">portNameOverrides?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">portWidthOverrides?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">portPolarityOverrides?</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">PortPolarity</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>[x] <strong>Step 1: Write failing structured-import tests</strong></li>
+</ul>
+<p>Cover semantic role and physical spelling independently:</p>
+<ul>
+<li>semantic <code>byteenable_n</code>, physical <code>avs_byteenable</code> becomes canonical <code>byteenable</code>, activeLow, with literal name override <code>byteenable</code>;</li>
+<li>semantic <code>byteenable</code>, physical <code>avs_byteenable_n</code> becomes canonical <code>byteenable</code>, activeHigh, with literal name override <code>byteenable_n</code>;</li>
+<li>a conventional matching spelling avoids an unnecessary name override;</li>
+<li>
+<p>if both roles are observed, the last observed role wins deterministically.</p>
+</li>
+<li>
+<p>[x] <strong>Step 2: Verify the focused tests fail</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractObservedPorts.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.altera.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because reconciliation still treats role strings as independent canonical ports.</p>
+<ul>
+<li>[x] <strong>Step 3: Reconcile each observed port through the role matcher</strong></li>
+</ul>
+<p>In <code>reconcileObservedBusPorts</code>, call <code>matchBusPortRole</code> and derive four properties independently:</p>
+<ol>
+<li>canonical logical port name;</li>
+<li>selected assertion polarity;</li>
+<li>width override;</li>
+<li>literal physical suffix override.</li>
+</ol>
+<p>Use the imported logical role for polarity. Preserve the imported physical spelling exactly through <code>portNameOverrides</code> when it differs from the selected role's default suffix. Do not infer semantic polarity from the physical name when the source format already provides a logical role.</p>
+<ul>
+<li>[x] <strong>Step 4: Wire both structured parsers</strong></li>
+</ul>
+<p>Make <code>_hw.tcl</code> and IP-XACT collection pass logical role and physical port name separately. Ensure all existing aliases, widths, prefixes, and optional-port selections survive reconciliation.</p>
+<ul>
+<li>[x] <strong>Step 5: Run focused and integration verification</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared/busContractObservedPorts.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.test.ts<span class="w"> </span>src/test/suite/parser/HwTclParser.altera.test.ts<span class="w"> </span>src/test/suite/parser/ComponentXmlParser.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:parser-roundtrip<span class="w"> </span>--<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:ipxact<span class="w"> </span>--<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[x] <strong>Step 6: Review unstaged output</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and inspect the parser fixtures to confirm no imported literal name was normalized away.</p>
+<hr />
+<h3 id="task-5-infer-and-edit-polarity-for-raw-hdl-grouping">Task 5: Infer and Edit Polarity for Raw HDL Grouping<a class="headerlink" href="#task-5-infer-and-edit-polarity-for-raw-hdl-grouping" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/webview/ipcore/utils/busLibrary.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/utils/protocolMatcher.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/GroupingMappingStep.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/MapConduitToBusDialog.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/hooks/useGroupPorts.ts</code></li>
+<li>Modify: <code>src/parser/VerilogParser.ts</code></li>
+<li>Modify: <code>src/parser/VhdlParser.ts</code></li>
+<li>Modify: <code>src/test/suite/webview/busLibrary.test.ts</code></li>
+<li>Modify: <code>src/test/suite/components/MapConduitToBusDialog.test.tsx</code></li>
+<li>Modify: <code>src/test/suite/webview/applyMapConduitToKnownBus.test.ts</code></li>
+<li>Modify: <code>src/test/suite/parser/VerilogParser.test.ts</code></li>
+<li>Modify: <code>src/test/suite/parser/VhdlParser.test.ts</code></li>
+</ul>
+<p><strong>Interfaces:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">BusPortDef</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">polarity?</span><span class="o">:</span><span class="w"> </span><span class="kt">NormalizedPortPolarity</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">SignalAssignment</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">busPort</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">physicalPort</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">polarity</span><span class="o">:</span><span class="w"> </span><span class="kt">PortPolarity</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The grouping payload carries <code>portPolarityOverrides</code> keyed by canonical bus port name.</p>
+<ul>
+<li>[x] <strong>Step 1: Write failing raw-HDL matching tests</strong></li>
+</ul>
+<p>Cover conventional <code>read_n</code> inference, a misleading literal name manually assigned as activeHigh, activeLow vector signals, and declarations where both <code>read</code> and <code>read_n</code> exist. In the last case select the contract default and leave the other HDL port ungrouped.</p>
+<ul>
+<li>[x] <strong>Step 2: Verify the focused tests fail</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/webview/busLibrary.test.ts<span class="w"> </span>src/test/suite/components/MapConduitToBusDialog.test.tsx<span class="w"> </span>src/test/suite/webview/applyMapConduitToKnownBus.test.ts<span class="w"> </span>src/test/suite/parser/VerilogParser.test.ts<span class="w"> </span>src/test/suite/parser/VhdlParser.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because candidates are still independent ports and grouping has no polarity value.</p>
+<ul>
+<li>[x] <strong>Step 3: Generate candidates from declared roles</strong></li>
+</ul>
+<p>Expose all declared role suffixes for matching, with the default role first. A matched role maps back to one canonical logical name plus its declared polarity. Do not synthesize undeclared <code>_n</code> variants for user-defined contracts.</p>
+<p>When both roles match separate HDL ports, use the default role only and keep the second signal visible as ungrouped so the user can correct the ambiguity.</p>
+<ul>
+<li>[x] <strong>Step 4: Preserve the user's manual assignment</strong></li>
+</ul>
+<p>Show the selected role/polarity in the mapping UI. A manual physical-port assignment keeps the chosen polarity even when its spelling suggests the opposite. Emit a polarity override only when the selected polarity differs from the contract default. Compare physical suffix against the selected role when deciding whether a <code>portNameOverrides</code> entry is needed.</p>
+<ul>
+<li>[x] <strong>Step 5: Run parser and grouping tests</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/parser/VerilogParser.test.ts<span class="w"> </span>src/test/suite/parser/VhdlParser.test.ts<span class="w"> </span>--runInBand
+npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/webview/busLibrary.test.ts<span class="w"> </span>src/test/suite/components/MapConduitToBusDialog.test.tsx<span class="w"> </span>src/test/suite/webview/applyMapConduitToKnownBus.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>type-check
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[x] <strong>Step 6: Review unstaged output</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>. Confirm raw HDL inference is documented in code as best-effort and remains editable.</p>
+<hr />
+<h3 id="task-6-project-canonical-ports-into-generator-and-vendor-artifacts">Task 6: Project Canonical Ports into Generator and Vendor Artifacts<a class="headerlink" href="#task-6-project-canonical-ports-into-generator-and-vendor-artifacts" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/generator/registerProcessor.ts</code></li>
+<li>Modify: <code>src/generator/resolvers/bus.ts</code></li>
+<li>Modify: <code>src/generator/types.ts</code></li>
+<li>Modify: <code>src/generator/contract/template_context.schema.json</code></li>
+<li>Modify generated: <code>src/generator/contract/templateContext.types.ts</code></li>
+<li>Modify: <code>src/generator/contract/version.ts</code></li>
+<li>Modify: <code>src/generator/templates/altera_hw_tcl.j2</code></li>
+<li>Modify: <code>src/generator/VivadoComponentXmlGenerator.ts</code></li>
+<li>Modify: <code>src/generator/VivadoCustomBusDefinitions.ts</code></li>
+<li>Modify: <code>src/generator/validation/hdlCrossCheck.ts</code></li>
+<li>Modify: <code>src/shared/busPortNameSet.ts</code></li>
+<li>Modify: focused resolver, generator, vendor-artifact, cross-check, and name-set tests</li>
+</ul>
+<p><strong>Resolved fields:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">ResolvedBusPort</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">interfaceRole</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">effectivePolarity</span><span class="o">:</span><span class="w"> </span><span class="kt">PortPolarity</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">physicalSuffix</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">needsPolarityInversion</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">ProjectedBusPort</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">canonicalName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">interfaceRole</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">effectivePolarity?</span><span class="o">:</span><span class="w"> </span><span class="kt">PortPolarity</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">direction</span><span class="o">:</span><span class="w"> </span><span class="s1">'in'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'out'</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">svDirection</span><span class="o">:</span><span class="w"> </span><span class="s1">'input'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'output'</span><span class="p">;</span>
+<span class="w">  </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">svType</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">widthExpr</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">isParameterized</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">tclWidth</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">endianness</span><span class="o">:</span><span class="w"> </span><span class="s1">'little'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'big'</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">needsSwap</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">swapKind</span><span class="o">?:</span><span class="w"> </span><span class="s1">'lane'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'bit'</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">laneWidth?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">laneKind</span><span class="o">?:</span><span class="w"> </span><span class="s1">'byte'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'symbol'</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">needsPolarityInversion</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The template context exposes the same data as <code>interface_role</code>, <code>effective_polarity</code>, <code>physical_suffix</code>, and <code>needs_polarity_inversion</code>.</p>
+<ul>
+<li>[x] <strong>Step 1: Write failing projection tests</strong></li>
+</ul>
+<p>Assert:</p>
+<ul>
+<li>canonical <code>byteenable</code> activeLow emits logical vendor role <code>byteenable_n</code>;</li>
+<li>default physical suffix becomes <code>byteenable_n</code>;</li>
+<li>literal <code>portNameOverrides.byteenable: byteenable</code> wins over that suffix;</li>
+<li>widths and parameterized widths are unchanged;</li>
+<li>
+<p>cross-check accepts the resolved physical name and does not require the inactive role.</p>
+</li>
+<li>
+<p>[x] <strong>Step 2: Verify the focused tests fail</strong></p>
+</li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>-t<span class="w"> </span><span class="s1">'interface role|physical suffix|polarity inversion|byteenable_n'</span><span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because projection conflates canonical name, vendor role, and physical suffix.</p>
+<ul>
+<li>[x] <strong>Step 3: Add one canonical projection path</strong></li>
+</ul>
+<p>Add:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">function</span><span class="w"> </span><span class="nx">projectResolvedBusPorts</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">ports</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">ResolvedBusPort</span><span class="p">[],</span>
+<span class="w">  </span><span class="nx">physicalPrefix</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span>
+<span class="w">  </span><span class="nx">parameters?</span><span class="o">:</span><span class="w"> </span><span class="kt">Readonly</span><span class="o">&lt;</span><span class="nx">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">number</span><span class="o">&gt;&gt;</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="nx">ProjectedBusPort</span><span class="p">[];</span>
+</code></pre></div>
+<p>Use it for generator context, vendor metadata, HDL cross-check, and expected-name construction. Keep unresolved conduit projection separate. Resolve names only through <code>resolvePhysicalSuffix</code>; <code>portNameOverrides</code> always wins literally.</p>
+<ul>
+<li>[x] <strong>Step 4: Emit selected vendor roles</strong></li>
+</ul>
+<p>Use <code>interfaceRole</code> for <code>_hw.tcl</code> port roles and IP-XACT logical mappings. Update custom Vivado bus definitions to declare all configured role strings while each component instance maps only its selected role.</p>
+<ul>
+<li>[x] <strong>Step 5: Extend and regenerate the template contract</strong></li>
+</ul>
+<p>Add the polarity fields to the template-context schema, bump <code>CONTRACT_VERSION</code> from <code>1.3.0</code> to <code>1.4.0</code>, then run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>generate-types
+npm<span class="w"> </span>run<span class="w"> </span>compile
+</code></pre></div>
+<p>Expected: generated types and both bundles compile.</p>
+<ul>
+<li>[x] <strong>Step 6: Run focused tests and review</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>-t<span class="w"> </span><span class="s1">'bus resolver|Altera|Vivado|HDL cross-check|bus port name'</span><span class="w"> </span>--runInBand
+git<span class="w"> </span>diff<span class="w"> </span>--check
+</code></pre></div>
+<p>Expected: PASS, with all selected roles and literal physical names preserved.</p>
+<hr />
+<h3 id="task-7-insert-polarity-conversion-at-the-hdl-boundary">Task 7: Insert Polarity Conversion at the HDL Boundary<a class="headerlink" href="#task-7-insert-polarity-conversion-at-the-hdl-boundary" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/generator/resolvers/boundaryTransforms.ts</code></li>
+<li>Create: <code>src/test/suite/generator/resolvers/boundaryTransforms.test.ts</code></li>
+<li>Modify: <code>src/generator/resolvers/bus.ts</code></li>
+<li>Modify: <code>src/generator/types.ts</code></li>
+<li>Modify: <code>src/generator/contract/template_context.schema.json</code></li>
+<li>Modify generated: <code>src/generator/contract/templateContext.types.ts</code></li>
+<li>Modify affected HDL wrapper/scaffolder templates</li>
+<li>Modify relevant scaffolder snapshots and HDL integration tests</li>
+</ul>
+<p><strong>Interface:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">BoundaryTransformPort</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">internalName</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">direction</span><span class="o">:</span><span class="w"> </span><span class="s1">'in'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'out'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'inout'</span><span class="p">;</span>
+<span class="w">  </span><span class="kr">type</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">svType</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">width</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">widthExpr</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">isParameterized</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">invert</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">swapKind</span><span class="o">?:</span><span class="w"> </span><span class="s1">'lane'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'bit'</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">laneWidth?</span><span class="o">:</span><span class="w"> </span><span class="kt">number</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">laneKind</span><span class="o">?:</span><span class="w"> </span><span class="s1">'byte'</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="s1">'symbol'</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">function</span><span class="w"> </span><span class="nx">buildBoundaryTransforms</span><span class="p">(</span>
+<span class="w">  </span><span class="nx">ports</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">ProjectedBusPort</span><span class="p">[],</span>
+<span class="w">  </span><span class="nx">reservedNames</span><span class="o">:</span><span class="w"> </span><span class="kt">ReadonlySet</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span>
+<span class="p">)</span><span class="o">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">ports</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">BoundaryTransformPort</span><span class="p">[];</span>
+<span class="w">  </span><span class="nx">internalNames</span><span class="o">:</span><span class="w"> </span><span class="kt">ReadonlySet</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+<ul>
+<li>[x] <strong>Step 1: Write failing pure transform tests</strong></li>
+</ul>
+<p>Cover scalar input/output inversion, vector bitwise inversion, parameterized widths, name collisions, endian swap only, and combined swap plus inversion. Assert only one intermediate signal is allocated per transformed port.</p>
+<ul>
+<li>[x] <strong>Step 2: Verify the pure tests fail</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/resolvers/boundaryTransforms.test.ts<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because the focused resolver does not exist.</p>
+<ul>
+<li>[x] <strong>Step 3: Build cohesive boundary-transform data</strong></li>
+</ul>
+<p>Move transform planning out of the already-large bus resolver. Keep canonical internal behavior activeHigh. Mark a selected activeLow port for boundary inversion. Compose inversion with existing lane/endian reordering through a single internal signal; bitwise inversion and bit reordering commute, so templates may use the order that avoids duplicated loops.</p>
+<p>Allocate an intermediate only when <code>needsSwap || needsPolarityInversion</code>. Use <code>${name}_be</code> as the preferred base when a swap is present (preserving current generated names), otherwise <code>${name}_inv</code>; append <code>_2</code>, <code>_3</code>, and so on through the existing reserved-name policy until unique.</p>
+<ul>
+<li>[x] <strong>Step 4: Render VHDL and SystemVerilog correctly</strong></li>
+</ul>
+<p>Use VHDL <code>not</code> and SystemVerilog bitwise <code>~</code>, never logical <code>!</code> for vectors. For inputs, drive the canonical internal signal from the transformed external signal. For outputs, drive the external signal from the transformed canonical internal signal. Preserve existing endian-loop semantics and widths. <code>inout</code> remains legal for standalone user ports but is never polarity-configurable.</p>
+<p>Expose <code>boundary_transform_ports</code> and <code>has_boundary_transform</code> in the template contract while retaining existing endian fields until every template consumer has migrated in the same task.</p>
+<ul>
+<li>[x] <strong>Step 5: Update snapshots and run HDL verification</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/generator/resolvers/boundaryTransforms.test.ts<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:snapshots<span class="w"> </span>--<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:hdl
+</code></pre></div>
+<p>Expected: PASS. Inspect at least one generated activeLow scalar and one vector wrapper in each supported HDL.</p>
+<ul>
+<li>[x] <strong>Step 6: Review unstaged output</strong></li>
+</ul>
+<p>Run <code>git diff --check</code> and confirm generated ports retain their literal external names while only internal signals use canonical activeHigh semantics.</p>
+<hr />
+<h3 id="task-8-add-polarity-controls-to-the-inspector-and-canvas">Task 8: Add Polarity Controls to the Inspector and Canvas<a class="headerlink" href="#task-8-add-polarity-controls-to-the-inspector-and-canvas" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>src/webview/ipcore/hooks/useBusContractEditor.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/BusContractFields.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/inspector/buses/BusPanel.tsx</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/canvasLayout.ts</code></li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/CanvasBusSubPort.tsx</code></li>
+<li>Modify: relevant canvas CSS</li>
+<li>Modify: <code>src/webview/ipcore/components/canvas/IpBlockCanvas.tsx</code></li>
+<li>Modify: <code>src/test/suite/webview/useBusContractEditor.test.ts</code></li>
+<li>Modify: <code>src/test/suite/components/CanvasInspector.BusContractFields.test.tsx</code></li>
+<li>Modify: <code>src/test/suite/webview/canvasLayout.test.ts</code></li>
+<li>Modify: <code>src/test/browser/subport-click-toggle.spec.ts</code></li>
+</ul>
+<p><strong>Editor model:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="kd">interface</span><span class="w"> </span><span class="nx">EditablePolarityField</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">name</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">value</span><span class="o">:</span><span class="w"> </span><span class="kt">PortPolarity</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">defaultValue</span><span class="o">:</span><span class="w"> </span><span class="kt">PortPolarity</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">active</span><span class="o">:</span><span class="w"> </span><span class="kt">boolean</span><span class="p">;</span>
+<span class="w">  </span><span class="nx">error?</span><span class="o">:</span><span class="w"> </span><span class="kt">string</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="kd">interface</span><span class="w"> </span><span class="nx">BusContractEditModel</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">polarities</span><span class="o">:</span><span class="w"> </span><span class="kt">readonly</span><span class="w"> </span><span class="nx">EditablePolarityField</span><span class="p">[];</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The hook exposes <code>updatePolarity(portName, polarity)</code>. <code>LayoutSubPort</code> carries <code>polarity</code> and <code>polarityConfigurable</code>.</p>
+<ul>
+<li>[x] <strong>Step 1: Write failing hook and canvas tests</strong></li>
+</ul>
+<p>Assert configurable active ports expose an Active high/Active low selector, returning to the default removes the override, inactive ports show the chosen setting without activating themselves, and fixed-polarity ports expose no selector.</p>
+<p>Assert the canvas shows one canonical port with an <code>H</code> or <code>L</code> badge and never displays both role aliases.</p>
+<ul>
+<li>[x] <strong>Step 2: Verify focused tests fail</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>-t<span class="w"> </span><span class="s1">'BusContractFields|polarity|canvas sub-port'</span><span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: FAIL because the editor and layout do not expose polarity.</p>
+<ul>
+<li>[x] <strong>Step 3: Add narrow editor and layout data</strong></li>
+</ul>
+<p>Derive fields from the normalized contract, not from hard-coded Avalon names. The selector writes <code>portPolarityOverrides</code> only for a nondefault choice and deletes the key when restored to default. Preserve overrides for temporarily inactive optional ports.</p>
+<p>Keep <code>IpBlockCanvas</code> focused on activation routing; put label/badge rendering in <code>CanvasBusSubPort</code> and edit construction in the hook.</p>
+<ul>
+<li>[x] <strong>Step 4: Make activation canonical</strong></li>
+</ul>
+<p>All activation and optional-port deduplication uses canonical logical names. Activating <code>read</code> must not remove <code>write</code>; changing polarity must not change activation. Remove every remaining <code>portsMutuallyExclusive</code> branch and test.</p>
+<ul>
+<li>[x] <strong>Step 5: Add browser regressions</strong></li>
+</ul>
+<p>Cover:</p>
+<ul>
+<li><code>read</code> activeLow and <code>write</code> activeHigh coexisting;</li>
+<li>default derived physical names;</li>
+<li>an imported literal physical-name override;</li>
+<li>an unrelated Avalon-MM port remaining active;</li>
+<li>another interface instance remaining unchanged;</li>
+<li>emitted YAML containing only canonical selections plus polarity overrides.</li>
+</ul>
+<p>Use unique selectors for names where one is a prefix of another.</p>
+<ul>
+<li>[x] <strong>Step 6: Run UI verification</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>-t<span class="w"> </span><span class="s1">'BusContractFields|useBusContractEditor|canvas|polarity'</span><span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:browser<span class="w"> </span>--<span class="w"> </span>--grep<span class="w"> </span><span class="s1">'polarity|active low|canonical bus port'</span>
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[x] <strong>Step 7: Review unstaged output</strong></li>
+</ul>
+<p>Run <code>git diff --check</code>. Confirm keyboard/mouse table-editor behavior is untouched and the canvas root did not absorb contract-editing logic.</p>
+<hr />
+<h3 id="task-9-prove-compatibility-and-complete-the-branch">Task 9: Prove Compatibility and Complete the Branch<a class="headerlink" href="#task-9-prove-compatibility-and-complete-the-branch" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify or add only narrowly-scoped compatibility tests discovered during the final audit</li>
+<li>
+<p>Do not stage or commit</p>
+</li>
+<li>
+<p>[x] <strong>Step 1: Add a final table-driven compatibility test</strong></p>
+</li>
+</ul>
+<p>Cover all five built-in Avalon-MM canonical ports and aliases:</p>
+<table>
+<thead>
+<tr>
+<th>Canonical</th>
+<th>activeHigh role</th>
+<th>activeLow role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>byteenable</code></td>
+<td><code>byteenable</code></td>
+<td><code>byteenable_n</code></td>
+</tr>
+<tr>
+<td><code>readdatavalid</code></td>
+<td><code>readdatavalid</code></td>
+<td><code>readdatavalid_n</code></td>
+</tr>
+<tr>
+<td><code>waitrequest</code></td>
+<td><code>waitrequest</code></td>
+<td><code>waitrequest_n</code></td>
+</tr>
+<tr>
+<td><code>read</code></td>
+<td><code>read</code></td>
+<td><code>read_n</code></td>
+</tr>
+<tr>
+<td><code>write</code></td>
+<td><code>write</code></td>
+<td><code>write_n</code></td>
+</tr>
+</tbody>
+</table>
+<p>For legacy arrays with both aliases, assert the last occurrence wins. Cover main-compatible activeHigh documents, new activeLow documents, arbitrary imported literal names, and unsupported interfaces remaining unchanged.</p>
+<ul>
+<li>[x] <strong>Step 2: Audit stale mutual-exclusion code and accidental dual representations</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">"portsMutuallyExclusive|NormalizedMutuallyExclusive|mutually-exclusive|busContractActivePorts"</span><span class="w"> </span>src<span class="w"> </span>ipcraft-spec/schemas<span class="w"> </span>ipcraft-spec/bus_definitions
+rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">"byteenable_n|readdatavalid_n|waitrequest_n|read_n|write_n"</span><span class="w"> </span>src<span class="w"> </span>ipcraft-spec/bus_definitions
+rg<span class="w"> </span>-n<span class="w"> </span><span class="s2">"port_polarity|polarity_override|portPolarityOverrides.*port_polarity"</span><span class="w"> </span>src<span class="w"> </span>ipcraft-spec
+</code></pre></div>
+<p>Expected: the first and third searches return no implementation leftovers; alias hits in the second are limited to role declarations, fixtures, compatibility tests, and generated/vendor expectations.</p>
+<ul>
+<li>[x] <strong>Step 3: Prove generation is idempotent</strong></li>
+</ul>
+<p>Run <code>npm run generate-types</code>, record the generated-file hashes or diff, run it again, and assert the second run produces no new diff. Then run:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>type-check
+npm<span class="w"> </span>run<span class="w"> </span>compile
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[x] <strong>Step 4: Run the focused unit suite</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npx<span class="w"> </span>jest<span class="w"> </span>--config<span class="w"> </span>config/jest.config.js<span class="w"> </span>src/test/suite/shared<span class="w"> </span>src/test/suite/parser<span class="w"> </span>src/test/suite/generator<span class="w"> </span>src/test/suite/domain<span class="w"> </span>src/test/suite/webview<span class="w"> </span>--runInBand
+</code></pre></div>
+<p>Expected: PASS.</p>
+<ul>
+<li>[x] <strong>Step 5: Run repository gates</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>lint
+npm<span class="w"> </span>run<span class="w"> </span>test:unit<span class="w"> </span>--<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:browser
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:snapshots<span class="w"> </span>--<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:parser-roundtrip<span class="w"> </span>--<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:ipxact<span class="w"> </span>--<span class="w"> </span>--runInBand
+npm<span class="w"> </span>run<span class="w"> </span>test:integration:hdl
+</code></pre></div>
+<p>Expected: PASS. Report any environment-gated Vivado/Quartus tests separately; do not describe them as passing if skipped.</p>
+<ul>
+<li>[x] <strong>Step 6: Inspect the final unstaged change</strong></li>
+</ul>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>diff<span class="w"> </span>--check
+git<span class="w"> </span>status<span class="w"> </span>--short
+git<span class="w"> </span>diff<span class="w"> </span>--stat
+git<span class="w"> </span>-C<span class="w"> </span>ipcraft-spec<span class="w"> </span>status<span class="w"> </span>--short
+</code></pre></div>
+<p>Verify no files are staged, no commit was created, the submodule diff contains schema/definition/documentation changes, and unrelated user changes are untouched.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
