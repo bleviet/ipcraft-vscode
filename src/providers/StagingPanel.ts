@@ -9,6 +9,19 @@ import {
   LOCK_SVG,
   type TreeRenderHooks,
 } from './webview/FileTreeRenderer';
+import {
+  renderStagingActionChoice,
+  renderStagingBadges,
+  STAGING_ACTIONS_CSS,
+} from './webview/stagingActionsHtml';
+import {
+  allKeptBanner,
+  parseStagingActions,
+  type InterfaceDrift,
+  type StagingAction,
+} from '../shared/staging';
+
+export type { InterfaceDrift, StagingAction };
 
 export interface StagedFile {
   relativePath: string;
@@ -24,6 +37,20 @@ export interface StagedFile {
    * with pack-generated output.
    */
   origin?: 'framework-testbench';
+  /** Last content IPCraft generated for this path, when a baseline exists. */
+  baseline?: string;
+  /** Baseline exists and the on-disk file differs from it. */
+  handEdited?: boolean;
+  /** Clean diff3 result (base=baseline, current=disk, incoming=generated); absent on conflict / no baseline / not hand-edited. */
+  autoMergeContent?: string;
+  /** On-disk file with only its entity/module header replaced by the generated one (HDL only). */
+  syncedContent?: string;
+  /** Entity/module interface differences, on-disk vs generated (HDL only, only when non-empty). */
+  interfaceDrift?: InterfaceDrift;
+  /** Actions offered for a modified file (the merge editor is separate). Empty for new/unchanged. */
+  actions: StagingAction[];
+  /** Pre-selected action for a modified file; undefined for new/unchanged. */
+  defaultAction?: StagingAction;
 }
 
 /**
@@ -33,14 +60,13 @@ export interface StagedFile {
  * the merge editor writes them on completion, so the bulk apply must exclude them
  * to avoid clobbering the merge result.
  *
- * `overwritePaths` are every modified file the user left (or set) to "will be
- * applied" — defaults to all normal modified files plus none of the protected
- * (`managed: false`) ones; the bulk apply writes exactly this set.
+ * `actions` is the chosen action per modified file path (defaults to each
+ * file's `defaultAction`); the bulk apply writes according to it.
  */
 export interface StagingDecision {
   confirmed: boolean;
   mergedPaths: string[];
-  overwritePaths: string[];
+  actions: Record<string, StagingAction>;
 }
 
 /**
@@ -55,7 +81,7 @@ export async function mergeStagedFile(file: StagedFile): Promise<boolean> {
   } catch {
     current = ''; // file vanished since categorization — treat as empty base
   }
-  return openMergeEditorForConflict(diskUri, current, file.content, 'Generated');
+  return openMergeEditorForConflict(diskUri, current, file.content, 'Generated', file.baseline);
 }
 
 export class StagingPanel {
@@ -68,13 +94,13 @@ export class StagingPanel {
       let resolved = false;
       // Files the user reconciled in the merge editor — excluded from bulk apply.
       const mergedPaths = new Set<string>();
-      // Files that will be written on Apply — set from the 'apply' message,
-      // which carries the webview's current per-file toggle state.
-      let overwritePaths: string[] = [];
+      // Chosen action per modified file — set from the 'apply' message,
+      // which carries the webview's current per-file state.
+      let actions: Record<string, StagingAction> = {};
       const resolveOnce = (confirmed: boolean) => {
         if (!resolved) {
           resolved = true;
-          resolve({ confirmed, mergedPaths: [...mergedPaths], overwritePaths });
+          resolve({ confirmed, mergedPaths: [...mergedPaths], actions });
         }
       };
 
@@ -104,7 +130,7 @@ export class StagingPanel {
       let sideColumn: vscode.ViewColumn | undefined;
 
       panel.webview.onDidReceiveMessage(
-        async (message: { type: string; relativePath?: string; overwritePaths?: unknown }) => {
+        async (message: { type: string; relativePath?: string; actions?: unknown }) => {
           if (message.type === 'viewDiff' && message.relativePath) {
             const file = files.find((f) => f.relativePath === message.relativePath);
             if (!file) {
@@ -156,9 +182,7 @@ export class StagingPanel {
               });
             }
           } else if (message.type === 'apply') {
-            overwritePaths = Array.isArray(message.overwritePaths)
-              ? message.overwritePaths.filter((p): p is string => typeof p === 'string')
-              : [];
+            actions = parseStagingActions(message.actions);
             resolveOnce(true);
             panel.dispose();
           } else if (message.type === 'cancel') {
@@ -194,7 +218,7 @@ export class StagingPanel {
   // ---------------------------------------------------------------------------
 
   private static readonly treeHooks: TreeRenderHooks<StagedFile> = {
-    muted: (f) => f.status === 'unchanged' || f.protected,
+    muted: (f) => f.status === 'unchanged' || f.defaultAction === 'keep',
     indicator: (f) =>
       f.protected
         ? `<span class="status-lock">${LOCK_SVG}</span>`
@@ -213,19 +237,9 @@ export class StagingPanel {
         f.status === 'modified'
           ? `<button class="btn-action btn-merge" data-merge="${dataPath}" title="Reconcile this file in the 3-way merge editor (excluded from Apply)">Merge</button>`
           : '';
-      // Every modified file gets an explicit accept/skip toggle: the user
-      // either takes the generated content as-is (Overwrite) or reconciles it
-      // (Merge). Defaults to on for normal files (today's implicit
-      // Apply-everything behavior) and off for protected files (today's
-      // implicit skip) — see the default seeding in the inline script below.
-      const overwriteBtn =
-        f.status === 'modified'
-          ? `<button class="btn-action btn-overwrite${f.protected ? '' : ' btn-overwrite-active'}" data-overwrite="${dataPath}" title="${
-              f.protected
-                ? 'Include this file in Apply, overwriting it on disk'
-                : 'Included in Apply — click to exclude this file instead'
-            }">${f.protected ? 'Overwrite' : '✓ Overwrite'}</button>`
-          : '';
+      // Every modified file gets an explicit action choice, seeded from its
+      // `defaultAction`; clicks are handled by the inline script below.
+      const actionChoice = f.status === 'modified' ? renderStagingActionChoice(f) : '';
       const previewBtn =
         f.status === 'new'
           ? `<button class="btn-action btn-preview" data-preview="${dataPath}" title="Preview generated file">${StagingPanel.eyeSvg}</button>`
@@ -234,7 +248,9 @@ export class StagingPanel {
         f.origin === 'framework-testbench'
           ? `<span class="badge-framework" title="Generated by IPCraft's default framework testbench (tb/*, .vscode/settings.json) — not part of the active scaffold pack's own output">framework</span>`
           : '';
-      return frameworkBadge + diffBtn + mergeBtn + overwriteBtn + previewBtn;
+      return (
+        frameworkBadge + renderStagingBadges(f) + diffBtn + mergeBtn + actionChoice + previewBtn
+      );
     },
   };
 
@@ -248,7 +264,7 @@ export class StagingPanel {
     const unchanged = files.filter((f) => f.status === 'unchanged');
     const protectedFiles = files.filter((f) => f.protected);
     // Protected files with real changes — each can individually opt into Apply
-    // via its Overwrite toggle, so their presence alone makes Apply meaningful.
+    // via its action choice, so their presence alone makes Apply meaningful.
     const protectedModified = protectedFiles.filter((f) => f.status === 'modified');
 
     const hasApplicableFiles =
@@ -283,8 +299,9 @@ export class StagingPanel {
     const summaryHtml = summaryItems.join('<span class="summary-sep">·</span>');
 
     let noApplyBanner = '';
-    if (protectedModified.length > 0 && modified.length === 0 && newFiles.length === 0) {
-      noApplyBanner = `<div class="banner">${protectedModified.length} file(s) are user-managed (managed: false) and locked — use Overwrite on a file to include it in Apply anyway.</div>`;
+    const keptText = allKeptBanner(files, (f) => f.defaultAction ?? 'keep');
+    if (keptText) {
+      noApplyBanner = `<div class="banner">${keptText}</div>`;
     } else if (!hasApplicableFiles) {
       if (protectedFiles.length > 0) {
         noApplyBanner = `<div class="banner">&#10003; All files are either unchanged or user-managed — nothing to apply.</div>`;
@@ -299,14 +316,15 @@ export class StagingPanel {
 
     const treeHtml = renderFileTree(files, StagingPanel.treeHooks);
 
-    // Files whose Overwrite toggle starts "on" — every normal modified file,
-    // matching today's implicit Apply-everything behavior. Protected files
-    // start off. Embedded into the script below to seed its overwrite set.
+    // Each modified file's default action seeds the script's action map.
     // `<` is escaped so a pathological path can't break out of the <script> tag.
-    const defaultOverwritePaths = JSON.stringify(modified.map((f) => f.relativePath)).replace(
-      /</g,
-      '\\u003c'
-    );
+    const defaultActions = JSON.stringify(
+      Object.fromEntries(
+        files
+          .filter((f) => f.status === 'modified' && f.defaultAction !== undefined)
+          .map((f) => [f.relativePath, f.defaultAction])
+      )
+    ).replace(/</g, '\\u003c');
 
     // Per-render nonce so the inline <script> can run while the CSP stays
     // fail-closed: an accidentally-unescaped value can no longer execute.
@@ -320,12 +338,13 @@ export class StagingPanel {
 <title>IPCraft — Preview Generated Files</title>
 <style>
 ${TREE_CSS}
+${STAGING_ACTIONS_CSS}
 .header h1{font-size:14px;font-weight:600;margin-bottom:4px}
 .summary{margin-top:4px}
 .tree-file-row:hover{background:var(--vscode-list-activeSelectionBackground)}
 .tree-file-row.muted{opacity:0.55}
-/* A locked+modified file can show three action buttons (View Diff, Merge,
-   Overwrite) at once — wrap instead of forcing a horizontal scrollbar. */
+/* A locked+modified file can show several action buttons (View Diff, Merge,
+   the action choice) at once — wrap instead of forcing a horizontal scrollbar. */
 .tree-file-row{flex-wrap:wrap;row-gap:2px}
 .dot-new{background:#4ea44e}
 .dot-modified{background:#d4a83a}
@@ -341,9 +360,6 @@ ${TREE_CSS}
 .btn-merge:hover{background:var(--vscode-button-secondaryHoverBackground)}
 /* Persistent (not hover-gated) once a file has been sent to the merge editor. */
 .btn-merge.btn-merged{display:inline-flex;background:transparent;color:var(--vscode-charts-green,#4ea44e);cursor:default}
-.btn-overwrite{font-size:11px;padding:2px 8px;background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}
-.btn-overwrite:hover{background:var(--vscode-button-secondaryHoverBackground)}
-.btn-overwrite.btn-overwrite-active{background:var(--vscode-inputValidation-warningBackground,#5a3d00);color:var(--vscode-inputValidation-warningForeground,#fff)}
 .tree-file-row.will-overwrite .status-lock{color:var(--vscode-charts-orange,#d18616)}
 .btn-preview{padding:3px 5px;background:transparent;color:var(--vscode-descriptionForeground)}
 .btn-preview:hover{background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}
@@ -372,10 +388,9 @@ ${TREE_CSS}
 </div>
 <script nonce="${nonce}">
 const vscode = acquireVsCodeApi();
-// Files that will be written on Apply — every normal modified file starts in
-// here (matching today's implicit apply-everything behavior); protected files
-// start out, opted in per-file via the Overwrite toggle. Sent with 'apply'.
-const overwritePaths = new Set(${defaultOverwritePaths});
+// Chosen action per modified file, seeded from each file's default action.
+// Sent with 'apply'.
+const actions = ${defaultActions};
 function toggleDir(id){
   const el = document.getElementById(id);
   const ch = document.getElementById(id + '-ch');
@@ -384,43 +399,43 @@ function toggleDir(id){
   el.classList.toggle('collapsed', closing);
   if (ch) ch.classList.toggle('collapsed', closing);
 }
-function toggleOverwrite(btn){
-  const path = btn.dataset.overwrite;
+function chooseAction(btn){
+  const path = btn.dataset.path;
+  const choice = btn.dataset.choice;
+  actions[path] = choice;
   const row = btn.closest('.tree-file-row');
-  const willOverwrite = !overwritePaths.has(path);
-  if (willOverwrite) {
-    overwritePaths.add(path);
-    btn.textContent = '✓ Overwrite';
-    btn.classList.add('btn-overwrite-active');
-    btn.title = 'Included in Apply — click to exclude this file instead';
-  } else {
-    overwritePaths.delete(path);
-    btn.textContent = 'Overwrite';
-    btn.classList.remove('btn-overwrite-active');
-    btn.title = 'Include this file in Apply, overwriting it on disk';
-  }
+  btn.parentElement.querySelectorAll('[data-choice]').forEach((b) => {
+    const active = b === btn;
+    b.classList.toggle('choice-active', active);
+    b.setAttribute('aria-pressed', String(active));
+  });
+  document.querySelectorAll('[data-chosen-for]').forEach((el) => {
+    if (el.dataset.chosenFor === path) el.textContent = btn.textContent;
+  });
+  document.querySelectorAll('[data-hint-for]').forEach((el) => {
+    if (el.dataset.hintFor === path) el.hidden = choice !== 'sync-interface';
+  });
   if (row) {
-    // Muted = excluded from Apply; applies equally to a locked file the user
-    // hasn't opted in and a normal file they opted out of. will-overwrite only
-    // recolors the padlock icon on a protected row that is now included.
-    row.classList.toggle('muted', !willOverwrite);
-    row.classList.toggle('will-overwrite', willOverwrite);
+    // Muted = kept on disk; will-overwrite only recolors the padlock icon on a
+    // protected row whose action is not Keep.
+    row.classList.toggle('muted', choice === 'keep');
+    row.classList.toggle('will-overwrite', choice !== 'keep');
   }
 }
 // Single delegated, nonce-gated click handler — no inline JS anywhere in markup.
 document.addEventListener('click', (e) => {
-  const t = e.target.closest('[data-toggle],[data-diff],[data-merge],[data-overwrite],[data-preview],[data-action]');
+  const t = e.target.closest('[data-toggle],[data-diff],[data-merge],[data-choice],[data-preview],[data-action]');
   if (!t) return;
   if (t.dataset.toggle !== undefined) { toggleDir(t.dataset.toggle); return; }
   if (t.dataset.diff !== undefined) { vscode.postMessage({ type: 'viewDiff', relativePath: t.dataset.diff }); return; }
   if (t.dataset.merge !== undefined) { vscode.postMessage({ type: 'merge', relativePath: t.dataset.merge }); return; }
-  if (t.dataset.overwrite !== undefined) { toggleOverwrite(t); return; }
+  if (t.dataset.choice !== undefined) { chooseAction(t); return; }
   if (t.dataset.preview !== undefined) { vscode.postMessage({ type: 'viewPreview', relativePath: t.dataset.preview }); return; }
-  if (t.dataset.action) { vscode.postMessage({ type: t.dataset.action, overwritePaths: [...overwritePaths] }); }
+  if (t.dataset.action) { vscode.postMessage({ type: t.dataset.action, actions }); }
 });
 // Mark a file's Merge button once its merge editor has opened — it is now
-// excluded from Apply. Also drop any Overwrite toggle for that file: the merge
-// editor is already reconciling it, so overwriting would race the merge result.
+// excluded from Apply. Also drop its action choice: the merge editor is already
+// reconciling it, so applying an action would race the merge result.
 window.addEventListener('message', (e) => {
   const m = e.data;
   if (!m || m.type !== 'fileMerged' || !m.relativePath) return;
@@ -431,11 +446,15 @@ window.addEventListener('message', (e) => {
       b.removeAttribute('data-merge');
     }
   });
-  overwritePaths.delete(m.relativePath);
-  document.querySelectorAll('[data-overwrite]').forEach((b) => {
-    if (b.dataset.overwrite === m.relativePath) {
-      b.closest('.tree-file-row')?.classList.remove('will-overwrite');
-      b.remove();
+  delete actions[m.relativePath];
+  document.querySelectorAll('[data-chosen-for],[data-hint-for]').forEach((el) => {
+    if ((el.dataset.chosenFor || el.dataset.hintFor) === m.relativePath) el.remove();
+  });
+  document.querySelectorAll('.action-group').forEach((g) => {
+    const first = g.querySelector('[data-path]');
+    if (first && first.dataset.path === m.relativePath) {
+      first.closest('.tree-file-row')?.classList.remove('will-overwrite');
+      g.remove();
     }
   });
 });

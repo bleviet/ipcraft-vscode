@@ -1,16 +1,19 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { vscode } from '../../../vscode';
+import { allKeptBanner, type StagingAction } from '../../../../shared/staging';
+import { StagingFileActions, StagingFileBadges } from './StagingFileActions';
+import {
+  buildTree,
+  aggregateStatus,
+  ChevronSvg,
+  DirStatusDot,
+  EyeSvg,
+  LockSvg,
+  type StagedFileView,
+  type TreeNode,
+} from './stagingTree';
 
-export interface StagedFileView {
-  relativePath: string;
-  status: 'new' | 'modified' | 'unchanged';
-  protected: boolean;
-  /**
-   * Set when this file came from IPCraft's default framework testbench generation (tb/*,
-   * .vscode/settings.json) rather than the active scaffold pack's own file rules (issue #156).
-   */
-  origin?: 'framework-testbench';
-}
+export type { StagedFileView };
 
 interface StagingOverlayProps {
   files: StagedFileView[];
@@ -19,21 +22,12 @@ interface StagingOverlayProps {
   warnings?: string[];
   /** Files already opened in the merge editor — shown as "merging", skipped by Apply. */
   mergedPaths: Set<string>;
-  /** Modified files that will be written on Apply — defaults to all normal
-   *  modified files, none of the protected (managed: false) ones. */
-  overwritePaths: Set<string>;
+  /** Chosen action per modified file — seeded from each file's default action. */
+  stagingActions: Record<string, StagingAction>;
   onMerge: (relativePath: string) => void;
-  onToggleOverwrite: (relativePath: string) => void;
+  onSelectAction: (relativePath: string, action: StagingAction) => void;
   onConfirm: () => void;
   onCancel: () => void;
-}
-
-interface TreeNode {
-  name: string;
-  fullPath: string;
-  isDir: boolean;
-  children: TreeNode[];
-  file?: StagedFileView;
 }
 
 const INSPECTOR_WIDTH_KEY = 'ipcraft.inspectorWidth';
@@ -41,149 +35,28 @@ const INSPECTOR_MIN_WIDTH = 240;
 const INSPECTOR_MAX_WIDTH = 640;
 const STAGING_DEFAULT_WIDTH = 320;
 
-function buildTree(files: StagedFileView[]): TreeNode {
-  const root: TreeNode = { name: '', fullPath: '', isDir: true, children: [] };
-  for (const file of files) {
-    const parts = file.relativePath.split('/');
-    let node = root;
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
-      if (i === parts.length - 1) {
-        node.children.push({
-          name: part,
-          fullPath: file.relativePath,
-          isDir: false,
-          children: [],
-          file,
-        });
-      } else {
-        const dirPath = parts.slice(0, i + 1).join('/');
-        let dir = node.children.find((c) => c.isDir && c.name === part);
-        if (!dir) {
-          dir = { name: part, fullPath: dirPath, isDir: true, children: [] };
-          node.children.push(dir);
-        }
-        node = dir;
-      }
-    }
-  }
-  const sort = (n: TreeNode) => {
-    n.children.sort((a, b) => {
-      if (a.isDir !== b.isDir) {
-        return a.isDir ? -1 : 1;
-      }
-      return a.name.localeCompare(b.name);
-    });
-    n.children.forEach(sort);
-  };
-  sort(root);
-  return root;
-}
-
-type AggStatus = 'new' | 'modified' | 'protected' | 'unchanged';
-
-function aggregateStatus(node: TreeNode): AggStatus | null {
-  if (!node.isDir) {
-    if (!node.file) {
-      return null;
-    }
-    return node.file.protected ? 'protected' : node.file.status;
-  }
-  let hasModified = false;
-  let hasNew = false;
-  let hasProtected = false;
-  let hasFiles = false;
-  const traverse = (n: TreeNode) => {
-    if (!n.isDir && n.file) {
-      hasFiles = true;
-      if (n.file.status === 'modified') {
-        hasModified = true;
-      }
-      if (n.file.status === 'new') {
-        hasNew = true;
-      }
-      if (n.file.protected) {
-        hasProtected = true;
-      }
-    }
-    n.children.forEach(traverse);
-  };
-  traverse(node);
-  if (!hasFiles) {
-    return null;
-  }
-  if (hasModified) {
-    return 'modified';
-  }
-  if (hasNew) {
-    return 'new';
-  }
-  if (hasProtected) {
-    return 'protected';
-  }
-  return 'unchanged';
-}
-
-const DirStatusDot: React.FC<{ status: AggStatus | null }> = ({ status }) => {
-  if (!status || status === 'unchanged') {
-    return null;
-  }
-  if (status === 'protected') {
-    return (
-      <span className="staging-status-lock">
-        <LockSvg />
-      </span>
-    );
-  }
-  return <span className={`staging-dot staging-dot--${status}`} />;
-};
-
-const ChevronSvg: React.FC = () => (
-  <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-    <path d="M1.5 3.5l3.5 3.5 3.5-3.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
-  </svg>
-);
-
-const EyeSvg: React.FC = () => (
-  <svg width="14" height="10" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true">
-    <path d="M8 0C4.5 0 1.5 2.2 0 6c1.5 3.8 4.5 6 8 6s6.5-2.2 8-6C14.5 2.2 11.5 0 8 0zm0 10a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z" />
-  </svg>
-);
-
-const LockSvg: React.FC = () => (
-  <svg width="8" height="10" viewBox="0 0 8 10" fill="none" aria-hidden="true">
-    <rect x="0.5" y="4.5" width="7" height="5" rx="1" fill="currentColor" />
-    <path
-      d="M2 4.5V3a2 2 0 0 1 4 0v1.5"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-    />
-  </svg>
-);
-
 const TreeNodeView: React.FC<{
   node: TreeNode;
   depth: number;
   collapsed: Set<string>;
   mergedPaths: Set<string>;
-  overwritePaths: Set<string>;
+  stagingActions: Record<string, StagingAction>;
   onToggle: (path: string) => void;
   onViewDiff: (path: string) => void;
   onViewPreview: (path: string) => void;
   onMerge: (path: string) => void;
-  onToggleOverwrite: (path: string) => void;
+  onSelectAction: (path: string, action: StagingAction) => void;
 }> = ({
   node,
   depth,
   collapsed,
   mergedPaths,
-  overwritePaths,
+  stagingActions,
   onToggle,
   onViewDiff,
   onViewPreview,
   onMerge,
-  onToggleOverwrite,
+  onSelectAction,
 }) => {
   if (node.isDir && !node.name) {
     return (
@@ -195,12 +68,12 @@ const TreeNodeView: React.FC<{
             depth={depth}
             collapsed={collapsed}
             mergedPaths={mergedPaths}
-            overwritePaths={overwritePaths}
+            stagingActions={stagingActions}
             onToggle={onToggle}
             onViewDiff={onViewDiff}
             onViewPreview={onViewPreview}
             onMerge={onMerge}
-            onToggleOverwrite={onToggleOverwrite}
+            onSelectAction={onSelectAction}
           />
         ))}
       </>
@@ -238,12 +111,12 @@ const TreeNodeView: React.FC<{
                 depth={depth + 1}
                 collapsed={collapsed}
                 mergedPaths={mergedPaths}
-                overwritePaths={overwritePaths}
+                stagingActions={stagingActions}
                 onToggle={onToggle}
                 onViewDiff={onViewDiff}
                 onViewPreview={onViewPreview}
                 onMerge={onMerge}
-                onToggleOverwrite={onToggleOverwrite}
+                onSelectAction={onSelectAction}
               />
             ))}
           </div>
@@ -254,20 +127,17 @@ const TreeNodeView: React.FC<{
 
   const file = node.file!;
   const isMerged = mergedPaths.has(file.relativePath);
-  const isOverwrite = overwritePaths.has(file.relativePath);
-  // Muted whenever a modified file is currently excluded from Apply — either a
-  // locked file the user hasn't opted in, or a normal file they opted out of.
-  const isMuted = file.status === 'unchanged' || (file.status === 'modified' && !isOverwrite);
+  const chosen = stagingActions[file.relativePath] ?? 'keep';
+  // Muted whenever a modified file's chosen action is Keep (it stays as-is on disk).
+  const isMuted = file.status === 'unchanged' || (file.status === 'modified' && chosen === 'keep');
   const showDiff = file.status === 'modified' || file.protected;
   const showPreview = file.status === 'new';
   // Merge is meaningful for any real conflict — protected files qualify too,
   // since the merge editor writes directly to disk independent of the lock.
   const showMerge = file.status === 'modified';
-  // Every modified file gets an explicit accept/skip toggle: the user either
-  // takes the generated content as-is (Overwrite) or reconciles it (Merge).
-  // Defaults to on for normal files (today's implicit Apply-everything
-  // behavior) and off for protected files (today's implicit skip).
-  const showOverwrite = file.status === 'modified' && !isMerged;
+  // Every modified file gets an explicit action choice, seeded from its
+  // default action (Keep for locked files) and offered from `file.actions`.
+  const showActions = file.status === 'modified' && !isMerged;
 
   return (
     <div
@@ -276,7 +146,7 @@ const TreeNodeView: React.FC<{
     >
       {file.protected ? (
         <span
-          className={`staging-status-lock${isOverwrite ? ' staging-status-lock--overridden' : ''}`}
+          className={`staging-status-lock${chosen !== 'keep' ? ' staging-status-lock--overridden' : ''}`}
         >
           <LockSvg />
         </span>
@@ -294,6 +164,7 @@ const TreeNodeView: React.FC<{
           framework
         </span>
       )}
+      <StagingFileBadges handEdited={file.handEdited} interfaceDrift={file.interfaceDrift} />
       {showDiff && (
         <button
           className="staging-btn-action staging-btn-diff"
@@ -316,18 +187,12 @@ const TreeNodeView: React.FC<{
             Merge
           </button>
         ))}
-      {showOverwrite && (
-        <button
-          className={`staging-btn-action staging-btn-overwrite${isOverwrite ? ' staging-btn-overwrite--active' : ''}`}
-          onClick={() => onToggleOverwrite(file.relativePath)}
-          title={
-            isOverwrite
-              ? 'Included in Apply — click to exclude this file instead'
-              : 'Include this file in Apply, overwriting it on disk'
-          }
-        >
-          {isOverwrite ? '✓ Overwrite' : 'Overwrite'}
-        </button>
+      {showActions && (
+        <StagingFileActions
+          actions={file.actions}
+          chosen={chosen}
+          onSelect={(action) => onSelectAction(file.relativePath, action)}
+        />
       )}
       {showPreview && (
         <button
@@ -347,9 +212,9 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
   rootLabel,
   warnings,
   mergedPaths,
-  overwritePaths,
+  stagingActions,
   onMerge,
-  onToggleOverwrite,
+  onSelectAction,
   onConfirm,
   onCancel,
 }) => {
@@ -431,11 +296,19 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
   const unchanged = files.filter((f) => f.status === 'unchanged');
   const protectedFiles = files.filter((f) => f.protected);
   // Protected files with real changes — each can individually opt into Apply
-  // via its Overwrite toggle, so their presence alone makes Apply meaningful.
+  // via its action choice, so their presence alone makes Apply meaningful.
   const protectedModified = protectedFiles.filter((f) => f.status === 'modified');
   const hasApplicableFiles =
     modified.length > 0 || newFiles.length > 0 || protectedModified.length > 0;
   const allNewOnly = modified.length === 0 && newFiles.length > 0 && protectedModified.length === 0;
+
+  // Modified files (locked or not) the user has set to Keep — they stay as-is on disk.
+  const keptModified = files.filter(
+    (f) =>
+      f.status === 'modified' &&
+      !mergedPaths.has(f.relativePath) &&
+      (stagingActions[f.relativePath] ?? 'keep') === 'keep'
+  );
 
   const applyLabel = hasApplicableFiles
     ? allNewOnly
@@ -457,6 +330,14 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
       <span key="new" className="staging-summary-item">
         <span className="staging-dot staging-dot--new" />
         {newFiles.length} new
+      </span>
+    );
+  }
+  if (keptModified.length) {
+    summaryItems.push(
+      <span key="kept" className="staging-summary-item">
+        <span className="staging-dot staging-dot--unchanged" />
+        {keptModified.length} kept
       </span>
     );
   }
@@ -492,13 +373,11 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
   }, []);
 
   let banner: React.ReactNode = null;
-  if (protectedModified.length > 0 && modified.length === 0 && newFiles.length === 0) {
-    banner = (
-      <div className="staging-banner">
-        {protectedModified.length} file(s) are user-managed (managed: false) and locked — use
-        Overwrite on a file to include it in Apply anyway.
-      </div>
-    );
+  const keptText = allKeptBanner(files, (f) =>
+    mergedPaths.has(f.relativePath) ? undefined : (stagingActions[f.relativePath] ?? 'keep')
+  );
+  if (keptText) {
+    banner = <div className="staging-banner">{keptText}</div>;
   } else if (!hasApplicableFiles) {
     const bannerText =
       protectedFiles.length > 0
@@ -553,12 +432,12 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
                 depth={1}
                 collapsed={collapsed}
                 mergedPaths={mergedPaths}
-                overwritePaths={overwritePaths}
+                stagingActions={stagingActions}
                 onToggle={toggleDir}
                 onViewDiff={handleViewDiff}
                 onViewPreview={handleViewPreview}
                 onMerge={onMerge}
-                onToggleOverwrite={onToggleOverwrite}
+                onSelectAction={onSelectAction}
               />
             </div>
           </>
@@ -568,12 +447,12 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
             depth={0}
             collapsed={collapsed}
             mergedPaths={mergedPaths}
-            overwritePaths={overwritePaths}
+            stagingActions={stagingActions}
             onToggle={toggleDir}
             onViewDiff={handleViewDiff}
             onViewPreview={handleViewPreview}
             onMerge={onMerge}
-            onToggleOverwrite={onToggleOverwrite}
+            onSelectAction={onSelectAction}
           />
         )}
       </div>

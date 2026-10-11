@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { STAGING_SCHEME, setStagingContent, clearStagingContent } from './StagingContentProvider';
-import type { StagedFile, StagingDecision } from './StagingPanel';
+import type { StagedFile, StagingAction, StagingDecision } from './StagingPanel';
 
 /**
  * Singleton bridge between GenerateCommands (extension host) and the active canvas webview.
@@ -27,7 +27,7 @@ export class WebviewStagingBridge {
       // Cancel any in-progress staging for this panel
       const resolver = this.resolvers.get(fsPath);
       if (resolver) {
-        resolver({ confirmed: false, mergedPaths: [], overwritePaths: [] });
+        resolver({ confirmed: false, mergedPaths: [], actions: {} });
         this.resolvers.delete(fsPath);
         this.stagedFiles.delete(fsPath);
         this.mergedPaths.delete(fsPath);
@@ -60,12 +60,27 @@ export class WebviewStagingBridge {
     this.mergedPaths.set(fsPath, new Set());
 
     // Only send display data to the webview — content can be large and isn't needed there
-    const fileViews = files.map(({ relativePath, status, protected: prot, origin }) => ({
-      relativePath,
-      status,
-      protected: prot,
-      origin,
-    }));
+    const fileViews = files.map(
+      ({
+        relativePath,
+        status,
+        protected: prot,
+        origin,
+        handEdited,
+        interfaceDrift,
+        actions,
+        defaultAction,
+      }) => ({
+        relativePath,
+        status,
+        protected: prot,
+        origin,
+        handEdited,
+        interfaceDrift,
+        actions,
+        defaultAction,
+      })
+    );
 
     return new Promise<StagingDecision>((resolve) => {
       this.resolvers.set(fsPath, resolve);
@@ -83,13 +98,17 @@ export class WebviewStagingBridge {
     this.mergedPaths.get(fsPath)?.add(relativePath);
   }
 
-  resolveStaging(fsPath: string, confirmed: boolean, overwritePaths: string[] = []): void {
+  resolveStaging(
+    fsPath: string,
+    confirmed: boolean,
+    actions: Record<string, StagingAction> = {}
+  ): void {
     const resolver = this.resolvers.get(fsPath);
     if (resolver) {
       resolver({
         confirmed,
         mergedPaths: [...(this.mergedPaths.get(fsPath) ?? [])],
-        overwritePaths,
+        actions,
       });
       this.resolvers.delete(fsPath);
       this.stagedFiles.delete(fsPath);

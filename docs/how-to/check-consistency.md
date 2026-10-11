@@ -45,6 +45,8 @@ Each finding has a **kind** — `missing-port`, `extra-port`, `direction-mismatc
 
 There is no diff view opened directly by this feature — pair it with the diff shown in the [staging overlay](create-your-first-ip-core.md#review-and-accept-the-staged-output) when you re-scaffold to see the actual text change.
 
+Interface drift of existing HDL files (ports or generics that differ from the newly generated entity or module) is also shown as a badge during staging; see [Review staged files](generating-a-project.md#review-staged-files).
+
 ## Resolving findings
 
 | Finding kind | Typical fix |

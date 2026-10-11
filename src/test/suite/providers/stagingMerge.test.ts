@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as StagingContentProvider from '../../../providers/StagingContentProvider';
 import { WebviewStagingBridge } from '../../../providers/WebviewStagingBridge';
 import { mergeStagedFile, type StagedFile } from '../../../providers/StagingPanel';
 
@@ -16,6 +17,7 @@ const file = (relativePath: string, status: StagedFile['status'] = 'modified'): 
   protected: false,
   content: `generated:${relativePath}`,
   diskPath: `/out/${relativePath}`,
+  actions: [],
 });
 
 // Minimal webview panel stub for the bridge (it only posts messages + registers dispose).
@@ -46,7 +48,7 @@ describe('WebviewStagingBridge merge tracking', () => {
     expect(await pending).toEqual({
       confirmed: true,
       mergedPaths: ['core_regs.vhd'],
-      overwritePaths: [],
+      actions: {},
     });
   });
 
@@ -58,21 +60,54 @@ describe('WebviewStagingBridge merge tracking', () => {
     const pending = bridge.showInWebview(fsPath, [file('x.vhd')]);
     bridge.resolveStaging(fsPath, false);
 
-    expect(await pending).toEqual({ confirmed: false, mergedPaths: [], overwritePaths: [] });
+    expect(await pending).toEqual({ confirmed: false, mergedPaths: [], actions: {} });
   });
 
-  it('carries overwritePaths through to the staging decision', async () => {
+  it('carries the chosen actions through to the staging decision', async () => {
     const bridge = WebviewStagingBridge.getInstance();
     const fsPath = '/proj/c.ip.yml';
     bridge.register(fsPath, fakePanel());
 
     const pending = bridge.showInWebview(fsPath, [file('locked.vhd')]);
-    bridge.resolveStaging(fsPath, true, ['locked.vhd']);
+    bridge.resolveStaging(fsPath, true, { 'locked.vhd': 'auto-merge' });
 
     expect(await pending).toEqual({
       confirmed: true,
       mergedPaths: [],
-      overwritePaths: ['locked.vhd'],
+      actions: { 'locked.vhd': 'auto-merge' },
+    });
+  });
+
+  it('sends the review fields but not contents or baseline to the webview', async () => {
+    const panel = fakePanel();
+    const bridge = WebviewStagingBridge.getInstance();
+    const fsPath = '/proj/e.ip.yml';
+    bridge.register(fsPath, panel);
+
+    const reviewed: StagedFile = {
+      ...file('rtl/core.vhd'),
+      baseline: 'old',
+      handEdited: true,
+      interfaceDrift: { added: ['irq'], removed: [], changed: [] },
+      actions: ['keep', 'overwrite', 'sync-interface'],
+      defaultAction: 'keep',
+    };
+    const pending = bridge.showInWebview(fsPath, [reviewed]);
+    bridge.resolveStaging(fsPath, false);
+    await pending;
+
+    const sent = (panel.webview.postMessage as jest.Mock).mock.calls[0][0] as {
+      files: Record<string, unknown>[];
+    };
+    expect(sent.files[0]).toEqual({
+      relativePath: 'rtl/core.vhd',
+      status: 'modified',
+      protected: false,
+      origin: undefined,
+      handEdited: true,
+      interfaceDrift: { added: ['irq'], removed: [], changed: [] },
+      actions: ['keep', 'overwrite', 'sync-interface'],
+      defaultAction: 'keep',
     });
   });
 
@@ -118,6 +153,21 @@ describe('mergeStagedFile', () => {
     );
     // The merge editor writes the result on completion — mergeStagedFile must not.
     expect(fsMock.writeFile).not.toHaveBeenCalled();
+  });
+
+  it('uses the baseline as the merge base when present, the current content otherwise', async () => {
+    const setContent = jest.spyOn(StagingContentProvider, 'setStagingContent');
+    fsMock.readFile.mockResolvedValue(bytes('on disk content'));
+
+    await mergeStagedFile({ ...file('a.vhd'), baseline: 'baseline content' });
+    await mergeStagedFile(file('b.vhd'));
+
+    const baseWrites = setContent.mock.calls.filter(([key]) => key.includes('/base/'));
+    expect(baseWrites.map(([, content]) => content)).toEqual([
+      'baseline content',
+      'on disk content',
+    ]);
+    setContent.mockRestore();
   });
 
   it('returns false and does not throw when the merge editor cannot open', async () => {

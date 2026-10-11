@@ -49,9 +49,9 @@ export const IpCoreRightPanel: React.FC<IpCoreRightPanelProps> = ({
         rootLabel={staging.stagingData.rootLabel}
         warnings={staging.stagingData.warnings}
         mergedPaths={staging.stagingMergedPaths}
-        overwritePaths={staging.stagingOverwritePaths}
+        stagingActions={staging.stagingActions}
         onMerge={staging.mergeStagingFile}
-        onToggleOverwrite={staging.toggleStagingOverwrite}
+        onSelectAction={staging.setStagingAction}
         onConfirm={staging.confirmStaging}
         onCancel={staging.cancelStaging}
       />

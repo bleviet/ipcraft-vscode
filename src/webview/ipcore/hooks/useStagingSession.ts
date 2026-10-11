@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { vscode } from '../../vscode';
+import type { StagingAction } from '../../../shared/staging';
 import type { StagedFileView } from '../components/canvas/StagingOverlay';
 
 export interface StagingStartMessage {
@@ -24,21 +25,17 @@ export function useStagingSession() {
   // Files the user opened in the merge editor during the current staging — shown
   // as "merging" in the overlay and excluded from the bulk apply by the extension.
   const [stagingMergedPaths, setStagingMergedPaths] = useState<Set<string>>(new Set());
-  // Modified files that will be written for the current staging — defaults to
-  // every normal file, none of the protected (managed: false) ones; sent to
-  // the extension on confirm so the bulk apply writes exactly this set.
-  const [stagingOverwritePaths, setStagingOverwritePaths] = useState<Set<string>>(new Set());
+  // Chosen action per modified file for the current staging — seeded from each
+  // file's default action; sent to the extension on confirm.
+  const [stagingActions, setStagingActions] = useState<Record<string, StagingAction>>({});
 
   const handleStagingStart = useCallback((message: StagingStartMessage) => {
     setStagingMergedPaths(new Set());
-    // Every modified file defaults to "will be applied" except locked
-    // (managed: false) ones, matching today's implicit apply-everything
-    // / skip-locked-files behavior until the user toggles a row.
-    setStagingOverwritePaths(
-      new Set(
+    setStagingActions(
+      Object.fromEntries(
         (message.files ?? [])
-          .filter((f) => f.status === 'modified' && !f.protected)
-          .map((f) => f.relativePath)
+          .filter((f) => f.status === 'modified')
+          .map((f) => [f.relativePath, f.defaultAction ?? 'keep'])
       )
     );
     setStagingData(
@@ -57,18 +54,15 @@ export function useStagingSession() {
       next.add(relativePath);
       return next;
     });
+    // The merge editor now owns this file; the bulk apply must not write it.
+    setStagingActions((prev) => {
+      const { [relativePath]: _merged, ...rest } = prev;
+      return rest;
+    });
   }, []);
 
-  const toggleStagingOverwrite = useCallback((relativePath: string) => {
-    setStagingOverwritePaths((prev) => {
-      const next = new Set(prev);
-      if (next.has(relativePath)) {
-        next.delete(relativePath);
-      } else {
-        next.add(relativePath);
-      }
-      return next;
-    });
+  const setStagingAction = useCallback((relativePath: string, action: StagingAction) => {
+    setStagingActions((prev) => ({ ...prev, [relativePath]: action }));
   }, []);
 
   const mergeStagingFile = useCallback((relativePath: string) => {
@@ -79,10 +73,10 @@ export function useStagingSession() {
     vscode?.postMessage({
       type: 'stagingResult',
       confirmed: true,
-      overwritePaths: [...stagingOverwritePaths],
+      actions: stagingActions,
     });
     setStagingData(null);
-  }, [stagingOverwritePaths]);
+  }, [stagingActions]);
 
   const cancelStaging = useCallback(() => {
     vscode?.postMessage({ type: 'stagingResult', confirmed: false });
@@ -92,10 +86,10 @@ export function useStagingSession() {
   return {
     stagingData,
     stagingMergedPaths,
-    stagingOverwritePaths,
+    stagingActions,
     handleStagingStart,
     handleStagingFileMerged,
-    toggleStagingOverwrite,
+    setStagingAction,
     mergeStagingFile,
     confirmStaging,
     cancelStaging,

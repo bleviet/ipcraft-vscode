@@ -76,10 +76,12 @@ export async function writeImportedFile(
  * accept the incoming content per change region instead of all-or-nothing.
  *
  * Shared by import (incoming = imported content) and code-generation staging
- * (incoming = generated content). There is no real common ancestor, so `base` is
- * seeded with the current on-disk content. That makes every incoming change a
- * non-conflicting block: accepted by default (-> incoming value), un-accept to
- * keep the current value (which equals base). The merge editor writes the
+ * (incoming = generated content). Generation passes the last generated content
+ * as `base` when a baseline exists, so only real hand edits conflict. Without a
+ * common ancestor `base` is seeded with the current on-disk content. That makes
+ * every incoming change a non-conflicting block: accepted by default (->
+ * incoming value), un-accept to keep the current value (which equals base). The
+ * merge editor writes the
  * resolved result to the real file on disk (`output`) when the user completes
  * the merge, so this function does not write the file itself.
  *
@@ -88,12 +90,14 @@ export async function writeImportedFile(
  * the user is shown an error.
  *
  * @param incomingLabel pane title for the incoming side ('Imported' / 'Generated').
+ * @param base common ancestor for the base pane; defaults to `current`.
  */
 export async function openMergeEditorForConflict(
   targetUri: vscode.Uri,
   current: string,
   incoming: string,
-  incomingLabel: string
+  incomingLabel: string,
+  base?: string
 ): Promise<boolean> {
   const filename = path.basename(targetUri.fsPath);
   // The staging URIs feeding the merge panes must NOT match the .ip.yml/.mm.yml
@@ -108,7 +112,7 @@ export async function openMergeEditorForConflict(
   const baseKey = `/merge/${token}/base/${mergeName}`;
   const currentKey = `/merge/${token}/current/${mergeName}`;
   const incomingKey = `/merge/${token}/incoming/${mergeName}`;
-  setStagingContent(baseKey, current);
+  setStagingContent(baseKey, base ?? current);
   setStagingContent(currentKey, current);
   setStagingContent(incomingKey, incoming);
 

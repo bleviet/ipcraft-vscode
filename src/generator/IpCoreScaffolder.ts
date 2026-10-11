@@ -8,6 +8,7 @@ import { getVivadoInterfaceCacheDir, pathExists } from '../services/VivadoInterf
 import { resolveVivadoCacheVersion } from '../services/VivadoCacheVersion';
 import { getWorkspaceBusDefinitionScanner } from '../services/WorkspaceBusDefinitionScanner';
 import { TemplateLoader } from './TemplateLoader';
+import { writeBaselines } from './generationBaseline';
 import { resolveScaffoldOutputPath, ScaffoldPackLoader } from './ScaffoldPackLoader';
 import {
   getBusTypeForTemplate,
@@ -38,6 +39,7 @@ import type { NormalizedMemoryMap } from '../domain/internal.types';
 import type { NormalizedBusLibrary } from '../shared/busContracts';
 import { blocksGeneration, checkBusConformance } from '../shared/busConformance';
 import { CONFIG_KEY_IPCRAFT } from '../utils/configKeys';
+import { fileExists } from '../utils/fsHelpers';
 import type {
   BusDefinitions,
   GenerateOptions,
@@ -183,11 +185,15 @@ export class IpCoreScaffolder {
 
       // User-declared managed:false paths (fileSets in the .ip.yml) that collide with a
       // scaffold-pack target — e.g. a no-bus IP whose hand-authored top lives at the same
-      // path the pack would otherwise stub out (rtl/<name>.sv). These must never be
-      // (re)generated, even on the very first run before the user has created the file —
-      // unlike pack-declared managed:false rules (see packManagedFalse below), which exist
-      // specifically to seed a first-time stub for the user to then take ownership of.
+      // path the pack would otherwise stub out (rtl/<name>.sv). Such a path is never
+      // generated before the user creates the file (issue #75). Once it exists on disk it
+      // is rendered for staging comparison only and never written without an explicit
+      // staging choice (it is in protectedSet). Pack-declared managed:false rules (see
+      // packManagedFalse below) differ: they seed a first-time stub for the user to take over.
       const userManagedPaths = collectUserManagedPaths(ipCoreData);
+      const isAbsentUserManaged = async (relativePath: string): Promise<boolean> =>
+        userManagedPaths.has(relativePath) &&
+        !(await fileExists(resolveScaffoldOutputPath(outputDir, relativePath)));
 
       // ── RTL files — data-driven from scaffold pack ─────────────────────────
       // Minimal packs (fullGeneration: false) suppress bus/register context so the
@@ -213,7 +219,7 @@ export class IpCoreScaffolder {
           }
           const sourceName = packLoader.renderString(rule.source, rtlCtx);
           const relativePath = packLoader.renderString(rule.target, rtlCtx);
-          if (userManagedPaths.has(relativePath)) {
+          if (await isAbsentUserManaged(relativePath)) {
             this.logger.info(
               `Skipping scaffold target owned by fileSets managed:false: ${relativePath}`
             );
@@ -284,7 +290,7 @@ export class IpCoreScaffolder {
       // A pack inferred to own its complete tree must not receive a separate docs/ subtree.
       if (includeDocs && !packOwnsOutput) {
         const docTarget = `docs/${name}_datasheet.md`;
-        if (!userManagedPaths.has(docTarget)) {
+        if (!(await isAbsentUserManaged(docTarget))) {
           files[docTarget] = packLoader.render('ip_datasheet.md.j2', context);
         }
       }
@@ -438,6 +444,22 @@ export class IpCoreScaffolder {
           }
         })
       );
+
+      // Keep the baseline in step with every generated file this run wrote, so a later
+      // staging run can tell untouched files from hand edits. Never fatal.
+      try {
+        await writeBaselines(
+          outputDir,
+          Object.keys(written).map((relativePath) => ({
+            relativePath,
+            content: files[relativePath],
+          }))
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Failed to write generation baselines: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
 
       this.logger.info('Generated HDL files', {
         count: Object.keys(written).length,
@@ -649,7 +671,8 @@ function extractActiveBusPortNames(context: Record<string, unknown>): string[] {
 
 /**
  * Paths declared managed: false in the .ip.yml's fileSets — these are user-owned and, when
- * they collide with a scaffold-pack target, must never be (re)generated (issue #75). The full
+ * they collide with a scaffold-pack target, are never generated before the file exists (issue
+ * #75) and are rendered for staging comparison only once it does. The full
  * set (regardless of collision) is surfaced on GenerateResult.userManagedPaths in dry-run mode
  * — see `ipcraft verify`'s orphaned-file scan, which needs paths that don't collide too.
  */

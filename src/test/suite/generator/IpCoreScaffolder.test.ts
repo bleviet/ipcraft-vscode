@@ -1684,6 +1684,187 @@ describe('IpCoreScaffolder', () => {
     }
   });
 
+  describe('fileSets managed:false file that already exists on disk', () => {
+    const setup = (): { tmp: string; inputPath: string; corePath: string } => {
+      const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-locked-'));
+      fs2.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+      const corePath = path.join(tmp, 'rtl', 'locked.vhd');
+      fs2.writeFileSync(corePath, '-- hand-authored\n');
+      const inputPath = path.join(tmp, 'locked.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: locked',
+          '  version: 1.0.0',
+          'apiVersion: "1.0"',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/locked.vhd',
+          '        type: vhdl',
+          '        managed: false',
+        ].join('\n')
+      );
+      return { tmp, inputPath, corePath };
+    };
+
+    it('renders it for staging comparison and reports it as protected on a dry run', async () => {
+      const { tmp, inputPath } = setup();
+      try {
+        const result = await scaffolder.generateAll(inputPath, tmp, {
+          includeRegs: false,
+          includeTestbench: false,
+          targets: [],
+          hdlLanguage: 'vhdl',
+          dryRun: true,
+        });
+
+        expect(result.success).toBe(true);
+        const rendered = result.generatedContents?.['rtl/locked.vhd'];
+        expect(rendered).toBeDefined();
+        expect(rendered).not.toBe('-- hand-authored\n');
+        expect(result.protectedPaths).toContain('rtl/locked.vhd');
+      } finally {
+        fs2.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+
+    it('never writes it without an explicit staging choice', async () => {
+      const { tmp, inputPath, corePath } = setup();
+      try {
+        const writeFileMock = fs.writeFile as unknown as jest.Mock;
+        writeFileMock.mockClear();
+        const result = await scaffolder.generateAll(inputPath, tmp, {
+          includeRegs: false,
+          includeTestbench: false,
+          targets: [],
+          hdlLanguage: 'vhdl',
+        });
+
+        expect(result.success).toBe(true);
+        expect(result.files?.['rtl/locked.vhd']).toBeUndefined();
+        expect(writeFileMock.mock.calls.some((call) => String(call[0]) === corePath)).toBe(false);
+        expect(fs2.readFileSync(corePath, 'utf8')).toBe('-- hand-authored\n');
+      } finally {
+        fs2.rmSync(tmp, { recursive: true, force: true });
+      }
+    });
+  });
+
+  it('records generation baselines for written files only, not skipped protected files (issue #236)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-baseline-'));
+    try {
+      fs2.mkdirSync(path.join(tmp, 'rtl'), { recursive: true });
+      fs2.writeFileSync(path.join(tmp, 'rtl', 'extra.vhd'), '-- hand-authored\n');
+      const inputPath = path.join(tmp, 'base.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: base',
+          '  version: 1.0.0',
+          'apiVersion: "1.0"',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+          'fileSets:',
+          '  - name: RTL_Sources',
+          '    files:',
+          '      - path: rtl/extra.vhd',
+          '        type: vhdl',
+        ].join('\n')
+      );
+
+      const writeFileMock = fs.writeFile as unknown as jest.Mock;
+      writeFileMock.mockClear();
+      // In-place run: rtl/extra.vhd is read verbatim, protected, and already on disk.
+      const result = await scaffolder.generateAll(inputPath, tmp, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: [],
+        hdlLanguage: 'vhdl',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.generatedContents?.['rtl/extra.vhd']).toBeDefined();
+      expect(result.files?.['rtl/extra.vhd']).toBeUndefined();
+      const written = Object.keys(result.files ?? {});
+      expect(written.length).toBeGreaterThan(0);
+
+      const baselineRoot = path.join(tmp, '.ipcraft', 'baseline');
+      const baselineWrites = writeFileMock.mock.calls.filter((call) =>
+        String(call[0]).startsWith(baselineRoot + path.sep)
+      );
+      const baselined = baselineWrites.map((call) =>
+        path.relative(baselineRoot, String(call[0])).split(path.sep).join('/')
+      );
+      expect([...baselined].sort()).toEqual([...written].sort());
+      for (const call of baselineWrites) {
+        const rel = path.relative(baselineRoot, String(call[0])).split(path.sep).join('/');
+        expect(call[1]).toBe(result.generatedContents?.[rel]);
+      }
+      expect(written.some((p) => p.includes('.ipcraft'))).toBe(false);
+    } finally {
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
+  it('logs and survives a baseline-write failure (issue #236)', async () => {
+    const tmp = fs2.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-scaffolder-baseline-fail-'));
+    const writeFileMock = fs.writeFile as unknown as jest.Mock;
+    try {
+      const inputPath = path.join(tmp, 'base.ip.yml');
+      fs2.writeFileSync(
+        inputPath,
+        [
+          'vlnv:',
+          '  vendor: test',
+          '  library: lib',
+          '  name: base',
+          '  version: 1.0.0',
+          'apiVersion: "1.0"',
+          'clocks:',
+          '  - name: clk',
+          '    direction: in',
+          'busInterfaces: []',
+        ].join('\n')
+      );
+      const baselineRoot = path.join(tmp, '.ipcraft', 'baseline');
+      writeFileMock.mockImplementation(async (target: unknown) => {
+        if (String(target).startsWith(baselineRoot + path.sep)) {
+          throw new Error('disk full');
+        }
+      });
+      (logger.warn as jest.Mock).mockClear();
+
+      const result = await scaffolder.generateAll(inputPath, tmp, {
+        includeRegs: false,
+        includeTestbench: false,
+        targets: [],
+        hdlLanguage: 'vhdl',
+      });
+
+      expect(result.success).toBe(true);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to write generation baselines: disk full')
+      );
+    } finally {
+      writeFileMock.mockReset();
+      writeFileMock.mockResolvedValue(undefined);
+      fs2.rmSync(tmp, { recursive: true, force: true });
+    }
+  });
+
   it('still references a managed-top file in vendor packaging RTL file lists (issue #75)', async () => {
     // Even though the top is never scaffolded, vendor packaging (component.xml, hw.tcl,
     // project TCLs) must still pick it up from fileSets so the hand-authored top is part of

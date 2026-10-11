@@ -23,7 +23,8 @@ Nothing is written before confirmation.
 | Protected | User-owned file is excluded unless explicitly selected |
 
 Use **View Diff** on a modified file before accepting it. A protected file comes
-from a rule or file-set entry with `managed: false`.
+from a rule or file-set entry with `managed: false`. A file-set `managed: false` file is compared only once it
+exists on disk; before that IPCraft never generates it.
 
 ```mermaid
 flowchart LR
@@ -48,6 +49,42 @@ flowchart LR
 
 Use a focused command when you intentionally want to leave other generated
 areas untouched.
+
+## Review staged files
+
+Each modified file has an action that decides what **Confirm and Apply** does
+with it. Hover a row to change it.
+
+| Action | Effect |
+|---|---|
+| Auto-merge | Writes a three-way merge of the generator output into your edits. Offered only when the merge has no conflicts. |
+| Sync interface | Replaces only the entity or module header (generics, ports) with the generated one and keeps everything else in your file. Offered for HDL files whose interface differs. |
+| Overwrite | Replaces the file with the generated content. |
+| Keep | Leaves the file on disk unchanged. |
+
+The default is Overwrite for unedited files and Auto-merge when your edits
+merge cleanly. It is Keep when your edits conflict with the generator output, when
+the generator output did not change, and for every protected (`managed: false`)
+file: a protected file is never written unless you pick another action
+yourself. **Merge** is separate: it opens the file in the three-way merge
+editor, and the file is then skipped by Apply.
+
+Two badges explain why a file needs attention:
+
+- **Hand-edited**: the file differs from what IPCraft last generated.
+- **Interface out of date: +N/-M/~K**: the generated entity or module has N
+  added, M removed, and K changed ports or generics compared with the file on
+  disk. Hover the badge to list the names.
+
+After **Sync interface**, the entity is up to date but new ports are not yet
+used. Connect them in the architecture or module body yourself.
+
+IPCraft finds hand edits by comparing the file with a baseline, the content it
+last generated. Baselines are stored in `.ipcraft/baseline/` inside the output
+folder, mirroring the generated paths. Commit this folder so teammates and CI
+share the same merge base. It is not listed in `fileSets`. Without a baseline
+(for example, the first run on an existing project), edits cannot be detected
+and a modified file defaults to Overwrite unless it is protected.
 
 ## Typical output
 

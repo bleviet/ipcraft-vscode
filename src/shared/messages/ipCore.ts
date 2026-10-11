@@ -1,3 +1,5 @@
+import type { StagingAction } from '../staging';
+
 export interface GenerateOptionsMessage {
   vendorFiles?: 'none' | 'altera' | 'xilinx' | 'both';
   includeTestbench?: boolean;
@@ -33,7 +35,7 @@ export type IpCoreWebviewMessage =
   | { type: 'editInPlatformDesigner' }
   | { type: 'openInVivado' }
   | { type: 'openInQuartus' }
-  | { type: 'stagingResult'; confirmed: boolean; overwritePaths?: string[] }
+  | { type: 'stagingResult'; confirmed: boolean; actions?: Record<string, StagingAction> }
   | { type: 'stagingAction'; action: 'viewDiff' | 'viewPreview' | 'merge'; relativePath: string }
   | { type: 'saveAsIpYml' }
   | { type: 'checkConsistency' };

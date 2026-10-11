@@ -32,6 +32,7 @@ import { ScaffoldPackLoader } from '../generator/ScaffoldPackLoader';
 import { ResourceRoots } from '../services/ResourceRoots';
 import { CONFIG_KEY_IPCRAFT_GENERATE, CONFIG_KEY_IPCRAFT_TOOLBAR } from '../utils/configKeys';
 import { schemaIssuesFromValidation } from '../shared/schemaIssues';
+import { parseStagingActions } from '../shared/staging';
 
 interface IpcMessage {
   type: string;
@@ -537,7 +538,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       WebviewStagingBridge.getInstance().resolveStaging(
         document.uri.fsPath,
         message.confirmed,
-        message.overwritePaths ?? []
+        parseStagingActions(message.actions)
       );
     });
 

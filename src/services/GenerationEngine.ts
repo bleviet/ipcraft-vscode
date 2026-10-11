@@ -10,7 +10,9 @@ import { updateFileSets } from './FileSetUpdater';
 import type { GenerateOptions } from '../generator/types';
 import { readGenerationIndentation } from '../generator/generationSettings';
 import { StagingPanel } from '../providers/StagingPanel';
-import type { StagedFile } from '../providers/StagingPanel';
+import type { StagedFile, StagingAction } from '../providers/StagingPanel';
+import { classifyModifiedFile } from '../generator/staging/classifyStagedFile';
+import { readBaseline, writeBaselines } from '../generator/generationBaseline';
 import { WebviewStagingBridge } from '../providers/WebviewStagingBridge';
 import { getGeneratedArtifactsEmitter } from './GeneratedArtifactsEmitter';
 import { CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
@@ -21,6 +23,20 @@ const logger = new Logger('GenerationEngine');
 export type GenerationRunResult =
   | { success: true; ipCoreName: string }
   | { success: false; issues?: readonly IpcraftIssue[] };
+
+/** Compose the failure toast: the error plus the first (error-first) conformance issue. */
+export function formatGenerationFailure(
+  error: string | undefined,
+  issues: readonly IpcraftIssue[] | undefined
+): string {
+  const base = `Generation failed: ${error ?? 'Unknown error'}`;
+  if (!issues || issues.length === 0) {
+    return base;
+  }
+  const first = issues.find((issue) => issue.severity === 'error') ?? issues[0];
+  const more = issues.length > 1 ? ` (+${issues.length - 1} more)` : '';
+  return `${base} ${first.message}${more}`;
+}
 
 /**
  * Read the active scaffold pack name from settings. Returns undefined when the
@@ -44,16 +60,36 @@ async function categorizeFiles(
       const diskPath = path.join(outputDir, relativePath);
       const isProtected = protectedSet.has(relativePath);
       const origin = frameworkSet.has(relativePath) ? 'framework-testbench' : undefined;
+      const baseline = await readBaseline(outputDir, relativePath);
       try {
         const existing = await readFile(diskPath, 'utf8');
-        const status = existing === content ? 'unchanged' : 'modified';
+        if (existing === content) {
+          return {
+            relativePath,
+            status: 'unchanged',
+            content,
+            diskPath,
+            protected: isProtected,
+            origin,
+            baseline,
+            actions: [],
+          };
+        }
         return {
           relativePath,
-          status,
+          status: 'modified',
           content,
           diskPath,
           protected: isProtected,
           origin,
+          baseline,
+          ...classifyModifiedFile({
+            relativePath,
+            isProtected,
+            current: existing,
+            incoming: content,
+            baseline,
+          }),
         };
       } catch {
         // File does not exist yet — treat it as a new file to be created.
@@ -64,10 +100,26 @@ async function categorizeFiles(
           diskPath,
           protected: false,
           origin,
+          baseline,
+          actions: [],
         };
       }
     })
   );
+}
+
+/** Content to write for a modified file under the chosen action; undefined means skip. */
+function contentForAction(f: StagedFile, action: StagingAction | undefined): string | undefined {
+  switch (action) {
+    case 'overwrite':
+      return f.content;
+    case 'auto-merge':
+      return f.autoMergeContent;
+    case 'sync-interface':
+      return f.syncedContent;
+    default:
+      return undefined;
+  }
 }
 
 export async function runGenerator(
@@ -108,7 +160,7 @@ export async function runGenerator(
 
   if (!dryResult?.success || !dryResult.generatedContents || !dryResult.ipCoreName) {
     void vscode.window.showErrorMessage(
-      `Generation failed: ${dryResult?.error ?? 'Unknown error'}`
+      formatGenerationFailure(dryResult?.error, dryResult?.issues)
     );
     return { success: false, issues: dryResult?.issues };
   }
@@ -127,11 +179,10 @@ export async function runGenerator(
   // Files the user reconciled in the merge editor — the merge editor writes them
   // on completion, so the bulk write below must skip them.
   let mergedPaths = new Set<string>();
-  // Modified files that will actually be written — defaults to every normal
-  // modified file (today's implicit behavior) plus any protected (managed:
-  // false) file the user explicitly opted in; the lock in the .ip.yml itself
-  // is left untouched either way.
-  let overwritePaths = new Set<string>();
+  // Chosen action per modified file; falls back to each file's default action
+  // (locked managed:false -> keep; unlocked hand-edited -> auto-merge when clean, else
+  // keep; otherwise overwrite). The lock in the .ip.yml itself is left untouched.
+  let chosenActions: Record<string, StagingAction> = {};
   if (staged.length > 0) {
     const bridge = WebviewStagingBridge.getInstance();
     const bridgeResult = await bridge.showInWebview(
@@ -145,24 +196,27 @@ export async function runGenerator(
       return { success: false };
     }
     mergedPaths = new Set(decision.mergedPaths);
-    overwritePaths = new Set(decision.overwritePaths);
+    chosenActions = decision.actions;
   }
 
-  // Phase 4: Write new files unconditionally; write modified files only when
-  // the user's per-file Overwrite toggle is on (defaults to on for normal
-  // files and off for locked ones — see the staging UI's default seeding) and
-  // the file wasn't sent to the merge editor instead. Skip unchanged files.
+  // Phase 4: Write new files unconditionally; write modified files according to
+  // the chosen per-file action (overwrite / auto-merge / sync-interface; keep
+  // skips) unless the file was sent to the merge editor instead. Skip unchanged
+  // files.
   // Pre-compute the write list so we only show the progress notification when
   // there is real disk work to do — avoiding a misleading "Generating…" flash
   // otherwise.
   const protectedExisting = new Set(dryResult.protectedPaths ?? []);
   const executablePaths = new Set(dryResult.executablePaths ?? []);
-  const filesToWrite = staged.filter(
-    (f) =>
-      f.status !== 'unchanged' &&
-      !mergedPaths.has(f.relativePath) &&
-      (f.status === 'new' || overwritePaths.has(f.relativePath))
-  );
+  const actionOf = (f: StagedFile): StagingAction | undefined =>
+    chosenActions[f.relativePath] ?? f.defaultAction;
+  const filesToWrite = staged
+    .filter((f) => f.status !== 'unchanged' && !mergedPaths.has(f.relativePath))
+    .map((f) => ({
+      file: f,
+      content: f.status === 'new' ? f.content : contentForAction(f, actionOf(f)),
+    }))
+    .filter((w): w is { file: StagedFile; content: string } => w.content !== undefined);
   const writtenRelPaths: string[] = [];
   let writeError: string | undefined;
 
@@ -172,9 +226,9 @@ export async function runGenerator(
       async () => {
         try {
           await Promise.all(
-            filesToWrite.map(async (f) => {
+            filesToWrite.map(async ({ file: f, content }) => {
               await mkdir(path.dirname(f.diskPath), { recursive: true });
-              await writeFile(f.diskPath, f.content, 'utf8');
+              await writeFile(f.diskPath, content, 'utf8');
               writtenRelPaths.push(f.relativePath);
               if (executablePaths.has(f.relativePath)) {
                 await applyExecutableMode(f.diskPath, logger);
@@ -193,6 +247,10 @@ export async function runGenerator(
     return { success: false };
   }
 
+  // The baseline records what IPCraft generated, so a later 3-way merge can tell
+  // hand edits from generator changes. Kept and merge-editor files are left alone.
+  await updateBaselines(outputDir, staged, new Set(filesToWrite.map((w) => w.file.relativePath)));
+
   if (options.updateYaml) {
     await updateFileSetsInYaml(ipCoreUri, outputDir, writtenRelPaths);
     if (dryResult.resolvedPackName) {
@@ -205,16 +263,21 @@ export async function runGenerator(
       mergedPaths.size > 0
         ? `; ${mergedPaths.size} opened in the merge editor (resolve and save)`
         : '';
-    // Only count the meaningful case — a locked (managed: false) file the
-    // user explicitly opted to overwrite — not every normal file that was
-    // written because its default-on toggle was simply left alone.
-    const overwrittenCount = writtenRelPaths.filter(
-      (p) => protectedExisting.has(p) && overwritePaths.has(p)
-    ).length;
+    // Only count the meaningful cases: locked (managed: false) files the user
+    // explicitly wrote, and locked files whose interface is still out of date.
+    const overwrittenCount = writtenRelPaths.filter((p) => protectedExisting.has(p)).length;
     const overwriteNote =
-      overwrittenCount > 0 ? `; ${overwrittenCount} user-managed file(s) overwritten` : '';
+      overwrittenCount > 0 ? `; ${overwrittenCount} user-managed file(s) updated` : '';
+    const staleLockedCount = staged.filter(
+      (f) =>
+        f.protected && f.interfaceDrift !== undefined && !writtenRelPaths.includes(f.relativePath)
+    ).length;
+    const staleNote =
+      staleLockedCount > 0
+        ? `; ${staleLockedCount} locked file(s) still have an out-of-date interface`
+        : '';
     const action = await vscode.window.showInformationMessage(
-      `✓ Generated ${writtenRelPaths.length} file(s)${mergeNote}${overwriteNote}`,
+      `✓ Generated ${writtenRelPaths.length} file(s)${mergeNote}${overwriteNote}${staleNote}`,
       'Open Folder'
     );
     if (action === 'Open Folder') {
@@ -227,6 +290,34 @@ export async function runGenerator(
   }
 
   return { success: true, ipCoreName: dryResult.ipCoreName };
+}
+
+/**
+ * Writes baselines for files written this run (new / overwrite / auto-merge /
+ * sync-interface) and seeds or refreshes them for unchanged files. Failures are
+ * logged, never fatal. Baseline files are not part of fileSets.
+ */
+async function updateBaselines(
+  outputDir: string,
+  staged: StagedFile[],
+  writtenPaths: Set<string>
+): Promise<void> {
+  const entries = staged
+    .filter(
+      (f) =>
+        writtenPaths.has(f.relativePath) || (f.status === 'unchanged' && f.baseline !== f.content)
+    )
+    .map((f) => ({ relativePath: f.relativePath, content: f.content }));
+  if (entries.length === 0) {
+    return;
+  }
+  try {
+    await writeBaselines(outputDir, entries);
+  } catch (err) {
+    logger.warn(
+      `Failed to write generation baselines: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
 }
 
 async function updateFileSetsInYaml(
