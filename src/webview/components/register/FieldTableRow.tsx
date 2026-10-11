@@ -14,6 +14,7 @@ import {
   parseReset,
   validateBitsString,
   validateResetForField,
+  fitFieldResetToWidth,
 } from '../../shared/utils/fieldValidation';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import type { FieldDef } from './FieldsTable';
@@ -198,13 +199,16 @@ const FieldTableRow = ({
           if (i === index) {
             const parsed = parseBitsInput(next);
             if (parsed) {
-              return {
-                ...f,
-                bits: next,
-                offset: parsed.offset,
-                width: parsed.width,
-                bitRange: parsed.bitRange,
-              };
+              return fitFieldResetToWidth(
+                {
+                  ...f,
+                  bits: next,
+                  offset: parsed.offset,
+                  width: parsed.width,
+                  bitRange: parsed.bitRange,
+                },
+                parsed.width
+              );
             }
             return { ...f, bits: next };
           } else {

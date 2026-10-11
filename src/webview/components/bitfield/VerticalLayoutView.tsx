@@ -1,5 +1,6 @@
 import React from 'react';
 import type { FieldModel } from '../BitFieldVisualizer';
+import { fitResetToWidth } from '../../shared/utils/fieldValidation';
 import type { ProSegment, ShiftDragState } from './types';
 import { renderBitCellStyle } from './renderBitCellStyle';
 
@@ -267,7 +268,7 @@ const VerticalLayoutView = ({
             const fieldReset =
               field?.resetValue === null || field?.resetValue === undefined
                 ? 0
-                : Number(field.resetValue);
+                : fitResetToWidth(Number(field.resetValue), group.end - group.start + 1);
 
             return (
               <div

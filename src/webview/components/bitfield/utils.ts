@@ -299,7 +299,8 @@ export function buildRegisterBitVector(fields: FieldModel[], registerSize: numbe
           : typeof raw === 'bigint'
             ? raw
             : BigInt(Math.max(0, Math.trunc(raw)));
-      fieldVector = BitVector.fromBigInt(fieldValue, fieldWidth);
+      const mask = (BigInt(1) << BigInt(fieldWidth)) - BigInt(1);
+      fieldVector = BitVector.fromBigInt(fieldValue & mask, fieldWidth);
     } catch {
       fieldVector = BitVector.filled(fieldWidth, 0);
     }

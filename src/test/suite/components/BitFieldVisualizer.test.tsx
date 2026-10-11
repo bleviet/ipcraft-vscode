@@ -82,3 +82,20 @@ describe('BitFieldVisualizer field context menu', () => {
     expect(screen.queryByText('Insert After')).toBeNull();
   });
 });
+
+describe('BitFieldVisualizer out-of-range reset values', () => {
+  it.each(['vertical', 'pro'] as const)(
+    'shows 0x0 for a [2:0] field with resetValue 8 (%s)',
+    (layout) => {
+      render(
+        <BitFieldVisualizer
+          fields={[{ name: 'f', bitRange: [2, 0], resetValue: 8 }]}
+          registerSize={8}
+          layout={layout}
+        />
+      );
+      expect(screen.getAllByText('0x0').length).toBeGreaterThan(0);
+      expect(screen.queryByText('0x8')).toBeNull();
+    }
+  );
+});

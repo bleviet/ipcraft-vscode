@@ -5,6 +5,8 @@ import {
   parseReset,
   getFieldBitWidth,
   validateResetForField,
+  fitResetToWidth,
+  fitFieldResetToWidth,
 } from '../../../webview/shared/utils/fieldValidation';
 
 // ---------------------------------------------------------------------------
@@ -165,5 +167,44 @@ describe('validateResetForField', () => {
   it('rejects non-finite numbers', () => {
     expect(validateResetForField({ width: 8 }, Infinity)).toBe('Invalid number');
     expect(validateResetForField({ width: 8 }, NaN)).toBe('Invalid number');
+  });
+});
+
+describe('fitResetToWidth', () => {
+  it('masks values to the low width bits', () => {
+    expect(fitResetToWidth(8, 3)).toBe(0);
+    expect(fitResetToWidth(0xd, 3)).toBe(5);
+    expect(fitResetToWidth(3, 3)).toBe(3);
+  });
+
+  it('is BigInt-safe for wide fields', () => {
+    expect(fitResetToWidth(2 ** 40 + 1, 40)).toBe(1);
+  });
+
+  it('passes non-finite values through', () => {
+    expect(fitResetToWidth(NaN, 3)).toBeNaN();
+    expect(fitResetToWidth(Infinity, 3)).toBe(Infinity);
+  });
+});
+
+describe('fitFieldResetToWidth', () => {
+  it('masks the reset value into a copy', () => {
+    const field = { name: 'f', resetValue: 8 };
+    expect(fitFieldResetToWidth(field, 3)).toEqual({ name: 'f', resetValue: 0 });
+    expect(field.resetValue).toBe(8);
+  });
+
+  it('returns the same object when the value already fits', () => {
+    const field = { name: 'f', resetValue: 5 };
+    expect(fitFieldResetToWidth(field, 3)).toBe(field);
+  });
+
+  it('leaves null or absent reset values untouched without adding a key', () => {
+    const absent: { name: string; resetValue?: number | null } = { name: 'f' };
+    const result = fitFieldResetToWidth(absent, 3);
+    expect(result).toBe(absent);
+    expect('resetValue' in result).toBe(false);
+    const nulled = { name: 'f', resetValue: null };
+    expect(fitFieldResetToWidth(nulled, 3)).toBe(nulled);
   });
 });

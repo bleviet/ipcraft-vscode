@@ -80,6 +80,16 @@ describe('exact register field values', () => {
   });
 });
 
+describe('buildRegisterBitVector with out-of-range reset values', () => {
+  it('masks the value to the field width instead of blanking the field', () => {
+    const vector = buildRegisterBitVector(
+      [{ bitRange: [2, 0] as [number, number], resetValue: 9 }],
+      8
+    );
+    expect(vector.toLiteral()).toBe("8'h01");
+  });
+});
+
 describe('hexDigitsForBits', () => {
   it('pads to a whole nibble count for the register width', () => {
     expect(hexDigitsForBits(32)).toBe(8);

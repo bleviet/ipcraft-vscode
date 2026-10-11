@@ -19,6 +19,7 @@ import {
 import type { RegisterDef } from '../../types/memoryMap';
 import { generateUniqueName } from '../../utils/naming';
 import { formatBitsRange } from '../../utils/BitFieldUtils';
+import { fitFieldResetToWidth } from '../../shared/utils/fieldValidation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -265,13 +266,16 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       onUpdateFieldRange: (fieldIndex: number, newRange: [number, number]) => {
         const [hi, lo] = newRange;
         const field = fields[fieldIndex];
-        const updatedField = {
-          ...field,
-          bits: formatBitsRange(hi, lo),
-          offset: lo,
-          width: hi - lo + 1,
-          bitRange: [hi, lo] as [number, number],
-        };
+        const updatedField = fitFieldResetToWidth(
+          {
+            ...field,
+            bits: formatBitsRange(hi, lo),
+            offset: lo,
+            width: hi - lo + 1,
+            bitRange: [hi, lo] as [number, number],
+          },
+          hi - lo + 1
+        );
         const newFields = [...fields];
         newFields[fieldIndex] = updatedField;
         // Keep the fields array sorted by bit position. The table cascade in
@@ -299,13 +303,16 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           const [hi, lo] = range;
           const field = newFields[idx];
           if (field) {
-            newFields[idx] = {
-              ...field,
-              bits: formatBitsRange(hi, lo),
-              offset: lo,
-              width: hi - lo + 1,
-              bitRange: [hi, lo] as [number, number],
-            };
+            newFields[idx] = fitFieldResetToWidth(
+              {
+                ...field,
+                bits: formatBitsRange(hi, lo),
+                offset: lo,
+                width: hi - lo + 1,
+                bitRange: [hi, lo] as [number, number],
+              },
+              hi - lo + 1
+            );
           }
         });
         newFields.sort((a, b) => {

@@ -72,6 +72,38 @@ describe('FieldTableRow bitfields cascading', () => {
     ],
   };
 
+  it('commits a reset value masked to the new width in the same update when a field shrinks', () => {
+    const fields: FieldDef[] = [
+      { name: 'f', bits: '[3:0]', offset: 0, width: 4, bitRange: [3, 0], resetValue: 8 },
+    ];
+    const onUpdate = jest.fn();
+
+    render(
+      <table>
+        <tbody>
+          <FieldTableRow
+            field={fields[0]}
+            rowId="row-0"
+            index={0}
+            fields={fields}
+            registerSize={32}
+            onUpdate={onUpdate}
+            fieldEditor={defaultFieldEditor}
+            onRowClick={jest.fn()}
+            onCellClick={jest.fn(() => jest.fn())}
+            onCellFocus={jest.fn(() => jest.fn())}
+          />
+        </tbody>
+      </table>
+    );
+
+    fireEvent.change(screen.getByTestId('vector-bounding-input'), { target: { value: '[2:0]' } });
+
+    const [, updatedFields] = onUpdate.mock.calls[onUpdate.mock.calls.length - 1];
+    expect(updatedFields[0].bits).toBe('[2:0]');
+    expect(updatedFields[0].resetValue).toBe(0);
+  });
+
   it('cascades bit ranges correctly by shifting only overlapping fields and preserving gaps', () => {
     const fields: FieldDef[] = [
       { name: 'RUN', bits: '[0:0]', offset: 0, width: 1, bitRange: [0, 0] },

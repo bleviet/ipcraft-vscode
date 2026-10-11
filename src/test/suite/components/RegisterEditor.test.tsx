@@ -247,6 +247,43 @@ describe('RegisterEditor layouts', () => {
     expect(moved.bits).toBe('[9:8]');
   });
 
+  it.each([
+    [8, 0],
+    [0xd, 5],
+  ])('masks resetValue %i to %i when a field is shrunk to [2:0]', (reset, expected) => {
+    bitFieldVisualizerMock.mockClear();
+    const onUpdate = jest.fn();
+    const shrinkFields: BitFieldRecord[] = [
+      { name: 'f', bits: '[3:0]', offset: 0, width: 4, bitRange: [3, 0], resetValue: reset },
+    ];
+
+    render(
+      <RegisterEditor
+        register={register}
+        fields={shrinkFields}
+        registerLayout="stacked"
+        toggleRegisterLayout={jest.fn()}
+        onUpdate={onUpdate}
+      />
+    );
+
+    const props = bitFieldVisualizerMock.mock.calls[
+      bitFieldVisualizerMock.mock.calls.length - 1
+    ]?.[0] as {
+      onBatchUpdateFields?: (updates: { idx: number; range: [number, number] }[]) => void;
+      onUpdateFieldRange?: (idx: number, range: [number, number]) => void;
+    };
+
+    props.onUpdateFieldRange!(0, [2, 0]);
+    let committed = onUpdate.mock.calls[onUpdate.mock.calls.length - 1][1] as BitFieldRecord[];
+    expect(committed[0].resetValue).toBe(expected);
+
+    onUpdate.mockClear();
+    props.onBatchUpdateFields!([{ idx: 0, range: [2, 0] }]);
+    committed = onUpdate.mock.calls[onUpdate.mock.calls.length - 1][1] as BitFieldRecord[];
+    expect(committed[0].resetValue).toBe(expected);
+  });
+
   it('re-sorts fields by bit position after a single-field range commit', () => {
     // A single-field drag/resize commit must keep the fields array sorted by
     // bit position. FieldTableRow's cascade treats array index as bit order;

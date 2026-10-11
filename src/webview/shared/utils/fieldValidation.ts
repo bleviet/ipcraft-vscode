@@ -175,3 +175,24 @@ export function validateResetForField(
   }
   return null;
 }
+
+/** Masks a reset value to the low `width` bits (BigInt-safe for wide fields). */
+export function fitResetToWidth(value: number, width: number): number {
+  if (!Number.isFinite(value)) {
+    return value;
+  }
+  const mask = (BigInt(1) << BigInt(Math.max(0, Math.trunc(width)))) - BigInt(1);
+  return Number(BigInt(Math.trunc(value)) & mask);
+}
+
+/** Returns the field with its resetValue masked to `width`; unchanged when absent or already fitting. */
+export function fitFieldResetToWidth<T extends { resetValue?: number | null }>(
+  field: T,
+  width: number
+): T {
+  if (field.resetValue === null || field.resetValue === undefined) {
+    return field;
+  }
+  const fitted = fitResetToWidth(field.resetValue, width);
+  return fitted === field.resetValue ? field : { ...field, resetValue: fitted };
+}
