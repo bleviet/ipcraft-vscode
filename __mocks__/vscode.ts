@@ -16,8 +16,8 @@ export const window = {
   showWarningMessage: jest.fn(),
   showInformationMessage: jest.fn(),
   showOpenDialog: jest.fn(),
-  showQuickPick: jest.fn(),
   showInputBox: jest.fn(),
+  showQuickPick: jest.fn(),
   // `resetMocks: true` (config/jest.config.js) wipes any default implementation
   // before every test, so this is a bare stub — tests that need withProgress to
   // actually invoke its task must call `.mockImplementation(...)` themselves.
@@ -77,6 +77,7 @@ export const workspace = {
   findFiles: jest.fn(),
   openTextDocument: jest.fn(),
   getWorkspaceFolder: jest.fn(),
+  textDocuments: [] as Array<{ uri: { toString(): string }; getText(): string }>,
   createFileSystemWatcher: jest.fn(),
   applyEdit: jest.fn(),
   asRelativePath: jest.fn((path) => path.toString()),

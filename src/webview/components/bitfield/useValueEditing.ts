@@ -7,6 +7,8 @@ interface UseValueEditingOptions {
   registerValue: BitVector;
   parseRegisterValue: (text: string, view: 'hex' | 'dec') => RegisterValueParse;
   applyRegisterValue: (value: BitVector) => string | null | void;
+  /** Applies a typed `$version` token (see `parseRegisterValueDraft`); returns an error message or null. */
+  applyRegisterToken?: (token: '$version') => string | null;
 }
 
 export function useValueEditing({
@@ -14,6 +16,7 @@ export function useValueEditing({
   registerValue,
   parseRegisterValue,
   applyRegisterValue,
+  applyRegisterToken,
 }: UseValueEditingOptions) {
   const [valueView, setValueView] = useState<'hex' | 'dec'>('hex');
   const [valueDraft, setValueDraft] = useState<string>('');
@@ -57,6 +60,9 @@ export function useValueEditing({
   }, [registerValueText, valueEditing, registerValue]);
 
   const validateRegisterValue = (parsed: RegisterValueParse): string | null => {
+    if (parsed.token || parsed.pending) {
+      return null;
+    }
     if (parsed.vector !== null) {
       return null;
     }
@@ -73,7 +79,19 @@ export function useValueEditing({
     const parsed = parseRegisterValue(valueDraft, valueView);
     const err = validateRegisterValue(parsed);
     setValueError(err);
-    if (err || parsed.vector === null) {
+    if (err) {
+      return;
+    }
+    if (parsed.token || parsed.pending) {
+      // A complete token is applied; an unfinished prefix is a malformed number once committed.
+      const tokenError = parsed.token
+        ? (applyRegisterToken?.(parsed.token) ?? null)
+        : 'Invalid number';
+      commitErrorRef.current = tokenError;
+      setValueError(tokenError);
+      return;
+    }
+    if (parsed.vector === null) {
       return;
     }
     const applyError = applyRegisterValue(parsed.vector) ?? null;

@@ -13,10 +13,17 @@ import { resolveScaffoldOutputPath, ScaffoldPackLoader } from './ScaffoldPackLoa
 import {
   getBusTypeForTemplate,
   hasMemoryMappedConsumerInterface,
+  loadMemoryMaps,
   prepareRegisters,
+  resolveIpCoreVersionRefs,
   resolveMemoryMaps,
   projectMemoryMapsForTemplate,
 } from './registerProcessor';
+import {
+  checkVersionRefsForGeneration,
+  vendorVersionWarning,
+} from './validation/versionDiagnostics';
+import { buildVersionTemplateContext } from './versionContext';
 import { IpCoreSchemaValidationError, loadIpCoreData } from './loadIpCore';
 import { sortByCompilationOrder, hdlLanguageFromPath } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
@@ -106,9 +113,21 @@ export class IpCoreScaffolder {
     try {
       const ipCoreData = await this.loadIpCore(inputPath, options.sourceText);
       await this.ensureBusDefinitions(inputPath, ipCoreData);
-      // Resolve memory maps once: shared by the template context (RTL/testbench)
-      // and the vendor packaging step (component.xml <spirit:memoryMaps>).
-      const resolvedMemoryMaps = await resolveMemoryMaps(ipCoreData, inputPath);
+      // Load the memory maps once. `$version` references are checked on the authored maps (the
+      // gate must see the authored access), then resolved once: the resolved maps are shared by
+      // the template context (RTL/testbench/docs) and the vendor packaging step (component.xml
+      // <spirit:memoryMaps>).
+      const rawMemoryMaps = await loadMemoryMaps(ipCoreData, inputPath);
+      const versionIssues = checkVersionRefsForGeneration(ipCoreData, rawMemoryMaps);
+      if (versionIssues.some((issue) => issue.severity === 'error')) {
+        return {
+          success: false,
+          error: 'Generation blocked by $version reference errors.',
+          issues: versionIssues,
+        };
+      }
+      const warnings: string[] = versionIssues.map((issue) => issue.message);
+      const resolvedMemoryMaps = resolveIpCoreVersionRefs(ipCoreData, rawMemoryMaps);
       const conformance = checkBusConformance(
         ipCoreData,
         this.busLibrary!,
@@ -244,7 +263,6 @@ export class IpCoreScaffolder {
       // (tb/, sim/, simulation/, testbench/, test/) — computed before the framework testbench is
       // merged in, so it reflects only what the pack itself owns (issue #156).
       const packOwnSimPaths = Object.keys(files).filter(isSimulationPath);
-      const warnings: string[] = [];
       let frameworkTestbenchPaths: string[] = [];
 
       if (includeTestbench && shouldGenerateFrameworkTestbench(pack)) {
@@ -308,6 +326,13 @@ export class IpCoreScaffolder {
         if (!toolchain) {
           this.logger.warn(`Unknown target '${targetId}' — skipping`);
           continue;
+        }
+        const versionWarning = vendorVersionWarning(
+          targetId,
+          String(ipCoreData.vlnv?.version ?? '')
+        );
+        if (versionWarning) {
+          warnings.push(versionWarning);
         }
         const isVivado = targetId === 'vivado';
         const isQuartus = targetId === 'quartus';
@@ -607,7 +632,8 @@ export class IpCoreScaffolder {
     resolvedMemoryMaps?: NormalizedMemoryMap[]
   ): Promise<Record<string, unknown>> {
     const name = String(ipCore?.vlnv?.name ?? 'ip_core').toLowerCase();
-    const registers = await prepareRegisters(ipCore, inputPath);
+    const memoryMaps = resolvedMemoryMaps ?? (await resolveMemoryMaps(ipCore, inputPath));
+    const registers = await prepareRegisters(ipCore, inputPath, memoryMaps);
 
     const resolverInput: ResolverInput = {
       ipCore,
@@ -630,9 +656,7 @@ export class IpCoreScaffolder {
       regWidth: addressing.reg_width as number,
     });
 
-    const memoryMaps = projectMemoryMapsForTemplate(
-      resolvedMemoryMaps ?? (await resolveMemoryMaps(ipCore, inputPath)) ?? []
-    );
+    const projectedMemoryMaps = projectMemoryMapsForTemplate(memoryMaps);
 
     return {
       contract_version: CONTRACT_VERSION,
@@ -645,11 +669,12 @@ export class IpCoreScaffolder {
       ...generics,
       ...addressing,
       ...wordAddressing,
-      memory_maps: memoryMaps,
+      memory_maps: projectedMemoryMaps,
       memmap_relpath: `../${name}.mm.yml`,
       vendor: ipCore?.vlnv?.vendor,
       library: ipCore?.vlnv?.library,
       version: ipCore?.vlnv?.version,
+      ...buildVersionTemplateContext(ipCore, memoryMaps),
       description: ipCore?.description ?? '',
       author: ipCore?.author ?? '',
       display_name: String(ipCore?.vlnv?.name ?? 'ip_core')

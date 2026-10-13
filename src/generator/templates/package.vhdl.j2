@@ -41,11 +41,12 @@ package {{ entity_name }}_pkg is
   -- Register Record Types
   ----------------------------------------------------------------------------
 {% for reg in registers %}
-{% if reg.fields | length %}
+{% set rec_fields = (reg.fields or []) | rejectattr('is_constant') %}
+{% if rec_fields | length %}
 
   -- {{ reg.name }} register fields
   type t_reg_{{ reg.name | lower }} is record
-{% for field in reg.fields %}
+{% for field in rec_fields %}
 {% if field.width == 1 %}
     {{ field.name | lower }} : std_logic;  -- bit {{ field.offset }}
 {% else %}
@@ -55,7 +56,7 @@ package {{ entity_name }}_pkg is
   end record;
 
   constant C_REG_{{ reg.name | upper }}_RESET : t_reg_{{ reg.name | lower }} := (
-{% for field in reg.fields %}
+{% for field in rec_fields %}
 {% if field.width == 1 %}
     {{ field.name | lower }} => '{{ field.reset_value | default(0) }}'{{ "," if not loop.last else "" }}
 {% else %}
@@ -284,13 +285,14 @@ package body {{ entity_name }}_pkg is
   -- Conversion Functions
   ----------------------------------------------------------------------------
 {% for reg in registers %}
-{% if reg.fields | length %}
+{% set rec_fields = (reg.fields or []) | rejectattr('is_constant') %}
+{% if rec_fields | length %}
 
   -- {{ reg.name }} conversions
   function to_slv(reg : t_reg_{{ reg.name | lower }}) return std_logic_vector is
     variable slv : std_logic_vector(C_DATA_WIDTH-1 downto 0) := (others => '0');
   begin
-{% for field in reg.fields %}
+{% for field in rec_fields %}
 {% if field.width == 1 %}
     slv({{ field.offset }}) := reg.{{ field.name | lower }};
 {% else %}
@@ -303,7 +305,7 @@ package body {{ entity_name }}_pkg is
   function to_{{ reg.name | lower }}(slv : std_logic_vector(C_DATA_WIDTH-1 downto 0)) return t_reg_{{ reg.name | lower }} is
     variable reg : t_reg_{{ reg.name | lower }};
   begin
-{% for field in reg.fields %}
+{% for field in rec_fields %}
 {% if field.width == 1 %}
     reg.{{ field.name | lower }} := slv({{ field.offset }});
 {% else %}

@@ -30,6 +30,15 @@ function getString(value: unknown): string {
   return String(value);
 }
 
+/** A resolved `$version` field: a read-only literal, never stored and never a hardware input. */
+const isConstantField = (field: Record<string, unknown>): boolean => field.is_constant === true;
+
+/** Every field is constant, or a fieldless register carries a register-level `$version`. */
+function isConstantRegister(reg: Record<string, unknown>): boolean {
+  const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+  return fields.length > 0 ? fields.every(isConstantField) : reg.is_constant === true;
+}
+
 export interface ShadowRegisterResult {
   sw_registers: Array<Record<string, unknown>>;
   hw_registers: Array<Record<string, unknown>>;
@@ -73,10 +82,17 @@ export function buildShadowRegisters(
   });
   const hwRegisters = registers.filter((reg) => {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+    if (isConstantRegister(reg)) {
+      return false;
+    }
     if (fields.length === 0) {
       return hwAccess.has(getString(reg.access) || 'read-write');
     }
-    return fields.every((f) => hwAccess.has(getString(f.access) || 'read-write'));
+    // A register mixing constants with other fields is read-composed, not a `regs_in` record.
+    return (
+      !fields.some(isConstantField) &&
+      fields.every((f) => hwAccess.has(getString(f.access) || 'read-write'))
+    );
   });
   const w1cRegisters = registers.filter((reg) => {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
@@ -142,9 +158,13 @@ export function buildShadowRegisters(
   // software-write-only fields also needs field-by-field packing so those
   // fields do not leak through a readable sibling.
   const mixedRegNames = new Set<string>();
-  for (const reg of swRegisters) {
+  for (const reg of registers) {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
-    if (fields.some((f) => hwAccess.has(getString(f.access) || 'read-write'))) {
+    const hasHardwareValue = fields.some(
+      (f) => !isConstantField(f) && hwAccess.has(getString(f.access) || 'read-write')
+    );
+    // Without a SW-writable field only a constant sibling makes the register read-composed.
+    if (hasHardwareValue && (swRegisters.includes(reg) || fields.some(isConstantField))) {
       mixedRegNames.add(getString(reg.name));
     }
   }
@@ -155,6 +175,12 @@ export function buildShadowRegisters(
   for (const reg of swRegisters) {
     const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
     if (fields.some((f) => NON_READABLE_ACCESS.has(getString(f.access) || 'read-write'))) {
+      readComposedRegNames.add(getString(reg.name));
+    }
+  }
+  for (const reg of registers) {
+    const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
+    if (fields.some(isConstantField) && !isConstantRegister(reg)) {
       readComposedRegNames.add(getString(reg.name));
     }
   }
@@ -172,7 +198,9 @@ export function buildShadowRegisters(
     .filter((reg) => mixedRegNames.has(getString(reg.name)))
     .map((reg) => {
       const fields = (reg.fields as Array<Record<string, unknown>>) ?? [];
-      const roFields = fields.filter((f) => hwAccess.has(getString(f.access) || 'read-write'));
+      const roFields = fields.filter(
+        (f) => !isConstantField(f) && hwAccess.has(getString(f.access) || 'read-write')
+      );
       const cosValFields = cosValFieldsByName.get(getString(reg.name)) ?? [];
       const seen = new Set<string>();
       const valFields: Array<Record<string, unknown>> = [];
@@ -189,6 +217,8 @@ export function buildShadowRegisters(
         access: reg.access,
         description: reg.description,
         reset_value: reg.reset_value,
+        is_constant: reg.is_constant,
+        version_ref: reg.version_ref,
         fields: reg.fields,
         val_fields: valFields,
       };
@@ -212,8 +242,10 @@ export function buildShadowRegisters(
       REPLACE_ON_WRITE_ACCESS.has(getString(f.access) || 'read-write')
     );
     const hasFields = fields.length > 0;
-    let readSource: 'composed' | 'regs_in' | 'regs' | 'none' = 'none';
-    if (readComposedRegNames.has(getString(reg.name))) {
+    let readSource: 'composed' | 'regs_in' | 'regs' | 'constant' | 'none' = 'none';
+    if (isConstantRegister(reg)) {
+      readSource = 'constant';
+    } else if (readComposedRegNames.has(getString(reg.name))) {
       readSource = 'composed';
     } else if (hwRegisters.includes(reg)) {
       readSource = 'regs_in';

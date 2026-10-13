@@ -1,12 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import type { IpCore } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
-import {
-  validateRequired,
-  validateVersion,
-  validateVhdlIdentifier,
-} from '../../../../../shared/utils/validation';
+import { validateRequired, validateVhdlIdentifier } from '../../../../../shared/utils/validation';
 import { PropField, PropTextArea, Section } from '../controls/InspectorFields';
+import { VersionFields } from './VersionFields';
 import {
   buildAddSubcoreMessage,
   buildCheckFilesExistMessage,
@@ -45,13 +42,10 @@ export const BodyPanel: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandler }
         placeholder="my_core"
         mono
       />
-      <PropField
-        label="Version"
-        value={ipCore.vlnv.version}
-        onSave={(v) => onUpdate(['vlnv', 'version'], v)}
-        validate={validateVersion}
-        placeholder="1.0.0"
-        mono
+      <VersionFields
+        version={String(ipCore.vlnv.version ?? '')}
+        versionScheme={ipCore.vlnv.versionScheme}
+        onUpdate={onUpdate}
       />
     </Section>
     <Section title="Details">
@@ -368,7 +362,7 @@ const DependenciesSection: React.FC<{ ipCore: IpCore; onUpdate: YamlUpdateHandle
 
   const handleDelete = (index: number) => {
     const updated = rawSubcores.filter((_, i) => i !== index);
-    onUpdate(['subcores'], updated.length ? updated : null);
+    onUpdate(['subcores'], updated.length ? updated : undefined);
   };
 
   return (

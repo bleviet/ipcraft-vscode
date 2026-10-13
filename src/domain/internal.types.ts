@@ -1,3 +1,6 @@
+import type { VersionHistory } from '../shared/versioning/versionHistoryTypes';
+import type { VersionRef } from '../shared/versioning/versionScheme';
+
 export type MemoryMapRootStyle = 'standalone' | 'array' | 'nested';
 
 export interface MemoryMapDoc {
@@ -13,6 +16,8 @@ export interface NormalizedField {
   width: number; // bit width
   access?: string;
   resetValue: number;
+  /** `$version` token in place of a number; `resetValue` is 0 then. Never written as its own YAML key. */
+  versionRef?: VersionRef | null;
   description: string;
   enumeratedValues?: Record<string, string> | null;
   monitorChangeOf?: string | null;
@@ -25,6 +30,8 @@ export interface NormalizedRegister {
   size: number; // register width in bits
   access?: string;
   resetValue: number;
+  /** `$version` token in place of a number; `resetValue` is 0 then. Never written as its own YAML key. */
+  versionRef?: VersionRef | null;
   description: string;
   fields: NormalizedField[];
   // If it's a register array
@@ -50,4 +57,6 @@ export interface NormalizedMemoryMap {
   name: string;
   description: string;
   addressBlocks: NormalizedAddressBlock[];
+  /** Released register sets, copied from the YAML unchanged (snapshots stay raw schema objects). */
+  versionHistory?: VersionHistory;
 }

@@ -51,7 +51,7 @@ module {{ entity_name }}{% if has_memory_mapped_slave or has_endian_swap %} impo
 {% endfor %}
 {% endif %}
 );
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %}
 {% if has_memory_mapped_slave %}
 {% set core_bus_interfaces = secondary_bus_interfaces %}
 {% set core_bus_ports = secondary_bus_ports %}

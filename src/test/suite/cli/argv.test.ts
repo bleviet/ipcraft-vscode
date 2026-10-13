@@ -123,6 +123,32 @@ describe('ipcraft CLI argv parsing', () => {
     expect(parseArgs(['generate', 'a.ip.yml', '--indent-size', 'nope']).kind).toBe('error');
   });
 
+  it('parses --register-set-policy and leaves it undefined when omitted', () => {
+    for (const policy of ['adopt', 'overwrite']) {
+      const result = parseArgs(['generate', 'a.ip.yml', '--register-set-policy', policy]);
+      expect(result.kind === 'generate' && result.args.registerSetPolicy).toBe(policy);
+    }
+    const omitted = parseArgs(['generate', 'a.ip.yml']);
+    expect(omitted.kind === 'generate' && omitted.args.registerSetPolicy).toBeUndefined();
+  });
+
+  it('rejects an invalid or missing --register-set-policy value', () => {
+    expect(parseArgs(['generate', 'a.ip.yml', '--register-set-policy', 'merge']).kind).toBe(
+      'error'
+    );
+    expect(parseArgs(['generate', 'a.ip.yml', '--register-set-policy']).kind).toBe('error');
+  });
+
+  it('rejects --register-set-policy for verify, which never writes', () => {
+    expect(parseArgs(['verify', 'a.ip.yml', 'gen', '--register-set-policy', 'adopt']).kind).toBe(
+      'error'
+    );
+  });
+
+  it('documents --register-set-policy in the help text', () => {
+    expect(usageText()).toContain('--register-set-policy');
+  });
+
   it('rejects an unknown option', () => {
     const result = parseArgs(['generate', 'a.ip.yml', '--bogus']);
     expect(result.kind).toBe('error');

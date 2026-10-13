@@ -36,13 +36,13 @@ module {{ entity_name }}_regs
   input  logic                          rd_en,
   input  logic [C_ADDR_WIDTH-1:0]       rd_addr,
   output logic [C_DATA_WIDTH-1:0]       rd_data,
-  output logic                          rd_valid{% if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %},{% endif %}
+  output logic                          rd_valid{% if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %},{% endif %}
 
   // Register interface to core logic
 {% if sw_registers | length > 0 %}
-  output regs_sw2hw_t regs_out{{ "," if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 else "" }}  // SW-writable registers (to core)
+  output regs_sw2hw_t regs_out{{ "," if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 else "" }}  // SW-writable registers (to core)
 {% endif %}
-{% if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %}
   input  regs_hw2sw_t regs_in   // HW status registers + W1C event pulses + CoS values (from core)
 {% endif %}
 );
@@ -131,7 +131,9 @@ module {{ entity_name }}_regs
     if (rst) begin
 {% for reg in sw_registers %}
 {% for field in reg.fields %}
+{% if not field.is_constant %}
       regs.{{ reg.name | lower }}.{{ field.name | lower }} <= {{ field.reset_value | default(0) }};
+{% endif %}
 {% endfor %}
 {% endfor %}
 {% if cos_registers | length %}
@@ -286,6 +288,17 @@ module {{ entity_name }}_regs
         REG_{{ reg.name | upper }}_ADDR: rd_data_int <= pack_{{ reg.name | lower }}(regs_in.{{ reg.name | lower }});
 {% elif reg.read_source == 'regs' %}
         REG_{{ reg.name | upper }}_ADDR: rd_data_int <= pack_{{ reg.name | lower }}(regs.{{ reg.name | lower }});
+{% elif reg.read_source == 'constant' %}
+{% set const_words = [] %}
+{% if reg.fields | length %}
+{% for field in reg.fields %}
+{% set _ = const_words.push(field.reset_value * 2 ** field.offset) %}
+{% endfor %}
+{% else %}
+{% set _ = const_words.push(reg.reset_value) %}
+{% endif %}
+        // constant: resolved $version, not stored and not a hardware input
+        REG_{{ reg.name | upper }}_ADDR: rd_data_int <= {{ data_width }}'h{{ '%X' | format(const_words | sum) }};
 {% endif %}
 {% endif %}
 {% endfor %}
@@ -296,7 +309,13 @@ module {{ entity_name }}_regs
             logic [C_DATA_WIDTH-1:0] v;
             v = '0;
 {% for field in reg.fields %}
-{% if field.access in ['read-write-1-to-clear', 'read-write-self-clearing'] %}
+{% if field.is_constant %}
+{% if field.width == 1 %}
+            v[{{ field.offset }}] = {{ field.width }}'h{{ '%X' | format(field.reset_value) }};  // constant {{ field.version_ref }}
+{% else %}
+            v[{{ field.offset + field.width - 1 }}:{{ field.offset }}] = {{ field.width }}'h{{ '%X' | format(field.reset_value) }};  // constant {{ field.version_ref }}
+{% endif %}
+{% elif field.access in ['read-write-1-to-clear', 'read-write-self-clearing'] %}
 {% if field.width == 1 %}
             v[{{ field.offset }}] = regs.{{ reg.name | lower }}.{{ field.name | lower }};
 {% else %}

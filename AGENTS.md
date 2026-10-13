@@ -98,6 +98,12 @@ Deeper references: `docs/architecture/overview.md` (module map), `docs/architect
 2. **`rowId` is UI-only identity, never schema data.** `generateRowId()` assigns it; `serialize.ts` strips it (and `__kind`); `src/webview/utils/rowIdentity.ts` `reconcileRowIds` re-matches old row IDs to freshly parsed data so React table rows stay stable across reloads. Never persist `rowId` to disk or emit it in generated YAML.
 3. **Format-preserving writes go through `src/yamledit/`** (`applyPathEdits`, `applyPathDeletes`), built on `yaml` v2 `parseDocument` to keep comments and hex spellings intact.
 
+#### `$version` references (IP core versioning)
+
+- Normalized fields and registers keep `resetValue: number` (0 for a token) plus `versionRef`; `serialize.ts` writes the token back into `resetValue` and never emits `versionRef`.
+- Generation resolves tokens exactly once, with `resolveVersionRefsInMap` at the generator seam (`resolveIpCoreVersionRefs` in `registerProcessor.ts`); consumers read the resolved maps and never re-resolve.
+- Register-set hashing uses the pure SHA-256 in `src/shared/versioning/` (VS Code 1.80 / Node 16 has no WebCrypto); do not use `crypto.subtle` or Node `crypto` there.
+
 ### Revisioned sync protocol (V-3/V-4)
 
 `src/services/WebviewRouter.ts` (extension) and `src/webview/sync/revisionFilter.ts` (webview, pure functions) implement a paired FIFO protocol that prevents echo loops and stale renders:

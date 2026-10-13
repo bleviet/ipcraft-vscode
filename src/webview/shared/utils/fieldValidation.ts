@@ -1,3 +1,7 @@
+import type { VersionContext } from '../../../shared/versioning/versionContext';
+import { parseVersionRef, type VersionRef } from '../../../shared/versioning/versionScheme';
+import { VERSION_REF_IN_DEBUG_MODE_ERROR, unknownVersionRefError } from './versionRefDisplay';
+
 export interface FieldValidationInput {
   bits?: string | null;
   width?: number | null;
@@ -134,6 +138,62 @@ export function parseReset(text: string): number | null {
   }
   const v = Number(s);
   return Number.isFinite(v) ? v : null;
+}
+
+/**
+ * The reset cell text for a field: its `$version` token, else `0x..` hex of its reset value
+ * (`0x0` when it has none).
+ */
+export function formatResetDisplay(field: {
+  resetValue?: number | null;
+  versionRef?: VersionRef | null;
+}): string {
+  if (field.versionRef) {
+    return field.versionRef;
+  }
+  const v = field.resetValue;
+  return v !== null && v !== undefined ? `0x${Number(v).toString(16).toUpperCase()}` : '0x0';
+}
+
+/** What a reset cell does with the text typed into it. */
+export type ResetInputOutcome =
+  | { kind: 'unchanged' }
+  | { kind: 'clear' }
+  | { kind: 'commit'; value: number | VersionRef }
+  | { kind: 'error'; message: string };
+
+/**
+ * Decides what typed reset text means: the field's own token again (e.g. re-sent on blur) is
+ * unchanged, empty clears, `$...` must be a valid `$version` reference (and cannot be set in Debug
+ * Mode), anything else must be a number that fits the field.
+ */
+export function resolveResetInput(
+  raw: string,
+  field: FieldValidationInput & { versionRef?: VersionRef | null },
+  options: { debugMode: boolean; versionContext: VersionContext }
+): ResetInputOutcome {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return { kind: 'clear' };
+  }
+  if (trimmed === field.versionRef) {
+    return { kind: 'unchanged' };
+  }
+  if (trimmed.startsWith('$')) {
+    const ref = parseVersionRef(trimmed);
+    if (!ref) {
+      return { kind: 'error', message: unknownVersionRefError(options.versionContext) };
+    }
+    return options.debugMode
+      ? { kind: 'error', message: VERSION_REF_IN_DEBUG_MODE_ERROR }
+      : { kind: 'commit', value: ref };
+  }
+  const parsed = parseReset(raw);
+  if (parsed === null) {
+    return { kind: 'error', message: 'Invalid number' };
+  }
+  const message = validateResetForField(field, parsed);
+  return message ? { kind: 'error', message } : { kind: 'commit', value: parsed };
 }
 
 export function getFieldBitWidth(field: FieldValidationInput): number {

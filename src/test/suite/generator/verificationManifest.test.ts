@@ -3,6 +3,8 @@ import {
   type VerificationManifest,
 } from '../../../generator/verificationManifest';
 import type { NormalizedMemoryMap } from '../../../domain/internal.types';
+import { parseMemoryMap } from '../../../domain/parse';
+import { resolveVersionRefsInMap } from '../../../shared/versioning/resolveVersionRefs';
 
 function buildMap(): NormalizedMemoryMap {
   return {
@@ -245,5 +247,68 @@ describe('buildVerificationManifest', () => {
       resetValue: 0xdeadbeef,
       provenance: { resetValue: 'spec' },
     });
+  });
+});
+
+describe('buildVerificationManifest with resolved $version constants', () => {
+  const resolvedMap = (scheme: 'major.minor.patch', version: string): NormalizedMemoryMap =>
+    resolveVersionRefsInMap(
+      parseMemoryMap(`
+- name: CSR
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0
+      registers:
+        - name: IDENT
+          offset: 0
+          fields:
+            - { name: REV, bits: "[31:24]", resetValue: $version.major, access: read-write }
+            - { name: EN, bits: "[0]", resetValue: 1, access: read-write }
+        - { name: VERSION, offset: 4, resetValue: $version }
+        - name: LOCKED
+          offset: 8
+          resetValue: 0xffffffff
+          fields:
+            - { name: REV, bits: "[7:0]", resetValue: $version.minor }
+            - { name: REST, bits: "[31:8]", access: read-write }
+`).map,
+      scheme,
+      version
+    );
+
+  const manifest = buildVerificationManifest([resolvedMap('major.minor.patch', '1.4.2')], {
+    busType: 'axil',
+    dataWidth: 32,
+    byteEnableSupported: true,
+  });
+  const reg = (name: string) => manifest.registers.find((r) => r.name === name)!;
+
+  it('reads constant fields, never writes them, and uses the resolved reset', () => {
+    const rev = reg('IDENT').fields.find((field) => field.name === 'REV')!;
+    expect(rev).toMatchObject({
+      access: 'read-only',
+      readable: true,
+      writable: false,
+      writeEffect: 'none',
+      resetValue: 1,
+    });
+    expect(reg('IDENT')).toMatchObject({
+      resetValue: 0x01000001,
+      readableMask: 0xff000001,
+      writableMask: 0x1,
+    });
+  });
+
+  it('treats a register-level $version as a read-only register with the packed value', () => {
+    expect(reg('VERSION')).toMatchObject({
+      resetValue: 0x010402,
+      readableMask: 0xffffffff,
+      writableMask: 0,
+    });
+    expect(reg('VERSION').fields[0]).toMatchObject({ writable: false, writeEffect: 'none' });
+  });
+
+  it('keeps a constant at its resolved value under a register-level reset word', () => {
+    expect(reg('LOCKED').resetValue).toBe(0xffffff04);
   });
 });

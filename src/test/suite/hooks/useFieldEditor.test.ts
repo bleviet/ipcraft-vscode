@@ -4,6 +4,7 @@
  * Covers: draft initialisation, initial selection state, validation triggers,
  * insert-field state update, and delete (moveSelectedField) clearing active cell.
  */
+import type React from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { useFieldEditor } from '../../../webview/hooks/useFieldEditor';
 import type { BitFieldRecord } from '../../../webview/types/editor';
@@ -385,5 +386,53 @@ describe('useFieldEditor — mouse insertion', () => {
 
     expect(onUpdate).not.toHaveBeenCalled();
     expect(result.current.insertError).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// $version token fields
+// ---------------------------------------------------------------------------
+
+describe('useFieldEditor — token reset display', () => {
+  const tokenField = (): BitFieldRecord => ({
+    ...makeField('MAJOR', 0, 8),
+    versionRef: '$version.major',
+  });
+
+  it('initialises the reset draft with the token', () => {
+    const fields = [tokenField()];
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
+    const rowId = result.current.wrappedFields[0].rowId;
+
+    act(() => result.current.ensureDraftsInitialized(rowId, 0));
+
+    expect(result.current.resetDrafts[rowId]).toBe('$version.major');
+  });
+
+  it('restores the token in the reset draft when an edit is cancelled with Escape', () => {
+    const fields = [tokenField()];
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
+    const rowId = result.current.wrappedFields[0].rowId;
+
+    const container = document.createElement('div');
+    const input = document.createElement('input');
+    container.appendChild(input);
+    document.body.appendChild(container);
+    (result.current.focusRef as React.MutableRefObject<HTMLDivElement | null>).current = container;
+
+    act(() => {
+      result.current.captureEditSnapshot();
+      result.current.setActiveCell({ rowId, key: 'reset' });
+      result.current.setResetDrafts({ [rowId]: '0x12' });
+      result.current.setResetErrors({ [rowId]: 'Invalid number' });
+    });
+    input.focus();
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    expect(result.current.resetDrafts[rowId]).toBe('$version.major');
+    expect(result.current.resetErrors[rowId]).toBeNull();
+    container.remove();
   });
 });

@@ -295,6 +295,12 @@
         "enablement": "isWorkspaceTrusted"
       },
       {
+        "command": "fpga-ip-core.startRegisterSetVersioning",
+        "title": "Start Register-Set Versioning",
+        "category": "IPCraft",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "fpga-ip-core.packageIpCore",
         "title": "Package IP Core (Self-Contained)",
         "category": "IPCraft",
@@ -768,6 +774,11 @@
           "command": "fpga-ip-core.packageIpCore",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "ipcraft@9"
+        },
+        {
+          "command": "fpga-ip-core.startRegisterSetVersioning",
+          "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/",
+          "group": "ipcraft@10"
         }
       ],
       "commandPalette": [
@@ -849,6 +860,10 @@
         },
         {
           "command": "fpga-ip-core.upgradeIpCore",
+          "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.startRegisterSetVersioning",
           "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/"
         },
         {

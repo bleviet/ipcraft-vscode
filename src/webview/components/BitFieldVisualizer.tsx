@@ -8,6 +8,7 @@ import DefaultLayoutView from './bitfield/DefaultLayoutView';
 import ProLayoutView from './bitfield/ProLayoutView';
 import VerticalLayoutView from './bitfield/VerticalLayoutView';
 import { TableContextMenu } from '../shared/components';
+import type { VersionRef } from '../../shared/versioning/versionScheme';
 import { getKeyboardReorderUpdates, getKeyboardResizeRange } from './bitfield/keyboardOperations';
 import { computeCtrlDragPreview } from './bitfield/reorderAlgorithm';
 import {
@@ -35,6 +36,8 @@ export interface FieldModel {
   width?: number | string | null;
   access?: string;
   resetValue?: number | bigint | null;
+  /** `$version` token: the field is a constant, `resetValue` holds its resolved value. */
+  versionRef?: VersionRef | null;
   description?: string;
   monitorChangeOf?: string | null;
 }

@@ -41,12 +41,11 @@ const MIGRATION_STEPS: readonly MigrationStep[] = [
     },
   },
   {
-    // 1.2 adds optional port field metadata; existing content is unchanged.
+    // 1.2 adds optional port field metadata and vlnv.versionScheme. Both are additive, so nothing in
+    // the file changes beyond the apiVersion stamp; vlnv.version is never rewritten.
     from: '1.1',
     to: '1.2',
-    migrate(text) {
-      return { text, mutationCount: 0 };
-    },
+    migrate: (text) => ({ text, mutationCount: 0 }),
   },
 ];
 

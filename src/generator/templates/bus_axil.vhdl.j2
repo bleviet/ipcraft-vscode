@@ -1,7 +1,8 @@
 {# VHDL AXI-Lite Bus Wrapper Template #}
 {# Generates AXI-Lite slave interface with register decoding #}
 {# pass_user_via_bus: no register file — user ports flow directly through this wrapper #}
-{% set pass_user_via_bus = user_ports | length > 0 and sw_registers | length == 0 and hw_registers | length == 0 %}
+{% set has_constant_regs = registers | selectattr('read_source', 'equalto', 'constant') | list | length > 0 or mixed_registers | length > 0 %}
+{% set pass_user_via_bus = user_ports | length > 0 and sw_registers | length == 0 and hw_registers | length == 0 and not has_constant_regs %}
 --------------------------------------------------------------------------------
 -- Entity: {{ entity_name }}_axil
 -- Description: AXI-Lite slave interface for register access
@@ -37,7 +38,7 @@ entity {{ entity_name }}_axil is
     clk : in std_logic;
     rst : in std_logic;
 
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %}
 {% if bus_ports | length > 0 %}
     -- AXI-Lite Slave Interface
 {% for port in bus_ports %}

@@ -157,6 +157,21 @@ export interface MemoryMap {
   name: Name;
   description?: Description;
   addressBlocks?: Addressblocks;
+  versionHistory?: VersionHistory;
+}
+/**
+ * Released register sets. addressBlocks is the staging set being edited.
+ */
+export interface VersionHistory {
+  registerSets: {
+    [hash: string]: {
+      addressBlocks: AddressBlock[];
+    };
+  };
+  versions: {
+    version: string;
+    registerSet: string;
+  }[];
 }
 /**
  * Contiguous address block within a memory map (Pydantic model).

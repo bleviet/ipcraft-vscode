@@ -31,7 +31,7 @@ module {{ entity_name }}_avmm
   // Clock and reset
   input  logic clk,
   input  logic rst,
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %}
 {% if bus_ports | length > 0 %}
 
   // Avalon-MM Slave Interface

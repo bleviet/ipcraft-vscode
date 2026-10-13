@@ -39,13 +39,13 @@ entity {{ entity_name }}_regs is
     rd_en   : in  std_logic;
     rd_addr : in  std_logic_vector(C_ADDR_WIDTH-1 downto 0);
     rd_data : out std_logic_vector(C_DATA_WIDTH-1 downto 0);
-    rd_valid: out std_logic{{ ";" if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 else "" }}
+    rd_valid: out std_logic{{ ";" if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 else "" }}
 
     -- Register interface to core logic
 {% if sw_registers | length > 0 %}
-    regs_out : out t_regs_sw2hw{{ ";" if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 else "" }}  -- SW-writable registers (to core)
+    regs_out : out t_regs_sw2hw{{ ";" if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 else "" }}  -- SW-writable registers (to core)
 {% endif %}
-{% if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %}
     regs_in  : in  t_regs_hw2sw   -- HW status registers + W1C event pulses + CoS values (from core)
 {% endif %}
   );
@@ -296,6 +296,18 @@ begin
 {% else %}
             rd_data_int <= regs.{{ reg.name | lower }};
 {% endif %}
+{% elif reg.read_source == 'constant' %}
+{% set const_words = [] %}
+{% if reg.fields | length %}
+{% for field in reg.fields %}
+{% set _ = const_words.push(field.reset_value * 2 ** field.offset) %}
+{% endfor %}
+{% else %}
+{% set _ = const_words.push(reg.reset_value) %}
+{% endif %}
+          -- constant: resolved $version, not stored and not a hardware input
+          when C_REG_{{ reg.name | upper }}_ADDR =>
+            rd_data_int <= "{{ const_words | sum | bin(data_width) }}";
 {% endif %}
 {% endif %}
 {% endfor %}
@@ -303,7 +315,13 @@ begin
           when C_REG_{{ reg.name | upper }}_ADDR =>
             v_rd_data := (others => '0');
 {% for field in reg.fields %}
-{% if field.access in ['read-write-1-to-clear', 'read-write-self-clearing'] %}
+{% if field.is_constant %}
+{% if field.width == 1 %}
+            v_rd_data({{ field.offset }}) := '{{ field.reset_value | default(0) }}';  -- constant {{ field.version_ref }}
+{% else %}
+            v_rd_data({{ field.offset + field.width - 1 }} downto {{ field.offset }}) := "{{ field.reset_value | bin(field.width) }}";  -- constant {{ field.version_ref }}
+{% endif %}
+{% elif field.access in ['read-write-1-to-clear', 'read-write-self-clearing'] %}
 {% if field.width == 1 %}
             v_rd_data({{ field.offset }}) := regs.{{ reg.name | lower }}.{{ field.name | lower }};
 {% else %}

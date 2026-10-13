@@ -1,7 +1,34 @@
 import {
   resolveMemoryMapImports,
+  selectImportedMaps,
   type FileReader,
 } from '../../../services/imports/resolveMemoryMapImports';
+
+describe('selectImportedMaps', () => {
+  it('shortcut import: every entry of a list file, with its path', () => {
+    expect(selectImportedMaps([{ name: 'A' }, { name: 'B' }])).toEqual([
+      { raw: { name: 'A' }, path: [0] },
+      { raw: { name: 'B' }, path: [1] },
+    ]);
+  });
+
+  it('shortcut import: any other object is one root map, a nested root included', () => {
+    expect(selectImportedMaps({ name: 'A' })).toEqual([{ raw: { name: 'A' }, path: [] }]);
+    const nested = { memoryMaps: [{ name: 'N' }] };
+    expect(selectImportedMaps(nested)).toEqual([{ raw: nested, path: [] }]);
+    expect(selectImportedMaps(null)).toEqual([]);
+  });
+
+  it('array-entry import: the first map only, with the entry overrides merged over it', () => {
+    expect(selectImportedMaps([{ name: 'A', x: 1 }, { name: 'B' }], { name: 'R' })).toEqual([
+      { raw: { name: 'R', x: 1 }, path: [0] },
+    ]);
+    expect(selectImportedMaps({ name: 'A' }, { name: 'R' })).toEqual([
+      { raw: { name: 'R' }, path: [] },
+    ]);
+    expect(selectImportedMaps(null, {})).toEqual([{ raw: {}, path: [] }]);
+  });
+});
 
 describe('resolveMemoryMapImports', () => {
   const mockReader: FileReader = {

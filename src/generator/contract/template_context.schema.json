@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://ipcraft.dev/schemas/template_context/1.6.0",
+  "$id": "https://ipcraft.dev/schemas/template_context/1.7.0",
   "title": "TemplateContext",
   "description": "Versioned template context passed to all Nunjucks/Jinja2 templates during IP core generation. This is the public API for third-party scaffold packs.",
   "type": "object",
@@ -44,12 +44,15 @@
     "secondary_resets",
     "memmap_relpath",
     "description",
-    "display_name"
+    "display_name",
+    "version_scheme",
+    "version_history",
+    "version_file_suffix"
   ],
   "properties": {
     "contract_version": {
       "type": "string",
-      "const": "1.6.0",
+      "const": "1.7.0",
       "description": "Semantic version of the template context contract."
     },
     "name": { "type": "string" },
@@ -168,6 +171,20 @@
     "vendor": { "type": "string" },
     "library": { "type": "string" },
     "version": { "type": "string" },
+    "version_scheme": {
+      "type": "string",
+      "enum": ["free", "major.minor", "major.minor.patch", "major.feature.minor.patch"],
+      "description": "The parsed vlnv.versionScheme of the core; `free` when absent."
+    },
+    "version_history": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/VersionHistoryEntry" },
+      "description": "Released versions and their register-set ids, in release order, from the first memory map that records a versionHistory; empty otherwise."
+    },
+    "version_file_suffix": {
+      "type": "string",
+      "description": "The core version with every character outside [A-Za-z0-9_] replaced by `_`, for file names such as the Vivado XGUI script (`1.2.0` -> `1_2_0`)."
+    },
     "author": { "type": "string" },
     "description": { "type": "string" },
     "display_name": { "type": "string" }
@@ -182,7 +199,9 @@
         "access",
         "reset_value",
         "description",
-        "monitorChangeOf"
+        "monitorChangeOf",
+        "is_constant",
+        "version_ref"
       ],
       "additionalProperties": false,
       "properties": {
@@ -192,12 +211,29 @@
         "access": { "type": "string" },
         "reset_value": { "type": ["integer", "null"] },
         "description": { "type": "string" },
-        "monitorChangeOf": { "type": ["string", "null"] }
+        "monitorChangeOf": { "type": ["string", "null"] },
+        "is_constant": {
+          "type": "boolean",
+          "description": "True for a `$version` field: a read-only literal in the register file (reset_value holds the resolved value), never stored and never a hardware input."
+        },
+        "version_ref": {
+          "type": ["string", "null"],
+          "description": "The `$version` token this field's reset value came from (e.g. `$version.major`), or null."
+        }
       }
     },
     "Register": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "reset_value", "fields"],
+      "required": [
+        "name",
+        "offset",
+        "access",
+        "description",
+        "reset_value",
+        "is_constant",
+        "version_ref",
+        "fields"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -205,6 +241,14 @@
         "access": { "type": "string" },
         "description": { "type": "string" },
         "reset_value": { "type": ["integer", "null"] },
+        "is_constant": {
+          "type": "boolean",
+          "description": "True for a register-level `$version` register, or when every field is constant."
+        },
+        "version_ref": {
+          "type": ["string", "null"],
+          "description": "The register-level `$version` token this register's reset value came from (e.g. `$version` or `$version.minor`), or null."
+        },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } }
       }
     },
@@ -216,6 +260,8 @@
         "access",
         "description",
         "reset_value",
+        "is_constant",
+        "version_ref",
         "fields",
         "has_cos_fields",
         "has_mixed_fields",
@@ -230,6 +276,14 @@
         "access": { "type": "string" },
         "description": { "type": "string" },
         "reset_value": { "type": ["integer", "null"] },
+        "is_constant": {
+          "type": "boolean",
+          "description": "True for a register-level `$version` register, or when every field is constant."
+        },
+        "version_ref": {
+          "type": ["string", "null"],
+          "description": "The register-level `$version` token this register's reset value came from (e.g. `$version` or `$version.minor`), or null."
+        },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
         "has_cos_fields": { "type": "boolean" },
         "has_mixed_fields": {
@@ -247,8 +301,8 @@
         },
         "read_source": {
           "type": "string",
-          "enum": ["composed", "regs_in", "regs", "none"],
-          "description": "Where the read process takes this register from: composed field by field (has_mixed_fields), hardware input record (regs_in), software storage record (regs), or not readable."
+          "enum": ["composed", "regs_in", "regs", "constant", "none"],
+          "description": "Where the read process takes this register from: composed field by field (has_mixed_fields), hardware input record (regs_in), software storage record (regs), a literal of resolved constants (constant: register-level `$version`, or every field constant), or not readable."
         }
       }
     },
@@ -262,6 +316,8 @@
         "reset_value",
         "description",
         "monitorChangeOf",
+        "is_constant",
+        "version_ref",
         "is_cos"
       ],
       "additionalProperties": false,
@@ -273,12 +329,23 @@
         "reset_value": { "type": ["integer", "null"] },
         "description": { "type": "string" },
         "monitorChangeOf": { "type": ["string", "null"] },
+        "is_constant": { "type": "boolean" },
+        "version_ref": { "type": ["string", "null"] },
         "is_cos": { "type": "boolean" }
       }
     },
     "W1cRegister": {
       "type": "object",
-      "required": ["name", "offset", "access", "description", "reset_value", "fields"],
+      "required": [
+        "name",
+        "offset",
+        "access",
+        "description",
+        "reset_value",
+        "is_constant",
+        "version_ref",
+        "fields"
+      ],
       "additionalProperties": false,
       "properties": {
         "name": { "type": "string" },
@@ -286,6 +353,8 @@
         "access": { "type": "string" },
         "description": { "type": "string" },
         "reset_value": { "type": ["integer", "null"] },
+        "is_constant": { "type": "boolean" },
+        "version_ref": { "type": ["string", "null"] },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/W1cField" } }
       }
     },
@@ -299,6 +368,8 @@
         "reset_value",
         "description",
         "monitorChangeOf",
+        "is_constant",
+        "version_ref",
         "monitored_field"
       ],
       "additionalProperties": false,
@@ -310,6 +381,8 @@
         "reset_value": { "type": ["integer", "null"] },
         "description": { "type": "string" },
         "monitorChangeOf": { "type": ["string", "null"] },
+        "is_constant": { "type": "boolean" },
+        "version_ref": { "type": ["string", "null"] },
         "monitored_field": { "$ref": "#/definitions/Field" }
       }
     },
@@ -321,6 +394,8 @@
         "access",
         "description",
         "reset_value",
+        "is_constant",
+        "version_ref",
         "fields",
         "cos_fields",
         "val_fields"
@@ -332,6 +407,8 @@
         "access": { "type": "string" },
         "description": { "type": "string" },
         "reset_value": { "type": ["integer", "null"] },
+        "is_constant": { "type": "boolean" },
+        "version_ref": { "type": ["string", "null"] },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
         "cos_fields": { "type": "array", "items": { "$ref": "#/definitions/CosField" } },
         "val_fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } }
@@ -345,6 +422,8 @@
         "access",
         "description",
         "reset_value",
+        "is_constant",
+        "version_ref",
         "fields",
         "val_fields"
       ],
@@ -355,11 +434,13 @@
         "access": { "type": "string" },
         "description": { "type": "string" },
         "reset_value": { "type": ["integer", "null"] },
+        "is_constant": { "type": "boolean" },
+        "version_ref": { "type": ["string", "null"] },
         "fields": { "type": "array", "items": { "$ref": "#/definitions/Field" } },
         "val_fields": {
           "type": "array",
           "items": { "$ref": "#/definitions/Field" },
-          "description": "Hardware-driven read-only fields sourced from regs_in.<reg>_val at read time instead of internal SW storage."
+          "description": "Hardware-driven read-only fields sourced from regs_in.<reg>_val at read time instead of internal SW storage. Constant (`$version`) fields are never listed here."
         }
       }
     },
@@ -811,6 +892,15 @@
         "name": { "type": "string" },
         "active_high": { "type": "boolean" },
         "associated_clock": { "type": ["string", "null"] }
+      }
+    },
+    "VersionHistoryEntry": {
+      "type": "object",
+      "required": ["version", "register_set"],
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "string" },
+        "register_set": { "type": "string" }
       }
     },
     "MemoryMapField": {

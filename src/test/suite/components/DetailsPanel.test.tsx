@@ -46,6 +46,9 @@ jest.mock('../../../webview/components/memorymap/RegisterArrayEditor', () => ({
 // ---------------------------------------------------------------------------
 
 import DetailsPanel from '../../../webview/components/DetailsPanel';
+import { VersionRefIssuesProvider } from '../../../webview/hooks/useVersionRefIssuesContext';
+import { normalizeMemoryMap } from '../../../domain/parse';
+import { toArrayElementSelectionObject } from '../../../webview/utils/arrayElementSelection';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -109,6 +112,44 @@ describe('DetailsPanel — routing', () => {
         {...baseProps}
       />
     );
+    expect(screen.getByTestId('mock-memorymap-editor')).toBeInTheDocument();
+    expect(screen.queryByTestId('version-issues')).toBeNull();
+  });
+
+  it('lists the map-level version diagnostics above the memory map editor', () => {
+    const map = normalizeMemoryMap({
+      name: 'my_map',
+      addressBlocks: [{ name: 'B', registers: [{ name: 'OTHER' }] }],
+      versionHistory: {
+        registerSets: {
+          h1: {
+            addressBlocks: [
+              {
+                name: 'B',
+                registers: [
+                  {
+                    name: 'VERSION',
+                    fields: [{ name: 'V', bits: '[7:0]', resetValue: '$version' }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+        versions: [{ version: '1.0', registerSet: 'h1' }],
+      },
+    });
+    render(
+      <VersionRefIssuesProvider memoryMap={map}>
+        <DetailsPanel
+          selectedType="memoryMap"
+          selectedObject={map}
+          onUpdate={noop}
+          {...baseProps}
+        />
+      </VersionRefIssuesProvider>
+    );
+    expect(screen.getByTestId('version-issues')).toHaveTextContent('No version register');
     expect(screen.getByTestId('mock-memorymap-editor')).toBeInTheDocument();
   });
 
@@ -213,6 +254,37 @@ describe('DetailsPanel — routing', () => {
     // The element edits the array's own shared field template directly.
     expect(props?.register?.name).toBe('CH_GAIN');
     expect(props?.fields).toHaveLength(1);
+  });
+
+  it('passes the original array as issueSource for a flat-array element, so its diagnostics resolve', () => {
+    const array = {
+      name: 'CH_GAIN',
+      count: 4,
+      stride: 4,
+      fields: [{ name: 'GAIN', bits: '[11:0]' }],
+    };
+    render(
+      <DetailsPanel
+        selectedType="array"
+        selectedObject={toArrayElementSelectionObject(array, 1, 0x44)}
+        onUpdate={noop}
+        {...baseProps}
+      />
+    );
+    const props = lastRegisterEditorProps as { issueSource?: unknown } | undefined;
+    expect(props?.issueSource).toBe(array);
+  });
+
+  it('passes no issueSource for a plain register', () => {
+    render(
+      <DetailsPanel
+        selectedType="register"
+        selectedObject={{ name: 'CTRL', fields: [] }}
+        onUpdate={noop}
+        {...baseProps}
+      />
+    );
+    expect((lastRegisterEditorProps as { issueSource?: unknown }).issueSource).toBeUndefined();
   });
 
   it('masquerades multi-register array element as BlockEditor', () => {

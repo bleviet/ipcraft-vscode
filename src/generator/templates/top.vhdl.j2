@@ -65,7 +65,7 @@ entity {{ entity_name }} is
 end entity {{ entity_name }};
 
 architecture rtl of {{ entity_name }} is
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %}
 {% if has_memory_mapped_slave %}
 {% set core_bus_interfaces = secondary_bus_interfaces %}
 {% set core_bus_ports = secondary_bus_ports %}
@@ -76,7 +76,8 @@ architecture rtl of {{ entity_name }} is
 {# When no register file exists but user ports do, route them through the bus wrapper.
    This covers IPs like AXI-Lite slaves that expose a direct register-bank interface
    (rb_addr/rb_wr/…) rather than a generated register file. #}
-{% set pass_user_via_bus = has_memory_mapped_slave and user_ports | length > 0 and sw_registers | length == 0 and not has_regs_in %}
+{% set has_constant_regs = registers | selectattr('read_source', 'equalto', 'constant') | list | length > 0 %}
+{% set pass_user_via_bus = has_memory_mapped_slave and user_ports | length > 0 and sw_registers | length == 0 and not has_regs_in and not has_constant_regs %}
 {# Instantiate the bus-agnostic core when it carries logic: for a memory-mapped IP unless
    its user ports are passed straight through the wrapper, or for an IP with no memory-
    mapped slave when a boundary transform needs a core to wire through. #}

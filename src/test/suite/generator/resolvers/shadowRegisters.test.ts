@@ -206,3 +206,88 @@ describe('validateShadowRegisters', () => {
     expect(diags.some((d) => d.message.includes('no such field'))).toBe(true);
   });
 });
+
+describe('buildShadowRegisters constants ($version)', () => {
+  const constant = (name: string) => ({
+    name,
+    access: 'read-only',
+    monitorChangeOf: null,
+    is_constant: true,
+  });
+  const plain = (name: string, access: string) => ({ name, access, monitorChangeOf: null });
+  const reg = (name: string, fields: Array<Record<string, unknown>>, access = 'read-only') => ({
+    name,
+    access,
+    offset: 0,
+    is_constant: fields.length > 0 && fields.every((f) => f.is_constant === true),
+    fields,
+  });
+  const names = (list: Array<Record<string, unknown>>) => list.map((r) => r.name);
+
+  it('(a) a register of only constant fields is read from literals, not stored or driven', () => {
+    const result = buildShadowRegisters([reg('VERSION', [constant('MAJOR'), constant('MINOR')])]);
+    const [annotated] = result.registers;
+    expect(annotated.read_source).toBe('constant');
+    expect(annotated.has_mixed_fields).toBe(false);
+    expect(annotated.needs_write_branch).toBe(false);
+    expect(result.hw_registers).toHaveLength(0);
+    expect(result.sw_registers).toHaveLength(0);
+    expect(result.mixed_registers).toHaveLength(0);
+  });
+
+  it('(b) a fieldless register-level $version is a constant register too', () => {
+    const versionReg = { name: 'VERSION', access: 'read-only', offset: 0, is_constant: true };
+    const result = buildShadowRegisters([{ ...versionReg, fields: [] }]);
+    const [annotated] = result.registers;
+    expect(annotated.read_source).toBe('constant');
+    expect(annotated.needs_write_branch).toBe(false);
+    expect(result.hw_registers).toHaveLength(0);
+  });
+
+  it('(c) a constant next to a read-write field is read-composed with no hardware value port', () => {
+    const result = buildShadowRegisters([
+      reg('CTRL', [constant('REV'), plain('EN', 'read-write')], 'read-write'),
+    ]);
+    const [annotated] = result.registers as Array<Record<string, any>>;
+    expect(annotated.read_source).toBe('composed');
+    expect(annotated.has_mixed_fields).toBe(true);
+    expect(names(annotated.write_fields as Array<Record<string, unknown>>)).toEqual(['EN']);
+    expect(names(result.sw_registers)).toEqual(['CTRL']);
+    expect(result.mixed_registers).toHaveLength(0);
+  });
+
+  it('(d) a constant next to a hardware read-only field keeps only the hardware field in val_fields', () => {
+    const result = buildShadowRegisters([reg('STATUS', [constant('REV'), plain('BUSY', 'ro')])]);
+    const [annotated] = result.registers as Array<Record<string, any>>;
+    expect(annotated.read_source).toBe('composed');
+    expect(annotated.has_mixed_fields).toBe(true);
+    expect(annotated.needs_write_branch).toBe(false);
+    expect(result.hw_registers).toHaveLength(0);
+    expect(result.sw_registers).toHaveLength(0);
+    expect(names(result.mixed_registers)).toEqual(['STATUS']);
+    expect(names(result.mixed_registers[0].val_fields as Array<Record<string, unknown>>)).toEqual([
+      'BUSY',
+    ]);
+  });
+
+  it('a constant in a mixed read-write / read-only register is never a val field', () => {
+    const result = buildShadowRegisters([
+      reg(
+        'MIX',
+        [constant('REV'), plain('EN', 'read-write'), plain('BUSY', 'read-only')],
+        'read-write'
+      ),
+    ]);
+    expect(names(result.mixed_registers[0].val_fields as Array<Record<string, unknown>>)).toEqual([
+      'BUSY',
+    ]);
+  });
+
+  it('registers without constants keep their classification', () => {
+    const result = buildShadowRegisters([
+      makeReg('STATUS', 'read-only', [{ name: 'BUSY', access: 'read-only' }]),
+    ]);
+    expect(result.hw_registers).toHaveLength(1);
+    expect(result.registers[0].read_source).toBe('regs_in');
+  });
+});

@@ -10,10 +10,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import Ajv from 'ajv';
+import { act, renderHook } from '@testing-library/react';
 import { YamlService } from '../../../webview/services/YamlService';
 import { YamlPathResolver } from '../../../webview/services/YamlPathResolver';
 import { parseMemoryMap } from '../../../domain/parse';
-import { serializeValue } from '../../../domain/serialize';
+import { serializeMemoryMap, serializeValue } from '../../../domain/serialize';
 import { SpatialInsertionService } from '../../../webview/services/SpatialInsertionService';
 import {
   recomputeRegisterLayout,
@@ -21,6 +22,8 @@ import {
   type LayoutRegister,
 } from '../../../webview/algorithms/LayoutEngine';
 import { insertElement } from '../../../webview/algorithms/MutationService';
+import { useYamlUpdateHandler } from '../../../webview/hooks/useYamlUpdateHandler';
+import type { Selection } from '../../../webview/hooks/useSelection';
 
 const examplesDir = path.resolve(__dirname, '../../../../ipcraft-spec/examples');
 const basicFile = path.join(examplesDir, 'basic_peripheral/basic_peripheral.mm.yml');
@@ -354,3 +357,170 @@ function uiAddRegisterInsideArrayOutline(
 
   return YamlService.applyPathEdits(text, edits);
 }
+
+describe('$version tokens and versionHistory survive the webview write paths', () => {
+  const HASH = 'rs1-3f9a0c41d2b7e6a5';
+  const HISTORY = `  versionHistory:
+    registerSets:
+      ${HASH}:
+        addressBlocks:
+          - name: REGS
+            registers:
+              - name: ID
+                offset: 4
+                fields:
+                  - name: MAJOR
+                    bits: '[23:16]'
+                    resetValue: $version.major
+    versions:
+      - version: 1.4.1
+        registerSet: ${HASH}
+`;
+  const SOURCE = `# version register map
+- name: CSR
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0
+      registers:
+        - name: VERSION
+          offset: 0
+          access: read-only
+          resetValue: $version
+        - name: ID
+          offset: 4
+          fields:
+            - name: MAJOR
+              bits: '[23:16]'
+              access: read-only
+              resetValue: $version.major
+            - name: MINOR
+              bits: '[15:8]'
+              access: read-only
+              resetValue: $version.minor
+            - name: FLAGS
+              bits: '[7:0]'
+              resetValue: 5
+${HISTORY}`;
+
+  const rawSchema = JSON.parse(fs.readFileSync(schemaFile, 'utf8')) as {
+    items?: { $defs?: object };
+  } & Record<string, unknown>;
+  const validateMap = new Ajv({ strict: false, allowUnionTypes: true }).compile({
+    ...rawSchema,
+    $defs: rawSchema.items?.$defs,
+  });
+
+  type Reg = {
+    resetValue?: unknown;
+    fields?: Array<{ name: string; bits: string; resetValue?: unknown }>;
+  };
+  const registersOf = (text: string): Reg[] =>
+    (YamlService.parse(text) as Array<{ addressBlocks: Array<{ registers: Reg[] }> }>)[0]
+      .addressBlocks[0].registers;
+
+  /** Every token is still attached to its register/field, no versionRef leaked, schema-valid. */
+  const expectTokensIntact = (text: string): void => {
+    const regs = registersOf(text);
+    expect(regs.some((r) => r.resetValue === '$version')).toBe(true);
+    const fields = regs.flatMap((r) => r.fields ?? []);
+    expect(fields.find((f) => f.name === 'MAJOR')?.resetValue).toBe('$version.major');
+    expect(fields.find((f) => f.name === 'MINOR')?.resetValue).toBe('$version.minor');
+    expect(fields.find((f) => f.name === 'FLAGS')?.resetValue).toBe(5);
+    expect(text).not.toContain('versionRef');
+    expect(validateMap(YamlService.parse(text))).toBe(true);
+  };
+
+  /** Path edits leave the history block byte-identical. */
+  const expectHistoryUntouched = (text: string): void => {
+    expect(text).toContain(HISTORY);
+  };
+
+  const registerSelection: Selection = {
+    id: 'block-0-reg-1',
+    type: 'register',
+    object: { name: 'ID' },
+    breadcrumbs: ['CSR', 'REGS', 'ID'],
+    path: ['addressBlocks', 0, 'registers', 1],
+  };
+
+  function runHandler(
+    apply: (handler: (path: (string | number)[], value: unknown) => void) => void
+  ): string {
+    const rawTextRef = { current: SOURCE };
+    const selectionRef = { current: registerSelection as Selection | null };
+    const sendUpdate = jest.fn();
+    const { result } = renderHook(() =>
+      useYamlUpdateHandler({
+        selectionRef,
+        rawTextRef,
+        updateRawText: (t: string) => {
+          rawTextRef.current = t;
+        },
+        sendUpdate,
+      })
+    );
+    act(() => apply(result.current));
+    expect(sendUpdate).toHaveBeenCalledTimes(1);
+    return sendUpdate.mock.calls[0][0] as string;
+  }
+
+  it('the source itself is schema-valid and intact', () => {
+    expectTokensIntact(SOURCE);
+  });
+
+  it('(a) parse -> serialize round-trips tokens and the history', () => {
+    const doc = parseMemoryMap(SOURCE);
+    const out = YamlService.dump(serializeMemoryMap(doc.map, doc.rootStyle));
+    expectTokensIntact(out);
+    const history = (text: string) =>
+      (YamlService.parse(text) as Array<Record<string, unknown>>)[0].versionHistory;
+    expect(history(out)).toEqual(history(SOURCE));
+    expect(history(out)).toBeDefined();
+  });
+
+  it('(b) a bits edit of a neighbouring field keeps the tokens (path edit)', () => {
+    const out = runHandler((handler) => handler(['fields', 2, 'bits'], '[3:0]'));
+    expect(registersOf(out)[1].fields?.[2].bits).toBe('[3:0]');
+    expectTokensIntact(out);
+    expectHistoryUntouched(out);
+  });
+
+  it('(b) a bits edit written as the whole fields array keeps the tokens', () => {
+    const fields = parseAndNormalize(SOURCE).addressBlocks[0].registers[1].fields.map((f) =>
+      f.name === 'FLAGS' ? { ...f, bits: '[3:0]', offset: 0, width: 4 } : f
+    );
+    const out = runHandler((handler) => handler(['fields'], fields));
+    expect(registersOf(out)[1].fields?.[2].bits).toBe('[3:0]');
+    expectTokensIntact(out);
+    expectHistoryUntouched(out);
+  });
+
+  it('(c) add register via BlockEditor path (normalized) keeps the tokens', () => {
+    const out = uiAddRegister(SOURCE, 0);
+    expect(registersOf(out)).toHaveLength(3);
+    expectTokensIntact(out);
+    expectHistoryUntouched(out);
+  });
+
+  it('(c) add register via the outline path (raw) keeps the tokens', () => {
+    const out = uiAddRegisterOutline(SOURCE, 0);
+    expect(registersOf(out)).toHaveLength(3);
+    expectTokensIntact(out);
+    expectHistoryUntouched(out);
+  });
+
+  it('(c) add block keeps the tokens', () => {
+    const out = uiAddBlock(SOURCE);
+    expectTokensIntact(out);
+    expectHistoryUntouched(out);
+  });
+
+  it('(d) a field-move op keeps each token on its field', () => {
+    const out = runHandler((handler) => handler(['__op', 'field-move'], { index: 1, delta: -1 }));
+    const fields = registersOf(out)[1].fields ?? [];
+    expect(fields.map((f) => f.name)).toEqual(['MINOR', 'MAJOR', 'FLAGS']);
+    expect(fields.map((f) => f.bits)).not.toEqual(['[15:8]', '[23:16]', '[7:0]']);
+    expectTokensIntact(out);
+    expectHistoryUntouched(out);
+  });
+});

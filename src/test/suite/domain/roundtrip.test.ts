@@ -377,3 +377,202 @@ busInterfaces:
     expect(serialized.busInterfaces[0].portPolarityOverrides).toEqual({ read: 'activeLow' });
   });
 });
+
+describe('$version tokens and versionHistory', () => {
+  const HASH = 'rs1-3f9a0c41d2b7e6a5';
+  const MAP_YAML = `- name: CSR
+  description: Control registers
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0
+      registers:
+        - name: VERSION
+          offset: 0
+          access: read-only
+          resetValue: $version
+        - name: ID
+          offset: 4
+          fields:
+            - name: MAJOR
+              bits: '[23:16]'
+              access: read-only
+              resetValue: $version.major
+              description: Major number
+            - name: FLAGS
+              bits: '[7:0]'
+              resetValue: 5
+  versionHistory:
+    registerSets:
+      ${HASH}:
+        addressBlocks:
+          - name: REGS
+            registers:
+              - name: VERSION
+                offset: 0
+                resetValue: $version
+    versions:
+      - version: 1.4.1
+        registerSet: ${HASH}
+`;
+
+  const validateMap = (() => {
+    const raw = JSON.parse(fs.readFileSync(MEMORY_MAP_SCHEMA_PATH, 'utf8')) as {
+      items?: { $defs?: object };
+    } & Record<string, unknown>;
+    return new Ajv({ strict: false, allowUnionTypes: true }).compile({
+      ...raw,
+      $defs: raw.items?.$defs,
+    });
+  })();
+
+  interface SerializedRegister extends Record<string, unknown> {
+    fields: Array<Record<string, unknown>>;
+  }
+  interface SerializedMap extends Record<string, unknown> {
+    addressBlocks: Array<{ registers: SerializedRegister[] }>;
+  }
+  const serialized = (text: string): SerializedMap[] => {
+    const doc = parseMemoryMap(text);
+    return serializeMemoryMap(doc.map, doc.rootStyle) as SerializedMap[];
+  };
+
+  describe('parse', () => {
+    const { map } = parseMemoryMap(MAP_YAML);
+    const [versionReg, idReg] = map.addressBlocks[0].registers;
+
+    it('turns a register token into versionRef with a 0 resetValue', () => {
+      expect(versionReg.versionRef).toBe('$version');
+      expect(versionReg.resetValue).toBe(0);
+    });
+
+    it('turns a field token into versionRef with a 0 resetValue', () => {
+      expect(idReg.fields[0].versionRef).toBe('$version.major');
+      expect(idReg.fields[0].resetValue).toBe(0);
+    });
+
+    it('leaves numeric resets without a versionRef key', () => {
+      expect(idReg.fields[1].resetValue).toBe(5);
+      expect(idReg.fields[1]).not.toHaveProperty('versionRef');
+    });
+
+    it('copies versionHistory unchanged, snapshots staying raw schema objects', () => {
+      expect(map.versionHistory).toEqual({
+        registerSets: {
+          [HASH]: {
+            addressBlocks: [
+              {
+                name: 'REGS',
+                registers: [{ name: 'VERSION', offset: 0, resetValue: '$version' }],
+              },
+            ],
+          },
+        },
+        versions: [{ version: '1.4.1', registerSet: HASH }],
+      });
+    });
+
+    it('has no versionHistory key without one', () => {
+      expect(parseMemoryMap('- name: X\n  addressBlocks: []\n').map).not.toHaveProperty(
+        'versionHistory'
+      );
+    });
+
+    it('keeps the numeric fallback for an invalid token (schema validation reports it)', () => {
+      const bad = parseMemoryMap(`- name: X
+  addressBlocks:
+    - name: B
+      registers:
+        - name: R
+          offset: 0
+          resetValue: $version.foo
+          fields:
+            - { name: F, bits: '[3:0]', resetValue: $ver }
+`).map.addressBlocks[0].registers[0];
+      expect(bad.resetValue).toBe(0);
+      expect(bad).not.toHaveProperty('versionRef');
+      expect(bad.fields[0].resetValue).toBe(0);
+      expect(bad.fields[0]).not.toHaveProperty('versionRef');
+    });
+  });
+
+  describe('serialize', () => {
+    it('writes tokens back as resetValue and never emits a versionRef key', () => {
+      const [out] = serialized(MAP_YAML);
+      const [versionReg, idReg] = out.addressBlocks[0].registers;
+      expect(versionReg.resetValue).toBe('$version');
+      expect(idReg.fields[0].resetValue).toBe('$version.major');
+      expect(idReg.fields[1].resetValue).toBe(5);
+      expect(JSON.stringify(out)).not.toContain('versionRef');
+    });
+
+    it('keeps the canonical key positions', () => {
+      const [out] = serialized(MAP_YAML);
+      const [versionReg, idReg] = out.addressBlocks[0].registers;
+      expect(Object.keys(idReg.fields[0])).toEqual([
+        'name',
+        'bits',
+        'access',
+        'resetValue',
+        'description',
+      ]);
+      expect(Object.keys(versionReg)).toEqual(['name', 'offset', 'access', 'resetValue']);
+    });
+
+    it('emits versionHistory unchanged after addressBlocks', () => {
+      const { map } = parseMemoryMap(MAP_YAML);
+      const [out] = serialized(MAP_YAML);
+      expect(Object.keys(out)).toEqual(['name', 'description', 'addressBlocks', 'versionHistory']);
+      expect(out.versionHistory).toEqual(map.versionHistory);
+    });
+
+    it('produces schema-valid output', () => {
+      expect(validateMap(serialized(MAP_YAML))).toBe(true);
+    });
+
+    it('is stable across a second parse and serialize', () => {
+      const first = serialized(MAP_YAML);
+      const doc = parseMemoryMap(JSON.stringify(first));
+      expect(serializeMemoryMap(doc.map, doc.rootStyle)).toEqual(first);
+    });
+
+    it('drops a null versionRef and a zero resetValue', () => {
+      expect(serializeValue({ name: 'F', bits: '[0:0]', resetValue: 0, versionRef: null })).toEqual(
+        { name: 'F', bits: '[0:0]' }
+      );
+      expect(serializeValue({ name: 'R', offset: 0, resetValue: 0, versionRef: null })).toEqual({
+        name: 'R',
+        offset: 0,
+      });
+    });
+
+    it('prefers the token over a stale numeric resetValue', () => {
+      expect(
+        serializeValue({
+          name: 'F',
+          offset: 0,
+          width: 8,
+          resetValue: 7,
+          versionRef: '$version.minor',
+        })
+      ).toEqual({ name: 'F', bits: '[7:0]', resetValue: '$version.minor' });
+    });
+
+    it('passes a raw token resetValue (unparsed objects) through', () => {
+      expect(serializeValue({ name: 'F', bits: '[7:0]', resetValue: '$version.patch' })).toEqual({
+        name: 'F',
+        bits: '[7:0]',
+        resetValue: '$version.patch',
+      });
+    });
+
+    it('drops an invalid token as 0, as before (documented current behavior)', () => {
+      const [out] = serialized(`- name: X
+  addressBlocks:
+    - name: B
+      registers:
+        - { name: R, offset: 0, resetValue: $version.foo }
+`);
+      expect(out.addressBlocks[0].registers[0]).not.toHaveProperty('resetValue');
+    });
+  });
+});

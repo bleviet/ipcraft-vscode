@@ -354,3 +354,46 @@ busInterfaces:
     );
   });
 });
+
+describe('migrateIpCoreYaml 1.2 (vlnv.versionScheme)', () => {
+  const withScheme = (apiVersion: string, version: string): string => `apiVersion: '${apiVersion}'
+vlnv:
+  vendor: acme
+  library: demo
+  name: core
+  version: ${version}
+  versionScheme: major.minor.patch # numeric
+clocks: []
+`;
+
+  it.each(['1.0', '1.1'])(
+    'stamps apiVersion 1.2 on a %s file with versionScheme and changes nothing else',
+    (from) => {
+      const source = withScheme(from, '1.4.2');
+      const result = migrateIpCoreYaml(source, library);
+      expect(result).toMatchObject({ changed: true, fromVersion: from, toVersion: '1.2' });
+      expect(result.text).toBe(source.replace(`'${from}'`, "'1.2'"));
+    }
+  );
+
+  it('never rewrites vlnv.version, whatever its spelling', () => {
+    for (const version of ['1.4.2', '2.0', "'1.0'", 'v3-beta']) {
+      const result = migrateIpCoreYaml(withScheme('1.1', version), library);
+      expect(result.text).toContain(`  version: ${version}\n`);
+      expect((yaml.parse(result.text) as { vlnv: { version: unknown } }).vlnv.version).toEqual(
+        (yaml.parse(withScheme('1.1', version)) as { vlnv: { version: unknown } }).vlnv.version
+      );
+    }
+  });
+
+  it('is idempotent once at 1.2', () => {
+    const first = migrateIpCoreYaml(withScheme('1.1', '1.4.2'), library);
+    expect(migrateIpCoreYaml(first.text, library)).toMatchObject({
+      text: first.text,
+      changed: false,
+      fromVersion: '1.2',
+      toVersion: '1.2',
+      mutationCount: 0,
+    });
+  });
+});

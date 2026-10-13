@@ -11,6 +11,9 @@ import { AVALON_RTL_PORTS } from '../../../generator/vivadoBusCatalog';
 import { parseComponentXmlText as parseComponentXmlTextImpl } from '../../../parser/ComponentXmlParser';
 import type { BusDefinitions, IpCoreData } from '../../../generator/types';
 import type { NormalizedMemoryMap } from '../../../domain/internal.types';
+import { parseMemoryMap } from '../../../domain/parse';
+import { resolveVersionRefsInMap } from '../../../shared/versioning/resolveVersionRefs';
+import { xguiVersionSuffix } from '../../../generator/xguiFileName';
 import { builtinBusDefinitionSources, builtinBusLibrary } from '../../helpers/busLibrary';
 import { normalizeBusLibrary } from '../../../shared/busContracts';
 import type { BusDefinitionFile } from '../../../domain/busDefinition.types';
@@ -2995,5 +2998,77 @@ describe('Avalon-MM polarity roles and the native Vivado bus', () => {
     expect(files['busdef/avalon_mm_rtl.xml']).toContain(
       '<spirit:logicalName>read_n</spirit:logicalName>'
     );
+  });
+});
+
+describe('XGUI file name from the version', () => {
+  it.each([
+    ['1.2.0', '1_2_0'],
+    ['2.0', '2_0'],
+    ['1', '1'],
+    ['rev A/1', 'rev_A_1'],
+    ['1.0-beta+3', '1_0_beta_3'],
+    ['v1_final', 'v1_final'],
+  ])('maps version %s to %s', (version, suffix) => {
+    expect(xguiVersionSuffix(version)).toBe(suffix);
+  });
+
+  it('keeps numeric version file names unchanged in component.xml', async () => {
+    const xml = await gen({
+      vlnv: { vendor: 'acme', library: 'ip', name: 'my_core', version: '1.2.0' },
+    });
+    expect(xml).toContain('<spirit:name>xgui/my_core_v1_2_0.tcl</spirit:name>');
+  });
+
+  it('sanitizes a free-text version in the default XGUI path', async () => {
+    const xml = await gen({
+      vlnv: { vendor: 'acme', library: 'ip', name: 'my_core', version: 'rev A/1' },
+    });
+    expect(xml).toContain('<spirit:name>xgui/my_core_vrev_A_1.tcl</spirit:name>');
+  });
+});
+
+describe('component.xml memory map with resolved $version constants', () => {
+  const resolved = (): NormalizedMemoryMap =>
+    resolveVersionRefsInMap(
+      parseMemoryMap(`
+- name: CSR
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0
+      registers:
+        - name: IDENT
+          offset: 0
+          fields:
+            - { name: REV, bits: "[31:24]", resetValue: $version.major, access: read-write }
+            - { name: EN, bits: "[0]", resetValue: 1, access: read-write }
+        - { name: VERSION, offset: 4, resetValue: $version, access: read-write }
+`).map,
+      'major.minor.patch',
+      '1.4.2'
+    );
+
+  it('declares constant fields read-only and composes the resolved reset', async () => {
+    const xml = await gen({}, { memoryMaps: [resolved()] });
+    const ident = xml.slice(xml.indexOf('<spirit:name>IDENT</spirit:name>'));
+    const rev = ident.slice(ident.indexOf('<spirit:name>REV</spirit:name>'));
+    expect(rev.slice(0, rev.indexOf('</spirit:field>'))).toContain(
+      '<spirit:access>read-only</spirit:access>'
+    );
+    const en = ident.slice(ident.indexOf('<spirit:name>EN</spirit:name>'));
+    expect(en.slice(0, en.indexOf('</spirit:field>'))).toContain(
+      '<spirit:access>read-write</spirit:access>'
+    );
+    expect(ident.slice(0, ident.indexOf('<spirit:field>'))).toContain(
+      '<spirit:value spirit:format="long">0x1000001</spirit:value>'
+    );
+  });
+
+  it('declares a register-level $version read-only with the packed reset', async () => {
+    const xml = await gen({}, { memoryMaps: [resolved()] });
+    const version = xml.slice(xml.indexOf('<spirit:name>VERSION</spirit:name>'));
+    const register = version.slice(0, version.indexOf('</spirit:register>'));
+    expect(register).toContain('<spirit:access>read-only</spirit:access>');
+    expect(register).toContain('<spirit:value spirit:format="long">0x10402</spirit:value>');
   });
 });

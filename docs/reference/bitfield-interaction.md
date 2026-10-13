@@ -52,7 +52,7 @@ Table navigation does not take `Ctrl` or `Cmd` chords.
 | Resize | `Shift` + drag an edge of a field | New field range, clamped to neighbours | `onUpdateFieldRange` |
 | Create | `Shift` + drag inside a gap | New field over the dragged span | `onCreateField` |
 | Relocate | `Ctrl`/`Cmd` + drag a field | Field moved; others part to receive it (live preview) | `onBatchUpdateFields` |
-| Toggle reset bit | Click a bit cell | Flip that bit of the owning field's `resetValue` | `onUpdateFieldReset` |
+| Toggle reset bit | Click a bit cell | Flip that bit of the owning field's `resetValue`. Ignored for a `$version` field outside Debug Mode | `onUpdateFieldReset` |
 | Insert (visualizer) | Right-click a field, choose Insert Before / Insert After | New 1-bit field on the adjacent lower / higher bit; errors if occupied | `onInsertField` |
 | Insert (table) | Hover a gap and click the (+) bar, or right-click a row and choose Insert Above / Insert Below | Same insertion; the (+) bar is shown only where a free bit exists | `useFieldEditor.insertFieldAt` / `insertFieldAtGap` |
 
@@ -90,6 +90,8 @@ updates would pass through overlapping intermediate states.
 | `parseBitsWidth` | `(bits: string) => number \| null` |
 | `parseReset` | `(text: string) => number \| null` |
 | `validateResetForField` | reset-value bounds check against field width |
+| `resolveResetInput` | Decides what Reset cell text means: unchanged, clear, commit a number or `$version` token, or an error |
+| `formatResetDisplay` | The Reset cell text: the `$version` token, else `0x..` hex |
 
 ### Layout (`algorithms/LayoutEngine.ts`)
 
@@ -128,9 +130,62 @@ updates would pass through overlapping intermediate states.
 | `extractBits` | `(value, lo, width) => number` | Slice a sub-value |
 | `maxForBits` | `(bitCount) => number` | Max value for a width |
 | `applyRegisterValueToFields` | decompose a register value onto each field |
+| `findUnstorableBitRanges` | `(fields, value) => [hi, lo][]` — uncovered runs that carry a set bit |
+| `formatBitRanges` | `([hi, lo][]) => string` — MSB-first `31:8, 3` |
+| `registerResetToBitVector` | `(resetValue, registerSize) => BitVector` — fieldless register value |
+| `describeConstantFieldMismatches` | `(fields, current, next) => string \| null` — why `next` changes the bits of a `$version` field |
+| `parseRegisterValueDraft` | `bitfield/registerValueToken.ts`: `parseRegisterBitVector` plus the `$version` token and its typed prefixes |
+| `decideRegisterToken` | `bitfield/registerValueToken.ts`: whether a typed `$version` may be written to the register |
 
 Value math uses `Math.pow(2, n)` arithmetic (safe to 53 bits), avoiding 32-bit
 bitwise truncation. Masks at width >= 53 fall back to `Number.MAX_SAFE_INTEGER`.
+
+#### Where a register value is stored
+
+The register Value bar has **no storage of its own**. Which key it writes
+depends on whether the register has bit fields, matching what the generators
+read back (`registerProcessor.ts`, `verificationManifest.ts`):
+
+| Register | Storage | Behavior |
+|----------|---------|----------|
+| Has bit fields | each field's `resetValue` | The value is composed from, and decomposed onto, the fields |
+| No bit fields | the register's own `resetValue` | Nothing to compose from, so the register key is the value |
+
+Because every bit lives in the field that owns it, a value with a set bit
+outside all field ranges cannot be stored. Such a commit is **rejected with
+`Bits <ranges> are not covered by a bit field`** rather than written in part —
+a partial write would silently drop the uncovered bits. Uncovered bits that
+stay zero are not reported, so a value that fits the defined fields commits
+normally.
+
+Debug Mode keeps both forms local to the component: per-field overrides and the
+fieldless register override never reach `onUpdate`, so exploration cannot land
+in the `.mm.yml` (issue #39).
+
+#### Version references (`$version`)
+
+A `resetValue` can hold a `$version` token instead of a number (see
+[Versioning Register Sets](../how-to/versioning-register-sets.md)). The domain
+model keeps `resetValue: number` (0 for a token) and adds `versionRef`;
+`serialize.ts` writes the token back into `resetValue`. The editor resolves it
+with the version of the owning `.ip.yml` (`useVersionContext`), and reads 0 while
+there is no owner.
+
+| Surface | Behavior for a token |
+|---------|----------------------|
+| Reset cell | Shows the token and, under it, `= 0x<value>` (or `version unresolved`, `several IP cores import this map`). A valid token commits on the keystroke that completes it |
+| Visualizer and Value bar | Show the resolved value. A token field is a constant |
+| Bit click on a token field | Ignored outside Debug Mode |
+| Value bar, register with fields | A value that changes the bits of a token field is **rejected with `Bits <range> hold <token> (0x..)`**; token fields are never written when the value is decomposed |
+| Value bar, register without fields | The exact text `$version` is accepted and written to the register's `resetValue` in one update. A prefix such as `$ver` is not reported as an invalid number while typed. A number typed later replaces the token |
+| Value bar, register with fields, `$version` text | Rejected with `Use $version.* on the bit fields` |
+| Debug Mode | Token commits are refused with `Version references cannot be set in Debug Mode`. Numeric overrides stay local |
+
+The Reset cell reports `Invalid number` for non-empty text that is not a number,
+such as `A` or `FF` (hex needs `0x`), and does not commit it. Text that starts
+with `$` but is not a valid reference shows `Unknown version reference` (or the
+references of the resolved scheme) and is not committed either. A number typed
+over a token commits the number and removes the token.
 
 ### Insertion (`services/SpatialInsertionService.ts`)
 

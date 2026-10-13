@@ -34,7 +34,7 @@ entity {{ entity_name }}_avmm is
     clk : in std_logic;
     rst : in std_logic;
 
-{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% set has_regs_in = hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %}
 {% if bus_ports | length > 0 %}
     -- Avalon-MM Slave Interface
 {% for port in bus_ports %}

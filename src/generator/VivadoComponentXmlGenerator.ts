@@ -19,6 +19,7 @@ import {
   type NormalizedBusLibrary,
 } from '../shared/busContracts';
 import { resolveVivadoBusTypeForInterface, type VivadoBusTypeInfo } from './vivadoBusCatalog';
+import { xguiVersionSuffix } from './xguiFileName';
 import {
   customBusInfoFromContract,
   findCustomBusDef,
@@ -293,7 +294,7 @@ export async function generateComponentXml(
   const derivedDisplayName =
     displayName ?? name.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-  const versionStr = version.replace(/\./g, '_');
+  const versionStr = xguiVersionSuffix(version);
   const derivedXguiFile = xguiFile ?? `xgui/${name}_v${versionStr}.tcl`;
 
   const fallbackFileSetPaths =

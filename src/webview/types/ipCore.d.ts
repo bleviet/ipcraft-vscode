@@ -21,6 +21,14 @@ export type Name = string;
  */
 export type Version = string;
 /**
+ * How vlnv.version is structured. 'free' = any text. Numeric schemes = 2, 3 or 4 dot-separated components, each 0..255 (8 bit). Required for $version register references.
+ */
+export type Versionscheme =
+  | 'free'
+  | 'major.minor'
+  | 'major.minor.patch'
+  | 'major.feature.minor.patch';
+/**
  * IP core description
  */
 export type Description = string | null;
@@ -294,7 +302,7 @@ export type AccessType1 =
 /**
  * Reset value for entire register
  */
-export type Resetvalue = number | null;
+export type Resetvalue = number | string | null;
 /**
  * Register description
  */
@@ -329,7 +337,7 @@ export type AccessType2 =
 /**
  * Reset/default value
  */
-export type Resetvalue1 = number | null;
+export type Resetvalue1 = number | string | null;
 /**
  * Field description
  */
@@ -488,6 +496,7 @@ export interface VLNV {
   library: Library;
   name: Name;
   version: Version;
+  versionScheme?: Versionscheme;
   [k: string]: unknown;
 }
 /**

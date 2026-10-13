@@ -41,22 +41,6 @@ export function validateUniqueName(
 }
 
 /**
- * Version format validation
- * Format: X.Y.Z where X, Y, Z are numbers
- */
-export function validateVersion(value: string): string | null {
-  if (!value) {
-    return 'Required';
-  }
-
-  if (!/^\d+\.\d+\.\d+$/.test(value)) {
-    return 'Format: X.Y.Z (e.g., "1.0.0")';
-  }
-
-  return null;
-}
-
-/**
  * Non-empty validation
  */
 export function validateRequired(value: string): string | null {

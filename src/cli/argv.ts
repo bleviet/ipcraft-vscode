@@ -9,6 +9,7 @@ import { parseRenderArgs } from './renderArgv';
 import type { CliResourcesArgs } from './resources';
 import { parseResourcesArgs } from './resourcesArgv';
 import type { CliVhdlLsArgs } from './vhdlLs';
+import type { RegisterSetPolicy } from './registerSetPolicy';
 import type { CliVerifyArgs } from './verify';
 import type { HdlLanguage } from '../generator/types';
 import type { IndentStyle } from '../generator/reindent';
@@ -64,6 +65,12 @@ Options:
                                       sources (default: ${DEFAULT_INDENT_STYLE})
   --indent-size <n>                   Spaces per indentation level when --indent-style is
                                       'spaces' (default: ${DEFAULT_INDENT_SIZE}); ignored for 'tab'
+  --register-set-policy <adopt|overwrite>
+                                      [generate only] Record the IP core version in the
+                                      versionHistory of versioned memory maps: 'adopt' appends a
+                                      new version, 'overwrite' replaces the layout recorded for
+                                      the current vlnv.version. Without it nothing is written and
+                                      generation fails when a versioned map is not up to date
   --zip                              [package only] Write a .zip file; --out is the file path
   --check                            [migrate only] Report files that need an upgrade or key
                                       conversion without writing; exit 1 if any do
@@ -183,11 +190,12 @@ interface CommonOptions {
   outDir?: string;
   indentStyle?: IndentStyle;
   indentSize?: number;
+  registerSetPolicy?: RegisterSetPolicy;
 }
 
 /**
  * Parses the shared `--target/--lang/--out/--pack/--quartus-device/--vivado-part/
- * --indent-style/--indent-size` options.
+ * --indent-style/--indent-size/--register-set-policy` options.
  */
 function parseCommonOptions(
   rest: string[]
@@ -201,6 +209,7 @@ function parseCommonOptions(
   let targetPart: string | undefined;
   let indentStyle: IndentStyle | undefined;
   let indentSize: number | undefined;
+  let registerSetPolicy: string | undefined;
 
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
@@ -240,6 +249,9 @@ function parseCommonOptions(
       case '--indent-size':
         indentSize = Number(next());
         break;
+      case '--register-set-policy':
+        registerSetPolicy = String(next());
+        break;
       default:
         if (arg.startsWith('--')) {
           return { error: `Unknown option '${arg}'` };
@@ -260,6 +272,16 @@ function parseCommonOptions(
     return { error: `Invalid --indent-size: expected a positive integer` };
   }
 
+  if (
+    registerSetPolicy !== undefined &&
+    registerSetPolicy !== 'adopt' &&
+    registerSetPolicy !== 'overwrite'
+  ) {
+    return {
+      error: `Invalid --register-set-policy '${registerSetPolicy}': expected 'adopt' or 'overwrite'`,
+    };
+  }
+
   return {
     positional,
     options: {
@@ -271,6 +293,7 @@ function parseCommonOptions(
       outDir,
       indentStyle,
       indentSize,
+      registerSetPolicy,
     },
   };
 }
@@ -403,6 +426,13 @@ export function parseArgs(argv: string[]): ParsedArgv {
       return { kind: 'error', message: 'Missing required argument: <ip.yml>' };
     }
     return { kind: 'generate', args: { ipYamlPath, ...options } };
+  }
+
+  if (options.registerSetPolicy) {
+    return {
+      kind: 'error',
+      message: "Option '--register-set-policy' is only valid for 'generate'",
+    };
   }
 
   const [ipYamlPath, generatedDir] = positional;

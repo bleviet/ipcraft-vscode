@@ -8,6 +8,7 @@ import { useFieldDrafts } from './useFieldDrafts';
 import { useTableEditorState } from './useTableEditorState';
 import { usePendingSelect, type PendingSelectTarget } from './usePendingSelect';
 import { reconcileRowIds, type TableRowWrapper } from '../utils/rowIdentity';
+import { formatResetDisplay } from '../shared/utils/fieldValidation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -133,10 +134,10 @@ export function useFieldEditor(
       }));
       setBitsErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
 
-      const rv = snapshotField.resetValue;
-      const resetDisplay =
-        rv !== null && rv !== undefined ? `0x${Number(rv).toString(16).toUpperCase()}` : '0x0';
-      setResetDrafts((prev: Record<string, string>) => ({ ...prev, [rowId]: resetDisplay }));
+      setResetDrafts((prev: Record<string, string>) => ({
+        ...prev,
+        [rowId]: formatResetDisplay(snapshotField),
+      }));
       setResetErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
     },
     onInsertAfter: () => tryInsertField(true),

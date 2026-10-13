@@ -3,6 +3,8 @@ import type { YamlUpdateHandler } from '../../types/editor';
 import { EditableTable, HoverInsertBar, TableContextMenu } from '../../shared/components';
 import { computeReorderPreview } from '../../utils/reorderPreview';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
+import type { VersionRef } from '../../../shared/versioning/versionScheme';
+import type { VersionRefIssue } from '../../../shared/versioning/validateVersionRefs';
 import FieldTableRow from './FieldTableRow';
 
 export interface FieldDef {
@@ -13,6 +15,8 @@ export interface FieldDef {
   bitRange?: [number, number] | null;
   access?: string | null;
   resetValue?: number | null;
+  /** `$version` token in place of a number (`resetValue` is 0 then). */
+  versionRef?: VersionRef | null;
   description?: string | null;
   monitorChangeOf?: string | null;
 }
@@ -42,6 +46,8 @@ export interface FieldsTableProps {
   onUpdate: YamlUpdateHandler;
   /** All editing state from the useFieldEditor hook. */
   fieldEditor: FieldEditorState;
+  /** `$version` diagnostics per field index, shown in the reset cell. */
+  fieldIssues?: ReadonlyMap<number, readonly VersionRefIssue[]>;
   /** Register value label/hex-dec editor, rendered in the toolbar above the table. */
   valueBar?: React.ReactNode;
 }
@@ -61,6 +67,7 @@ export function FieldsTable({
   registerSize,
   onUpdate,
   fieldEditor,
+  fieldIssues,
   valueBar,
 }: FieldsTableProps) {
   const {
@@ -294,6 +301,7 @@ export function FieldsTable({
                         registerSize={registerSize}
                         onUpdate={onUpdate}
                         fieldEditor={fieldEditor}
+                        issues={fieldIssues?.get(index)}
                         onRowClick={(idx) => handleRowClick(idx, wrapped.rowId)}
                         onCellClick={(idx, key, opt) =>
                           handleCellClick(idx, wrapped.rowId, key, opt)

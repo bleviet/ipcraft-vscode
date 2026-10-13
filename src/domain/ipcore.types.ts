@@ -21,6 +21,14 @@ export type Name = string;
  */
 export type Version = string;
 /**
+ * How vlnv.version is structured. 'free' = any text. Numeric schemes = 2, 3 or 4 dot-separated components, each 0..255 (8 bit). Required for $version register references.
+ */
+export type Versionscheme =
+  | 'free'
+  | 'major.minor'
+  | 'major.minor.patch'
+  | 'major.feature.minor.patch';
+/**
  * IP core description
  */
 export type Description = string | null;
@@ -355,7 +363,7 @@ export type AccessType1 =
 /**
  * Reset value for entire register
  */
-export type Resetvalue = number | null;
+export type Resetvalue = number | string | null;
 /**
  * Register description
  */
@@ -390,7 +398,7 @@ export type AccessType2 =
 /**
  * Reset/default value
  */
-export type Resetvalue1 = number | null;
+export type Resetvalue1 = number | string | null;
 /**
  * Field description
  */
@@ -592,7 +600,7 @@ export interface IpCore {
    */
   targets?: string[];
   /**
-   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Version 1.2 adds port field metadata (fields on ports and conduit ports, portFields on bus interfaces). Tools must not read a file that declares a newer version than they support.
+   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Version 1.2 adds port field metadata (fields on ports and conduit ports, portFields on bus interfaces) and vlnv.versionScheme. Tools must not read a file that declares a newer version than they support.
    */
   apiVersion?: '1.0' | '1.1' | '1.2';
   /**
@@ -609,6 +617,7 @@ export interface VLNV {
   library: Library;
   name: Name;
   version: Version;
+  versionScheme?: Versionscheme;
   [k: string]: unknown;
 }
 /**

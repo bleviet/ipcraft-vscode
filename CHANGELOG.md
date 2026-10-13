@@ -179,6 +179,28 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 - If an interface relied on `TREADY`, `valid`, `AWPROT` or `ARPROT` being generated automatically, add them to its `useOptionalPorts` to keep them; otherwise the generated HDL, `component.xml` and `_hw.tcl` no longer have them. An Avalon-MM or AXI4 interface with an incomplete port set now fails validation until you add the missing port.
 
+### Added
+
+- **A version scheme for IP cores.** The IP Core editor has a **Version scheme** selector above the Version field. `vlnv.versionScheme` is `free` (any text, the default), `major.minor`, `major.minor.patch` or `major.feature.minor.patch`; each numeric component is 0 to 255 (8 bits). Switching the scheme never rewrites `vlnv.version`; a version that no longer fits is flagged under the field. Selecting Free text removes the `versionScheme` key.
+- **`$version` register references.** A bit field's or a fieldless register's `resetValue` can be `$version` (the packed version, 8 bits per component, major first) or `$version.major`, `.feature`, `.minor`, `.patch`. The Memory Map editor accepts the token in the Reset cell and, for a fieldless register, in the Value bar, shows the resolved value next to it, and reports misplaced references (scheme, width, register arrays, several version registers). Generated HDL, `component.xml`, the datasheet and the verification manifest treat the field as a read-only constant that is not a hardware input. The file keeps the token, so a version bump never edits the memory map. The how-to guide "Versioning Register Sets" walks through it.
+- **Register-set version history.** A memory map can record each released version and the register layout it shipped with in `versionHistory` (a hash-keyed set of layout snapshots plus a version list). Maps with a `versionHistory` or a `$version` reference are checked before every generate command: a changed layout asks to **Adopt** it as a new version (asking for a new `vlnv.version` when the current one is already recorded) or, when the current version is recorded, to **Overwrite** its layout; dismissing cancels without writing. A design whose `$version` references generation rejects is not recorded: nothing is prompted or written and generation reports the errors. **IPCraft: Start Register-Set Versioning** records the first entry, and `ipcraft generate --register-set-policy adopt|overwrite` does the same headlessly. The editor and the generator warn when the version register moves or its fields change since a recorded version.
+
+### Changed
+
+- The IP Core editor's Version field validates against the selected scheme. Free text accepts any non-empty text instead of requiring `X.Y.Z`.
+- Vivado XGUI file names replace every character other than letters, digits and `_` in the version with `_`, so a free-text version cannot produce an invalid file name. Numeric versions such as `1.2.0` still give `1_2_0`. Generating for Vivado or Quartus with a version that is not dotted numbers now warns that the tool may reject it.
+- `ipcraft verify` lists the individual issues of a blocked generation instead of only the summary line.
+
+### Fixed
+
+- **The register Value bar no longer drops a value silently.** On a register without bit fields the value is stored in the register's own `resetValue`, which is what the generators read. On a register with fields, a value with a set bit that no field covers is rejected with `Bits <ranges> are not covered by a bit field` instead of being partly written.
+- The Reset cell shows `Invalid number` for text it cannot parse, such as `A` or `FF`, instead of silently keeping a draft that never reaches the document.
+
+### Compatibility
+
+- `apiVersion: "1.2"` is not tied to `vlnv.versionScheme`: nothing checks one against the other. `ipcraft migrate` and the IP Core editor's first-edit format upgrade (once the bus library is loaded) stamp `1.2` on every older `.ip.yml`, after which IPCraft 1.2.0 refuses the file. The template context contract is now 1.6.0 and adds `is_constant` and `version_ref` per field and register, the `constant` value of `read_source`, and `version_scheme`, `version_history` and `version_file_suffix`. The keys are additive, so custom packs declaring `apiVersion: "^1.x"` keep working.
+- `ipcraft generate` and `ipcraft verify` fail for a versioned memory map that is not up to date. `generate` writes the history only when `--register-set-policy` is given; `verify` never writes. Do not use versioned memory maps with an IPCraft older than this release: IPCraft 1.2.0 never schema-validates an imported `.mm.yml`, so it reads `$version.major` as `0`, ignores `versionHistory`, and silently generates the version field as an ordinary register with a reset value of `0`. Only the `.ip.yml` side fails loudly (IPCraft 1.2.0 refuses `apiVersion: "1.2"`, and its IP core schema rejects inline `$version` tokens).
+
 ## [1.2.0] - 2026-10-11
 
 ### New

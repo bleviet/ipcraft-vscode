@@ -32,12 +32,18 @@
 
 {{ reg.description if reg.description else "" }}
 
-{% if reg.fields %}
+{% if reg.fields and not (reg.is_constant and reg.fields | length == 0) %}
 | Bits | Field | Access | Reset | Description |
 |------|-------|--------|-------|-------------|
 {% for field in reg.fields %}
+{% if field.is_constant %}
+| `[{{ field.offset + field.width - 1 }}:{{ field.offset }}]` | `{{ field.name }}` | `read-only (constant)` | `{{ field.version_ref }} (0x{{ ('%0' ~ ((field.width + 3) // 4) ~ 'X') | format(field.reset_value) }})` | {{ field.description if field.description else "—" }} |
+{% else %}
 | `[{{ field.offset + field.width - 1 }}:{{ field.offset }}]` | `{{ field.name }}` | `{{ field.access }}` | `0x{{ '%X' | format(field.reset_value) }}` | {{ field.description if field.description else "—" }} |
+{% endif %}
 {% endfor %}
+{% elif reg.is_constant %}
+Constant: `{{ reg.version_ref }} (0x{{ ('%0' ~ ((data_width + 3) // 4) ~ 'X') | format(reg.reset_value) }})`
 {% else %}
 *No fields defined.*
 {% endif %}

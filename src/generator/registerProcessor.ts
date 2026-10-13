@@ -6,7 +6,10 @@ import type {
   IpCoreData,
   ProjectedBusPort,
 } from './types';
-import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImports';
+import {
+  resolveMemoryMapImports,
+  type FileReader,
+} from '../services/imports/resolveMemoryMapImports';
 import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
 import type { Parameter } from '../domain/ipcore.types';
@@ -25,6 +28,8 @@ import {
 import { evalWidthExpr } from '../shared/evalWidthExpr';
 import { parse, serialize, containsParamRef } from '../shared/widthExprAst';
 import { reconstructBusPortNameSet } from '../shared/busPortNameSet';
+import { resolveVersionRefsInMap } from '../shared/versioning/resolveVersionRefs';
+import { ipCoreVersionInfo } from './versionContext';
 import { buildPortSwapProjection } from './resolvers/endiannessPolicy';
 export { evalWidthExpr };
 
@@ -556,14 +561,13 @@ export function getActiveBusPortsFromDefinition(
   return activePorts;
 }
 
-export async function resolveMemoryMaps(
+/** `reader` defaults to the file system; callers that read through an editor pass their own. */
+export async function loadMemoryMaps(
   ipCore: IpCoreData,
-  inputPath: string
+  inputPath: string,
+  reader: FileReader = { readText: (absPath: string) => fs.readFile(absPath, 'utf8') }
 ): Promise<NormalizedMemoryMap[]> {
   const baseDir = path.dirname(inputPath);
-  const reader = {
-    readText: (absPath: string) => fs.readFile(absPath, 'utf8'),
-  };
 
   const { resolved, errors } = await resolveMemoryMapImports({
     memoryMaps: ipCore.memoryMaps,
@@ -582,11 +586,31 @@ export async function resolveMemoryMaps(
   return resolved.map((rawMap) => normalizeMemoryMap(rawMap));
 }
 
-export async function prepareRegisters(
+/**
+ * The one place `$version` references become numbers for generation: every consumer (register
+ * file, vendor packaging, verification manifest, docs) reads the maps this returns.
+ */
+export function resolveIpCoreVersionRefs(
+  ipCore: IpCoreData,
+  maps: readonly NormalizedMemoryMap[]
+): NormalizedMemoryMap[] {
+  const { scheme, version } = ipCoreVersionInfo(ipCore);
+  return maps.map((map) => resolveVersionRefsInMap(map, scheme, version));
+}
+
+export async function resolveMemoryMaps(
   ipCore: IpCoreData,
   inputPath: string
+): Promise<NormalizedMemoryMap[]> {
+  return resolveIpCoreVersionRefs(ipCore, await loadMemoryMaps(ipCore, inputPath));
+}
+
+export async function prepareRegisters(
+  ipCore: IpCoreData,
+  inputPath: string,
+  resolvedMemoryMaps?: readonly NormalizedMemoryMap[]
 ): Promise<Array<Record<string, unknown>>> {
-  const memoryMaps = await resolveMemoryMaps(ipCore, inputPath);
+  const memoryMaps = resolvedMemoryMaps ?? (await resolveMemoryMaps(ipCore, inputPath));
   const registers: Array<Record<string, unknown>> = [];
 
   const processRegister = (reg: NormalizedRegister, baseOffset: number, prefix: string) => {
@@ -643,6 +667,8 @@ export async function prepareRegisters(
         reset_value: resetValue,
         description: field.description ?? '',
         monitorChangeOf: field.monitorChangeOf ?? null,
+        is_constant: Boolean(field.versionRef),
+        version_ref: field.versionRef ?? null,
       };
     });
 
@@ -656,6 +682,9 @@ export async function prepareRegisters(
       access: regAccess,
       description: reg.description ?? '',
       reset_value: reg.resetValue,
+      is_constant:
+        Boolean(reg.versionRef) || (fields.length > 0 && fields.every((f) => f.is_constant)),
+      version_ref: reg.versionRef ?? null,
       fields,
     });
   };
