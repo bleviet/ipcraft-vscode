@@ -896,11 +896,19 @@
     },
     "VersionHistoryEntry": {
       "type": "object",
-      "required": ["version", "register_set"],
+      "required": ["version", "register_set", "crc8", "crc16"],
       "additionalProperties": false,
       "properties": {
         "version": { "type": "string" },
-        "register_set": { "type": "string" }
+        "register_set": { "type": "string" },
+        "crc8": {
+          "type": ["integer", "null"],
+          "description": "CRC-8 of the version bytes recorded with the entry; null for entries written before CRCs were recorded."
+        },
+        "crc16": {
+          "type": ["integer", "null"],
+          "description": "CRC-16 of the version bytes recorded with the entry; null for entries written before CRCs were recorded."
+        }
       }
     },
     "MemoryMapField": {

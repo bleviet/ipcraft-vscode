@@ -128,7 +128,7 @@ describe('validateVersionRefs: E1 free scheme', () => {
     for (const issue of issues) {
       expect(issue.severity).toBe('error');
       expect(issue.message).toBe(
-        'Version references need a numeric version scheme (set vlnv.versionScheme in the owning .ip.yml)'
+        'Version references need a numeric version scheme (set vlnv.versionScheme in the owning .ip.yml); only $version.crc8 and $version.crc16 work with a free version'
       );
     }
   });
@@ -220,6 +220,85 @@ describe('validateVersionRefs: E3 field width', () => {
     const issues = validateVersionRefs(make(width - 1), scheme);
     expect(issues).toHaveLength(1);
     expect(issues[0].message).toBe(`$version needs ${width} bits, field is ${width - 1}`);
+  });
+});
+
+describe('validateVersionRefs: CRC refs', () => {
+  const crcFields = (bits8: string, bits16: string) =>
+    blocksOf(
+      mapWith(`
+        - name: VERSION
+          offset: 0
+          fields:
+            - { name: C8, bits: "${bits8}", resetValue: $version.crc8 }
+            - { name: C16, bits: "${bits16}", resetValue: $version.crc16 }
+`)
+    );
+
+  it.each(['free', 'major.minor', 'major.minor.patch', 'major.feature.minor.patch'] as const)(
+    'accepts exact-width CRC fields under %s',
+    (scheme) => {
+      expect(validateVersionRefs(crcFields('[7:0]', '[31:16]'), scheme)).toEqual([]);
+    }
+  );
+
+  it('requires CRC fields to be exactly 8 and 16 bits', () => {
+    const issues = validateVersionRefs(crcFields('[11:0]', '[31:20]'), 'major.minor');
+    expect(issues.map((issue) => [issue.code, issue.path, issue.message])).toEqual([
+      ['versionRef.width', FIELD_PATH(0), '$version.crc8 needs 8 bits, field is 12'],
+      ['versionRef.width', FIELD_PATH(1), '$version.crc16 needs 16 bits, field is 12'],
+    ]);
+  });
+
+  it('still rejects the other refs under free, naming the CRC refs as the only ones that work', () => {
+    const issues = validateVersionRefs(blocksOf(mapWith(VERSION_REGISTER)), 'free');
+    expect(issues).toHaveLength(3);
+    expect(issues.every((issue) => issue.code === 'versionRef.scheme')).toBe(true);
+    expect(issues[0].message).toContain('only $version.crc8 and $version.crc16 work');
+  });
+
+  it('lists the CRC refs among the valid references', () => {
+    const blocks = blocksOf(
+      mapWith(`
+        - name: VERSION
+          offset: 0
+          fields:
+            - { name: F, bits: "[7:0]", resetValue: $version.feature }
+`)
+    );
+    const [issue] = validateVersionRefs(blocks, 'major.minor');
+    expect(issue.message).toContain('$version.crc8, $version.crc16');
+  });
+
+  it('applies the register-level size rule on a fieldless register', () => {
+    const register = (size: number) =>
+      blocksOf(
+        mapWith(`        - { name: V, offset: 0, size: ${size}, resetValue: $version.crc16 }\n`)
+      );
+    expect(validateVersionRefs(register(32), 'free')).toEqual([]);
+    expect(validateVersionRefs(register(16), 'major.minor')).toEqual([]);
+    const [issue] = validateVersionRefs(register(8), 'major.minor');
+    expect(issue.message).toBe('$version.crc16 needs 16 bits, register is 8');
+  });
+
+  it('counts a CRC field as the version register for the single-register rule', () => {
+    const blocks = blocksOf(
+      mapWith(`
+        - name: VERSION
+          offset: 0
+          fields:
+            - { name: MAJOR, bits: "[7:0]", resetValue: $version.major }
+        - name: CHECK
+          offset: 4
+          fields:
+            - { name: C, bits: "[7:0]", resetValue: $version.crc8 }
+`)
+    );
+    const issues = validateVersionRefs(blocks, 'major.minor');
+    expect(issues.map((issue) => issue.code)).toEqual([
+      'versionRef.multiple',
+      'versionRef.multiple',
+    ]);
   });
 });
 

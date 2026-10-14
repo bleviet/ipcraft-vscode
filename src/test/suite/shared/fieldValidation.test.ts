@@ -278,11 +278,13 @@ describe('resolveResetInput', () => {
   it('rejects an unknown token with the general message, or the scheme references when resolved', () => {
     expect(resolveResetInput('$version.foo', byte, normal)).toEqual({
       kind: 'error',
-      message: 'Unknown version reference. Use $version or $version.<component>',
+      message:
+        'Unknown version reference. Use $version, $version.<component>, $version.crc8 or $version.crc16',
     });
     expect(resolveResetInput('$ver', byte, resolved)).toEqual({
       kind: 'error',
-      message: 'Use $version, $version.major, $version.minor or $version.patch',
+      message:
+        'Use $version, $version.major, $version.minor, $version.patch, $version.crc8 or $version.crc16',
     });
   });
 

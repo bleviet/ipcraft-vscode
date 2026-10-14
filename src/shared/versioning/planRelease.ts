@@ -14,6 +14,7 @@ import {
   type ReleaseState,
   type VersionHistory,
 } from './versionHistory';
+import type { VersionScheme } from './versionScheme';
 
 export type ReleaseDecision = 'adopt' | 'overwrite';
 
@@ -71,6 +72,7 @@ function planMap(
   input: MapReleaseInput,
   state: ReleaseState,
   coreVersion: string,
+  scheme: VersionScheme,
   decision: ReleaseDecision | undefined
 ): VersionHistory | undefined {
   const { history, currentHash, snapshot } = input;
@@ -79,7 +81,7 @@ function planMap(
       return undefined;
     case 'empty':
     case 'version-bump-only':
-      return appendVersion(history, coreVersion, currentHash, snapshot);
+      return appendVersion(history, coreVersion, scheme, currentHash, snapshot);
     case 'pending': {
       if (decision === undefined) {
         throw new Error(`Map ${input.mapName} needs an adopt or overwrite decision.`);
@@ -87,22 +89,32 @@ function planMap(
       if (decision === 'adopt') {
         // appendVersion throws when coreVersion is already recorded: the caller must have
         // obtained a new version first.
-        return appendVersion(history, coreVersion, currentHash, snapshot);
+        return appendVersion(history, coreVersion, scheme, currentHash, snapshot);
       }
       if (!state.coreVersionRecorded) {
         throw new Error(
           `Map ${input.mapName}: cannot overwrite version ${coreVersion}, it is not recorded.`
         );
       }
-      return overwriteVersion(history as VersionHistory, coreVersion, currentHash, snapshot);
+      return overwriteVersion(
+        history as VersionHistory,
+        coreVersion,
+        scheme,
+        currentHash,
+        snapshot
+      );
     }
   }
 }
 
-/** One plan per input, in input order. Inputs are not mutated. */
+/**
+ * One plan per input, in input order. Inputs are not mutated. `scheme` is the core's version
+ * scheme: the written entries record the CRCs of `coreVersion` under it.
+ */
 export function planRelease(
   inputs: readonly MapReleaseInput[],
   coreVersion: string,
+  scheme: VersionScheme,
   decision?: ReleaseDecision
 ): MapReleasePlan[] {
   const states = releaseStates(inputs, coreVersion);
@@ -111,7 +123,7 @@ export function planRelease(
     if (!state) {
       return { mapName: input.mapName, state };
     }
-    const nextHistory = planMap(input, state, coreVersion, decision);
+    const nextHistory = planMap(input, state, coreVersion, scheme, decision);
     return { mapName: input.mapName, state, ...(nextHistory ? { nextHistory } : {}) };
   });
 }

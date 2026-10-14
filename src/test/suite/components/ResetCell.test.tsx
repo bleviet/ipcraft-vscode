@@ -124,7 +124,7 @@ describe('ResetCell $version references', () => {
     const { onUpdate, onErrorChange, type } = renderCell(byte);
     type(text);
     expect(onErrorChange).toHaveBeenLastCalledWith(
-      'Unknown version reference. Use $version or $version.<component>'
+      'Unknown version reference. Use $version, $version.<component>, $version.crc8 or $version.crc16'
     );
     expect(onUpdate).not.toHaveBeenCalled();
   });
@@ -133,7 +133,7 @@ describe('ResetCell $version references', () => {
     const { onUpdate, onErrorChange, type } = renderCell(byte, '0x0', { context: resolved });
     type('$version.foo');
     expect(onErrorChange).toHaveBeenLastCalledWith(
-      'Use $version, $version.major, $version.minor or $version.patch'
+      'Use $version, $version.major, $version.minor, $version.patch, $version.crc8 or $version.crc16'
     );
     expect(onUpdate).not.toHaveBeenCalled();
   });

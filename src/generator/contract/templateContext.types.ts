@@ -548,4 +548,12 @@ export interface BoundaryTransformPort {
 export interface VersionHistoryEntry {
   version: string;
   register_set: string;
+  /**
+   * CRC-8 of the version bytes recorded with the entry; null for entries written before CRCs were recorded.
+   */
+  crc8: number | null;
+  /**
+   * CRC-16 of the version bytes recorded with the entry; null for entries written before CRCs were recorded.
+   */
+  crc16: number | null;
 }

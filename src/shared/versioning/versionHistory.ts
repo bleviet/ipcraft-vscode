@@ -6,7 +6,8 @@
  */
 import type { NormalizedAddressBlock } from '../../domain/internal.types';
 import type { VersionEntry, VersionHistory } from './versionHistoryTypes';
-import type { VersionRef } from './versionScheme';
+import { crc16, crc8 } from './versionCrc';
+import { versionBytes, type VersionRef, type VersionScheme } from './versionScheme';
 
 export type { VersionEntry, VersionHistory } from './versionHistoryTypes';
 
@@ -62,10 +63,20 @@ export function releaseState(
   return { kind: 'pending', reference, currentHash, coreVersionRecorded: recorded !== undefined };
 }
 
+/**
+ * The CRCs recorded with a version entry, computed under the core's scheme at write time; empty
+ * when `version` is invalid for `scheme` (the release flow refuses such versions earlier).
+ */
+function entryCrcs(scheme: VersionScheme, version: string): Pick<VersionEntry, 'crc8' | 'crc16'> {
+  const bytes = versionBytes(scheme, version);
+  return bytes ? { crc8: crc8(bytes), crc16: crc16(bytes) } : {};
+}
+
 /** Records `version` against `hash`; identical layouts share one stored snapshot. */
 export function appendVersion(
   history: VersionHistory | undefined,
   version: string,
+  scheme: VersionScheme,
   hash: string,
   snapshot: unknown[]
 ): VersionHistory {
@@ -79,7 +90,7 @@ export function appendVersion(
       hash in registerSets
         ? { ...registerSets }
         : { ...registerSets, [hash]: { addressBlocks: snapshot } },
-    versions: [...versions, { version, registerSet: hash }],
+    versions: [...versions, { version, registerSet: hash, ...entryCrcs(scheme, version) }],
   };
 }
 
@@ -90,6 +101,7 @@ export function appendVersion(
 export function overwriteVersion(
   history: VersionHistory,
   version: string,
+  scheme: VersionScheme,
   hash: string,
   snapshot: unknown[]
 ): VersionHistory {
@@ -97,7 +109,9 @@ export function overwriteVersion(
     throw new Error(`Cannot overwrite version ${version}: it is not recorded in the history.`);
   }
   const versions = history.versions.map((entry) =>
-    entry.version === version ? { ...entry, registerSet: hash } : entry
+    entry.version === version
+      ? { ...entry, registerSet: hash, ...entryCrcs(scheme, version) }
+      : entry
   );
   const candidates =
     hash in history.registerSets

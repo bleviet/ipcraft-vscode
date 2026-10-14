@@ -15,6 +15,7 @@ import {
   registerResetToBitVector,
 } from '../bitfield/utils';
 import { decideRegisterToken, parseRegisterValueDraft } from '../bitfield/registerValueToken';
+import { fieldResetsWriteUpdate } from '../../services/RegisterEditOperation';
 
 export interface RegisterValueBarProps {
   registerSize: number;
@@ -29,8 +30,11 @@ export interface RegisterValueBarProps {
   resolveRef: (ref: VersionRef) => number;
   /** Writes the register's own `resetValue`; Debug Mode keeps it local. */
   onUpdateRegisterReset: YamlUpdateHandler;
-  /** Writes a `$version` token to the document (never reached in Debug Mode). */
-  onUpdateRegisterToken: YamlUpdateHandler;
+  /**
+   * Writes to the document, bypassing Debug Mode (which never reaches it): a `$version`
+   * reference, or the atomic register edit that clears a leftover register-level reference.
+   */
+  onUpdateDocument: YamlUpdateHandler;
   onUpdateFieldReset: (fieldIndex: number, value: number | bigint | null) => void;
 }
 
@@ -47,7 +51,7 @@ export function RegisterValueBar({
   debugRegisterReset,
   resolveRef,
   onUpdateRegisterReset,
-  onUpdateRegisterToken,
+  onUpdateDocument,
   onUpdateFieldReset,
 }: RegisterValueBarProps) {
   const registerValue = useMemo(() => {
@@ -121,11 +125,24 @@ export function RegisterValueBar({
       if (!debugMode && unsafeForYaml) {
         return "Values above JavaScript's safe integer limit require Debug Mode";
       }
+      // A leftover register-level reference next to bit fields is invalid: the commit removes it
+      // in the same update as the field writes.
+      if (!debugMode && register.versionRef) {
+        const resets: Array<{ fieldIndex: number; value: number | bigint }> = [];
+        applyRegisterBitVectorToFields(
+          fields,
+          value,
+          skipConstants((fieldIndex, fieldValue) => resets.push({ fieldIndex, value: fieldValue }))
+        );
+        onUpdateDocument(...fieldResetsWriteUpdate(resets));
+        return null;
+      }
       applyRegisterBitVectorToFields(fields, value, skipConstants(onUpdateFieldReset));
       return null;
     },
     [
       fields,
+      onUpdateDocument,
       onUpdateFieldReset,
       onUpdateRegisterReset,
       debugMode,
@@ -134,14 +151,17 @@ export function RegisterValueBar({
     ]
   );
 
-  const applyRegisterToken = useCallback(() => {
-    const decision = decideRegisterToken({ hasFields: fields.length > 0, debugMode });
-    if (decision.kind === 'error') {
-      return decision.message;
-    }
-    onUpdateRegisterToken(['resetValue'], decision.token);
-    return null;
-  }, [fields.length, debugMode, onUpdateRegisterToken]);
+  const applyRegisterToken = useCallback(
+    (token: VersionRef) => {
+      const decision = decideRegisterToken({ token, hasFields: fields.length > 0, debugMode });
+      if (decision.kind === 'error') {
+        return decision.message;
+      }
+      onUpdateDocument(['resetValue'], decision.token);
+      return null;
+    },
+    [fields.length, debugMode, onUpdateDocument]
+  );
 
   const parseValueDraft = (text: string, view: 'hex' | 'dec') =>
     parseRegisterValueDraft(text, view, registerSize);

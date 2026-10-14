@@ -95,18 +95,23 @@ jest.mock('../../../webview/shared/components', () => ({
 
 const setDragPreviewRanges = jest.fn();
 
+const mockUseFieldEditorArgs: unknown[][] = [];
+
 jest.mock('../../../webview/hooks/useFieldEditor', () => ({
-  useFieldEditor: () => ({
-    wrappedFields: [
-      { rowId: 'row-RUN', model: { name: 'RUN' } },
-      { rowId: 'row-STOP', model: { name: 'STOP_ON_ERR' } },
-    ],
-    hoveredFieldIndex: null,
-    setHoveredFieldIndex: jest.fn(),
-    setDragPreviewRanges,
-    setBitsDrafts: jest.fn(),
-    focusRef: { current: null },
-  }),
+  useFieldEditor: (...args: unknown[]) => {
+    mockUseFieldEditorArgs.push(args);
+    return {
+      wrappedFields: [
+        { rowId: 'row-RUN', model: { name: 'RUN' } },
+        { rowId: 'row-STOP', model: { name: 'STOP_ON_ERR' } },
+      ],
+      hoveredFieldIndex: null,
+      setHoveredFieldIndex: jest.fn(),
+      setDragPreviewRanges,
+      setBitsDrafts: jest.fn(),
+      focusRef: { current: null },
+    };
+  },
 }));
 
 const register = {
@@ -533,6 +538,8 @@ describe('RegisterEditor $version references', () => {
 
   type RegisterProp = Parameters<typeof RegisterEditor>[0]['register'];
 
+  const versionedReg = { name: 'VERSION', size: 32, versionRef: '$version' } as RegisterProp;
+
   const majorField: BitFieldRecord = {
     name: 'MAJOR',
     bits: '[23:16]',
@@ -698,6 +705,136 @@ describe('RegisterEditor $version references', () => {
     commitValue('$version');
     expect(onUpdate).not.toHaveBeenCalled();
     expect(screen.getByText('Use $version.* on the bit fields')).toBeTruthy();
+  });
+
+  it('tells the field editor whether the register still carries its own reference', () => {
+    mockUseFieldEditorArgs.length = 0;
+    renderEditor({ register: versionedReg, fields: [] });
+    expect(mockUseFieldEditorArgs.at(-1)?.[4]).toBe(true);
+    cleanup();
+    mockUseFieldEditorArgs.length = 0;
+    renderEditor({ fields: [] });
+    expect(mockUseFieldEditorArgs.at(-1)?.[4]).toBe(false);
+  });
+
+  describe('creating a field in the visualizer (Shift+drag)', () => {
+    const create = () =>
+      act(() =>
+        (
+          latestVisualizerProps() as unknown as {
+            onCreateField: (field: { bitRange: [number, number]; name: string }) => void;
+          }
+        ).onCreateField({ bitRange: [7, 0], name: 'x' })
+      );
+
+    it('removes a register-level reference in the same update as the new field', () => {
+      const onUpdate = renderEditor({ register: versionedReg, fields: [] });
+      create();
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      const [path, value] = onUpdate.mock.calls[0] as [
+        string[],
+        {
+          edits: Array<{ path: string[]; value: Array<{ name: string }> }>;
+          removeKeys: string[][];
+        },
+      ];
+      expect(path).toEqual(['__op', 'register-edit']);
+      expect(value.edits).toHaveLength(1);
+      expect(value.edits[0].path).toEqual(['fields']);
+      expect(value.edits[0].value.map((field) => field.name)).toEqual(['field1']);
+      expect(value.removeKeys).toEqual([['resetValue']]);
+    });
+
+    it('writes a plain fields update when the register has no reference', () => {
+      const onUpdate = renderEditor({ fields: [] });
+      create();
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onUpdate.mock.calls[0][0]).toEqual(['fields']);
+    });
+
+    it('stays local in Debug Mode', () => {
+      mockDebugMode = true;
+      const onUpdate = renderEditor({ register: versionedReg, fields: [] });
+      create();
+      expect(onUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  it('clears a leftover register-level reference with a value bar commit, in one update', () => {
+    const onUpdate = renderEditor({
+      register: versionedReg,
+      fields: [majorField, lowField],
+      context: resolved,
+    });
+    commitValue('000100A5');
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate).toHaveBeenCalledWith(['__op', 'register-edit'], {
+      edits: [{ path: ['fields', 1, 'resetValue'], value: 0xa5 }],
+      removeKeys: [['resetValue']],
+    });
+  });
+
+  it('does not clear the reference when the commit is rejected', () => {
+    const onUpdate = renderEditor({
+      register: versionedReg,
+      fields: [majorField, lowField],
+      context: resolved,
+    });
+    commitValue('000200A5');
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('keeps a Debug Mode value bar commit local, reference included', () => {
+    mockDebugMode = true;
+    const onUpdate = renderEditor({
+      register: versionedReg,
+      fields: [majorField, lowField],
+      context: resolved,
+    });
+    commitValue('000100A5');
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+
+  it('commits any reference on a fieldless register in one update', () => {
+    for (const ref of ['$version.minor', '$version.crc8', '$version.crc16']) {
+      const onUpdate = renderEditor({ fields: [] });
+      commitValue(ref);
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onUpdate).toHaveBeenCalledWith(['resetValue'], ref);
+      cleanup();
+    }
+  });
+
+  it.each(['$version.m', '$version.crc', '$version.'])(
+    'shows no error while the reference %s is being typed',
+    (text) => {
+      renderEditor({ fields: [] });
+      const input = screen.getByLabelText<HTMLInputElement>('Register value (hex)');
+      act(() => {
+        fireEvent.focus(input);
+        fireEvent.change(input, { target: { value: text } });
+      });
+      expect(screen.queryByText('Invalid number')).toBeNull();
+    }
+  );
+
+  it('points a component reference typed on a register with fields to the Reset cell', () => {
+    const onUpdate = renderEditor({ fields: [lowField] });
+    const input = commitValue('$version.major');
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(screen.queryByText('Invalid number')).toBeNull();
+    expect(input).toBeTruthy();
+    expect(screen.getByText("Enter $version.major in a bit field's Reset cell")).toBeTruthy();
+  });
+
+  it('shows no error for a reference prefix typed on a register with fields', () => {
+    renderEditor({ register: versionedReg, fields: [lowField] });
+    const input = screen.getByLabelText<HTMLInputElement>('Register value (hex)');
+    act(() => {
+      fireEvent.focus(input);
+      fireEvent.change(input, { target: { value: '$version.ma' } });
+    });
+    expect(screen.queryByText('Invalid number')).toBeNull();
   });
 
   it('refuses $version in Debug Mode', () => {

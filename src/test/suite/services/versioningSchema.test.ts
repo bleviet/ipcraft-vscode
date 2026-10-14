@@ -85,6 +85,8 @@ describe('ip_core schema: tokens in inline memory maps', () => {
     '$version.feature',
     '$version.minor',
     '$version.patch',
+    '$version.crc8',
+    '$version.crc16',
   ];
 
   it.each(tokens)('accepts %s on an inline bit field', (token) => {
@@ -101,13 +103,21 @@ describe('ip_core schema: tokens in inline memory maps', () => {
     ).toBe(true);
   });
 
-  it.each(['$version.foo', '$ver', '$version.', '$version.Major', ' $version', 'version', ''])(
-    'rejects %p inline',
-    (token) => {
-      expect(validate(inlineMap([{ name: 'R', offset: 0, fields: [field(token)] }]))).toBe(false);
-      expect(validate(inlineMap([{ name: 'R', offset: 0, resetValue: token }]))).toBe(false);
-    }
-  );
+  it.each([
+    '$version.foo',
+    '$ver',
+    '$version.',
+    '$version.Major',
+    '$version.crc',
+    '$version.crc32',
+    '$version.CRC8',
+    ' $version',
+    'version',
+    '',
+  ])('rejects %p inline', (token) => {
+    expect(validate(inlineMap([{ name: 'R', offset: 0, fields: [field(token)] }]))).toBe(false);
+    expect(validate(inlineMap([{ name: 'R', offset: 0, resetValue: token }]))).toBe(false);
+  });
 
   it('rejects versionHistory on an inline memory map', () => {
     const versionHistory = { registerSets: {}, versions: [] };
@@ -143,6 +153,8 @@ describe('memory_map schema: $version tokens and versionHistory', () => {
       '$version.feature',
       '$version.minor',
       '$version.patch',
+      '$version.crc8',
+      '$version.crc16',
     ];
 
     it.each(tokens)('accepts %s on a bit field', (token) => {
@@ -164,6 +176,8 @@ describe('memory_map schema: $version tokens and versionHistory', () => {
       '$ver',
       '$version.',
       '$version.Major',
+      '$version.crc',
+      '$version.crc32',
       '$versions',
       ' $version',
       'version',
@@ -177,6 +191,8 @@ describe('memory_map schema: $version tokens and versionHistory', () => {
       '$ver',
       '$version.',
       '$version.Major',
+      '$version.crc',
+      '$version.crc32',
       '$versions',
       ' $version',
       'version',
@@ -244,6 +260,32 @@ describe('memory_map schema: $version tokens and versionHistory', () => {
       expect(valid(withHistory(history({ registerSets: { [key]: { addressBlocks: [] } } })))).toBe(
         false
       );
+    });
+
+    it('accepts the recorded CRCs of a version entry, as optional integers in range', () => {
+      const entry = (extra: Record<string, unknown>) =>
+        withHistory(history({ versions: [{ version: '1.4.2', registerSet: HASH_A, ...extra }] }));
+      expect(valid(entry({ crc8: 100, crc16: 5930 }))).toBe(true);
+      expect(valid(entry({ crc8: 0, crc16: 0 }))).toBe(true);
+      expect(valid(entry({ crc8: 255, crc16: 65535 }))).toBe(true);
+      expect(valid(entry({ crc8: 100 }))).toBe(true);
+      expect(valid(entry({ crc16: 5930 }))).toBe(true);
+    });
+
+    it.each([
+      { crc8: 256 },
+      { crc8: -1 },
+      { crc8: 1.5 },
+      { crc8: '0x64' },
+      { crc16: 65536 },
+      { crc16: -1 },
+      { crc16: null },
+    ])('rejects the CRC value %p', (extra) => {
+      expect(
+        valid(
+          withHistory(history({ versions: [{ version: '1.4.2', registerSet: HASH_A, ...extra }] }))
+        )
+      ).toBe(false);
     });
 
     it('rejects a version entry without registerSet', () => {

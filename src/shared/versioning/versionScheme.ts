@@ -3,6 +3,7 @@
  *
  * Pure and dependency free: shared by the extension host, the generator and the webview.
  */
+import { crc16, crc8, utf8Bytes } from './versionCrc';
 
 export const VERSION_SCHEMES = [
   'free',
@@ -13,12 +14,24 @@ export const VERSION_SCHEMES = [
 
 export type VersionScheme = (typeof VERSION_SCHEMES)[number];
 export type VersionComponent = 'major' | 'feature' | 'minor' | 'patch';
-export type VersionRef = '$version' | `$version.${VersionComponent}`;
+export type VersionCrc = 'crc8' | 'crc16';
+export type VersionRef = '$version' | `$version.${VersionComponent | VersionCrc}`;
+
+/** Every valid reference, the single source for parsing and for the editor's prefix matching. */
+export const VERSION_REFS: readonly VersionRef[] = [
+  '$version',
+  '$version.major',
+  '$version.feature',
+  '$version.minor',
+  '$version.patch',
+  '$version.crc8',
+  '$version.crc16',
+];
 
 const COMPONENT_BITS = 8;
 const COMPONENT_MAX = 255;
 const COMPONENT_PATTERN = /^(0|[1-9][0-9]*)$/;
-const VERSION_REF_PATTERN = /^\$version(?:\.(major|feature|minor|patch))?$/;
+const CRC_BITS: Record<VersionCrc, number> = { crc8: 8, crc16: 16 };
 
 const SCHEME_COMPONENTS: Record<VersionScheme, VersionComponent[]> = {
   free: [],
@@ -78,15 +91,36 @@ export function packVersion(components: number[]): number {
   return components.reduce((packed, component) => packed * 2 ** COMPONENT_BITS + component, 0);
 }
 
+/**
+ * The bytes the version CRCs cover: the numeric components, most significant first, one byte
+ * each; for `free` the UTF-8 bytes of the trimmed text. Null when `text` is invalid for `scheme`.
+ */
+export function versionBytes(scheme: VersionScheme, text: string): number[] | null {
+  if (scheme === 'free') {
+    return text.trim() === '' ? null : utf8Bytes(text.trim());
+  }
+  return parseVersion(scheme, text);
+}
+
+const isVersionCrc = (name: string): name is VersionCrc => name === 'crc8' || name === 'crc16';
+
 /** The `$version` token a `resetValue` holds, or null for anything else. */
 export function parseVersionRef(value: unknown): VersionRef | null {
-  return typeof value === 'string' && VERSION_REF_PATTERN.test(value)
-    ? (value as VersionRef)
-    : null;
+  return VERSION_REFS.find((ref) => ref === value) ?? null;
+}
+
+/** The CRC a CRC ref names, or null for any other ref. CRC refs exist in every scheme, `free` too. */
+export function versionRefCrc(ref: VersionRef): VersionCrc | null {
+  const name = ref.slice('$version.'.length);
+  return isVersionCrc(name) ? name : null;
 }
 
 /** Bit width a ref needs under `scheme`, or null when the scheme has no such component. */
 export function versionRefWidth(scheme: VersionScheme, ref: VersionRef): number | null {
+  const crc = versionRefCrc(ref);
+  if (crc) {
+    return CRC_BITS[crc];
+  }
   const names = SCHEME_COMPONENTS[scheme];
   if (names.length === 0) {
     return null;
@@ -106,6 +140,11 @@ export function resolveVersionRef(
 ): number | null {
   if (versionRefWidth(scheme, ref) === null) {
     return null;
+  }
+  const crc = versionRefCrc(ref);
+  if (crc) {
+    const bytes = versionBytes(scheme, version);
+    return bytes ? (crc === 'crc8' ? crc8(bytes) : crc16(bytes)) : null;
   }
   const components = parseVersion(scheme, version);
   if (!components) {

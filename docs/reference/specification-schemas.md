@@ -205,12 +205,20 @@ generator runs, so the register always holds the current version.
 | `$version.feature` | The feature component (`major.feature.minor.patch` only) |
 | `$version.minor` | The minor component |
 | `$version.patch` | The patch component (not in `major.minor`) |
+| `$version.crc8` | CRC-8/I-432-1 of the version bytes, 8 bits |
+| `$version.crc16` | CRC-16/IBM-3740 of the version bytes, 16 bits |
+
+The version bytes are the components, most significant first, one byte each; for
+a `free` version they are the UTF-8 bytes of the trimmed `vlnv.version`. The CRC
+references are the only ones a `free` version supports. See
+[Versioning Register Sets](../how-to/versioning-register-sets.md#check-the-version-register-with-a-crc).
 
 References are valid on bit fields and on registers without fields, in `.mm.yml`
 files and in inline memory maps of an `.ip.yml`. They need a numeric
-`versionScheme`. A field with a component reference must be exactly 8 bits wide,
-and a field with `$version` exactly `8 * n` bits, where `n` is the number of
-components. A register without fields must be at least as wide as its reference
+`versionScheme` (except the CRC references). A field with a component reference
+must be exactly 8 bits wide, a field with `$version` exactly `8 * n` bits, where
+`n` is the number of components, and a field with `$version.crc8` or
+`$version.crc16` exactly 8 or 16 bits. A register without fields must be at least as wide as its reference
 needs. A field or register with a reference is generated as a read-only
 constant.
 
@@ -259,12 +267,14 @@ layouts. It is allowed in `.mm.yml` files only; an inline memory map in an
     versions:
       - version: 1.4.1
         registerSet: rs1-cfcf5f65555a5b01
+        crc8: 109
+        crc16: 10057
 ```
 
 | Field | Meaning |
 |---|---|
 | `registerSets` | Frozen copies of `addressBlocks`, keyed by `rs1-` followed by 16 lowercase hex digits |
-| `versions` | Released versions in release order. Each entry has a non-empty `version` and the `registerSet` key it used |
+| `versions` | Released versions in release order. Each entry has a non-empty `version`, the `registerSet` key it used, and optionally the `crc8` (0 to 255) and `crc16` (0 to 65535) of that version, recorded when the entry was written |
 
 The key is the first 16 hex digits of a SHA-256 hash of the layout that a driver
 depends on. `rs1` names the version of that hash definition. Descriptions,

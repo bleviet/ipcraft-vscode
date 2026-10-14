@@ -177,8 +177,10 @@ there is no owner.
 | Visualizer and Value bar | Show the resolved value. A token field is a constant |
 | Bit click on a token field | Ignored outside Debug Mode |
 | Value bar, register with fields | A value that changes the bits of a token field is **rejected with `Bits <range> hold <token> (0x..)`**; token fields are never written when the value is decomposed |
-| Value bar, register without fields | The exact text `$version` is accepted and written to the register's `resetValue` in one update. A prefix such as `$ver` is not reported as an invalid number while typed. A number typed later replaces the token |
-| Value bar, register with fields, `$version` text | Rejected with `Use $version.* on the bit fields` |
+| Value bar, register without fields | Any valid reference (`$version`, `$version.major`, ..., `$version.crc8`, `$version.crc16`) is accepted and written to the register's `resetValue` in one update. A prefix of a reference such as `$ver` or `$version.cr` is not reported as an invalid number while typed. A number typed later replaces the token |
+| Value bar, register with fields, a reference | Nothing is written. `$version` shows `Use $version.* on the bit fields`; another reference shows `Enter <reference> in a bit field's Reset cell`. A prefix being typed shows no error |
+| Value bar commit, register with fields and its own reference | A reference left on the register next to bit fields is invalid. A successful value commit removes the register's `resetValue` key in the same update as the field writes |
+| Inserting a bit field, register with its own reference | Every insert gesture (keyboard, hover bar, context menu, visualizer Shift+drag) writes the new fields and removes the register's `resetValue` key in one update (`['__op', 'register-edit']`) |
 | Debug Mode | Token commits are refused with `Version references cannot be set in Debug Mode`. Numeric overrides stay local |
 
 The Reset cell reports `Invalid number` for non-empty text that is not a number,
@@ -220,6 +222,13 @@ interface InsertionResult<T> {
 |----|--------|
 | `field-move` | Swap `fields[index]` and `fields[index+delta]` (positions recomputed afterwards by `reorderBitfieldLayout`) |
 | add / delete | Add a field at the first free bit / remove by index |
+
+`RegisterEditOperation.ts` adds the `register-edit` op: several writes inside one
+register, plus keys to remove, applied to the document text as one update. It is
+routed like the field ops, for register and array selections and for a block
+selection with `__regIndex` (master-detail). Inserting bit fields into a register
+that still carries a register-level `$version`, and the Value bar commit on such
+a register, use it so the reference is removed in the same update.
 
 ## Table draft layers
 

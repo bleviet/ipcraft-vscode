@@ -5,6 +5,11 @@ import { YamlService } from '../services/YamlService';
 import type { Selection } from './useSelection';
 import { applyFieldOperation } from '../services/FieldOperationService';
 import { reorderBitfieldLayout, type LayoutField } from '../algorithms/LayoutEngine';
+import {
+  applyRegisterEdit,
+  REGISTER_EDIT_OP,
+  type RegisterEditPayload,
+} from '../services/RegisterEditOperation';
 import { serializeValue } from '../../domain/serialize';
 
 interface YamlUpdateHandlerOptions {
@@ -59,6 +64,19 @@ export function useYamlUpdateHandler({
               return rest;
             })()
           : value;
+        // A multi-write register edit is applied to the text directly, as one update.
+        if (path[1] === REGISTER_EDIT_OP) {
+          const editedText = applyRegisterEdit(
+            rawTextRef.current,
+            [...selectionRootPath, ...regSubPath],
+            opValue as RegisterEditPayload
+          );
+          if (editedText !== rawTextRef.current) {
+            updateRawText(editedText);
+            sendUpdate(editedText);
+          }
+          return;
+        }
         // Compute the resulting fields array on the plain object, then write
         // only that array back so the rest of the document keeps its
         // formatting and comments.

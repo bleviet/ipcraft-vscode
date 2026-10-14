@@ -113,7 +113,7 @@ export async function startRegisterSetVersioning(uri?: vscode.Uri): Promise<void
         ...input,
         versioned: input.history === undefined,
       }));
-      const plans = planRelease(inputs, version);
+      const plans = planRelease(inputs, version, scheme);
       const edits = historyEdits(releases, plans);
       if (edits.length === 0) {
         continue;

@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ensureRegisterSetsReleased } from '../../../../services/versioning/RegisterSetReleaseService';
 import { buildMapReleases } from '../../../../services/versioning/releaseFiles';
 import * as versionGate from '../../../../services/versioning/versionGate';
+import { crc16, crc8 } from '../../../../shared/versioning/versionCrc';
 
 jest.mock('../../../../utils/Logger', () => ({
   Logger: jest.fn().mockImplementation(() => ({
@@ -197,7 +198,12 @@ describe('ensureRegisterSetsReleased', () => {
     expect(store.applied.map((a) => a.file)).toEqual([MM]);
     expect(store.save).toHaveBeenCalledTimes(1);
     expect(historyOf(store.texts[MM]).versions).toEqual([
-      { version: '1.4.1', registerSet: expect.any(String) },
+      {
+        version: '1.4.1',
+        registerSet: expect.any(String),
+        crc8: crc8([1, 4, 1]),
+        crc16: crc16([1, 4, 1]),
+      },
     ]);
     expect(store.texts[MM]).toContain('# register map');
     expect(store.texts[MM]).toContain('resetValue: $version');

@@ -8,11 +8,21 @@ import {
   releaseStates,
   type MapReleaseInput,
 } from '../../../../shared/versioning/planRelease';
+import { crc16, crc8 } from '../../../../shared/versioning/versionCrc';
 import type { VersionHistory } from '../../../../shared/versioning/versionHistory';
+import { versionBytes, type VersionScheme } from '../../../../shared/versioning/versionScheme';
 
 const HASH_A = 'rs1-aaaaaaaaaaaaaaaa';
 const HASH_B = 'rs1-bbbbbbbbbbbbbbbb';
 const SNAP_B = [{ name: 'snap-b' }];
+const S2: VersionScheme = 'major.minor';
+const S3: VersionScheme = 'major.minor.patch';
+
+/** The CRC fields a freshly written entry carries. */
+const crcs = (scheme: VersionScheme, version: string): { crc8: number; crc16: number } => {
+  const bytes = versionBytes(scheme, version) as number[];
+  return { crc8: crc8(bytes), crc16: crc16(bytes) };
+};
 
 const history = (...entries: Array<[string, string]>): VersionHistory => ({
   registerSets: Object.fromEntries(
@@ -110,26 +120,26 @@ describe('isVersionedMap', () => {
 
 describe('planRelease', () => {
   it('appends the core version for an empty history', () => {
-    const [plan] = planRelease([input()], '1.0.0');
+    const [plan] = planRelease([input()], '1.0.0', S3);
     expect(plan.state).toEqual({ kind: 'empty' });
     expect(plan.nextHistory).toEqual({
       registerSets: { [HASH_B]: { addressBlocks: SNAP_B } },
-      versions: [{ version: '1.0.0', registerSet: HASH_B }],
+      versions: [{ version: '1.0.0', registerSet: HASH_B, ...crcs(S3, '1.0.0') }],
     });
   });
 
   it('writes nothing when up to date', () => {
-    const [plan] = planRelease([input({ history: history(['1.0.0', HASH_B]) })], '1.0.0');
+    const [plan] = planRelease([input({ history: history(['1.0.0', HASH_B]) })], '1.0.0', S3);
     expect(plan.state).toEqual({ kind: 'up-to-date' });
     expect(plan.nextHistory).toBeUndefined();
   });
 
   it('appends the new core version when only the version changed', () => {
-    const [plan] = planRelease([input({ history: history(['1.0.0', HASH_B]) })], '1.1.0');
+    const [plan] = planRelease([input({ history: history(['1.0.0', HASH_B]) })], '1.1.0', S3);
     expect(plan.state).toEqual({ kind: 'version-bump-only' });
     expect(plan.nextHistory?.versions).toEqual([
       { version: '1.0.0', registerSet: HASH_B },
-      { version: '1.1.0', registerSet: HASH_B },
+      { version: '1.1.0', registerSet: HASH_B, ...crcs(S3, '1.1.0') },
     ]);
     expect(Object.keys(plan.nextHistory?.registerSets ?? {})).toEqual([HASH_B]);
   });
@@ -142,44 +152,47 @@ describe('planRelease', () => {
 
     it('throws without a decision', () => {
       const { inputs, core } = pending('1.1.0');
-      expect(() => planRelease(inputs, core)).toThrow(/decision/);
+      expect(() => planRelease(inputs, core, S3)).toThrow(/decision/);
     });
 
     it('adopt appends the core version and keeps the old layout', () => {
       const { inputs, core } = pending('1.1.0');
-      const [plan] = planRelease(inputs, core, 'adopt');
+      const [plan] = planRelease(inputs, core, S3, 'adopt');
       expect(plan.nextHistory?.versions).toEqual([
         { version: '1.0.0', registerSet: HASH_A },
-        { version: '1.1.0', registerSet: HASH_B },
+        { version: '1.1.0', registerSet: HASH_B, ...crcs(S3, '1.1.0') },
       ]);
       expect(Object.keys(plan.nextHistory?.registerSets ?? {}).sort()).toEqual([HASH_A, HASH_B]);
     });
 
     it('adopt throws when the core version is already recorded', () => {
       const { inputs, core } = pending('1.0.0');
-      expect(() => planRelease(inputs, core, 'adopt')).toThrow(/already recorded/);
+      expect(() => planRelease(inputs, core, S3, 'adopt')).toThrow(/already recorded/);
     });
 
     it('overwrite re-points the entry of the core version and drops the orphaned set', () => {
       const { inputs, core } = pending('1.0.0');
-      const [plan] = planRelease(inputs, core, 'overwrite');
-      expect(plan.nextHistory?.versions).toEqual([{ version: '1.0.0', registerSet: HASH_B }]);
+      const [plan] = planRelease(inputs, core, S3, 'overwrite');
+      expect(plan.nextHistory?.versions).toEqual([
+        { version: '1.0.0', registerSet: HASH_B, ...crcs(S3, '1.0.0') },
+      ]);
       expect(Object.keys(plan.nextHistory?.registerSets ?? {})).toEqual([HASH_B]);
     });
 
     it('overwrite throws when the core version is not recorded', () => {
       const { inputs, core } = pending('1.1.0');
-      expect(() => planRelease(inputs, core, 'overwrite')).toThrow(/not recorded/);
+      expect(() => planRelease(inputs, core, S3, 'overwrite')).toThrow(/not recorded/);
     });
 
     it('overwrite re-points the core version entry, not the latest one', () => {
       const [plan] = planRelease(
         [input({ history: history(['1.0', HASH_A], ['1.1', 'rs1-dddddddddddddddd']) })],
         '1.0',
+        S2,
         'overwrite'
       );
       expect(plan.nextHistory?.versions).toEqual([
-        { version: '1.0', registerSet: HASH_B },
+        { version: '1.0', registerSet: HASH_B, ...crcs(S2, '1.0') },
         { version: '1.1', registerSet: 'rs1-dddddddddddddddd' },
       ]);
       expect(Object.keys(plan.nextHistory?.registerSets ?? {}).sort()).toEqual([
@@ -191,29 +204,40 @@ describe('planRelease', () => {
     it('overwriting a non-latest core version settles: the next run is up-to-date', () => {
       const HASH_D = 'rs1-dddddddddddddddd';
       const original = history(['1.0', HASH_A], ['1.1', HASH_D]);
-      const [pendingPlan] = planRelease([input({ history: original })], '1.0', 'overwrite');
+      const [pendingPlan] = planRelease([input({ history: original })], '1.0', S2, 'overwrite');
       expect(pendingPlan.state).toMatchObject({
         kind: 'pending',
         reference: { version: '1.0', registerSet: HASH_A },
         coreVersionRecorded: true,
       });
       expect(pendingPlan.nextHistory?.versions).toEqual([
-        { version: '1.0', registerSet: HASH_B },
+        { version: '1.0', registerSet: HASH_B, ...crcs(S2, '1.0') },
         { version: '1.1', registerSet: HASH_D },
       ]);
-      const [next] = planRelease([input({ history: pendingPlan.nextHistory })], '1.0');
+      const [next] = planRelease([input({ history: pendingPlan.nextHistory })], '1.0', S2);
       expect(next.state).toEqual({ kind: 'up-to-date' });
       expect(next.nextHistory).toBeUndefined();
     });
 
     it('ignores a decision for maps that are not pending', () => {
-      const [plan] = planRelease([input()], '1.0.0', 'overwrite');
-      expect(plan.nextHistory?.versions).toEqual([{ version: '1.0.0', registerSet: HASH_B }]);
+      const [plan] = planRelease([input()], '1.0.0', S3, 'overwrite');
+      expect(plan.nextHistory?.versions).toEqual([
+        { version: '1.0.0', registerSet: HASH_B, ...crcs(S3, '1.0.0') },
+      ]);
     });
   });
 
+  it('records the CRCs of the written version under the core scheme', () => {
+    const [free] = planRelease([input()], 'alpha-1', 'free');
+    expect(free.nextHistory?.versions).toEqual([
+      { version: 'alpha-1', registerSet: HASH_B, ...crcs('free', 'alpha-1') },
+    ]);
+    const [numeric] = planRelease([input()], '1.4.2', S3);
+    expect(numeric.nextHistory?.versions[0]).toMatchObject({ crc8: 0x64, crc16: 0x172a });
+  });
+
   it('plans no write for a map that is not versioned', () => {
-    const [plan] = planRelease([input({ versioned: false })], '1.0.0');
+    const [plan] = planRelease([input({ versioned: false })], '1.0.0', S3);
     expect(plan).toEqual({ mapName: 'CSR_MAP', state: undefined });
   });
 
@@ -225,7 +249,7 @@ describe('planRelease', () => {
       input({ mapName: 'BUMP', history: history(['1.0.0', HASH_B]) }),
       input({ mapName: 'CHANGED', history: history(['1.0.0', HASH_A]) }),
     ];
-    const plans = planRelease(inputs, '1.1.0', 'adopt');
+    const plans = planRelease(inputs, '1.1.0', S3, 'adopt');
     expect(plans.map((plan) => plan.mapName)).toEqual([
       'EMPTY',
       'PLAIN',
@@ -252,8 +276,8 @@ describe('planRelease', () => {
   it('does not mutate its inputs', () => {
     const inputs = [input({ history: history(['1.0.0', HASH_A]) })];
     const before = JSON.stringify(inputs);
-    planRelease(inputs, '1.0.0', 'overwrite');
-    planRelease(inputs, '1.1.0', 'adopt');
+    planRelease(inputs, '1.0.0', S3, 'overwrite');
+    planRelease(inputs, '1.1.0', S3, 'adopt');
     expect(JSON.stringify(inputs)).toBe(before);
   });
 });

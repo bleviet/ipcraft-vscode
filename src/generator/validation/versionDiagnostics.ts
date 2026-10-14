@@ -55,7 +55,7 @@ export function checkVersionRefsForGeneration(
     });
 
   for (const map of maps) {
-    const versionError = scheme === 'free' ? null : validateVersion(scheme, version);
+    const versionError = validateVersion(scheme, version);
     if (versionError !== null && blocksHaveVersionRef(map.addressBlocks)) {
       push(map, {
         severity: 'error',

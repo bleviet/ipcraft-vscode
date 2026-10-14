@@ -16,6 +16,7 @@ import type { RegisterDef } from '../../types/memoryMap';
 import { generateUniqueName } from '../../utils/naming';
 import { formatBitsRange } from '../../utils/BitFieldUtils';
 import { fitFieldResetToWidth } from '../../shared/utils/fieldValidation';
+import { fieldsWriteUpdate } from '../../services/RegisterEditOperation';
 import { VersionIssueList } from '../../shared/components/VersionIssueList';
 import { resolveVersionRefInContext } from '../../../shared/versioning/versionContext';
 import type { VersionRef } from '../../../shared/versioning/versionScheme';
@@ -148,7 +149,13 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       [debugMode, onUpdate]
     );
 
-    const fieldEditor = useFieldEditor(effectiveFields, registerSize, debugAwareUpdate, true);
+    const fieldEditor = useFieldEditor(
+      effectiveFields,
+      registerSize,
+      debugAwareUpdate,
+      true,
+      Boolean(register?.versionRef)
+    );
 
     const {
       hoveredFieldIndex,
@@ -245,7 +252,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         debugRegisterReset={debugRegisterReset}
         resolveRef={resolveRef}
         onUpdateRegisterReset={debugAwareUpdate}
-        onUpdateRegisterToken={onUpdate}
+        onUpdateDocument={onUpdate}
         onUpdateFieldReset={handleUpdateFieldReset}
       />
     );
@@ -346,7 +353,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           const bLo = b.offset ?? 0;
           return aLo - bLo;
         });
-        debugAwareUpdate(['fields'], newFields);
+        debugAwareUpdate(...fieldsWriteUpdate(newFields, Boolean(register?.versionRef)));
       },
       onDragPreview: (preview: { idx: number; range: [number, number] }[] | null) => {
         if (preview === null) {

@@ -105,6 +105,11 @@ describe('startRegisterSetVersioning', () => {
     expect(store.applied).toEqual([MM]);
     expect(store.save).toHaveBeenCalledTimes(1);
     expect(versionsOf(store.texts[MM])).toEqual(['1.4.1']);
+    // The entry records the CRCs of 1.4.1 (bytes 01 04 01) under the core's scheme.
+    expect(buildMapReleases(store.texts[MM])[0].input.history?.versions[0]).toMatchObject({
+      crc8: 109,
+      crc16: 10057,
+    });
     expect(store.texts[MM]).toContain('# map');
     expect(store.texts[IP]).toBe(core());
     expect(info()).toHaveBeenCalledWith(expect.stringContaining('CSR_MAP: recorded version 1.4.1'));

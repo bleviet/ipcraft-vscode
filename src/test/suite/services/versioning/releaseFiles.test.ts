@@ -9,6 +9,7 @@ import {
   readCoreReleaseInfo,
 } from '../../../../services/versioning/releaseFiles';
 import { planRelease } from '../../../../shared/versioning/planRelease';
+import { crc16, crc8 } from '../../../../shared/versioning/versionCrc';
 import { applyPathEdits } from '../../../../yamledit';
 
 const BASE = path.resolve('/proj/ip');
@@ -153,7 +154,8 @@ describe('historyEdits', () => {
     const releases = buildMapReleases(text);
     const plans = planRelease(
       releases.map((r) => r.input),
-      '1.4.1'
+      '1.4.1',
+      'major.minor.patch'
     );
     const edits = historyEdits(releases, plans);
     expect(edits).toHaveLength(1);
@@ -165,7 +167,12 @@ describe('historyEdits', () => {
     expect(out).toContain('versionHistory:');
     const [again] = buildMapReleases(out);
     expect(again.input.history?.versions).toEqual([
-      { version: '1.4.1', registerSet: releases[0].input.currentHash },
+      {
+        version: '1.4.1',
+        registerSet: releases[0].input.currentHash,
+        crc8: crc8([1, 4, 1]),
+        crc16: crc16([1, 4, 1]),
+      },
     ]);
     // Recording the history does not change the layout hash.
     expect(again.input.currentHash).toBe(releases[0].input.currentHash);
@@ -177,7 +184,8 @@ describe('historyEdits', () => {
     const releases = buildMapReleases(text);
     const plans = planRelease(
       releases.map((r) => r.input),
-      '1.0.0'
+      '1.0.0',
+      'major.minor.patch'
     );
     const edits = historyEdits(releases, plans);
     expect(edits.map((e) => e.path)).toEqual([[1, 'versionHistory']]);
@@ -202,7 +210,7 @@ describe('invalidCoreVersionMessage', () => {
 
 describe('describeRecorded', () => {
   const [release] = buildMapReleases(MAP);
-  const plan = planRelease([release.input], '1.4.1')[0];
+  const plan = planRelease([release.input], '1.4.1', 'major.minor.patch')[0];
 
   it('describes a recorded version', () => {
     expect(describeRecorded(plan, '1.4.1', undefined)).toEqual(['CSR_MAP: recorded version 1.4.1']);
@@ -224,6 +232,7 @@ describe('describeRecorded', () => {
         },
       ],
       '1.4.1',
+      'major.minor.patch',
       'overwrite'
     )[0];
     expect(describeRecorded(pending, '1.4.1', 'overwrite')).toEqual([

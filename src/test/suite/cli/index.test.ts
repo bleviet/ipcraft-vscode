@@ -110,9 +110,8 @@ describe('ipcraft generate register-set output', () => {
       registerSetsRecorded: ['CSR_MAP: recorded version 1.4.2'],
     });
     expect(await main(['generate', 'a.ip.yml', '--register-set-policy', 'adopt'])).toBe(0);
-    expect(runCliGenerate).toHaveBeenCalledWith(
-      expect.objectContaining({ registerSetPolicy: 'adopt' }),
-      expect.anything()
+    expect((runCliGenerate as jest.Mock).mock.calls[0][0]).toEqual(
+      expect.objectContaining({ registerSetPolicy: 'adopt' })
     );
     expect(log.mock.calls.map(([line]: [string]) => line)).toEqual([
       'Register set: CSR_MAP: recorded version 1.4.2',

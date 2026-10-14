@@ -6,6 +6,10 @@
 export interface VersionEntry {
   version: string;
   registerSet: string;
+  /** CRC-8 of the version bytes under the core's scheme at write time; absent in older entries. */
+  crc8?: number;
+  /** CRC-16 of the version bytes under the core's scheme at write time; absent in older entries. */
+  crc16?: number;
 }
 
 export interface VersionHistory {

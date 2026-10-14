@@ -135,7 +135,7 @@ export async function planRegisterSets(
   if (plan.problems.length > 0 || policy === undefined) {
     return plan;
   }
-  const plans = planRelease(inputs, info.version, policy);
+  const plans = planRelease(inputs, info.version, info.scheme, policy);
   let offset = 0;
   for (const file of files) {
     const filePlans = plans.slice(offset, offset + file.releases.length);

@@ -102,6 +102,25 @@ const CASE_F = `
       - { name: REST, bits: '[31:8]', access: read-write }
 `;
 
+/** (g) the version CRCs beside a component */
+const CASE_CRC = `
+    - name: VERSION
+      offset: 0x00
+      fields:
+      - { name: MAJOR, bits: '[31:24]', resetValue: $version.major }
+      - { name: CRC8, bits: '[23:16]', resetValue: $version.crc8 }
+      - { name: CRC16, bits: '[15:0]', resetValue: $version.crc16 }
+${PLAIN_REGISTER}`;
+
+/** (h) only CRC fields: the only references a free-text version supports */
+const CASE_CRC_ONLY = `
+    - name: VERSION
+      offset: 0x00
+      fields:
+      - { name: CRC8, bits: '[23:16]', resetValue: $version.crc8 }
+      - { name: CRC16, bits: '[15:0]', resetValue: $version.crc16 }
+${PLAIN_REGISTER}`;
+
 interface Design {
   registers: string;
   version?: string;
@@ -263,10 +282,29 @@ describe('$version references in generation', () => {
       expect(result.error).toContain('$version');
       const messages = (result.issues ?? []).map((issue) => issue.message);
       expect(messages).toContain(
-        'CSR_MAP.REGS.VERSION.MAJOR: Version references need a numeric version scheme (set vlnv.versionScheme in the owning .ip.yml)'
+        'CSR_MAP.REGS.VERSION.MAJOR: Version references need a numeric version scheme (set vlnv.versionScheme in the owning .ip.yml); only $version.crc8 and $version.crc16 work with a free version'
       );
       expect(messages).toHaveLength(3);
       expect(result.issues?.every((issue) => issue.severity === 'error')).toBe(true);
+    });
+
+    it('accepts CRC references with a free-text version and resolves them over its UTF-8 bytes', async () => {
+      const design: Design = { registers: CASE_CRC_ONLY, version: '1.0-rc1', scheme: 'free' };
+      const result = await generate(design);
+      expect(result.error).toBeUndefined();
+      expect(result.success).toBe(true);
+      expect(result.issues ?? []).toEqual([]);
+      const { regs } = await rtl(design, 'vhdl');
+      // CRC-8 0xF0, CRC-16 0x69CC of "1.0-rc1"
+      expect(regs).toContain('rd_data_int <= "00000000111100000110100111001100";');
+    });
+
+    it('blocks a free-text core with an empty version when a CRC reference needs it', async () => {
+      const result = await generate({ registers: CASE_CRC_ONLY, version: '', scheme: 'free' });
+      expect(result.success).toBe(false);
+      expect((result.issues ?? []).map((issue) => issue.code)).toEqual([
+        'versionRef.invalidVersion',
+      ]);
     });
 
     it('blocks a core version that is invalid for its numeric scheme', async () => {
@@ -458,6 +496,13 @@ describe('$version references in generation', () => {
       expect(count(regs, 'when C_REG_IDENT_ADDR =>')).toBe(1);
     });
 
+    it('(g) CRC fields read as literals of the CRC over the version bytes', async () => {
+      const { regs } = await rtl({ registers: CASE_CRC }, 'vhdl');
+      // 1.4.2: CRC-8 0x64, CRC-16 0x172A
+      expect(regs).toContain('rd_data_int <= "00000001011001000001011100101010";');
+      expect(regs).not.toMatch(/regs\.version/);
+    });
+
     it('resolves a four-component version', async () => {
       const { regs } = await rtl(
         { registers: CASE_B, version: '1.2.3.4', scheme: 'major.feature.minor.patch' },
@@ -495,6 +540,12 @@ describe('$version references in generation', () => {
       expect(regs).not.toMatch(/regs\.ident\.rev/);
       // Reset assigns only the stored field.
       expect(regs).toContain('regs.ident.enable <= 1;');
+    });
+
+    it('(g) CRC fields read as sized literals of the CRC over the version bytes', async () => {
+      const { regs } = await rtl({ registers: CASE_CRC }, 'systemverilog');
+      expect(regs).toContain("REG_VERSION_ADDR: rd_data_int <= 32'h164172A;");
+      expect(regs).not.toMatch(/regs\.version/);
     });
 
     it('(d) a constant beside a hardware read-only field keeps the _val port for the hardware field only', async () => {
@@ -578,7 +629,7 @@ describe('$version references in generation', () => {
         addressBlocks: []
     versions:
     - { version: 1.4.1, registerSet: rs1-3f9a0c41d2b7e6a5 }
-    - { version: 1.4.2, registerSet: rs1-3f9a0c41d2b7e6a5 }
+    - { version: 1.4.2, registerSet: rs1-3f9a0c41d2b7e6a5, crc8: 100, crc16: 5930 }
 `,
       });
       const context = await scaffolder.buildTemplateContextPublic(inputPath);
@@ -586,8 +637,8 @@ describe('$version references in generation', () => {
       expect(context.version_scheme).toBe('major.minor.patch');
       expect(context.version_file_suffix).toBe('1_4_2');
       expect(context.version_history).toEqual([
-        { version: '1.4.1', register_set: 'rs1-3f9a0c41d2b7e6a5' },
-        { version: '1.4.2', register_set: 'rs1-3f9a0c41d2b7e6a5' },
+        { version: '1.4.1', register_set: 'rs1-3f9a0c41d2b7e6a5', crc8: null, crc16: null },
+        { version: '1.4.2', register_set: 'rs1-3f9a0c41d2b7e6a5', crc8: 100, crc16: 5930 },
       ]);
       const ident = context.registers.find((register) => register.name === 'IDENT')!;
       expect(ident.is_constant).toBe(false);
@@ -674,8 +725,41 @@ describe('$version references in generation', () => {
       );
       expect(sheet).toContain('| `[0:0]` | `ENABLE` | `read-write` | `0x1` | — |');
       expect(sheet).toContain('## Version\n\n**Version scheme:** `major.minor.patch`\n');
+      // Entries recorded without CRCs show a dash.
       expect(sheet).toContain(
-        '| Version | Register set |\n|---------|--------------|\n| `1.4.1` | `rs1-3f9a0c41d2b7e6a5` |\n| `1.4.2` | `rs1-3f9a0c41d2b7e6a5` |\n'
+        '| Version | Register set | CRC-8 | CRC-16 |\n|---------|--------------|-------|--------|\n' +
+          '| `1.4.1` | `rs1-3f9a0c41d2b7e6a5` | — | — |\n' +
+          '| `1.4.2` | `rs1-3f9a0c41d2b7e6a5` | — | — |\n'
+      );
+    });
+
+    it('datasheet lists the CRCs recorded with a version, in hex', async () => {
+      const recorded = history.replace(
+        '- { version: 1.4.2, registerSet: rs1-3f9a0c41d2b7e6a5 }',
+        '- { version: 1.4.2, registerSet: rs1-3f9a0c41d2b7e6a5, crc8: 100, crc16: 5930 }'
+      );
+      const result = await generate(
+        { registers: CASE_C, extraMap: recorded },
+        { includeDocs: true }
+      );
+      const sheet = result.generatedContents!['docs/ver_core_datasheet.md'];
+      expect(sheet).toContain('| `1.4.1` | `rs1-3f9a0c41d2b7e6a5` | — | — |');
+      expect(sheet).toContain('| `1.4.2` | `rs1-3f9a0c41d2b7e6a5` | `0x64` | `0x172A` |');
+    });
+
+    it('datasheet and pack docs show a CRC field like any other $version field', async () => {
+      const sheet = (await generate({ registers: CASE_CRC }, { includeDocs: true }))
+        .generatedContents!['docs/ver_core_datasheet.md'];
+      expect(sheet).toContain(
+        '| `[23:16]` | `CRC8` | `read-only (constant)` | `$version.crc8 (0x64)` | — |'
+      );
+      expect(sheet).toContain(
+        '| `[15:0]` | `CRC16` | `read-only (constant)` | `$version.crc16 (0x172A)` | — |'
+      );
+      const doc = (await generate({ registers: CASE_CRC }, { scaffoldPack: 'example-with-docs' }))
+        .generatedContents!['docs/ver_core_registers.md'];
+      expect(doc).toContain(
+        '| `[23:16]` | `CRC8` | `read-only (constant)` | `$version.crc8 (0x64)` | — |'
       );
     });
 

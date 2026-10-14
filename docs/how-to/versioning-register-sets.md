@@ -48,7 +48,8 @@ memoryMaps:
 A numeric scheme needs exactly the listed number of components. Each component
 is a whole number from 0 to 255, so it fits in 8 bits. Leading zeros such as
 `01` are rejected. Free text has no numeric value, so `$version` references
-cannot be used with it.
+cannot be used with it. The two CRC references are the exception: they also work
+with free text (see [Check the version register with a CRC](#check-the-version-register-with-a-crc)).
 
 The Version field is checked against the selected scheme. A core without a
 `versionScheme` key uses free text. Selecting **Free text** removes the
@@ -117,11 +118,15 @@ A register without fields can hold the whole packed version instead:
 | `$version.minor` | `0x04` | Every numeric scheme |
 | `$version.patch` | `0x02` | `major.minor.patch` and `major.feature.minor.patch` |
 | `$version` | `0x010402` | Every numeric scheme |
+| `$version.crc8` | `0x64` | Every scheme, free text included |
+| `$version.crc16` | `0x172A` | Every scheme, free text included |
 
 A field that holds a component reference must be exactly 8 bits wide. A field
 that holds `$version` must be exactly `8 * n` bits wide. A register without
 fields must be at least as wide as the reference needs (`8 * n` bits for
-`$version`, 8 bits for a component).
+`$version`, 8 bits for a component or `$version.crc8`, 16 bits for
+`$version.crc16`). A field that holds `$version.crc8` must be exactly 8 bits
+wide, and one that holds `$version.crc16` exactly 16 bits.
 
 `n` is the number of components of the scheme. A wider register holds the value
 zero-extended.
@@ -139,7 +144,7 @@ In the Memory Map editor you can type a reference instead of a number.
 | Where | What to type | Result |
 |---|---|---|
 | Reset cell of a field | `$version.major` or another reference | The reference is saved in `resetValue` as soon as it is valid |
-| Value bar of a register without fields | `$version` | The register's own `resetValue` becomes `$version` |
+| Value bar of a register without fields | Any valid reference, such as `$version` or `$version.crc16` | The register's own `resetValue` becomes that reference |
 
 Next to a reference the editor shows the resolved value, for example `= 0x01`
 under a field and `= $version` next to the value bar. The value bar and the bit
@@ -156,18 +161,109 @@ when there is no clear answer:
 
 Text that starts with `$` but is not a valid reference shows an error and is not
 saved. When the scheme is known, the error lists its references, for example
-`Use $version, $version.major, $version.minor or $version.patch`. Typing a number
-over a reference replaces it with that number.
+`Use $version, $version.major, $version.minor, $version.patch, $version.crc8 or
+$version.crc16`. Typing a number over a reference replaces it with that number.
 
 A field that holds a reference is a constant. Outside Debug Mode, clicking its
 bits in the bit visualizer does nothing, and the value bar rejects a value that changes those
 bits, for example `Bits 23:16 hold $version.major (0x01)`. On a register that has
-fields, `$version` typed in the value bar is rejected with
-`Use $version.* on the bit fields`. Debug Mode only explores values locally, so it
-refuses to set a reference: `Version references cannot be set in Debug Mode`.
+fields, a reference typed in the value bar is not written: `$version` shows
+`Use $version.* on the bit fields`, and a component or CRC reference shows
+`Enter $version.major in a bit field's Reset cell` (with the reference you
+typed). While you are still typing a reference, for example `$version.ma`, the
+editor shows no error. Debug Mode only explores values locally, so it refuses to
+set a reference: `Version references cannot be set in Debug Mode`.
+
+### Turn a version register into one with fields
+
+A register that holds a register-level reference has no bit fields. When you add
+bit fields to it, the reference no longer applies: bit fields carry the
+references, and the diagnostic `Use $version.* on the fields instead of a
+register-level $version reference` would be an error. The editor therefore
+removes the register's `resetValue` key in the same document update that writes
+the new fields. This applies to every way of inserting a field: the keyboard
+(`o`), the hover bar between rows, the context menu, and Shift+drag in the
+visualizer. Then enter `$version.*` references in the Reset cells of the new
+fields.
+
+If a register already has both fields and a register-level reference (for
+example from a hand edit), committing any value in the Value bar removes the
+reference together with the field writes.
 
 References stay symbolic in the file. The core's current version is never copied
 into the registers, so raising `vlnv.version` does not edit the memory map.
+
+## Check the version register with a CRC
+
+`$version.crc8` and `$version.crc16` hold a CRC over the version bytes. A driver
+recomputes the CRC over the version it reads and compares it with the CRC
+register, which confirms that the version register is present and intact.
+
+The version bytes are:
+
+- for a numeric scheme, the components, most significant first, one byte each.
+  Version `1.4.2` is the bytes `01 04 02`;
+- for free text, the UTF-8 bytes of `vlnv.version` after trimming white space.
+
+| Reference | Algorithm | Width | Parameters | Check value for `123456789` |
+|---|---|---|---|---|
+| `$version.crc8` | CRC-8/I-432-1 | 8 bits | polynomial `0x07`, initial `0x00`, no reflection, final XOR `0x55` | `0xA1` |
+| `$version.crc16` | CRC-16/IBM-3740 (CCITT-FALSE) | 16 bits | polynomial `0x1021`, initial `0xFFFF`, no reflection, final XOR `0x0000` | `0x29B1` |
+
+The parameters are chosen so that an all-zero version never gives a CRC of 0. For
+version `0.0.0` the CRC-8 is `0x55` and the CRC-16 is `0xCC9C` (`0x1D0F` for
+`0.0` and `0x84C0` for `0.0.0.0`), so an unprogrammed, all-zero register does not
+pass as a valid CRC for version 0.
+
+For `1.4.2`, `$version.crc8` is `0x64` and `$version.crc16` is `0x172A`.
+
+```yaml
+- name: VERSION
+  offset: 0x0
+  fields:
+    - name: MAJOR
+      bits: "[31:24]"
+      resetValue: $version.major
+    - name: CRC8
+      bits: "[23:16]"
+      resetValue: $version.crc8
+    - name: CRC16
+      bits: "[15:0]"
+      resetValue: $version.crc16
+```
+
+A field with a CRC reference must be exactly 8 or 16 bits wide. The CRC
+references work in every version scheme, including free text. All other
+references need a numeric scheme: with free text the error then says that only
+`$version.crc8` and `$version.crc16` work. A CRC field counts as part of the
+version register for the rules that allow one version register per memory map and
+require it to stay stable.
+
+A driver check, in C, for the 8-bit CRC:
+
+```c
+static uint8_t crc8_i432(const uint8_t *data, size_t len)
+{
+    uint8_t crc = 0x00;
+    for (size_t i = 0; i < len; i++) {
+        crc ^= data[i];
+        for (int bit = 0; bit < 8; bit++) {
+            crc = (crc & 0x80) ? (uint8_t)((crc << 1) ^ 0x07) : (uint8_t)(crc << 1);
+        }
+    }
+    return crc ^ 0x55;
+}
+
+/* Layout: MAJOR [31:24], CRC8 [23:16], CRC16 [15:0] of the VERSION register. */
+uint32_t reg = read32(VERSION_ADDR);
+uint8_t version_bytes[3] = { 1, 4, 2 };        /* the version the driver was built for */
+uint8_t expected = crc8_i432(version_bytes, 3);
+bool ok = ((reg >> 16) & 0xFF) == expected;
+```
+
+A driver built for version `1.4.2` computes the CRC over its own version bytes
+and compares it with the CRC field. A mismatch means the register is missing or
+the hardware has another version.
 
 ## What the generated HDL does
 
@@ -191,7 +287,8 @@ The same resolved value is used for the Vivado `component.xml` reset value, the
 generated datasheet, and the verification manifest. The datasheet shows a
 constant as `$version.major (0x01)` with access `read-only (constant)`. When the
 core has a numeric scheme or a history, it also has a Version section with the
-scheme and the recorded versions.
+scheme and the recorded versions, with the CRC-8 and CRC-16 of each entry in hex
+(a dash for entries recorded without them).
 
 ## Record a version history
 
@@ -276,15 +373,24 @@ which layout.
     versions:
       - version: 1.4.1
         registerSet: rs1-fda0d75e27f25536
+        crc8: 109
+        crc16: 10057
       - version: 1.4.2
         registerSet: rs1-1bb06bf1ec945b4f
+        crc8: 100
+        crc16: 5930
 ```
 
 | Part | Meaning |
 |---|---|
 | `addressBlocks` (the map's own) | The staging layout you are editing now |
 | `registerSets` | Frozen layouts, keyed by `rs1-` and 16 hex digits of a hash |
-| `versions` | One entry per released version, in release order |
+| `versions` | One entry per released version, in release order. Each entry also records the `crc8` and `crc16` of its version, computed under the core's version scheme when IPCraft wrote the entry |
+
+The CRCs let a tool check a version it read from hardware against the history
+without knowing the scheme. Entries written by an earlier IPCraft have no CRCs
+and stay as they are; they are filled in only when an entry is overwritten. The
+CRCs are not part of the layout hash.
 
 The last entry of `versions` is the latest version. This is true for every
 scheme, free text included. Versions that share a layout share one stored
@@ -471,9 +577,9 @@ are shown with the generation result and do not block it.
 
 | Rule | Severity | Message gist | Fix |
 |---|---|---|---|
-| Scheme | Error | Version references need a numeric version scheme | Set `vlnv.versionScheme` in the `.ip.yml` |
+| Scheme | Error | Version references need a numeric version scheme; only `$version.crc8` and `$version.crc16` work with a free version | Set `vlnv.versionScheme` in the `.ip.yml`, or use a CRC reference |
 | Component | Error | The reference is not available in the scheme; lists valid references | Use a reference the scheme has, such as `$version.minor` |
-| Width | Error | The reference needs N bits, the field or register is M | Resize the field to 8 bits (`$version`: `8 * n` bits), or widen the register |
+| Width | Error | The reference needs N bits, the field or register is M | Resize the field to 8 bits (`$version`: `8 * n` bits, `$version.crc16`: 16 bits), or widen the register |
 | Register with fields | Error | Use `$version.*` on the fields instead | Move the reference to the fields |
 | Register array | Error | Version references are not supported in register arrays | Move the reference out of the array |
 | Multiple version registers | Error | Only one version register per memory map | Keep one register with references |

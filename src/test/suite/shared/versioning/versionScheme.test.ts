@@ -7,6 +7,7 @@ import {
   resolveVersionRef,
   schemeComponents,
   validateVersion,
+  versionBytes,
   versionRefWidth,
   type VersionRef,
   type VersionScheme,
@@ -159,18 +160,26 @@ describe('packVersion', () => {
 });
 
 describe('parseVersionRef', () => {
-  it.each(['$version', '$version.major', '$version.feature', '$version.minor', '$version.patch'])(
-    'accepts %s',
-    (ref) => {
-      expect(parseVersionRef(ref)).toBe(ref);
-    }
-  );
+  it.each([
+    '$version',
+    '$version.major',
+    '$version.feature',
+    '$version.minor',
+    '$version.patch',
+    '$version.crc8',
+    '$version.crc16',
+  ])('accepts %s', (ref) => {
+    expect(parseVersionRef(ref)).toBe(ref);
+  });
 
   it.each([
     '$version.foo',
     '$ver',
     '$version.',
     '$version.Major',
+    '$version.crc',
+    '$version.crc32',
+    '$version.CRC8',
     '$versions',
     ' $version',
     '$version ',
@@ -196,6 +205,14 @@ describe('versionRefWidth', () => {
   ] as const)('is null for free: %s', (ref) => {
     expect(versionRefWidth('free', ref)).toBeNull();
   });
+
+  it.each(VERSION_SCHEMES)(
+    'gives the CRC refs their own width under %s, free included',
+    (scheme) => {
+      expect(versionRefWidth(scheme, '$version.crc8')).toBe(8);
+      expect(versionRefWidth(scheme, '$version.crc16')).toBe(16);
+    }
+  );
 
   it.each([
     ['major.minor', '$version', 16],
@@ -242,6 +259,25 @@ describe('resolveVersionRef', () => {
     expect(resolve('free', '1.4.2', '$version')).toBeNull();
   });
 
+  it('resolves the CRCs over the version bytes', () => {
+    expect(resolve('major.minor.patch', '1.4.2', '$version.crc8')).toBe(0x64);
+    expect(resolve('major.minor.patch', '1.4.2', '$version.crc16')).toBe(0x172a);
+    expect(resolve('major.minor', '0.0', '$version.crc8')).toBe(0x55);
+    expect(resolve('major.feature.minor.patch', '0.0.0.0', '$version.crc16')).toBe(0x84c0);
+  });
+
+  it('resolves the CRCs of free text over its trimmed UTF-8 bytes', () => {
+    expect(resolve('free', '1.0-rc1', '$version.crc8')).toBe(0xf0);
+    expect(resolve('free', '  1.0-rc1 ', '$version.crc16')).toBe(0x69cc);
+    expect(resolve('free', 'Café-β1', '$version.crc8')).toBe(0x47);
+    expect(resolve('free', 'Café-β1', '$version.crc16')).toBe(0x2d50);
+  });
+
+  it('has no CRC for a version that is invalid under its scheme', () => {
+    expect(resolve('major.minor.patch', '1.4', '$version.crc8')).toBeNull();
+    expect(resolve('free', '   ', '$version.crc16')).toBeNull();
+  });
+
   it('is null when the version does not parse under the scheme', () => {
     expect(resolve('major.minor.patch', '1.4', '$version')).toBeNull();
     expect(resolve('major.minor.patch', '1.4.256', '$version.major')).toBeNull();
@@ -254,5 +290,22 @@ describe('resolveVersionRef', () => {
     names.forEach((name, index) => {
       expect(resolve(scheme, version, `$version.${name}`)).toBe(index + 10);
     });
+  });
+});
+
+describe('versionBytes', () => {
+  it('is the components, most significant first, one byte each', () => {
+    expect(versionBytes('major.minor.patch', '1.4.2')).toEqual([1, 4, 2]);
+    expect(versionBytes('major.feature.minor.patch', '255.0.1.2')).toEqual([255, 0, 1, 2]);
+  });
+
+  it('is the UTF-8 bytes of the trimmed text for free', () => {
+    expect(versionBytes('free', ' a1 ')).toEqual([0x61, 0x31]);
+    expect(versionBytes('free', 'é')).toEqual([0xc3, 0xa9]);
+  });
+
+  it('is null for a version invalid under the scheme', () => {
+    expect(versionBytes('major.minor', '1')).toBeNull();
+    expect(versionBytes('free', '')).toBeNull();
   });
 });

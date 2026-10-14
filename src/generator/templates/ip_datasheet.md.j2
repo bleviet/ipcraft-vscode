@@ -30,10 +30,10 @@
 **Version scheme:** `{{ version_scheme }}`
 
 {% if version_history | length > 0 %}
-| Version | Register set |
-|---------|--------------|
+| Version | Register set | CRC-8 | CRC-16 |
+|---------|--------------|-------|--------|
 {% for entry in version_history %}
-| `{{ entry.version }}` | `{{ entry.register_set }}` |
+| `{{ entry.version }}` | `{{ entry.register_set }}` | {{ ('`0x' ~ ('%02X' | format(entry.crc8)) ~ '`') if entry.crc8 is not none else '—' }} | {{ ('`0x' ~ ('%04X' | format(entry.crc16)) ~ '`') if entry.crc16 is not none else '—' }} |
 {% endfor %}
 
 {% endif %}

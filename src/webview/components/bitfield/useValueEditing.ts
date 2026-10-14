@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { hexDigitsForBits, type RegisterValueParse } from './utils';
 import { BitVector } from '../../../dataInspector/BitVector';
+import type { VersionRef } from '../../../shared/versioning/versionScheme';
 
 interface UseValueEditingOptions {
   registerSize: number;
   registerValue: BitVector;
   parseRegisterValue: (text: string, view: 'hex' | 'dec') => RegisterValueParse;
   applyRegisterValue: (value: BitVector) => string | null | void;
-  /** Applies a typed `$version` token (see `parseRegisterValueDraft`); returns an error message or null. */
-  applyRegisterToken?: (token: '$version') => string | null;
+  /** Applies a typed `$version` reference (see `parseRegisterValueDraft`); returns an error message or null. */
+  applyRegisterToken?: (token: VersionRef) => string | null;
 }
 
 export function useValueEditing({
@@ -83,7 +84,7 @@ export function useValueEditing({
       return;
     }
     if (parsed.token || parsed.pending) {
-      // A complete token is applied; an unfinished prefix is a malformed number once committed.
+      // A complete reference is applied; an unfinished prefix is a malformed number once committed.
       const tokenError = parsed.token
         ? (applyRegisterToken?.(parsed.token) ?? null)
         : 'Invalid number';

@@ -20,7 +20,12 @@ export function buildVersionTemplateContext(
   maps: readonly NormalizedMemoryMap[]
 ): {
   version_scheme: VersionScheme;
-  version_history: Array<{ version: string; register_set: string }>;
+  version_history: Array<{
+    version: string;
+    register_set: string;
+    crc8: number | null;
+    crc16: number | null;
+  }>;
   version_file_suffix: string;
 } {
   const history = maps.find((map) => map.versionHistory)?.versionHistory;
@@ -29,6 +34,8 @@ export function buildVersionTemplateContext(
     version_history: (history?.versions ?? []).map((entry) => ({
       version: entry.version,
       register_set: entry.registerSet,
+      crc8: entry.crc8 ?? null,
+      crc16: entry.crc16 ?? null,
     })),
     // The Vivado toolchain names the XGUI script after the same default.
     version_file_suffix: xguiVersionSuffix(String(ipCore.vlnv?.version ?? '1.0')),

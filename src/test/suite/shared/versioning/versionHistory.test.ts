@@ -2,6 +2,8 @@ import jsyaml from 'js-yaml';
 import { normalizeMemoryMap, parseMemoryMap } from '../../../../domain/parse';
 import type { NormalizedAddressBlock } from '../../../../domain/internal.types';
 import { hashRegisterSet } from '../../../../shared/versioning/registerSetHash';
+import { crc16, crc8 } from '../../../../shared/versioning/versionCrc';
+import type { VersionScheme } from '../../../../shared/versioning/versionScheme';
 import {
   appendVersion,
   findVersionRegisters,
@@ -14,6 +16,7 @@ import {
 const HASH_A = 'rs1-aaaaaaaaaaaaaaaa';
 const HASH_B = 'rs1-bbbbbbbbbbbbbbbb';
 const HASH_C = 'rs1-cccccccccccccccc';
+const S3: VersionScheme = 'major.minor.patch';
 
 const history = (...entries: Array<[string, string]>): VersionHistory => ({
   registerSets: Object.fromEntries(
@@ -125,17 +128,19 @@ describe('appendVersion', () => {
   const snapshot = [{ name: 'B' }];
 
   it('creates the history when undefined', () => {
-    expect(appendVersion(undefined, '1.0.0', HASH_A, snapshot)).toEqual({
+    expect(appendVersion(undefined, '1.0.0', S3, HASH_A, snapshot)).toEqual({
       registerSets: { [HASH_A]: { addressBlocks: snapshot } },
-      versions: [{ version: '1.0.0', registerSet: HASH_A }],
+      versions: [
+        { version: '1.0.0', registerSet: HASH_A, crc8: crc8([1, 0, 0]), crc16: crc16([1, 0, 0]) },
+      ],
     });
   });
 
   it('appends at the end and stores the new snapshot', () => {
-    const next = appendVersion(history(['1.0.0', HASH_A]), '1.1.0', HASH_B, snapshot);
+    const next = appendVersion(history(['1.0.0', HASH_A]), '1.1.0', S3, HASH_B, snapshot);
     expect(next.versions).toEqual([
       { version: '1.0.0', registerSet: HASH_A },
-      { version: '1.1.0', registerSet: HASH_B },
+      { version: '1.1.0', registerSet: HASH_B, crc8: crc8([1, 1, 0]), crc16: crc16([1, 1, 0]) },
     ]);
     expect(Object.keys(next.registerSets)).toEqual([HASH_A, HASH_B]);
     expect(next.registerSets[HASH_B]).toEqual({ addressBlocks: snapshot });
@@ -144,14 +149,27 @@ describe('appendVersion', () => {
   it('shares an existing set between identical layouts instead of overwriting it', () => {
     const base = history(['1.0.0', HASH_A]);
     const original = base.registerSets[HASH_A];
-    const next = appendVersion(base, '1.0.1', HASH_A, [{ name: 'different' }]);
+    const next = appendVersion(base, '1.0.1', S3, HASH_A, [{ name: 'different' }]);
     expect(next.versions.map((v) => v.registerSet)).toEqual([HASH_A, HASH_A]);
     expect(Object.keys(next.registerSets)).toEqual([HASH_A]);
     expect(next.registerSets[HASH_A]).toBe(original);
   });
 
+  it('records no CRCs for a version that is invalid under the scheme', () => {
+    const next = appendVersion(undefined, 'abc', S3, HASH_A, snapshot);
+    expect(next.versions).toEqual([{ version: 'abc', registerSet: HASH_A }]);
+  });
+
+  it('records the CRCs of free text', () => {
+    const next = appendVersion(undefined, ' v1 ', 'free', HASH_A, snapshot);
+    expect(next.versions[0]).toMatchObject({
+      crc8: crc8([0x76, 0x31]),
+      crc16: crc16([0x76, 0x31]),
+    });
+  });
+
   it('throws when the version is already recorded', () => {
-    expect(() => appendVersion(history(['1.0.0', HASH_A]), '1.0.0', HASH_B, snapshot)).toThrow(
+    expect(() => appendVersion(history(['1.0.0', HASH_A]), '1.0.0', S3, HASH_B, snapshot)).toThrow(
       /1\.0\.0.*already recorded/
     );
   });
@@ -159,7 +177,7 @@ describe('appendVersion', () => {
   it('does not mutate its input and returns a new object', () => {
     const base = history(['1.0.0', HASH_A]);
     const copy = JSON.parse(JSON.stringify(base)) as VersionHistory;
-    const next = appendVersion(base, '1.1.0', HASH_B, snapshot);
+    const next = appendVersion(base, '1.1.0', S3, HASH_B, snapshot);
     expect(base).toEqual(copy);
     expect(next).not.toBe(base);
     expect(next.versions).not.toBe(base.versions);
@@ -168,7 +186,7 @@ describe('appendVersion', () => {
 
   it('returns new containers even when nothing new is stored', () => {
     const base = history(['1.0.0', HASH_A]);
-    const next = appendVersion(base, '1.0.1', HASH_A, snapshot);
+    const next = appendVersion(base, '1.0.1', S3, HASH_A, snapshot);
     expect(next.registerSets).not.toBe(base.registerSets);
     expect(base.versions).toHaveLength(1);
   });
@@ -179,23 +197,24 @@ describe('overwriteVersion', () => {
 
   it('throws when the version is not recorded', () => {
     expect(() =>
-      overwriteVersion({ registerSets: {}, versions: [] }, '1.0.0', HASH_A, snapshot)
+      overwriteVersion({ registerSets: {}, versions: [] }, '1.0.0', S3, HASH_A, snapshot)
     ).toThrow(/1\.0\.0.*not recorded/);
-    expect(() => overwriteVersion(history(['1.0.0', HASH_A]), '1.1.0', HASH_B, snapshot)).toThrow(
-      /1\.1\.0.*not recorded/
-    );
+    expect(() =>
+      overwriteVersion(history(['1.0.0', HASH_A]), '1.1.0', S3, HASH_B, snapshot)
+    ).toThrow(/1\.1\.0.*not recorded/);
   });
 
   it('re-points only the named entry and stores the snapshot', () => {
     const next = overwriteVersion(
       history(['1.0.0', HASH_A], ['1.1.0', HASH_B]),
       '1.1.0',
+      S3,
       HASH_C,
       snapshot
     );
     expect(next.versions).toEqual([
       { version: '1.0.0', registerSet: HASH_A },
-      { version: '1.1.0', registerSet: HASH_C },
+      { version: '1.1.0', registerSet: HASH_C, crc8: crc8([1, 1, 0]), crc16: crc16([1, 1, 0]) },
     ]);
     expect(next.registerSets[HASH_C]).toEqual({ addressBlocks: snapshot });
   });
@@ -204,11 +223,12 @@ describe('overwriteVersion', () => {
     const next = overwriteVersion(
       history(['1.0.0', HASH_A], ['1.1.0', HASH_B]),
       '1.0.0',
+      S3,
       HASH_C,
       snapshot
     );
     expect(next.versions).toEqual([
-      { version: '1.0.0', registerSet: HASH_C },
+      { version: '1.0.0', registerSet: HASH_C, crc8: crc8([1, 0, 0]), crc16: crc16([1, 0, 0]) },
       { version: '1.1.0', registerSet: HASH_B },
     ]);
     expect(Object.keys(next.registerSets).sort()).toEqual([HASH_B, HASH_C]);
@@ -218,6 +238,7 @@ describe('overwriteVersion', () => {
     const next = overwriteVersion(
       history(['1.0.0', HASH_A], ['1.1.0', HASH_B]),
       '1.1.0',
+      S3,
       HASH_C,
       snapshot
     );
@@ -228,21 +249,38 @@ describe('overwriteVersion', () => {
     const next = overwriteVersion(
       history(['1.0.0', HASH_A], ['1.1.0', HASH_A]),
       '1.1.0',
+      S3,
       HASH_C,
       snapshot
     );
     expect(Object.keys(next.registerSets).sort()).toEqual([HASH_A, HASH_C]);
   });
 
+  it('replaces the CRCs of the overwritten entry only', () => {
+    const old = { version: '1.0.0', registerSet: HASH_A, crc8: 1, crc16: 2 };
+    const h: VersionHistory = {
+      registerSets: { [HASH_A]: { addressBlocks: [] } },
+      versions: [old, { version: '1.1.0', registerSet: HASH_A, crc8: 3, crc16: 4 }],
+    };
+    const next = overwriteVersion(h, '1.0.0', S3, HASH_C, snapshot);
+    expect(next.versions[0]).toEqual({
+      version: '1.0.0',
+      registerSet: HASH_C,
+      crc8: crc8([1, 0, 0]),
+      crc16: crc16([1, 0, 0]),
+    });
+    expect(next.versions[1]).toEqual({ version: '1.1.0', registerSet: HASH_A, crc8: 3, crc16: 4 });
+  });
+
   it('removes every unreferenced set, including ones that were already orphaned', () => {
     const h = history(['1.0.0', HASH_A]);
     h.registerSets[HASH_B] = { addressBlocks: [] };
-    const next = overwriteVersion(h, '1.0.0', HASH_C, snapshot);
+    const next = overwriteVersion(h, '1.0.0', S3, HASH_C, snapshot);
     expect(Object.keys(next.registerSets)).toEqual([HASH_C]);
   });
 
   it('keeps the stored snapshot when re-pointed at the hash it already has', () => {
-    const next = overwriteVersion(history(['1.0.0', HASH_A]), '1.0.0', HASH_A, snapshot);
+    const next = overwriteVersion(history(['1.0.0', HASH_A]), '1.0.0', S3, HASH_A, snapshot);
     expect(Object.keys(next.registerSets)).toEqual([HASH_A]);
     expect(next.registerSets[HASH_A]).toEqual({ addressBlocks: [{ name: `snap-${HASH_A}` }] });
   });
@@ -251,6 +289,7 @@ describe('overwriteVersion', () => {
     const next = overwriteVersion(
       history(['1.0.0', HASH_A], ['1.1.0', HASH_B]),
       '1.1.0',
+      S3,
       HASH_A,
       snapshot
     );
@@ -262,7 +301,7 @@ describe('overwriteVersion', () => {
   it('does not mutate its input', () => {
     const base = history(['1.0.0', HASH_A], ['1.1.0', HASH_B]);
     const copy = JSON.parse(JSON.stringify(base)) as VersionHistory;
-    const next = overwriteVersion(base, '1.1.0', HASH_C, snapshot);
+    const next = overwriteVersion(base, '1.1.0', S3, HASH_C, snapshot);
     expect(base).toEqual(copy);
     expect(next).not.toBe(base);
     expect(next.versions).not.toBe(base.versions);
@@ -525,7 +564,7 @@ describe('versionRegisterChanges', () => {
   it('reads recorded snapshots as raw schema objects (symbolic tokens)', () => {
     const text = withVersionRegister({});
     const hash = hashRegisterSet(blocksOf(text));
-    const h = appendVersion(undefined, '1.0.0', hash, rawBlocksOf(text));
+    const h = appendVersion(undefined, '1.0.0', S3, hash, rawBlocksOf(text));
     expect(versionRegisterChanges(h, current(text), parseSnapshot)).toEqual([]);
   });
 });

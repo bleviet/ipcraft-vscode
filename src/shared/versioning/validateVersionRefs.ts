@@ -12,6 +12,7 @@ import { versionRegisterChanges, type VersionRegisterChange } from './versionHis
 import type { VersionHistory } from './versionHistoryTypes';
 import {
   schemeComponents,
+  versionRefCrc,
   versionRefWidth,
   type VersionRef,
   type VersionScheme,
@@ -65,7 +66,12 @@ export const blocksHaveVersionRef = (blocks: readonly NormalizedAddressBlock[]):
 const keyOf = (site: VersionRegisterSite): string => `${site.block.name}.${site.register.name}`;
 
 function validRefs(scheme: VersionScheme): string {
-  return ['$version', ...schemeComponents(scheme).map((name) => `$version.${name}`)].join(', ');
+  return [
+    '$version',
+    ...schemeComponents(scheme).map((name) => `$version.${name}`),
+    '$version.crc8',
+    '$version.crc16',
+  ].join(', ');
 }
 
 /** Scheme rules for one reference: E1, E2 and the width part of E3. `size` is the target's bits. */
@@ -75,14 +81,14 @@ function checkRefAgainstScheme(
   target: { kind: 'field' | 'register'; size: number },
   path: IssuePath
 ): VersionRefIssue[] {
-  if (scheme === 'free') {
+  if (scheme === 'free' && !versionRefCrc(ref)) {
     return [
       {
         severity: 'error',
         code: 'versionRef.scheme',
         path,
         message:
-          'Version references need a numeric version scheme (set vlnv.versionScheme in the owning .ip.yml)',
+          'Version references need a numeric version scheme (set vlnv.versionScheme in the owning .ip.yml); only $version.crc8 and $version.crc16 work with a free version',
       },
     ];
   }

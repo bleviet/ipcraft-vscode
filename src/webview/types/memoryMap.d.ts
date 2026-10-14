@@ -171,6 +171,8 @@ export interface VersionHistory {
   versions: {
     version: string;
     registerSet: string;
+    crc8?: number;
+    crc16?: number;
   }[];
 }
 /**

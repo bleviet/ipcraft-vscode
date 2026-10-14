@@ -4,6 +4,7 @@ import type { ProSegment } from './types';
 import { BitVector } from '../../../dataInspector/BitVector';
 import { normalizeFieldRange } from '../../../dataInspector/fieldGeometry';
 import { formatResolvedHex } from '../../shared/utils/versionRefDisplay';
+import type { VersionRef } from '../../../shared/versioning/versionScheme';
 
 export function getFieldRange(field: FieldModel): { lo: number; hi: number } | null {
   return normalizeFieldRange(field);
@@ -51,12 +52,12 @@ export function parseRegisterValue(text: string, view: 'hex' | 'dec' = 'hex'): n
  * empty draft from malformed digits from a value that overflows the width, so
  * callers can surface a specific message instead of a generic one. `token` and
  * `pending` are only set by `parseRegisterValueDraft` (registerValueToken.ts):
- * the draft is the whole `$version` token, or a prefix of it still being typed.
+ * the draft is a whole `$version` reference, or a prefix of one still being typed.
  */
 export interface RegisterValueParse {
   vector: BitVector | null;
   error: 'malformed' | 'overflow' | null;
-  token?: '$version';
+  token?: VersionRef;
   pending?: true;
 }
 

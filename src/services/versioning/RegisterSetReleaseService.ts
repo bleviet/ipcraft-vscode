@@ -239,7 +239,7 @@ async function release(ipCoreUri: vscode.Uri): Promise<ReleaseOutcome> {
     logger.info('Register-set release cancelled: the IP core has unsaved changes');
     return { proceed: false };
   }
-  const plans = planRelease(inputs, coreVersion, choice?.decision);
+  const plans = planRelease(inputs, coreVersion, info.scheme, choice?.decision);
 
   const written: string[] = [];
   // Documents edited by this run and not saved yet, with what the user needs to know about them.

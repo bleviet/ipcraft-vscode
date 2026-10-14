@@ -7,6 +7,7 @@ import {
   type RegisterSetPolicy,
 } from '../../../cli/registerSetPolicy';
 import { buildMapReleases } from '../../../services/versioning/releaseFiles';
+import { crc16, crc8 } from '../../../shared/versioning/versionCrc';
 
 const core = (version: string, memoryMaps = 'memoryMaps:\n  import: regs.mm.yml\n'): string =>
   `vlnv:\n  vendor: acme\n  library: lib\n  name: core\n  version: ${version}\n  versionScheme: major.minor.patch\n${memoryMaps}`;
@@ -118,7 +119,12 @@ describe('register-set policy (CLI)', () => {
     it('adopt records an empty history and a version bump', async () => {
       const recorded = await released();
       expect(buildMapReleases(recorded)[0].input.history?.versions).toEqual([
-        { version: '1.4.1', registerSet: expect.any(String) },
+        {
+          version: '1.4.1',
+          registerSet: expect.any(String),
+          crc8: crc8([1, 4, 1]),
+          crc16: crc16([1, 4, 1]),
+        },
       ]);
       expect(recorded).toContain('# register map');
 

@@ -21,7 +21,7 @@ export type Name = string;
  */
 export type Version = string;
 /**
- * How vlnv.version is structured. 'free' = any text. Numeric schemes = 2, 3 or 4 dot-separated components, each 0..255 (8 bit). Required for $version register references.
+ * How vlnv.version is structured. 'free' = any text. Numeric schemes = 2, 3 or 4 dot-separated components, each 0..255 (8 bit). Required for $version, $version.<component> references; $version.crc8 and $version.crc16 also work with 'free'.
  */
 export type Versionscheme =
   | 'free'
