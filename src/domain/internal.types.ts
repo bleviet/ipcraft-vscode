@@ -8,7 +8,14 @@ export interface MemoryMapDoc {
   map: NormalizedMemoryMap;
 }
 
-export interface NormalizedField {
+/**
+ * Vendor extension keys (`x-...`) of a register or bit field in the `.mm.yml`. IPCraft does not
+ * interpret them; they are kept on the normalized object so the editor writes them back unchanged
+ * and templates see them as `extensions`.
+ */
+export type VendorExtensions = { [key: `x-${string}`]: unknown };
+
+export interface NormalizedField extends VendorExtensions {
   rowId: string;
   name: string;
   bits: string;
@@ -23,7 +30,7 @@ export interface NormalizedField {
   monitorChangeOf?: string | null;
 }
 
-export interface NormalizedRegister {
+export interface NormalizedRegister extends VendorExtensions {
   rowId: string;
   name: string;
   offset: number; // byte offset

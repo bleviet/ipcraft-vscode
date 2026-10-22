@@ -10,8 +10,13 @@ import {
   resolveMemoryMapImports,
   type FileReader,
 } from '../services/imports/resolveMemoryMapImports';
-import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
-import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
+import { normalizeIpCore, normalizeMemoryMap, pickVendorExtensions } from '../domain/parse';
+import type {
+  NormalizedAddressBlock,
+  NormalizedMemoryMap,
+  NormalizedRegister,
+  VendorExtensions,
+} from '../domain/internal.types';
 import type { Parameter } from '../domain/ipcore.types';
 import { arrayedBusNames } from '../shared/busInterfaceArray';
 import { BUS_REGISTRY } from './buses/builtin';
@@ -29,6 +34,7 @@ import { evalWidthExpr } from '../shared/evalWidthExpr';
 import { parse, serialize, containsParamRef } from '../shared/widthExprAst';
 import { reconstructBusPortNameSet } from '../shared/busPortNameSet';
 import { resolveVersionRefsInMap } from '../shared/versioning/resolveVersionRefs';
+import type { VersionScheme } from '../shared/versioning/versionScheme';
 import { ipCoreVersionInfo } from './versionContext';
 import { buildPortSwapProjection } from './resolvers/endiannessPolicy';
 export { evalWidthExpr };
@@ -708,6 +714,8 @@ type ProjectedRegister = {
   access: string | undefined;
   resetValue: number;
   reset_value: number;
+  /** `$version` reference of a constant register, `null` otherwise; `resetValue` is resolved. */
+  version_ref: string | null;
   description: string;
   fields: Array<{
     name: string;
@@ -721,68 +729,134 @@ type ProjectedRegister = {
     access: string | undefined;
     resetValue: number;
     reset_value: number;
+    /** `$version` reference of a constant field, `null` otherwise; `resetValue` is resolved. */
+    version_ref: string | null;
     description: string;
     monitorChangeOf?: string | null;
+    /** `x-...` vendor extension keys of the field, verbatim. */
+    extensions: VendorExtensions;
   }>;
+  /** `x-...` vendor extension keys of the register, verbatim. */
+  extensions: VendorExtensions;
   count?: number;
   stride?: number;
   registers?: ProjectedRegister[];
 };
 
-export function projectMemoryMapsForTemplate(maps: NormalizedMemoryMap[]): unknown[] {
+function projectAddressBlocks(blocks: readonly NormalizedAddressBlock[]): unknown[] {
+  return blocks.map((block) => ({
+    name: block.name,
+    base_address: block.baseAddress,
+    baseAddress: block.baseAddress,
+    range: block.range,
+    usage: block.usage,
+    registers: (block.registers ?? []).map((reg) => {
+      const projectReg = (r: NormalizedRegister): ProjectedRegister => {
+        const projectedFields = (r.fields ?? []).map((f) => ({
+          name: f.name,
+          bits: f.bits,
+          offset: f.offset,
+          bit_offset: f.offset,
+          bitOffset: f.offset,
+          width: f.width,
+          bit_width: f.width,
+          bitWidth: f.width,
+          access: f.access,
+          resetValue: f.resetValue,
+          reset_value: f.resetValue,
+          version_ref: f.versionRef ?? null,
+          description: f.description,
+          monitorChangeOf: f.monitorChangeOf,
+          extensions: pickVendorExtensions(f as unknown as Record<string, unknown>),
+        }));
+        const base: ProjectedRegister = {
+          name: r.name,
+          offset: r.offset,
+          address_offset: r.offset,
+          addressOffset: r.offset,
+          size: r.size,
+          access: deriveRegisterAccess(
+            projectedFields.map((f) => getString(f.access) || 'read-write'),
+            r.access
+          ),
+          resetValue: r.resetValue,
+          reset_value: r.resetValue,
+          version_ref: r.versionRef ?? null,
+          description: r.description,
+          fields: projectedFields,
+          extensions: pickVendorExtensions(r as unknown as Record<string, unknown>),
+        };
+        if (r.__kind === 'array') {
+          return {
+            ...base,
+            count: r.count,
+            stride: r.stride,
+            registers: (r.registers ?? []).map(projectReg),
+          };
+        }
+        return base;
+      };
+      return projectReg(reg);
+    }),
+  }));
+}
+
+/** The core version the maps were resolved for (see resolveIpCoreVersionRefs). */
+export interface ProjectionVersionInfo {
+  scheme: VersionScheme;
+  version: string;
+}
+
+/**
+ * Every version recorded in a map's `versionHistory`, oldest first, each with the register layout it
+ * shipped with and its `$version` references resolved for that version. The core's current version
+ * uses the map itself: generation only runs when that version is recorded with exactly this layout,
+ * and the map carries metadata the frozen snapshot may lack (`x-...` keys and descriptions are not
+ * part of the layout hash). Older versions use their frozen snapshot, normalized like the map.
+ * Empty for an unversioned map or without version info.
+ */
+function projectVersionedLayouts(
+  map: NormalizedMemoryMap,
+  versionInfo?: ProjectionVersionInfo
+): unknown[] {
+  const history = map.versionHistory;
+  if (!history || !versionInfo) {
+    return [];
+  }
+  return history.versions.flatMap((entry) => {
+    const snapshot = history.registerSets[entry.registerSet];
+    if (!snapshot && entry.version !== versionInfo.version) {
+      return [];
+    }
+    const source =
+      entry.version === versionInfo.version
+        ? map
+        : normalizeMemoryMap({ name: map.name, addressBlocks: snapshot.addressBlocks });
+    const layout = resolveVersionRefsInMap(source, versionInfo.scheme, entry.version);
+    return [
+      {
+        version: entry.version,
+        register_set: entry.registerSet,
+        crc8: entry.crc8 ?? null,
+        crc16: entry.crc16 ?? null,
+        address_blocks: projectAddressBlocks(layout.addressBlocks),
+      },
+    ];
+  });
+}
+
+/**
+ * The memory maps as templates see them. With the core's version info, each map also carries
+ * `versions`: its recorded versions with their resolved layouts (see projectVersionedLayouts).
+ */
+export function projectMemoryMapsForTemplate(
+  maps: NormalizedMemoryMap[],
+  versionInfo?: ProjectionVersionInfo
+): unknown[] {
   return maps.map((map) => ({
     name: map.name,
     description: map.description,
-    address_blocks: (map.addressBlocks ?? []).map((block) => ({
-      name: block.name,
-      base_address: block.baseAddress,
-      baseAddress: block.baseAddress,
-      range: block.range,
-      usage: block.usage,
-      registers: (block.registers ?? []).map((reg) => {
-        const projectReg = (r: NormalizedRegister): ProjectedRegister => {
-          const projectedFields = (r.fields ?? []).map((f) => ({
-            name: f.name,
-            bits: f.bits,
-            offset: f.offset,
-            bit_offset: f.offset,
-            bitOffset: f.offset,
-            width: f.width,
-            bit_width: f.width,
-            bitWidth: f.width,
-            access: f.access,
-            resetValue: f.resetValue,
-            reset_value: f.resetValue,
-            description: f.description,
-            monitorChangeOf: f.monitorChangeOf,
-          }));
-          const base: ProjectedRegister = {
-            name: r.name,
-            offset: r.offset,
-            address_offset: r.offset,
-            addressOffset: r.offset,
-            size: r.size,
-            access: deriveRegisterAccess(
-              projectedFields.map((f) => getString(f.access) || 'read-write'),
-              r.access
-            ),
-            resetValue: r.resetValue,
-            reset_value: r.resetValue,
-            description: r.description,
-            fields: projectedFields,
-          };
-          if (r.__kind === 'array') {
-            return {
-              ...base,
-              count: r.count,
-              stride: r.stride,
-              registers: (r.registers ?? []).map(projectReg),
-            };
-          }
-          return base;
-        };
-        return projectReg(reg);
-      }),
-    })),
+    address_blocks: projectAddressBlocks(map.addressBlocks ?? []),
+    versions: projectVersionedLayouts(map, versionInfo),
   }));
 }

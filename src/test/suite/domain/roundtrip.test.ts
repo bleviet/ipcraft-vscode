@@ -575,4 +575,31 @@ describe('$version tokens and versionHistory', () => {
       expect(out.addressBlocks[0].registers[0]).not.toHaveProperty('resetValue');
     });
   });
+
+  describe('vendor extension keys (x-...)', () => {
+    const YAML = `- name: X
+  addressBlocks:
+    - name: B
+      registers:
+        - name: POP
+          x-readSideEffect: true
+          x-vendor: { note: kept as is, list: [1, 2] }
+          fields:
+            - { name: V, bits: '[31:31]', access: read-only, x-unit: flag }
+`;
+
+    it('keeps them on the normalized register and field', () => {
+      const reg = parseMemoryMap(YAML).map.addressBlocks[0].registers[0];
+      expect(reg['x-readSideEffect']).toBe(true);
+      expect(reg['x-vendor']).toEqual({ note: 'kept as is', list: [1, 2] });
+      expect(reg.fields[0]['x-unit']).toBe('flag');
+    });
+
+    it('writes them back unchanged', () => {
+      const reg = serialized(YAML)[0].addressBlocks[0].registers[0] as Record<string, unknown>;
+      expect(reg['x-readSideEffect']).toBe(true);
+      expect(reg['x-vendor']).toEqual({ note: 'kept as is', list: [1, 2] });
+      expect((reg.fields as Array<Record<string, unknown>>)[0]['x-unit']).toBe('flag');
+    });
+  });
 });

@@ -20,6 +20,7 @@ import type {
   NormalizedRegister,
   NormalizedField,
   MemoryMapDoc,
+  VendorExtensions,
 } from './internal.types';
 import { detectMemoryMapRoot } from './memoryMapRoot';
 import { reconcileRowIds, type TableRowWrapper } from '../webview/utils/rowIdentity';
@@ -78,6 +79,17 @@ function parseBits(bits: string): { offset: number; width: number } {
   return { offset: 0, width: 1 };
 }
 
+/** The `x-...` vendor extension keys of a raw register or field, copied verbatim. */
+export function pickVendorExtensions(raw: Record<string, unknown>): VendorExtensions {
+  const out: VendorExtensions = {};
+  for (const key of Object.keys(raw)) {
+    if (key.startsWith('x-')) {
+      out[key as `x-${string}`] = raw[key];
+    }
+  }
+  return out;
+}
+
 function normalizeField(raw: Record<string, unknown>): Omit<NormalizedField, 'rowId'> {
   let offset = parseNumber(raw.offset ?? raw.bitOffset, 0);
   let width = parseNumber(raw.width ?? raw.bitWidth, 1);
@@ -101,6 +113,7 @@ function normalizeField(raw: Record<string, unknown>): Omit<NormalizedField, 'ro
     description: String(raw.description ?? ''),
     enumeratedValues: (raw.enumeratedValues ?? null) as Record<string, string> | null,
     monitorChangeOf: (raw.monitorChangeOf ?? null) as string | null,
+    ...pickVendorExtensions(raw),
   };
 }
 
@@ -128,6 +141,7 @@ function normalizeRegister(
     ...parseResetValue(raw.resetValue),
     description: String(raw.description ?? ''),
     fields: fields as NormalizedField[],
+    ...pickVendorExtensions(raw),
   };
 
   if (isArray) {

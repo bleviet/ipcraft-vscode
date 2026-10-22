@@ -11,7 +11,7 @@ export interface TemplateContext {
   /**
    * Semantic version of the template context contract.
    */
-  contract_version: '1.7.0';
+  contract_version: '1.8.0';
   name: string;
   entity_name: string;
   has_memory_mapped_slave: boolean;

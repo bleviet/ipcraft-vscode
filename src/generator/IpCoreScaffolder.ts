@@ -23,7 +23,7 @@ import {
   checkVersionRefsForGeneration,
   vendorVersionWarning,
 } from './validation/versionDiagnostics';
-import { buildVersionTemplateContext } from './versionContext';
+import { buildVersionTemplateContext, ipCoreVersionInfo } from './versionContext';
 import { IpCoreSchemaValidationError, loadIpCoreData } from './loadIpCore';
 import { sortByCompilationOrder, hdlLanguageFromPath } from '../utils/compilationOrder';
 import { getToolchain } from '../services/toolchains/registry';
@@ -656,7 +656,7 @@ export class IpCoreScaffolder {
       regWidth: addressing.reg_width as number,
     });
 
-    const projectedMemoryMaps = projectMemoryMapsForTemplate(memoryMaps);
+    const projectedMemoryMaps = projectMemoryMapsForTemplate(memoryMaps, ipCoreVersionInfo(ipCore));
 
     return {
       contract_version: CONTRACT_VERSION,

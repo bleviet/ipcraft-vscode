@@ -633,7 +633,7 @@ describe('$version references in generation', () => {
 `,
       });
       const context = await scaffolder.buildTemplateContextPublic(inputPath);
-      expect(context.contract_version).toBe('1.7.0');
+      expect(context.contract_version).toBe('1.8.0');
       expect(context.version_scheme).toBe('major.minor.patch');
       expect(context.version_file_suffix).toBe('1_4_2');
       expect(context.version_history).toEqual([

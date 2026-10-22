@@ -607,6 +607,126 @@ describe('registerProcessor', () => {
         { name: 'EDITOR_STATUS', access: 'read-only' },
       ]);
     });
+
+    it('projects every recorded version with its own resolved layout', () => {
+      const versionRegister = {
+        name: 'VERSION',
+        fields: [
+          { name: 'MAJOR', bits: '[31:24]', resetValue: '$version.major' },
+          { name: 'MINOR', bits: '[23:16]', resetValue: '$version.minor' },
+          { name: 'PATCH', bits: '[15:8]', resetValue: '$version.patch' },
+          { name: 'CRC8', bits: '[7:0]', resetValue: '$version.crc8' },
+        ],
+      };
+      const v1 = [{ name: 'REGS', baseAddress: 0, registers: [versionRegister] }];
+      const v2 = [
+        {
+          name: 'REGS',
+          baseAddress: 0,
+          registers: [versionRegister, { name: 'CTRL', fields: [{ name: 'EN', bits: '[0]' }] }],
+        },
+      ];
+      const map = normalizeMemoryMap({
+        name: 'MAP',
+        addressBlocks: v2,
+        versionHistory: {
+          registerSets: { 'rs1-a': { addressBlocks: v1 }, 'rs1-b': { addressBlocks: v2 } },
+          versions: [
+            { version: '1.0.0', registerSet: 'rs1-a', crc8: 62 },
+            { version: '2.0.0', registerSet: 'rs1-b', crc8: 131 },
+          ],
+        },
+      });
+      const [projected] = projectMemoryMapsForTemplate([map], {
+        scheme: 'major.minor.patch',
+        version: '9.9.9',
+      }) as any[];
+
+      expect(projected.versions.map((v: any) => [v.version, v.register_set, v.crc8])).toEqual([
+        ['1.0.0', 'rs1-a', 62],
+        ['2.0.0', 'rs1-b', 131],
+      ]);
+      const [old, current] = projected.versions.map((v: any) => v.address_blocks[0].registers);
+      expect(old.map((r: any) => r.name)).toEqual(['VERSION']);
+      expect(current.map((r: any) => [r.name, r.offset])).toEqual([
+        ['VERSION', 0],
+        ['CTRL', 4],
+      ]);
+      const resets = (regs: any[]) => regs[0].fields.map((f: any) => f.resetValue);
+      expect(resets(old)).toEqual([1, 0, 0, 0x3e]);
+      expect(resets(current)).toEqual([2, 0, 0, 0x83]);
+      expect(current[0].fields[0].version_ref).toBe('$version.major');
+      expect(current[1].fields[0].version_ref).toBeNull();
+    });
+
+    it('takes the current version from the map itself, with its x-... keys', () => {
+      const snapshotBlocks = [
+        { name: 'REGS', baseAddress: 0, registers: [{ name: 'POP', access: 'read-only' }] },
+      ];
+      const map = normalizeMemoryMap({
+        name: 'MAP',
+        addressBlocks: [
+          {
+            name: 'REGS',
+            baseAddress: 0,
+            registers: [{ name: 'POP', access: 'read-only', 'x-readSideEffect': true }],
+          },
+        ],
+        versionHistory: {
+          registerSets: { 'rs1-a': { addressBlocks: snapshotBlocks } },
+          versions: [
+            { version: '1.0.0', registerSet: 'rs1-a' },
+            { version: '1.1.0', registerSet: 'rs1-a' },
+          ],
+        },
+      });
+      const [projected] = projectMemoryMapsForTemplate([map], {
+        scheme: 'major.minor.patch',
+        version: '1.1.0',
+      }) as any[];
+      const pop = (v: any) => v.address_blocks[0].registers[0];
+
+      expect(pop(projected.versions[0]).extensions).toEqual({});
+      expect(pop(projected.versions[1]).extensions).toEqual({ 'x-readSideEffect': true });
+    });
+
+    it('has no versions without a version history or without a scheme', () => {
+      const plain = normalizeMemoryMap({ name: 'MAP', addressBlocks: [] });
+      expect(
+        (
+          projectMemoryMapsForTemplate([plain], { scheme: 'major.minor', version: '1.0' }) as any[]
+        )[0].versions
+      ).toEqual([]);
+      expect((projectMemoryMapsForTemplate([plain]) as any[])[0].versions).toEqual([]);
+    });
+
+    it('projects x-... vendor keys as extensions of registers and fields', () => {
+      const [projectedMap] = projectMemoryMapsForTemplate([
+        normalizeMemoryMap({
+          name: 'MAP',
+          addressBlocks: [
+            {
+              name: 'REGS',
+              baseAddress: 0,
+              registers: [
+                {
+                  name: 'POP',
+                  'x-readSideEffect': true,
+                  fields: [{ name: 'V', bits: '[0:0]', access: 'read-only', 'x-unit': 'flag' }],
+                },
+                { name: 'PLAIN', fields: [{ name: 'V', bits: '[0:0]' }] },
+              ],
+            },
+          ],
+        }),
+      ]) as any[];
+      const [pop, plain] = projectedMap.address_blocks[0].registers;
+
+      expect(pop.extensions).toEqual({ 'x-readSideEffect': true });
+      expect(pop.fields[0].extensions).toEqual({ 'x-unit': 'flag' });
+      expect(plain.extensions).toEqual({});
+      expect(plain.fields[0].extensions).toEqual({});
+    });
   });
 
   describe('normalizeIpCoreData subcores', () => {
