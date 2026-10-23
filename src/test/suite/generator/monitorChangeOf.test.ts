@@ -320,7 +320,7 @@ describe('monitorChangeOf — VHDL register file template', () => {
   });
 
   it('CPU clear path uses wr_data bit at correct offset (bit 16)', () => {
-    expect(output).toContain('wr_data(16)');
+    expect(output).toContain('wr_data_i(16)');
   });
 
   it('declares v_rd_data variable in p_read process', () => {

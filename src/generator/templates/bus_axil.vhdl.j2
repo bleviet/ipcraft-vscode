@@ -119,6 +119,16 @@ architecture rtl of {{ entity_name }}_axil is
   -- Gate wr_en to a single-cycle pulse: wr_pending tracks that wr_en has
   -- already fired this transaction so the second combinatorial cycle is blocked.
   signal wr_pending   : std_logic := '0';
+  -- wr_en registered, and the register bank registers its one-hot write selects (G_REG_WRITE):
+  -- the write select is decoded in the cycle after wr_en_q, from awaddr that is stable since the
+  -- latch (multicycle path at high clock rates, see the IP's scoped XDC: awaddr -> decode ->
+  -- select flip-flop only), and the register itself is written one cycle later from the select
+  -- flip-flop (enable) and wdata_latch / wstrb_latch (data, byte enables), which are stable until
+  -- the B handshake (the next AW / W is only accepted afterwards). BVALID comes with that
+  -- write (wr_en_qq).
+  signal wr_en_comb : std_logic;
+  signal wr_en_q    : std_logic;
+  signal wr_en_qq   : std_logic := '0';
   -- Registered flag for an unmapped read address: lets read_valid_proc respond
   -- with SLVERR one cycle after rd_en, matching the timing of rd_valid.
   signal rd_invalid_d : std_logic := '0';
@@ -141,6 +151,9 @@ begin
   -- Register Bank Instantiation
   ----------------------------------------------------------------------------
   u_regs : entity work.{{ entity_name }}_regs
+    generic map (
+      G_REG_WRITE => true
+    )
     port map (
       clk      => clk,
       rst      => rst,
@@ -287,7 +300,26 @@ begin
   -- Register Write Control
   -- Generate write enable to register bank when both address and data received
   ----------------------------------------------------------------------------
-  wr_en   <= write_txn.addr_received and write_txn.data_received and not wr_pending;
+  wr_en_comb <= write_txn.addr_received and write_txn.data_received and not wr_pending;
+
+  wr_en_q_proc : process (clk) is
+  begin
+    if rising_edge(clk) then
+      if rst = '1' then
+        wr_en_q <= '0';
+      else
+        wr_en_q <= wr_en_comb;
+      end if;
+      -- the register bank writes in the cycle after wr_en_q; BVALID comes with that write
+      if rst = '1' then
+        wr_en_qq <= '0';
+      else
+        wr_en_qq <= wr_en_q;
+      end if;
+    end if;
+  end process wr_en_q_proc;
+
+  wr_en   <= wr_en_q;
   wr_addr <= awaddr_int(C_ADDR_WIDTH-1 downto 0);
   wr_data <= wdata_latch;
   wr_strb <= wstrb_latch;
@@ -302,8 +334,8 @@ begin
         bvalid_int <= '0';
         bresp_int  <= C_RESP_OKAY;
       else
-        if (write_txn.addr_received = '1' and write_txn.data_received = '1' and bvalid_int = '0') then
-          -- Both address and data received, assert write response
+        if (wr_en_qq = '1') then
+          -- The register bank writes in this cycle: assert the write response with it
           bvalid_int <= '1';
           if to_integer(unsigned(awaddr_int(C_ADDR_WIDTH-1 downto 0))) < {{ addr_map_size }} then
             bresp_int <= C_RESP_OKAY;

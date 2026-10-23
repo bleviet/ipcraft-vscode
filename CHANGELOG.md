@@ -202,6 +202,13 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 - The IP Core editor's Version field validates against the selected scheme. Free text accepts any non-empty text instead of requiring `X.Y.Z`.
 - Vivado XGUI file names replace every character other than letters, digits and `_` in the version with `_`, so a free-text version cannot produce an invalid file name. Numeric versions such as `1.2.0` still give `1_2_0`. Generating for Vivado or Quartus with a version that is not dotted numbers now warns that the tool may reject it.
 - `ipcraft verify` lists the individual issues of a blocked generation instead of only the summary line.
+- **Registered AXI-Lite register writes (VHDL).** The AXI-Lite wrapper registers the write enable (`wr_en_q`) and sets
+  the new generic `G_REG_WRITE` of the register bank, which then decodes the address into one write-select flip-flop per
+  register (`wr_sel_q`) and writes the register one cycle later; BVALID comes with that write (`wr_en_qq`), two cycles
+  later than before. The register enable is a single select flip-flop, so the bank closes timing at 400 MHz. The
+  address, data and strobe latches (`awaddr_int`, `wdata_latch`, `wstrb_latch`) stay stable until the B handshake;
+  an IP that runs at such clock rates can relax the paths from them with a scoped multicycle constraint.
+  `G_REG_WRITE = false` (the default of the bank) keeps the write in the cycle of `wr_en`.
 
 ### Fixed
 

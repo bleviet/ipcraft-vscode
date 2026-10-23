@@ -450,7 +450,19 @@ describe('$version references in generation', () => {
       expect(regs).not.toMatch(/regs_in\.version/);
       // Only the read process mentions the address: no write branch.
       expect(count(regs, 'when C_REG_VERSION_ADDR =>')).toBe(1);
+      expect(regs).not.toContain("wr_sel(C_WSEL_VERSION) = '1'");
       expect(regs).toContain('when C_REG_CTRL_ADDR =>');
+      expect(regs).toContain("wr_sel(C_WSEL_CTRL) = '1'");
+    });
+
+    it('registers the write selects: the AXI-Lite wrapper enables G_REG_WRITE and answers BVALID with the register write', async () => {
+      const { regs, files } = await rtl({ registers: CASE_A }, 'vhdl');
+      const axil = files['rtl/ver_core_axil.vhd'];
+      expect(regs).toContain('G_REG_WRITE : boolean := false');
+      expect(regs).toContain('wr_sel_q <= wr_sel_d;');
+      expect(axil).toContain('G_REG_WRITE => true');
+      expect(axil).toContain('wr_en   <= wr_en_q;');
+      expect(axil).toContain("if (wr_en_qq = '1') then");
     });
 
     it('(b) a fieldless register-level $version reads as a full-width literal', async () => {
