@@ -217,8 +217,48 @@ does not use the revisioned edit protocol.
   nodes are custom components using `var(--vscode-*)` colors.
 - **Responsiveness:** ELK runs in a web worker so large levels do not block
   the UI.
-- **Dependency:** elkjs is new and licensed EPL-2.0. Its license compatibility
-  with VSIX distribution must be confirmed before adoption.
+- **Dependency:** elkjs, reviewed below.
+
+### Layout Dependency Decision
+
+Reviewed on 2026-11-03. Decision: use elkjs, with the rules below.
+
+| Fact | Detail |
+|---|---|
+| License | `EPL-2.0` up to 0.11.1; `EPL-2.0 OR GPL-3.0-or-later` from 0.12.0. IPCraft elects EPL-2.0 |
+| Effect on IPCraft | EPL-2.0 is file-level copyleft. Unmodified elkjs used only through its API is a separate module, not a Modified Work, so IPCraft stays MIT |
+| Obligations for shipping it in the VSIX | Keep the elkjs license and copyright notices, tell recipients where the elkjs source is, and do not restrict their rights to it |
+| Gap in the current build | `elk.bundled.js` has no license header, so the `dist/*.js.LICENSE.txt` files that production webpack extracts would not include it. The notice must be added explicitly |
+| Precedent | `@mermaid-js/layout-elk` (MIT) depends on `elkjs ^0.12.0`; `sprotty-elk` is used in VS Code extensions |
+| Size | `elk.bundled.js` is about 1.6 MB, or about 470 KB gzipped. A production VSIX built on 2026-11-03 was 1.34 MB compressed and 5.03 MB unpacked, against budgets of 2 MiB and 5 MiB. Adding elkjs exceeds the unpacked budget |
+
+Alternatives considered:
+
+| Option | License | Layout quality | Cost |
+|---|---|---|---|
+| elkjs (chosen) | EPL-2.0, notice required | Ordered ports, hierarchy, orthogonal routing | Size budget increase and a notice file |
+| `@dagrejs/dagre` | MIT | No port or hierarchy support; edges attach to node centers and pins need hand-placed fixes | Small dependency, poor fit for block diagrams |
+| Custom layered layout | MIT, in-repo | Adequate for small and medium designs, weaker on large ones | Roughly 600 to 900 lines to write and maintain |
+
+Rules for adopting elkjs:
+
+1. Pin `elkjs@0.12.0` and elect EPL-2.0. Do not use a release that is less
+   than two weeks old.
+2. Use elkjs unmodified. A patched elkjs file would itself be EPL-2.0 and
+   would have to be published.
+3. Ship a `THIRD_PARTY_NOTICES` file in the VSIX with the elkjs name, version,
+   EPL-2.0 text, and source location (`https://github.com/kieler/elkjs`, tag
+   0.12.0). Add it to the `scripts/check-vsix.js` allowlist.
+4. Load the ELK worker as a separate file only when the system viewer opens, so
+   the other editors do not pay for it.
+5. Raise the VSIX budgets to 7 MiB unpacked and 2.5 MiB compressed, and record
+   the reason in `docs/architecture/vsix-packaging.md` and
+   `scripts/check-vsix.js`, as that document requires.
+
+The layout stays behind the pure `elkLayout.ts` adapter. If the larger VSIX
+becomes unacceptable, a custom layered layout can replace elkjs without
+changing the rest of the viewer. If IPCraft is distributed commercially, legal
+review should confirm this reading of EPL-2.0.
 
 Performance targets, to be measured on synthetic fixtures with about 20, 100,
 and 500 instances, flat and with three hierarchy levels:
@@ -286,6 +326,5 @@ the same graph for CI and scripts.
 | Which Vivado releases to certify first? | Match the release used by the IPCraft Vivado integration tests, plus one earlier release |
 | Detect BD Tcl automatically or only through the explicit command? | Content detection is cheap, but a custom editor for every `.tcl` file would be intrusive |
 | Custom editor, or a panel beside the text editor? | A panel keeps the Tcl text editable next to the diagram |
-| Is elkjs (EPL-2.0) acceptable in the VSIX? | Needs a license review; the alternative is a simpler custom layered layout |
 | How far to evaluate parameter-driven port presence in vendor `component.xml`? | Start with simple comparisons, mark the rest `partial`, and measure on real IP |
 | Should the graph be cached on disk? | Probably not for phase 1; re-parsing is expected to be fast enough. Measure first |
