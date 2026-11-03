@@ -14,6 +14,11 @@ comes first, because it needs no vendor tool and no license. Batch extraction
 through the vendor tool remains a later, optional way to get resolved
 (effective) state.
 
+A clickable UI mockup with sample data is in
+[offline-system-viewer-mockup.html](offline-system-viewer-mockup.html). Open it
+directly in a browser. Its layout and wire routing are a simplified stand-in
+for ELK.
+
 ## Problem
 
 Opening a large block design or Platform Designer system in the vendor GUI is
