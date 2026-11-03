@@ -3,6 +3,21 @@
 Shortcuts apply to the editor section that currently has focus. Text fields keep
 normal typing shortcuts unless a table cell is explicitly in navigation mode.
 
+## Switching Editors
+
+| Key | Action |
+|-----|--------|
+| `Ctrl+Shift+V` / `Cmd+Shift+V` | On a Vivado block design `.tcl` script, open the read-only system diagram; in the diagram, return to the text editor |
+
+## System Diagram
+
+| Key | Action |
+|-----|--------|
+| `Left` / `Right` | With a panel separator focused, resize the outline or details panel by 16 px |
+| `Up` / `Down` | With the bottom panel separator focused, resize it by 16 px |
+
+Double-click a separator to collapse its panel; use the toolbar toggles to restore it.
+
 ## IP Core Canvas
 
 These shortcuts are active when the canvas view is visible and no text field is focused.

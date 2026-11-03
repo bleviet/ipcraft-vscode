@@ -167,6 +167,7 @@ const webviewConfig = {
     webview: path.resolve(projectRoot, "src/webview/index.tsx"),
     ipcore: path.resolve(projectRoot, "src/webview/ipcore/IpCoreApp.tsx"),
     dataInspector: path.resolve(projectRoot, "src/webview/dataInspector/index.tsx"),
+    systemDiagram: path.resolve(projectRoot, "src/webview/systemDiagram/index.tsx"),
   },
   output: {
     path: path.resolve(projectRoot, "dist"),

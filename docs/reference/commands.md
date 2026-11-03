@@ -24,7 +24,8 @@ creating or importing a specification to generating, validating, and building.
 `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) is context-sensitive: on a VHDL,
 Verilog, SystemVerilog, `_hw.tcl`, or `component.xml` file it opens a read-only
 preview from which you can save an `.ip.yml`; on an `.ip.yml` or `.mm.yml` file
-it switches between the text and visual editors. The editable source is [`commands-map.drawio`](../images/commands-map.drawio).
+it switches between the text and visual editors; on a Vivado block design
+`.tcl` script it opens or closes the read-only system diagram. The editable source is [`commands-map.drawio`](../images/commands-map.drawio).
 
 ![Map of IPCraft commands grouped by workflow stage: create or import, specification, generate, validate, build, and vendor tools](../images/commands-map-light.png)
 
@@ -251,12 +252,15 @@ Available build targets:
 | `IPCraft: Open as Text Editor` | Yes | Yes (`.ip.yml`, `.mm.yml`) |
 | `IPCraft: Open as Visual Editor` | Yes | Yes (`.ip.yml`, `.mm.yml`) |
 | `IPCraft: Preview in IPCraft (Experimental)` | Yes | |
+| `IPCraft: Open as System Diagram` (`fpga-ip-core.openSystemDiagram`) | Yes (Vivado block design scripts) | Yes (Vivado block design scripts) |
 
 **Open as Text Editor** — Reopens the current `.ip.yml` or `.mm.yml` file in the default VS Code text editor.
 
 **Open as Visual Editor** — Reopens the current file in the IPCraft visual editor. Useful after opening a file with the text editor.
 
 **Preview in IPCraft** — Opens a read-only IPCraft preview panel for any YAML file. Experimental.
+
+**Open as System Diagram** — Opens a Vivado `write_bd_tcl` block design script (a `.tcl` file that creates a block design) in a read-only system diagram with hierarchy, details, address map, and problems. The script is read statically and never executed. Press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) again to return to the text editor.
 
 ---
 

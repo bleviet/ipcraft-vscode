@@ -21,6 +21,8 @@ export const window = {
   // before every test, so this is a bare stub — tests that need withProgress to
   // actually invoke its task must call `.mockImplementation(...)` themselves.
   withProgress: jest.fn(),
+  showTextDocument: jest.fn(),
+  onDidChangeActiveTextEditor: jest.fn(),
   activeTextEditor: undefined as { document: { fileName: string; uri: unknown } } | undefined,
   tabGroups: {
     all: [] as Array<{ tabs: Array<{ input: unknown }> }>,
@@ -30,6 +32,12 @@ export const window = {
     },
   },
 };
+
+export enum ViewColumn {
+  Active = -1,
+  Beside = -2,
+  One = 1,
+}
 
 export class TabInputCustom {
   constructor(

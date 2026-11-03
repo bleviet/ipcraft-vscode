@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#system-diagram-root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.sd-input {
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 2px;
+  padding: 2px 6px;
+}
+
+.sd-button {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+  border-radius: 2px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.sd-button:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.sd-link {
+  color: var(--vscode-textLink-foreground);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+}
+
+.sd-link:hover {
+  text-decoration: underline;
+}
+
+.sd-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.sd-row[aria-current='true'] {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.sd-node {
+  width: 240px;
+  position: relative;
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  background: var(--vscode-editorWidget-background);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.sd-node[data-selected='true'] {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+.sd-node[data-dimmed='true'] {
+  opacity: 0.25;
+}
+
+.sd-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 3;
+}
+
+.sd-resize {
+  flex: none;
+  background: transparent;
+  touch-action: none;
+  transition: background-color 0.1s;
+}
+
+.sd-resize-vertical {
+  width: 4px;
+  cursor: col-resize;
+}
+
+.sd-resize-horizontal {
+  height: 4px;
+  cursor: row-resize;
+}
+
+.sd-resize:hover,
+.sd-resize:focus-visible {
+  background: var(--vscode-sash-hoverBorder, var(--vscode-focusBorder));
+}
+
+.sd-resize:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.sd-icon-button {
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  background: transparent;
+  border-radius: 3px;
+  padding: 2px 4px;
+  opacity: 0.6;
+  cursor: pointer;
+}
+
+.sd-icon-button[aria-pressed='true'] {
+  opacity: 1;
+  background: var(--vscode-toolbar-activeBackground, transparent);
+}
+
+.sd-icon-button:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}

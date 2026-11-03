@@ -2,8 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const { readVsixArchive } = require('./vsix-archive');
 
-const COMPRESSED_BUDGET_BYTES = 2 * 1024 * 1024;
-const UNPACKED_BUDGET_BYTES = 5 * 1024 * 1024;
+// Budgets include the elkjs layout engine bundled into the system diagram
+// webview (issue #239); see docs/architecture/vsix-packaging.md.
+const COMPRESSED_BUDGET_BYTES = 2.5 * 1024 * 1024;
+const UNPACKED_BUDGET_BYTES = 25 * 1024 * 1024;
 const repoRoot = path.resolve(__dirname, '..');
 const vsixPath = path.resolve(process.argv[2] ?? 'artifacts/ipcraft-vscode.vsix');
 
@@ -13,6 +15,7 @@ const exactAllowedFiles = new Set([
   'extension/LICENSE.txt',
   'extension/SECURITY.md',
   'extension/SUPPORT.md',
+  'extension/THIRD_PARTY_NOTICES.md',
   'extension/changelog.md',
   'extension/package.json',
   'extension/readme.md',
@@ -21,9 +24,9 @@ const exactAllowedFiles = new Set([
 ]);
 
 const allowedPatterns = [
-  /^extension\/dist\/(extension|cli|webview|ipcore|dataInspector)\.js$/,
-  /^extension\/dist\/(extension|cli|webview|ipcore|dataInspector)\.js\.LICENSE\.txt$/,
-  /^extension\/dist\/(webview|ipcore|dataInspector)\.css$/,
+  /^extension\/dist\/(extension|cli|webview|ipcore|dataInspector|systemDiagram)\.js$/,
+  /^extension\/dist\/(extension|cli|webview|ipcore|dataInspector|systemDiagram)\.js\.LICENSE\.txt$/,
+  /^extension\/dist\/(webview|ipcore|dataInspector|systemDiagram)\.css$/,
   /^extension\/dist\/[a-f0-9]+\.ttf$/,
   /^extension\/dist\/packs\/[A-Za-z0-9._/-]+\.(j2|md|yml)$/,
   /^extension\/dist\/resources\/bus_definitions\/[A-Za-z0-9._-]+\.yml$/,
@@ -42,6 +45,8 @@ const requiredFiles = new Set([
   'extension/dist/ipcore.css',
   'extension/dist/dataInspector.js',
   'extension/dist/dataInspector.css',
+  'extension/dist/systemDiagram.js',
+  'extension/dist/systemDiagram.css',
 ]);
 
 function addRequiredTree(sourceDir, archiveDir) {

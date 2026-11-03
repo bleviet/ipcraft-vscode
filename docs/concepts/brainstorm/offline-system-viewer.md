@@ -198,6 +198,7 @@ in connections.
 | Diagram | One hierarchy level at a time. Double-click enters a hierarchy instance; a breadcrumb leads back |
 | Nets | Interface nets drawn thick and scalar nets thin. Hovering a net highlights it; "Follow net" lists every endpoint and jumps to it |
 | Clock and reset | Hidden by default and shown as pin badges with the net name. A toggle draws them as wires |
+| Layout | Outline, details, and the bottom panel are resizable by dragging and can be collapsed from the toolbar |
 | Details | VLNV, user-set parameters, pins with provenance, and the source location |
 | Address map | Table of address segments per master address space, sortable and searchable |
 | Go to source | Every element opens its source file at the line that created it |
@@ -246,8 +247,8 @@ Two rules apply to Tcl:
 - **Rendering:** `@xyflow/react`, which the Data Inspector already uses for
   pan, zoom, and selection. ELK supplies node, port, and edge positions; the
   nodes are custom components using `var(--vscode-*)` colors.
-- **Responsiveness:** ELK runs in a web worker so large levels do not block
-  the UI.
+- **Responsiveness:** phase 1 runs ELK in the webview thread (see rule 4
+  below). A web worker follows if large levels measurably block the UI.
 - **Dependency:** elkjs, reviewed below.
 
 ### Layout Dependency Decision
@@ -280,9 +281,12 @@ Rules for adopting elkjs:
 3. Ship a `THIRD_PARTY_NOTICES` file in the VSIX with the elkjs name, version,
    EPL-2.0 text, and source location (`https://github.com/kieler/elkjs`, tag
    0.12.0). Add it to the `scripts/check-vsix.js` allowlist.
-4. Load the ELK worker as a separate file only when the system viewer opens, so
-   the other editors do not pay for it.
-5. Raise the VSIX budgets to 7 MiB unpacked and 2.5 MiB compressed, and record
+4. Load ELK only when the system viewer opens, so the other editors do not pay
+   for it. Phase 1 uses `elkjs/lib/elk.bundled.js` inside the separate
+   `systemDiagram` webview bundle, so layout runs in-thread through elkjs's
+   built-in fake worker and the webview CSP is unchanged. A separate worker file
+   is deferred until measurements require it.
+5. Raise the VSIX budgets to 25 MiB unpacked and 2.5 MiB compressed, and record
    the reason in `docs/architecture/vsix-packaging.md` and
    `scripts/check-vsix.js`, as that document requires.
 
@@ -345,8 +349,8 @@ the same graph for CI and scripts.
 
 | Phase | Scope |
 |---|---|
-| 1 | `write_bd_tcl` reader, system graph, read-only diagram with hierarchy, outline, details, go to source, pins from connections |
-| 2 | `.qsys` Standard reader, address map table, enrichment from `.ip.yml` and module references |
+| 1 | `write_bd_tcl` reader, system graph, read-only diagram with hierarchy, outline, details, go to source, pins from connections, address map table |
+| 2 | `.qsys` Standard reader, enrichment from `.ip.yml` and module references |
 | 3 | `.bd` JSON reader, Platform Designer Pro, vendor catalog and user repository enrichment |
 | 4 | `.hwh` and `.sopcinfo` resolved mode; graph diff between two revisions, which feeds the synchronization phase of design-aware documentation |
 

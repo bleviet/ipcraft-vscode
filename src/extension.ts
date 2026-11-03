@@ -56,12 +56,15 @@ import {
   EDITOR_VIEW_TYPE_MEMORY_MAP,
   EDITOR_VIEW_TYPE_IP_CORE,
   EDITOR_VIEW_TYPE_DATA_INSPECTOR,
+  EDITOR_VIEW_TYPE_SYSTEM_DIAGRAM,
 } from './utils/editorViewTypes';
 import { ScaffoldPackPanel } from './providers/ScaffoldPackPanel';
 import { registerScaffoldPackCommands } from './commands/ScaffoldPackCommands';
 import { handleErrorWithUserNotification } from './utils/ErrorHandler';
 import { DataInspectorPanel } from './providers/DataInspectorPanel';
 import { DataInspectorRecipeEditorProvider } from './providers/DataInspectorRecipeEditorProvider';
+import { SystemDiagramProvider } from './providers/SystemDiagramProvider';
+import { registerSystemDesignContextKey } from './services/systemDiagram/systemDesignContextKey';
 import { selectRegisterLayout } from './commands/DataInspectorCommands';
 
 const SHARED_EDITOR_OPTIONS = {
@@ -145,6 +148,15 @@ export function activate(context: vscode.ExtensionContext): void {
     'IP Core Source Preview'
   );
 
+  registerCustomProvider(
+    context,
+    logger,
+    EDITOR_VIEW_TYPE_SYSTEM_DIAGRAM,
+    new SystemDiagramProvider(context),
+    'System Diagram'
+  );
+  registerSystemDesignContextKey(context);
+
   // Register File Creation Commands
   safeRegisterCommand(context, 'fpga-ip-core.createIpCore', createIpCoreCommand);
   safeRegisterCommand(context, 'fpga-ip-core.createMemoryMap', createMemoryMapCommand);
@@ -215,6 +227,17 @@ export function activate(context: vscode.ExtensionContext): void {
       return;
     }
     await vscode.commands.executeCommand('vscode.openWith', targetUri, 'fpgaIpCore.sourcePreview');
+  });
+  safeRegisterCommand(context, 'fpga-ip-core.openSystemDiagram', async (uri?: vscode.Uri) => {
+    const targetUri = uri ?? vscode.window.activeTextEditor?.document.uri;
+    if (!targetUri) {
+      return;
+    }
+    await vscode.commands.executeCommand(
+      'vscode.openWith',
+      targetUri,
+      EDITOR_VIEW_TYPE_SYSTEM_DIAGRAM
+    );
   });
   safeRegisterCommand(context, 'fpga-ip-core.copyComponentInstance', copyComponentInstanceCommand);
   safeRegisterCommand(

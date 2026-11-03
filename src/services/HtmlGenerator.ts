@@ -45,6 +45,16 @@ export class HtmlGenerator {
     });
   }
 
+  generateSystemDiagramHtml(webview: vscode.Webview): string {
+    return this.generateHtmlForEditor(webview, {
+      scriptName: 'systemDiagram.js',
+      styleName: 'systemDiagram.css',
+      rootId: 'system-diagram-root',
+      title: 'IPCraft System Diagram',
+      logMessage: 'Generating System Diagram HTML',
+    });
+  }
+
   private generateHtmlForEditor(
     webview: vscode.Webview,
     options: {

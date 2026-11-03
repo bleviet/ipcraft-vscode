@@ -361,6 +361,12 @@
         "icon": "$(eye)"
       },
       {
+        "command": "fpga-ip-core.openSystemDiagram",
+        "title": "Open as System Diagram",
+        "category": "IPCraft",
+        "icon": "$(type-hierarchy)"
+      },
+      {
         "command": "fpga-ip-core.copyComponentInstance",
         "title": "Copy Component Instance",
         "category": "IPCraft",
@@ -689,7 +695,7 @@
         },
         {
           "command": "fpga-ip-core.openAsText",
-          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'",
+          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview' || activeCustomEditorId == 'ipcraft.systemDiagram'",
           "group": "navigation"
         },
         {
@@ -705,6 +711,11 @@
         {
           "command": "fpga-ip-core.previewInIpcraft",
           "when": "resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .v && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .sv && activeCustomEditorId != 'fpgaIpCore.sourcePreview'",
+          "group": "navigation"
+        },
+        {
+          "command": "fpga-ip-core.openSystemDiagram",
+          "when": "ipcraft.isSystemDesignScript && !activeCustomEditorId",
           "group": "navigation"
         },
         {
@@ -869,6 +880,10 @@
           "when": "resourceExtname == .vhd || resourceExtname == .vhdl || resourceExtname == .v || resourceExtname == .sv || resourceFilename =~ /_hw\\.tcl$/ || resourceFilename == component.xml"
         },
         {
+          "command": "fpga-ip-core.openSystemDiagram",
+          "when": "ipcraft.isSystemDesignScript"
+        },
+        {
           "command": "fpga-ip-core.previewTemplateOutput",
           "when": "resourceExtname == .j2"
         },
@@ -878,7 +893,7 @@
         },
         {
           "command": "fpga-ip-core.openAsText",
-          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview'"
+          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview' || activeCustomEditorId == 'ipcraft.systemDiagram'"
         },
         {
           "command": "fpga-ip-core.openAsVisual",
@@ -1321,6 +1336,16 @@
         "priority": "default"
       },
       {
+        "viewType": "ipcraft.systemDiagram",
+        "displayName": "IPCraft System Diagram",
+        "selector": [
+          {
+            "filenamePattern": "*.tcl"
+          }
+        ],
+        "priority": "option"
+      },
+      {
         "viewType": "fpgaIpCore.sourcePreview",
         "displayName": "IPCraft Source Preview",
         "selector": [
@@ -1354,6 +1379,12 @@
         "when": "!terminalFocus && (resourceExtname == .vhd && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .vhdl && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .v && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceExtname == .sv && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceFilename =~ /_hw\\.tcl$/ && activeCustomEditorId != 'fpgaIpCore.sourcePreview' || resourceFilename == component.xml && activeCustomEditorId != 'fpgaIpCore.sourcePreview')"
       },
       {
+        "command": "fpga-ip-core.openSystemDiagram",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "!terminalFocus && ipcraft.isSystemDesignScript && !activeCustomEditorId"
+      },
+      {
         "command": "fpga-ip-core.openAsVisual",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
@@ -1363,7 +1394,7 @@
         "command": "fpga-ip-core.openAsText",
         "key": "ctrl+shift+v",
         "mac": "cmd+shift+v",
-        "when": "!terminalFocus && (activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview')"
+        "when": "!terminalFocus && (activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'fpgaMemoryMap.editor' || activeCustomEditorId == 'ipcraft.dataInspectorRecipe' || activeCustomEditorId == 'fpgaIpCore.sourcePreview' || activeCustomEditorId == 'ipcraft.systemDiagram')"
       }
     ],
     "walkthroughs": [
@@ -1810,6 +1841,7 @@
     "@xmldom/xmldom": "^0.9.10",
     "@xyflow/react": "^12.11.2",
     "ajv": "^8.20.0",
+    "elkjs": "0.12.0",
     "fflate": "^0.8.3",
     "js-yaml": "^4.1.0",
     "node-diff3": "^3.2.1",
