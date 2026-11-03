@@ -67,7 +67,7 @@ busInterfaces:
   mode: master
   physicalPrefix: mav_
   endianness: little
-  useOptionalPorts: [read, readdatavalid]
+  useOptionalPorts: [read, readdata, readdatavalid]
   portPolarityOverrides:
     read: activeLow
     readdatavalid: activeLow

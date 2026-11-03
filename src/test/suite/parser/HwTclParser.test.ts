@@ -283,7 +283,7 @@ describe('HwTclParser', () => {
         busInterfaces: Array<Record<string, unknown>>;
       };
       const bi = doc.busInterfaces[0];
-      expect(bi.useOptionalPorts).toEqual(['AWLEN']);
+      expect(bi.useOptionalPorts).toEqual(['AWPROT', 'AWLEN', 'ARPROT']);
     });
 
     it('does not emit useOptionalPorts when only required ports are present', () => {
