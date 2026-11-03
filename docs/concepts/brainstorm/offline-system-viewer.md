@@ -193,7 +193,7 @@ in connections.
 
 | Area | Behavior |
 |---|---|
-| Opening | Read-only custom editor for `.bd` and `.qsys`. For Tcl, an explicit command "IPCraft: Open as System Diagram", offered when the file contains `create_bd_design` or `add_instance` |
+| Opening | `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) toggles between the text and the diagram; see [Opening and Toggling](#opening-and-toggling) |
 | Outline | Hierarchy tree with search by instance name, VLNV, or kind |
 | Diagram | One hierarchy level at a time. Double-click enters a hierarchy instance; a breadcrumb leads back |
 | Nets | Interface nets drawn thick and scalar nets thin. Hovering a net highlights it; "Follow net" lists every endpoint and jumps to it |
@@ -206,6 +206,37 @@ in connections.
 
 The view reloads when the source file changes on disk. It is read-only, so it
 does not use the revisioned edit protocol.
+
+### Opening and Toggling
+
+The viewer follows the toggle IPCraft already uses. `Ctrl+Shift+V` switches
+`.ip.yml`, `.mm.yml`, and `.ipci.yml` between text and the visual editor
+(`openAsVisual` and `openAsText`). It also opens `_hw.tcl`, `component.xml`,
+and HDL files in the read-only `fpgaIpCore.sourcePreview` editor
+(`previewInIpcraft`). The system diagram uses the same key in the same way.
+
+The diagram replaces the text in the same tab. Go to source opens the Tcl or
+`.qsys` text in an editor beside the diagram, so both can be read together.
+
+| Item | Decision |
+|---|---|
+| Editor | Read-only custom editor `ipcraft.systemDiagram` with `priority: "option"`. Text stays the default, so diffs, blame, and merges are unaffected. Users who want the diagram by default can set `workbench.editorAssociations` |
+| Selector | `*.bd`, `*.qsys`, and `*.tcl` |
+| Toggle into the diagram | `Ctrl+Shift+V`. Always available for `.bd` and `.qsys`. For `.tcl`, available only when the `ipcraft.isSystemDesignScript` context key is set |
+| Toggle back | `ipcraft.systemDiagram` is added to the existing `openAsText` when-clause |
+
+Two rules apply to Tcl:
+
+1. `_hw.tcl` files keep the source preview. The new keybinding's when-clause
+   excludes `/_hw\.tcl$/`, so it does not conflict with `previewInIpcraft`.
+2. Most Tcl files are not block designs, and a when-clause cannot inspect file
+   content. When the active editor changes, the extension sets
+   `ipcraft.isSystemDesignScript` after a quick text check for
+   `create_bd_design` or `create_bd_cell` (Vivado) and `add_instance`
+   (Platform Designer). The shortcut then does nothing on ordinary build
+   scripts. "Reopen Editor With..." still offers the diagram for any `.tcl`
+   file and shows a clear "not a block design or system script" state when
+   nothing is recognized.
 
 ## Layout and Rendering
 
@@ -324,7 +355,5 @@ the same graph for CI and scripts.
 | Question | Notes |
 |---|---|
 | Which Vivado releases to certify first? | Match the release used by the IPCraft Vivado integration tests, plus one earlier release |
-| Detect BD Tcl automatically or only through the explicit command? | Content detection is cheap, but a custom editor for every `.tcl` file would be intrusive |
-| Custom editor, or a panel beside the text editor? | A panel keeps the Tcl text editable next to the diagram |
 | How far to evaluate parameter-driven port presence in vendor `component.xml`? | Start with simple comparisons, mark the rest `partial`, and measure on real IP |
 | Should the graph be cached on disk? | Probably not for phase 1; re-parsing is expected to be fast enough. Measure first |
