@@ -47,10 +47,10 @@ begin
   dut : entity work.basic_peripheral
     port map (
       clk => clk, reset_n => reset_n,
-      s_axil_awaddr => awaddr, s_axil_awvalid => awvalid, s_axil_awready => awready, s_axil_awprot => "000",
+      s_axil_awaddr => awaddr, s_axil_awvalid => awvalid, s_axil_awready => awready,
       s_axil_wdata => wdata, s_axil_wstrb => wstrb, s_axil_wvalid => wvalid, s_axil_wready => wready,
       s_axil_bresp => bresp, s_axil_bvalid => bvalid, s_axil_bready => bready,
-      s_axil_araddr => araddr, s_axil_arvalid => arvalid, s_axil_arready => arready, s_axil_arprot => "000",
+      s_axil_araddr => araddr, s_axil_arvalid => arvalid, s_axil_arready => arready,
       s_axil_rdata => rdata, s_axil_rresp => rresp, s_axil_rvalid => rvalid, s_axil_rready => rready,
       o_data => open, o_irq => open
     );

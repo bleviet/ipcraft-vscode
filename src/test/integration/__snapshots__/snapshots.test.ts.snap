@@ -10494,14 +10494,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -10578,14 +10570,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axil_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -10855,23 +10839,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axil_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axil_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -11008,23 +10975,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>s_axil_arready</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axil_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -11219,14 +11169,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -11303,14 +11245,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axil_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -11580,23 +11514,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axil_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axil_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -11736,23 +11653,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axil_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -12378,14 +12278,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -12462,14 +12354,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axil_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -12775,23 +12659,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axil_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axil_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -12928,23 +12795,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>s_axil_arready</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axil_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -13275,14 +13125,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -13359,14 +13201,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axil_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -13672,23 +13506,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axil_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axil_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -13828,23 +13645,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axil_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -16154,14 +15954,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -16242,14 +16034,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_arprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>RDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -16324,14 +16108,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_awready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_awprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -16476,14 +16252,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -17532,23 +17300,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -17695,23 +17446,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_rdata</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -17818,23 +17552,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>m_axi_awready</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -18101,23 +17818,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>m_axi_arready</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -19065,14 +18765,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -19153,14 +18845,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_arprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>RDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -19235,14 +18919,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_awready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_awprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -19387,14 +19063,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -20443,23 +20111,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -20606,23 +20257,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_rdata</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -20732,23 +20366,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -21015,23 +20632,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -21976,14 +21576,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -22060,14 +21652,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axil_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -22727,23 +22311,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axil_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axil_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -22880,23 +22447,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>s_axil_arready</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axil_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -23124,14 +22674,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -23208,14 +22750,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axil_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axil_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -23875,23 +23409,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axil_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axil_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -24031,23 +23548,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axil_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -24510,14 +24010,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -24594,14 +24086,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axi_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -25428,23 +24912,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -25581,23 +25048,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>s_axi_arready</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axi_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -26185,14 +25635,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -26269,14 +25711,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axi_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -27103,23 +26537,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -27259,23 +26676,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axi_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -27858,14 +27258,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_ctrl_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -27946,14 +27338,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_ctrl_arprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>RDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -28020,14 +27404,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axi_dma_awready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_dma_awprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -28112,14 +27488,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_dma_arprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>RDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -28186,14 +27554,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_mem_awready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_mem_awprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -28274,14 +27634,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_mem_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_mem_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -28420,14 +27772,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_pcie_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -28504,14 +27848,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_pcie_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_pcie_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -29230,23 +28566,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_ctrl_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_ctrl_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -29393,23 +28712,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_ctrl_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_ctrl_rdata</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -29503,23 +28805,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>s_axi_dma_awready</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axi_dma_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -29676,23 +28961,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_dma_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_dma_rdata</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -29786,23 +29054,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>m_axi_mem_awready</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_mem_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -29949,23 +29200,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>m_axi_mem_arready</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_mem_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -30165,23 +29399,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>m_axi_pcie_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>m_axi_pcie_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -30318,23 +29535,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         <spirit:name>m_axi_pcie_arready</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>wire</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_pcie_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>wire</spirit:typeName>
@@ -30704,14 +29904,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_ctrl_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -30792,14 +29984,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_ctrl_arprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>RDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -30866,14 +30050,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>s_axi_dma_awready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_dma_awprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -30958,14 +30134,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>s_axi_dma_arprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>RDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -31032,14 +30200,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_mem_awready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_mem_awprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -31120,14 +30280,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_mem_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_mem_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -31266,14 +30418,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:portMap>
         <spirit:portMap>
           <spirit:logicalPort>
-            <spirit:name>AWPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_pcie_awprot</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
             <spirit:name>WDATA</spirit:name>
           </spirit:logicalPort>
           <spirit:physicalPort>
@@ -31350,14 +30494,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           </spirit:logicalPort>
           <spirit:physicalPort>
             <spirit:name>m_axi_pcie_arready</spirit:name>
-          </spirit:physicalPort>
-        </spirit:portMap>
-        <spirit:portMap>
-          <spirit:logicalPort>
-            <spirit:name>ARPROT</spirit:name>
-          </spirit:logicalPort>
-          <spirit:physicalPort>
-            <spirit:name>m_axi_pcie_arprot</spirit:name>
           </spirit:physicalPort>
         </spirit:portMap>
         <spirit:portMap>
@@ -32076,23 +31212,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_ctrl_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_ctrl_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>in</spirit:direction>
@@ -32239,23 +31358,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_ctrl_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_ctrl_rdata</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -32352,23 +31454,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>s_axi_dma_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -32522,23 +31607,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>s_axi_dma_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>in</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>s_axi_dma_rdata</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -32635,23 +31703,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_mem_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -32798,23 +31849,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_mem_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -33011,23 +32045,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
         </spirit:wire>
       </spirit:port>
       <spirit:port>
-        <spirit:name>m_axi_pcie_awprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
         <spirit:name>m_axi_pcie_wdata</spirit:name>
         <spirit:wire>
           <spirit:direction>out</spirit:direction>
@@ -33167,23 +32184,6 @@ exports[`component.xml content matches snapshot for every Xilinx fixture 1`] = `
           <spirit:wireTypeDefs>
             <spirit:wireTypeDef>
               <spirit:typeName>std_logic</spirit:typeName>
-              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
-              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
-            </spirit:wireTypeDef>
-          </spirit:wireTypeDefs>
-        </spirit:wire>
-      </spirit:port>
-      <spirit:port>
-        <spirit:name>m_axi_pcie_arprot</spirit:name>
-        <spirit:wire>
-          <spirit:direction>out</spirit:direction>
-          <spirit:vector>
-            <spirit:left spirit:format="long">2</spirit:left>
-            <spirit:right spirit:format="long">0</spirit:right>
-          </spirit:vector>
-          <spirit:wireTypeDefs>
-            <spirit:wireTypeDef>
-              <spirit:typeName>std_logic_vector</spirit:typeName>
               <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
               <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
             </spirit:wireTypeDef>
@@ -35574,7 +34574,6 @@ set_interface_property s_axi_lite SVD_ADDRESS_GROUP ""
 add_interface_port s_axi_lite s_axil_awaddr awaddr Input 12
 add_interface_port s_axi_lite s_axil_awvalid awvalid Input 1
 add_interface_port s_axi_lite s_axil_awready awready Output 1
-add_interface_port s_axi_lite s_axil_awprot awprot Input 3
 add_interface_port s_axi_lite s_axil_wdata wdata Input 32
 add_interface_port s_axi_lite s_axil_wstrb wstrb Input 4
 add_interface_port s_axi_lite s_axil_wvalid wvalid Input 1
@@ -35585,7 +34584,6 @@ add_interface_port s_axi_lite s_axil_bready bready Input 1
 add_interface_port s_axi_lite s_axil_araddr araddr Input 12
 add_interface_port s_axi_lite s_axil_arvalid arvalid Input 1
 add_interface_port s_axi_lite s_axil_arready arready Output 1
-add_interface_port s_axi_lite s_axil_arprot arprot Input 3
 add_interface_port s_axi_lite s_axil_rdata rdata Output 32
 add_interface_port s_axi_lite s_axil_rresp rresp Output 2
 add_interface_port s_axi_lite s_axil_rvalid rvalid Output 1
@@ -35693,7 +34691,6 @@ set_interface_property s_axi_lite SVD_ADDRESS_GROUP ""
 add_interface_port s_axi_lite s_axil_awaddr awaddr Input 12
 add_interface_port s_axi_lite s_axil_awvalid awvalid Input 1
 add_interface_port s_axi_lite s_axil_awready awready Output 1
-add_interface_port s_axi_lite s_axil_awprot awprot Input 3
 add_interface_port s_axi_lite s_axil_wdata wdata Input 32
 add_interface_port s_axi_lite s_axil_wstrb wstrb Input 4
 add_interface_port s_axi_lite s_axil_wvalid wvalid Input 1
@@ -35704,7 +34701,6 @@ add_interface_port s_axi_lite s_axil_bready bready Input 1
 add_interface_port s_axi_lite s_axil_araddr araddr Input 12
 add_interface_port s_axi_lite s_axil_arvalid arvalid Input 1
 add_interface_port s_axi_lite s_axil_arready arready Output 1
-add_interface_port s_axi_lite s_axil_arprot arprot Input 3
 add_interface_port s_axi_lite s_axil_rdata rdata Output 32
 add_interface_port s_axi_lite s_axil_rresp rresp Output 2
 add_interface_port s_axi_lite s_axil_rvalid rvalid Output 1
@@ -36077,7 +35073,6 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 12
 add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
 add_interface_port S_AXI_LITE s_axil_awready awready Output 1
-add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
 add_interface_port S_AXI_LITE s_axil_wdata wdata Input 32
 add_interface_port S_AXI_LITE s_axil_wstrb wstrb Input 4
 add_interface_port S_AXI_LITE s_axil_wvalid wvalid Input 1
@@ -36088,7 +35083,6 @@ add_interface_port S_AXI_LITE s_axil_bready bready Input 1
 add_interface_port S_AXI_LITE s_axil_araddr araddr Input 12
 add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axil_arready arready Output 1
-add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
 add_interface_port S_AXI_LITE s_axil_rdata rdata Output 32
 add_interface_port S_AXI_LITE s_axil_rresp rresp Output 2
 add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
@@ -36304,7 +35298,6 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 12
 add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
 add_interface_port S_AXI_LITE s_axil_awready awready Output 1
-add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
 add_interface_port S_AXI_LITE s_axil_wdata wdata Input 32
 add_interface_port S_AXI_LITE s_axil_wstrb wstrb Input 4
 add_interface_port S_AXI_LITE s_axil_wvalid wvalid Input 1
@@ -36315,7 +35308,6 @@ add_interface_port S_AXI_LITE s_axil_bready bready Input 1
 add_interface_port S_AXI_LITE s_axil_araddr araddr Input 12
 add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axil_arready arready Output 1
-add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
 add_interface_port S_AXI_LITE s_axil_rdata rdata Output 32
 add_interface_port S_AXI_LITE s_axil_rresp rresp Output 2
 add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
@@ -36968,7 +35960,6 @@ set_interface_property S_AXI SVD_ADDRESS_GROUP ""
 add_interface_port S_AXI s_axi_awaddr awaddr Input 16
 add_interface_port S_AXI s_axi_awvalid awvalid Input 1
 add_interface_port S_AXI s_axi_awready awready Output 1
-add_interface_port S_AXI s_axi_awprot awprot Input 3
 add_interface_port S_AXI s_axi_wdata wdata Input 32
 add_interface_port S_AXI s_axi_wstrb wstrb Input 4
 add_interface_port S_AXI s_axi_wvalid wvalid Input 1
@@ -36979,7 +35970,6 @@ add_interface_port S_AXI s_axi_bready bready Input 1
 add_interface_port S_AXI s_axi_araddr araddr Input 16
 add_interface_port S_AXI s_axi_arvalid arvalid Input 1
 add_interface_port S_AXI s_axi_arready arready Output 1
-add_interface_port S_AXI s_axi_arprot arprot Input 3
 add_interface_port S_AXI s_axi_rdata rdata Output 32
 add_interface_port S_AXI s_axi_rresp rresp Output 2
 add_interface_port S_AXI s_axi_rvalid rvalid Output 1
@@ -37003,7 +35993,6 @@ add_interface_port M_AXI m_axi_awid awid Output 1
 add_interface_port M_AXI m_axi_awaddr awaddr Output 40
 add_interface_port M_AXI m_axi_awvalid awvalid Output 1
 add_interface_port M_AXI m_axi_awready awready Input 1
-add_interface_port M_AXI m_axi_awprot awprot Output 3
 add_interface_port M_AXI m_axi_awlen awlen Output 8
 add_interface_port M_AXI m_axi_awsize awsize Output 3
 add_interface_port M_AXI m_axi_awburst awburst Output 2
@@ -37022,7 +36011,6 @@ add_interface_port M_AXI m_axi_arid arid Output 1
 add_interface_port M_AXI m_axi_araddr araddr Output 40
 add_interface_port M_AXI m_axi_arvalid arvalid Output 1
 add_interface_port M_AXI m_axi_arready arready Input 1
-add_interface_port M_AXI m_axi_arprot arprot Output 3
 add_interface_port M_AXI m_axi_arlen arlen Output 8
 add_interface_port M_AXI m_axi_arsize arsize Output 3
 add_interface_port M_AXI m_axi_arburst arburst Output 2
@@ -37380,7 +36368,6 @@ set_interface_property S_AXI SVD_ADDRESS_GROUP ""
 add_interface_port S_AXI s_axi_awaddr awaddr Input 16
 add_interface_port S_AXI s_axi_awvalid awvalid Input 1
 add_interface_port S_AXI s_axi_awready awready Output 1
-add_interface_port S_AXI s_axi_awprot awprot Input 3
 add_interface_port S_AXI s_axi_wdata wdata Input 32
 add_interface_port S_AXI s_axi_wstrb wstrb Input 4
 add_interface_port S_AXI s_axi_wvalid wvalid Input 1
@@ -37391,7 +36378,6 @@ add_interface_port S_AXI s_axi_bready bready Input 1
 add_interface_port S_AXI s_axi_araddr araddr Input 16
 add_interface_port S_AXI s_axi_arvalid arvalid Input 1
 add_interface_port S_AXI s_axi_arready arready Output 1
-add_interface_port S_AXI s_axi_arprot arprot Input 3
 add_interface_port S_AXI s_axi_rdata rdata Output 32
 add_interface_port S_AXI s_axi_rresp rresp Output 2
 add_interface_port S_AXI s_axi_rvalid rvalid Output 1
@@ -37415,7 +36401,6 @@ add_interface_port M_AXI m_axi_awid awid Output 1
 add_interface_port M_AXI m_axi_awaddr awaddr Output 40
 add_interface_port M_AXI m_axi_awvalid awvalid Output 1
 add_interface_port M_AXI m_axi_awready awready Input 1
-add_interface_port M_AXI m_axi_awprot awprot Output 3
 add_interface_port M_AXI m_axi_awlen awlen Output 8
 add_interface_port M_AXI m_axi_awsize awsize Output 3
 add_interface_port M_AXI m_axi_awburst awburst Output 2
@@ -37434,7 +36419,6 @@ add_interface_port M_AXI m_axi_arid arid Output 1
 add_interface_port M_AXI m_axi_araddr araddr Output 40
 add_interface_port M_AXI m_axi_arvalid arvalid Output 1
 add_interface_port M_AXI m_axi_arready arready Input 1
-add_interface_port M_AXI m_axi_arprot arprot Output 3
 add_interface_port M_AXI m_axi_arlen arlen Output 8
 add_interface_port M_AXI m_axi_arsize arsize Output 3
 add_interface_port M_AXI m_axi_arburst arburst Output 2
@@ -37719,7 +36703,6 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 13
 add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
 add_interface_port S_AXI_LITE s_axil_awready awready Output 1
-add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
 add_interface_port S_AXI_LITE s_axil_wdata wdata Input 32
 add_interface_port S_AXI_LITE s_axil_wstrb wstrb Input 4
 add_interface_port S_AXI_LITE s_axil_wvalid wvalid Input 1
@@ -37730,7 +36713,6 @@ add_interface_port S_AXI_LITE s_axil_bready bready Input 1
 add_interface_port S_AXI_LITE s_axil_araddr araddr Input 13
 add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axil_arready arready Output 1
-add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
 add_interface_port S_AXI_LITE s_axil_rdata rdata Output 32
 add_interface_port S_AXI_LITE s_axil_rresp rresp Output 2
 add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
@@ -37847,7 +36829,6 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 add_interface_port S_AXI_LITE s_axil_awaddr awaddr Input 13
 add_interface_port S_AXI_LITE s_axil_awvalid awvalid Input 1
 add_interface_port S_AXI_LITE s_axil_awready awready Output 1
-add_interface_port S_AXI_LITE s_axil_awprot awprot Input 3
 add_interface_port S_AXI_LITE s_axil_wdata wdata Input 32
 add_interface_port S_AXI_LITE s_axil_wstrb wstrb Input 4
 add_interface_port S_AXI_LITE s_axil_wvalid wvalid Input 1
@@ -37858,7 +36839,6 @@ add_interface_port S_AXI_LITE s_axil_bready bready Input 1
 add_interface_port S_AXI_LITE s_axil_araddr araddr Input 13
 add_interface_port S_AXI_LITE s_axil_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axil_arready arready Output 1
-add_interface_port S_AXI_LITE s_axil_arprot arprot Input 3
 add_interface_port S_AXI_LITE s_axil_rdata rdata Output 32
 add_interface_port S_AXI_LITE s_axil_rresp rresp Output 2
 add_interface_port S_AXI_LITE s_axil_rvalid rvalid Output 1
@@ -38170,7 +37150,6 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 add_interface_port S_AXI_LITE s_axi_awaddr awaddr Input 16
 add_interface_port S_AXI_LITE s_axi_awvalid awvalid Input 1
 add_interface_port S_AXI_LITE s_axi_awready awready Output 1
-add_interface_port S_AXI_LITE s_axi_awprot awprot Input 3
 add_interface_port S_AXI_LITE s_axi_wdata wdata Input 32
 add_interface_port S_AXI_LITE s_axi_wstrb wstrb Input 4
 add_interface_port S_AXI_LITE s_axi_wvalid wvalid Input 1
@@ -38181,7 +37160,6 @@ add_interface_port S_AXI_LITE s_axi_bready bready Input 1
 add_interface_port S_AXI_LITE s_axi_araddr araddr Input 16
 add_interface_port S_AXI_LITE s_axi_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axi_arready arready Output 1
-add_interface_port S_AXI_LITE s_axi_arprot arprot Input 3
 add_interface_port S_AXI_LITE s_axi_rdata rdata Output 32
 add_interface_port S_AXI_LITE s_axi_rresp rresp Output 2
 add_interface_port S_AXI_LITE s_axi_rvalid rvalid Output 1
@@ -38450,7 +37428,6 @@ set_interface_property S_AXI_LITE SVD_ADDRESS_GROUP ""
 add_interface_port S_AXI_LITE s_axi_awaddr awaddr Input 16
 add_interface_port S_AXI_LITE s_axi_awvalid awvalid Input 1
 add_interface_port S_AXI_LITE s_axi_awready awready Output 1
-add_interface_port S_AXI_LITE s_axi_awprot awprot Input 3
 add_interface_port S_AXI_LITE s_axi_wdata wdata Input 32
 add_interface_port S_AXI_LITE s_axi_wstrb wstrb Input 4
 add_interface_port S_AXI_LITE s_axi_wvalid wvalid Input 1
@@ -38461,7 +37438,6 @@ add_interface_port S_AXI_LITE s_axi_bready bready Input 1
 add_interface_port S_AXI_LITE s_axi_araddr araddr Input 16
 add_interface_port S_AXI_LITE s_axi_arvalid arvalid Input 1
 add_interface_port S_AXI_LITE s_axi_arready arready Output 1
-add_interface_port S_AXI_LITE s_axi_arprot arprot Input 3
 add_interface_port S_AXI_LITE s_axi_rdata rdata Output 32
 add_interface_port S_AXI_LITE s_axi_rresp rresp Output 2
 add_interface_port S_AXI_LITE s_axi_rvalid rvalid Output 1
@@ -38821,7 +37797,6 @@ set_interface_property control_reg SVD_ADDRESS_GROUP ""
 add_interface_port control_reg s_axi_ctrl_awaddr awaddr Input 32
 add_interface_port control_reg s_axi_ctrl_awvalid awvalid Input 1
 add_interface_port control_reg s_axi_ctrl_awready awready Output 1
-add_interface_port control_reg s_axi_ctrl_awprot awprot Input 3
 add_interface_port control_reg s_axi_ctrl_wdata wdata Input 32
 add_interface_port control_reg s_axi_ctrl_wstrb wstrb Input 4
 add_interface_port control_reg s_axi_ctrl_wvalid wvalid Input 1
@@ -38832,7 +37807,6 @@ add_interface_port control_reg s_axi_ctrl_bready bready Input 1
 add_interface_port control_reg s_axi_ctrl_araddr araddr Input 32
 add_interface_port control_reg s_axi_ctrl_arvalid arvalid Input 1
 add_interface_port control_reg s_axi_ctrl_arready arready Output 1
-add_interface_port control_reg s_axi_ctrl_arprot arprot Input 3
 add_interface_port control_reg s_axi_ctrl_rdata rdata Output 32
 add_interface_port control_reg s_axi_ctrl_rresp rresp Output 2
 add_interface_port control_reg s_axi_ctrl_rvalid rvalid Output 1
@@ -38855,7 +37829,6 @@ set_interface_property dma_control SVD_ADDRESS_GROUP ""
 add_interface_port dma_control s_axi_dma_awaddr awaddr Input 32
 add_interface_port dma_control s_axi_dma_awvalid awvalid Input 1
 add_interface_port dma_control s_axi_dma_awready awready Output 1
-add_interface_port dma_control s_axi_dma_awprot awprot Input 3
 add_interface_port dma_control s_axi_dma_wdata wdata Input 32
 add_interface_port dma_control s_axi_dma_wstrb wstrb Input 4
 add_interface_port dma_control s_axi_dma_wvalid wvalid Input 1
@@ -38866,7 +37839,6 @@ add_interface_port dma_control s_axi_dma_bready bready Input 1
 add_interface_port dma_control s_axi_dma_araddr araddr Input 32
 add_interface_port dma_control s_axi_dma_arvalid arvalid Input 1
 add_interface_port dma_control s_axi_dma_arready arready Output 1
-add_interface_port dma_control s_axi_dma_arprot arprot Input 3
 add_interface_port dma_control s_axi_dma_rdata rdata Output 32
 add_interface_port dma_control s_axi_dma_rresp rresp Output 2
 add_interface_port dma_control s_axi_dma_rvalid rvalid Output 1
@@ -38889,7 +37861,6 @@ set_interface_property memory_port SVD_ADDRESS_GROUP ""
 add_interface_port memory_port m_axi_mem_awaddr awaddr Output 32
 add_interface_port memory_port m_axi_mem_awvalid awvalid Output 1
 add_interface_port memory_port m_axi_mem_awready awready Input 1
-add_interface_port memory_port m_axi_mem_awprot awprot Output 3
 add_interface_port memory_port m_axi_mem_wdata wdata Output 32
 add_interface_port memory_port m_axi_mem_wstrb wstrb Output 4
 add_interface_port memory_port m_axi_mem_wvalid wvalid Output 1
@@ -38900,7 +37871,6 @@ add_interface_port memory_port m_axi_mem_bready bready Output 1
 add_interface_port memory_port m_axi_mem_araddr araddr Output 32
 add_interface_port memory_port m_axi_mem_arvalid arvalid Output 1
 add_interface_port memory_port m_axi_mem_arready arready Input 1
-add_interface_port memory_port m_axi_mem_arprot arprot Output 3
 add_interface_port memory_port m_axi_mem_rdata rdata Input 32
 add_interface_port memory_port m_axi_mem_rresp rresp Input 2
 add_interface_port memory_port m_axi_mem_rvalid rvalid Input 1
@@ -38959,7 +37929,6 @@ set_interface_property pcie_interface SVD_ADDRESS_GROUP ""
 add_interface_port pcie_interface m_axi_pcie_awaddr awaddr Output 32
 add_interface_port pcie_interface m_axi_pcie_awvalid awvalid Output 1
 add_interface_port pcie_interface m_axi_pcie_awready awready Input 1
-add_interface_port pcie_interface m_axi_pcie_awprot awprot Output 3
 add_interface_port pcie_interface m_axi_pcie_wdata wdata Output 32
 add_interface_port pcie_interface m_axi_pcie_wstrb wstrb Output 4
 add_interface_port pcie_interface m_axi_pcie_wvalid wvalid Output 1
@@ -38970,7 +37939,6 @@ add_interface_port pcie_interface m_axi_pcie_bready bready Output 1
 add_interface_port pcie_interface m_axi_pcie_araddr araddr Output 32
 add_interface_port pcie_interface m_axi_pcie_arvalid arvalid Output 1
 add_interface_port pcie_interface m_axi_pcie_arready arready Input 1
-add_interface_port pcie_interface m_axi_pcie_arprot arprot Output 3
 add_interface_port pcie_interface m_axi_pcie_rdata rdata Input 32
 add_interface_port pcie_interface m_axi_pcie_rresp rresp Input 2
 add_interface_port pcie_interface m_axi_pcie_rvalid rvalid Input 1
@@ -39249,7 +38217,6 @@ set_interface_property control_reg SVD_ADDRESS_GROUP ""
 add_interface_port control_reg s_axi_ctrl_awaddr awaddr Input 32
 add_interface_port control_reg s_axi_ctrl_awvalid awvalid Input 1
 add_interface_port control_reg s_axi_ctrl_awready awready Output 1
-add_interface_port control_reg s_axi_ctrl_awprot awprot Input 3
 add_interface_port control_reg s_axi_ctrl_wdata wdata Input 32
 add_interface_port control_reg s_axi_ctrl_wstrb wstrb Input 4
 add_interface_port control_reg s_axi_ctrl_wvalid wvalid Input 1
@@ -39260,7 +38227,6 @@ add_interface_port control_reg s_axi_ctrl_bready bready Input 1
 add_interface_port control_reg s_axi_ctrl_araddr araddr Input 32
 add_interface_port control_reg s_axi_ctrl_arvalid arvalid Input 1
 add_interface_port control_reg s_axi_ctrl_arready arready Output 1
-add_interface_port control_reg s_axi_ctrl_arprot arprot Input 3
 add_interface_port control_reg s_axi_ctrl_rdata rdata Output 32
 add_interface_port control_reg s_axi_ctrl_rresp rresp Output 2
 add_interface_port control_reg s_axi_ctrl_rvalid rvalid Output 1
@@ -39283,7 +38249,6 @@ set_interface_property dma_control SVD_ADDRESS_GROUP ""
 add_interface_port dma_control s_axi_dma_awaddr awaddr Input 32
 add_interface_port dma_control s_axi_dma_awvalid awvalid Input 1
 add_interface_port dma_control s_axi_dma_awready awready Output 1
-add_interface_port dma_control s_axi_dma_awprot awprot Input 3
 add_interface_port dma_control s_axi_dma_wdata wdata Input 32
 add_interface_port dma_control s_axi_dma_wstrb wstrb Input 4
 add_interface_port dma_control s_axi_dma_wvalid wvalid Input 1
@@ -39294,7 +38259,6 @@ add_interface_port dma_control s_axi_dma_bready bready Input 1
 add_interface_port dma_control s_axi_dma_araddr araddr Input 32
 add_interface_port dma_control s_axi_dma_arvalid arvalid Input 1
 add_interface_port dma_control s_axi_dma_arready arready Output 1
-add_interface_port dma_control s_axi_dma_arprot arprot Input 3
 add_interface_port dma_control s_axi_dma_rdata rdata Output 32
 add_interface_port dma_control s_axi_dma_rresp rresp Output 2
 add_interface_port dma_control s_axi_dma_rvalid rvalid Output 1
@@ -39317,7 +38281,6 @@ set_interface_property memory_port SVD_ADDRESS_GROUP ""
 add_interface_port memory_port m_axi_mem_awaddr awaddr Output 32
 add_interface_port memory_port m_axi_mem_awvalid awvalid Output 1
 add_interface_port memory_port m_axi_mem_awready awready Input 1
-add_interface_port memory_port m_axi_mem_awprot awprot Output 3
 add_interface_port memory_port m_axi_mem_wdata wdata Output 32
 add_interface_port memory_port m_axi_mem_wstrb wstrb Output 4
 add_interface_port memory_port m_axi_mem_wvalid wvalid Output 1
@@ -39328,7 +38291,6 @@ add_interface_port memory_port m_axi_mem_bready bready Output 1
 add_interface_port memory_port m_axi_mem_araddr araddr Output 32
 add_interface_port memory_port m_axi_mem_arvalid arvalid Output 1
 add_interface_port memory_port m_axi_mem_arready arready Input 1
-add_interface_port memory_port m_axi_mem_arprot arprot Output 3
 add_interface_port memory_port m_axi_mem_rdata rdata Input 32
 add_interface_port memory_port m_axi_mem_rresp rresp Input 2
 add_interface_port memory_port m_axi_mem_rvalid rvalid Input 1
@@ -39387,7 +38349,6 @@ set_interface_property pcie_interface SVD_ADDRESS_GROUP ""
 add_interface_port pcie_interface m_axi_pcie_awaddr awaddr Output 32
 add_interface_port pcie_interface m_axi_pcie_awvalid awvalid Output 1
 add_interface_port pcie_interface m_axi_pcie_awready awready Input 1
-add_interface_port pcie_interface m_axi_pcie_awprot awprot Output 3
 add_interface_port pcie_interface m_axi_pcie_wdata wdata Output 32
 add_interface_port pcie_interface m_axi_pcie_wstrb wstrb Output 4
 add_interface_port pcie_interface m_axi_pcie_wvalid wvalid Output 1
@@ -39398,7 +38359,6 @@ add_interface_port pcie_interface m_axi_pcie_bready bready Output 1
 add_interface_port pcie_interface m_axi_pcie_araddr araddr Output 32
 add_interface_port pcie_interface m_axi_pcie_arvalid arvalid Output 1
 add_interface_port pcie_interface m_axi_pcie_arready arready Input 1
-add_interface_port pcie_interface m_axi_pcie_arprot arprot Output 3
 add_interface_port pcie_interface m_axi_pcie_rdata rdata Input 32
 add_interface_port pcie_interface m_axi_pcie_rresp rresp Input 2
 add_interface_port pcie_interface m_axi_pcie_rvalid rvalid Input 1
