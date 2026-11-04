@@ -1,6 +1,7 @@
 import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { categoryColor } from './colors';
+import { pinTooltip } from './model';
 import { NetBadgeView } from './NetBadgeView';
 import { BOUNDARY_HEIGHT, BOUNDARY_WIDTH, type BoundaryNodeData } from './layout/elkLayout';
 
@@ -16,7 +17,7 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
       data-selected={selected}
       data-dimmed={data.dimmed === true}
       style={{ width: BOUNDARY_WIDTH, height: BOUNDARY_HEIGHT }}
-      title={`${pin.name} · ${data.netName ?? 'unconnected'} · ${pin.direction} from ${pin.directionSource}`}
+      title={pinTooltip(pin, data.netNames)}
     >
       <span
         aria-hidden="true"

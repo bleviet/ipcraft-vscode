@@ -1,7 +1,7 @@
 import React from 'react';
 import type { SystemGraph, SystemInstance } from '../../domain/systemGraph';
 import { LineLink } from './LineLink';
-import { endpointKey, netByEndpoint, shortVlnv, type Selection } from './model';
+import { endpointKey, netsByEndpoint, shortVlnv, type Selection } from './model';
 
 interface InstanceDetailsProps {
   graph: SystemGraph;
@@ -9,6 +9,7 @@ interface InstanceDetailsProps {
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number) => void;
+  onOpenDefinition: (instance: string) => void;
 }
 
 export function InstanceDetails({
@@ -17,15 +18,18 @@ export function InstanceDetails({
   onSelect,
   onEnterHierarchy,
   onReveal,
+  onOpenDefinition,
 }: InstanceDetailsProps) {
-  const nets = netByEndpoint(graph, instance.parent);
+  const nets = netsByEndpoint(graph, instance.parent);
   const parameters = Object.entries(instance.parameters);
   const identity =
     instance.kind === 'module'
       ? `Module reference ${instance.moduleRef ?? ''}`
       : instance.vlnv
         ? `${instance.vlnv} (${shortVlnv(instance.vlnv)})`
-        : 'Hierarchy';
+        : instance.component
+          ? `Platform Designer component ${instance.component} ${instance.version ?? ''}`.trim()
+          : 'Hierarchy';
   return (
     <div className="space-y-3">
       <header>
@@ -49,6 +53,19 @@ export function InstanceDetails({
           </>
         )}
       </p>
+      {instance.definition && (
+        <p>
+          Defined by{' '}
+          <button
+            type="button"
+            className="sd-link"
+            title={`Open ${instance.definition.displayName}`}
+            onClick={() => onOpenDefinition(instance.path)}
+          >
+            {instance.definition.displayName}
+          </button>
+        </p>
+      )}
       {instance.kind === 'hier' && (
         <button type="button" className="sd-button" onClick={() => onEnterHierarchy(instance.path)}>
           Open hierarchy
@@ -57,8 +74,8 @@ export function InstanceDetails({
       <section>
         <h3 className="font-semibold">Parameters</h3>
         <p className="text-xs opacity-70">
-          Only values set in the script are shown. Defaults and propagated values are not available
-          offline.
+          Only values set in the design file are shown. Defaults and propagated values are not
+          available offline.
         </p>
         {parameters.length === 0 ? (
           <p className="opacity-70">None set.</p>
@@ -87,25 +104,29 @@ export function InstanceDetails({
           </thead>
           <tbody>
             {instance.pins.map((pin) => {
-              const net = nets.get(endpointKey({ instance: instance.path, pin: pin.name }));
+              const pinNets =
+                nets.get(endpointKey({ instance: instance.path, pin: pin.name })) ?? [];
               return (
                 <tr key={pin.name}>
                   <td>{pin.name}</td>
                   <td>
-                    {net ? (
-                      <button
-                        type="button"
-                        className="sd-link"
-                        onClick={() => onSelect({ kind: 'net', id: net.id })}
-                      >
-                        {net.name}
-                      </button>
-                    ) : (
-                      '-'
-                    )}
+                    {pinNets.length > 0
+                      ? pinNets.map((net) => (
+                          <div key={net.id}>
+                            <button
+                              type="button"
+                              className="sd-link"
+                              onClick={() => onSelect({ kind: 'net', id: net.id })}
+                            >
+                              {net.name}
+                            </button>
+                          </div>
+                        ))
+                      : '-'}
                   </td>
                   <td>
                     {pin.direction} <span className="opacity-60">({pin.directionSource})</span>
+                    {pin.definedBy ? ` · ${pin.definedBy}` : ''}
                   </td>
                 </tr>
               );

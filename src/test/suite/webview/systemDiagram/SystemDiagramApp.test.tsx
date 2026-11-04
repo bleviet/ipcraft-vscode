@@ -158,7 +158,7 @@ describe('SystemDiagramApp', () => {
     fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
 
     expect(details().getByRole('heading', { name: 'axi_dma_0' })).toBeVisible();
-    expect(details().getByText(/Only values set in the script are shown/)).toBeVisible();
+    expect(details().getByText(/Only values set in the design file are shown/)).toBeVisible();
     expect(details().getByText('CONFIG.c_include_sg')).toBeVisible();
   });
 
@@ -207,6 +207,28 @@ describe('SystemDiagramApp', () => {
     fireEvent.click(details().getByRole('button', { name: new RegExp(`:${line}$`) }));
 
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'revealSource', line });
+  });
+
+  it('posts openDefinition from the Defined by link of an enriched instance', async () => {
+    render(<SystemDiagramApp />);
+    const enriched = JSON.parse(JSON.stringify(graph)) as typeof graph;
+    enriched.instances['/axi_dma_0'].definition = {
+      kind: 'ip.yml',
+      file: '/ws/ip/axi_dma.ip.yml',
+      uri: 'file:///ws/ip/axi_dma.ip.yml',
+      displayName: 'ip/axi_dma.ip.yml',
+    };
+    send({ type: 'graph', graph: enriched });
+    await screen.findByTestId('node:/axi_dma_0');
+    fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+
+    fireEvent.click(details().getByRole('button', { name: 'ip/axi_dma.ip.yml' }));
+
+    expect(mockPostMessage).toHaveBeenCalledWith({
+      type: 'openDefinition',
+      instance: '/axi_dma_0',
+    });
+    expect(details().getByTitle('Open ip/axi_dma.ip.yml')).toBeVisible();
   });
 
   it('selects the slave instance from an address map row', async () => {
@@ -436,7 +458,7 @@ describe('SystemDiagramApp', () => {
       [
         'a file that is no longer recognized',
         { type: 'notRecognized', fileName: 'x.tcl' },
-        /This file is no longer recognized as a Vivado block design script\. Showing the last valid version\./,
+        /This file is no longer recognized as a Vivado block design script or Platform Designer system\. Showing the last valid version\./,
       ],
     ];
 
@@ -474,7 +496,11 @@ describe('SystemDiagramApp', () => {
       unmount();
       render(<SystemDiagramApp />);
       send({ type: 'notRecognized', fileName: 'x.tcl' });
-      expect(screen.getByText('This Tcl file is not a Vivado block design script.')).toBeVisible();
+      expect(
+        screen.getByText(
+          'This file is not a Vivado block design script or Platform Designer system.'
+        )
+      ).toBeVisible();
     });
 
     /** The fixture without the dsp_pipeline hierarchy. */
@@ -814,7 +840,9 @@ describe('SystemDiagramApp', () => {
   it('shows an empty state for scripts that are not block designs', () => {
     render(<SystemDiagramApp />);
     send({ type: 'notRecognized', fileName: 'build.tcl' });
-    expect(screen.getByText('This Tcl file is not a Vivado block design script.')).toBeVisible();
+    expect(
+      screen.getByText('This file is not a Vivado block design script or Platform Designer system.')
+    ).toBeVisible();
   });
 
   it('shows read errors', () => {

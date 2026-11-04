@@ -1341,6 +1341,9 @@
         "selector": [
           {
             "filenamePattern": "*.tcl"
+          },
+          {
+            "filenamePattern": "*.qsys"
           }
         ],
         "priority": "option"

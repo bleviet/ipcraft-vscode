@@ -3,6 +3,8 @@ import type { NetCategory } from '../../domain/systemGraph';
 const CATEGORY_COLORS: Record<NetCategory, string> = {
   aximm: 'var(--vscode-charts-blue)',
   axis: 'var(--vscode-charts-green)',
+  avalonmm: 'var(--vscode-charts-blue)',
+  avalonst: 'var(--vscode-charts-green)',
   interface: 'var(--vscode-descriptionForeground)',
   clock: 'var(--vscode-charts-orange)',
   reset: 'var(--vscode-charts-red)',

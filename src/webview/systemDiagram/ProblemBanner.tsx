@@ -4,7 +4,7 @@ import type { DiagramProblem } from './messageState';
 function bannerText(problem: DiagramProblem): string {
   return problem.kind === 'error'
     ? `The design could not be read: ${problem.message.replace(/\.+$/, '')}. Showing the last valid version.`
-    : 'This file is no longer recognized as a Vivado block design script. Showing the last valid version.';
+    : 'This file is no longer recognized as a Vivado block design script or Platform Designer system. Showing the last valid version.';
 }
 
 /** Non-blocking notice that the latest edit could not be read. */

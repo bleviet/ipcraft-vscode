@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
-import { readBdTcl } from '../parser/system/BdTclReader';
 import { HtmlGenerator } from '../services/HtmlGenerator';
-import { isSystemDesignScript } from '../services/systemDiagram/systemDesignDetection';
+import { readSystemDesign } from '../services/systemDiagram/readSystemDesign';
+import { SystemDesignEnricher } from '../services/systemDiagram/SystemDesignEnricher';
+import type { SystemGraph } from '../domain/systemGraph';
 import { WebviewRouter } from '../services/WebviewRouter';
 import type {
   SystemDiagramToExtensionMessage,
@@ -14,8 +15,11 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
   private readonly logger = new Logger('SystemDiagramProvider');
   private readonly htmlGenerator: HtmlGenerator;
 
+  private readonly enricher = new SystemDesignEnricher();
+
   constructor(private readonly context: vscode.ExtensionContext) {
     this.htmlGenerator = new HtmlGenerator(context);
+    context.subscriptions.push(this.enricher);
   }
 
   resolveCustomTextEditor(
@@ -33,16 +37,32 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       void webviewPanel.webview.postMessage(message);
     };
 
-    const postGraph = () => {
+    let sequence = 0;
+    let lastGraph: SystemGraph | undefined;
+
+    const postGraph = async () => {
+      const current = ++sequence;
       const fileName = vscode.workspace.asRelativePath(document.uri, false);
       try {
-        const text = document.getText();
-        post(
-          isSystemDesignScript(document.fileName, text)
-            ? { type: 'graph', graph: readBdTcl(text, fileName) }
-            : { type: 'notRecognized', fileName }
-        );
+        const read = readSystemDesign(document.fileName, fileName, document.getText());
+        if (!read) {
+          post({ type: 'notRecognized', fileName });
+          return;
+        }
+        const graph = await this.enricher
+          .enrich(read, document.fileName)
+          .catch((error: unknown) => {
+            this.logger.error('Failed to enrich system design', error as Error);
+            return read;
+          });
+        if (current === sequence) {
+          lastGraph = graph;
+          post({ type: 'graph', graph });
+        }
       } catch (error) {
+        if (current !== sequence) {
+          return;
+        }
         this.logger.error('Failed to read system design', error as Error);
         post({ type: 'error', message: error instanceof Error ? error.message : String(error) });
       }
@@ -52,7 +72,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       webviewPanel,
       document,
       logger: this.logger,
-      onReady: postGraph,
+      onReady: () => void postGraph(),
     });
 
     router.on('revealSource', async (message) => {
@@ -64,13 +84,36 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       });
     });
 
+    router.on('openDefinition', async (message) => {
+      const definition = lastGraph?.instances[message.instance]?.definition;
+      if (!definition) {
+        return;
+      }
+      const uri = vscode.Uri.parse(definition.uri);
+      if (definition.kind === 'ip.yml') {
+        await vscode.commands.executeCommand(
+          'vscode.openWith',
+          uri,
+          'fpgaIpCore.editor',
+          vscode.ViewColumn.Beside
+        );
+      } else {
+        await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside });
+      }
+    });
+
     const documentChanges = vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.uri.toString() === document.uri.toString()) {
-        postGraph();
+        void postGraph();
       }
+    });
+    // Granting trust lets the enricher read definitions it skipped before.
+    const trustGranted = vscode.workspace.onDidGrantWorkspaceTrust(() => {
+      void postGraph();
     });
     webviewPanel.onDidDispose(() => {
       documentChanges.dispose();
+      trustGranted.dispose();
       router.dispose();
     });
   }

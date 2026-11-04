@@ -10,6 +10,7 @@ interface DetailsPanelProps {
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number) => void;
+  onOpenDefinition: (instance: string) => void;
 }
 
 function DesignSummary({ graph }: { graph: SystemGraph }) {
@@ -114,7 +115,8 @@ function BoundaryDetails({
       <header>
         <h2 className="font-semibold">{pin.name}</h2>
         <p className="opacity-70">
-          {pin.direction} ({pin.directionSource}) · {pin.vlnv ?? pin.signalType ?? 'scalar'}
+          {pin.direction} ({pin.directionSource}) ·{' '}
+          {pin.vlnv ?? pin.interfaceType ?? pin.signalType ?? 'scalar'}
         </p>
       </header>
       {pin.line !== undefined && (
@@ -145,6 +147,7 @@ export function DetailsPanel({
   onSelect,
   onEnterHierarchy,
   onReveal,
+  onOpenDefinition,
 }: DetailsPanelProps) {
   let content: React.ReactNode = <DesignSummary graph={graph} />;
   if (selection?.kind === 'instance' && graph.instances[selection.id]) {
@@ -155,6 +158,7 @@ export function DetailsPanel({
         onSelect={onSelect}
         onEnterHierarchy={onEnterHierarchy}
         onReveal={onReveal}
+        onOpenDefinition={onOpenDefinition}
       />
     );
   } else if (selection?.kind === 'net') {

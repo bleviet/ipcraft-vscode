@@ -1,22 +1,25 @@
-import type { AddressSegment } from '../../../../domain/systemGraph';
+import type { AddressSegment, SystemInstance } from '../../../../domain/systemGraph';
 import {
   boundaryId,
   breadcrumbs,
+  instanceTypeLabel,
   isClockOrReset,
   levelOf,
   matchesQuery,
-  netByEndpoint,
+  netsByEndpoint,
   netDriver,
   parseBoundaryId,
+  pinTooltip,
   pinRole,
   reconcileNavigation,
   resolvePin,
   segmentHigh,
+  segmentRangeText,
   selectionLevel,
   shortVlnv,
   visibleNets,
 } from '../../../../webview/systemDiagram/model';
-import { loadFixtureGraph } from './fixtureGraph';
+import { loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
 
 const graph = loadFixtureGraph();
 
@@ -81,8 +84,10 @@ describe('system diagram model', () => {
   });
 
   it('maps endpoints to nets and selections to levels', () => {
-    const lookup = netByEndpoint(graph, '/');
-    expect(lookup.get('/axi_dma_0::M_AXIS_MM2S')?.name).toBe('axi_dma_0_M_AXIS_MM2S');
+    const lookup = netsByEndpoint(graph, '/');
+    expect(lookup.get('/axi_dma_0::M_AXIS_MM2S')?.map((net) => net.name)).toEqual([
+      'axi_dma_0_M_AXIS_MM2S',
+    ]);
     expect(selectionLevel(graph, { kind: 'instance', id: '/dsp_pipeline/coeff_bank' })).toBe(
       '/dsp_pipeline'
     );
@@ -92,8 +97,70 @@ describe('system diagram model', () => {
     );
   });
 
+  it('lists every net of a pin that sits on several nets, in graph order', () => {
+    const lookup = netsByEndpoint(loadQsysFixtureGraph(), '/');
+    const names = (key: string) => lookup.get(key)?.map((net) => net.name);
+    expect(names('/jtag_uart_0::reset')).toEqual([
+      'clk_0.clk_reset',
+      'nios2_gen2_0.debug_reset_request',
+    ]);
+    expect(names('/pio_0::reset')).toEqual(['clk_0.clk_reset', 'nios2_gen2_0.debug_reset_request']);
+    expect(names('/onchip_memory2_0::s1')).toEqual([
+      'nios2_gen2_0.data_master',
+      'nios2_gen2_0.instruction_master',
+    ]);
+    expect(names('/clk_0::clk_in')).toEqual(['clk']);
+    expect(names('::clk')).toEqual(['clk']);
+  });
+
+  it('words the pin tooltip with every net and the definition', () => {
+    const pin = { name: 's1', direction: 'slave' as const, directionSource: 'connection' as const };
+    expect(pinTooltip(pin, ['a', 'b'])).toBe('s1 · a, b · slave from connection');
+    expect(pinTooltip(pin, [])).toBe('s1 · unconnected · slave from connection');
+    expect(pinTooltip({ ...pin, definedBy: 'hdl' }, ['a'])).toBe(
+      's1 · a · slave from connection · hdl'
+    );
+  });
+
+  it('formats the address range: unknown for qsys, auto otherwise', () => {
+    const segment = (range?: string): AddressSegment => ({
+      addressSpace: 'a',
+      segment: 'b',
+      masterInstance: '/a',
+      slaveInstance: '/b',
+      range,
+      line: 1,
+    });
+    expect(segmentRangeText(segment('0x1000'), 'qsys')).toBe('0x1000');
+    expect(segmentRangeText(segment(), 'qsys')).toBe('-');
+    expect(segmentRangeText(segment(), 'vivado-bd-tcl')).toBe('auto');
+    expect(segmentRangeText(segment('0x1000'), 'vivado-bd-tcl')).toBe('0x1000');
+  });
+
   it('shortens VLNVs', () => {
     expect(shortVlnv('xilinx.com:ip:axi_dma:7.1')).toBe('axi_dma:7.1');
+  });
+
+  it('labels instance types for the outline and the node header', () => {
+    const base = { path: '/x', name: 'x', parent: '/', parameters: {}, pins: [], line: 1 };
+    const label = (extra: Partial<SystemInstance>) =>
+      instanceTypeLabel({ ...base, kind: 'ip', ...extra });
+    expect(label({ vlnv: 'xilinx.com:ip:axi_dma:7.1' })).toBe('axi_dma:7.1');
+    expect(label({ kind: 'module', moduleRef: 'fir_filter' })).toBe('fir_filter');
+    expect(label({ kind: 'module' })).toBeUndefined();
+    expect(label({ kind: 'hier' })).toBeUndefined();
+    expect(label({ component: 'altera_nios2_gen2', version: '18.1' })).toBe(
+      'altera_nios2_gen2 18.1'
+    );
+    expect(label({ component: 'altera_nios2_gen2' })).toBe('altera_nios2_gen2');
+  });
+
+  it('matches qsys instances by component and version', () => {
+    const instance = loadQsysFixtureGraph().instances['/nios2_gen2_0'];
+    expect(matchesQuery(instance, 'nios2_gen2')).toBe(true);
+    expect(matchesQuery(instance, 'altera_nios2')).toBe(true);
+    expect(matchesQuery(instance, '18.1')).toBe(true);
+    expect(matchesQuery(instance, 'zynq')).toBe(false);
   });
 
   it('computes the high address only for hex offset and range', () => {

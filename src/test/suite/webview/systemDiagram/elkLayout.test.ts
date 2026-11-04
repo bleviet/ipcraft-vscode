@@ -6,7 +6,7 @@ import {
 } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { boundaryId } from '../../../../webview/systemDiagram/model';
-import { loadFixtureGraph } from './fixtureGraph';
+import { loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
 
 const graph = loadFixtureGraph();
 
@@ -14,6 +14,44 @@ function child(input: ElkNode, id: string): ElkNode {
   const found = input.children?.find((candidate) => candidate.id === id);
   expect(found).toBeDefined();
   return found!;
+}
+
+/** Asserts that at least one badge exists and no badge box intersects any node box. */
+function expectBadgesClearOfNodes(nodes: DiagramFlowNode[]): void {
+  const rects = nodes.map((node) => ({
+    id: node.id,
+    x: node.position.x,
+    y: node.position.y,
+    w: node.width,
+    h: node.height,
+  }));
+  let badges = 0;
+  for (const node of nodes) {
+    const rows = node.type === 'instance' ? [...node.data.west, ...node.data.east] : [node.data];
+    for (const badge of rows.flatMap((row) => (row.badge ? [row.badge] : []))) {
+      badges += 1;
+      const box = {
+        x: node.position.x + badge.x,
+        y: node.position.y + badge.y,
+        w: badge.width,
+        h: badge.height,
+      };
+      for (const other of rects) {
+        const overlaps =
+          box.x < other.x + other.w &&
+          other.x < box.x + box.w &&
+          box.y < other.y + other.h &&
+          other.y < box.y + box.h;
+        expect({ badge: badge.netName, node: node.id, other: other.id, overlaps }).toEqual({
+          badge: badge.netName,
+          node: node.id,
+          other: other.id,
+          overlaps: false,
+        });
+      }
+    }
+  }
+  expect(badges).toBeGreaterThan(0);
 }
 
 describe('buildElkInput', () => {
@@ -109,6 +147,58 @@ describe('real ELK layout of the fixture root level', () => {
   }, 20000);
 });
 
+describe('real ELK layout of the qsys fixture root level', () => {
+  const qsys = loadQsysFixtureGraph();
+
+  it('routes every visible net and keeps badges clear of other nodes', async () => {
+    const input = buildElkInput(qsys, '/', { showClockReset: false });
+    const result = await runElkLayout(input);
+    const { nodes, edges } = toFlowElements(result, qsys, '/');
+    expect(edges).toHaveLength(input.edges!.length);
+    expect(edges.length).toBeGreaterThan(0);
+    for (const edge of edges) {
+      expect(edge.data.points.length).toBeGreaterThanOrEqual(2);
+    }
+    expect(
+      edges.find((edge) => edge.data.netId === '/::nios2_gen2_0.data_master')?.data
+    ).toMatchObject({
+      category: 'avalonmm',
+      isInterface: true,
+    });
+    expectBadgesClearOfNodes(nodes);
+  }, 20000);
+});
+
+describe('pin hover data of pins on several nets', () => {
+  it('carries every net name next to the first', () => {
+    const qsys = loadQsysFixtureGraph();
+    const { nodes } = toFlowElements(buildElkInput(qsys, '/', { showClockReset: true }), qsys, '/');
+    const memory = nodes.find((node) => node.id === '/onchip_memory2_0');
+    const row =
+      memory?.type === 'instance' ? memory.data.west.find((r) => r.name === 's1') : undefined;
+    expect(row?.netNames).toEqual(['nios2_gen2_0.data_master', 'nios2_gen2_0.instruction_master']);
+    expect(row?.netName).toBe('nios2_gen2_0.data_master');
+    const boundary = nodes.find((node) => node.id === boundaryId('/', 'clk'));
+    expect(boundary?.type === 'boundary' ? boundary.data.netNames : []).toEqual(['clk']);
+  });
+
+  it('carries definedBy to the pin row', () => {
+    const defined = JSON.parse(JSON.stringify(graph)) as typeof graph;
+    defined.instances['/axi_dma_0'].pins[0].definedBy = 'ip.yml';
+    const { nodes } = toFlowElements(
+      buildElkInput(defined, '/', { showClockReset: true }),
+      defined,
+      '/'
+    );
+    const node = nodes.find((n) => n.id === '/axi_dma_0');
+    expect(
+      node?.type === 'instance'
+        ? node.data.west.concat(node.data.east).some((r) => r.definedBy === 'ip.yml')
+        : false
+    ).toBe(true);
+  });
+});
+
 describe('hidden clock and reset net badges', () => {
   const labelledPorts = (input: ElkNode) =>
     (input.children ?? []).flatMap((node) =>
@@ -157,45 +247,7 @@ describe('hidden clock and reset net badges', () => {
     it(`keeps every badge clear of other nodes on ${level} (real ELK)`, async () => {
       const result = await runElkLayout(buildElkInput(graph, level, { showClockReset: false }));
       const { nodes } = toFlowElements(result, graph, level);
-      const rects = nodes.map((node) => ({
-        id: node.id,
-        x: node.position.x,
-        y: node.position.y,
-        w: node.width,
-        h: node.height,
-      }));
-      let badges = 0;
-      for (const node of nodes) {
-        const rows =
-          node.type === 'instance' ? [...node.data.west, ...node.data.east] : [node.data];
-        for (const row of rows) {
-          const badge = row.badge;
-          if (!badge) {
-            continue;
-          }
-          badges += 1;
-          const box = {
-            x: node.position.x + badge.x,
-            y: node.position.y + badge.y,
-            w: badge.width,
-            h: badge.height,
-          };
-          for (const other of rects) {
-            const overlaps =
-              box.x < other.x + other.w &&
-              other.x < box.x + box.w &&
-              box.y < other.y + other.h &&
-              other.y < box.y + box.h;
-            expect({ badge: badge.netName, node: node.id, other: other.id, overlaps }).toEqual({
-              badge: badge.netName,
-              node: node.id,
-              other: other.id,
-              overlaps: false,
-            });
-          }
-        }
-      }
-      expect(badges).toBeGreaterThan(0);
+      expectBadgesClearOfNodes(nodes);
     }, 20000);
   }
 });

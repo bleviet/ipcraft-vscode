@@ -146,6 +146,41 @@ viewer still shows what it recognized, with the warnings.
 XML is parsed with the existing `@xmldom/xmldom` dependency. Every graph
 element records its source line.
 
+#### Platform Designer mapping
+
+Decisions for the `.qsys` reader (`src/parser/system/QsysReader.ts`):
+
+- **Flat hierarchy.** Each enabled `module` is an `ip` instance at the root
+  level with `component` (module `kind`) and `version`; there is no `vlnv`.
+  Modules with `enabled="0"` are skipped together with every connection and
+  exported interface touching them, with one info diagnostic.
+- **Direction from start and end.** A connection `kind` and the end of the
+  connection decide pin direction and net category; no inference runs.
+
+  | kind | start | end | category |
+  |---|---|---|---|
+  | `clock` | out | in | clock |
+  | `reset` | out | in | reset |
+  | `interrupt` | in (receiver) | out (sender) | interrupt |
+  | `avalon` | master | slave | avalonmm |
+  | `avalon_streaming` | master | slave | avalonst |
+  | `axi*` (stream / other) | master | slave | axis / aximm |
+  | anything else | master | slave | interface |
+
+- **Nets grouped by start.** All connections with the same start endpoint form
+  one net named after the start (`clk_0.clk`), so a clock or reset fan-out is a
+  single net.
+  A sink pin can therefore sit on several nets (for example a reset sink fed by
+  both the clock source and a debug reset request); the viewer lists all of
+  them.
+- **Exported interfaces are root boundary pins.** Each `interface` becomes a
+  boundary pin whose direction follows its `type` and `dir`. It joins the net
+  of its `internal` endpoint when that endpoint is already connected, otherwise
+  it gets a net of its own.
+- **Address segments without range.** Each Avalon-MM or AXI-MM connection adds
+  a segment with the `baseAddress` as offset. The size lives in the slave
+  definition, so the range stays unknown until enrichment.
+
 ## What the Offline View Can Recover
 
 | Element | `write_bd_tcl` | `.qsys` | How gaps are handled |
@@ -182,6 +217,43 @@ Sources are tried in order:
    reads the installation's files only. It starts no tool and checks out no
    license.
 5. **Fallback.** Pins come from net endpoints.
+
+#### Phase 2: sources 1 and 2
+
+Phase 2 implements sources 1 and 2 (`SystemDesignEnricher`). Matching rules:
+
+- **Vivado IP.** The `.ip.yml` VLNV `vendor:library:name:version` equals the
+  instance VLNV, compared case-insensitively (IPCraft packages the IP with the
+  lower-case entity name).
+- **Platform Designer IP.** The lower-cased `.ip.yml` `vlnv.name` equals the
+  module `kind` (the generated `_hw.tcl` `NAME` is the lower-cased name). With
+  several candidates the one whose `vlnv.version` equals the module `version`
+  wins.
+- **Module references.** An HDL file declaring a VHDL entity (case-insensitive)
+  or a Verilog/SystemVerilog module (exact) with that name.
+- **Nearest wins.** Before declaring an ambiguity, the candidate whose
+  directory is fewest steps from the design file's directory in the directory
+  tree is used, which keeps a Vivado `import_files` copy from competing with the
+  original; an equal distance stays ambiguous.
+- **Ambiguity.** When more than one file still matches, none is used and an
+  info diagnostic names the instance and the files.
+- **Scope.** Files under `node_modules`, `.git` and Vivado generated
+  directories (`*.gen`, `*.cache`, `*.ip_user_files`, `*.runs`, `*.sim`,
+  `.Xil`) are ignored, as are HDL files over 1 MiB. Arrayed bus interfaces
+  expand to one pin per generated name. Only the first unit of an HDL file is
+  read; a referenced module declared later is reported.
+
+The definition adds the pins that are not connected, fills the direction and
+interface type of connected pins (provenance `definition`), and links the
+instance to its file. Connected pins missing from the definition stay and are
+listed in one info diagnostic, because the definition may be out of date. For
+HDL definitions, ports named `<interface pin>_...` are not added, since Vivado
+infers interfaces from port prefixes.
+
+Address ranges from the definition are not filled yet (follow-up).
+
+Trust: in an untrusted workspace no definition file is read, and the viewer
+adds an info diagnostic instead. Nothing outside the workspace is read.
 
 Many vendor IPs change their ports based on parameters. For example, the
 number of slave interfaces on an interconnect follows a parameter. Static

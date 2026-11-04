@@ -9,7 +9,10 @@ interface NetBadgeViewProps {
 
 /** Net-name pill drawn where ELK reserved space for a hidden clock or reset net. */
 export function NetBadgeView({ badge, onSelectNet }: NetBadgeViewProps) {
-  const kind = badge.category === 'reset' ? 'Reset' : 'Clock';
+  const categories = new Set(badge.nets.map((net) => net.category));
+  const kind =
+    categories.size > 1 ? 'Clock and reset' : badge.category === 'reset' ? 'Reset' : 'Clock';
+  const names = badge.nets.map((net) => net.name).join(', ');
   const color = categoryColor(badge.category);
   return (
     <button
@@ -25,7 +28,7 @@ export function NetBadgeView({ badge, onSelectNet }: NetBadgeViewProps) {
         border: `1px solid ${color}`,
         background: 'var(--vscode-editor-background)',
       }}
-      title={`${kind} net ${badge.netName}. Turn on Clocks and resets to draw it.`}
+      title={`${kind} net${badge.nets.length > 1 ? 's' : ''} ${names}. Turn on Clocks and resets to draw it.`}
       onClick={(event) => {
         event.stopPropagation();
         onSelectNet?.(badge.netId);

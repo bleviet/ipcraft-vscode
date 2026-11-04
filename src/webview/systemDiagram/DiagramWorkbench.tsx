@@ -8,12 +8,23 @@ interface DiagramWorkbenchProps {
   graph: SystemGraph;
   problem?: DiagramProblem;
   revealSource: (line: number) => void;
+  openDefinition: (instance: string) => void;
 }
 
-export function DiagramWorkbench({ graph, problem, revealSource }: DiagramWorkbenchProps) {
+export function DiagramWorkbench({
+  graph,
+  problem,
+  revealSource,
+  openDefinition,
+}: DiagramWorkbenchProps) {
   return (
     <ReactFlowProvider>
-      <WorkbenchLayout graph={graph} problem={problem} revealSource={revealSource} />
+      <WorkbenchLayout
+        graph={graph}
+        problem={problem}
+        revealSource={revealSource}
+        openDefinition={openDefinition}
+      />
     </ReactFlowProvider>
   );
 }

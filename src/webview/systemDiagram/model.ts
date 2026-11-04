@@ -86,7 +86,9 @@ export function matchesQuery(instance: SystemInstance, query: string): boolean {
   }
   return (
     instance.name.toLowerCase().includes(needle) ||
-    (instance.vlnv ?? instance.moduleRef ?? '').toLowerCase().includes(needle)
+    (instance.vlnv ?? instance.moduleRef ?? `${instance.component ?? ''} ${instance.version ?? ''}`)
+      .toLowerCase()
+      .includes(needle)
   );
 }
 
@@ -97,6 +99,33 @@ export function boundaryMatchesQuery(pin: SystemPin, query: string): boolean {
 /** 'xilinx.com:ip:axi_dma:7.1' -> 'axi_dma:7.1'. */
 export function shortVlnv(vlnv: string): string {
   return vlnv.split(':').slice(2).join(':') || vlnv;
+}
+
+/**
+ * Short type text of an ip or module instance (outline row, node header):
+ * the short VLNV, the module reference, or qsys `component version`.
+ */
+export function instanceTypeLabel(instance: SystemInstance): string | undefined {
+  if (instance.kind === 'module') {
+    return instance.moduleRef;
+  }
+  if (instance.vlnv) {
+    return shortVlnv(instance.vlnv);
+  }
+  if (instance.component) {
+    return instance.version ? `${instance.component} ${instance.version}` : instance.component;
+  }
+  return undefined;
+}
+
+/** Hover text of a pin: every net it sits on, direction provenance, and its definition. */
+export function pinTooltip(
+  pin: Pick<SystemPin, 'name' | 'direction' | 'directionSource' | 'definedBy'>,
+  netNames: readonly string[]
+): string {
+  const nets = netNames.length > 0 ? netNames.join(', ') : 'unconnected';
+  const defined = pin.definedBy ? ` · ${pin.definedBy}` : '';
+  return `${pin.name} · ${nets} · ${pin.direction} from ${pin.directionSource}${defined}`;
 }
 
 export function netsOfLevel(graph: SystemGraph, level: string): SystemNet[] {
@@ -116,14 +145,21 @@ export function endpointKey(ref: PinRef): string {
   return `${ref.instance ?? ''}::${ref.pin}`;
 }
 
-/** The first net of `level` touching each endpoint, keyed by {@link endpointKey}. */
-export function netByEndpoint(graph: SystemGraph, level: string): Map<string, SystemNet> {
-  const lookup = new Map<string, SystemNet>();
+/**
+ * Every net of `level` touching each endpoint, in graph order, keyed by
+ * {@link endpointKey}. A pin can sit on several nets (Platform Designer groups
+ * nets by start, so a sink can have more than one driver net).
+ */
+export function netsByEndpoint(graph: SystemGraph, level: string): Map<string, SystemNet[]> {
+  const lookup = new Map<string, SystemNet[]>();
   for (const net of netsOfLevel(graph, level)) {
     for (const ref of net.endpoints) {
       const key = endpointKey(ref);
-      if (!lookup.has(key)) {
-        lookup.set(key, net);
+      const nets = lookup.get(key);
+      if (nets) {
+        nets.push(net);
+      } else {
+        lookup.set(key, [net]);
       }
     }
   }
@@ -177,6 +213,17 @@ export function selectionLevel(graph: SystemGraph, selection: Selection): string
 /** Number of cells directly inside a level. */
 export function cellCount(graph: SystemGraph, levelPath: string): number {
   return graph.levels[levelPath]?.instances.length ?? 0;
+}
+
+/** Range cell of the address map: unknown (not tool-assigned) for qsys, `auto` otherwise. */
+export function segmentRangeText(
+  segment: AddressSegment,
+  format: SystemGraph['source']['format']
+): string {
+  if (segment.range !== undefined) {
+    return segment.range;
+  }
+  return format === 'qsys' ? '-' : 'auto';
 }
 
 const HEX = /^0x[0-9a-f]+$/i;

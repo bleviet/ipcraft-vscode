@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
-import { boundaryId, shortVlnv, type Selection } from './model';
+import { boundaryId, instanceTypeLabel, type Selection } from './model';
 
 interface OutlineTreeProps {
   graph: SystemGraph;
@@ -74,9 +74,7 @@ export function OutlineTree({ graph, levelPath, selection, onSelect }: OutlineTr
           <OutlineRow
             depth={depth}
             label={instance.name}
-            detail={
-              isHier ? 'hierarchy' : instance.vlnv ? shortVlnv(instance.vlnv) : instance.moduleRef
-            }
+            detail={isHier ? 'hierarchy' : instanceTypeLabel(instance)}
             current={selection?.kind === 'instance' && selection.id === instancePath}
             expanded={isHier ? expanded.has(instancePath) : undefined}
             onToggle={isHier ? () => toggle(instancePath) : undefined}

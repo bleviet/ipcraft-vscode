@@ -18,7 +18,7 @@ import {
   boundaryId,
   cellCount,
   endpointKey,
-  netByEndpoint,
+  netsByEndpoint,
   netDriver,
   pinRole,
   visibleNets,
@@ -43,6 +43,9 @@ export interface PinRow {
   directionSource: PinDirectionSource;
   category?: NetCategory;
   netName?: string;
+  /** Every net the pin sits on, in graph order. */
+  netNames: string[];
+  definedBy?: SystemPin['definedBy'];
   /** Present when the pin's clock or reset net is hidden. */
   badge?: NetBadge;
 }
@@ -61,6 +64,7 @@ export interface BoundaryNodeData extends Record<string, unknown> {
   side: PinSide;
   category?: NetCategory;
   netName?: string;
+  netNames: string[];
   badge?: NetBadge;
   dimmed?: boolean;
   onSelectNet?: (netId: string) => void;
@@ -253,13 +257,15 @@ export function buildElkInput(
 
 function pinRows(
   instance: SystemInstance,
-  netLookup: ReturnType<typeof netByEndpoint>,
+  netLookup: ReturnType<typeof netsByEndpoint>,
   ports: ReadonlyMap<string, ElkPort>,
-  graph: SystemGraph
+  hidden: HiddenNets
 ): Pick<InstanceNodeData, 'west' | 'east'> {
   const rows: Record<PinSide, PinRow[]> = { west: [], east: [] };
   for (const pin of instance.pins) {
-    const net = netLookup.get(endpointKey({ instance: instance.path, pin: pin.name }));
+    const ref = { instance: instance.path, pin: pin.name };
+    const nets = netLookup.get(endpointKey(ref)) ?? [];
+    const net = nets[0];
     const side = sideOfInstancePin(pin.direction);
     rows[side].push({
       name: pin.name,
@@ -269,7 +275,9 @@ function pinRows(
       directionSource: pin.directionSource,
       category: net?.category,
       netName: net?.name,
-      badge: badgeOfPort(ports.get(portId(instance.path, pin.name)), graph),
+      netNames: nets.map((candidate) => candidate.name),
+      ...(pin.definedBy !== undefined && { definedBy: pin.definedBy }),
+      badge: badgeOfPort(ports.get(portId(instance.path, pin.name)), hidden.get(endpointKey(ref))),
     });
   }
   return rows;
@@ -284,7 +292,9 @@ export function toFlowElements(
   graph: SystemGraph,
   levelPath: string
 ): { nodes: DiagramFlowNode[]; edges: DiagramFlowEdge[] } {
-  const netLookup = netByEndpoint(graph, levelPath);
+  const netLookup = netsByEndpoint(graph, levelPath);
+  // Only pins whose ELK port carries a badge label read these nets.
+  const hidden = hiddenNetsByEndpoint(graph, levelPath, false);
   const boundaryPins = graph.levels[levelPath]?.boundaryPins ?? [];
   const nodes: DiagramFlowNode[] = [];
 
@@ -304,7 +314,7 @@ export function toFlowElements(
         data: {
           instance,
           cellCount: cellCount(graph, instance.path),
-          ...pinRows(instance, netLookup, portsOf(child), graph),
+          ...pinRows(instance, netLookup, portsOf(child), hidden),
         },
       });
       continue;
@@ -313,7 +323,9 @@ export function toFlowElements(
       (candidate) => boundaryId(levelPath, candidate.name) === child.id
     );
     if (pin) {
-      const net = netLookup.get(endpointKey({ instance: null, pin: pin.name }));
+      const ref = { instance: null, pin: pin.name };
+      const nets = netLookup.get(endpointKey(ref)) ?? [];
+      const net = nets[0];
       nodes.push({
         ...base,
         id: child.id,
@@ -323,7 +335,11 @@ export function toFlowElements(
           side: boundarySide(pin),
           category: net?.category,
           netName: net?.name,
-          badge: badgeOfPort(portsOf(child).get(portId(child.id, pin.name)), graph),
+          netNames: nets.map((candidate) => candidate.name),
+          badge: badgeOfPort(
+            portsOf(child).get(portId(child.id, pin.name)),
+            hidden.get(endpointKey(ref))
+          ),
         },
       });
     }

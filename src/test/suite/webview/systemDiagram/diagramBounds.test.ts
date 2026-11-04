@@ -20,6 +20,7 @@ function boundaryNode(id: string, x: number, y: number, badgeBox?: object): Diag
     data: {
       pin: { name: id } as never,
       side: 'west',
+      netNames: [],
       badge: badgeBox ? ({ ...badge, ...badgeBox } as never) : undefined,
     },
   };

@@ -11,17 +11,24 @@ function EmptyState({ message }: { message: string }) {
 }
 
 export function SystemDiagramApp() {
-  const { state, revealSource } = useSystemDiagramMessages();
+  const { state, revealSource, openDefinition } = useSystemDiagramMessages();
   switch (state.status) {
     case 'loading':
       return <EmptyState message="Reading the design..." />;
     case 'notRecognized':
-      return <EmptyState message="This Tcl file is not a Vivado block design script." />;
+      return (
+        <EmptyState message="This file is not a Vivado block design script or Platform Designer system." />
+      );
     case 'error':
       return <EmptyState message={`Could not read the design: ${state.message}`} />;
     case 'graph':
       return (
-        <DiagramWorkbench graph={state.graph} problem={state.problem} revealSource={revealSource} />
+        <DiagramWorkbench
+          graph={state.graph}
+          problem={state.problem}
+          revealSource={revealSource}
+          openDefinition={openDefinition}
+        />
       );
   }
 }

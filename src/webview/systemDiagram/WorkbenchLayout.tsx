@@ -17,10 +17,16 @@ interface WorkbenchLayoutProps {
   graph: SystemGraph;
   problem?: DiagramProblem;
   revealSource: (line: number) => void;
+  openDefinition: (instance: string) => void;
 }
 
 /** Toolbar, resizable outline / canvas / details row, and bottom panel. Needs a React Flow provider. */
-export function WorkbenchLayout({ graph, problem, revealSource }: WorkbenchLayoutProps) {
+export function WorkbenchLayout({
+  graph,
+  problem,
+  revealSource,
+  openDefinition,
+}: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
   const [showClockReset, setShowClockReset] = useState(false);
   const [query, setQuery] = useState('');
@@ -102,6 +108,7 @@ export function WorkbenchLayout({ graph, problem, revealSource }: WorkbenchLayou
                   onSelect={nav.selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
                   onReveal={revealSource}
+                  onOpenDefinition={openDefinition}
                 />
               </div>
             </>

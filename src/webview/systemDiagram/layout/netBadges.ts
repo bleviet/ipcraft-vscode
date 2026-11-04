@@ -18,6 +18,8 @@ export interface NetBadge {
   netId: string;
   netName: string;
   category: NetCategory;
+  /** Every hidden net of the pin, in graph order; the first is `netId`. */
+  nets: { id: string; name: string; category: NetCategory }[];
   text: string;
   /** Position relative to the owning node, as reserved by ELK. */
   x: number;
@@ -26,8 +28,9 @@ export interface NetBadge {
   height: number;
 }
 
-export function badgeText(netName: string): string {
-  return netName.length > BADGE_MAX_CHARS ? `${netName.slice(0, BADGE_MAX_CHARS)}…` : netName;
+export function badgeText(netName: string, extra = 0): string {
+  const name = netName.length > BADGE_MAX_CHARS ? `${netName.slice(0, BADGE_MAX_CHARS)}…` : netName;
+  return extra > 0 ? `${name} +${extra}` : name;
 }
 
 /** Nets whose wires are omitted, keyed by {@link endpointKey}; empty when shown. */
@@ -35,23 +38,25 @@ export function hiddenNetsByEndpoint(
   graph: SystemGraph,
   levelPath: string,
   showClockReset: boolean
-): Map<string, SystemNet> {
-  const lookup = new Map<string, SystemNet>();
+): Map<string, SystemNet[]> {
+  const lookup = new Map<string, SystemNet[]>();
   if (showClockReset) {
     return lookup;
   }
   for (const net of netsOfLevel(graph, levelPath).filter(isClockOrReset)) {
     for (const ref of net.endpoints) {
-      lookup.set(endpointKey(ref), net);
+      const key = endpointKey(ref);
+      lookup.set(key, [...(lookup.get(key) ?? []), net]);
     }
   }
   return lookup;
 }
 
-export function badgeLabel(net: SystemNet): ElkLabel {
-  const text = badgeText(net.name);
+/** One badge per pin: the first hidden net's name, plus ` +N` for the others. */
+export function badgeLabel(nets: readonly SystemNet[], ref: PinRef): ElkLabel {
+  const text = badgeText(nets[0].name, nets.length - 1);
   return {
-    id: `${BADGE_ID_PREFIX}${net.id}`,
+    id: `${BADGE_ID_PREFIX}${endpointKey(ref)}`,
     text,
     width: Math.ceil(text.length * BADGE_CHAR_WIDTH + BADGE_PADDING),
     height: BADGE_HEIGHT,
@@ -59,29 +64,32 @@ export function badgeLabel(net: SystemNet): ElkLabel {
 }
 
 export function badgeLabels(
-  hidden: ReadonlyMap<string, SystemNet>,
+  hidden: ReadonlyMap<string, readonly SystemNet[]>,
   ref: PinRef
 ): ElkLabel[] | undefined {
-  const net = hidden.get(endpointKey(ref));
-  return net ? [badgeLabel(net)] : undefined;
+  const nets = hidden.get(endpointKey(ref));
+  return nets ? [badgeLabel(nets, ref)] : undefined;
 }
 
-/** Reads back the badge ELK placed for a port; label x is port-relative. */
-export function badgeOfPort(port: ElkPort | undefined, graph: SystemGraph): NetBadge | undefined {
+/**
+ * Reads back the badge ELK placed for a port; label x is port-relative. The
+ * label carries geometry only: `nets` are the pin's hidden nets.
+ */
+export function badgeOfPort(
+  port: ElkPort | undefined,
+  nets: readonly SystemNet[] | undefined
+): NetBadge | undefined {
   const label = port?.labels?.[0];
-  if (!port || !label?.id?.startsWith(BADGE_ID_PREFIX)) {
+  if (!port || !label?.id?.startsWith(BADGE_ID_PREFIX) || !nets?.[0]) {
     return undefined;
   }
-  const netId = label.id.slice(BADGE_ID_PREFIX.length);
-  const net = graph.nets.find((candidate) => candidate.id === netId);
-  if (!net) {
-    return undefined;
-  }
+  const net = nets[0];
   const height = label.height ?? BADGE_HEIGHT;
   return {
-    netId,
+    netId: net.id,
     netName: net.name,
     category: net.category,
+    nets: nets.map(({ id, name, category }) => ({ id, name, category })),
     text: label.text ?? net.name,
     x: (port.x ?? 0) + (label.x ?? 0),
     // ELK puts the label just below the port; centre it on the pin row instead

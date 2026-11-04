@@ -7,14 +7,10 @@ import {
   type InstanceNodeData,
   type PinRow,
 } from './layout/elkLayout';
-import { shortVlnv } from './model';
+import { instanceTypeLabel, pinTooltip } from './model';
 import { NetBadgeView } from './NetBadgeView';
 
 export type InstanceFlowNode = Node<InstanceNodeData, 'instance'>;
-
-function pinTitle(row: PinRow): string {
-  return `${row.name} · ${row.netName ?? 'unconnected'} · ${row.direction} from ${row.directionSource}`;
-}
 
 function PinRowView({ row }: { row: PinRow }) {
   const east = row.side === 'east';
@@ -27,7 +23,7 @@ function PinRowView({ row }: { row: PinRow }) {
   );
   return (
     <div
-      title={pinTitle(row)}
+      title={pinTooltip(row, row.netNames)}
       className={`relative flex items-center gap-1 px-2 ${east ? 'flex-row-reverse' : ''}`}
       style={{ height: PIN_ROW_HEIGHT }}
     >
@@ -52,9 +48,7 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
   const subtitle =
     instance.kind === 'hier'
       ? `Hierarchy · ${data.cellCount} cells`
-      : instance.kind === 'module'
-        ? (instance.moduleRef ?? 'module')
-        : shortVlnv(instance.vlnv ?? '');
+      : (instanceTypeLabel(instance) ?? (instance.kind === 'module' ? 'module' : ''));
   return (
     <div className="sd-node" data-selected={selected} data-dimmed={data.dimmed === true}>
       <div className="px-2 py-1" style={{ height: HEADER_HEIGHT }}>
