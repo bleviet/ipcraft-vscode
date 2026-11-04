@@ -130,6 +130,38 @@ export function netByEndpoint(graph: SystemGraph, level: string): Map<string, Sy
   return lookup;
 }
 
+/**
+ * The level and selection to show after the graph changed: a vanished level
+ * goes back to the root (dropping the selection), and a selection that no
+ * longer exists is cleared. Returns the inputs unchanged when still valid.
+ */
+export function reconcileNavigation(
+  graph: SystemGraph,
+  levelPath: string,
+  selection: Selection | null
+): { levelPath: string; selection: Selection | null } {
+  if (!graph.levels[levelPath]) {
+    return { levelPath: '/', selection: null };
+  }
+  return {
+    levelPath,
+    selection: selection && selectionExists(graph, selection) ? selection : null,
+  };
+}
+
+function selectionExists(graph: SystemGraph, selection: Selection): boolean {
+  switch (selection.kind) {
+    case 'instance':
+      return graph.instances[selection.id] !== undefined;
+    case 'boundary': {
+      const { level, pin } = parseBoundaryId(selection.id);
+      return graph.levels[level]?.boundaryPins.some((candidate) => candidate.name === pin) ?? false;
+    }
+    case 'net':
+      return graph.nets.some((net) => net.id === selection.id);
+  }
+}
+
 /** Level that must be shown for `selection` to be visible. */
 export function selectionLevel(graph: SystemGraph, selection: Selection): string | undefined {
   switch (selection.kind) {

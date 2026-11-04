@@ -8,16 +8,19 @@ import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
 import { usePanelResize } from './hooks/usePanelResize';
+import type { DiagramProblem } from './messageState';
+import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
 
 interface WorkbenchLayoutProps {
   graph: SystemGraph;
+  problem?: DiagramProblem;
   revealSource: (line: number) => void;
 }
 
 /** Toolbar, resizable outline / canvas / details row, and bottom panel. Needs a React Flow provider. */
-export function WorkbenchLayout({ graph, revealSource }: WorkbenchLayoutProps) {
+export function WorkbenchLayout({ graph, problem, revealSource }: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
   const [showClockReset, setShowClockReset] = useState(false);
   const [query, setQuery] = useState('');
@@ -45,6 +48,7 @@ export function WorkbenchLayout({ graph, revealSource }: WorkbenchLayoutProps) {
 
   return (
     <div className="flex h-full flex-col">
+      {problem && <ProblemBanner problem={problem} />}
       <DiagramToolbar
         graph={graph}
         levelPath={nav.levelPath}

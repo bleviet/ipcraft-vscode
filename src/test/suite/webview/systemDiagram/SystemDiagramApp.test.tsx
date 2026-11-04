@@ -405,6 +405,126 @@ describe('SystemDiagramApp', () => {
     });
   });
 
+  describe('transient bad edits', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const clone = () => JSON.parse(JSON.stringify(graph)) as typeof graph;
+    const crumbs = () => within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+
+    async function enterDspAndCollapseOutline() {
+      await renderWithGraph();
+      await settle();
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      await settle();
+      fireEvent.click(screen.getByRole('button', { name: 'Toggle Outline' }));
+      await settle(); // let the panel-resize refit run
+      mockFitBounds.mockClear();
+      mockSetViewport.mockClear();
+    }
+
+    const bad: [string, SystemDiagramToWebviewMessage, RegExp][] = [
+      [
+        'an error',
+        { type: 'error', message: 'boom' },
+        /The design could not be read: boom\. Showing the last valid version\./,
+      ],
+      [
+        'a file that is no longer recognized',
+        { type: 'notRecognized', fileName: 'x.tcl' },
+        /This file is no longer recognized as a Vivado block design script\. Showing the last valid version\./,
+      ],
+    ];
+
+    it.each(bad)(
+      'keeps the workbench and its state after %s, then recovers silently',
+      async (_name, message, banner) => {
+        await enterDspAndCollapseOutline();
+
+        send(message);
+        expect(await screen.findByRole('status')).toHaveTextContent(banner);
+        expect(crumbs().getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'Toggle Outline' })).toHaveAttribute(
+          'aria-pressed',
+          'false'
+        );
+        expect(screen.getByTestId('node:/dsp_pipeline/fir_compiler_0')).toBeInTheDocument();
+
+        send({ type: 'graph', graph: clone() });
+        await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+        await settle();
+        expect(crumbs().getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
+        expect(screen.getByRole('button', { name: 'Toggle Outline' })).toHaveAttribute(
+          'aria-pressed',
+          'false'
+        );
+        expect(mockFitBounds).not.toHaveBeenCalled();
+        expect(mockSetViewport).not.toHaveBeenCalled();
+      }
+    );
+
+    it('shows the empty states when the first message is not a graph', () => {
+      const { unmount } = render(<SystemDiagramApp />);
+      send({ type: 'error', message: 'boom' });
+      expect(screen.getByText(/Could not read the design: boom/)).toBeVisible();
+      unmount();
+      render(<SystemDiagramApp />);
+      send({ type: 'notRecognized', fileName: 'x.tcl' });
+      expect(screen.getByText('This Tcl file is not a Vivado block design script.')).toBeVisible();
+    });
+
+    it('goes to the root when a re-posted graph no longer has the current level', async () => {
+      await renderWithGraph();
+      await settle();
+      const rootView = { x: 40, y: 50, zoom: 1.5 };
+      mockViewport = rootView;
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      await settle();
+      mockSetViewport.mockClear();
+
+      const pruned = clone();
+      for (const path of Object.keys(pruned.instances)) {
+        if (path.startsWith('/dsp_pipeline')) {
+          delete pruned.instances[path];
+        }
+      }
+      delete pruned.levels['/dsp_pipeline'];
+      delete pruned.levels['/dsp_pipeline/coeff_bank'];
+      pruned.levels['/'].instances = pruned.levels['/'].instances.filter(
+        (path) => path !== '/dsp_pipeline'
+      );
+      send({ type: 'graph', graph: pruned });
+
+      await screen.findByTestId('node:/axi_dma_0');
+      expect(crumbs().getByText('zynq_dma_system')).toHaveAttribute('aria-current', 'page');
+      await waitFor(() => expect(mockSetViewport).toHaveBeenCalledWith(rootView));
+    });
+
+    it('clears the selection when a re-posted graph no longer has the selected instance', async () => {
+      await renderWithGraph();
+      fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+      expect(details().getByRole('heading', { name: 'axi_dma_0' })).toBeVisible();
+
+      const pruned = clone();
+      delete pruned.instances['/axi_dma_0'];
+      pruned.levels['/'].instances = pruned.levels['/'].instances.filter(
+        (path) => path !== '/axi_dma_0'
+      );
+      send({ type: 'graph', graph: pruned });
+
+      await waitFor(() =>
+        expect(details().queryByRole('heading', { name: 'axi_dma_0' })).not.toBeInTheDocument()
+      );
+      expect(details().getByText('Capabilities')).toBeVisible();
+
+      // The selection is really cleared, not just hidden: it does not come back.
+      send({ type: 'graph', graph: clone() });
+      await screen.findByTestId('node:/axi_dma_0');
+      await settle();
+      expect(details().queryByRole('heading', { name: 'axi_dma_0' })).not.toBeInTheDocument();
+    });
+  });
+
   describe('after a layout error', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
     const repost = () => send({ type: 'graph', graph: JSON.parse(JSON.stringify(graph)) });

@@ -20,6 +20,8 @@ export function SystemDiagramApp() {
     case 'error':
       return <EmptyState message={`Could not read the design: ${state.message}`} />;
     case 'graph':
-      return <DiagramWorkbench graph={state.graph} revealSource={revealSource} />;
+      return (
+        <DiagramWorkbench graph={state.graph} problem={state.problem} revealSource={revealSource} />
+      );
   }
 }

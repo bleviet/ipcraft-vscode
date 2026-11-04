@@ -9,6 +9,7 @@ import {
   netDriver,
   parseBoundaryId,
   pinRole,
+  reconcileNavigation,
   resolvePin,
   segmentHigh,
   selectionLevel,
@@ -110,5 +111,44 @@ describe('system diagram model', () => {
     expect(segmentHigh(segment(undefined, '0x1000'))).toBeUndefined();
     expect(segmentHigh(segment('0x0', '64K'))).toBeUndefined();
     expect(segmentHigh(segment('0x0', '0x0'))).toBeUndefined();
+  });
+
+  describe('reconcileNavigation', () => {
+    const inst = { kind: 'instance', id: '/axi_dma_0' } as const;
+
+    it('returns valid input unchanged', () => {
+      const result = reconcileNavigation(graph, '/dsp_pipeline', {
+        kind: 'instance',
+        id: '/dsp_pipeline/fir_compiler_0',
+      });
+      expect(result.levelPath).toBe('/dsp_pipeline');
+      expect(result.selection).toEqual({ kind: 'instance', id: '/dsp_pipeline/fir_compiler_0' });
+      const same = reconcileNavigation(graph, '/', inst);
+      expect(same.selection).toBe(inst);
+    });
+
+    it('goes to the root and drops the selection when the level vanished', () => {
+      expect(reconcileNavigation(graph, '/gone', inst)).toEqual({
+        levelPath: '/',
+        selection: null,
+      });
+    });
+
+    it('clears selections that no longer exist', () => {
+      expect(
+        reconcileNavigation(graph, '/', { kind: 'instance', id: '/gone' }).selection
+      ).toBeNull();
+      expect(
+        reconcileNavigation(graph, '/', { kind: 'boundary', id: boundaryId('/', 'nope') }).selection
+      ).toBeNull();
+      expect(reconcileNavigation(graph, '/', { kind: 'net', id: '/::nope' }).selection).toBeNull();
+    });
+
+    it('keeps existing boundary and net selections', () => {
+      const boundary = { kind: 'boundary', id: boundaryId('/', 'DDR') } as const;
+      const net = { kind: 'net', id: graph.nets[0].id } as const;
+      expect(reconcileNavigation(graph, '/', boundary).selection).toBe(boundary);
+      expect(reconcileNavigation(graph, '/', net).selection).toBe(net);
+    });
   });
 });

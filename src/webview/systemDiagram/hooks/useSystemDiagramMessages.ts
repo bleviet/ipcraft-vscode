@@ -1,16 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { SystemGraph } from '../../../domain/systemGraph';
 import type {
   SystemDiagramToExtensionMessage,
   SystemDiagramToWebviewMessage,
 } from '../../../shared/messages/systemDiagram';
 import { vscode } from '../../vscode';
-
-export type SystemDiagramState =
-  | { status: 'loading' }
-  | { status: 'graph'; graph: SystemGraph }
-  | { status: 'notRecognized'; fileName: string }
-  | { status: 'error'; message: string };
+import { reduceDiagramMessage, type SystemDiagramState } from '../messageState';
 
 function post(message: SystemDiagramToExtensionMessage): void {
   vscode?.postMessage(message);
@@ -25,16 +19,8 @@ export function useSystemDiagramMessages(): {
   useEffect(() => {
     const onMessage = (event: MessageEvent<SystemDiagramToWebviewMessage>) => {
       const message = event.data;
-      switch (message?.type) {
-        case 'graph':
-          setState({ status: 'graph', graph: message.graph });
-          break;
-        case 'notRecognized':
-          setState({ status: 'notRecognized', fileName: message.fileName });
-          break;
-        case 'error':
-          setState({ status: 'error', message: message.message });
-          break;
+      if (message?.type) {
+        setState((state) => reduceDiagramMessage(state, message));
       }
     };
     window.addEventListener('message', onMessage);

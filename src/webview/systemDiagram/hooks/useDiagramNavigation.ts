@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
-import { selectionLevel, type RevealRequest, type Selection } from '../model';
+import { reconcileNavigation, selectionLevel, type RevealRequest, type Selection } from '../model';
 
 /** Current level and selection of the diagram, and the gestures that change them. */
 export function useDiagramNavigation(graph: SystemGraph) {
@@ -50,9 +50,24 @@ export function useDiagramNavigation(graph: SystemGraph) {
     [selectAndReveal]
   );
 
+  // Show the reconciled values at once (no frame with a vanished level) and
+  // bring the state in line with them.
+  const shown = useMemo(
+    () => reconcileNavigation(graph, levelPath, selection),
+    [graph, levelPath, selection]
+  );
+  useEffect(() => {
+    if (shown.levelPath !== levelPath) {
+      navigate(shown.levelPath);
+    } else if (shown.selection !== selection) {
+      setSelection(shown.selection);
+      setRevealRequest(null);
+    }
+  }, [shown, levelPath, selection, navigate]);
+
   return {
-    levelPath,
-    selection,
+    levelPath: shown.levelPath,
+    selection: shown.selection,
     revealRequest,
     select,
     selectAndReveal,
