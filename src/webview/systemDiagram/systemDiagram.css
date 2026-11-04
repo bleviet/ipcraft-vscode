@@ -69,6 +69,9 @@ input:focus-visible {
   width: 240px;
   position: relative;
   border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  /* Theme border tokens are nearly invisible on light themes; derive the
+     border from the foreground so blocks stand out in every theme. */
+  border-color: color-mix(in srgb, var(--vscode-foreground) 45%, transparent);
   background: var(--vscode-editorWidget-background);
   border-radius: 4px;
   font-size: 11px;
