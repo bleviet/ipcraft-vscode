@@ -1,15 +1,18 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
-import { selectionLevel, type Selection } from '../model';
+import { selectionLevel, type RevealRequest, type Selection } from '../model';
 
 /** Current level and selection of the diagram, and the gestures that change them. */
 export function useDiagramNavigation(graph: SystemGraph) {
   const [levelPath, setLevelPath] = useState('/');
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [revealRequest, setRevealRequest] = useState<RevealRequest | null>(null);
+  const lastToken = useRef(0);
 
   const select = useCallback(
     (next: Selection | null, level?: string) => {
       setSelection(next);
+      setRevealRequest(null);
       const target = level ?? (next ? selectionLevel(graph, next) : undefined);
       if (target !== undefined) {
         setLevelPath(target);
@@ -17,9 +20,22 @@ export function useDiagramNavigation(graph: SystemGraph) {
     },
     [graph]
   );
+  /** Selection made outside the canvas: also centres the selected node. */
+  const selectAndReveal = useCallback(
+    (next: Selection | null, level?: string) => {
+      select(next, level);
+      const target = level ?? (next ? selectionLevel(graph, next) : undefined);
+      if (next && next.kind !== 'net' && target !== undefined) {
+        lastToken.current += 1;
+        setRevealRequest({ token: lastToken.current, selection: next, levelPath: target });
+      }
+    },
+    [graph, select]
+  );
   const navigate = useCallback((path: string) => {
     setLevelPath(path);
     setSelection(null);
+    setRevealRequest(null);
   }, []);
   const enterHierarchy = useCallback(
     (instancePath: string) => {
@@ -30,9 +46,18 @@ export function useDiagramNavigation(graph: SystemGraph) {
     [graph, navigate]
   );
   const selectInstance = useCallback(
-    (instancePath: string) => select({ kind: 'instance', id: instancePath }),
-    [select]
+    (instancePath: string) => selectAndReveal({ kind: 'instance', id: instancePath }),
+    [selectAndReveal]
   );
 
-  return { levelPath, selection, select, navigate, enterHierarchy, selectInstance };
+  return {
+    levelPath,
+    selection,
+    revealRequest,
+    select,
+    selectAndReveal,
+    navigate,
+    enterHierarchy,
+    selectInstance,
+  };
 }

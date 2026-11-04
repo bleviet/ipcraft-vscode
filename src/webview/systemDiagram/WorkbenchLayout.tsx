@@ -39,7 +39,8 @@ export function WorkbenchLayout({ graph, revealSource }: WorkbenchLayoutProps) {
 
   const fit = useDiagramViewport(
     layout,
-    `${panelsVisible.outline}:${panelsVisible.details}:${panelsVisible.bottom}`
+    `${panelsVisible.outline}:${panelsVisible.details}:${panelsVisible.bottom}`,
+    nav.revealRequest
   );
 
   return (
@@ -71,7 +72,7 @@ export function WorkbenchLayout({ graph, revealSource }: WorkbenchLayoutProps) {
                   graph={graph}
                   levelPath={nav.levelPath}
                   selection={nav.selection}
-                  onSelect={nav.select}
+                  onSelect={nav.selectAndReveal}
                 />
               </div>
               <ResizeHandle label="Resize Outline" {...panels.outline.separator} />
@@ -94,7 +95,7 @@ export function WorkbenchLayout({ graph, revealSource }: WorkbenchLayoutProps) {
                 <DetailsPanel
                   graph={graph}
                   selection={nav.selection}
-                  onSelect={nav.select}
+                  onSelect={nav.selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
                   onReveal={revealSource}
                 />

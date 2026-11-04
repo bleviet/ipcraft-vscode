@@ -2,9 +2,13 @@ import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { SystemDiagramToWebviewMessage } from '../../../../shared/messages/systemDiagram';
 import { SystemDiagramApp } from '../../../../webview/systemDiagram/SystemDiagramApp';
+import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
+import { nodeCenter } from '../../../../webview/systemDiagram/layout/nodeCenter';
+import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { loadFixtureGraph } from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
+const mockSetCenter = jest.fn<void, [number, number, unknown]>();
 const mockSetViewport = jest.fn<void, [unknown]>();
 let mockViewport = { x: 0, y: 0, zoom: 1 };
 const mockPostMessage = jest.fn<void, [unknown]>();
@@ -32,9 +36,17 @@ interface MockFlowProps {
 jest.mock('@xyflow/react', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const api = {
-    fitBounds: (bounds: unknown, options: unknown) => mockFitBounds(bounds, options),
+    // Like React Flow, a fit changes the viewport; the fitted zoom is 0.8.
+    fitBounds: (bounds: unknown, options: unknown) => {
+      mockViewport = { x: 0, y: 0, zoom: 0.8 };
+      mockFitBounds(bounds, options);
+    },
+    setCenter: (x: number, y: number, options: unknown) => mockSetCenter(x, y, options),
     getViewport: () => mockViewport,
-    setViewport: (viewport: unknown) => mockSetViewport(viewport),
+    setViewport: (viewport: { x: number; y: number; zoom: number }) => {
+      mockViewport = viewport;
+      mockSetViewport(viewport);
+    },
     zoomIn: jest.fn(),
     zoomOut: jest.fn(),
   };
@@ -208,6 +220,164 @@ describe('SystemDiagramApp', () => {
     await waitFor(() =>
       expect(screen.queryAllByTitle(/Turn on Clocks and resets/)).toHaveLength(0)
     );
+  });
+
+  describe('revealing a selected component', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+
+    async function centerOf(level: string, nodeId: string) {
+      const input = buildElkInput(graph, level, { showClockReset: false });
+      const layout = toFlowElements(await runElkLayout(input), graph, level);
+      return nodeCenter(layout, nodeId)!;
+    }
+    async function ready() {
+      await renderWithGraph();
+      await settle();
+      mockFitBounds.mockClear();
+      mockSetCenter.mockClear();
+    }
+
+    it('centres an outline selection on the same level at the current zoom, without fitting', async () => {
+      await ready();
+      mockViewport = { x: 5, y: 6, zoom: 1.7 };
+      const center = await centerOf('/', '/axi_dma_0');
+
+      fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      expect(mockSetCenter).toHaveBeenCalledWith(center.x, center.y, { zoom: 1.7 });
+      expect(mockFitBounds).not.toHaveBeenCalled();
+    });
+
+    it('centres a boundary port selected in the outline', async () => {
+      await ready();
+      const center = await centerOf('/', '/::DDR');
+      fireEvent.click(outline().getByRole('button', { name: /^DDR/ }));
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      expect(mockSetCenter.mock.calls[0].slice(0, 2)).toEqual([center.x, center.y]);
+    });
+
+    it('centres again when the same row is selected twice', async () => {
+      await ready();
+      const row = outline().getByRole('button', { name: /^axi_dma_0/ });
+      fireEvent.click(row);
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      fireEvent.click(row);
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(2));
+    });
+
+    it('does not move the view for canvas clicks or net selections', async () => {
+      await ready();
+      fireEvent.click(screen.getByTestId('node:/axi_dma_0'));
+      expect(details().getByRole('heading', { name: 'axi_dma_0' })).toBeVisible();
+      fireEvent.click(screen.getAllByTitle(/Clock net processing_system7_0_FCLK_CLK0/)[0]);
+      await settle();
+      expect(mockSetCenter).not.toHaveBeenCalled();
+    });
+
+    it('centres the slave instance of an address map row', async () => {
+      await ready();
+      const center = await centerOf('/', '/axi_dma_0');
+      fireEvent.click(screen.getByText('axi_dma_0/S_AXI_LITE/Reg').closest('tr')!);
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      expect(mockSetCenter.mock.calls[0].slice(0, 2)).toEqual([center.x, center.y]);
+    });
+
+    it('centres a pin-net endpoint link in the details panel', async () => {
+      await ready();
+      fireEvent.click(screen.getAllByTitle(/Clock net processing_system7_0_FCLK_CLK0/)[0]);
+      mockSetCenter.mockClear();
+      const link = details().getAllByRole('button', { name: /^\/axi_dma_0\// })[0];
+      fireEvent.click(link);
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+    });
+
+    it('navigates, applies the fit, then centres with the fitted zoom on a first visit', async () => {
+      await ready();
+      mockViewport = { x: 0, y: 0, zoom: 1.3 }; // differs from the fitted zoom
+      fireEvent.click(outline().getByRole('button', { name: 'Expand dsp_pipeline' }));
+      fireEvent.click(outline().getByRole('button', { name: /^fir_compiler_0/ }));
+
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      const center = await centerOf('/dsp_pipeline', '/dsp_pipeline/fir_compiler_0');
+      expect(mockFitBounds).toHaveBeenCalledTimes(1);
+      expect(mockSetCenter).toHaveBeenCalledWith(center.x, center.y, { zoom: 0.8 });
+    });
+
+    it('centres with the restored zoom when the level has a saved viewport', async () => {
+      await ready();
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      await settle();
+      mockViewport = { x: 1, y: 2, zoom: 0.55 };
+      fireEvent.click(
+        within(screen.getByRole('navigation', { name: 'Hierarchy' })).getByRole('button', {
+          name: 'zynq_dma_system',
+        })
+      );
+      await screen.findByTestId('node:/axi_dma_0');
+      await settle();
+      mockFitBounds.mockClear();
+      mockSetCenter.mockClear();
+
+      fireEvent.click(outline().getByRole('button', { name: 'Expand dsp_pipeline' }));
+      fireEvent.click(outline().getByRole('button', { name: /^fir_compiler_0/ }));
+
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      expect(mockSetCenter.mock.calls[0][2]).toEqual({ zoom: 0.55 });
+      expect(mockFitBounds).not.toHaveBeenCalled();
+    });
+
+    describe('dropping a superseded reveal request', () => {
+      async function clickNestedRowThen(supersede: () => void) {
+        await ready();
+        fireEvent.click(outline().getByRole('button', { name: 'Expand dsp_pipeline' }));
+        fireEvent.click(outline().getByRole('button', { name: /^fir_compiler_0/ }));
+        supersede();
+        await settle();
+        await settle();
+        expect(mockSetCenter).not.toHaveBeenCalled();
+
+        // Entering the hierarchy later must not jump to the dropped target.
+        await screen.findByTestId('node:/dsp_pipeline');
+        fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+        await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+        await settle();
+        await settle();
+        expect(mockSetCenter).not.toHaveBeenCalled();
+      }
+
+      it('after navigating elsewhere (breadcrumb)', async () => {
+        await clickNestedRowThen(() =>
+          fireEvent.click(
+            within(screen.getByRole('navigation', { name: 'Hierarchy' })).getByRole('button', {
+              name: 'zynq_dma_system',
+            })
+          )
+        );
+      });
+
+      it('after a canvas selection and a return through the outline design row', async () => {
+        await ready();
+        fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+        await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+        await settle();
+        mockSetCenter.mockClear();
+
+        // Queues a reveal for the root level; the root layout is still pending.
+        fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+        // A plain canvas selection supersedes it and goes back to the dsp level.
+        fireEvent.click(screen.getByTestId('node:/dsp_pipeline/fir_compiler_0'));
+        // The design row changes level without going through navigate.
+        fireEvent.click(outline().getByRole('button', { name: /^zynq_dma_system/ }));
+
+        await screen.findByTestId('node:/axi_dma_0');
+        await settle();
+        await settle();
+        expect(mockSetCenter).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('per-level viewport', () => {

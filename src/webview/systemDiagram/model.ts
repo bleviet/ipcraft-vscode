@@ -18,6 +18,13 @@ export type Selection =
   | { kind: 'boundary'; id: string }
   | { kind: 'net'; id: string };
 
+/** Ask to centre a node once the diagram of `levelPath` is shown; `token` makes repeats distinct. */
+export interface RevealRequest {
+  token: number;
+  selection: Selection;
+  levelPath: string;
+}
+
 export interface Breadcrumb {
   path: string;
   label: string;
