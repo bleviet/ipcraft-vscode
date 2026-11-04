@@ -12,6 +12,21 @@ export type ViewportAction =
   | { kind: 'keep' };
 
 /**
+ * Saved viewports after `level` stops being shown, either because the user
+ * left it or because its layout became unavailable (a layout error unmounts
+ * the canvas, and React Flow resets the viewport when it remounts). The
+ * caller then treats no level as shown, so the next good layout goes through
+ * {@link decideViewportAction} and restores or fits.
+ */
+export function withSavedViewport(
+  saved: ReadonlyMap<string, Viewport>,
+  level: string | null,
+  viewport: Viewport
+): ReadonlyMap<string, Viewport> {
+  return level === null ? saved : new Map(saved).set(level, viewport);
+}
+
+/**
  * `shownLevel` is the level whose layout was displayed before, null on the
  * first layout. A new layout of the same level keeps the viewport; a different
  * level restores its saved viewport, or fits on the first visit.

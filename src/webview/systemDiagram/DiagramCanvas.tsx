@@ -62,34 +62,39 @@ export function DiagramCanvas({
     [layout, selection]
   );
 
-  if (error) {
-    return <p className="p-4">Layout failed: {error}</p>;
-  }
-
+  // React Flow stays mounted on error: unmounting resets its store to the
+  // default viewport, losing the user's zoom and pan.
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      nodeTypes={NODE_TYPES}
-      edgeTypes={EDGE_TYPES}
-      nodesDraggable={false}
-      nodesConnectable={false}
-      elementsSelectable
-      minZoom={0.05}
-      zoomOnDoubleClick={false}
-      onNodeClick={(_event, node) =>
-        onSelect({ kind: node.type === 'boundary' ? 'boundary' : 'instance', id: node.id })
-      }
-      onNodeDoubleClick={(_event, node) => {
-        if (node.type === 'instance') {
-          onEnterHierarchy(node.id);
+    <div className="relative h-full w-full">
+      {error && (
+        <p role="alert" className="absolute inset-x-0 top-0 z-10 p-4">
+          Layout failed: {error}
+        </p>
+      )}
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        nodeTypes={NODE_TYPES}
+        edgeTypes={EDGE_TYPES}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable
+        minZoom={0.05}
+        zoomOnDoubleClick={false}
+        onNodeClick={(_event, node) =>
+          onSelect({ kind: node.type === 'boundary' ? 'boundary' : 'instance', id: node.id })
         }
-      }}
-      onEdgeClick={(_event, edge) => onSelect({ kind: 'net', id: edge.data?.netId })}
-      onPaneClick={() => onSelect(null)}
-      proOptions={{ hideAttribution: true }}
-    >
-      <Background variant={BackgroundVariant.Dots} />
-    </ReactFlow>
+        onNodeDoubleClick={(_event, node) => {
+          if (node.type === 'instance') {
+            onEnterHierarchy(node.id);
+          }
+        }}
+        onEdgeClick={(_event, edge) => onSelect({ kind: 'net', id: edge.data?.netId })}
+        onPaneClick={() => onSelect(null)}
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background variant={BackgroundVariant.Dots} />
+      </ReactFlow>
+    </div>
   );
 }

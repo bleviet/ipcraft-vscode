@@ -8,6 +8,7 @@ import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLay
 import { loadFixtureGraph } from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
+let mockElkFailures = 0;
 const mockSetCenter = jest.fn<void, [number, number, unknown]>();
 const mockSetViewport = jest.fn<void, [unknown]>();
 let mockViewport = { x: 0, y: 0, zoom: 1 };
@@ -16,6 +17,21 @@ const mockPostMessage = jest.fn<void, [unknown]>();
 jest.mock('../../../../webview/vscode', () => ({
   vscode: { postMessage: (message: unknown) => mockPostMessage(message) },
 }));
+
+jest.mock('../../../../webview/systemDiagram/layout/runElkLayout', () => {
+  const actual = jest.requireActual<
+    typeof import('../../../../webview/systemDiagram/layout/runElkLayout')
+  >('../../../../webview/systemDiagram/layout/runElkLayout');
+  return {
+    runElkLayout: (input: Parameters<typeof actual.runElkLayout>[0]) => {
+      if (mockElkFailures > 0) {
+        mockElkFailures -= 1;
+        return Promise.reject(new Error('elk failed'));
+      }
+      return actual.runElkLayout(input);
+    },
+  };
+});
 
 interface MockFlowNode {
   id: string;
@@ -56,8 +72,15 @@ jest.mock('@xyflow/react', () => {
     BaseEdge: () => null,
     Handle: () => null,
     Position: { Left: 'left', Right: 'right' },
-    ReactFlow: (props: MockFlowProps) =>
-      React.createElement(
+    ReactFlow: (props: MockFlowProps) => {
+      // Like React Flow's StoreUpdater, unmounting resets the viewport to the default.
+      React.useEffect(
+        () => () => {
+          mockViewport = { x: 0, y: 0, zoom: 1 };
+        },
+        []
+      );
+      return React.createElement(
         'div',
         {
           'data-testid': 'flow',
@@ -83,7 +106,8 @@ jest.mock('@xyflow/react', () => {
             })
           )
         )
-      ),
+      );
+    },
     ReactFlowProvider: ({ children }: { children: React.ReactNode }) => children,
     useReactFlow: () => api,
   };
@@ -110,6 +134,7 @@ const edgeCount = () => Number(screen.getByTestId('flow').getAttribute('data-edg
 
 describe('SystemDiagramApp', () => {
   beforeEach(() => {
+    mockElkFailures = 0;
     mockViewport = { x: 0, y: 0, zoom: 1 };
   });
 
@@ -377,6 +402,61 @@ describe('SystemDiagramApp', () => {
         await settle();
         expect(mockSetCenter).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('after a layout error', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const repost = () => send({ type: 'graph', graph: JSON.parse(JSON.stringify(graph)) });
+
+    it('keeps the canvas mounted while the error is shown', async () => {
+      await renderWithGraph();
+      mockElkFailures = 1;
+      repost();
+      expect(await screen.findByRole('alert')).toHaveTextContent('Layout failed: elk failed');
+      expect(screen.getByTestId('flow')).toBeInTheDocument();
+    });
+
+    it('restores the pre-error view when the same level recovers', async () => {
+      await renderWithGraph();
+      await settle();
+      const before = { x: 11, y: 22, zoom: 1.4 };
+      mockViewport = before;
+      mockFitBounds.mockClear();
+      mockSetViewport.mockClear();
+
+      mockElkFailures = 1;
+      repost();
+      await screen.findByText(/Layout failed: elk failed/);
+      repost();
+      await screen.findByTestId('node:/axi_dma_0');
+      await settle();
+
+      expect(mockSetViewport).toHaveBeenCalledWith(before);
+      expect(mockFitBounds).not.toHaveBeenCalled();
+    });
+
+    it("does not overwrite the previous level's saved view when navigation fails", async () => {
+      await renderWithGraph();
+      await settle();
+      const rootView = { x: 40, y: 50, zoom: 1.5 };
+      mockViewport = rootView;
+
+      mockElkFailures = 1;
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByText(/Layout failed: elk failed/);
+      repost();
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      await settle();
+      mockSetViewport.mockClear();
+
+      fireEvent.click(
+        within(screen.getByRole('navigation', { name: 'Hierarchy' })).getByRole('button', {
+          name: 'zynq_dma_system',
+        })
+      );
+      await screen.findByTestId('node:/axi_dma_0');
+      await waitFor(() => expect(mockSetViewport).toHaveBeenCalledWith(rootView));
     });
   });
 

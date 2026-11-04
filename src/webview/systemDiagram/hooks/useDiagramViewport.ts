@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
 import { diagramBounds } from '../layout/diagramBounds';
 import { nodeCenter } from '../layout/nodeCenter';
-import { decideViewportAction, type Viewport } from '../layout/viewportPolicy';
+import { decideViewportAction, withSavedViewport, type Viewport } from '../layout/viewportPolicy';
 import type { RevealRequest } from '../model';
 import type { DiagramLayout } from './useElkLayout';
 
@@ -24,7 +24,7 @@ export function useDiagramViewport(
 ): () => void {
   const { fitBounds, getViewport, setViewport, setCenter } = useReactFlow();
   const bounds = useMemo(() => (layout ? diagramBounds(layout) : null), [layout]);
-  const saved = useRef(new Map<string, Viewport>());
+  const saved = useRef<ReadonlyMap<string, Viewport>>(new Map());
   const shownLevel = useRef<string | null>(null);
   const handledToken = useRef(0);
 
@@ -37,12 +37,17 @@ export function useDiagramViewport(
   fitRef.current = fit;
 
   useEffect(() => {
+    const left = shownLevel.current;
     if (!layout) {
+      // The layout is unavailable (error). React Flow stays mounted, so the
+      // view survives; save it so the recovered layout restores it even if the
+      // user pans the empty canvas meanwhile.
+      saved.current = withSavedViewport(saved.current, left, getViewport());
+      shownLevel.current = null;
       return;
     }
-    const left = shownLevel.current;
-    if (left !== null && left !== layout.levelPath) {
-      saved.current.set(left, getViewport());
+    if (left !== layout.levelPath) {
+      saved.current = withSavedViewport(saved.current, left, getViewport());
     }
     const action = decideViewportAction(left, layout.levelPath, saved.current);
     shownLevel.current = layout.levelPath;
