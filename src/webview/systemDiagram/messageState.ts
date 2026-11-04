@@ -2,9 +2,7 @@ import type { SystemGraph } from '../../domain/systemGraph';
 import type { SystemDiagramToWebviewMessage } from '../../shared/messages/systemDiagram';
 
 /** Why the latest document text could not be shown, while the last good graph stays up. */
-export type DiagramProblem =
-  | { kind: 'error'; message: string }
-  | { kind: 'notRecognized'; fileName: string };
+export type DiagramProblem = { kind: 'error'; message: string } | { kind: 'notRecognized' };
 
 export type SystemDiagramState =
   | { status: 'loading' }
@@ -26,7 +24,7 @@ export function reduceDiagramMessage(
       return { status: 'graph', graph: message.graph };
     case 'notRecognized':
       return state.status === 'graph'
-        ? { ...state, problem: { kind: 'notRecognized', fileName: message.fileName } }
+        ? { ...state, problem: { kind: 'notRecognized' } }
         : { status: 'notRecognized', fileName: message.fileName };
     case 'error':
       return state.status === 'graph'

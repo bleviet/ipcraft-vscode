@@ -27,7 +27,7 @@ describe('reduceDiagramMessage', () => {
     expect(unrecognized).toEqual({
       status: 'graph',
       graph,
-      problem: { kind: 'notRecognized', fileName: 'a.tcl' },
+      problem: { kind: 'notRecognized' },
     });
   });
 

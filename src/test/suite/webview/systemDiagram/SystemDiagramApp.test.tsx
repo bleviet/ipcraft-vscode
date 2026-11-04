@@ -429,6 +429,11 @@ describe('SystemDiagramApp', () => {
         /The design could not be read: boom\. Showing the last valid version\./,
       ],
       [
+        'an error whose message ends with a period',
+        { type: 'error', message: 'boom.' },
+        /The design could not be read: boom\. Showing the last valid version\./,
+      ],
+      [
         'a file that is no longer recognized',
         { type: 'notRecognized', fileName: 'x.tcl' },
         /This file is no longer recognized as a Vivado block design script\. Showing the last valid version\./,
@@ -472,16 +477,8 @@ describe('SystemDiagramApp', () => {
       expect(screen.getByText('This Tcl file is not a Vivado block design script.')).toBeVisible();
     });
 
-    it('goes to the root when a re-posted graph no longer has the current level', async () => {
-      await renderWithGraph();
-      await settle();
-      const rootView = { x: 40, y: 50, zoom: 1.5 };
-      mockViewport = rootView;
-      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
-      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
-      await settle();
-      mockSetViewport.mockClear();
-
+    /** The fixture without the dsp_pipeline hierarchy. */
+    function withoutDspPipeline() {
       const pruned = clone();
       for (const path of Object.keys(pruned.instances)) {
         if (path.startsWith('/dsp_pipeline')) {
@@ -493,11 +490,54 @@ describe('SystemDiagramApp', () => {
       pruned.levels['/'].instances = pruned.levels['/'].instances.filter(
         (path) => path !== '/dsp_pipeline'
       );
-      send({ type: 'graph', graph: pruned });
+      return pruned;
+    }
+
+    it('goes to the root when a re-posted graph no longer has the current level', async () => {
+      await renderWithGraph();
+      await settle();
+      const rootView = { x: 40, y: 50, zoom: 1.5 };
+      mockViewport = rootView;
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      await settle();
+      mockSetViewport.mockClear();
+
+      send({ type: 'graph', graph: withoutDspPipeline() });
 
       await screen.findByTestId('node:/axi_dma_0');
       expect(crumbs().getByText('zynq_dma_system')).toHaveAttribute('aria-current', 'page');
       await waitFor(() => expect(mockSetViewport).toHaveBeenCalledWith(rootView));
+
+      // The move to the root is stored: a graph that has the level again (an undo) stays there.
+      send({ type: 'graph', graph: clone() });
+      await screen.findByTestId('node:/dsp_pipeline');
+      await settle();
+      expect(crumbs().getByText('zynq_dma_system')).toHaveAttribute('aria-current', 'page');
+      expect(screen.queryByTestId('node:/dsp_pipeline/fir_compiler_0')).not.toBeInTheDocument();
+    });
+
+    it('drops a pending reveal whose level vanished before its layout finished', async () => {
+      await renderWithGraph();
+      await settle();
+      mockSetCenter.mockClear();
+
+      // Queues a reveal for the dsp level; its layout is still pending.
+      fireEvent.click(outline().getByRole('button', { name: 'Expand dsp_pipeline' }));
+      fireEvent.click(outline().getByRole('button', { name: /^fir_compiler_0/ }));
+      send({ type: 'graph', graph: withoutDspPipeline() });
+      await settle();
+      send({ type: 'graph', graph: clone() });
+      await screen.findByTestId('node:/dsp_pipeline');
+      await settle();
+      expect(crumbs().getByText('zynq_dma_system')).toHaveAttribute('aria-current', 'page');
+
+      // Entering the level later does not replay the dropped reveal.
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      await settle();
+      await settle();
+      expect(mockSetCenter).not.toHaveBeenCalled();
     });
 
     it('clears the selection when a re-posted graph no longer has the selected instance', async () => {
