@@ -5,7 +5,7 @@ import { DetailsPanel } from './DetailsPanel';
 import { DiagramCanvas } from './DiagramCanvas';
 import { DiagramToolbar, type PanelName } from './DiagramToolbar';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
-import { useFitDiagram } from './hooks/useFitDiagram';
+import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
 import { usePanelResize } from './hooks/usePanelResize';
 import { OutlineTree } from './OutlineTree';
@@ -37,7 +37,7 @@ export function WorkbenchLayout({ graph, revealSource }: WorkbenchLayoutProps) {
     bottom: !panels.bottom.collapsed,
   };
 
-  const fit = useFitDiagram(
+  const fit = useDiagramViewport(
     layout,
     `${panelsVisible.outline}:${panelsVisible.details}:${panelsVisible.bottom}`
   );

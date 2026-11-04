@@ -9,6 +9,8 @@ import {
 import { runElkLayout } from '../layout/runElkLayout';
 
 export interface DiagramLayout {
+  /** Level this layout belongs to, so a stale result is never taken for the new level. */
+  levelPath: string;
   nodes: DiagramFlowNode[];
   edges: DiagramFlowEdge[];
 }
@@ -29,7 +31,10 @@ export function useElkLayout(
     runElkLayout(buildElkInput(graph, levelPath, { showClockReset })).then(
       (laidOut) => {
         if (!stale) {
-          setResult({ layout: toFlowElements(laidOut, graph, levelPath), error: null });
+          setResult({
+            layout: { levelPath, ...toFlowElements(laidOut, graph, levelPath) },
+            error: null,
+          });
         }
       },
       (error: unknown) => {

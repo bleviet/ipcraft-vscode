@@ -5,6 +5,8 @@ import { SystemDiagramApp } from '../../../../webview/systemDiagram/SystemDiagra
 import { loadFixtureGraph } from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
+const mockSetViewport = jest.fn<void, [unknown]>();
+let mockViewport = { x: 0, y: 0, zoom: 1 };
 const mockPostMessage = jest.fn<void, [unknown]>();
 
 jest.mock('../../../../webview/vscode', () => ({
@@ -31,6 +33,8 @@ jest.mock('@xyflow/react', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const api = {
     fitBounds: (bounds: unknown, options: unknown) => mockFitBounds(bounds, options),
+    getViewport: () => mockViewport,
+    setViewport: (viewport: unknown) => mockSetViewport(viewport),
     zoomIn: jest.fn(),
     zoomOut: jest.fn(),
   };
@@ -93,6 +97,10 @@ const details = () => within(screen.getByRole('complementary', { name: 'Details'
 const edgeCount = () => Number(screen.getByTestId('flow').getAttribute('data-edges'));
 
 describe('SystemDiagramApp', () => {
+  beforeEach(() => {
+    mockViewport = { x: 0, y: 0, zoom: 1 };
+  });
+
   it('announces readiness and renders the outline from a graph message', async () => {
     render(<SystemDiagramApp />);
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'ready' });
@@ -200,6 +208,86 @@ describe('SystemDiagramApp', () => {
     await waitFor(() =>
       expect(screen.queryAllByTitle(/Turn on Clocks and resets/)).toHaveLength(0)
     );
+  });
+
+  describe('per-level viewport', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const rootView = { x: 40, y: 50, zoom: 1.5 };
+    const dspView = { x: -5, y: 7, zoom: 0.6 };
+
+    async function enterDsp() {
+      fireEvent.click(outline().getByRole('button', { name: /^dsp_pipeline/ }));
+      fireEvent.click(details().getByRole('button', { name: 'Open hierarchy' }));
+      await screen.findByTestId('node:/dsp_pipeline/axis_data_fifo_0');
+    }
+    const goToRoot = async () => {
+      fireEvent.click(
+        within(screen.getByRole('navigation', { name: 'Hierarchy' })).getByRole('button', {
+          name: 'zynq_dma_system',
+        })
+      );
+      await screen.findByTestId('node:/axi_dma_0');
+    };
+
+    it('fits a level on first visit and restores saved viewports when returning', async () => {
+      await renderWithGraph();
+      await settle();
+      mockViewport = rootView;
+      mockFitBounds.mockClear();
+
+      await enterDsp();
+      await waitFor(() => expect(mockFitBounds).toHaveBeenCalledTimes(1));
+      await settle();
+      expect(mockSetViewport).not.toHaveBeenCalled();
+
+      mockViewport = dspView;
+      mockFitBounds.mockClear();
+      await goToRoot();
+      await waitFor(() => expect(mockSetViewport).toHaveBeenCalledWith(rootView));
+      await settle();
+      expect(mockFitBounds).not.toHaveBeenCalled();
+
+      mockSetViewport.mockClear();
+      mockViewport = rootView;
+      await enterDsp();
+      await waitFor(() => expect(mockSetViewport).toHaveBeenCalledWith(dspView));
+      await settle();
+      expect(mockFitBounds).not.toHaveBeenCalled();
+    });
+
+    it('keeps the viewport when Clocks and resets is toggled', async () => {
+      await renderWithGraph();
+      await settle();
+      mockFitBounds.mockClear();
+      const hidden = Number(screen.getByTestId('flow').getAttribute('data-edges'));
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Clocks and resets' }));
+      await waitFor(() =>
+        expect(Number(screen.getByTestId('flow').getAttribute('data-edges'))).toBeGreaterThan(
+          hidden
+        )
+      );
+      await settle();
+
+      expect(mockFitBounds).not.toHaveBeenCalled();
+      expect(mockSetViewport).not.toHaveBeenCalled();
+    });
+
+    it('keeps the viewport when the same level is re-posted', async () => {
+      await renderWithGraph();
+      await settle();
+      mockFitBounds.mockClear();
+
+      send({ type: 'graph', graph: JSON.parse(JSON.stringify(graph)) });
+      await settle();
+      await screen.findByTestId('node:/axi_dma_0');
+      // The re-posted layout commits inside the first settle; give its
+      // animation frame time to run before asserting nothing happened.
+      await settle();
+
+      expect(mockFitBounds).not.toHaveBeenCalled();
+      expect(mockSetViewport).not.toHaveBeenCalled();
+    });
   });
 
   describe('fitting', () => {
