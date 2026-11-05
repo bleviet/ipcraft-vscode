@@ -5,6 +5,7 @@ import { SystemDiagramApp } from '../../../../webview/systemDiagram/SystemDiagra
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { nodeCenter } from '../../../../webview/systemDiagram/layout/nodeCenter';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
+import { createTextMeasurer } from '../../../../webview/systemDiagram/layout/textMeasure';
 import { loadFixtureGraph } from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
@@ -131,6 +132,9 @@ async function renderWithGraph() {
 const outline = () => within(screen.getByRole('navigation', { name: 'Design outline' }));
 const details = () => within(screen.getByRole('complementary', { name: 'Details' }));
 const edgeCount = () => Number(screen.getByTestId('flow').getAttribute('data-edges'));
+
+// jsdom has no canvas; the app and these tests share the length-based fallback.
+const appMeasure = createTextMeasurer('sans-serif');
 
 describe('SystemDiagramApp', () => {
   beforeEach(() => {
@@ -273,8 +277,8 @@ describe('SystemDiagramApp', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
     async function centerOf(level: string, nodeId: string) {
-      const input = buildElkInput(graph, level, { showClockReset: false });
-      const layout = toFlowElements(await runElkLayout(input), graph, level);
+      const input = buildElkInput(graph, level, { showClockReset: false, measure: appMeasure });
+      const layout = toFlowElements(await runElkLayout(input), graph, level, appMeasure);
       return nodeCenter(layout, nodeId)!;
     }
     async function ready() {

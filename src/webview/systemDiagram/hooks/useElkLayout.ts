@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import {
   buildElkInput,
@@ -7,6 +7,7 @@ import {
   type DiagramFlowNode,
 } from '../layout/elkLayout';
 import { runElkLayout } from '../layout/runElkLayout';
+import { createTextMeasurer } from '../layout/textMeasure';
 
 export interface DiagramLayout {
   /** Level this layout belongs to, so a stale result is never taken for the new level. */
@@ -26,13 +27,15 @@ export function useElkLayout(
     error: string | null;
   }>({ layout: null, error: null });
 
+  const measure = useMemo(() => createTextMeasurer(getComputedStyle(document.body).fontFamily), []);
+
   useEffect(() => {
     let stale = false;
-    runElkLayout(buildElkInput(graph, levelPath, { showClockReset })).then(
+    runElkLayout(buildElkInput(graph, levelPath, { showClockReset, measure })).then(
       (laidOut) => {
         if (!stale) {
           setResult({
-            layout: { levelPath, ...toFlowElements(laidOut, graph, levelPath) },
+            layout: { levelPath, ...toFlowElements(laidOut, graph, levelPath, measure) },
             error: null,
           });
         }
@@ -49,7 +52,7 @@ export function useElkLayout(
     return () => {
       stale = true;
     };
-  }, [graph, levelPath, showClockReset]);
+  }, [graph, levelPath, showClockReset, measure]);
 
   return result;
 }

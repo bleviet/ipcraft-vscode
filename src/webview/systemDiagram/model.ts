@@ -118,14 +118,39 @@ export function instanceTypeLabel(instance: SystemInstance): string | undefined 
   return undefined;
 }
 
-/** Hover text of a pin: every net it sits on, direction provenance, and its definition. */
-export function pinTooltip(
-  pin: Pick<SystemPin, 'name' | 'direction' | 'directionSource' | 'definedBy'>,
-  netNames: readonly string[]
-): string {
-  const nets = netNames.length > 0 ? netNames.join(', ') : 'unconnected';
-  const defined = pin.definedBy ? ` · ${pin.definedBy}` : '';
-  return `${pin.name} · ${nets} · ${pin.direction} from ${pin.directionSource}${defined}`;
+/** Pin fields the hover card reads; instance pin rows and boundary pins both satisfy it. */
+export type HoverPin = Pick<
+  SystemPin,
+  'name' | 'direction' | 'directionSource' | 'definedBy' | 'interfaceType' | 'signalType'
+>;
+
+export interface PinHoverTarget {
+  pin: HoverPin;
+  netNames: readonly string[];
+  /** Side the pin sits on; the card opens on the opposite side of the anchor. */
+  side: 'west' | 'east';
+}
+
+/** Hover card text of a pin: the full name first, then one fact per line. */
+export function pinHoverLines(pin: HoverPin, netNames: readonly string[]): string[] {
+  const lines = [pin.name, `${pin.direction} · from ${pin.directionSource}`];
+  if (pin.interfaceType) {
+    lines.push(`interface ${pin.interfaceType}`);
+  } else if (pin.signalType) {
+    lines.push(`signal ${pin.signalType}`);
+  }
+  lines.push(...(netNames.length > 0 ? netNames : ['unconnected']));
+  if (pin.definedBy) {
+    lines.push(`defined by ${pin.definedBy}`);
+  }
+  return lines;
+}
+
+/** Node header subtitle: hierarchy size, type label, or the module marker. */
+export function instanceSubtitle(instance: SystemInstance, cells: number): string {
+  return instance.kind === 'hier'
+    ? `Hierarchy · ${cells} cells`
+    : (instanceTypeLabel(instance) ?? (instance.kind === 'module' ? 'module' : ''));
 }
 
 export function netsOfLevel(graph: SystemGraph, level: string): SystemNet[] {

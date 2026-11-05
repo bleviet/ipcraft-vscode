@@ -9,7 +9,7 @@ import {
   netsByEndpoint,
   netDriver,
   parseBoundaryId,
-  pinTooltip,
+  pinHoverLines,
   pinRole,
   reconcileNavigation,
   resolvePin,
@@ -113,13 +113,18 @@ describe('system diagram model', () => {
     expect(names('::clk')).toEqual(['clk']);
   });
 
-  it('words the pin tooltip with every net and the definition', () => {
+  it('lists the hover lines: name, direction, type, every net, definition', () => {
     const pin = { name: 's1', direction: 'slave' as const, directionSource: 'connection' as const };
-    expect(pinTooltip(pin, ['a', 'b'])).toBe('s1 · a, b · slave from connection');
-    expect(pinTooltip(pin, [])).toBe('s1 · unconnected · slave from connection');
-    expect(pinTooltip({ ...pin, definedBy: 'hdl' }, ['a'])).toBe(
-      's1 · a · slave from connection · hdl'
-    );
+    expect(pinHoverLines(pin, ['a', 'b'])).toEqual(['s1', 'slave · from connection', 'a', 'b']);
+    expect(pinHoverLines(pin, [])).toEqual(['s1', 'slave · from connection', 'unconnected']);
+    expect(pinHoverLines({ ...pin, interfaceType: 'avalon', definedBy: 'ip.yml' }, ['a'])).toEqual([
+      's1',
+      'slave · from connection',
+      'interface avalon',
+      'a',
+      'defined by ip.yml',
+    ]);
+    expect(pinHoverLines({ ...pin, signalType: 'clk' }, [])).toContain('signal clk');
   });
 
   it('formats the address range: unknown for qsys, auto otherwise', () => {

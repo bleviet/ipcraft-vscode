@@ -8,12 +8,12 @@ import {
 } from '../../../../webview/systemDiagram/layout/netBadges';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { NetBadgeView } from '../../../../webview/systemDiagram/NetBadgeView';
-import { loadQsysFixtureGraph } from './fixtureGraph';
+import { loadQsysFixtureGraph, fakeMeasure } from './fixtureGraph';
 
 const graph = loadQsysFixtureGraph();
 
 function reservedPort(instance: string, pin: string): ElkPort {
-  const input = buildElkInput(graph, '/', { showClockReset: false });
+  const input = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
   const port = input.children
     ?.find((node) => node.id === instance)
     ?.ports?.find((candidate) => candidate.id === `${instance}::${pin}`);
@@ -52,8 +52,10 @@ describe('net badges of pins on several hidden nets', () => {
     const net = odd.nets.find((candidate) => candidate.id === '/::clk_0.clk_reset')!;
     net.id = '/::clk_0.clk_reset\nline2';
     net.name = 'clk_0.clk_reset\nline2';
-    const result = await runElkLayout(buildElkInput(odd, '/', { showClockReset: false }));
-    const { nodes } = toFlowElements(result, odd, '/');
+    const result = await runElkLayout(
+      buildElkInput(odd, '/', { showClockReset: false, measure: fakeMeasure })
+    );
+    const { nodes } = toFlowElements(result, odd, '/', fakeMeasure);
     const jtag = nodes.find((node) => node.id === '/jtag_uart_0');
     const row =
       jtag?.type === 'instance' ? jtag.data.west.find((r) => r.name === 'reset') : undefined;

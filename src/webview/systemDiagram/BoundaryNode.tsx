@@ -1,9 +1,8 @@
 import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { categoryColor } from './colors';
-import { pinTooltip } from './model';
 import { NetBadgeView } from './NetBadgeView';
-import { BOUNDARY_HEIGHT, BOUNDARY_WIDTH, type BoundaryNodeData } from './layout/elkLayout';
+import { BOUNDARY_HEIGHT, type BoundaryNodeData } from './layout/elkLayout';
 
 export type BoundaryFlowNode = Node<BoundaryNodeData, 'boundary'>;
 
@@ -16,15 +15,22 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
       className="sd-node flex items-center gap-1 px-2"
       data-selected={selected}
       data-dimmed={data.dimmed === true}
-      style={{ width: BOUNDARY_WIDTH, height: BOUNDARY_HEIGHT }}
-      title={pinTooltip(pin, data.netNames)}
+      style={{ width: data.width, height: BOUNDARY_HEIGHT }}
+      aria-label={data.label === pin.name ? undefined : pin.name}
+      onPointerEnter={(event) =>
+        data.onHoverPin?.(
+          { pin, netNames: data.netNames, side: data.side },
+          event.currentTarget.getBoundingClientRect()
+        )
+      }
+      onPointerLeave={() => data.onHoverPin?.(null)}
     >
       <span
         aria-hidden="true"
         className={`inline-block h-2 w-2 shrink-0 ${pin.isInterface ? '' : 'rounded-full'}`}
         style={{ background: categoryColor(data.category) }}
       />
-      <span className="truncate">{pin.name}</span>
+      <span className="truncate">{data.label}</span>
       {data.badge && <NetBadgeView badge={data.badge} onSelectNet={data.onSelectNet} />}
       {(['source', 'target'] as const).map((type) => (
         <Handle

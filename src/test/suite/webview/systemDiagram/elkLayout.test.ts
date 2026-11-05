@@ -6,7 +6,12 @@ import {
 } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { boundaryId } from '../../../../webview/systemDiagram/model';
-import { loadFixtureGraph, loadQsysFixtureGraph, loadQsysTclFixtureGraph } from './fixtureGraph';
+import {
+  loadFixtureGraph,
+  loadQsysFixtureGraph,
+  loadQsysTclFixtureGraph,
+  fakeMeasure,
+} from './fixtureGraph';
 
 const graph = loadFixtureGraph();
 
@@ -55,7 +60,7 @@ function expectBadgesClearOfNodes(nodes: DiagramFlowNode[]): void {
 }
 
 describe('buildElkInput', () => {
-  const input = buildElkInput(graph, '/', { showClockReset: true });
+  const input = buildElkInput(graph, '/', { showClockReset: true, measure: fakeMeasure });
 
   it('creates one flat node per instance and per boundary pin', () => {
     const level = graph.levels['/'];
@@ -78,16 +83,17 @@ describe('buildElkInput', () => {
       if (port.x === -4) {
         sides.west += 1;
       } else {
-        expect(port.x).toBe(240 - 4);
+        expect(port.x).toBe((node.width ?? 0) - 4);
         sides.east += 1;
       }
     }
-    expect(node.width).toBe(240);
+    expect(node.width).toBeGreaterThanOrEqual(180);
+    expect(node.width).toBeLessThanOrEqual(420);
     expect(node.height).toBe(42 + Math.max(sides.west, sides.east) * 18 + 10);
     expect(sides.west + sides.east).toBe(dma.pins.length);
     expect(node.layoutOptions?.['org.eclipse.elk.portConstraints']).toBe('FIXED_POS');
     const master = node.ports?.find((port) => port.id === '/axi_dma_0::M_AXIS_MM2S');
-    expect(master?.x).toBe(236);
+    expect(master?.x).toBe((node.width ?? 0) - 4);
     const westPorts = (node.ports ?? []).filter((port) => port.x === -4);
     expect(westPorts.map((port) => port.y)).toEqual(westPorts.map((_, i) => 42 + i * 18 + 5));
   });
@@ -97,9 +103,10 @@ describe('buildElkInput', () => {
     const sink = child(input, boundaryId('/', 'trigger_pulse'));
     expect(source.layoutOptions?.['elk.layered.layering.layerConstraint']).toBe('FIRST');
     expect(sink.layoutOptions?.['elk.layered.layering.layerConstraint']).toBe('LAST');
-    expect([source.width, source.height]).toEqual([150, 26]);
+    expect(source.height).toBe(26);
+    expect(source.width).toBe(Math.max(100, 30 + 'ext_trigger'.length * 7));
     expect(source.ports).toHaveLength(1);
-    expect(source.ports?.[0].x).toBe(146);
+    expect(source.ports?.[0].x).toBe((source.width ?? 0) - 4);
     expect(sink.ports?.[0].x).toBe(-4);
   });
 
@@ -113,7 +120,7 @@ describe('buildElkInput', () => {
   });
 
   it('omits clock and reset nets unless requested', () => {
-    const hidden = buildElkInput(graph, '/', { showClockReset: false });
+    const hidden = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
     const clockEdges = (id: string, node: ElkNode) =>
       (node.edges ?? []).filter((edge) => edge.id.startsWith(`${id}#`));
     expect(clockEdges('/::processing_system7_0_FCLK_CLK0', input).length).toBeGreaterThan(0);
@@ -124,9 +131,9 @@ describe('buildElkInput', () => {
 
 describe('real ELK layout of the fixture root level', () => {
   it('positions every node and routes every edge', async () => {
-    const input = buildElkInput(graph, '/', { showClockReset: false });
+    const input = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
     const result = await runElkLayout(input);
-    const { nodes, edges } = toFlowElements(result, graph, '/');
+    const { nodes, edges } = toFlowElements(result, graph, '/', fakeMeasure);
 
     expect(nodes).toHaveLength(input.children!.length);
     for (const node of nodes) {
@@ -151,9 +158,9 @@ describe('real ELK layout of the qsys fixture root level', () => {
   const qsys = loadQsysFixtureGraph();
 
   it('routes every visible net and keeps badges clear of other nodes', async () => {
-    const input = buildElkInput(qsys, '/', { showClockReset: false });
+    const input = buildElkInput(qsys, '/', { showClockReset: false, measure: fakeMeasure });
     const result = await runElkLayout(input);
-    const { nodes, edges } = toFlowElements(result, qsys, '/');
+    const { nodes, edges } = toFlowElements(result, qsys, '/', fakeMeasure);
     expect(edges).toHaveLength(input.edges!.length);
     expect(edges.length).toBeGreaterThan(0);
     for (const edge of edges) {
@@ -173,9 +180,9 @@ describe('real ELK layout of the qsys-script fixture root level', () => {
   const qsysTcl = loadQsysTclFixtureGraph();
 
   it('routes every visible net and keeps badges clear of other nodes', async () => {
-    const input = buildElkInput(qsysTcl, '/', { showClockReset: false });
+    const input = buildElkInput(qsysTcl, '/', { showClockReset: false, measure: fakeMeasure });
     const result = await runElkLayout(input);
-    const { nodes, edges } = toFlowElements(result, qsysTcl, '/');
+    const { nodes, edges } = toFlowElements(result, qsysTcl, '/', fakeMeasure);
     expect(edges).toHaveLength(input.edges!.length);
     expect(edges.length).toBeGreaterThan(0);
     for (const edge of edges) {
@@ -188,7 +195,12 @@ describe('real ELK layout of the qsys-script fixture root level', () => {
 describe('pin hover data of pins on several nets', () => {
   it('carries every net name next to the first', () => {
     const qsys = loadQsysFixtureGraph();
-    const { nodes } = toFlowElements(buildElkInput(qsys, '/', { showClockReset: true }), qsys, '/');
+    const { nodes } = toFlowElements(
+      buildElkInput(qsys, '/', { showClockReset: true, measure: fakeMeasure }),
+      qsys,
+      '/',
+      fakeMeasure
+    );
     const memory = nodes.find((node) => node.id === '/onchip_memory2_0');
     const row =
       memory?.type === 'instance' ? memory.data.west.find((r) => r.name === 's1') : undefined;
@@ -202,9 +214,10 @@ describe('pin hover data of pins on several nets', () => {
     const defined = JSON.parse(JSON.stringify(graph)) as typeof graph;
     defined.instances['/axi_dma_0'].pins[0].definedBy = 'ip.yml';
     const { nodes } = toFlowElements(
-      buildElkInput(defined, '/', { showClockReset: true }),
+      buildElkInput(defined, '/', { showClockReset: true, measure: fakeMeasure }),
       defined,
-      '/'
+      '/',
+      fakeMeasure
     );
     const node = nodes.find((n) => n.id === '/axi_dma_0');
     expect(
@@ -215,6 +228,46 @@ describe('pin hover data of pins on several nets', () => {
   });
 });
 
+describe('content-sized nodes', () => {
+  it('varies widths per node and places east ports on the computed width', () => {
+    const input = buildElkInput(graph, '/', { showClockReset: true, measure: fakeMeasure });
+    const widths = new Set((input.children ?? []).map((node) => node.width));
+    expect(widths.size).toBeGreaterThan(2);
+    for (const node of input.children ?? []) {
+      for (const port of node.ports ?? []) {
+        expect([-4, (node.width ?? 0) - 4]).toContain(port.x);
+      }
+    }
+  });
+
+  const fixtures: [string, typeof graph, string][] = [
+    ['Vivado', graph, '/'],
+    ['Vivado hierarchy', graph, '/dsp_pipeline'],
+    ['qsys', loadQsysFixtureGraph(), '/'],
+    ['qsys-tcl', loadQsysTclFixtureGraph(), '/'],
+  ];
+  for (const [name, fixture, level] of fixtures) {
+    it(`keeps node boxes apart on the ${name} fixture`, async () => {
+      const result = await runElkLayout(
+        buildElkInput(fixture, level, { showClockReset: false, measure: fakeMeasure })
+      );
+      const { nodes } = toFlowElements(result, fixture, level, fakeMeasure);
+      for (const a of nodes) {
+        for (const b of nodes) {
+          if (a.id < b.id) {
+            const overlaps =
+              a.position.x < b.position.x + b.width &&
+              b.position.x < a.position.x + a.width &&
+              a.position.y < b.position.y + b.height &&
+              b.position.y < a.position.y + a.height;
+            expect({ a: a.id, b: b.id, overlaps }).toEqual({ a: a.id, b: b.id, overlaps: false });
+          }
+        }
+      }
+    }, 20000);
+  }
+});
+
 describe('hidden clock and reset net badges', () => {
   const labelledPorts = (input: ElkNode) =>
     (input.children ?? []).flatMap((node) =>
@@ -222,8 +275,8 @@ describe('hidden clock and reset net badges', () => {
     );
 
   it('reserves port labels only for pins of hidden nets', () => {
-    const hidden = buildElkInput(graph, '/', { showClockReset: false });
-    const shown = buildElkInput(graph, '/', { showClockReset: true });
+    const hidden = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
+    const shown = buildElkInput(graph, '/', { showClockReset: true, measure: fakeMeasure });
     expect(labelledPorts(shown)).toHaveLength(0);
 
     const fclk = graph.nets.find((net) => net.id === '/::processing_system7_0_FCLK_CLK0')!;
@@ -254,15 +307,17 @@ describe('hidden clock and reset net badges', () => {
       (candidate) => candidate.id === '/::processing_system7_0_FCLK_CLK0'
     )!;
     net.name = 'a_very_long_clock_net_name_exceeding_the_limit';
-    const input = buildElkInput(long, '/', { showClockReset: false });
+    const input = buildElkInput(long, '/', { showClockReset: false, measure: fakeMeasure });
     const text = labelledPorts(input)[0].labels![0].text!;
     expect(text).toBe(`${net.name.slice(0, 24)}…`);
   });
 
   for (const level of ['/', '/dsp_pipeline']) {
     it(`keeps every badge clear of other nodes on ${level} (real ELK)`, async () => {
-      const result = await runElkLayout(buildElkInput(graph, level, { showClockReset: false }));
-      const { nodes } = toFlowElements(result, graph, level);
+      const result = await runElkLayout(
+        buildElkInput(graph, level, { showClockReset: false, measure: fakeMeasure })
+      );
+      const { nodes } = toFlowElements(result, graph, level, fakeMeasure);
       expectBadgesClearOfNodes(nodes);
     }, 20000);
   }

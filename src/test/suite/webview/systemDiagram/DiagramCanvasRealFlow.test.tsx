@@ -4,7 +4,7 @@ import { ReactFlowProvider, useStoreApi } from '@xyflow/react';
 import { DiagramCanvas } from '../../../../webview/systemDiagram/DiagramCanvas';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
-import { loadFixtureGraph } from './fixtureGraph';
+import { loadFixtureGraph, fakeMeasure } from './fixtureGraph';
 
 // Uses the real @xyflow/react: its store resets when <ReactFlow> unmounts, so the
 // canvas must stay mounted while a layout error is shown to keep the viewport.
@@ -29,8 +29,10 @@ function Harness(props: React.ComponentProps<typeof DiagramCanvas>) {
 
 it('keeps the viewport when the layout fails and shows the error over the canvas', async () => {
   const graph = loadFixtureGraph();
-  const laidOut = await runElkLayout(buildElkInput(graph, '/', { showClockReset: false }));
-  const layout = { levelPath: '/', ...toFlowElements(laidOut, graph, '/') };
+  const laidOut = await runElkLayout(
+    buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
+  );
+  const layout = { levelPath: '/', ...toFlowElements(laidOut, graph, '/', fakeMeasure) };
   const common = { selection: null, query: '', onSelect: jest.fn(), onEnterHierarchy: jest.fn() };
 
   const { rerender } = render(<Harness {...common} layout={layout} error={null} />);

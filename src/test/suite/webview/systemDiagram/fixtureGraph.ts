@@ -32,3 +32,6 @@ const QSYS_TCL_FIXTURE = path.resolve(
 export function loadQsysTclFixtureGraph(): SystemGraph {
   return readQsysTcl(fs.readFileSync(QSYS_TCL_FIXTURE, 'utf8'), 'niosv_hps_system.tcl');
 }
+
+/** Deterministic text measure for layout tests: 7 px per character at any weight. */
+export const fakeMeasure = (text: string): number => text.length * 7;

@@ -6,101 +6,56 @@
 
 import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
 import type {
-  NetCategory,
   PinDirection,
-  PinDirectionSource,
   SystemGraph,
   SystemInstance,
   SystemPin,
 } from '../../../domain/systemGraph';
-import { badgeLabels, badgeOfPort, hiddenNetsByEndpoint, type NetBadge } from './netBadges';
+import type {
+  DiagramFlowEdge,
+  DiagramFlowNode,
+  InstanceNodeData,
+  PinRow,
+  PinSide,
+} from './diagramTypes';
+import {
+  boundaryLayout,
+  instanceLayout,
+  type InstanceLayout,
+  type TextMeasure,
+} from './nodeSizing';
+import { badgeLabels, badgeOfPort, hiddenNetsByEndpoint } from './netBadges';
 import {
   boundaryId,
   cellCount,
   endpointKey,
+  instanceSubtitle,
   netsByEndpoint,
   netDriver,
   pinRole,
   visibleNets,
 } from '../model';
 
-export const NODE_WIDTH = 240;
 export const HEADER_HEIGHT = 42;
 export const PIN_ROW_HEIGHT = 18;
-export const BOUNDARY_WIDTH = 150;
 export const BOUNDARY_HEIGHT = 26;
 const PORT_SIZE = 8;
 const PIN_TOP_OFFSET = 5;
 const PIN_BOTTOM_PADDING = 10;
 
-export type PinSide = 'west' | 'east';
-
-export interface PinRow {
-  name: string;
-  isInterface: boolean;
-  side: PinSide;
-  direction: PinDirection;
-  directionSource: PinDirectionSource;
-  category?: NetCategory;
-  netName?: string;
-  /** Every net the pin sits on, in graph order. */
-  netNames: string[];
-  definedBy?: SystemPin['definedBy'];
-  /** Present when the pin's clock or reset net is hidden. */
-  badge?: NetBadge;
-}
-
-export interface InstanceNodeData extends Record<string, unknown> {
-  instance: SystemInstance;
-  cellCount: number;
-  west: PinRow[];
-  east: PinRow[];
-  dimmed?: boolean;
-  onSelectNet?: (netId: string) => void;
-}
-
-export interface BoundaryNodeData extends Record<string, unknown> {
-  pin: SystemPin;
-  side: PinSide;
-  category?: NetCategory;
-  netName?: string;
-  netNames: string[];
-  badge?: NetBadge;
-  dimmed?: boolean;
-  onSelectNet?: (netId: string) => void;
-}
-
-interface FlowNodeBase {
-  id: string;
-  position: { x: number; y: number };
-  width: number;
-  height: number;
-  draggable: false;
-}
-
-export type DiagramFlowNode =
-  | (FlowNodeBase & { type: 'instance'; data: InstanceNodeData })
-  | (FlowNodeBase & { type: 'boundary'; data: BoundaryNodeData });
-
-export interface ElkEdgeData extends Record<string, unknown> {
-  points: { x: number; y: number }[];
-  netId: string;
-  category: NetCategory;
-  isInterface: boolean;
-}
-
-export interface DiagramFlowEdge {
-  id: string;
-  type: 'elk';
-  source: string;
-  target: string;
-  sourceHandle: string;
-  targetHandle: string;
-  data: ElkEdgeData;
-}
+export type {
+  BoundaryNodeData,
+  DiagramFlowEdge,
+  DiagramFlowNode,
+  ElkEdgeData,
+  InstanceNodeData,
+  PinRow,
+  PinSide,
+} from './diagramTypes';
 
 export interface BuildElkOptions {
   showClockReset: boolean;
+  measure: TextMeasure;
 }
 
 const LAYOUT_OPTIONS = {
@@ -139,12 +94,25 @@ type HiddenNets = ReturnType<typeof hiddenNetsByEndpoint>;
 
 const PORT_LABEL_OPTIONS = { 'org.eclipse.elk.portLabels.placement': 'OUTSIDE' };
 
-function instanceNode(instance: SystemInstance, hidden: HiddenNets): ElkNode {
+function sizeOfInstance(
+  graph: SystemGraph,
+  instance: SystemInstance,
+  measure: TextMeasure
+): InstanceLayout {
+  return instanceLayout(
+    instance,
+    splitSides(instance.pins),
+    instanceSubtitle(instance, cellCount(graph, instance.path)),
+    measure
+  );
+}
+
+function instanceNode(instance: SystemInstance, width: number, hidden: HiddenNets): ElkNode {
   const sides = splitSides(instance.pins);
   const ports: ElkPort[] = (['west', 'east'] as const).flatMap((side) =>
     sides[side].map((pin, index) => ({
       id: portId(instance.path, pin.name),
-      x: side === 'west' ? -PORT_SIZE / 2 : NODE_WIDTH - PORT_SIZE / 2,
+      x: side === 'west' ? -PORT_SIZE / 2 : width - PORT_SIZE / 2,
       y: HEADER_HEIGHT + index * PIN_ROW_HEIGHT + PIN_TOP_OFFSET,
       width: PORT_SIZE,
       height: PORT_SIZE,
@@ -153,7 +121,7 @@ function instanceNode(instance: SystemInstance, hidden: HiddenNets): ElkNode {
   );
   return {
     id: instance.path,
-    width: NODE_WIDTH,
+    width,
     height: instanceHeight(instance),
     layoutOptions: { 'org.eclipse.elk.portConstraints': 'FIXED_POS', ...PORT_LABEL_OPTIONS },
     ports,
@@ -164,7 +132,12 @@ function boundarySide(pin: SystemPin): PinSide {
   return pinRole(pin, true) === 'source' ? 'east' : 'west';
 }
 
-function boundaryNode(levelPath: string, pin: SystemPin, hidden: HiddenNets): ElkNode {
+function boundaryNode(
+  levelPath: string,
+  pin: SystemPin,
+  width: number,
+  hidden: HiddenNets
+): ElkNode {
   const id = boundaryId(levelPath, pin.name);
   const side = boundarySide(pin);
   const role = pinRole(pin, true);
@@ -179,13 +152,13 @@ function boundaryNode(levelPath: string, pin: SystemPin, hidden: HiddenNets): El
   }
   return {
     id,
-    width: BOUNDARY_WIDTH,
+    width,
     height: BOUNDARY_HEIGHT,
     layoutOptions,
     ports: [
       {
         id: portId(id, pin.name),
-        x: side === 'west' ? -PORT_SIZE / 2 : BOUNDARY_WIDTH - PORT_SIZE / 2,
+        x: side === 'west' ? -PORT_SIZE / 2 : width - PORT_SIZE / 2,
         y: (BOUNDARY_HEIGHT - PORT_SIZE) / 2,
         width: PORT_SIZE,
         height: PORT_SIZE,
@@ -221,11 +194,13 @@ export function buildElkInput(
   for (const path of level?.instances ?? []) {
     const instance = graph.instances[path];
     if (instance) {
-      children.push(instanceNode(instance, hidden));
+      children.push(
+        instanceNode(instance, sizeOfInstance(graph, instance, options.measure).width, hidden)
+      );
     }
   }
   for (const pin of level?.boundaryPins ?? []) {
-    children.push(boundaryNode(levelPath, pin, hidden));
+    children.push(boundaryNode(levelPath, pin, boundaryLayout(pin, options.measure).width, hidden));
   }
 
   const knownPorts = new Set(children.flatMap((child) => (child.ports ?? []).map((p) => p.id)));
@@ -259,7 +234,8 @@ function pinRows(
   instance: SystemInstance,
   netLookup: ReturnType<typeof netsByEndpoint>,
   ports: ReadonlyMap<string, ElkPort>,
-  hidden: HiddenNets
+  hidden: HiddenNets,
+  labels: ReadonlyMap<string, string>
 ): Pick<InstanceNodeData, 'west' | 'east'> {
   const rows: Record<PinSide, PinRow[]> = { west: [], east: [] };
   for (const pin of instance.pins) {
@@ -277,6 +253,9 @@ function pinRows(
       netName: net?.name,
       netNames: nets.map((candidate) => candidate.name),
       ...(pin.definedBy !== undefined && { definedBy: pin.definedBy }),
+      ...(pin.interfaceType !== undefined && { interfaceType: pin.interfaceType }),
+      ...(pin.signalType !== undefined && { signalType: pin.signalType }),
+      label: labels.get(pin.name)!,
       badge: badgeOfPort(ports.get(portId(instance.path, pin.name)), hidden.get(endpointKey(ref))),
     });
   }
@@ -290,7 +269,8 @@ function portsOf(node: ElkNode): Map<string, ElkPort> {
 export function toFlowElements(
   layoutResult: ElkNode,
   graph: SystemGraph,
-  levelPath: string
+  levelPath: string,
+  measure: TextMeasure
 ): { nodes: DiagramFlowNode[]; edges: DiagramFlowEdge[] } {
   const netLookup = netsByEndpoint(graph, levelPath);
   // Only pins whose ELK port carries a badge label read these nets.
@@ -301,12 +281,13 @@ export function toFlowElements(
   for (const child of layoutResult.children ?? []) {
     const base = {
       position: { x: child.x ?? 0, y: child.y ?? 0 },
-      width: child.width ?? NODE_WIDTH,
+      width: child.width ?? 0,
       height: child.height ?? 0,
       draggable: false as const,
     };
     const instance = graph.instances[child.id];
     if (instance) {
+      const sizing = sizeOfInstance(graph, instance, measure);
       nodes.push({
         ...base,
         id: child.id,
@@ -314,7 +295,10 @@ export function toFlowElements(
         data: {
           instance,
           cellCount: cellCount(graph, instance.path),
-          ...pinRows(instance, netLookup, portsOf(child), hidden),
+          width: sizing.width,
+          westWidth: sizing.westWidth,
+          eastWidth: sizing.eastWidth,
+          ...pinRows(instance, netLookup, portsOf(child), hidden, sizing.labels),
         },
       });
       continue;
@@ -332,6 +316,7 @@ export function toFlowElements(
         type: 'boundary',
         data: {
           pin,
+          ...boundaryLayout(pin, measure),
           side: boundarySide(pin),
           category: net?.category,
           netName: net?.name,

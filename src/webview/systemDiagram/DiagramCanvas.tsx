@@ -9,6 +9,8 @@ import {
 import { BoundaryNode } from './BoundaryNode';
 import { ElkEdge } from './ElkEdge';
 import { InstanceNode } from './InstanceNode';
+import { PinHoverCard } from './PinHoverCard';
+import { usePinHover } from './hooks/usePinHover';
 import type { DiagramLayout } from './hooks/useElkLayout';
 import { boundaryMatchesQuery, matchesQuery, type Selection } from './model';
 
@@ -37,6 +39,8 @@ export function DiagramCanvas({
     [onSelect]
   );
 
+  const { hover, onHoverPin } = usePinHover(layout);
+
   const nodes = useMemo(() => {
     const searching = query.trim() !== '';
     return (layout?.nodes ?? []).map((node) => {
@@ -48,10 +52,10 @@ export function DiagramCanvas({
       return {
         ...node,
         selected: selection?.kind !== 'net' && selection?.id === node.id,
-        data: { ...node.data, dimmed, onSelectNet },
+        data: { ...node.data, dimmed, onSelectNet, onHoverPin },
       };
     });
-  }, [layout, query, selection, onSelectNet]);
+  }, [layout, query, selection, onSelectNet, onHoverPin]);
 
   const edges = useMemo(
     () =>
@@ -95,6 +99,7 @@ export function DiagramCanvas({
       >
         <Background variant={BackgroundVariant.Dots} />
       </ReactFlow>
+      {hover && <PinHoverCard hover={hover} />}
     </div>
   );
 }

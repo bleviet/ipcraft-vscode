@@ -29,6 +29,19 @@ if (typeof (Element.prototype as any).scrollIntoView !== 'function') {
   (Element.prototype as any).scrollIntoView = function noopScrollIntoView() {};
 }
 
+// jsdom without the canvas package logs a "Not implemented" error from
+// HTMLCanvasElement.getContext. Return null (the real "no context" answer) so
+// canvas-measuring code takes its fallback quietly.
+try {
+  require.resolve('canvas');
+} catch {
+  if (typeof HTMLCanvasElement !== 'undefined') {
+    HTMLCanvasElement.prototype.getContext = function getContextUnavailable() {
+      return null;
+    } as any;
+  }
+}
+
 // jsdom does not implement PointerEvent. Provide a minimal polyfill extending
 // MouseEvent so components using onPointerDown/onPointerMove (e.g. the register
 // rail's drag-to-reorder) can be exercised with fireEvent.pointerDown, including

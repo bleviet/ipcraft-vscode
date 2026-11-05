@@ -1,0 +1,88 @@
+/** Node and edge shapes handed from the ELK layout to the React Flow components. */
+
+import type {
+  NetCategory,
+  PinDirection,
+  PinDirectionSource,
+  SystemInstance,
+  SystemPin,
+} from '../../../domain/systemGraph';
+import type { PinHoverTarget } from '../model';
+import type { NetBadge } from './netBadges';
+
+export type PinSide = 'west' | 'east';
+
+export interface PinRow {
+  name: string;
+  isInterface: boolean;
+  side: PinSide;
+  direction: PinDirection;
+  directionSource: PinDirectionSource;
+  category?: NetCategory;
+  netName?: string;
+  /** Every net the pin sits on, in graph order. */
+  netNames: string[];
+  definedBy?: SystemPin['definedBy'];
+  /** Present when the pin's clock or reset net is hidden. */
+  badge?: NetBadge;
+  interfaceType?: string;
+  signalType?: SystemPin['signalType'];
+  /** Display text: `name`, or its middle-ellipsized form when the column is too narrow. */
+  label: string;
+}
+
+export interface InstanceNodeData extends Record<string, unknown> {
+  instance: SystemInstance;
+  cellCount: number;
+  width: number;
+  westWidth: number;
+  eastWidth: number;
+  west: PinRow[];
+  east: PinRow[];
+  dimmed?: boolean;
+  onSelectNet?: (netId: string) => void;
+  onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
+}
+
+export interface BoundaryNodeData extends Record<string, unknown> {
+  pin: SystemPin;
+  width: number;
+  label: string;
+  side: PinSide;
+  category?: NetCategory;
+  netName?: string;
+  netNames: string[];
+  badge?: NetBadge;
+  dimmed?: boolean;
+  onSelectNet?: (netId: string) => void;
+  onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
+}
+
+interface FlowNodeBase {
+  id: string;
+  position: { x: number; y: number };
+  width: number;
+  height: number;
+  draggable: false;
+}
+
+export type DiagramFlowNode =
+  | (FlowNodeBase & { type: 'instance'; data: InstanceNodeData })
+  | (FlowNodeBase & { type: 'boundary'; data: BoundaryNodeData });
+
+export interface ElkEdgeData extends Record<string, unknown> {
+  points: { x: number; y: number }[];
+  netId: string;
+  category: NetCategory;
+  isInterface: boolean;
+}
+
+export interface DiagramFlowEdge {
+  id: string;
+  type: 'elk';
+  source: string;
+  target: string;
+  sourceHandle: string;
+  targetHandle: string;
+  data: ElkEdgeData;
+}

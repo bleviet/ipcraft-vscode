@@ -9,7 +9,7 @@ import type { NetCategory, PinRef, SystemGraph, SystemNet } from '../../../domai
 import { endpointKey, isClockOrReset, netsOfLevel } from '../model';
 
 export const BADGE_MAX_CHARS = 24;
-const BADGE_CHAR_WIDTH = 6.5;
+export const BADGE_CHAR_WIDTH = 6.5;
 const BADGE_PADDING = 12;
 const BADGE_HEIGHT = 14;
 const BADGE_ID_PREFIX = 'badge:';

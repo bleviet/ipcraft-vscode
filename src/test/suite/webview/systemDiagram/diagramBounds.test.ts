@@ -5,7 +5,7 @@ import type {
   DiagramFlowEdge,
   DiagramFlowNode,
 } from '../../../../webview/systemDiagram/layout/elkLayout';
-import { loadFixtureGraph } from './fixtureGraph';
+import { loadFixtureGraph, fakeMeasure } from './fixtureGraph';
 
 const badge = { netId: 'n', netName: 'n', category: 'clock' as const, text: 'n' };
 
@@ -19,6 +19,8 @@ function boundaryNode(id: string, x: number, y: number, badgeBox?: object): Diag
     draggable: false,
     data: {
       pin: { name: id } as never,
+      width: 150,
+      label: id,
       side: 'west',
       netNames: [],
       badge: badgeBox ? ({ ...badge, ...badgeBox } as never) : undefined,
@@ -68,8 +70,10 @@ describe('diagramBounds', () => {
 
   it('contains every badge of the real fixture layout', async () => {
     const graph = loadFixtureGraph();
-    const result = await runElkLayout(buildElkInput(graph, '/', { showClockReset: false }));
-    const layout = toFlowElements(result, graph, '/');
+    const result = await runElkLayout(
+      buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
+    );
+    const layout = toFlowElements(result, graph, '/', fakeMeasure);
     const bounds = diagramBounds(layout)!;
     let leftmostNode = Infinity;
     let leftmostBadge = Infinity;

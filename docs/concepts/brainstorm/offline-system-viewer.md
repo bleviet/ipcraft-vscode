@@ -302,6 +302,7 @@ in connections.
 | Diagram | One hierarchy level at a time. Double-click enters a hierarchy instance; a breadcrumb leads back |
 | Nets | Interface nets drawn thick and scalar nets thin. Hovering a net highlights it; "Follow net" lists every endpoint and jumps to it |
 | Clock and reset | Hidden by default and shown as pin badges with the net name. A toggle draws them as wires |
+| Names | Blocks and ports size to their names up to a limit; longer names keep their start and end around an ellipsis, and hovering a pin shows its full name, direction, and nets at once |
 | Layout | Outline, details, and the bottom panel are resizable by dragging and can be collapsed from the toolbar |
 | Zoom and pan | Each level keeps its own zoom and pan while the viewer is open. The diagram is fitted on the first visit to a level and by the Fit button. Selecting a component in the outline, address map, or details centers it at the current zoom |
 | Edits | When an edit temporarily makes the file unreadable or no longer a block design, the last valid design stays on screen with its view state and a banner explains why. The next valid edit replaces it |
