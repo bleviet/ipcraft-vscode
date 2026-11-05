@@ -1,4 +1,9 @@
-import { collectLoopBody, resolveLoop, type LoopResolveContext } from '../../../parser/hwTclLoops';
+import {
+  collectLoopBody,
+  resolveLoop,
+  splitWords,
+  type LoopResolveContext,
+} from '../../../parser/hwTclLoops';
 
 function ctx(vars: Record<string, string> = {}, params: Record<string, number> = {}) {
   const context: LoopResolveContext = {
@@ -88,5 +93,43 @@ describe('collectLoopBody', () => {
       body: [' add_interface c$i conduit end '],
       next: 1,
     });
+  });
+});
+
+describe('splitWords', () => {
+  const texts = (line: string) => splitWords(line).map((w) => [w.kind, w.text]);
+
+  it('splits bare, braced and bracketed words', () => {
+    expect(texts('set a {x y} [get z w]')).toEqual([
+      ['other', 'set'],
+      ['other', 'a'],
+      ['brace', 'x y'],
+      ['other', '[get z w]'],
+    ]);
+  });
+
+  it('keeps a quoted word with spaces as one word, quotes included', () => {
+    expect(texts('cmd a NAME "my cpu" tail')).toEqual([
+      ['other', 'cmd'],
+      ['other', 'a'],
+      ['other', 'NAME'],
+      ['other', '"my cpu"'],
+      ['other', 'tail'],
+    ]);
+  });
+
+  it('skips an escaped quote and keeps brackets inside the quotes', () => {
+    expect(texts('cmd "a \\" b [x y]" z')).toEqual([
+      ['other', 'cmd'],
+      ['other', '"a \\" b [x y]"'],
+      ['other', 'z'],
+    ]);
+  });
+
+  it('runs an unterminated quote to the end of the line', () => {
+    expect(texts('cmd "open words')).toEqual([
+      ['other', 'cmd'],
+      ['other', '"open words'],
+    ]);
   });
 });

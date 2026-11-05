@@ -133,6 +133,8 @@ describe('system diagram model', () => {
     });
     expect(segmentRangeText(segment('0x1000'), 'qsys')).toBe('0x1000');
     expect(segmentRangeText(segment(), 'qsys')).toBe('-');
+    expect(segmentRangeText(segment(), 'qsys-tcl')).toBe('-');
+    expect(segmentRangeText(segment('0x1000'), 'qsys-tcl')).toBe('0x1000');
     expect(segmentRangeText(segment(), 'vivado-bd-tcl')).toBe('auto');
     expect(segmentRangeText(segment('0x1000'), 'vivado-bd-tcl')).toBe('0x1000');
   });

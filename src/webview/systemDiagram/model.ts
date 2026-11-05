@@ -215,7 +215,12 @@ export function cellCount(graph: SystemGraph, levelPath: string): number {
   return graph.levels[levelPath]?.instances.length ?? 0;
 }
 
-/** Range cell of the address map: unknown (not tool-assigned) for qsys, `auto` otherwise. */
+/** True for the two Platform Designer sources (`.qsys` and `qsys-script` Tcl). */
+export function isPlatformDesigner(format: SystemGraph['source']['format']): boolean {
+  return format === 'qsys' || format === 'qsys-tcl';
+}
+
+/** Range cell of the address map: unknown (not tool-assigned) for Platform Designer, `auto` otherwise. */
 export function segmentRangeText(
   segment: AddressSegment,
   format: SystemGraph['source']['format']
@@ -223,7 +228,7 @@ export function segmentRangeText(
   if (segment.range !== undefined) {
     return segment.range;
   }
-  return format === 'qsys' ? '-' : 'auto';
+  return isPlatformDesigner(format) ? '-' : 'auto';
 }
 
 const HEX = /^0x[0-9a-f]+$/i;

@@ -181,6 +181,38 @@ Decisions for the `.qsys` reader (`src/parser/system/QsysReader.ts`):
   a segment with the `baseAddress` as offset. The size lives in the slave
   definition, so the range stays unknown until enrichment.
 
+**Platform Designer system scripts.** A `.tcl` file that uses `create_system` or
+`add_instance` (and no Vivado `create_bd_*` command) is read by
+`src/parser/system/QsysTclReader.ts` and builds the same graph as the `.qsys` it
+would save, through the shared `buildQsysGraph`. The recognized commands are
+`create_system`, `add_instance`, `set_instance_parameter_value`,
+`set_instance_property ... ENABLED`, `add_connection`,
+`set_connection_parameter_value`, `add_interface`,
+`set_interface_property ... EXPORT_OF` and a top-level `set` for `$var`
+substitution. Housekeeping commands (`package`, `set_project_property`,
+`save_system`, `puts`, ...) are ignored; the `auto_assign_*` commands add an info
+that unset addresses are unknown; any other command is listed in one info.
+`add_connection` usually omits the connection kind, so it is inferred by the
+first rule that applies:
+
+1. The explicit third argument (`declared`).
+2. A connection parameter: `irqNumber` gives `interrupt`, `baseAddress` gives
+   `avalon`, or `axi` only when both interface names (never instance names)
+   contain `axi`; an AXI master on an Avalon slave is saved as `avalon`
+   (`declared`).
+3. Propagation: an endpoint typed by another connection or by an exported
+   interface's `add_interface` type types every connection it is on, repeated
+   until nothing changes (`declared`).
+4. Interface names, checked in the order interrupt, reset, clock, memory-mapped
+   (`name`, with an info diagnostic). Memory-mapped names give `axi` under the
+   same both-names rule, otherwise `avalon`.
+5. Otherwise the plain `interface` row (`default`, listed in an info).
+
+Tcl that cannot be evaluated offline (`proc`, `if`, `foreach`, `for`, `while`,
+`source`, `exec`, an unknown command that opens a multi-line block, or an
+argument that is a bracketed command) is skipped with
+one warning per command and marks the connections capability partial.
+
 ## What the Offline View Can Recover
 
 | Element | `write_bd_tcl` | `.qsys` | How gaps are handled |

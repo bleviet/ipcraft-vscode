@@ -37,10 +37,10 @@ export class QsysGraphBuilder {
   private readonly startNets = new Map<string, SystemNet>();
   private hasWarning = false;
 
-  constructor(fileName: string, name: string) {
+  constructor(fileName: string, name: string, format: SystemGraph['source']['format']) {
     this.graph = {
       name,
-      source: { fileName, format: 'qsys' },
+      source: { fileName, format },
       levels: { [ROOT]: { path: ROOT, name, boundaryPins: [], instances: [] } },
       instances: {},
       nets: [],
@@ -105,6 +105,7 @@ export class QsysGraphBuilder {
     start: QsysEndpoint,
     end: QsysEndpoint,
     kind: string,
+    kindSource: SystemNet['categorySource'],
     parameters: Record<string, string>,
     line: number
   ): void {
@@ -118,7 +119,7 @@ export class QsysGraphBuilder {
         level: ROOT,
         isInterface: startSpec.isInterface,
         category: startSpec.category,
-        categorySource: 'declared',
+        categorySource: kindSource,
         endpoints: [],
         line,
       };

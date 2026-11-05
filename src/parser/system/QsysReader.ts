@@ -5,8 +5,8 @@
  */
 
 import { DOMParser } from '@xmldom/xmldom';
-import type { SystemGraph } from '../../domain/systemGraph';
-import { QsysGraphBuilder, splitEndpoint } from './qsysGraphBuilder';
+import type { SystemDiagnostic, SystemGraph } from '../../domain/systemGraph';
+import { buildQsysGraph, fileBaseName } from './qsysSystem';
 
 const HANDLED = new Set(['module', 'connection', 'interface']);
 const IGNORED = new Set(['component', 'parameter', 'interconnectRequirement']);
@@ -36,8 +36,7 @@ function systemName(root: Element, fileName: string): string {
   if (declared && !declared.includes('$${FILENAME}')) {
     return declared;
   }
-  const base = fileName.split(/[\\/]/).pop() ?? fileName;
-  return base.replace(/\.[^.]*$/, '');
+  return fileBaseName(fileName);
 }
 
 /** Parses `text`; a malformed document throws the first xmldom message with its line, once. */
@@ -67,97 +66,9 @@ export function readQsys(text: string, fileName: string): SystemGraph {
   if (root.tagName !== 'system') {
     throw new Error(`Not a Platform Designer system: the root element is <${root.tagName}>.`);
   }
-  const builder = new QsysGraphBuilder(fileName, systemName(root, fileName));
   const children = childElements(root);
   const ofTag = (tag: string) => children.filter((child) => child.tagName === tag);
 
-  const disabled = new Map<string, number>();
-  const moduleLines = new Map<string, number>();
-  for (const element of ofTag('module')) {
-    const name = element.getAttribute('name') ?? '';
-    const firstLine = moduleLines.get(name);
-    if (firstLine !== undefined) {
-      builder.warn(`Duplicate module ${name}; the first definition is used.`, [
-        firstLine,
-        lineOf(element),
-      ]);
-      continue;
-    }
-    moduleLines.set(name, lineOf(element));
-    if (element.getAttribute('enabled') === '0') {
-      disabled.set(name, lineOf(element));
-      continue;
-    }
-    builder.addModule(
-      name,
-      element.getAttribute('kind') ?? undefined,
-      element.getAttribute('version') ?? undefined,
-      parametersOf(element),
-      lineOf(element)
-    );
-  }
-
-  /** The first module name that is neither enabled nor disabled, if any. */
-  const unknownModule = (...instances: string[]): string | undefined =>
-    instances.find((name) => !builder.hasModule(name) && !disabled.has(name));
-  const touchesDisabled = (...instances: string[]): boolean =>
-    instances.some((name) => disabled.has(name));
-
-  // Connections first, so an exported interface can join a connection's net.
-  for (const element of ofTag('connection')) {
-    const startText = element.getAttribute('start') ?? '';
-    const endText = element.getAttribute('end') ?? '';
-    const start = splitEndpoint(startText);
-    const end = splitEndpoint(endText);
-    const unknown = unknownModule(start.instance, end.instance);
-    if (unknown !== undefined) {
-      builder.warn(
-        `Connection ${startText} -> ${endText} refers to unknown module ${unknown}.`,
-        lineOf(element)
-      );
-    } else if (!touchesDisabled(start.instance, end.instance)) {
-      builder.connect(
-        start,
-        end,
-        element.getAttribute('kind') ?? '',
-        parametersOf(element),
-        lineOf(element)
-      );
-    }
-  }
-
-  for (const element of ofTag('interface')) {
-    const name = element.getAttribute('name') ?? '';
-    const internal = splitEndpoint(element.getAttribute('internal') ?? '');
-    const unknown = unknownModule(internal.instance);
-    if (unknown !== undefined) {
-      builder.warn(
-        `Exported interface ${name} refers to unknown module ${unknown}.`,
-        lineOf(element)
-      );
-      builder.exportInterface(
-        name,
-        undefined,
-        element.getAttribute('type') ?? '',
-        element.getAttribute('dir') === 'start' ? 'start' : 'end',
-        lineOf(element)
-      );
-    } else if (!touchesDisabled(internal.instance)) {
-      builder.exportInterface(
-        name,
-        internal,
-        element.getAttribute('type') ?? '',
-        element.getAttribute('dir') === 'start' ? 'start' : 'end',
-        lineOf(element)
-      );
-    }
-  }
-
-  if (disabled.size > 0) {
-    builder.info(`Skipped disabled modules: ${[...disabled.keys()].join(', ')}`, [
-      ...disabled.values(),
-    ]);
-  }
   const unsupported = new Map<string, number[]>();
   for (const element of children) {
     const tag = element.tagName;
@@ -165,11 +76,44 @@ export function readQsys(text: string, fileName: string): SystemGraph {
       unsupported.set(tag, [...(unsupported.get(tag) ?? []), lineOf(element)]);
     }
   }
+  const diagnostics: SystemDiagnostic[] = [];
   if (unsupported.size > 0) {
-    builder.info(
-      `Skipped unsupported elements: ${[...unsupported.keys()].join(', ')}`,
-      [...unsupported.values()].flat().sort((a, b) => a - b)
-    );
+    diagnostics.push({
+      severity: 'info',
+      message: `Skipped unsupported elements: ${[...unsupported.keys()].join(', ')}`,
+      lines: [...unsupported.values()].flat().sort((a, b) => a - b),
+    });
   }
-  return builder.finish();
+
+  return buildQsysGraph(
+    {
+      name: systemName(root, fileName),
+      modules: ofTag('module').map((element) => ({
+        name: element.getAttribute('name') ?? '',
+        kind: element.getAttribute('kind') ?? undefined,
+        version: element.getAttribute('version') ?? undefined,
+        parameters: parametersOf(element),
+        enabled: element.getAttribute('enabled') !== '0',
+        line: lineOf(element),
+      })),
+      connections: ofTag('connection').map((element) => ({
+        start: element.getAttribute('start') ?? '',
+        end: element.getAttribute('end') ?? '',
+        kind: element.getAttribute('kind') ?? '',
+        kindSource: 'declared',
+        parameters: parametersOf(element),
+        line: lineOf(element),
+      })),
+      interfaces: ofTag('interface').map((element) => ({
+        name: element.getAttribute('name') ?? '',
+        internal: element.getAttribute('internal') ?? '',
+        type: element.getAttribute('type') ?? '',
+        end: element.getAttribute('dir') === 'start' ? 'start' : 'end',
+        line: lineOf(element),
+      })),
+      diagnostics,
+    },
+    fileName,
+    'qsys'
+  );
 }

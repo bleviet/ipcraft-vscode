@@ -3,7 +3,7 @@ import {
   type HdlFileKey,
   type IpFileKey,
 } from '../../../../../services/systemDiagram/enrichment/matchDefinitions';
-import { bdGraph, qsysGraph } from './definitionFixtures';
+import { bdGraph, qsysGraph, qsysTclGraph } from './definitionFixtures';
 
 const DESIGN = '/ws/design.tcl';
 const run = <I extends IpFileKey, H extends HdlFileKey>(
@@ -38,6 +38,13 @@ describe('matchDefinitions', () => {
     const both = run(qsysGraph, [ip('My_Core', '1.0'), ip('my_core', '2.0')], []);
     expect(both.ip.get('/cpu')?.vlnv.version).toBe('2.0');
     expect(both.diagnostics).toEqual([]);
+  });
+
+  it('matches a qsys-script component the same way as a .qsys one', () => {
+    const match = run(qsysTclGraph, [ip('My_Core', '1.0'), ip('my_core', '2.0')], []);
+    expect(match.ip.get('/cpu')?.vlnv.version).toBe('2.0');
+    expect(match.ip.has('/other')).toBe(false);
+    expect(match.diagnostics).toEqual([]);
   });
 
   it('reports an ambiguity and matches none', () => {

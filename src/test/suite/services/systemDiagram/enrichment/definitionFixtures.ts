@@ -2,6 +2,7 @@ import { parseIpCore } from '../../../../../domain/parse';
 import type { SystemGraph } from '../../../../../domain/systemGraph';
 import { readBdTcl } from '../../../../../parser/system/BdTclReader';
 import { readQsys } from '../../../../../parser/system/QsysReader';
+import { readQsysTcl } from '../../../../../parser/system/QsysTclReader';
 import { definitionFromIpCore } from '../../../../../services/systemDiagram/enrichment/instanceDefinition';
 
 export const IP_YML = `
@@ -50,4 +51,9 @@ export const qsysGraph: SystemGraph = readQsys(
  <module name="other" kind="not_defined" version="1" />
 </system>`,
   's.qsys'
+);
+
+export const qsysTclGraph: SystemGraph = readQsysTcl(
+  'create_system s\nadd_instance cpu MY_CORE 2.0\nadd_instance other not_defined 1',
+  's.tcl'
 );

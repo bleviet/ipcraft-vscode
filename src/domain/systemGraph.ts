@@ -125,7 +125,7 @@ export interface SystemDiagnostic {
 
 export interface SystemGraph {
   name: string;
-  source: { fileName: string; format: 'vivado-bd-tcl' | 'qsys'; toolVersion?: string };
+  source: { fileName: string; format: 'vivado-bd-tcl' | 'qsys' | 'qsys-tcl'; toolVersion?: string };
   /** Keyed by path; always contains `/`. */
   levels: Record<string, SystemLevel>;
   instances: Record<string, SystemInstance>;

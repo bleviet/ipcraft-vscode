@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
 import { readQsys } from '../../../../parser/system/QsysReader';
+import { readQsysTcl } from '../../../../parser/system/QsysTclReader';
 import type { SystemGraph } from '../../../../domain/systemGraph';
 
 const FIXTURE = path.resolve(__dirname, '../../../fixtures/system-design/zynq_dma_system.tcl');
@@ -21,4 +22,13 @@ export const qsysFixtureText = fs.readFileSync(QSYS_FIXTURE, 'utf8');
 
 export function loadQsysFixtureGraph(): SystemGraph {
   return readQsys(qsysFixtureText, 'nios_avalon_system.qsys');
+}
+
+const QSYS_TCL_FIXTURE = path.resolve(
+  __dirname,
+  '../../../fixtures/system-design/niosv_hps_system.tcl'
+);
+
+export function loadQsysTclFixtureGraph(): SystemGraph {
+  return readQsysTcl(fs.readFileSync(QSYS_TCL_FIXTURE, 'utf8'), 'niosv_hps_system.tcl');
 }

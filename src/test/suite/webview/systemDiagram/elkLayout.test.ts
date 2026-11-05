@@ -6,7 +6,7 @@ import {
 } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { boundaryId } from '../../../../webview/systemDiagram/model';
-import { loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
+import { loadFixtureGraph, loadQsysFixtureGraph, loadQsysTclFixtureGraph } from './fixtureGraph';
 
 const graph = loadFixtureGraph();
 
@@ -165,6 +165,22 @@ describe('real ELK layout of the qsys fixture root level', () => {
       category: 'avalonmm',
       isInterface: true,
     });
+    expectBadgesClearOfNodes(nodes);
+  }, 20000);
+});
+
+describe('real ELK layout of the qsys-script fixture root level', () => {
+  const qsysTcl = loadQsysTclFixtureGraph();
+
+  it('routes every visible net and keeps badges clear of other nodes', async () => {
+    const input = buildElkInput(qsysTcl, '/', { showClockReset: false });
+    const result = await runElkLayout(input);
+    const { nodes, edges } = toFlowElements(result, qsysTcl, '/');
+    expect(edges).toHaveLength(input.edges!.length);
+    expect(edges.length).toBeGreaterThan(0);
+    for (const edge of edges) {
+      expect(edge.data.points.length).toBeGreaterThanOrEqual(2);
+    }
     expectBadgesClearOfNodes(nodes);
   }, 20000);
 });

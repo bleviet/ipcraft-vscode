@@ -6,8 +6,19 @@ describe('isSystemDesignScript', () => {
     expect(isSystemDesignScript('/p/system.tcl', 'set c [create_bd_cell -type ip x]')).toBe(true);
   });
 
+  it('accepts a .tcl file that creates a Platform Designer system or instance', () => {
+    expect(isSystemDesignScript('/p/system.tcl', 'create_system nios2_system')).toBe(true);
+    expect(isSystemDesignScript('/p/system.tcl', 'add_instance clk_0 clock_source')).toBe(true);
+    expect(isSystemDesignScript('/p/system.tcl', 'add_instance_x foo')).toBe(false);
+  });
+
+  it('accepts a script that matches both patterns', () => {
+    expect(isSystemDesignScript('/p/s.tcl', 'create_system x\ncreate_bd_design y')).toBe(true);
+  });
+
   it('rejects _hw.tcl files', () => {
     expect(isSystemDesignScript('/p/core_hw.tcl', 'create_bd_cell')).toBe(false);
+    expect(isSystemDesignScript('/p/core_hw.tcl', 'add_instance x y')).toBe(false);
   });
 
   it('accepts a .qsys file that contains a <system> element', () => {
