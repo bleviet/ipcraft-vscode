@@ -4,13 +4,20 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-05
+
 ### Added
 
-- **Offline system viewer.** **IPCraft: Open as System Diagram** (`Ctrl+Shift+V` / `Cmd+Shift+V` on a recognized `.tcl` or `.qsys` file toggles it) opens a Vivado `write_bd_tcl` script, a Platform Designer `.qsys` (Standard) system, or a Platform Designer system script (`qsys-script` `.tcl`) as a read-only diagram. Files are read statically and never executed, so no vendor tool or license is needed. The diagram shows one hierarchy level at a time with an outline and search, details, an address map, and problems; clocks and resets are pin badges until **Clocks and resets** is turned on; zoom and pan are kept per level. Workspace `.ip.yml` files (by VLNV or Platform Designer component name) and HDL files (for Vivado module references) add unconnected pins, directions, interface types and a **Defined by** link, and are not read in untrusted workspaces. Address ranges from definitions are not filled in yet. See [Viewing a System Design](docs/how-to/view-a-system-design.md). ([#239](https://github.com/bleviet/ipcraft-vscode/issues/239))
+- **Offline system viewer.** **IPCraft: Open as System Diagram** (`Ctrl+Shift+V` / `Cmd+Shift+V` on a recognized `.tcl` or `.qsys` file toggles it) opens a Vivado `write_bd_tcl` script, a Platform Designer `.qsys` (Standard) system, or a Platform Designer system script (`qsys-script` `.tcl`) as a read-only diagram. Files are read statically and never executed, so no vendor tool or license is needed. The diagram shows one hierarchy level at a time with an outline and search, details, an address map, and problems; clocks and resets are pin badges until **Clocks and resets** is turned on; zoom and pan are kept per level. Workspace `.ip.yml` files (by VLNV or Platform Designer component name) and HDL files (for Vivado module references) add unconnected pins, directions, interface types and a **Defined by** link, and are not read in untrusted workspaces. Address ranges from definitions are not filled in yet. Platform Designer scripts usually leave out the connection type, so it is inferred from parameters, other connections and interface names, and anything inferred by name or left unknown is listed in Problems. Blocks size to their pin names, hovering a pin shows its full name, direction and nets, double-clicking a block zooms to it and double-clicking empty canvas fits the level, the side and bottom panels start hidden, and a temporarily broken edit keeps the last valid design on screen with a banner. See [Viewing a System Design](docs/how-to/view-a-system-design.md). ([#239](https://github.com/bleviet/ipcraft-vscode/issues/239))
 
 ### Changed
 
+- **Bus port presence follows the protocol specs.** AXI4-Stream `TREADY`, Avalon-ST `valid`, and AXI4-Lite and AXI4 `AWPROT`/`ARPROT` are now optional, so they are generated only when listed in `useOptionalPorts`. New rules reject inconsistent port sets: on AXI4, `AWID` with `BID`, `ARID` with `RID`, `AWLEN` needs `WLAST` and `ARLEN` needs `RLAST`; on Avalon-MM, `read` needs `readdata`, `write` needs `writedata`, `readdatavalid` needs `read`, `writeresponsevalid` needs `response`, and `beginbursttransfer` needs `burstcount`.
 - The VSIX now bundles the elkjs layout engine (EPL-2.0, see `THIRD_PARTY_NOTICES.md`), and the VSIX size budget is raised to 25 MiB unpacked and 2.5 MiB compressed.
+
+### Compatibility
+
+- Interfaces that relied on `TREADY`, `valid`, `AWPROT` or `ARPROT` being generated implicitly no longer get those ports, which changes the generated HDL, `component.xml` and `_hw.tcl`. Add them to the interface's `useOptionalPorts` to keep the previous ports. An Avalon-MM or AXI4 interface whose ports break one of the new presence rules now fails validation until the missing port is added.
 
 ## [1.2.0] - 2026-10-11
 
