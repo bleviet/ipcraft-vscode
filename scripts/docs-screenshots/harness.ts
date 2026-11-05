@@ -2,8 +2,9 @@ import type { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import * as YAML from 'yaml';
+import { readSystemDesign } from '../../src/services/systemDiagram/readSystemDesign';
 
-export type HarnessKind = 'memorymap' | 'ipcore' | 'dataInspector';
+export type HarnessKind = 'memorymap' | 'ipcore' | 'dataInspector' | 'systemDiagram';
 export type ThemeVariant = 'dark' | 'light';
 
 // Reuses the existing Playwright browser-test harness pages unmodified --
@@ -16,12 +17,14 @@ const HARNESS_FILE: Record<HarnessKind, string> = {
   memorymap: 'index.html',
   ipcore: 'ipcore.html',
   dataInspector: 'data-inspector.html',
+  systemDiagram: 'system-diagram.html',
 };
 
 const ROOT_SELECTOR: Record<HarnessKind, string> = {
   memorymap: '#root',
   ipcore: '#ipcore-root',
   dataInspector: '#data-inspector-root',
+  systemDiagram: '#system-diagram-root',
 };
 
 // The active dark-theme stylesheet -- Dracula rather than VS Code's bundled
@@ -134,6 +137,34 @@ export async function openHarness(page: Page, opts: OpenOptions): Promise<void> 
     );
 
     await page.waitForSelector('.ip-canvas-svg', { timeout: 15000 });
+  } else if (harness === 'systemDiagram') {
+    // The real pure reader runs in Node (no vscode imports); the webview gets
+    // the same 'graph' message SystemDiagramProvider sends after 'ready'.
+    const name = fileName ?? 'design.tcl';
+    const graph = readSystemDesign(name, name, yamlText);
+    if (!graph) {
+      throw new Error(`${name} is not a recognized system design`);
+    }
+    await page.evaluate(
+      (value) => {
+        window.postMessage({ type: 'graph', graph: value }, '*');
+      },
+      graph as unknown as object
+    );
+    await page.waitForSelector('.react-flow__node', { state: 'visible', timeout: 15000 });
+    // React Flow starts at translate(0px, 0px) scale(1); the first fit moves it.
+    await page.waitForFunction(
+      () => {
+        const viewport = document.querySelector('.react-flow__viewport');
+        return (
+          viewport instanceof HTMLElement &&
+          viewport.style.transform !== '' &&
+          viewport.style.transform !== 'translate(0px, 0px) scale(1)'
+        );
+      },
+      undefined,
+      { timeout: 15000 }
+    );
   } else {
     const recipe = YAML.parse(yamlText) as unknown;
     await page.evaluate((value) => {

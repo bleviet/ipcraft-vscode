@@ -9,6 +9,10 @@ files or start external tools directly.
 | Memory Map | `src/webview/index.tsx`            | `#root`        |
 | IP Core    | `src/webview/ipcore/IpCoreApp.tsx` | `#ipcore-root` |
 
+A third, read-only bundle, `src/webview/systemDiagram/index.tsx`, renders system
+designs (`#system-diagram-root`). It is described in
+[System diagram application](#system-diagram-application).
+
 ## Shared boundary
 
 ```mermaid
@@ -133,6 +137,24 @@ clear.
 Apply the same size review to other production modules. Line count is evidence
 to inspect ownership, not a reason to split cohesive logic into arbitrary
 fragments. Generated files, declarative data, and templates are excluded.
+
+## System diagram application
+
+The `systemDiagram` bundle is read-only. It receives a `SystemGraph` from the
+host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
+`revealSource`, and `openDefinition`.
+
+| Layer | Owner |
+|---|---|
+| Composition root | `SystemDiagramApp.tsx`, `DiagramWorkbench.tsx`, `WorkbenchLayout.tsx` wire the toolbar, outline, canvas, details, and bottom panels |
+| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes) |
+| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation, pin hover, panel resize) |
+| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/` |
+
+`messageState.ts` keeps the last valid graph when a later message reports an
+error or says the file is no longer recognized, so the workbench and the
+user's view stay mounted. Layout and viewport decisions are pure functions that
+are tested without React.
 
 ## Updates and drafts
 

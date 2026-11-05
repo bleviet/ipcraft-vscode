@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>System Diagram Browser Harness</title>
+    <link rel="stylesheet" href="../../../dist/systemDiagram.css" />
+    <link rel="stylesheet" href="../../../node_modules/@vscode/codicons/dist/codicon.css" />
+    <style>
+      :root {
+        --vscode-editor-background: #1e1e1e;
+        --vscode-editor-foreground: #d4d4d4;
+        --vscode-foreground: #d4d4d4;
+        --vscode-font-family: system-ui, sans-serif;
+        --vscode-font-size: 13px;
+        --vscode-editor-font-family: ui-monospace, monospace;
+      }
+      #system-diagram-root {
+        width: 100vw;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="system-diagram-root"></div>
+    <script>
+      window.__vscodeMessages = [];
+      window.acquireVsCodeApi = function () {
+        return {
+          postMessage(message) {
+            window.__vscodeMessages.push(message);
+            window.__last_message = message;
+            console.log('VSCODE_MESSAGE:', JSON.stringify(message));
+            window.dispatchEvent(new CustomEvent('vscode-post-message', { detail: message }));
+          },
+          setState() {},
+          getState() {
+            return undefined;
+          },
+        };
+      };
+    </script>
+    <script src="../../../dist/systemDiagram.js"></script>
+  </body>
+</html>

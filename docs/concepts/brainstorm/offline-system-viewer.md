@@ -2,8 +2,10 @@
 
 ## Status
 
-Idea with proposed architecture decisions. This document is not yet an
-implementation plan.
+Implemented: phase 1 (Vivado `write_bd_tcl`), phase 2 (`.qsys` Standard and
+enrichment from `.ip.yml` and module references), and Platform Designer system
+scripts. Phases 3 and 4 are open. For the user-facing behavior, see
+[Viewing a System Design](../../how-to/view-a-system-design.md).
 
 It narrows one part of
 [Design-Aware Documentation](design-aware-documentation.md) into a standalone

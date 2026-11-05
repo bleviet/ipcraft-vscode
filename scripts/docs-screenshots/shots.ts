@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import * as YAML from 'yaml';
@@ -18,6 +18,84 @@ const DATA_INSPECTOR_SPLIT_SOURCE = 'ipcraft-spec/examples/data_inspector/split_
 const DATA_INSPECTOR_STATUS_SOURCE =
   'ipcraft-spec/examples/data_inspector/comprehensive_axi_status.ipci.yml';
 
+const SYSTEM_BD_SOURCE = 'src/test/fixtures/system-design/zynq_dma_system.tcl';
+const SYSTEM_QSYS_SOURCE = 'src/test/fixtures/system-design/niosv_hps_system.tcl';
+
+const VIEWPORT_SELECTOR = '.react-flow__viewport';
+
+async function viewportTransform(page: Page): Promise<string> {
+  return page
+    .locator(VIEWPORT_SELECTOR)
+    .evaluate((element) => (element as HTMLElement).style.transform);
+}
+
+/** Runs a gesture, then waits until it has moved the React Flow viewport. */
+async function untilViewportChanges(page: Page, gesture: () => Promise<void>): Promise<void> {
+  const before = await viewportTransform(page);
+  await gesture();
+  await page.waitForFunction(
+    ([selector, previous]) =>
+      (document.querySelector(selector) as HTMLElement | null)?.style.transform !== previous,
+    [VIEWPORT_SELECTOR, before] as const,
+    { timeout: 15000 }
+  );
+}
+
+async function setupSystemOverview(page: Page): Promise<void> {
+  await untilViewportChanges(page, () =>
+    page.getByRole('button', { name: 'Toggle Outline' }).click()
+  );
+  await untilViewportChanges(page, () =>
+    page.getByRole('button', { name: 'Toggle Details' }).click()
+  );
+  // Widen the details panel (16 px per key) so long net names are not clipped.
+  const handle = page.getByRole('separator', { name: 'Resize Details' });
+  await handle.focus();
+  for (let i = 0; i < 14; i += 1) {
+    await page.keyboard.press('ArrowLeft');
+  }
+  await expect(handle).toHaveAttribute('aria-valuenow', '544');
+  // Zoom in first so block text is readable, then select from the outline,
+  // which centers the block at the current zoom.
+  for (let i = 0; i < 7; i += 1) {
+    await untilViewportChanges(page, () => page.getByRole('button', { name: 'Zoom in' }).click());
+  }
+  await untilViewportChanges(page, () =>
+    page
+      .getByRole('navigation', { name: 'Design outline' })
+      .getByText('axi_dma_0', { exact: true })
+      .click()
+  );
+}
+
+async function setupSystemHierarchy(page: Page): Promise<void> {
+  await untilViewportChanges(page, () =>
+    page.locator('.react-flow__node[data-id="/dsp_pipeline"]').dblclick()
+  );
+  const edges = page.locator('.react-flow__edge');
+  const before = await edges.count();
+  await page.getByText('Clocks and resets').click();
+  await expect.poll(() => edges.count()).toBeGreaterThan(before);
+  // Fit after the clock and reset nets changed the layout.
+  await untilViewportChanges(page, () => page.getByRole('button', { name: 'Fit' }).click());
+}
+
+async function setupSystemAddressMap(page: Page): Promise<void> {
+  await untilViewportChanges(page, () =>
+    page.getByRole('button', { name: 'Toggle Bottom Panel' }).click()
+  );
+  await page.getByRole('tab', { name: /Address map/ }).click();
+}
+
+async function setupSystemHover(page: Page): Promise<void> {
+  const node = page.locator('.react-flow__node[data-id="/axi_dma_0"]');
+  await untilViewportChanges(page, () => node.dblclick({ position: { x: 20, y: 10 } }));
+  // One step back so the neighbouring blocks stay inside the frame.
+  await untilViewportChanges(page, () => page.getByRole('button', { name: 'Zoom out' }).click());
+  await node.getByText('S_AXI_LITE', { exact: true }).hover();
+  await expect(page.getByRole('tooltip')).toBeVisible();
+}
+
 async function setupSplitAddress(page: Page): Promise<void> {
   await page.getByRole('textbox', { name: 'Literal' }).fill("32'h0001_2000");
   await page.getByRole('button', { name: 'Decode ADDR_HI' }).click();
@@ -31,9 +109,9 @@ export interface Shot {
   /** Output basename -> docs/images/<id>-{dark,light}.png */
   id: string;
   harness: HarnessKind;
-  /** Repo-relative path to the YAML rendered into the harness. */
+  /** Repo-relative path to the file rendered into the harness (YAML, or the design file for systemDiagram). */
   source: string;
-  /** Only meaningful for the ipcore harness -- see IpCoreApp.tsx's 'update' handler. */
+  /** ipcore: see IpCoreApp.tsx's 'update' handler. systemDiagram: the design file name, which selects the reader. */
   fileName?: string;
   /** Repo-relative path to a .mm.yml this .ip.yml imports (memoryMaps.import).
    *  Without it, a bus interface's memoryMapRef fails reference validation
@@ -201,6 +279,35 @@ export const shots: Shot[] = [
         );
       });
     },
+  },
+  {
+    id: 'system-diagram-overview',
+    harness: 'systemDiagram',
+    source: SYSTEM_BD_SOURCE,
+    viewport: { width: 1600, height: 900 },
+    setup: setupSystemOverview,
+  },
+  {
+    id: 'system-diagram-hierarchy',
+    harness: 'systemDiagram',
+    source: SYSTEM_BD_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    setup: setupSystemHierarchy,
+  },
+  {
+    id: 'system-diagram-platform-designer',
+    harness: 'systemDiagram',
+    source: SYSTEM_QSYS_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    setup: setupSystemAddressMap,
+  },
+  {
+    id: 'system-diagram-hover',
+    harness: 'systemDiagram',
+    source: SYSTEM_BD_SOURCE,
+    viewport: DEFAULT_VIEWPORT,
+    clip: '.react-flow',
+    setup: setupSystemHover,
   },
   {
     id: 'data-inspector-workspace',

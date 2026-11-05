@@ -106,12 +106,27 @@ Canvas keyboard shortcuts (Delete, Ctrl+D, Ctrl+Z/Y) follow the same update path
 4. Scaffolder loads templates, builds context from IP Core data, renders files
 5. Host posts `type: 'generateResult'` back to webview with file list or error
 
+## System viewer
+
+A third, read-only surface shows Vivado `write_bd_tcl` scripts, Platform Designer
+`.qsys` systems, and Platform Designer system scripts as a diagram. It is not
+part of the YAML round trip: the files are read statically and never written.
+
+| Part | Location |
+|---|---|
+| Readers that turn a file into a vendor-neutral `SystemGraph` | `src/parser/system/` |
+| Detection and `readSystemDesign` entry point | `src/services/systemDiagram/` |
+| Custom editor provider (`ipcraft.systemDiagram`, `priority: option`) | `src/providers/SystemDiagramProvider.ts` |
+| Workspace enrichment from `.ip.yml` and HDL files | `src/services/systemDiagram/SystemDesignEnricher.ts` |
+| Webview (React Flow and elkjs layout) | `src/webview/systemDiagram/` |
+
 ## Build and Packaging
 
 | Output | Location |
 |--------|----------|
 | Extension bundle | `dist/extension.js` |
 | Webview bundle | `dist/webview.js` |
+| System diagram bundle | `dist/systemDiagram.js` |
 | Nunjucks templates | `dist/templates/` |
 | Compiled tests | `out/**` |
 

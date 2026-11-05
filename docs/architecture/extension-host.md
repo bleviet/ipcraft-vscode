@@ -25,9 +25,18 @@ commands, views, and services with the extension context.
 |---|---|---|
 | `*.mm.yml` | `MemoryMapEditorProvider` | Memory Map editor |
 | `*.ip.yml` | `IpCoreEditorProvider` | IP Core editor |
+| recognized `.tcl` and `.qsys` system designs | `SystemDiagramProvider` | System diagram (read-only, opt-in) |
 
 A provider creates the webview, sends the current document, receives edits, and
 applies accepted changes through VS Code's document API.
+
+`SystemDiagramProvider` registers `ipcraft.systemDiagram` with `priority: option`,
+so a system design opens in the text editor until the user asks for the
+diagram. It reads the document with `readSystemDesign`, enriches the graph, and
+posts it to the webview again on every document change or workspace trust grant.
+`SystemDesignEnricher` indexes workspace `.ip.yml` and HDL files and merges
+the pins of matching definitions into the graph. It reads nothing in an
+untrusted workspace.
 
 The providers share these central services:
 
