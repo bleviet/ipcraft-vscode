@@ -9,9 +9,11 @@ import {
 import { BoundaryNode } from './BoundaryNode';
 import { ElkEdge } from './ElkEdge';
 import { InstanceNode } from './InstanceNode';
+import { isPaneDoubleClick } from './canvasTargets';
 import { PinHoverCard } from './PinHoverCard';
 import { usePinHover } from './hooks/usePinHover';
 import type { DiagramLayout } from './hooks/useElkLayout';
+import type { InstanceNodeData } from './layout/diagramTypes';
 import { boundaryMatchesQuery, matchesQuery, type Selection } from './model';
 
 const NODE_TYPES: NodeTypes = { instance: InstanceNode, boundary: BoundaryNode };
@@ -24,6 +26,8 @@ interface DiagramCanvasProps {
   query: string;
   onSelect: (selection: Selection | null) => void;
   onEnterHierarchy: (instancePath: string) => void;
+  onFocusNode: (nodeId: string) => void;
+  onFit: () => void;
 }
 
 export function DiagramCanvas({
@@ -33,6 +37,8 @@ export function DiagramCanvas({
   query,
   onSelect,
   onEnterHierarchy,
+  onFocusNode,
+  onFit,
 }: DiagramCanvasProps) {
   const onSelectNet = useCallback(
     (netId: string) => onSelect({ kind: 'net', id: netId }),
@@ -69,7 +75,14 @@ export function DiagramCanvas({
   // React Flow stays mounted on error: unmounting resets its store to the
   // default viewport, losing the user's zoom and pan.
   return (
-    <div className="relative h-full w-full">
+    <div
+      className="relative h-full w-full"
+      onDoubleClick={(event) => {
+        if (event.target instanceof Element && isPaneDoubleClick(event.target)) {
+          onFit();
+        }
+      }}
+    >
       {error && (
         <p role="alert" className="absolute inset-x-0 top-0 z-10 p-4">
           Layout failed: {error}
@@ -89,8 +102,13 @@ export function DiagramCanvas({
           onSelect({ kind: node.type === 'boundary' ? 'boundary' : 'instance', id: node.id })
         }
         onNodeDoubleClick={(_event, node) => {
-          if (node.type === 'instance') {
+          if (
+            node.type === 'instance' &&
+            (node.data as InstanceNodeData).instance.kind === 'hier'
+          ) {
             onEnterHierarchy(node.id);
+          } else {
+            onFocusNode(node.id);
           }
         }}
         onEdgeClick={(_event, edge) => onSelect({ kind: 'net', id: edge.data?.netId })}

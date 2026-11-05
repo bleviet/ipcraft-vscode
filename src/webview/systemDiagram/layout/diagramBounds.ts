@@ -15,6 +15,27 @@ function nodeBadges(node: DiagramFlowNode): NetBadge[] {
   return [...node.data.west, ...node.data.east].flatMap((row) => (row.badge ? [row.badge] : []));
 }
 
+/** Bounding box of one node: its box plus its net badges, which sit outside it. */
+export function nodeBounds(node: DiagramFlowNode): DiagramBounds {
+  const boxes = [
+    { x: node.position.x, y: node.position.y, width: node.width, height: node.height },
+    ...nodeBadges(node).map((badge) => ({
+      x: node.position.x + badge.x,
+      y: node.position.y + badge.y,
+      width: badge.width,
+      height: badge.height,
+    })),
+  ];
+  const x = Math.min(...boxes.map((box) => box.x));
+  const y = Math.min(...boxes.map((box) => box.y));
+  return {
+    x,
+    y,
+    width: Math.max(...boxes.map((box) => box.x + box.width)) - x,
+    height: Math.max(...boxes.map((box) => box.y + box.height)) - y,
+  };
+}
+
 /**
  * Bounding box of everything drawn for a level: node boxes, net badges (which
  * sit outside their node), and edge points. Null when the level is empty.
@@ -25,15 +46,10 @@ export function diagramBounds(layout: {
 }): DiagramBounds | null {
   const xs: number[] = [];
   const ys: number[] = [];
-  const addBox = (x: number, y: number, width: number, height: number) => {
-    xs.push(x, x + width);
-    ys.push(y, y + height);
-  };
   for (const node of layout.nodes) {
-    addBox(node.position.x, node.position.y, node.width, node.height);
-    for (const badge of nodeBadges(node)) {
-      addBox(node.position.x + badge.x, node.position.y + badge.y, badge.width, badge.height);
-    }
+    const box = nodeBounds(node);
+    xs.push(box.x, box.x + box.width);
+    ys.push(box.y, box.y + box.height);
   }
   for (const edge of layout.edges) {
     for (const point of edge.data.points) {

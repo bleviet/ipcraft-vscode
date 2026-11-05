@@ -35,6 +35,8 @@ function canvas(layout: Layout) {
         query=""
         onSelect={jest.fn()}
         onEnterHierarchy={jest.fn()}
+        onFocusNode={jest.fn()}
+        onFit={jest.fn()}
       />
     </ReactFlowProvider>
   );

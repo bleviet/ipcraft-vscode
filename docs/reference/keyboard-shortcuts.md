@@ -18,6 +18,8 @@ normal typing shortcuts unless a table cell is explicitly in navigation mode.
 
 Double-click a separator to collapse its panel; use the toolbar toggles to restore it.
 
+Double-click a block or port to zoom to it, or empty canvas to fit the level. Double-clicking a hierarchy block opens it.
+
 ## IP Core Canvas
 
 These shortcuts are active when the canvas view is visible and no text field is focused.

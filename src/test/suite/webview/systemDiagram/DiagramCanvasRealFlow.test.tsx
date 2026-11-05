@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { ReactFlowProvider, useStoreApi } from '@xyflow/react';
 import { DiagramCanvas } from '../../../../webview/systemDiagram/DiagramCanvas';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
@@ -33,7 +33,14 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
     buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
   );
   const layout = { levelPath: '/', ...toFlowElements(laidOut, graph, '/', fakeMeasure) };
-  const common = { selection: null, query: '', onSelect: jest.fn(), onEnterHierarchy: jest.fn() };
+  const common = {
+    selection: null,
+    query: '',
+    onSelect: jest.fn(),
+    onEnterHierarchy: jest.fn(),
+    onFocusNode: jest.fn(),
+    onFit: jest.fn(),
+  };
 
   const { rerender } = render(<Harness {...common} layout={layout} error={null} />);
   act(() => writeTransform([40, 50, 1.5]));
@@ -43,4 +50,33 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
   expect(screen.getByRole('alert')).toHaveTextContent('Layout failed: elk failed');
   expect(document.querySelector('.react-flow')).not.toBeNull();
   expect(readTransform()).toEqual([40, 50, 1.5]);
+});
+
+it('fits on a double-click of the real pane but not of a real node', async () => {
+  const graph = loadFixtureGraph();
+  const laidOut = await runElkLayout(
+    buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
+  );
+  const layout = { levelPath: '/', ...toFlowElements(laidOut, graph, '/', fakeMeasure) };
+  const onFit = jest.fn();
+  const onFocusNode = jest.fn();
+  render(
+    <Harness
+      selection={null}
+      query=""
+      onSelect={jest.fn()}
+      onEnterHierarchy={jest.fn()}
+      onFocusNode={onFocusNode}
+      onFit={onFit}
+      layout={layout}
+      error={null}
+    />
+  );
+
+  const node = await screen.findByText('axi_dma_0');
+  fireEvent.doubleClick(node);
+  expect(onFit).not.toHaveBeenCalled();
+
+  fireEvent.doubleClick(document.querySelector('.react-flow__pane')!);
+  expect(onFit).toHaveBeenCalledTimes(1);
 });

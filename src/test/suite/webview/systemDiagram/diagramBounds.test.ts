@@ -1,5 +1,5 @@
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
-import { diagramBounds } from '../../../../webview/systemDiagram/layout/diagramBounds';
+import { diagramBounds, nodeBounds } from '../../../../webview/systemDiagram/layout/diagramBounds';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import type {
   DiagramFlowEdge,
@@ -89,4 +89,34 @@ describe('diagramBounds', () => {
     expect(leftmostBadge).toBeLessThan(leftmostNode);
     expect(bounds.x).toBeLessThanOrEqual(leftmostBadge);
   }, 20000);
+});
+
+describe('nodeBounds', () => {
+  it('is the node box when it has no badges', () => {
+    expect(nodeBounds(boundaryNode('a', 10, 20))).toEqual({ x: 10, y: 20, width: 150, height: 26 });
+  });
+
+  it('extends to a boundary node badge', () => {
+    expect(nodeBounds(boundaryNode('a', 10, 20, { x: -90, y: 4, width: 86, height: 14 }))).toEqual({
+      x: -80,
+      y: 20,
+      width: 240,
+      height: 26,
+    });
+  });
+
+  it('covers west and east badges of an instance node', () => {
+    const instance = {
+      id: '/i',
+      type: 'instance',
+      position: { x: 100, y: 50 },
+      width: 200,
+      height: 80,
+      data: {
+        west: [{ badge: { ...badge, x: -60, y: 10, width: 50, height: 14 } }, {}],
+        east: [{ badge: { ...badge, x: 210, y: 70, width: 40, height: 14 } }],
+      },
+    } as unknown as DiagramFlowNode;
+    expect(nodeBounds(instance)).toEqual({ x: 40, y: 50, width: 310, height: 80 + 4 });
+  });
 });

@@ -1,27 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useReactFlow } from '@xyflow/react';
-import { diagramBounds } from '../layout/diagramBounds';
+import { diagramBounds, nodeBounds } from '../layout/diagramBounds';
 import { nodeCenter } from '../layout/nodeCenter';
 import { decideViewportAction, withSavedViewport, type Viewport } from '../layout/viewportPolicy';
 import type { RevealRequest } from '../model';
 import type { DiagramLayout } from './useElkLayout';
 
 const FIT_PADDING = 0.1;
+const FOCUS_PADDING = 0.25;
+
+export interface DiagramViewport {
+  fit: () => void;
+  focusNode: (nodeId: string) => void;
+}
 
 /**
  * Owns the React Flow viewport. Each level keeps its own zoom and pan in
  * memory: the first visit fits the whole diagram (badges included), returning
  * restores the saved viewport, and a new layout of the same level changes
- * nothing. The returned function fits the current level (Fit button); it also
+ * nothing. `fit` fits the current level (Fit button); it also
  * runs when `resizeKey` changes (a panel was shown or hidden), once the canvas
  * has its new size. A reveal request centres its node at the current zoom once
- * its level is shown (after the policy above applied). Must run inside a React Flow provider.
+ * its level is shown (after the policy above applied). `focusNode` zooms to
+ * one node of the current level, badges included (double-click). Must run inside a React Flow provider.
  */
 export function useDiagramViewport(
   layout: DiagramLayout | null,
   resizeKey: string,
   revealRequest: RevealRequest | null
-): () => void {
+): DiagramViewport {
   const { fitBounds, getViewport, setViewport, setCenter } = useReactFlow();
   const bounds = useMemo(() => (layout ? diagramBounds(layout) : null), [layout]);
   const saved = useRef<ReadonlyMap<string, Viewport>>(new Map());
@@ -33,6 +40,15 @@ export function useDiagramViewport(
       void fitBounds(bounds, { padding: FIT_PADDING });
     }
   }, [bounds, fitBounds]);
+  const focusNode = useCallback(
+    (nodeId: string) => {
+      const node = layout?.nodes.find((candidate) => candidate.id === nodeId);
+      if (node) {
+        void fitBounds(nodeBounds(node), { padding: FOCUS_PADDING });
+      }
+    },
+    [layout, fitBounds]
+  );
   const fitRef = useRef(fit);
   fitRef.current = fit;
 
@@ -103,5 +119,5 @@ export function useDiagramViewport(
     };
   }, [resizeKey]);
 
-  return fit;
+  return { fit, focusNode };
 }

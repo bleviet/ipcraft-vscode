@@ -46,7 +46,7 @@ export function WorkbenchLayout({
     bottom: !panels.bottom.collapsed,
   };
 
-  const fit = useDiagramViewport(
+  const { fit, focusNode } = useDiagramViewport(
     layout,
     `${panelsVisible.outline}:${panelsVisible.details}:${panelsVisible.bottom}`,
     nav.revealRequest
@@ -96,6 +96,8 @@ export function WorkbenchLayout({
               query={query}
               onSelect={nav.select}
               onEnterHierarchy={nav.enterHierarchy}
+              onFocusNode={focusNode}
+              onFit={fit}
             />
           </main>
           {panelsVisible.details && (

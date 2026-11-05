@@ -4,6 +4,7 @@ import type { SystemDiagramToWebviewMessage } from '../../../../shared/messages/
 import { SystemDiagramApp } from '../../../../webview/systemDiagram/SystemDiagramApp';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { nodeCenter } from '../../../../webview/systemDiagram/layout/nodeCenter';
+import { diagramBounds, nodeBounds } from '../../../../webview/systemDiagram/layout/diagramBounds';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { createTextMeasurer } from '../../../../webview/systemDiagram/layout/textMeasure';
 import { loadFixtureGraph } from './fixtureGraph';
@@ -88,23 +89,27 @@ jest.mock('@xyflow/react', () => {
           'data-edges': String(props.edges.length),
           'data-read-only': String(!props.nodesDraggable && !props.nodesConnectable),
         },
-        props.nodes.map((node) =>
-          React.createElement(
-            'div',
-            { key: node.id },
+        React.createElement(
+          'div',
+          { className: 'react-flow__pane', 'data-testid': 'pane' },
+          props.nodes.map((node) =>
             React.createElement(
-              'button',
-              {
-                'data-testid': `node:${node.id}`,
-                onClick: (event: unknown) => props.onNodeClick(event, node),
-                onDoubleClick: (event: unknown) => props.onNodeDoubleClick(event, node),
-              },
-              node.id
-            ),
-            React.createElement(props.nodeTypes[node.type], {
-              data: node.data,
-              selected: node.selected,
-            })
+              'div',
+              { key: node.id, className: 'react-flow__node' },
+              React.createElement(
+                'button',
+                {
+                  'data-testid': `node:${node.id}`,
+                  onClick: (event: unknown) => props.onNodeClick(event, node),
+                  onDoubleClick: (event: unknown) => props.onNodeDoubleClick(event, node),
+                },
+                node.id
+              ),
+              React.createElement(props.nodeTypes[node.type], {
+                data: node.data,
+                selected: node.selected,
+              })
+            )
           )
         )
       );
@@ -732,6 +737,47 @@ describe('SystemDiagramApp', () => {
 
   describe('fitting', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+
+    async function levelLayout() {
+      const input = buildElkInput(graph, '/', { showClockReset: false, measure: appMeasure });
+      return toFlowElements(await runElkLayout(input), graph, '/', appMeasure);
+    }
+
+    it.each(['/axi_dma_0', '/::DDR'])('zooms to %s by double-clicking it', async (id) => {
+      await renderWithGraph();
+      await settle();
+      const layout = await levelLayout();
+      mockFitBounds.mockClear();
+
+      fireEvent.doubleClick(screen.getByTestId(`node:${id}`));
+
+      expect(mockFitBounds).toHaveBeenCalledTimes(1);
+      expect(mockFitBounds.mock.calls[0]).toEqual([
+        nodeBounds(layout.nodes.find((node) => node.id === id)!),
+        { padding: 0.25 },
+      ]);
+    });
+
+    it('opens a hierarchy on double-click without zooming to it', async () => {
+      await renderWithGraph();
+      await settle();
+      mockFitBounds.mockClear();
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      expect(mockFitBounds).not.toHaveBeenCalledWith(expect.anything(), { padding: 0.25 });
+    });
+
+    it('fits the level when the empty canvas is double-clicked', async () => {
+      await renderWithGraph();
+      await settle();
+      const layout = await levelLayout();
+      mockFitBounds.mockClear();
+
+      fireEvent.doubleClick(screen.getByTestId('pane'));
+
+      expect(mockFitBounds).toHaveBeenCalledTimes(1);
+      expect(mockFitBounds.mock.calls[0]).toEqual([diagramBounds(layout), { padding: 0.1 }]);
+    });
 
     it('fits the whole diagram after layout and from the Fit button', async () => {
       await renderWithGraph();
