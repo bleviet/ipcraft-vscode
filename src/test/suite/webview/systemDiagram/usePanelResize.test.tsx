@@ -19,6 +19,13 @@ function Harness({ edge }: { edge: PanelEdge }) {
 const separator = () => screen.getByRole('separator', { name: 'Resize' });
 const state = () => screen.getByTestId('state').textContent;
 
+/** Renders the harness and opens the panel, which starts collapsed. */
+function renderOpen(edge: PanelEdge) {
+  const result = render(<Harness edge={edge} />);
+  fireEvent.click(screen.getByText('toggle'));
+  return result;
+}
+
 beforeEach(() => {
   jest.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
     left: 0,
@@ -36,8 +43,17 @@ beforeEach(() => {
 afterEach(() => jest.restoreAllMocks());
 
 describe('usePanelResize', () => {
-  it('exposes an accessible separator', () => {
+  it('starts collapsed and the first toggle shows the panel at its default size', () => {
     render(<Harness edge="left" />);
+    expect(state()).toBe('260:true');
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('toggle'));
+    expect(state()).toBe('260:false');
+    expect(separator()).toHaveAttribute('aria-valuenow', '260');
+  });
+
+  it('exposes an accessible separator', () => {
+    renderOpen('left');
     expect(separator()).toHaveAttribute('aria-orientation', 'vertical');
     expect(separator()).toHaveAttribute('aria-valuenow', '260');
     expect(separator()).toHaveAttribute('aria-valuemin', '160');
@@ -46,7 +62,7 @@ describe('usePanelResize', () => {
   });
 
   it('resizes by dragging and clamps to the limits', () => {
-    render(<Harness edge="left" />);
+    renderOpen('left');
     fireEvent.pointerDown(separator(), { pointerId: 1 });
     fireEvent.pointerMove(separator(), { clientX: 350, clientY: 0 });
     expect(state()).toBe('350:false');
@@ -62,7 +78,7 @@ describe('usePanelResize', () => {
   it.each(['pointerCancel', 'lostPointerCapture'] as const)(
     'stops following the pointer after %s',
     (eventName) => {
-      render(<Harness edge="left" />);
+      renderOpen('left');
       fireEvent.pointerDown(separator(), { pointerId: 1 });
       fireEvent.pointerMove(separator(), { clientX: 350, clientY: 0 });
       expect(state()).toBe('350:false');
@@ -74,13 +90,13 @@ describe('usePanelResize', () => {
   );
 
   it('measures the right and bottom panels from their own edges', () => {
-    const { unmount } = render(<Harness edge="right" />);
+    const { unmount } = renderOpen('right');
     fireEvent.pointerDown(separator(), { pointerId: 1 });
     fireEvent.pointerMove(separator(), { clientX: 700, clientY: 0 });
     expect(state()).toBe('300:false');
     unmount();
 
-    render(<Harness edge="bottom" />);
+    renderOpen('bottom');
     expect(separator()).toHaveAttribute('aria-orientation', 'horizontal');
     expect(separator()).toHaveAttribute('aria-valuemax', '560');
     fireEvent.pointerDown(separator(), { pointerId: 1 });
@@ -89,7 +105,7 @@ describe('usePanelResize', () => {
   });
 
   it('changes the size by 16 px with arrow keys and stops at the limits', () => {
-    render(<Harness edge="left" />);
+    renderOpen('left');
     fireEvent.keyDown(separator(), { key: 'ArrowRight' });
     expect(state()).toBe('276:false');
     fireEvent.keyDown(separator(), { key: 'ArrowLeft' });
@@ -106,7 +122,7 @@ describe('usePanelResize', () => {
   });
 
   it('uses vertical arrows for the bottom panel', () => {
-    render(<Harness edge="bottom" />);
+    renderOpen('bottom');
     fireEvent.keyDown(separator(), { key: 'ArrowUp' });
     expect(state()).toBe('216:false');
     fireEvent.keyDown(separator(), { key: 'ArrowLeft' });
@@ -114,7 +130,7 @@ describe('usePanelResize', () => {
   });
 
   it('collapses on double-click and restores the previous size', () => {
-    render(<Harness edge="left" />);
+    renderOpen('left');
     fireEvent.keyDown(separator(), { key: 'ArrowRight' });
     fireEvent.doubleClick(separator());
     expect(state()).toBe('276:true');
@@ -125,7 +141,7 @@ describe('usePanelResize', () => {
   });
 
   it('re-clamps the bottom panel when the window shrinks', () => {
-    render(<Harness edge="bottom" />);
+    renderOpen('bottom');
     for (let i = 0; i < 20; i += 1) {
       fireEvent.keyDown(separator(), { key: 'ArrowUp' });
     }

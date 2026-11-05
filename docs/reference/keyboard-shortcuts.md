@@ -16,7 +16,7 @@ normal typing shortcuts unless a table cell is explicitly in navigation mode.
 | `Left` / `Right` | With a panel separator focused, resize the outline or details panel by 16 px |
 | `Up` / `Down` | With the bottom panel separator focused, resize it by 16 px |
 
-Double-click a separator to collapse its panel; use the toolbar toggles to restore it.
+Panels start hidden; open them with the toolbar toggles. Double-click a separator to collapse its panel again.
 
 Double-click a block or port to zoom to it, or empty canvas to fit the level. Double-clicking a hierarchy block opens it.
 

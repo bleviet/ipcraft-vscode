@@ -127,11 +127,24 @@ function send(message: SystemDiagramToWebviewMessage): void {
   });
 }
 
-async function renderWithGraph() {
+const PANEL_TOGGLES = ['Toggle Outline', 'Toggle Details', 'Toggle Bottom Panel'];
+
+/** The panels start hidden; open them through the real toolbar toggles. */
+function openPanels(): void {
+  for (const name of PANEL_TOGGLES) {
+    fireEvent.click(screen.getByRole('button', { name }));
+  }
+}
+
+/** Renders the app with a graph; `panelsOpen: false` keeps the initial hidden panels. */
+async function renderWithGraph({ panelsOpen = true } = {}) {
   render(<SystemDiagramApp />);
   send({ type: 'graph', graph });
   await waitFor(() => expect(screen.getByTestId('flow')).toBeInTheDocument());
   await screen.findByTestId('node:/axi_dma_0');
+  if (panelsOpen) {
+    openPanels();
+  }
 }
 
 const outline = () => within(screen.getByRole('navigation', { name: 'Design outline' }));
@@ -151,6 +164,8 @@ describe('SystemDiagramApp', () => {
     render(<SystemDiagramApp />);
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'ready' });
     send({ type: 'graph', graph });
+    await screen.findByTestId('node:/axi_dma_0');
+    openPanels();
 
     expect(await outline().findByRole('button', { name: 'axi_dma_0 axi_dma:7.1' })).toBeVisible();
     expect(outline().getByRole('button', { name: /^dsp_pipeline/ })).toBeVisible();
@@ -229,6 +244,7 @@ describe('SystemDiagramApp', () => {
     };
     send({ type: 'graph', graph: enriched });
     await screen.findByTestId('node:/axi_dma_0');
+    openPanels();
     fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
 
     fireEvent.click(details().getByRole('button', { name: 'ip/axi_dma.ip.yml' }));
@@ -251,8 +267,19 @@ describe('SystemDiagramApp', () => {
     expect(details().getByRole('heading', { name: 'axi_dma_0' })).toBeVisible();
   });
 
+  it('starts with the outline, details, and bottom panels hidden', async () => {
+    await renderWithGraph({ panelsOpen: false });
+    expect(screen.queryByRole('navigation', { name: 'Design outline' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Details' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
+    for (const name of PANEL_TOGGLES) {
+      expect(screen.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'false');
+    }
+    expect(screen.getByTestId('flow')).toBeInTheDocument();
+  });
+
   it('lists problems from the badge', async () => {
-    await renderWithGraph();
+    await renderWithGraph({ panelsOpen: false });
     fireEvent.click(screen.getByRole('button', { name: /Offline view, partial/ }));
     expect(screen.getByRole('tab', { name: /Problems/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText(/Skipped Vivado-only commands/)).toBeVisible();
@@ -483,6 +510,10 @@ describe('SystemDiagramApp', () => {
           'aria-pressed',
           'false'
         );
+        expect(screen.getByRole('button', { name: 'Toggle Details' })).toHaveAttribute(
+          'aria-pressed',
+          'true'
+        );
         expect(screen.getByTestId('node:/dsp_pipeline/fir_compiler_0')).toBeInTheDocument();
 
         send({ type: 'graph', graph: clone() });
@@ -492,6 +523,10 @@ describe('SystemDiagramApp', () => {
         expect(screen.getByRole('button', { name: 'Toggle Outline' })).toHaveAttribute(
           'aria-pressed',
           'false'
+        );
+        expect(screen.getByRole('button', { name: 'Toggle Details' })).toHaveAttribute(
+          'aria-pressed',
+          'true'
         );
         expect(mockFitBounds).not.toHaveBeenCalled();
         expect(mockSetViewport).not.toHaveBeenCalled();
@@ -780,7 +815,8 @@ describe('SystemDiagramApp', () => {
     });
 
     it('fits the whole diagram after layout and from the Fit button', async () => {
-      await renderWithGraph();
+      // Panels stay hidden: opening one refits, which would mask the first-load fit.
+      await renderWithGraph({ panelsOpen: false });
       await waitFor(() => expect(mockFitBounds).toHaveBeenCalled());
       const [bounds, options] = mockFitBounds.mock.calls[0];
       expect(bounds).toMatchObject({ x: expect.any(Number), width: expect.any(Number) });
@@ -879,6 +915,7 @@ describe('SystemDiagramApp', () => {
     it('reopens the bottom panel on the problems tab from the badge', async () => {
       await renderWithGraph();
       fireEvent.click(screen.getByRole('button', { name: 'Toggle Bottom Panel' }));
+      expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: /Offline view, partial/ }));
       expect(screen.getByRole('tab', { name: /Problems/ })).toHaveAttribute(
         'aria-selected',

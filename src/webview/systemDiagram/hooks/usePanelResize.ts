@@ -39,7 +39,7 @@ export function usePanelResize(
   containerRef: RefObject<HTMLElement | null>
 ): PanelResize {
   const [size, setSize] = useState(DEFAULT_PANEL_SIZES[edge]);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [containerSize, setContainerSize] = useState(0);
   const dragging = useRef(false);
   const limits = limitsFor(edge, containerSize);
