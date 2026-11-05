@@ -21,7 +21,7 @@ for (const shot of shots) {
         harness: shot.harness,
         theme,
         yamlText: readShotSource(shot),
-        fileName: shot.fileName,
+        fileName: shot.fileName ?? path.basename(shot.source),
         memoryMapImports: readShotMemoryMapImports(shot),
         viewport: shot.viewport ?? { width: 1400, height: 900 },
       });

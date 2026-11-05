@@ -88,7 +88,7 @@ export function braceDelta(line: string): number {
   return delta;
 }
 
-/** Splits a command line into Tcl words, keeping braced words as one unit. */
+/** Splits a command line into Tcl words, keeping braced and quoted words as one unit. */
 export function splitWords(line: string): Word[] {
   const words: Word[] = [];
   let i = 0;
@@ -110,6 +110,17 @@ export function splitWords(line: string): Word[] {
         }
       }
       words.push({ kind: 'brace', text: line.slice(i + 1, j) });
+      i = j + 1;
+      continue;
+    }
+    if (line[i] === '"') {
+      let j = i + 1;
+      for (; j < line.length && line[j] !== '"'; j++) {
+        if (line[j] === '\\') {
+          j++;
+        }
+      }
+      words.push({ kind: 'other', text: line.slice(i, j + 1) });
       i = j + 1;
       continue;
     }

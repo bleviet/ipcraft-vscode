@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- **Offline system viewer.** **IPCraft: Open as System Diagram** (`Ctrl+Shift+V` / `Cmd+Shift+V` on a recognized `.tcl` or `.qsys` file toggles it) opens a Vivado `write_bd_tcl` script, a Platform Designer `.qsys` (Standard) system, or a Platform Designer system script (`qsys-script` `.tcl`) as a read-only diagram. Files are read statically and never executed, so no vendor tool or license is needed. The diagram shows one hierarchy level at a time with an outline and search, details, an address map, and problems; clocks and resets are pin badges until **Clocks and resets** is turned on; zoom and pan are kept per level. Workspace `.ip.yml` files (by VLNV or Platform Designer component name) and HDL files (for Vivado module references) add unconnected pins, directions, interface types and a **Defined by** link, and are not read in untrusted workspaces. Address ranges from definitions are not filled in yet. See [Viewing a System Design](docs/how-to/view-a-system-design.md). ([#239](https://github.com/bleviet/ipcraft-vscode/issues/239))
+
+### Changed
+
+- The VSIX now bundles the elkjs layout engine (EPL-2.0, see `THIRD_PARTY_NOTICES.md`), and the VSIX size budget is raised to 25 MiB unpacked and 2.5 MiB compressed.
+
 ## [1.2.0] - 2026-10-11
 
 ### Added

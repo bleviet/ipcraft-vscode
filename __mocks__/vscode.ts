@@ -21,6 +21,8 @@ export const window = {
   // before every test, so this is a bare stub — tests that need withProgress to
   // actually invoke its task must call `.mockImplementation(...)` themselves.
   withProgress: jest.fn(),
+  showTextDocument: jest.fn(),
+  onDidChangeActiveTextEditor: jest.fn(),
   activeTextEditor: undefined as { document: { fileName: string; uri: unknown } } | undefined,
   tabGroups: {
     all: [] as Array<{ tabs: Array<{ input: unknown }> }>,
@@ -30,6 +32,12 @@ export const window = {
     },
   },
 };
+
+export enum ViewColumn {
+  Active = -1,
+  Beside = -2,
+  One = 1,
+}
 
 export class TabInputCustom {
   constructor(
@@ -49,6 +57,7 @@ export class TabInputTextMerge {
 
 export const workspace = {
   isTrusted: true,
+  onDidGrantWorkspaceTrust: jest.fn(() => ({ dispose: jest.fn() })),
   onDidChangeTextDocument: jest.fn(),
   onDidSaveTextDocument: jest.fn(),
   onDidCloseTextDocument: jest.fn(),
@@ -62,6 +71,7 @@ export const workspace = {
   fs: {
     readFile: jest.fn(),
     writeFile: jest.fn(),
+    stat: jest.fn(),
   },
   workspaceFolders: undefined as undefined | Array<{ uri: { fsPath: string } }>,
 };
@@ -104,6 +114,7 @@ export const commands = {
 
 export const Uri = {
   file: jest.fn((path: string) => ({ fsPath: path, toString: () => path })),
+  parse: jest.fn(),
   from: jest.fn((parts: { scheme?: string; path?: string }) => ({
     scheme: parts.scheme,
     path: parts.path,

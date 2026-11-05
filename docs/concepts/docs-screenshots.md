@@ -40,7 +40,7 @@ needed before capture.
 ```ts
 export interface Shot {
   id: string;
-  harness: 'memorymap' | 'ipcore' | 'dataInspector';
+  harness: 'memorymap' | 'ipcore' | 'dataInspector' | 'systemDiagram';
   source: string;
   viewport?: { width: number; height: number };
   clip?: string;
@@ -70,6 +70,7 @@ ownership, or internal architecture.
 | `memorymap` | Memory Map editor |
 | `ipcore` | IP Core editor |
 | `dataInspector` | Data Inspector |
+| `systemDiagram` | System diagram (design read by the real offline reader) |
 
 The harnesses live in `src/test/browser/`. They load the real compiled bundles
 without starting VS Code.

@@ -7,7 +7,8 @@ copy.
 
 The shipped content is limited to:
 
-- the extension manifest, VSIX metadata, README, changelog, and MIT license;
+- the extension manifest, VSIX metadata, README, changelog, MIT license, and
+  `THIRD_PARTY_NOTICES.md` (the elkjs notice and EPL-2.0 text);
 - the production extension and webview JavaScript/CSS bundles, third-party
   bundle license notices, and the bundled UI font;
 - every generator template and built-in scaffold pack copied from
@@ -22,10 +23,13 @@ The shipped content is limited to:
 configuration, and unreviewed new top-level content. It also requires every
 runtime source asset to be represented in the archive.
 
-The size budget is 2 MiB compressed and 5 MiB unpacked. This leaves room for
-normal bundle growth while preventing source maps or another development tree
-from returning unnoticed. Any budget increase requires updating both this
-document and the constants in `scripts/check-vsix.js` with a reviewed reason.
+The size budget is 2.5 MiB compressed and 25 MiB unpacked. The budget was
+raised from 2 MiB and 5 MiB for elkjs, the layout engine bundled into the
+system diagram webview (issue #239), which brought the unpacked size to about
+7 MB. The unpacked budget leaves headroom for further webview features. The
+compressed budget still catches source maps or another development tree
+returning unnoticed. Any budget increase requires updating both this document
+and the constants in `scripts/check-vsix.js` with a reviewed reason.
 
 ## Marketplace release boundary
 

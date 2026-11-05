@@ -40,15 +40,23 @@ Prefer full quality? [Watch the demo video directly](docs/media/ipcraft-demo.mp4
 - **Debug register values faster** — decode raw literals and captured CSV data
   against the register map, then transform and combine values visually to
   investigate hardware behavior without repeatedly calculating fields by hand.
+- **Explore system designs without the vendor tool** — open a Vivado block
+  design script or a Platform Designer system as a read-only diagram in seconds,
+  with no vendor install or license, and follow hierarchy, connections, and the
+  address map.
 - **Reuse common and custom interfaces** — work with built-in AXI, Avalon, and
   streaming bus definitions, or describe project-specific conduit interfaces
   once and reuse them across cores.
 
 ## Screenshots
 
-| IP Core Editor                                         | Memory Map Editor                                                                                        | Data Inspector                                                    |
-| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| ![IP Core Editor](docs/images/ipcore-editor-light.png) | ![Memory Map Editor showing a register with multiple bit fields](docs/images/memorymap-editor-light.png) | ![Data Inspector](docs/images/data-inspector-workspace-light.png) |
+| IP Core Editor                                         | Memory Map Editor                                                                                        |
+| ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| ![IP Core Editor](docs/images/ipcore-editor-light.png) | ![Memory Map Editor showing a register with multiple bit fields](docs/images/memorymap-editor-light.png) |
+
+| Data Inspector                                                    | System Viewer                                                                                 |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| ![Data Inspector](docs/images/data-inspector-workspace-light.png) | ![System Viewer showing a Vivado block design](docs/images/system-diagram-overview-light.png) |
 
 Generated from the real editor UI by `npm run docs:screenshots` — see [Automated Docs Screenshots](docs/concepts/docs-screenshots.md).
 
@@ -61,6 +69,7 @@ Generated from the real editor UI by `npm run docs:screenshots` — see [Automat
   ([Create Your First IP Core](docs/how-to/create-your-first-ip-core.md),
   [Memory-Mapped Registers](docs/tutorials/memory-mapped-registers.md))
 - **Data Inspector** — decode literals and captured CSV data against registers, then transform and combine values in a visual workspace ([guide](docs/how-to/use-data-inspector.md))
+- **System Viewer** — open a Vivado `write_bd_tcl` script, a Platform Designer `.qsys` system, or a Platform Designer system script as a read-only diagram with hierarchy, address map, and problems, offline and without a vendor tool ([guide](docs/how-to/view-a-system-design.md))
 - **Custom Interfaces** — define conduit (custom) bus interfaces with user-named signals, stored as reusable `.busdef.yml` files ([guide](docs/how-to/defining-a-custom-interface.md))
 - **Consistency Check** — cross-references a spec against the generated top-level HDL and vendor artifacts (`component.xml`, `_hw.tcl`), flagging drift in either direction ([guide](docs/how-to/check-consistency.md))
 - **HDL and Vendor Generation** — scaffolds a full RTL project (package, top entity, user-logic skeleton, bus wrapper, register file, testbench) in VHDL or SystemVerilog, plus Vivado `component.xml`, Platform Designer `*_hw.tcl`, and vendor project files ([guide](docs/how-to/generating-a-project.md))

@@ -10,6 +10,7 @@ import { resolveMemoryMapImports } from '../services/imports/resolveMemoryMapImp
 import { normalizeIpCore, normalizeMemoryMap } from '../domain/parse';
 import type { NormalizedMemoryMap, NormalizedRegister } from '../domain/internal.types';
 import type { Parameter } from '../domain/ipcore.types';
+import { arrayedBusNames } from '../shared/busInterfaceArray';
 import { BUS_REGISTRY } from './buses/builtin';
 import {
   BYTE_LANE_WIDTH,
@@ -274,20 +275,18 @@ export function expandBusInterfaces(ipCore: IpCoreData): BusInterfaceDef[] {
     // type; ports then use their bare logical names.
     const arrayDef = iface.array;
     if (arrayDef) {
-      const count = Number(arrayDef.count ?? 1);
-      const start = Number(arrayDef.indexStart ?? 0);
-      for (let i = 0; i < count; i += 1) {
-        const idx = start + i;
-        const namePattern = arrayDef.namingPattern ?? `${String(iface.name)}_{index}`;
-        const prefixPattern =
-          arrayDef.physicalPrefixPattern ?? `${String(iface.physicalPrefix ?? '')}{index}_`;
+      for (const arrayed of arrayedBusNames({
+        name: iface.name,
+        physicalPrefix: iface.physicalPrefix,
+        array: arrayDef,
+      })) {
         expanded.push({
-          name: String(namePattern).replace('{index}', String(idx)),
+          name: arrayed.name,
           type: getString(iface.type),
           busTypeVlnv: iface.busTypeVlnv,
           rawPortMaps: iface.rawPortMaps,
           mode,
-          physicalPrefix: String(prefixPattern).replace('{index}', String(idx)),
+          physicalPrefix: arrayed.physicalPrefix,
           useOptionalPorts: iface.useOptionalPorts ?? [],
           portWidthOverrides: iface.portWidthOverrides ?? {},
           interfaceProperties: iface.interfaceProperties,
