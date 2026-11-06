@@ -201,6 +201,42 @@ describe('SystemDiagramApp', () => {
     expect(screen.queryByTestId('node:/dsp_pipeline/axis_data_fifo_0')).not.toBeInTheDocument();
   });
 
+  describe('mouse back button', () => {
+    const crumbs = () => within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+
+    it('goes up one level and keeps going one at a time', async () => {
+      await renderWithGraph();
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/coeff_bank');
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline/coeff_bank'));
+      await screen.findByText('coeff_bank', { selector: '[aria-current="page"]' });
+
+      fireEvent.mouseUp(window, { button: 3 });
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      expect(crumbs().getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
+
+      fireEvent.mouseUp(window, { button: 3 });
+      await screen.findByTestId('node:/axi_dma_0');
+      expect(screen.queryByTestId('node:/dsp_pipeline/fir_compiler_0')).not.toBeInTheDocument();
+    });
+
+    it('does nothing at the root', async () => {
+      await renderWithGraph();
+      fireEvent.mouseUp(window, { button: 3 });
+      expect(screen.getByTestId('node:/axi_dma_0')).toBeInTheDocument();
+      expect(screen.getByTestId('node:/dsp_pipeline')).toBeInTheDocument();
+    });
+
+    it.each([0, 4])('ignores button %i', async (button) => {
+      await renderWithGraph();
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      fireEvent.mouseUp(window, { button });
+      expect(screen.getByTestId('node:/dsp_pipeline/fir_compiler_0')).toBeInTheDocument();
+      expect(crumbs().getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
+    });
+  });
+
   it('enters a hierarchy by double-clicking its node', async () => {
     await renderWithGraph();
     fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));

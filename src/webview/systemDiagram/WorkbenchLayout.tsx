@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { BottomPanel, type BottomTab } from './BottomPanel';
 import { DetailsPanel } from './DetailsPanel';
@@ -7,8 +7,10 @@ import { DiagramToolbar, type PanelName } from './DiagramToolbar';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
+import { useMouseBackButton } from './hooks/useMouseBackButton';
 import { usePanelResize } from './hooks/usePanelResize';
 import type { DiagramProblem } from './messageState';
+import { levelOf } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
@@ -28,6 +30,14 @@ export function WorkbenchLayout({
   openDefinition,
 }: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
+  const { levelPath, navigate } = nav;
+  useMouseBackButton(
+    useCallback(() => {
+      if (levelPath !== '/') {
+        navigate(levelOf(levelPath));
+      }
+    }, [levelPath, navigate])
+  );
   const [showClockReset, setShowClockReset] = useState(false);
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<BottomTab>('address');

@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Mouse back button goes up a level.** In the system viewer, the mouse back button goes up one hierarchy level, like clicking the parent in the breadcrumb.
+
 ## [1.3.1] - 2026-11-06
 
 ### Added

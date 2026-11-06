@@ -36,7 +36,7 @@ diagram keeps the last valid design and shows a banner with the reason.
 The diagram shows one hierarchy level at a time.
 
 - **Levels.** Double-click a hierarchy block to enter it. Use the breadcrumb at
-  the top left to go back up.
+  the top left, or the mouse back button, to go up one level.
 - **Outline.** Lists the instances of the current design and its external
   ports. Select an item to select it in the diagram and center it.
 - **Search.** Type in **Search instances** to dim the blocks whose name or
