@@ -6,7 +6,7 @@ import {
 } from '../../../../webview/systemDiagram/layout/nodeSizing';
 import { fakeMeasure } from './fixtureGraph';
 
-// Row chrome: 16 padding + 8 marker + 4 gap = 28 px beside the text at 7 px per character;
+// Row chrome: 9 + 9 px padding = 18 px beside the text at 7 px per character (markers sit on the border);
 // the node border adds 2 px to the width and is not part of the columns.
 const chars = (n: number) => 'x'.repeat(n);
 const pin = (name: string): SystemPin => ({
@@ -82,21 +82,21 @@ describe('instanceLayout', () => {
   it('keeps the natural west width and gives east the rest when both fit', () => {
     const result = layout([chars(5)], [chars(6)]);
     expect(result.width).toBe(180);
-    expect(result.westWidth).toBe(28 + 35);
+    expect(result.westWidth).toBe(18 + 35);
     expect(result.eastWidth).toBe(178 - result.westWidth);
     expect(result.labels.get(chars(5))).toBe(chars(5));
   });
 
   it('grows to the natural columns plus the gap', () => {
     const result = layout([chars(15)], [chars(15)]);
-    expect(result.width).toBe(2 * (28 + 105) + 16 + 2);
-    expect(result.westWidth).toBe(28 + 105);
+    expect(result.width).toBe(2 * (18 + 105) + 16 + 2);
+    expect(result.westWidth).toBe(18 + 105);
   });
 
   it('lets the narrower side keep its natural width when it is at most half', () => {
     const result = layout([chars(5)], [chars(80)]);
     expect(result.width).toBe(420);
-    expect(result.westWidth).toBe(28 + 35);
+    expect(result.westWidth).toBe(18 + 35);
     expect(result.eastWidth).toBe(418 - result.westWidth);
     expect(result.labels.get(chars(80))).toContain('…');
   });
@@ -123,7 +123,7 @@ describe('boundaryLayout', () => {
   it('sizes to the name within the limits', () => {
     expect(boundaryLayout(pin('a'), fakeMeasure)).toEqual({ width: 100, label: 'a' });
     expect(boundaryLayout(pin(chars(20)), fakeMeasure)).toEqual({
-      width: 28 + 140 + 2,
+      width: 24 + 140,
       label: chars(20),
     });
   });
@@ -132,6 +132,6 @@ describe('boundaryLayout', () => {
     const result = boundaryLayout(pin(chars(80)), fakeMeasure);
     expect(result.width).toBe(320);
     expect(result.label).toContain('…');
-    expect(result.label.length * 7).toBeLessThanOrEqual(320 - 2 - 28);
+    expect(result.label.length * 7).toBeLessThanOrEqual(320 - 24);
   });
 });

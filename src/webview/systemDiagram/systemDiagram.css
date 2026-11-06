@@ -65,20 +65,75 @@ input:focus-visible {
   outline-offset: 1px;
 }
 
+/* Theme border tokens are nearly invisible on light themes; derive the block
+   and port outline from the foreground so they stand out in every theme. */
+.sd-node,
+.sd-port {
+  --sd-node-line: color-mix(in srgb, var(--vscode-foreground) 45%, transparent);
+}
+
 .sd-node {
   position: relative;
   border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
-  /* Theme border tokens are nearly invisible on light themes; derive the
-     border from the foreground so blocks stand out in every theme. */
-  --sd-node-line: color-mix(in srgb, var(--vscode-foreground) 45%, transparent);
   border-color: var(--sd-node-line);
   background: var(--vscode-editor-background);
   border-radius: 4px;
   font-size: 11px;
 }
 
-.sd-node-port {
-  background: var(--vscode-editorWidget-background);
+.sd-pin-marker {
+  position: absolute;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.sd-pin-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-pin-label[data-unconnected='true'] {
+  font-style: italic;
+  color: var(--vscode-descriptionForeground);
+}
+
+.sd-pin-label[data-highlight='true'] {
+  font-weight: 700;
+}
+
+.sd-port {
+  position: relative;
+}
+
+.sd-port-shape {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  fill: var(--vscode-editorWidget-background);
+  stroke: var(--sd-node-line);
+  stroke-width: 1;
+}
+
+.sd-port[data-selected='true'] .sd-port-shape {
+  stroke: var(--vscode-focusBorder);
+  stroke-width: 2;
+}
+
+.sd-port[data-dimmed='true'] {
+  opacity: 0.25;
+}
+
+.sd-port-label {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sd-node-head {

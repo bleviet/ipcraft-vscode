@@ -95,7 +95,7 @@ describe('buildElkInput', () => {
     const master = node.ports?.find((port) => port.id === '/axi_dma_0::M_AXIS_MM2S');
     expect(master?.x).toBe((node.width ?? 0) - 4);
     const westPorts = (node.ports ?? []).filter((port) => port.x === -4);
-    expect(westPorts.map((port) => port.y)).toEqual(westPorts.map((_, i) => 42 + i * 18 + 5));
+    expect(westPorts.map((port) => port.y)).toEqual(westPorts.map((_, i) => 42 + i * 18 + 6));
   });
 
   it('pins boundary sources to the first layer and sinks to the last', () => {
@@ -104,7 +104,7 @@ describe('buildElkInput', () => {
     expect(source.layoutOptions?.['elk.layered.layering.layerConstraint']).toBe('FIRST');
     expect(sink.layoutOptions?.['elk.layered.layering.layerConstraint']).toBe('LAST');
     expect(source.height).toBe(26);
-    expect(source.width).toBe(Math.max(100, 30 + 'ext_trigger'.length * 7));
+    expect(source.width).toBe(Math.max(100, 24 + 'ext_trigger'.length * 7));
     expect(source.ports).toHaveLength(1);
     expect(source.ports?.[0].x).toBe((source.width ?? 0) - 4);
     expect(sink.ports?.[0].x).toBe(-4);
@@ -319,4 +319,24 @@ describe('hidden clock and reset net badges', () => {
       expectBadgesClearOfNodes(nodes);
     }, 20000);
   }
+});
+
+describe('unconnected pin rows', () => {
+  it('flags pins without nets, counting hidden clock and reset nets as connected', () => {
+    const input = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
+    const { nodes } = toFlowElements(input, graph, '/', fakeMeasure);
+    const dma = nodes.find((node) => node.id === '/axi_dma_0');
+    const rows = dma?.type === 'instance' ? [...dma.data.west, ...dma.data.east] : [];
+    expect(rows.find((row) => row.name === 's_axi_lite_aclk')?.unconnected).toBe(false);
+
+    const bare = { ...graph, nets: [] };
+    const bareInput = buildElkInput(bare, '/', { showClockReset: false, measure: fakeMeasure });
+    const bareDma = toFlowElements(bareInput, bare, '/', fakeMeasure).nodes.find(
+      (node) => node.id === '/axi_dma_0'
+    );
+    const bareRows =
+      bareDma?.type === 'instance' ? [...bareDma.data.west, ...bareDma.data.east] : [];
+    expect(bareRows.length).toBeGreaterThan(0);
+    expect(bareRows.every((row) => row.unconnected)).toBe(true);
+  });
 });

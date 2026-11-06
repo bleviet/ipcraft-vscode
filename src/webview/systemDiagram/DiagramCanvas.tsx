@@ -16,6 +16,7 @@ import { usePinHover } from './hooks/usePinHover';
 import type { DiagramLayout } from './hooks/useElkLayout';
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
+import { highlightedPinsByNode } from './pinHighlight';
 import { boundaryMatchesQuery, matchesQuery, type Selection } from './model';
 
 const NODE_TYPES: NodeTypes = { instance: InstanceNode, boundary: BoundaryNode };
@@ -54,6 +55,10 @@ export function DiagramCanvas({
   const { hover, onHoverPin } = usePinHover(layout);
 
   const nodes = useMemo(() => {
+    const highlighted =
+      selection?.kind === 'net' && layout
+        ? highlightedPinsByNode(selection.id, layout.edges, layout.nodes)
+        : undefined;
     const searching = query.trim() !== '';
     return (layout?.nodes ?? []).map((node) => {
       const dimmed =
@@ -67,6 +72,7 @@ export function DiagramCanvas({
         data: {
           ...node.data,
           dimmed,
+          ...(highlighted?.has(node.id) && { highlightedPins: highlighted.get(node.id) }),
           onSelectNet,
           onHoverPin,
           ...(flash?.id === node.id && { flashToken: flash.token, onFlashEnd }),

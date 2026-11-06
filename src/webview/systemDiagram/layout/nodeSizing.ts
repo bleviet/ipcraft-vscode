@@ -16,11 +16,15 @@ export const BOUNDARY_MAX_WIDTH = 320;
 const ROW_PADDING = 16;
 /** The node's 1 px border on each side takes space from its content box. */
 const NODE_BORDER = 2;
-const MARKER_WIDTH = 8;
-const MARKER_GAP = 4;
 const COLUMN_GAP = 16;
-/** Horizontal space a pin row spends besides its text. */
-const ROW_CHROME = ROW_PADDING + MARKER_WIDTH + MARKER_GAP;
+/**
+ * Horizontal space a pin row spends besides its text: the text sits 10 px from
+ * its border (9 px inside the 1 px border) and keeps 9 px on the other side.
+ * The pin marker is centred on the border and takes no row space.
+ */
+const ROW_CHROME = 18;
+/** External port tag: text starts 12 px in and stops before the 12 px arrow tip. */
+const BOUNDARY_CHROME = 24;
 /** Room for the right-aligned "OPEN" hint and chevron in a hierarchy block header. */
 const HIER_HINT_WIDTH = 52;
 const ELLIPSIS = '…';
@@ -141,8 +145,9 @@ export function instanceLayout(
 }
 
 export function boundaryLayout(pin: SystemPin, measure: TextMeasure): BoundaryLayout {
+  const semibold: TextMeasure = (text) => measure(text, 'semibold');
   const width = Math.ceil(
-    clamp(naturalColumn([pin.name], measure) + NODE_BORDER, BOUNDARY_MIN_WIDTH, BOUNDARY_MAX_WIDTH)
+    clamp(semibold(pin.name, 'semibold') + BOUNDARY_CHROME, BOUNDARY_MIN_WIDTH, BOUNDARY_MAX_WIDTH)
   );
-  return { width, label: labelFor(pin.name, width - NODE_BORDER, measure) };
+  return { width, label: middleEllipsis(pin.name, width - BOUNDARY_CHROME, semibold) };
 }

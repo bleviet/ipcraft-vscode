@@ -1,6 +1,5 @@
 import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import { categoryColor } from './colors';
 import {
   HEADER_HEIGHT,
   PIN_ROW_HEIGHT,
@@ -9,23 +8,18 @@ import {
 } from './layout/elkLayout';
 import { instanceSubtitle, type PinHoverTarget } from './model';
 import { NetBadgeView } from './NetBadgeView';
+import { PinMarker } from './PinMarker';
 
 export type InstanceFlowNode = Node<InstanceNodeData, 'instance'>;
 
 interface PinRowViewProps {
   row: PinRow;
+  highlighted: boolean;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
 }
 
-function PinRowView({ row, onHoverPin }: PinRowViewProps) {
+function PinRowView({ row, highlighted, onHoverPin }: PinRowViewProps) {
   const east = row.side === 'east';
-  const marker = (
-    <span
-      aria-hidden="true"
-      className={`inline-block h-2 w-2 shrink-0 ${row.isInterface ? '' : 'rounded-full'}`}
-      style={{ background: categoryColor(row.category) }}
-    />
-  );
   return (
     <div
       aria-label={row.label === row.name ? undefined : row.name}
@@ -36,11 +30,22 @@ function PinRowView({ row, onHoverPin }: PinRowViewProps) {
         )
       }
       onPointerLeave={() => onHoverPin?.(null)}
-      className={`relative flex items-center gap-1 px-2 ${east ? 'flex-row-reverse' : ''}`}
+      className={`relative flex items-center ${east ? 'justify-end pr-[9px]' : 'pl-[9px]'}`}
       style={{ height: PIN_ROW_HEIGHT }}
     >
-      {marker}
-      <span className="truncate">{row.label}</span>
+      <PinMarker
+        isInterface={row.isInterface}
+        category={row.category}
+        hollow={row.unconnected}
+        side={row.side}
+      />
+      <span
+        className="sd-pin-label"
+        data-unconnected={row.unconnected}
+        data-highlight={highlighted}
+      >
+        {row.label}
+      </span>
       {(['source', 'target'] as const).map((type) => (
         <Handle
           key={type}
@@ -49,6 +54,7 @@ function PinRowView({ row, onHoverPin }: PinRowViewProps) {
           position={east ? Position.Right : Position.Left}
           isConnectable={false}
           className="sd-handle"
+          style={{ [east ? 'right' : 'left']: -1 }}
         />
       ))}
     </div>
@@ -99,12 +105,22 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
       <div className="flex" style={{ paddingBottom: 10 }}>
         <div className="min-w-0 shrink-0" style={{ width: data.westWidth }}>
           {data.west.map((row) => (
-            <PinRowView key={row.name} row={row} onHoverPin={data.onHoverPin} />
+            <PinRowView
+              key={row.name}
+              row={row}
+              highlighted={data.highlightedPins?.has(row.name) ?? false}
+              onHoverPin={data.onHoverPin}
+            />
           ))}
         </div>
         <div className="min-w-0 shrink-0" style={{ width: data.eastWidth }}>
           {data.east.map((row) => (
-            <PinRowView key={row.name} row={row} onHoverPin={data.onHoverPin} />
+            <PinRowView
+              key={row.name}
+              row={row}
+              highlighted={data.highlightedPins?.has(row.name) ?? false}
+              onHoverPin={data.onHoverPin}
+            />
           ))}
         </div>
       </div>

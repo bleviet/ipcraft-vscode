@@ -29,6 +29,8 @@ export interface PinRow {
   signalType?: SystemPin['signalType'];
   /** Display text: `name`, or its middle-ellipsized form when the column is too narrow. */
   label: string;
+  /** No net touches the pin (a clock or reset net hidden behind a badge still counts). */
+  unconnected: boolean;
 }
 
 export interface InstanceNodeData extends Record<string, unknown> {
@@ -39,6 +41,8 @@ export interface InstanceNodeData extends Record<string, unknown> {
   eastWidth: number;
   west: PinRow[];
   east: PinRow[];
+  /** Pins on the selected net; their labels are drawn bold. */
+  highlightedPins?: ReadonlySet<string>;
   dimmed?: boolean;
   /** Set on the node being pulsed after a search step; a new value restarts the pulse. */
   flashToken?: number;

@@ -24,6 +24,7 @@ import {
   type InstanceLayout,
   type TextMeasure,
 } from './nodeSizing';
+import { extendRouteEnds } from './edgePoints';
 import { badgeLabels, badgeOfPort, hiddenNetsByEndpoint } from './netBadges';
 import {
   boundaryId,
@@ -40,7 +41,8 @@ export const HEADER_HEIGHT = 42;
 export const PIN_ROW_HEIGHT = 18;
 export const BOUNDARY_HEIGHT = 26;
 const PORT_SIZE = 8;
-const PIN_TOP_OFFSET = 5;
+/** Port top below its row top: 1 px border + 9 px row middle - half the 8 px port. */
+const PIN_TOP_OFFSET = 6;
 const PIN_BOTTOM_PADDING = 10;
 
 export type {
@@ -269,6 +271,7 @@ function pinRows(
       ...(pin.interfaceType !== undefined && { interfaceType: pin.interfaceType }),
       ...(pin.signalType !== undefined && { signalType: pin.signalType }),
       label: labels.get(pin.name)!,
+      unconnected: nets.length === 0,
       badge: badgeOfPort(ports.get(portId(instance.path, pin.name)), hidden.get(endpointKey(ref))),
     });
   }
@@ -361,7 +364,10 @@ export function toFlowElements(
       sourceHandle,
       targetHandle,
       data: {
-        points: [section.startPoint, ...(section.bendPoints ?? []), section.endPoint],
+        points: extendRouteEnds(
+          [section.startPoint, ...(section.bendPoints ?? []), section.endPoint],
+          PORT_SIZE / 2
+        ),
         netId: net.id,
         category: net.category,
         isInterface: net.isInterface,

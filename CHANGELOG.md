@@ -11,7 +11,7 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
-- **System viewer restyled.** Blocks get a header band (hierarchy blocks a dashed outline and an OPEN hint), clock and reset labels are quieter and drop the driver instance prefix from their names, a legend names the wire categories on screen, the outline and details panels follow the side bar theme, and the address map shows grouped hex addresses and humanized ranges.
+- **System viewer restyled.** Blocks get a header band (hierarchy blocks a dashed outline and an OPEN hint), clock and reset labels are quieter and drop the driver instance prefix from their names, a legend names the wire categories on screen, the outline and details panels follow the side bar theme, and the address map shows grouped hex addresses and humanized ranges. Pin markers sit on the block border with wires ending at them (unconnected pins are italic with a hollow marker, pins on the selected net are bold), and external ports are arrow tags.
 
 ## [1.3.1] - 2026-11-06
 
