@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- **Review unconnected pins in the system viewer.** The Unconnected pins toolbar toggle dims the diagram and marks pins that no net touches, undriven inputs in the warning color and unused outputs muted, with per-block counts, a level banner, and an Unconnected tab that lists them and jumps to each pin. Only blocks with a known pin list (an `.ip.yml` or HDL definition, hierarchy pins, external ports) are checked. Details also tags unconnected pins. ([#245](https://github.com/bleviet/ipcraft-vscode/issues/245))
+
+### Changed
+
+- **Plainer problems button in the system viewer.** The toolbar note "Offline view, partial · N warnings" is now "N problems", the same count as the Problems tab, and is hidden when there are none. What the offline view cannot know is still listed in Details under "What this view knows".
+
 ## [1.4.0] - 2026-11-06
 
 ### Added

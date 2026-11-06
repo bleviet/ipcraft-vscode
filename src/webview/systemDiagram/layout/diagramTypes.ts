@@ -8,6 +8,7 @@ import type {
   SystemPin,
 } from '../../../domain/systemGraph';
 import type { PinHoverTarget } from '../model';
+import type { NodeReview } from '../unconnectedPins';
 import type { NetBadge } from './netBadges';
 
 export type PinSide = 'west' | 'east';
@@ -44,6 +45,10 @@ export interface InstanceNodeData extends Record<string, unknown> {
   /** Pins on the selected net; their labels are drawn bold. */
   highlightedPins?: ReadonlySet<string>;
   dimmed?: boolean;
+  /** Present only while the unconnected-pin review is on. */
+  review?: NodeReview;
+  /** Name of the pin whose marker gets the focus halo. */
+  focusedPin?: string;
   /** Set on the node being pulsed after a search step; a new value restarts the pulse. */
   flashToken?: number;
   onFlashEnd?: (token: number) => void;
@@ -61,6 +66,10 @@ export interface BoundaryNodeData extends Record<string, unknown> {
   netNames: string[];
   badge?: NetBadge;
   dimmed?: boolean;
+  /** Present only while the unconnected-pin review is on. */
+  review?: NodeReview;
+  /** Name of the pin when its marker gets the focus halo. */
+  focusedPin?: string;
   onSelectNet?: (netId: string) => void;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
 }

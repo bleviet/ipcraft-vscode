@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { boundaryId, cellCount, instanceTypeLabel, type Selection } from './model';
+import { nodeUnconnectedCount, type UnconnectedPin } from './unconnectedPins';
 
 interface OutlineTreeProps {
   graph: SystemGraph;
   levelPath: string;
   selection: Selection | null;
+  /** Findings to count on rows while the unconnected-pin review is on, else null. */
+  review: readonly UnconnectedPin[] | null;
   onSelect: (selection: Selection | null, levelPath?: string) => void;
 }
 
@@ -18,6 +21,8 @@ interface RowProps {
   detail?: string;
   /** Right-aligned muted count that never gives way to the name. */
   count?: number;
+  /** Review mode: unconnected pins in this row (rolled up for a hierarchy). */
+  unconnected?: { all: number; undriven: number };
   current: boolean;
   expanded?: boolean;
   onToggle?: () => void;
@@ -30,6 +35,7 @@ function OutlineRow({
   icon,
   detail,
   count,
+  unconnected,
   current,
   expanded,
   onToggle,
@@ -64,8 +70,25 @@ function OutlineRow({
         {detail && (
           <span className="min-w-0 flex-1 basis-0 truncate text-xs opacity-60">{detail}</span>
         )}
+        {unconnected && unconnected.all > 0 && (
+          <span
+            className="ml-auto shrink-0 text-[11px]"
+            title={`${unconnected.undriven} undriven, ${unconnected.all - unconnected.undriven} unused`}
+            style={{
+              color:
+                unconnected.undriven > 0
+                  ? 'var(--vscode-editorWarning-foreground)'
+                  : 'var(--vscode-descriptionForeground)',
+            }}
+          >
+            <span className="sr-only"> </span>
+            {unconnected.all}
+          </span>
+        )}
         {count !== undefined && (
-          <span className="ml-auto shrink-0 text-[11px] text-[var(--vscode-descriptionForeground)]">
+          <span
+            className={`${unconnected && unconnected.all > 0 ? 'ml-1.5' : 'ml-auto'} shrink-0 text-[11px] text-[var(--vscode-descriptionForeground)]`}
+          >
             <span className="sr-only"> </span>
             {count}
           </span>
@@ -75,7 +98,9 @@ function OutlineRow({
   );
 }
 
-export function OutlineTree({ graph, levelPath, selection, onSelect }: OutlineTreeProps) {
+export function OutlineTree({ graph, levelPath, selection, review, onSelect }: OutlineTreeProps) {
+  const unconnectedOf = (nodeId: string) =>
+    review ? nodeUnconnectedCount(review, nodeId, graph) : undefined;
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set(['/', 'ports']));
   const toggle = (key: string) =>
     setExpanded((previous) => {
@@ -101,6 +126,7 @@ export function OutlineTree({ graph, levelPath, selection, onSelect }: OutlineTr
             icon={instance.kind}
             detail={isHier ? undefined : instanceTypeLabel(instance)}
             count={isHier ? cellCount(graph, instancePath) : undefined}
+            unconnected={unconnectedOf(instancePath)}
             current={selection?.kind === 'instance' && selection.id === instancePath}
             expanded={isHier ? expanded.has(instancePath) : undefined}
             onToggle={isHier ? () => toggle(instancePath) : undefined}
@@ -118,6 +144,14 @@ export function OutlineTree({ graph, levelPath, selection, onSelect }: OutlineTr
         depth={0}
         label={graph.name}
         detail="design"
+        unconnected={
+          review
+            ? {
+                all: review.length,
+                undriven: review.filter((finding) => finding.cls === 'undriven').length,
+              }
+            : undefined
+        }
         current={levelPath === '/' && selection === null}
         expanded={expanded.has('/')}
         onToggle={() => toggle('/')}
@@ -143,6 +177,7 @@ export function OutlineTree({ graph, levelPath, selection, onSelect }: OutlineTr
                 label={pin.name}
                 icon="port"
                 detail={pin.direction}
+                unconnected={unconnectedOf(boundaryId('/', pin.name))}
                 current={
                   selection?.kind === 'boundary' && selection.id === boundaryId('/', pin.name)
                 }

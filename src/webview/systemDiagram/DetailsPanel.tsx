@@ -6,12 +6,14 @@ import { InstanceDetails } from './InstanceDetails';
 import { MultiSelectionDetails } from './MultiSelectionDetails';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
-import { boundaryId, parseBoundaryId, type Selection } from './model';
+import { boundaryId, endpointKey, netsByEndpoint, parseBoundaryId, type Selection } from './model';
+import { unconnectedClass, type FocusedPin } from './unconnectedPins';
 
 interface DetailsPanelProps {
   graph: SystemGraph;
   selection: Selection | null;
   selectedNodeIds: readonly string[];
+  focusedPin: FocusedPin | null;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
@@ -117,6 +119,9 @@ function BoundaryDetails({
   onReveal: (line: number, uri?: string) => void;
 }) {
   const parameters = Object.entries(pin.parameters);
+  const unconnected = !netsByEndpoint(graph, level).has(
+    endpointKey({ instance: null, pin: pin.name })
+  );
   return (
     <div className="space-y-3">
       <header>
@@ -127,6 +132,13 @@ function BoundaryDetails({
           {pin.vlnv ?? pin.interfaceType ?? pin.signalType ?? 'scalar'}
         </p>
       </header>
+      {unconnected && (
+        <p className="text-xs opacity-70">
+          {unconnectedClass(pin, true) === 'undriven'
+            ? 'No net drives this port on this level.'
+            : 'Nothing on this level uses this port.'}
+        </p>
+      )}
       {pin.line !== undefined && (
         <p>
           Declared at{' '}
@@ -151,6 +163,7 @@ export function DetailsPanel({
   graph,
   selection,
   selectedNodeIds,
+  focusedPin,
   onSelect,
   onEnterHierarchy,
   onReveal,
@@ -164,6 +177,7 @@ export function DetailsPanel({
       <InstanceDetails
         graph={graph}
         instance={graph.instances[selection.id]}
+        focusedPin={focusedPin?.nodeId === selection.id ? focusedPin.pin : undefined}
         onSelect={onSelect}
         onEnterHierarchy={onEnterHierarchy}
         onReveal={onReveal}

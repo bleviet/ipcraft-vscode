@@ -313,10 +313,11 @@ in connections.
 | Zoom and pan | Each level keeps its own zoom and pan while the viewer is open. The diagram is fitted on the first visit to a level and by the Fit button. Selecting a component in the outline, address map, or details centers it at the current zoom. Double-clicking a block or port zooms to it; double-clicking empty canvas fits the level. Double-clicking a hierarchy block still opens it |
 | Edits | When an edit temporarily makes the file unreadable or no longer a block design, the last valid design stays on screen with its view state and a banner explains why. The next valid edit replaces it |
 | Details | VLNV, user-set parameters, pins with provenance, and the source location |
+| Unconnected pins | A toolbar toggle (issue #245) dims the diagram and marks pins that no net touches: undriven inputs in the warning color, unused outputs muted, with block counts, a level banner, and an Unconnected tab. Only blocks with a known pin list are checked (`.ip.yml` or HDL definition, hierarchy pins, external ports); the others are shown dashed and counted as not checked |
 | Address map | Table of address segments per master address space, sortable and searchable |
 | Go to source | Every element opens its source file at the line that created it |
 | IPCraft links | Instances backed by an `.ip.yml` open in the IP Core editor; their address segments open the `.mm.yml` |
-| Completeness badge | "Offline view, partial" with the capability record and the list of warnings |
+| Problems button | "N problems" in the toolbar opens the Problems tab; hidden when there are none. What the offline view cannot know is listed in Details under "What this view knows" |
 
 The view reloads when the source file changes on disk. It is read-only, so it
 does not use the revisioned edit protocol.

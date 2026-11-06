@@ -3,10 +3,13 @@ import type { SystemGraph, SystemInstance } from '../../domain/systemGraph';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
 import { endpointKey, netsByEndpoint, shortVlnv, type Selection } from './model';
+import { isPinListKnown, unconnectedClass } from './unconnectedPins';
 
 interface InstanceDetailsProps {
   graph: SystemGraph;
   instance: SystemInstance;
+  /** Name of the pin to highlight, set from the Unconnected list. */
+  focusedPin?: string;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
@@ -16,6 +19,7 @@ interface InstanceDetailsProps {
 export function InstanceDetails({
   graph,
   instance,
+  focusedPin,
   onSelect,
   onEnterHierarchy,
   onReveal,
@@ -24,6 +28,11 @@ export function InstanceDetails({
   const source = levelSource(graph, instance.parent);
   const nets = netsByEndpoint(graph, instance.parent);
   const parameters = Object.entries(instance.parameters);
+  const hasUndriven = instance.pins.some(
+    (pin) =>
+      !nets.has(endpointKey({ instance: instance.path, pin: pin.name })) &&
+      unconnectedClass(pin, false) === 'undriven'
+  );
   const identity =
     instance.kind === 'module'
       ? `Module reference ${instance.moduleRef ?? ''}`
@@ -101,23 +110,39 @@ export function InstanceDetails({
             {instance.pins.map((pin) => {
               const pinNets =
                 nets.get(endpointKey({ instance: instance.path, pin: pin.name })) ?? [];
+              const cls = pinNets.length === 0 ? unconnectedClass(pin, false) : undefined;
               return (
-                <tr key={pin.name}>
+                <tr
+                  key={pin.name}
+                  className={focusedPin === pin.name ? 'sd-row-selected' : undefined}
+                >
                   <td>{pin.name}</td>
                   <td>
-                    {pinNets.length > 0
-                      ? pinNets.map((net) => (
-                          <div key={net.id}>
-                            <button
-                              type="button"
-                              className="sd-link"
-                              onClick={() => onSelect({ kind: 'net', id: net.id })}
-                            >
-                              {net.name}
-                            </button>
-                          </div>
-                        ))
-                      : '-'}
+                    {pinNets.length > 0 ? (
+                      pinNets.map((net) => (
+                        <div key={net.id}>
+                          <button
+                            type="button"
+                            className="sd-link"
+                            onClick={() => onSelect({ kind: 'net', id: net.id })}
+                          >
+                            {net.name}
+                          </button>
+                        </div>
+                      ))
+                    ) : (
+                      <span
+                        className="sd-unc-tag"
+                        data-class={cls}
+                        title={
+                          cls === 'undriven'
+                            ? 'Unconnected: no net drives this pin'
+                            : 'Unconnected: nothing uses this pin'
+                        }
+                      >
+                        {cls}
+                      </span>
+                    )}
                   </td>
                   <td>
                     {pin.direction} <span className="opacity-60">({pin.directionSource})</span>
@@ -128,6 +153,18 @@ export function InstanceDetails({
             })}
           </tbody>
         </table>
+        {hasUndriven && (
+          <p className="mt-2 text-xs opacity-70">
+            The vendor tool ties an input without a driver to a constant, usually its default value.
+            An active-low reset tied to 0 holds the block in reset.
+          </p>
+        )}
+        {!isPinListKnown(instance) && (
+          <p className="mt-2 text-xs opacity-70">
+            Pins come from the connections in the design file, so unconnected pins cannot be
+            checked.
+          </p>
+        )}
       </section>
     </div>
   );

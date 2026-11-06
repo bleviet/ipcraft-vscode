@@ -3,7 +3,7 @@ import * as path from 'path';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
 import { readQsys } from '../../../../parser/system/QsysReader';
 import { readQsysTcl } from '../../../../parser/system/QsysTclReader';
-import type { SystemGraph } from '../../../../domain/systemGraph';
+import type { SystemGraph, SystemPin } from '../../../../domain/systemGraph';
 
 const FIXTURE = path.resolve(__dirname, '../../../fixtures/system-design/zynq_dma_system.tcl');
 
@@ -35,3 +35,36 @@ export function loadQsysTclFixtureGraph(): SystemGraph {
 
 /** Deterministic text measure for layout tests: 7 px per character at any weight. */
 export const fakeMeasure = (text: string): number => text.length * 7;
+
+function openPin(name: string, direction: SystemPin['direction']): SystemPin {
+  return { name, isInterface: false, direction, directionSource: 'declared', parameters: {} };
+}
+
+/**
+ * The zynq fixture with open pins added: `/axi_gpio_0` gets a definition and
+ * three unconnected pins, the `coeff_bank` hierarchy gets an input open on both
+ * sides, and the root gets an unconnected output port.
+ */
+export function loadReviewFixtureGraph(): SystemGraph {
+  const graph = loadFixtureGraph();
+  const gpio = graph.instances['/axi_gpio_0'];
+  gpio.definition = {
+    kind: 'ip.yml',
+    file: '/ws/gpio.ip.yml',
+    uri: 'file:///ws/gpio.ip.yml',
+    displayName: 'gpio.ip.yml',
+  };
+  gpio.pins.push(
+    openPin('spare_in', 'in'),
+    openPin('spare_out', 'out'),
+    openPin('spare_io', 'inout')
+  );
+  const bank = '/dsp_pipeline/coeff_bank';
+  // A hierarchy instance shares its pin list with the boundary pins of its level.
+  graph.levels[bank].boundaryPins.push(openPin('cfg_open', 'in'));
+  if (graph.instances[bank].pins !== graph.levels[bank].boundaryPins) {
+    graph.instances[bank].pins.push(openPin('cfg_open', 'in'));
+  }
+  graph.levels['/'].boundaryPins.push(openPin('ext_out', 'out'));
+  return graph;
+}

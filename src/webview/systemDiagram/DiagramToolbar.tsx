@@ -9,6 +9,9 @@ interface DiagramToolbarProps {
   query: string;
   searchCounter: string;
   showClockReset: boolean;
+  reviewUnconnected: boolean;
+  /** Number of unconnected pins in the design, and whether any is undriven. */
+  unconnected: { count: number; anyUndriven: boolean };
   /** Selected and shown node counts while the level is isolated, else null. */
   isolated: { selected: number; shown: number } | null;
   onShowAll: () => void;
@@ -16,6 +19,7 @@ interface DiagramToolbarProps {
   onQueryChange: (query: string) => void;
   onSearchStep: (direction: 1 | -1) => void;
   onShowClockResetChange: (show: boolean) => void;
+  onReviewUnconnectedChange: (on: boolean) => void;
   onOpenProblems: () => void;
   onFit: () => void;
   panelsVisible: Record<PanelName, boolean>;
@@ -30,13 +34,13 @@ const PANEL_TOGGLES: { panel: PanelName; title: string; icon: string }[] = [
   { panel: 'details', title: 'Toggle Details', icon: 'layout-sidebar-right' },
 ];
 
-function completenessLabel(graph: SystemGraph): string | null {
-  const warnings = graph.diagnostics.filter((d) => d.severity === 'warning').length;
-  const partial = Object.values(graph.capabilities).some((state) => state !== 'complete');
-  if (!partial && warnings === 0) {
+/** Toolbar shortcut to the Problems tab: the same count, hidden when there are none. */
+function problemsLabel(graph: SystemGraph): string | null {
+  const count = graph.diagnostics.length;
+  if (count === 0) {
     return null;
   }
-  return `Offline view, partial · ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`;
+  return `${count} ${count === 1 ? 'problem' : 'problems'}`;
 }
 
 export function DiagramToolbar({
@@ -45,12 +49,15 @@ export function DiagramToolbar({
   query,
   searchCounter,
   showClockReset,
+  reviewUnconnected,
+  unconnected,
   isolated,
   onShowAll,
   onNavigate,
   onQueryChange,
   onSearchStep,
   onShowClockResetChange,
+  onReviewUnconnectedChange,
   onOpenProblems,
   onFit,
   panelsVisible,
@@ -58,7 +65,7 @@ export function DiagramToolbar({
 }: DiagramToolbarProps) {
   const { zoomIn, zoomOut } = useReactFlow();
   const crumbs = breadcrumbs(levelPath, graph.name);
-  const badge = completenessLabel(graph);
+  const badge = problemsLabel(graph);
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-[var(--vscode-panel-border)] px-3 py-1">
       <nav aria-label="Hierarchy" className="flex min-w-0 items-center gap-1 whitespace-nowrap">
@@ -125,6 +132,18 @@ export function DiagramToolbar({
         />
         Clocks and resets
       </label>
+      <button
+        type="button"
+        className="sd-tool"
+        aria-pressed={reviewUnconnected}
+        title="Highlight unconnected pins on the diagram and list them"
+        onClick={() => onReviewUnconnectedChange(!reviewUnconnected)}
+      >
+        Unconnected pins{' '}
+        <span className="sd-tool-count" data-tone={unconnected.anyUndriven ? 'undriven' : 'unused'}>
+          {unconnected.count}
+        </span>
+      </button>
       <div className="flex gap-1">
         <button
           type="button"
@@ -147,7 +166,7 @@ export function DiagramToolbar({
         </button>
       </div>
       {badge && (
-        <button type="button" className="sd-completeness" onClick={onOpenProblems}>
+        <button type="button" className="sd-problems" onClick={onOpenProblems}>
           {badge}
         </button>
       )}
