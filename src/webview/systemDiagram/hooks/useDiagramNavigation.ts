@@ -22,15 +22,26 @@ export function useDiagramNavigation(graph: SystemGraph) {
   );
   /** Selection made outside the canvas: also centres the selected node. */
   const selectAndReveal = useCallback(
-    (next: Selection | null, level?: string) => {
+    (next: Selection | null, level?: string, readable?: true) => {
       select(next, level);
       const target = level ?? (next ? selectionLevel(graph, next) : undefined);
       if (next && next.kind !== 'net' && target !== undefined) {
         lastToken.current += 1;
-        setRevealRequest({ token: lastToken.current, selection: next, levelPath: target });
+        setRevealRequest({
+          token: lastToken.current,
+          selection: next,
+          levelPath: target,
+          ...(readable && { readable }),
+        });
       }
     },
     [graph, select]
+  );
+  /** Search step: select the instance, switch to its level, and centre it at a readable zoom. */
+  const revealMatch = useCallback(
+    (instancePath: string) =>
+      selectAndReveal({ kind: 'instance', id: instancePath }, undefined, true),
+    [selectAndReveal]
   );
   const navigate = useCallback((path: string) => {
     setLevelPath(path);
@@ -71,6 +82,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
     revealRequest,
     select,
     selectAndReveal,
+    revealMatch,
     navigate,
     enterHierarchy,
     selectInstance,

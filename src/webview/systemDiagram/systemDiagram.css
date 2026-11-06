@@ -81,6 +81,33 @@ input:focus-visible {
   box-shadow: 0 0 0 1px var(--vscode-focusBorder);
 }
 
+.sd-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: sd-flash 1s ease-out forwards;
+}
+
+@keyframes sd-flash {
+  from {
+    box-shadow:
+      0 0 0 3px var(--vscode-focusBorder),
+      0 0 14px 4px var(--vscode-focusBorder);
+  }
+  to {
+    box-shadow:
+      0 0 0 3px transparent,
+      0 0 14px 4px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-flash {
+    display: none;
+  }
+}
+
 .sd-node[data-dimmed='true'] {
   opacity: 0.25;
 }

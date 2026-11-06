@@ -7,6 +7,7 @@ import { nodeCenter } from '../../../../webview/systemDiagram/layout/nodeCenter'
 import { diagramBounds, nodeBounds } from '../../../../webview/systemDiagram/layout/diagramBounds';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { createTextMeasurer } from '../../../../webview/systemDiagram/layout/textMeasure';
+import { searchMatches } from '../../../../webview/systemDiagram/search';
 import { loadFixtureGraph } from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
@@ -53,6 +54,10 @@ interface MockFlowProps {
 
 jest.mock('@xyflow/react', () => {
   const React = jest.requireActual<typeof import('react')>('react');
+  const actualFlow = jest.requireActual<typeof import('@xyflow/react')>('@xyflow/react');
+  const storeApi = {
+    getState: () => ({ width: 1000, height: 800, minZoom: 0.05, maxZoom: 2 }),
+  };
   const api = {
     // Like React Flow, a fit changes the viewport; the fitted zoom is 0.8.
     fitBounds: (bounds: unknown, options: unknown) => {
@@ -114,6 +119,8 @@ jest.mock('@xyflow/react', () => {
         )
       );
     },
+    getViewportForBounds: actualFlow.getViewportForBounds,
+    useStoreApi: () => storeApi,
     ReactFlowProvider: ({ children }: { children: React.ReactNode }) => children,
     useReactFlow: () => api,
   };
@@ -339,6 +346,139 @@ describe('SystemDiagramApp', () => {
     await waitFor(() =>
       expect(screen.queryAllByTitle(/Turn on Clocks and resets/)).toHaveLength(0)
     );
+  });
+
+  describe('search stepping', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const searchBox = () => screen.getByRole('searchbox', { name: 'Search instances' });
+    const matches = searchMatches(graph, 'axi');
+    const last = matches.length - 1;
+
+    async function search(query: string) {
+      await renderWithGraph();
+      await settle();
+      fireEvent.change(searchBox(), { target: { value: query } });
+    }
+    const press = (init: { key: string; shiftKey?: boolean }) =>
+      fireEvent.keyDown(searchBox(), init);
+    const enter = () => press({ key: 'Enter' });
+
+    it('counts the matches over all levels', async () => {
+      await search('axi');
+      expect(screen.getByText(`${matches.length} matches`)).toBeVisible();
+      expect(matches.some((path) => path.startsWith('/dsp_pipeline/'))).toBe(true);
+    });
+
+    it('selects the first match on Enter and shows its position', async () => {
+      await search('axi');
+      enter();
+      expect(await screen.findByText(`1 of ${matches.length}`)).toBeVisible();
+      expect(
+        details().getByRole('heading', { name: graph.instances[matches[0]].name })
+      ).toBeVisible();
+    });
+
+    it('reaches a match inside the hierarchy and switches the level', async () => {
+      await search('fifo');
+      enter();
+      const nav = () => screen.getByRole('navigation', { name: 'Hierarchy' });
+      await waitFor(() => expect(within(nav()).getByText('dsp_pipeline')).toBeVisible());
+      expect(await screen.findByText('1 of 2')).toBeVisible();
+      enter();
+      await waitFor(() => expect(within(nav()).getByText('coeff_bank')).toBeVisible());
+      expect(await screen.findByText('2 of 2')).toBeVisible();
+    });
+
+    it('wraps to the last match on Shift+Enter from the first', async () => {
+      await search('axi');
+      enter();
+      await screen.findByText(`1 of ${matches.length}`);
+      press({ key: 'Enter', shiftKey: true });
+      expect(await screen.findByText(`${last + 1} of ${matches.length}`)).toBeVisible();
+    });
+
+    it('clears the query and the counter on Escape', async () => {
+      await search('axi');
+      searchBox().focus();
+      press({ key: 'Escape' });
+      expect(searchBox()).toHaveValue('');
+      expect(searchBox()).not.toHaveFocus();
+      expect(screen.queryByText(`${matches.length} matches`)).not.toBeInTheDocument();
+    });
+
+    it('does nothing on Enter without results', async () => {
+      await search('zzzz');
+      expect(screen.getByText('No results')).toBeVisible();
+      enter();
+      expect(screen.getByText('No results')).toBeVisible();
+      expect(mockSetCenter).not.toHaveBeenCalled();
+    });
+
+    it('pulses the stepped-to node', async () => {
+      await search('dma');
+      enter();
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('node:/axi_dma_0').parentElement?.querySelector('.sd-flash')
+        ).not.toBeNull()
+      );
+      expect(
+        screen.getByTestId('node:/axi_gpio_0').parentElement?.querySelector('.sd-flash')
+      ).toBeNull();
+    });
+
+    const flashOf = (id: string) =>
+      screen.getByTestId(`node:${id}`).parentElement?.querySelector('.sd-flash') ?? null;
+
+    it('restarts the pulse when the same single match is stepped to again', async () => {
+      await search('dma');
+      expect(searchMatches(graph, 'dma')).toHaveLength(1);
+      enter();
+      await waitFor(() => expect(flashOf('/axi_dma_0')).not.toBeNull());
+      const first = flashOf('/axi_dma_0');
+      enter();
+      await waitFor(() => expect(flashOf('/axi_dma_0')).not.toBe(first));
+      expect(flashOf('/axi_dma_0')).not.toBeNull();
+    });
+
+    it('does not replay the pulse after it ended and the level is re-entered', async () => {
+      await search('fifo');
+      enter();
+      await waitFor(() => expect(flashOf('/dsp_pipeline/axis_data_fifo_0')).not.toBeNull());
+      fireEvent.animationEnd(flashOf('/dsp_pipeline/axis_data_fifo_0')!);
+      expect(flashOf('/dsp_pipeline/axis_data_fifo_0')).toBeNull();
+
+      const nav = screen.getByRole('navigation', { name: 'Hierarchy' });
+      fireEvent.click(within(nav).getByRole('button', { name: graph.name }));
+      fireEvent.doubleClick(await screen.findByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/axis_data_fifo_0');
+      expect(flashOf('/dsp_pipeline/axis_data_fifo_0')).toBeNull();
+    });
+
+    it('drops a pending pulse when Escape clears the search', async () => {
+      await search('dma');
+      enter();
+      await waitFor(() => expect(flashOf('/axi_dma_0')).not.toBeNull());
+      press({ key: 'Escape' });
+      await waitFor(() => expect(flashOf('/axi_dma_0')).toBeNull());
+    });
+
+    it('zooms in to a readable size at low zoom, but never zooms out', async () => {
+      await search('dma');
+      mockViewport = { x: 0, y: 0, zoom: 0.3 };
+      mockSetCenter.mockClear();
+      enter();
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      const zoom = (mockSetCenter.mock.calls[0][2] as { zoom: number }).zoom;
+      expect(zoom).toBeGreaterThan(0.3);
+      expect(zoom).toBeLessThanOrEqual(0.8);
+
+      mockViewport = { x: 0, y: 0, zoom: 1.7 };
+      mockSetCenter.mockClear();
+      press({ key: 'Enter', shiftKey: true });
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      expect(mockSetCenter.mock.calls[0][2]).toEqual({ zoom: 1.7 });
+    });
   });
 
   describe('revealing a selected component', () => {

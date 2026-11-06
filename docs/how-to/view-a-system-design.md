@@ -40,7 +40,9 @@ The diagram shows one hierarchy level at a time.
 - **Outline.** Lists the instances of the current design and its external
   ports. Select an item to select it in the diagram and center it.
 - **Search.** Type in **Search instances** to dim the blocks whose name or
-  type does not match.
+  type does not match. Press Enter or Shift+Enter to go to the next or
+  previous match on any level; a counter shows the position, and Escape
+  clears the search.
 - **Details.** Shows the selected block, net, or port: type, where it is
   defined in the file, the parameters set in the file, and its pins with their
   nets. Select a line link to open the file at that line.

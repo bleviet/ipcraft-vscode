@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useReactFlow } from '@xyflow/react';
+import { getViewportForBounds, useReactFlow, useStoreApi } from '@xyflow/react';
 import { diagramBounds, nodeBounds } from '../layout/diagramBounds';
 import { nodeCenter } from '../layout/nodeCenter';
+import { revealZoom } from '../layout/revealZoom';
 import { decideViewportAction, withSavedViewport, type Viewport } from '../layout/viewportPolicy';
 import type { RevealRequest } from '../model';
 import type { DiagramLayout } from './useElkLayout';
@@ -20,7 +21,8 @@ export interface DiagramViewport {
  * restores the saved viewport, and a new layout of the same level changes
  * nothing. `fit` fits the current level (Fit button); it also
  * runs when `resizeKey` changes (a panel was shown or hidden), once the canvas
- * has its new size. A reveal request centres its node at the current zoom once
+ * has its new size. A reveal request centres its node at the current zoom (a
+ * readable one for search steps: see `revealZoom`) once
  * its level is shown (after the policy above applied). `focusNode` zooms to
  * one node of the current level, badges included (double-click). Must run inside a React Flow provider.
  */
@@ -30,6 +32,7 @@ export function useDiagramViewport(
   revealRequest: RevealRequest | null
 ): DiagramViewport {
   const { fitBounds, getViewport, setViewport, setCenter } = useReactFlow();
+  const store = useStoreApi();
   const bounds = useMemo(() => (layout ? diagramBounds(layout) : null), [layout]);
   const saved = useRef<ReadonlyMap<string, Viewport>>(new Map());
   const shownLevel = useRef<string | null>(null);
@@ -81,9 +84,24 @@ export function useDiagramViewport(
     }
     const centre = () => {
       const target = reveal && nodeCenter(layout, reveal.selection.id);
-      if (target) {
-        void setCenter(target.x, target.y, { zoom: getViewport().zoom });
+      if (!reveal || !target) {
+        return;
       }
+      let zoom = getViewport().zoom;
+      const node = reveal.readable && layout.nodes.find((n) => n.id === reveal.selection.id);
+      if (node) {
+        const { width, height, minZoom, maxZoom } = store.getState();
+        const fit = getViewportForBounds(
+          nodeBounds(node),
+          width,
+          height,
+          minZoom,
+          maxZoom,
+          FOCUS_PADDING
+        );
+        zoom = revealZoom(zoom, fit.zoom);
+      }
+      void setCenter(target.x, target.y, { zoom });
     };
     // Wait a frame so React Flow has rendered the new nodes.
     window.requestAnimationFrame(() => {
@@ -99,7 +117,7 @@ export function useDiagramViewport(
       // Centre after the viewport change so the resulting zoom is kept.
       window.requestAnimationFrame(centre);
     });
-  }, [layout, revealRequest, getViewport, setViewport, setCenter]);
+  }, [layout, revealRequest, getViewport, setViewport, setCenter, store]);
 
   const previousKey = useRef(resizeKey);
   useEffect(() => {

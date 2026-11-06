@@ -65,6 +65,14 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
       data-dimmed={data.dimmed === true}
       style={{ width: data.width }}
     >
+      {data.flashToken !== undefined && (
+        <span
+          key={data.flashToken}
+          className="sd-flash"
+          aria-hidden="true"
+          onAnimationEnd={() => data.onFlashEnd?.(data.flashToken as number)}
+        />
+      )}
       <div className="px-2 py-1" style={{ height: HEADER_HEIGHT }}>
         <div className="truncate font-semibold">{instance.name}</div>
         <div className="truncate opacity-70">{subtitle}</div>

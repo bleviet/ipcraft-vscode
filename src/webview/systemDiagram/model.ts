@@ -23,6 +23,8 @@ export interface RevealRequest {
   token: number;
   selection: Selection;
   levelPath: string;
+  /** Zoom in to a readable size when the node is small (search steps). */
+  readable?: true;
 }
 
 export interface Breadcrumb {

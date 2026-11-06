@@ -14,6 +14,7 @@ import { PinHoverCard } from './PinHoverCard';
 import { usePinHover } from './hooks/usePinHover';
 import type { DiagramLayout } from './hooks/useElkLayout';
 import type { InstanceNodeData } from './layout/diagramTypes';
+import type { SearchFlash } from './hooks/useSearchStepper';
 import { boundaryMatchesQuery, matchesQuery, type Selection } from './model';
 
 const NODE_TYPES: NodeTypes = { instance: InstanceNode, boundary: BoundaryNode };
@@ -24,6 +25,8 @@ interface DiagramCanvasProps {
   error: string | null;
   selection: Selection | null;
   query: string;
+  flash?: SearchFlash | null;
+  onFlashEnd?: (token: number) => void;
   onSelect: (selection: Selection | null) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onFocusNode: (nodeId: string) => void;
@@ -35,6 +38,8 @@ export function DiagramCanvas({
   error,
   selection,
   query,
+  flash,
+  onFlashEnd,
   onSelect,
   onEnterHierarchy,
   onFocusNode,
@@ -58,10 +63,16 @@ export function DiagramCanvas({
       return {
         ...node,
         selected: selection?.kind !== 'net' && selection?.id === node.id,
-        data: { ...node.data, dimmed, onSelectNet, onHoverPin },
+        data: {
+          ...node.data,
+          dimmed,
+          onSelectNet,
+          onHoverPin,
+          ...(flash?.id === node.id && { flashToken: flash.token, onFlashEnd }),
+        },
       };
     });
-  }, [layout, query, selection, onSelectNet, onHoverPin]);
+  }, [layout, query, flash, onFlashEnd, selection, onSelectNet, onHoverPin]);
 
   const edges = useMemo(
     () =>

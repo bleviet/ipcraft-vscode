@@ -7,9 +7,11 @@ interface DiagramToolbarProps {
   graph: SystemGraph;
   levelPath: string;
   query: string;
+  searchCounter: string;
   showClockReset: boolean;
   onNavigate: (levelPath: string) => void;
   onQueryChange: (query: string) => void;
+  onSearchStep: (direction: 1 | -1) => void;
   onShowClockResetChange: (show: boolean) => void;
   onOpenProblems: () => void;
   onFit: () => void;
@@ -38,9 +40,11 @@ export function DiagramToolbar({
   graph,
   levelPath,
   query,
+  searchCounter,
   showClockReset,
   onNavigate,
   onQueryChange,
+  onSearchStep,
   onShowClockResetChange,
   onOpenProblems,
   onFit,
@@ -78,7 +82,25 @@ export function DiagramToolbar({
         aria-label="Search instances"
         value={query}
         onChange={(event) => onQueryChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            if (event.nativeEvent.isComposing) {
+              return;
+            }
+            event.preventDefault();
+            onSearchStep(event.shiftKey ? -1 : 1);
+          } else if (event.key === 'Escape') {
+            event.preventDefault();
+            onQueryChange('');
+            event.currentTarget.blur();
+          }
+        }}
       />
+      {query.trim() !== '' && (
+        <span aria-live="polite" className="opacity-70">
+          {searchCounter}
+        </span>
+      )}
       <label className="flex items-center gap-1">
         <input
           type="checkbox"

@@ -40,6 +40,9 @@ export interface InstanceNodeData extends Record<string, unknown> {
   west: PinRow[];
   east: PinRow[];
   dimmed?: boolean;
+  /** Set on the node being pulsed after a search step; a new value restarts the pulse. */
+  flashToken?: number;
+  onFlashEnd?: (token: number) => void;
   onSelectNet?: (netId: string) => void;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
 }

@@ -7,6 +7,7 @@ All notable changes to this project are documented in this file.
 ### Added
 
 - **Mouse back button goes up a level.** In the system viewer, the mouse back button goes up one hierarchy level, like clicking the parent in the breadcrumb.
+- **Search steps through matches.** In the system viewer, Enter and Shift+Enter in the search box go to the next and previous match on any hierarchy level, centring it (and zooming in if it is small) with a brief pulse. A counter shows the position, and Escape clears the search.
 
 ## [1.3.1] - 2026-11-06
 

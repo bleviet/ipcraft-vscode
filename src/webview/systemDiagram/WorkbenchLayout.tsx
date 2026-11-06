@@ -9,6 +9,7 @@ import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
 import { useMouseBackButton } from './hooks/useMouseBackButton';
 import { usePanelResize } from './hooks/usePanelResize';
+import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
 import { levelOf } from './model';
 import { ProblemBanner } from './ProblemBanner';
@@ -40,6 +41,7 @@ export function WorkbenchLayout({
   );
   const [showClockReset, setShowClockReset] = useState(false);
   const [query, setQuery] = useState('');
+  const search = useSearchStepper(graph, query, nav.selection, nav.revealMatch);
   const [tab, setTab] = useState<BottomTab>('address');
   const { layout, error } = useElkLayout(graph, nav.levelPath, showClockReset);
 
@@ -69,9 +71,11 @@ export function WorkbenchLayout({
         graph={graph}
         levelPath={nav.levelPath}
         query={query}
+        searchCounter={search.counter}
         showClockReset={showClockReset}
         onNavigate={nav.navigate}
         onQueryChange={setQuery}
+        onSearchStep={search.step}
         onShowClockResetChange={setShowClockReset}
         onOpenProblems={() => {
           setTab('problems');
@@ -104,6 +108,8 @@ export function WorkbenchLayout({
               error={error}
               selection={nav.selection}
               query={query}
+              flash={search.flash}
+              onFlashEnd={search.clearFlash}
               onSelect={nav.select}
               onEnterHierarchy={nav.enterHierarchy}
               onFocusNode={focusNode}
