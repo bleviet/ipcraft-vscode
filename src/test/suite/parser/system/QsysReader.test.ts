@@ -260,7 +260,7 @@ describe('readQsys: nios_avalon_system fixture', () => {
 
 describe('readQsys: IPCraft minimal files', () => {
   const files = [
-    'ipcraft-spec/examples/comprehensive_avalon/altera/test.qsys',
+    'src/test/fixtures/system-design/comprehensive_avalon_test.qsys',
     'examples/regmap_conformance_avmm/altera/test.qsys',
   ];
   for (const file of files) {
@@ -277,7 +277,7 @@ describe('readQsys: IPCraft minimal files', () => {
   }
 
   it('maps exported interface dir to the end table', () => {
-    const file = 'ipcraft-spec/examples/comprehensive_avalon/altera/test.qsys';
+    const file = 'src/test/fixtures/system-design/comprehensive_avalon_test.qsys';
     const graph = readQsys(fs.readFileSync(path.join(REPO, file), 'utf8'), file);
     const boundary = (name: string) => graph.levels['/'].boundaryPins.find((p) => p.name === name)!;
     expect(boundary('comprehensive_avalon_0_S_AVMM')).toMatchObject({ direction: 'slave' });

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="test">
+  <module name="comprehensive_avalon_0" kind="comprehensive_avalon" version="1.0.0" enabled="1" />
+  <interface name="comprehensive_avalon_0_clk" internal="comprehensive_avalon_0.clk" type="clock" dir="end" />
+  <interface name="comprehensive_avalon_0_rst" internal="comprehensive_avalon_0.rst" type="reset" dir="end" />
+  <interface name="comprehensive_avalon_0_S_AVMM" internal="comprehensive_avalon_0.S_AVMM" type="avalon" dir="end" />
+  <interface name="comprehensive_avalon_0_SRC_ST" internal="comprehensive_avalon_0.SRC_ST" type="avalon_streaming" dir="start" />
+  <interface name="comprehensive_avalon_0_SNK_ST" internal="comprehensive_avalon_0.SNK_ST" type="avalon_streaming" dir="end" />
+  <interface name="comprehensive_avalon_0_o_irq_n" internal="comprehensive_avalon_0.o_irq_n" type="interrupt" dir="end" />
+  <interface name="comprehensive_avalon_0_o_evt_fall" internal="comprehensive_avalon_0.o_evt_fall" type="interrupt" dir="end" />
+</system>

@@ -90,7 +90,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # Playwright 1.58 cannot install Chromium on ubuntu-latest (26.04).
+        os: [ubuntu-24.04, macos-latest]
     steps:
       - uses: actions/checkout@v4
         with:
