@@ -95,6 +95,8 @@
   --vscode-symbolIcon-functionForeground: #652D90;
   --vscode-symbolIcon-namespaceForeground: #3B3B3B;  /* APPROXIMATED */
   --vscode-symbolIcon-propertyForeground: #3B3B3B;  /* APPROXIMATED */
+  --vscode-terminal-ansiCyan: #0598BC;  /* VS Code default terminal color; domain colors of the system viewer */
+  --vscode-terminal-ansiMagenta: #BC05BC;  /* VS Code default terminal color; domain colors of the system viewer */
   --vscode-textBlockQuote-background: #F8F8F8;
   --vscode-textLink-foreground: #005FB8;
   --vscode-textPreformat-foreground: #3B3B3B;

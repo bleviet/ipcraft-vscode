@@ -90,6 +90,8 @@
   --vscode-symbolIcon-functionForeground: #B180D7;
   --vscode-symbolIcon-namespaceForeground: #F8F8F2;  /* APPROXIMATED */
   --vscode-symbolIcon-propertyForeground: #F8F8F2;  /* APPROXIMATED */
+  --vscode-terminal-ansiCyan: #8BE9FD;  /* Dracula terminal color; domain colors of the system viewer */
+  --vscode-terminal-ansiMagenta: #FF79C6;  /* Dracula terminal color; domain colors of the system viewer */
   --vscode-textBlockQuote-background: #222222;
   --vscode-textLink-foreground: #3794FF;
   --vscode-textPreformat-foreground: #D7BA7D;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Panel } from '@xyflow/react';
 import { categoryColor } from './colors';
-import { legendEntries, REVIEW_LEGEND } from './legend';
+import { legendEntries, REVIEW_LEGEND, type DomainLegendEntry } from './legend';
 import type { DiagramFlowEdge, DiagramFlowNode } from './layout/elkLayout';
 
 /** Bottom-left overlay naming the wire categories drawn on the current level. */
@@ -9,11 +9,14 @@ export function DiagramLegend({
   edges,
   nodes,
   review,
+  domains,
 }: {
   edges: readonly DiagramFlowEdge[];
   nodes: readonly DiagramFlowNode[];
   /** Append the unconnected-pin entries. */
   review: boolean;
+  /** Entries to append in the Clock domains mode. */
+  domains?: readonly DomainLegendEntry[] | null;
 }) {
   const badges = nodes.flatMap((node) =>
     node.type === 'boundary'
@@ -24,7 +27,7 @@ export function DiagramLegend({
     edges.map((edge) => edge.data),
     badges
   );
-  if (entries.length === 0 && !review) {
+  if (entries.length === 0 && !review && !domains) {
     return null;
   }
   return (
@@ -50,6 +53,16 @@ export function DiagramLegend({
             {entry.label}
           </span>
         ))}
+      {domains?.map((entry) => (
+        <span key={entry.key} className="sd-legend-item">
+          <i
+            aria-hidden="true"
+            className={`sd-legend-bar${entry.line ? ` sd-legend-bar-${entry.line}` : ' sd-legend-bar-thin'}`}
+            style={entry.line ? { borderTopColor: entry.color } : { background: entry.color }}
+          />
+          {entry.label}
+        </span>
+      ))}
     </Panel>
   );
 }

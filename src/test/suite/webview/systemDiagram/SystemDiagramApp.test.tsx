@@ -8,7 +8,7 @@ import { diagramBounds, nodeBounds } from '../../../../webview/systemDiagram/lay
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { createTextMeasurer } from '../../../../webview/systemDiagram/layout/textMeasure';
 import { searchMatches } from '../../../../webview/systemDiagram/search';
-import { loadFixtureGraph, loadReviewFixtureGraph } from './fixtureGraph';
+import { loadClockFixtureGraph, loadFixtureGraph, loadReviewFixtureGraph } from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
 let mockElkFailures = 0;
@@ -419,12 +419,24 @@ describe('SystemDiagramApp', () => {
     expect(
       details().getByRole('heading', { name: 'processing_system7_0_FCLK_CLK0' })
     ).toBeVisible();
-    expect(details().getByText('Endpoints')).toBeVisible();
+    // A clock net opens its clock tree.
+    expect(details().getByText(/^Clock net · domain/)).toBeVisible();
+    expect(details().getByText('Requested by', { exact: false })).toBeVisible();
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Clocks and resets' }));
     await waitFor(() =>
       expect(screen.queryAllByTitle(/Turn on Clocks and resets/)).toHaveLength(0)
     );
+  });
+
+  it('lists the endpoints of a data net in the details', async () => {
+    await renderWithGraph();
+    fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+    fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
+
+    expect(details().getByRole('heading', { name: 'axi_dma_0_M_AXIS_MM2S' })).toBeVisible();
+    expect(details().getByText('Endpoints')).toBeVisible();
+    expect(details().getByRole('button', { name: '/axi_dma_0/M_AXIS_MM2S' })).toBeVisible();
   });
 
   describe('search stepping', () => {
@@ -623,9 +635,20 @@ describe('SystemDiagramApp', () => {
 
     it('centres a pin-net endpoint link in the details panel', async () => {
       await ready();
-      fireEvent.click(screen.getAllByTitle(/Clock net processing_system7_0_FCLK_CLK0/)[0]);
+      // A canvas click selects without centring, so the one centring below is the link's.
+      fireEvent.click(screen.getByTestId('node:/axi_dma_0'));
+      fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
       mockSetCenter.mockClear();
       const link = details().getAllByRole('button', { name: /^\/axi_dma_0\// })[0];
+      fireEvent.click(link);
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+    });
+
+    it('centres a block linked from a clock tree in the details panel', async () => {
+      await ready();
+      fireEvent.click(screen.getAllByTitle(/Clock net processing_system7_0_FCLK_CLK0/)[0]);
+      mockSetCenter.mockClear();
+      const link = details().getAllByRole('button', { name: /^axi_dma_0\// })[0];
       fireEvent.click(link);
       await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
     });
@@ -1423,6 +1446,370 @@ describe('SystemDiagramApp', () => {
       expect(details().getByText(/ties an input without a driver/)).toBeVisible();
       fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
       expect(details().getByText(/unconnected pins cannot be checked/)).toBeVisible();
+    });
+  });
+
+  describe('clock domains', () => {
+    const DSP = '/dsp_pipeline';
+    const clockGraph = loadClockFixtureGraph();
+    const bottom = () => within(screen.getByRole('region', { name: 'Bottom panel' }));
+    const toggle = () => screen.getByRole('button', { name: /^Clock domains/ });
+    const nodeBox = (id: string, selector: string) =>
+      screen.getByTestId(`node:${id}`).parentElement!.querySelector(selector) as HTMLElement;
+    // A domain or reset row, by its first cell.
+    const rowOf = (text: string) =>
+      bottom()
+        .getAllByRole('row')
+        .find((row) => within(row).queryAllByRole('cell')[0]?.textContent?.trim() === text)!;
+    async function domains() {
+      await renderWithGraph({ design: clockGraph });
+      fireEvent.click(toggle());
+    }
+
+    it('turns on from the toolbar, opens the Clocks tab, and counts the crossings', async () => {
+      await renderWithGraph({ design: clockGraph });
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(toggle()).toHaveTextContent('2 CDC · 2 RDC');
+      fireEvent.click(toggle());
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('tab', { name: /^Clocks 3$/ })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      fireEvent.click(toggle());
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('counts the domains when no crossing is flagged', async () => {
+      await renderWithGraph();
+      expect(toggle()).toHaveTextContent(/Clock domains\s*1$/);
+    });
+
+    it('is exclusive with the unconnected pin review', async () => {
+      await domains();
+      const review = () => screen.getByRole('button', { name: /^Unconnected pins/ });
+      fireEvent.click(review());
+      expect(review()).toHaveAttribute('aria-pressed', 'true');
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByRole('tab', { name: /^Unconnected/ })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      fireEvent.click(toggle());
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(review()).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByRole('tab', { name: /^Clocks/ })).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('draws clocks and resets while on and disables the checkbox', async () => {
+      await renderWithGraph({ design: clockGraph });
+      const checkbox = screen.getByRole('checkbox', { name: 'Clocks and resets' });
+      const before = edgeCount();
+      expect(checkbox).toBeEnabled();
+      fireEvent.click(toggle());
+      expect(checkbox).toBeDisabled();
+      expect(checkbox).toHaveAttribute('title', 'Clock domains mode draws clocks and resets');
+      await waitFor(() => expect(edgeCount()).toBeGreaterThan(before));
+      fireEvent.click(toggle());
+      expect(checkbox).toBeEnabled();
+      await waitFor(() => expect(edgeCount()).toBe(before));
+    });
+
+    it('lists the domains and resets in the Clocks tab', async () => {
+      await domains();
+      const fclk0 = rowOf('FCLK_CLK0');
+      const cells = within(fclk0).getAllByRole('cell');
+      expect(cells[1]).toHaveTextContent('100 MHz');
+      expect(cells[2]).toHaveTextContent('processing_system7_0/FCLK_CLK0');
+      expect(cells[3]).toHaveTextContent('CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ = 100');
+      expect(cells[3]).toHaveTextContent('script');
+      expect(cells[4]).toHaveTextContent('8');
+      expect(cells[5]).toHaveTextContent('2');
+      expect(within(rowOf('ext_clk')).getAllByRole('cell')[3]).toHaveTextContent('declared');
+      const asynchronous = rowOf('processing_system7_0/FCLK_RESET0_N');
+      expect(within(asynchronous).getAllByRole('cell')[1]).toHaveTextContent('asynchronous');
+      const released = rowOf('rst_ps7_0_100M/peripheral_aresetn');
+      expect(within(released).getAllByRole('cell')[1]).toHaveTextContent('FCLK_CLK0 · 100 MHz');
+      expect(within(released).getAllByRole('cell')[3]).toHaveTextContent('6');
+    });
+
+    it('opens the clock tree of a clicked domain row', async () => {
+      await domains();
+      fireEvent.click(rowOf('FCLK_CLK1'));
+      expect(
+        details().getByRole('heading', { name: 'processing_system7_0_FCLK_CLK1' })
+      ).toBeVisible();
+      expect(details().getByText(/^Clock net · domain/)).toHaveTextContent('FCLK_CLK1');
+      expect(details().getByText('200 MHz')).toBeVisible();
+      expect(details().getByText('CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ')).toBeVisible();
+      expect(details().getByText(/This is the requested value/)).toBeVisible();
+      expect(details().getByText('Clock tree · 3 loads in 2 levels')).toBeVisible();
+      expect(details().getByText('SELECTED')).toBeVisible();
+      expect(details().getByRole('button', { name: 'fir_compiler_0/aclk' })).toBeVisible();
+      expect(details().getByText('enters hierarchy')).toBeVisible();
+      expect(
+        details().getByText('No reset is synchronized to FCLK_CLK1', { exact: false })
+      ).toBeVisible();
+      expect(details().getByText('Blocks also on another domain:', { exact: false })).toBeVisible();
+      expect(rowOf('FCLK_CLK1')).toHaveClass('sd-row-selected');
+    });
+
+    it('shows the crossings of a domain with a link to the net', async () => {
+      await domains();
+      fireEvent.click(rowOf('FCLK_CLK0'));
+      expect(details().getAllByText('Clock domain crossing.')).toHaveLength(2);
+      const showNet = details().getAllByRole('button', { name: 'Show net' })[0];
+      fireEvent.click(showNet);
+      expect(details().getByText('Clock domain crossing.', { exact: false })).toBeVisible();
+    });
+
+    it('opens the reset tree with a check per sink and the fix hint', async () => {
+      await domains();
+      fireEvent.click(rowOf('rst_ps7_0_100M/peripheral_aresetn'));
+      expect(details().getByText(/^Reset net · released on/)).toHaveTextContent('FCLK_CLK0');
+      expect(details().getByText('Reset tree · 6 sinks')).toBeVisible();
+      expect(details().getAllByText('✓ FCLK_CLK0').length).toBeGreaterThan(0);
+      expect(details().getAllByText('✗ clocked by FCLK_CLK1 · 200 MHz')).toHaveLength(2);
+      expect(details().getByText('? clock unknown')).toBeVisible();
+      expect(details().getAllByText('Reset domain crossing.')).toHaveLength(2);
+      expect(
+        details().getByText(/Give the blocks on FCLK_CLK1 · 200 MHz their own proc_sys_reset/)
+      ).toBeVisible();
+    });
+
+    it('checks the frequency a definition expects against the domain, in the clock tree', async () => {
+      const edited = JSON.parse(JSON.stringify(clockGraph)) as typeof clockGraph;
+      const pin = (path: string, name: string) =>
+        edited.instances[path].pins.find((candidate) => candidate.name === name)!;
+      pin(`${DSP}/fir_compiler_0`, 'aclk').frequency = '200MHz';
+      pin(`${DSP}/ovf_monitor_0`, 'clk').frequency = '100MHz';
+      await renderWithGraph({ design: edited });
+      fireEvent.click(toggle());
+      fireEvent.click(rowOf('FCLK_CLK1'));
+      expect(details().getByText('✓ .ip.yml expects 200MHz')).toBeVisible();
+      expect(details().getByText('✗ .ip.yml expects 100MHz')).toBeVisible();
+    });
+
+    it('opens an asynchronous reset with its provenance', async () => {
+      await domains();
+      fireEvent.click(rowOf('processing_system7_0/FCLK_RESET0_N'));
+      expect(details().getByText(/^Reset net · asynchronous/)).toBeVisible();
+      expect(
+        details().getByText('is asserted and released asynchronously.', { exact: false })
+      ).toBeVisible();
+      expect(details().getByText('✓ asynchronous input')).toBeVisible();
+      expect(details().getByText('None found.')).toBeVisible();
+    });
+
+    it('filters the crossings by status, with the fine ones off by default', async () => {
+      await domains();
+      const chip = (name: RegExp) => bottom().getByRole('button', { name });
+      expect(chip(/^Crossing 4$/)).toHaveAttribute('aria-pressed', 'true');
+      expect(chip(/^Block spans domains 1$/)).toHaveAttribute('aria-pressed', 'true');
+      expect(chip(/^Not checked 3$/)).toHaveAttribute('aria-pressed', 'true');
+      expect(chip(/^OK 9$/)).toHaveAttribute('aria-pressed', 'false');
+      const rows = () => bottom().getAllByRole('row').length;
+      const shown = rows();
+      expect(bottom().queryByText('Both ends on FCLK_CLK0')).not.toBeInTheDocument();
+      fireEvent.click(chip(/^OK 9$/));
+      expect(rows()).toBe(shown + 9);
+      fireEvent.click(chip(/^Crossing 4$/));
+      expect(rows()).toBe(shown + 9 - 4);
+      expect(bottom().getByText(/Checked: memory-mapped and streaming connections/)).toBeVisible();
+    });
+
+    it('describes each crossing: kind, both ends, their domains and where the clocks are known from', async () => {
+      await domains();
+      const row = bottom().getByText('fir_compiler_0/M_AXIS_DATA').closest('tr')!;
+      const cells = within(row).getAllByRole('cell');
+      expect(within(cells[0]).getByRole('img', { name: 'Crossing' })).toBeVisible();
+      expect(cells[1]).toHaveTextContent('AXI4-Stream');
+      expect(cells[3]).toHaveTextContent('FCLK_CLK1 · 200 MHz');
+      expect(cells[4]).toHaveTextContent('axi_dma_0/S_AXIS_S2MM');
+      expect(cells[5]).toHaveTextContent('FCLK_CLK0 · 100 MHz');
+      expect(cells[6]).toHaveTextContent('single clock');
+      expect(cells[6]).toHaveTextContent('all clocks one domain');
+      const reset = bottom().getByText('fir_compiler_0/aresetn').closest('tr')!;
+      expect(within(reset).getAllByRole('cell')[1]).toHaveTextContent('Reset');
+      const block = bottom().getByText('axis_data_fifo_0 (dsp_pipeline)').closest('tr')!;
+      expect(block).toHaveTextContent('Block');
+      expect(block).toHaveTextContent('FCLK_CLK0 · 100 MHz and FCLK_CLK1 · 200 MHz');
+      const unchecked = bottom()
+        .getAllByText(/has clocks on 2 domains/)[0]
+        .closest('tr')!;
+      expect(
+        within(unchecked.firstElementChild as HTMLElement).getByRole('img', { name: 'Not checked' })
+      ).toBeVisible();
+    });
+
+    it('selects the net of a clicked crossing and haloes its sink pin', async () => {
+      await domains();
+      const halos = (id: string) =>
+        screen.getByTestId(`node:${id}`).parentElement!.querySelectorAll('.sd-pin-halo');
+      fireEvent.click(bottom().getByText('fir_compiler_0/aresetn').closest('tr')!);
+      await screen.findByTestId(`node:${DSP}/fir_compiler_0`);
+      expect(details().getByRole('heading', { name: 'aresetn_1' })).toBeVisible();
+      expect(halos(`${DSP}/fir_compiler_0`)).toHaveLength(1);
+      expect(bottom().getByText('fir_compiler_0/aresetn').closest('tr')).toHaveClass(
+        'sd-row-selected'
+      );
+      const crumbs = within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+      expect(crumbs.getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
+      fireEvent.click(screen.getByTestId(`node:${DSP}/fir_compiler_0`));
+      expect(halos(`${DSP}/fir_compiler_0`)).toHaveLength(0);
+    });
+
+    it('selects the block of a clicked block row', async () => {
+      await domains();
+      fireEvent.click(bottom().getByText('axis_data_fifo_0 (dsp_pipeline)').closest('tr')!);
+      await screen.findByTestId(`node:${DSP}/axis_data_fifo_0`);
+      expect(details().getByRole('heading', { name: 'axis_data_fifo_0' })).toBeVisible();
+    });
+
+    it('draws the frequency next to each clock pin, in its domain color', async () => {
+      await domains();
+      const labels = nodeBox('/axi_dma_0', '.sd-node').querySelectorAll('.sd-pin-freq');
+      expect([...labels].map((label) => label.textContent)).toEqual([
+        '100 MHz',
+        '100 MHz',
+        '100 MHz',
+      ]);
+      expect((labels[0] as HTMLElement).style.color).toBe('var(--vscode-charts-purple)');
+      expect(nodeBox('/::ext_clk', '.sd-port').querySelector('.sd-pin-freq')).toHaveTextContent(
+        '125 MHz'
+      );
+      fireEvent.click(toggle());
+      expect(nodeBox('/axi_dma_0', '.sd-node').querySelector('.sd-pin-freq')).toBeNull();
+    });
+
+    it('splits the header strip by domain and badges the crossings', async () => {
+      await domains();
+      const strip = nodeBox(`/dsp_pipeline`, '.sd-node-strip');
+      expect(strip.children).toHaveLength(2);
+      // A name the badge truncates stays readable in the tooltip.
+      expect(nodeBox(DSP, '.sd-node-name')).toHaveAttribute('title', 'dsp_pipeline');
+      const label = '2 clock domain crossings and 2 reset domain crossings';
+      expect(within(nodeBox(DSP, '.sd-node')).getByRole('img', { name: label })).toHaveTextContent(
+        '2 CDC · 2 RDC'
+      );
+      expect(nodeBox('/axi_dma_0', '.sd-node-strip').children).toHaveLength(1);
+      expect(nodeBox('/axi_dma_0', '.sd-node-dom')).toHaveTextContent('1 CDC');
+      expect(nodeBox('/ps7_0_axi_periph', '.sd-node-dom')).toBeNull();
+      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-crossing-end', 'true');
+      expect(nodeBox('/ps7_0_axi_periph', '.sd-node')).toHaveAttribute(
+        'data-crossing-end',
+        'false'
+      );
+      fireEvent.click(toggle());
+      expect(nodeBox('/axi_dma_0', '.sd-node-strip')).toBeNull();
+    });
+
+    it('shows the domain dots and the crossings inside a hierarchy in the outline', async () => {
+      await renderWithGraph({ design: clockGraph });
+      expect(
+        outline().queryByTitle('FCLK_CLK0 100 MHz, FCLK_CLK1 200 MHz')
+      ).not.toBeInTheDocument();
+      fireEvent.click(toggle());
+      const hier = outline().getByRole('button', { name: /^dsp_pipeline/ });
+      expect(within(hier).getByTitle('FCLK_CLK0 100 MHz, FCLK_CLK1 200 MHz')).toBeInTheDocument();
+      expect(within(hier).getByTitle('Clock and reset domain crossings inside')).toHaveTextContent(
+        '4'
+      );
+      const dma = outline().getByRole('button', { name: /^axi_dma_0/ });
+      expect(within(dma).getByTitle('FCLK_CLK0 100 MHz')).toBeInTheDocument();
+      expect(within(dma).queryByTitle('Clock and reset domain crossings inside')).toBeNull();
+    });
+
+    it('selects the whole tree of a clock net: pins, badges, and the blocks it misses', async () => {
+      await renderWithGraph({ design: clockGraph });
+      const badge = (netName: string) =>
+        screen.getAllByTitle(new RegExp(`^Clock net ${netName}\\.`));
+      expect(badge('processing_system7_0_FCLK_CLK1')[0]).not.toHaveAttribute(
+        'data-selected',
+        'true'
+      );
+      fireEvent.click(badge('processing_system7_0_FCLK_CLK1')[0]);
+      for (const element of badge('processing_system7_0_FCLK_CLK1')) {
+        expect(element).toHaveAttribute('data-selected', 'true');
+      }
+      for (const element of badge('processing_system7_0_FCLK_CLK0')) {
+        expect(element).not.toHaveAttribute('data-selected', 'true');
+      }
+      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-dimmed', 'true');
+      expect(nodeBox(DSP, '.sd-node')).toHaveAttribute('data-dimmed', 'false');
+      expect(nodeBox('/processing_system7_0', '.sd-node')).toHaveAttribute('data-dimmed', 'false');
+      // The frequency of the selected domain only.
+      const frequencies = (id: string) =>
+        [...screen.getByTestId(`node:${id}`).parentElement!.querySelectorAll('.sd-pin-freq')].map(
+          (label) => label.textContent
+        );
+      expect(frequencies(DSP)).toEqual(['200 MHz']);
+      expect(frequencies('/axi_dma_0')).toEqual([]);
+      fireEvent.click(screen.getByTestId('node:/axi_dma_0'));
+      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-dimmed', 'false');
+      expect(frequencies(DSP)).toEqual([]);
+    });
+
+    it('does not dim anything for a data net', async () => {
+      await renderWithGraph({ design: clockGraph });
+      fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-dimmed', 'false');
+      expect(nodeBox(DSP, '.sd-node')).toHaveAttribute('data-dimmed', 'false');
+    });
+
+    it('adds the clocks of a block to its details', async () => {
+      await renderWithGraph({ design: clockGraph });
+      fireEvent.click(outline().getByRole('button', { name: 'Expand dsp_pipeline' }));
+      fireEvent.click(outline().getByRole('button', { name: /^fir_compiler_0/ }));
+      const clocks = details().getByRole('heading', { name: 'Clocks' }).closest('section')!;
+      expect(within(clocks).getByRole('button', { name: 'FCLK_CLK1 · 200 MHz' })).toBeVisible();
+      expect(within(clocks).getByText('S_AXIS_DATA').closest('tr')).toHaveTextContent('aclk');
+      expect(within(clocks).getByText('S_AXIS_DATA').closest('tr')).toHaveTextContent(
+        'single clock'
+      );
+      const resets = within(clocks).getByRole('heading', { name: 'Resets' });
+      expect(resets).toBeVisible();
+      expect(within(clocks).getByText('✗ clocked by FCLK_CLK1 · 200 MHz')).toBeVisible();
+      fireEvent.click(within(clocks).getByRole('button', { name: 'FCLK_CLK1 · 200 MHz' }));
+      expect(details().getByText(/^Clock net · domain/)).toBeVisible();
+    });
+
+    it('says when the clocks of a block are not known, and why', async () => {
+      await renderWithGraph({ design: clockGraph });
+      fireEvent.click(outline().getByRole('button', { name: 'Expand dsp_pipeline' }));
+      fireEvent.click(outline().getByRole('button', { name: /^axis_data_fifo_0/ }));
+      expect(details().getAllByText('not checked')).toHaveLength(2);
+      expect(details().getByText(/Set the Vivado install directory/)).toBeVisible();
+      fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+      expect(details().queryByText(/Set the Vivado install directory/)).not.toBeInTheDocument();
+    });
+
+    it('shows the domain of an external clock port and the release of a reset port', async () => {
+      await renderWithGraph({ design: clockGraph });
+      fireEvent.click(outline().getByRole('button', { name: /^ext_clk/ }));
+      expect(details().getByText('Clock domain', { exact: false })).toHaveTextContent(
+        'ext_clk · 125 MHz'
+      );
+      fireEvent.click(outline().getByRole('button', { name: /^ext_resetn/ }));
+      expect(details().getByText(/^Reset\s+released on/)).toHaveTextContent('ext_clk · 125 MHz');
+      // The link opens the clock net of the releasing domain, not the reset's own net.
+      fireEvent.click(details().getByRole('button', { name: 'ext_clk · 125 MHz' }));
+      expect(details().getByRole('heading', { name: 'ext_clk_1' })).toBeVisible();
+      expect(details().getByText(/^Clock net · domain/)).toBeVisible();
+    });
+
+    it('notes a crossing in the details of a data net, and a net not checked', async () => {
+      await renderWithGraph({ design: clockGraph });
+      fireEvent.click(bottom().getByRole('tab', { name: /^Clocks/ }));
+      fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+      fireEvent.click(details().getByRole('button', { name: 'dsp_pipeline_M_AXIS' }));
+      expect(details().getByText('Clock domain crossing.')).toBeVisible();
+      expect(
+        details().getByText(/is on FCLK_CLK1 and axi_dma_0\/S_AXIS_S2MM on FCLK_CLK0/)
+      ).toBeVisible();
+      fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+      fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
+      expect(details().getByText(/Clock domains not checked:/)).toBeVisible();
     });
   });
 

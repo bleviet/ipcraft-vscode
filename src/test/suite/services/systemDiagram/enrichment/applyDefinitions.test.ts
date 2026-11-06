@@ -1,6 +1,8 @@
 import { applyDefinitions } from '../../../../../services/systemDiagram/enrichment/applyDefinitions';
+import { parseIpCore } from '../../../../../domain/parse';
 import {
   definitionFromHdl,
+  definitionFromIpCore,
   type InstanceDefinition,
 } from '../../../../../services/systemDiagram/enrichment/instanceDefinition';
 import { bdGraph, ipDefinition } from './definitionFixtures';
@@ -130,6 +132,81 @@ describe('applyDefinitions with an ip.yml definition', () => {
   it('ignores definitions for unknown instances', () => {
     const out = applyDefinitions(bdGraph, defs('/ghost', ipDefinition));
     expect(out.instances['/ghost']).toBeUndefined();
+  });
+});
+
+describe('applyDefinitions with clock associations and frequencies', () => {
+  const definition: InstanceDefinition = {
+    ...ipDefinition,
+    pins: [
+      {
+        name: 'S_AXI',
+        isInterface: true,
+        direction: 'slave',
+        associatedClock: 's_axi_aclk',
+      },
+      {
+        name: 's_axi_aclk',
+        isInterface: false,
+        direction: 'in',
+        signalType: 'clk',
+        frequency: '100MHz',
+      },
+      {
+        name: 'late_rst',
+        isInterface: false,
+        direction: 'in',
+        signalType: 'rst',
+        associatedClock: 's_axi_aclk',
+      },
+    ],
+  };
+
+  it('copies the clock of a matched interface and the frequency of a matched clock', () => {
+    const result = applyDefinitions(bdGraph, defs('/my_core_0', definition));
+    expect(pinOf(result, '/my_core_0', 'S_AXI').associatedClock).toBe('s_axi_aclk');
+    expect(pinOf(result, '/my_core_0', 's_axi_aclk').frequency).toBe('100MHz');
+  });
+
+  it('copies them onto a pin the definition adds', () => {
+    const result = applyDefinitions(bdGraph, defs('/my_core_0', definition));
+    expect(pinOf(result, '/my_core_0', 'late_rst')).toMatchObject({
+      definedBy: 'ip.yml',
+      associatedClock: 's_axi_aclk',
+    });
+  });
+
+  it('keeps a value the pin already has', () => {
+    const graph = JSON.parse(JSON.stringify(bdGraph)) as typeof bdGraph;
+    pinOf(graph, '/my_core_0', 'S_AXI').associatedClock = 'script_clk';
+    pinOf(graph, '/my_core_0', 's_axi_aclk').frequency = '1MHz';
+    const result = applyDefinitions(graph, defs('/my_core_0', definition));
+    expect(pinOf(result, '/my_core_0', 'S_AXI').associatedClock).toBe('script_clk');
+    expect(pinOf(result, '/my_core_0', 's_axi_aclk').frequency).toBe('1MHz');
+  });
+
+  it('adds neither to pins whose definition has none', () => {
+    const result = applyDefinitions(bdGraph, defs('/my_core_0', ipDefinition));
+    expect(JSON.stringify(pinOf(result, '/my_core_0', 'S_AXI'))).not.toContain('associatedClock');
+    expect(JSON.stringify(pinOf(result, '/my_core_0', 's_axi_aclk'))).not.toContain('frequency');
+  });
+
+  it('carries the values from a parsed ip.yml through to the graph', () => {
+    const parsed = definitionFromIpCore(
+      parseIpCore(
+        'vlnv: { vendor: acme.com, library: ip, name: my_core, version: "1.0" }\n' +
+          'clocks:\n  - { name: s_axi_aclk, frequency: 125MHz, associatedReset: s_axi_aresetn }\n' +
+          'resets:\n  - { name: s_axi_aresetn }\n' +
+          'busInterfaces:\n  - { name: S_AXI, type: "ipcraft:busif:axi4_lite:1.0", mode: slave, associatedClock: s_axi_aclk }\n'
+      ),
+      '/ws/my_core.ip.yml',
+      'file:///ws/my_core.ip.yml',
+      'my_core.ip.yml'
+    );
+    const result = applyDefinitions(bdGraph, defs('/my_core_0', parsed));
+    expect(pinOf(result, '/my_core_0', 'S_AXI').associatedClock).toBe('s_axi_aclk');
+    expect(pinOf(result, '/my_core_0', 's_axi_aclk').frequency).toBe('125MHz');
+    expect(pinOf(result, '/my_core_0', 's_axi_aresetn').associatedClock).toBe('s_axi_aclk');
   });
 });
 

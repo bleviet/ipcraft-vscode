@@ -9,6 +9,10 @@ interface DiagramToolbarProps {
   query: string;
   searchCounter: string;
   showClockReset: boolean;
+  /** The Clock domains mode, which draws clocks and resets by itself. */
+  domainMode: boolean;
+  /** Chip text of the Clock domains toggle: the crossings, else the number of domains. */
+  domainSummary: { text: string; warning: boolean };
   reviewUnconnected: boolean;
   /** Number of unconnected pins in the design, and whether any is undriven. */
   unconnected: { count: number; anyUndriven: boolean };
@@ -19,6 +23,7 @@ interface DiagramToolbarProps {
   onQueryChange: (query: string) => void;
   onSearchStep: (direction: 1 | -1) => void;
   onShowClockResetChange: (show: boolean) => void;
+  onDomainModeChange: (on: boolean) => void;
   onReviewUnconnectedChange: (on: boolean) => void;
   onOpenProblems: () => void;
   onFit: () => void;
@@ -49,6 +54,8 @@ export function DiagramToolbar({
   query,
   searchCounter,
   showClockReset,
+  domainMode,
+  domainSummary,
   reviewUnconnected,
   unconnected,
   isolated,
@@ -57,6 +64,7 @@ export function DiagramToolbar({
   onQueryChange,
   onSearchStep,
   onShowClockResetChange,
+  onDomainModeChange,
   onReviewUnconnectedChange,
   onOpenProblems,
   onFit,
@@ -128,10 +136,24 @@ export function DiagramToolbar({
         <input
           type="checkbox"
           checked={showClockReset}
+          disabled={domainMode}
+          title={domainMode ? 'Clock domains mode draws clocks and resets' : undefined}
           onChange={(event) => onShowClockResetChange(event.target.checked)}
         />
         Clocks and resets
       </label>
+      <button
+        type="button"
+        className="sd-tool"
+        aria-pressed={domainMode}
+        title="Color clocks by domain, show frequencies and clock domain crossings"
+        onClick={() => onDomainModeChange(!domainMode)}
+      >
+        Clock domains{' '}
+        <span className="sd-tool-count" data-tone={domainSummary.warning ? 'warning' : 'info'}>
+          {domainSummary.text}
+        </span>
+      </button>
       <button
         type="button"
         className="sd-tool"

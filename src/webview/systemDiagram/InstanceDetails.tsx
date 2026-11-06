@@ -1,5 +1,7 @@
 import React from 'react';
 import type { SystemGraph, SystemInstance } from '../../domain/systemGraph';
+import type { ClockAnalysis } from './clocks/analyzeClocks';
+import { InstanceClockDetails } from './InstanceClockDetails';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
 import { endpointKey, netsByEndpoint, shortVlnv, type Selection } from './model';
@@ -7,6 +9,7 @@ import { isPinListKnown, unconnectedClass } from './unconnectedPins';
 
 interface InstanceDetailsProps {
   graph: SystemGraph;
+  clocks: ClockAnalysis;
   instance: SystemInstance;
   /** Name of the pin to highlight, set from the Unconnected list. */
   focusedPin?: string;
@@ -18,6 +21,7 @@ interface InstanceDetailsProps {
 
 export function InstanceDetails({
   graph,
+  clocks,
   instance,
   focusedPin,
   onSelect,
@@ -166,6 +170,7 @@ export function InstanceDetails({
           </p>
         )}
       </section>
+      <InstanceClockDetails graph={graph} clocks={clocks} instance={instance} onSelect={onSelect} />
     </div>
   );
 }

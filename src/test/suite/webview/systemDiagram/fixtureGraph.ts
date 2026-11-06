@@ -13,6 +13,16 @@ export function loadFixtureGraph(): SystemGraph {
   return readBdTcl(fixtureText, 'zynq_dma_system.tcl');
 }
 
+const CLOCK_FIXTURE = path.resolve(
+  __dirname,
+  '../../../fixtures/system-design/zynq_clock_domains.tcl'
+);
+
+/** The clock and reset domain fixture (issue #243): two PS clocks, a hierarchy on both, an external clock port. */
+export function loadClockFixtureGraph(): SystemGraph {
+  return readBdTcl(fs.readFileSync(CLOCK_FIXTURE, 'utf8'), 'zynq_clock_domains.tcl');
+}
+
 const QSYS_FIXTURE = path.resolve(
   __dirname,
   '../../../fixtures/system-design/nios_avalon_system.qsys'

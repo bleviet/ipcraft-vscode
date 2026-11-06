@@ -1,5 +1,6 @@
 import React from 'react';
 import type { SystemInstance } from '../../domain/systemGraph';
+import { domainBadge, type NodeDomains } from './clocks/domainView';
 import { HEADER_HEIGHT } from './layout/elkLayout';
 import { instanceSubtitle } from './model';
 import type { NodeReview } from './unconnectedPins';
@@ -40,24 +41,37 @@ function unconnectedLabel(review: NodeReview): string {
 interface NodeHeaderProps extends ExpandToggleProps {
   cellCount: number;
   review?: NodeReview;
+  /** Clock domain mode: a strip with one segment per domain, and the crossing or domain count. */
+  domains?: NodeDomains;
 }
 
-/** Header of an instance block and of an expanded frame: expand toggle, name, review count, subtitle. */
+/** Header of an instance block and of an expanded frame: expand toggle, name, review or domain count, subtitle. */
 export function NodeHeader({
   instance,
   cellCount,
   review,
+  domains,
   expanded,
   onToggleExpand,
 }: NodeHeaderProps) {
   const isHier = instance.kind === 'hier';
+  const badge = domains && domainBadge(domains);
   return (
     <div className="sd-node-head" style={{ height: HEADER_HEIGHT }}>
+      {domains && domains.segments.length > 0 && (
+        <div className="sd-node-strip" aria-hidden="true">
+          {domains.segments.map((segment) => (
+            <span key={segment.id} title={segment.name} style={{ background: segment.color }} />
+          ))}
+        </div>
+      )}
       <div className="sd-node-title">
         {isHier && (
           <ExpandToggle instance={instance} expanded={expanded} onToggleExpand={onToggleExpand} />
         )}
-        <span className="sd-node-name">{instance.name}</span>
+        <span className="sd-node-name" title={instance.name}>
+          {instance.name}
+        </span>
         {review && review.all > 0 ? (
           <span
             className="sd-node-open sd-node-unc"
@@ -72,6 +86,17 @@ export function NodeHeader({
             {review.all}
           </span>
         ) : null}
+        {badge && (
+          <span
+            className="sd-node-open sd-node-dom"
+            data-tone={badge.warning ? 'warning' : 'info'}
+            role="img"
+            title={badge.label}
+            aria-label={badge.label}
+          >
+            {badge.text}
+          </span>
+        )}
       </div>
       <div className="sd-node-subtitle">{instanceSubtitle(instance, cellCount)}</div>
     </div>

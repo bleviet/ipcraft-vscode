@@ -41,6 +41,10 @@ export interface SystemPin {
   line?: number;
   /** Set when the pin exists in the instance's definition (added or matched). */
   definedBy?: 'ip.yml' | 'hdl';
+  /** Definition (.ip.yml): the clock pin this interface or reset belongs to. */
+  associatedClock?: string;
+  /** Definition (.ip.yml) clock: the expected frequency as written, e.g. `100MHz`. */
+  frequency?: string;
 }
 
 export interface SystemInstance {

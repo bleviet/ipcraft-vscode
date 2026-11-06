@@ -6,7 +6,7 @@
 
 import type { SystemGraph, SystemInstance, SystemPin } from '../../domain/systemGraph';
 import { endpointRole } from '../../domain/systemGraphRoles';
-import { boundaryId, endpointKey, netsByEndpoint, shortVlnv } from './model';
+import { boundaryId, endpointKey, netsByEndpoint, shortVlnv, type Selection } from './model';
 import { levelSource, type LevelSource } from './sourceFile';
 
 export type UnconnectedClass = 'undriven' | 'unused';
@@ -23,10 +23,30 @@ export interface UnconnectedPin {
   cls: UnconnectedClass;
 }
 
-/** The pin to halo while its node is the primary selection. */
+/**
+ * The pin to halo while its node is the primary selection; with a `netId`, while
+ * that net is selected instead (a crossing row selects the net and haloes its sink).
+ */
 export interface FocusedPin {
   nodeId: string;
   pin: string;
+  netId?: string;
+}
+
+/** Name of the pin of node `nodeId` to halo under `selection`; undefined when none. */
+export function focusedPinOf(
+  focusedPin: FocusedPin | null,
+  selection: Selection | null,
+  nodeId: string
+): string | undefined {
+  if (focusedPin?.nodeId !== nodeId) {
+    return undefined;
+  }
+  const active =
+    focusedPin.netId === undefined
+      ? selection !== null && selection.kind !== 'net' && selection.id === nodeId
+      : selection?.kind === 'net' && selection.id === focusedPin.netId;
+  return active ? focusedPin.pin : undefined;
 }
 
 /** The single place that classifies an unconnected pin. */

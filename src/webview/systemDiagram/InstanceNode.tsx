@@ -1,11 +1,12 @@
 import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { PIN_ROW_HEIGHT, type InstanceNodeData, type PinRow } from './layout/elkLayout';
+import type { PinMark } from './clocks/nodeView';
 import type { PinHoverTarget } from './model';
 import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
 import { PinMarker } from './PinMarker';
-import { PinHalo, PinStub } from './PinDecor';
+import { PinFrequency, PinHalo, PinStub } from './PinDecor';
 import { unconnectedClass } from './unconnectedPins';
 
 export type InstanceFlowNode = Node<InstanceNodeData, 'instance'>;
@@ -16,10 +17,12 @@ interface PinRowViewProps {
   /** Review mode: draw a stub on an unconnected pin. */
   review: boolean;
   focused: boolean;
+  /** Domain colors, frequency label and crossing end of the pin, when it has any. */
+  mark?: PinMark;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
 }
 
-function PinRowView({ row, highlighted, review, focused, onHoverPin }: PinRowViewProps) {
+function PinRowView({ row, highlighted, review, focused, mark, onHoverPin }: PinRowViewProps) {
   const east = row.side === 'east';
   const reviewClass = review && row.unconnected ? unconnectedClass(row, false) : undefined;
   return (
@@ -41,13 +44,23 @@ function PinRowView({ row, highlighted, review, focused, onHoverPin }: PinRowVie
         isInterface={row.isInterface}
         category={row.category}
         hollow={row.unconnected}
+        color={mark?.color}
         side={row.side}
       />
+      {mark?.frequency && (
+        <PinFrequency
+          text={mark.frequency}
+          color={mark.color}
+          side={row.side}
+          hasBadge={row.badge !== undefined}
+        />
+      )}
       <span
         className="sd-pin-label"
         data-unconnected={row.unconnected}
         data-class={reviewClass}
         data-highlight={highlighted}
+        data-crossing={mark?.crossing}
       >
         {row.label}
       </span>
@@ -75,6 +88,7 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
       highlighted={data.highlightedPins?.has(row.name) ?? false}
       review={review !== undefined}
       focused={data.focusedPin === row.name}
+      mark={data.pinMarks?.[row.name]}
       onHoverPin={data.onHoverPin}
     />
   );
@@ -88,6 +102,9 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
         'data-unchecked': !review.pinListKnown,
+      })}
+      {...(data.domains && {
+        'data-crossing-end': Object.values(data.pinMarks ?? {}).some((mark) => mark.crossing),
       })}
       style={{ width: data.width }}
     >
@@ -103,6 +120,7 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
         instance={instance}
         cellCount={data.cellCount}
         review={review}
+        domains={data.domains}
         expanded={false}
         onToggleExpand={data.onToggleExpand}
       />
@@ -112,6 +130,7 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
             <NetBadgeView
               key={`badge:${row.name}`}
               badge={row.badge}
+              selectedNetIds={data.selectedNetIds}
               onSelectNet={data.onSelectNet}
             />
           )

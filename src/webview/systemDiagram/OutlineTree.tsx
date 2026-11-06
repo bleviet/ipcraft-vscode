@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
+import type { ClockAnalysis } from './clocks/analyzeClocks';
+import { outlineDomains, type OutlineDomains } from './clocks/domainView';
 import { boundaryId, cellCount, instanceTypeLabel, type Selection } from './model';
 import { nodeUnconnectedCount, type UnconnectedPin } from './unconnectedPins';
 
@@ -9,6 +11,8 @@ interface OutlineTreeProps {
   selection: Selection | null;
   /** Findings to count on rows while the unconnected-pin review is on, else null. */
   review: readonly UnconnectedPin[] | null;
+  /** The analysis to show domain dots and crossing counts from while the Clock domains mode is on, else null. */
+  clocks: ClockAnalysis | null;
   onSelect: (selection: Selection | null, levelPath?: string) => void;
 }
 
@@ -23,6 +27,8 @@ interface RowProps {
   count?: number;
   /** Review mode: unconnected pins in this row (rolled up for a hierarchy). */
   unconnected?: { all: number; undriven: number };
+  /** Domain mode: dots for the clock domains of the block, and the crossings inside a hierarchy. */
+  domains?: OutlineDomains;
   current: boolean;
   expanded?: boolean;
   onToggle?: () => void;
@@ -36,11 +42,15 @@ function OutlineRow({
   detail,
   count,
   unconnected,
+  domains,
   current,
   expanded,
   onToggle,
   onSelect,
 }: RowProps) {
+  const dots = domains !== undefined && domains.colors.length > 0;
+  const crossings = domains !== undefined && domains.crossings > 0;
+  const trailing = (unconnected?.all ?? 0) > 0 || dots || crossings;
   return (
     <div
       className="sd-row flex items-center"
@@ -70,6 +80,22 @@ function OutlineRow({
         {detail && (
           <span className="min-w-0 flex-1 basis-0 truncate text-xs opacity-60">{detail}</span>
         )}
+        {dots && (
+          <span className="sd-dots ml-auto" title={domains.title} aria-hidden="true">
+            {domains.colors.map((color, index) => (
+              <i key={index} style={{ background: color }} />
+            ))}
+          </span>
+        )}
+        {crossings && (
+          <span
+            className={`${dots ? 'ml-1.5' : 'ml-auto'} shrink-0 text-[11px] text-[var(--vscode-editorWarning-foreground)]`}
+            title="Clock and reset domain crossings inside"
+          >
+            <span className="sr-only"> </span>
+            {domains.crossings}
+          </span>
+        )}
         {unconnected && unconnected.all > 0 && (
           <span
             className="ml-auto shrink-0 text-[11px]"
@@ -87,7 +113,7 @@ function OutlineRow({
         )}
         {count !== undefined && (
           <span
-            className={`${unconnected && unconnected.all > 0 ? 'ml-1.5' : 'ml-auto'} shrink-0 text-[11px] text-[var(--vscode-descriptionForeground)]`}
+            className={`${trailing ? 'ml-1.5' : 'ml-auto'} shrink-0 text-[11px] text-[var(--vscode-descriptionForeground)]`}
           >
             <span className="sr-only"> </span>
             {count}
@@ -98,7 +124,14 @@ function OutlineRow({
   );
 }
 
-export function OutlineTree({ graph, levelPath, selection, review, onSelect }: OutlineTreeProps) {
+export function OutlineTree({
+  graph,
+  levelPath,
+  selection,
+  review,
+  clocks,
+  onSelect,
+}: OutlineTreeProps) {
   const unconnectedOf = (nodeId: string) =>
     review ? nodeUnconnectedCount(review, nodeId, graph) : undefined;
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set(['/', 'ports']));
@@ -127,6 +160,7 @@ export function OutlineTree({ graph, levelPath, selection, review, onSelect }: O
             detail={isHier ? undefined : instanceTypeLabel(instance)}
             count={isHier ? cellCount(graph, instancePath) : undefined}
             unconnected={unconnectedOf(instancePath)}
+            domains={clocks ? outlineDomains(clocks, graph, instancePath) : undefined}
             current={selection?.kind === 'instance' && selection.id === instancePath}
             expanded={isHier ? expanded.has(instancePath) : undefined}
             onToggle={isHier ? () => toggle(instancePath) : undefined}

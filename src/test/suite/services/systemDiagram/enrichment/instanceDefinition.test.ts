@@ -105,6 +105,80 @@ describe('definitionFromIpCore bus interfaces', () => {
   });
 });
 
+describe('definitionFromIpCore clock associations and frequencies', () => {
+  const define = (yaml: string) =>
+    definitionFromIpCore(parseIpCore(yaml), '/ws/x.ip.yml', 'file:///ws/x.ip.yml', 'x.ip.yml');
+  const header = 'vlnv: { vendor: a.com, library: ip, name: x, version: "1.0" }\n';
+  const pin = (definition: ReturnType<typeof define>, name: string) =>
+    definition.pins.find((candidate) => candidate.name === name)!;
+
+  it('takes the clock of a bus interface from associatedClock', () => {
+    const definition = define(
+      `${header}busInterfaces:\n` +
+        '  - { name: S_AXI, type: "ipcraft:busif:axi4_lite:1.0", mode: slave, associatedClock: s_clk }\n' +
+        '  - { name: M_AXIS, type: AXIS, mode: master }\n'
+    );
+    expect(pin(definition, 'S_AXI').associatedClock).toBe('s_clk');
+    expect(pin(definition, 'M_AXIS').associatedClock).toBeUndefined();
+    expect('associatedClock' in pin(definition, 'M_AXIS')).toBe(false);
+  });
+
+  it('gives every expanded name of an arrayed interface the clock', () => {
+    const definition = define(
+      `${header}busInterfaces:\n  - name: M_AXIS\n    type: "ipcraft:busif:axi_stream:1.0"\n    mode: master\n` +
+        '    associatedClock: m_clk\n' +
+        '    array: { count: 2, indexStart: 1, namingPattern: "M_AXIS_CH{index}", physicalPrefixPattern: "m_axis_ch{index}_" }\n'
+    );
+    expect(definition.pins.map((p) => [p.name, p.associatedClock])).toEqual([
+      ['M_AXIS_CH1', 'm_clk'],
+      ['M_AXIS_CH2', 'm_clk'],
+    ]);
+  });
+
+  it('keeps the expected frequency of a clock as written', () => {
+    const definition = define(
+      `${header}clocks:\n  - { name: clk, frequency: 100MHz }\n  - { name: aux }\n  - { name: raw, frequency: 50000000 }\n`
+    );
+    expect(pin(definition, 'clk').frequency).toBe('100MHz');
+    expect(pin(definition, 'aux').frequency).toBeUndefined();
+    expect('frequency' in pin(definition, 'aux')).toBe(false);
+    expect(pin(definition, 'raw').frequency).toBe('50000000');
+  });
+
+  it('takes the clock of a reset from the reset itself', () => {
+    const definition = define(
+      `${header}clocks:\n  - { name: clk, associatedReset: rst_n }\n  - { name: other }\n` +
+        'resets:\n  - { name: rst_n, associatedClock: other }\n'
+    );
+    expect(pin(definition, 'rst_n').associatedClock).toBe('other');
+  });
+
+  it('else from the clock whose associatedReset names the reset', () => {
+    const definition = define(
+      `${header}clocks:\n  - { name: clk, associatedReset: rst_n }\n  - { name: other }\n` +
+        'resets:\n  - { name: rst_n }\n  - { name: free_rst }\n'
+    );
+    expect(pin(definition, 'rst_n').associatedClock).toBe('clk');
+    expect(pin(definition, 'free_rst').associatedClock).toBeUndefined();
+  });
+
+  it('sets neither on an HDL definition', () => {
+    const definition = definitionFromHdl(
+      [
+        { name: 'clk', direction: 'in', type: 'std_logic' },
+        { name: 'rst_n', direction: 'in', type: 'std_logic' },
+      ],
+      '/ws/a.vhd',
+      'file:///ws/a.vhd',
+      'a.vhd'
+    );
+    for (const p of definition.pins) {
+      expect(p.associatedClock).toBeUndefined();
+      expect(p.frequency).toBeUndefined();
+    }
+  });
+});
+
 describe('definitionFromHdl', () => {
   it('maps directions, clock/reset classification and widths', () => {
     const definition = definitionFromHdl(

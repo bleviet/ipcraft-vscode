@@ -71,3 +71,38 @@ export function PinHalo({ side, inset = 1, top = '50%' }: PinDecorProps) {
     />
   );
 }
+
+/**
+ * Frequency of a clock pin, outside the block next to the wire. It sits above the
+ * wire on the east (driving) side, and below it on the west side or where a net
+ * badge takes the place above, so the labels at the two ends of a short wire never overlap.
+ */
+export function PinFrequency({
+  text,
+  color,
+  side,
+  hasBadge = false,
+  top = '50%',
+}: {
+  text: string;
+  color?: string;
+  side: 'west' | 'east';
+  hasBadge?: boolean;
+  top?: number | string;
+}) {
+  const wire = typeof top === 'number' ? `${top}px` : top;
+  const below = side === 'west' || hasBadge;
+  return (
+    <span
+      className="sd-pin-freq"
+      style={{
+        [side === 'west' ? 'right' : 'left']: 'calc(100% + 8px)',
+        top: below ? `calc(${wire} + 2px)` : `calc(${wire} - 2px)`,
+        transform: below ? undefined : 'translateY(-100%)',
+        color,
+      }}
+    >
+      {text}
+    </span>
+  );
+}

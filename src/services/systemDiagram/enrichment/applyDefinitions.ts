@@ -18,6 +18,8 @@ function fillMissing(pin: SystemPin, definition: DefinitionPin): void {
   pin.interfaceType ??= definition.interfaceType;
   pin.signalType ??= definition.signalType;
   pin.width ??= definition.width;
+  pin.associatedClock ??= definition.associatedClock;
+  pin.frequency ??= definition.frequency;
 }
 
 function applyToInstance(instance: SystemInstance, definition: InstanceDefinition): string[] {

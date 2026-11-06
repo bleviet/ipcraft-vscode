@@ -231,7 +231,7 @@ one warning per command and marks the connections capability partial.
 | Unconnected pins | Not available | Not available | Pin enrichment, otherwise omitted |
 | Pin interface type and role | External ports only | From connection kind | Pin enrichment; otherwise inferred from the peer, or unknown |
 | Address map | Complete when `assign_bd_address` is present | Base address complete; range needs the slave definition | Range from pin enrichment, otherwise unknown |
-| Clocks and resets | Net names, plus `FREQ_HZ` where set | Connection kind and names | Shown as declared; no propagation |
+| Clocks and resets | Net names, plus `FREQ_HZ` where set; requested frequencies of the PS, clocking wizard and external ports from set parameters | Connection kind and names; `clockFrequency` of a clock source | Domains and frequencies from rules over set parameters (issue #243); an unset value is `unknown`, never a vendor default; pin clocks from the definition, the only clock of a block, all clocks of a block being on one domain, or `ASSOCIATED_BUSIF` / `ASSOCIATED_RESET` of a clock port |
 
 Every pin, parameter, and address segment records its provenance, for example
 `connection`, `ip.yml`, `component.xml`, `hw.tcl`, or `hwh`. This lets the
@@ -314,6 +314,7 @@ in connections.
 | Edits | When an edit temporarily makes the file unreadable or no longer a block design, the last valid design stays on screen with its view state and a banner explains why. The next valid edit replaces it |
 | Details | VLNV, user-set parameters, pins with provenance, and the source location |
 | Unconnected pins | A toolbar toggle (issue #245) dims the diagram and marks pins that no net touches: undriven inputs in the warning color, unused outputs muted, with block counts, a level banner, and an Unconnected tab. Only blocks with a known pin list are checked (`.ip.yml` or HDL definition, hierarchy pins, external ports); the others are shown dashed and counted as not checked |
+| Clock domains | A toolbar toggle (issue #243) colors clocks by domain, labels clock pins with the requested frequency, dots resets in the color of the releasing domain, and draws clock and reset domain crossings dashed in the warning color, with block strips and counts, a level banner, and outline dots. Selecting a clock or reset net selects its whole tree on every level and shows it in Details. A Clocks tab lists domains, reset sources, and crossings (crossing, block spans domains, not checked, OK). No pin-name heuristics: a pin's clock comes from its definition, the only clock of its block, or all its clocks being on one domain, and is otherwise not checked. Platform Designer synchronizes by itself, so its crossings are OK. Mutually exclusive with the unconnected-pin review |
 | Address map | Table of address segments per master address space, sortable and searchable |
 | Go to source | Every element opens its source file at the line that created it |
 | IPCraft links | Instances backed by an `.ip.yml` open in the IP Core editor; their address segments open the `.mm.yml` |

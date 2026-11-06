@@ -18,6 +18,8 @@ export interface DefinitionPin {
   interfaceType?: string;
   signalType?: SignalType;
   width?: SystemPin['width'];
+  associatedClock?: string;
+  frequency?: string;
 }
 
 export interface InstanceDefinition {
@@ -80,14 +82,20 @@ export function definitionFromIpCore(
         isInterface: true,
         direction: modeDirection(bus.mode.toLowerCase()),
         ...(isVendorVlnv ? { vlnv: bus.type } : { interfaceType: bus.type }),
+        ...(bus.associatedClock && { associatedClock: bus.associatedClock }),
       });
     }
   }
   for (const clock of ipCore.clocks ?? []) {
-    pins.push(scalar(clock, 'clk', 'in'));
+    const frequency = String(clock.frequency ?? '').trim();
+    pins.push({ ...scalar(clock, 'clk', 'in'), ...(frequency !== '' && { frequency }) });
   }
   for (const reset of ipCore.resets ?? []) {
-    pins.push(scalar(reset, 'rst', 'in'));
+    // A reset names its clock itself, else the clock that lists it as `associatedReset`.
+    const associatedClock =
+      reset.associatedClock ??
+      (ipCore.clocks ?? []).find((clock) => clock.associatedReset === reset.name)?.name;
+    pins.push({ ...scalar(reset, 'rst', 'in'), ...(associatedClock && { associatedClock }) });
   }
   for (const interrupt of ipCore.interrupts ?? []) {
     pins.push(scalar(interrupt, 'intr', 'out'));
