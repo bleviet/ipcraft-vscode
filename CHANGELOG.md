@@ -2,7 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [1.3.1] - 2026-11-06
+
+### Added
+
+- **Platform Designer subsystems open as hierarchy levels.** A `.qsys` module whose kind names another `.qsys` file in the workspace is read into the system viewer as a hierarchy level, so double-clicking it enters the subsystem, with the breadcrumb and outline, also for nested subsystems. Its blocks get the same `.ip.yml` and HDL pins as top-level blocks, and go-to-source opens the subsystem file at the right line. Subsystems that instantiate each other, and subsystem files that cannot be read, are listed in Problems and stay a plain block. Subsystems are not read in untrusted workspaces.
 
 ## [1.3.0] - 2026-11-05
 
