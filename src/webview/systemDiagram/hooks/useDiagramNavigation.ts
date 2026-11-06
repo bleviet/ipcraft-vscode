@@ -1,17 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
-import { reconcileNavigation, selectionLevel, type RevealRequest, type Selection } from '../model';
+import {
+  isLevelNode,
+  nodeSelection,
+  reconcileNavigation,
+  selectionLevel,
+  type RevealRequest,
+  type Selection,
+} from '../model';
 
-/** Current level and selection of the diagram, and the gestures that change them. */
+/**
+ * Current level and selection of the diagram, and the gestures that change
+ * them. `selection` is the primary item (it drives Details); `selectedNodeIds`
+ * are all selected nodes of the level (Cmd/Ctrl+Click adds to them).
+ */
 export function useDiagramNavigation(graph: SystemGraph) {
   const [levelPath, setLevelPath] = useState('/');
   const [selection, setSelection] = useState<Selection | null>(null);
+  const [nodeIds, setNodeIds] = useState<string[]>([]);
   const [revealRequest, setRevealRequest] = useState<RevealRequest | null>(null);
   const lastToken = useRef(0);
 
   const select = useCallback(
     (next: Selection | null, level?: string) => {
       setSelection(next);
+      setNodeIds(next && next.kind !== 'net' ? [next.id] : []);
       setRevealRequest(null);
       const target = level ?? (next ? selectionLevel(graph, next) : undefined);
       if (target !== undefined) {
@@ -46,6 +59,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
   const navigate = useCallback((path: string) => {
     setLevelPath(path);
     setSelection(null);
+    setNodeIds([]);
     setRevealRequest(null);
   }, []);
   const enterHierarchy = useCallback(
@@ -67,6 +81,31 @@ export function useDiagramNavigation(graph: SystemGraph) {
     () => reconcileNavigation(graph, levelPath, selection),
     [graph, levelPath, selection]
   );
+  const selectedNodeIds = useMemo(() => {
+    const { selection: current, levelPath: level } = shown;
+    if (!current || current.kind === 'net') {
+      return [];
+    }
+    const ids = nodeIds.filter((id) => isLevelNode(graph, level, id));
+    return ids.includes(current.id) ? ids : [current.id];
+  }, [graph, shown, nodeIds]);
+  /** Cmd/Ctrl+Click: adds the node to the selection, or removes it when already selected. */
+  const toggleNode = useCallback(
+    (node: Selection) => {
+      if (!selectedNodeIds.includes(node.id)) {
+        setSelection(node);
+        setNodeIds([...selectedNodeIds, node.id]);
+      } else {
+        const rest = selectedNodeIds.filter((id) => id !== node.id);
+        const last = rest[rest.length - 1];
+        setSelection(last === undefined ? null : nodeSelection(last));
+        setNodeIds(rest);
+      }
+      setRevealRequest(null);
+    },
+    [graph, selectedNodeIds]
+  );
+
   useEffect(() => {
     if (shown.levelPath !== levelPath) {
       navigate(shown.levelPath);
@@ -79,8 +118,10 @@ export function useDiagramNavigation(graph: SystemGraph) {
   return {
     levelPath: shown.levelPath,
     selection: shown.selection,
+    selectedNodeIds,
     revealRequest,
     select,
+    toggleNode,
     selectAndReveal,
     revealMatch,
     navigate,

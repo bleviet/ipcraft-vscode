@@ -32,11 +32,20 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
   const laidOut = await runElkLayout(
     buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
   );
-  const layout = { levelPath: '/', ...toFlowElements(laidOut, graph, '/', fakeMeasure) };
+  const layout = {
+    levelPath: '/',
+    viewKey: '/',
+    ...toFlowElements(laidOut, graph, '/', fakeMeasure),
+  };
   const common = {
     selection: null,
+    selectedNodeIds: [],
+    isolated: false,
     query: '',
     onSelect: jest.fn(),
+    onToggleNode: jest.fn(),
+    onIsolate: jest.fn(),
+    onShowAll: jest.fn(),
     onEnterHierarchy: jest.fn(),
     onFocusNode: jest.fn(),
     onFit: jest.fn(),
@@ -57,14 +66,23 @@ it('fits on a double-click of the real pane but not of a real node', async () =>
   const laidOut = await runElkLayout(
     buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
   );
-  const layout = { levelPath: '/', ...toFlowElements(laidOut, graph, '/', fakeMeasure) };
+  const layout = {
+    levelPath: '/',
+    viewKey: '/',
+    ...toFlowElements(laidOut, graph, '/', fakeMeasure),
+  };
   const onFit = jest.fn();
   const onFocusNode = jest.fn();
   render(
     <Harness
       selection={null}
+      selectedNodeIds={[]}
+      isolated={false}
       query=""
       onSelect={jest.fn()}
+      onToggleNode={jest.fn()}
+      onIsolate={jest.fn()}
+      onShowAll={jest.fn()}
       onEnterHierarchy={jest.fn()}
       onFocusNode={onFocusNode}
       onFit={onFit}

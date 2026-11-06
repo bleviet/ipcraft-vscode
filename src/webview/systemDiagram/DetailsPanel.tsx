@@ -3,6 +3,7 @@ import type { SystemGraph, SystemNet, SystemPin } from '../../domain/systemGraph
 import { CapabilityPill } from './CapabilityPill';
 import { capabilityRows, designEyebrow, formatLabel } from './detailsLabels';
 import { InstanceDetails } from './InstanceDetails';
+import { MultiSelectionDetails } from './MultiSelectionDetails';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
 import { boundaryId, parseBoundaryId, type Selection } from './model';
@@ -10,6 +11,7 @@ import { boundaryId, parseBoundaryId, type Selection } from './model';
 interface DetailsPanelProps {
   graph: SystemGraph;
   selection: Selection | null;
+  selectedNodeIds: readonly string[];
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
@@ -148,13 +150,16 @@ function BoundaryDetails({
 export function DetailsPanel({
   graph,
   selection,
+  selectedNodeIds,
   onSelect,
   onEnterHierarchy,
   onReveal,
   onOpenDefinition,
 }: DetailsPanelProps) {
   let content: React.ReactNode = <DesignSummary graph={graph} />;
-  if (selection?.kind === 'instance' && graph.instances[selection.id]) {
+  if (selectedNodeIds.length > 1) {
+    content = <MultiSelectionDetails graph={graph} nodeIds={selectedNodeIds} onSelect={onSelect} />;
+  } else if (selection?.kind === 'instance' && graph.instances[selection.id]) {
     content = (
       <InstanceDetails
         graph={graph}

@@ -7,11 +7,15 @@ import {
   type DiagramFlowNode,
 } from '../layout/elkLayout';
 import { runElkLayout } from '../layout/runElkLayout';
+import { isolatedViewKey } from '../layout/viewportPolicy';
 import { createTextMeasurer } from '../layout/textMeasure';
+import type { IsolatedView } from './useIsolation';
 
 export interface DiagramLayout {
   /** Level this layout belongs to, so a stale result is never taken for the new level. */
   levelPath: string;
+  /** Identity of what is shown for the viewport: the level, or one isolation of it. */
+  viewKey: string;
   nodes: DiagramFlowNode[];
   edges: DiagramFlowEdge[];
 }
@@ -20,7 +24,8 @@ export interface DiagramLayout {
 export function useElkLayout(
   graph: SystemGraph,
   levelPath: string,
-  showClockReset: boolean
+  showClockReset: boolean,
+  isolation: IsolatedView | null = null
 ): { layout: DiagramLayout | null; error: string | null } {
   const [result, setResult] = useState<{
     layout: DiagramLayout | null;
@@ -40,11 +45,18 @@ export function useElkLayout(
 
   useEffect(() => {
     let stale = false;
-    runElkLayout(buildElkInput(graph, levelPath, { showClockReset, measure })).then(
+    const viewKey = isolation ? isolatedViewKey(levelPath, isolation.token) : levelPath;
+    runElkLayout(
+      buildElkInput(graph, levelPath, {
+        showClockReset,
+        measure,
+        ...(isolation && { isolate: isolation }),
+      })
+    ).then(
       (laidOut) => {
         if (!stale) {
           setResult({
-            layout: { levelPath, ...toFlowElements(laidOut, graph, levelPath, measure) },
+            layout: { levelPath, viewKey, ...toFlowElements(laidOut, graph, levelPath, measure) },
             error: null,
           });
         }
@@ -61,7 +73,7 @@ export function useElkLayout(
     return () => {
       stale = true;
     };
-  }, [graph, levelPath, showClockReset, measure]);
+  }, [graph, levelPath, showClockReset, isolation, measure]);
 
   return result;
 }

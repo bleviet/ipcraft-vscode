@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- **Isolate blocks in the system viewer.** Cmd+Click (macOS) or Ctrl+Click (other systems) adds blocks and ports to the selection, and right-click, Isolate N Selected (Isolate Selection for a single block) shows only them, the wires that touch them, and the blocks at the other end of those wires, laid out compactly. Show All, in the right-click menu or the toolbar, restores the full view and its zoom and pan.
 - **Mouse back button goes up a level.** In the system viewer, the mouse back button goes up one hierarchy level, like clicking the parent in the breadcrumb.
 - **Search steps through matches.** In the system viewer, Enter and Shift+Enter in the search box go to the next and previous match on any hierarchy level, centring it (and zooming in if it is small) with a brief pulse. A counter shows the position, and Escape clears the search.
 

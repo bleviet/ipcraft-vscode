@@ -20,7 +20,7 @@ async function longNameLayout() {
   }
   const input = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
   const laidOut = await runElkLayout(input);
-  return { levelPath: '/', ...toFlowElements(laidOut, graph, '/', fakeMeasure) };
+  return { levelPath: '/', viewKey: '/', ...toFlowElements(laidOut, graph, '/', fakeMeasure) };
 }
 
 type Layout = Awaited<ReturnType<typeof longNameLayout>>;
@@ -32,8 +32,13 @@ function canvas(layout: Layout) {
         layout={layout}
         error={null}
         selection={null}
+        selectedNodeIds={[]}
+        isolated={false}
         query=""
         onSelect={jest.fn()}
+        onToggleNode={jest.fn()}
+        onIsolate={jest.fn()}
+        onShowAll={jest.fn()}
         onEnterHierarchy={jest.fn()}
         onFocusNode={jest.fn()}
         onFit={jest.fn()}

@@ -25,6 +25,7 @@ import {
   type TextMeasure,
 } from './nodeSizing';
 import { extendRouteEnds } from './edgePoints';
+import { levelEdges, portId } from './levelEdges';
 import { badgeLabels, badgeOfPort, hiddenNetsByEndpoint } from './netBadges';
 import {
   boundaryId,
@@ -32,9 +33,7 @@ import {
   endpointKey,
   instanceSubtitle,
   netsByEndpoint,
-  netDriver,
   pinRole,
-  visibleNets,
 } from '../model';
 
 export const HEADER_HEIGHT = 42;
@@ -55,9 +54,17 @@ export type {
   PinSide,
 } from './diagramTypes';
 
+/** The nodes and edges (by id) an isolated view keeps. */
+export interface IsolationSubset {
+  nodeIds: ReadonlySet<string>;
+  edgeIds: ReadonlySet<string>;
+}
+
 export interface BuildElkOptions {
   showClockReset: boolean;
   measure: TextMeasure;
+  /** Emit only this subset of the level's nodes and edges. */
+  isolate?: IsolationSubset;
 }
 
 const LAYOUT_OPTIONS = {
@@ -72,10 +79,6 @@ const LAYOUT_OPTIONS = {
 
 function sideOfInstancePin(direction: PinDirection): PinSide {
   return direction === 'out' || direction === 'master' || direction === 'inout' ? 'east' : 'west';
-}
-
-function portId(nodeId: string, pinName: string): string {
-  return `${nodeId}::${pinName}`;
 }
 
 function splitSides(pins: readonly SystemPin[]): Record<PinSide, SystemPin[]> {
@@ -176,21 +179,6 @@ function boundaryNode(
   };
 }
 
-interface EndpointNode {
-  nodeId: string;
-  pinName: string;
-}
-
-function endpointNode(
-  levelPath: string,
-  ref: { instance: string | null; pin: string }
-): EndpointNode {
-  return {
-    nodeId: ref.instance ?? boundaryId(levelPath, ref.pin),
-    pinName: ref.pin,
-  };
-}
-
 export function buildElkInput(
   graph: SystemGraph,
   levelPath: string,
@@ -199,9 +187,10 @@ export function buildElkInput(
   const level = graph.levels[levelPath];
   const children: ElkNode[] = [];
   const hidden = hiddenNetsByEndpoint(graph, levelPath, options.showClockReset);
+  const shown = (id: string) => options.isolate?.nodeIds.has(id) ?? true;
   for (const path of level?.instances ?? []) {
     const instance = graph.instances[path];
-    if (instance) {
+    if (instance && shown(path)) {
       children.push(
         instanceNode(
           graph,
@@ -213,29 +202,20 @@ export function buildElkInput(
     }
   }
   for (const pin of level?.boundaryPins ?? []) {
-    children.push(
-      boundaryNode(graph, levelPath, pin, boundaryLayout(pin, options.measure).width, hidden)
-    );
+    if (shown(boundaryId(levelPath, pin.name))) {
+      children.push(
+        boundaryNode(graph, levelPath, pin, boundaryLayout(pin, options.measure).width, hidden)
+      );
+    }
   }
 
-  const knownPorts = new Set(children.flatMap((child) => (child.ports ?? []).map((p) => p.id)));
-  const edges: ElkExtendedEdge[] = [];
-  for (const net of visibleNets(graph, levelPath, options.showClockReset)) {
-    const driver = netDriver(graph, net);
-    if (!driver) {
-      continue;
-    }
-    const from = endpointNode(levelPath, driver);
-    const fromPort = portId(from.nodeId, from.pinName);
-    net.endpoints.forEach((ref, index) => {
-      const to = endpointNode(levelPath, ref);
-      const toPort = portId(to.nodeId, to.pinName);
-      if (toPort === fromPort || !knownPorts.has(fromPort) || !knownPorts.has(toPort)) {
-        return;
-      }
-      edges.push({ id: `${net.id}#${index}`, sources: [fromPort], targets: [toPort] });
-    });
-  }
+  const edges: ElkExtendedEdge[] = levelEdges(graph, levelPath, options.showClockReset)
+    .filter((edge) => options.isolate?.edgeIds.has(edge.id) ?? true)
+    .map((edge) => ({
+      id: edge.id,
+      sources: [portId(edge.sourceNode, edge.sourcePin)],
+      targets: [portId(edge.targetNode, edge.targetPin)],
+    }));
 
   return {
     id: `level:${levelPath}`,

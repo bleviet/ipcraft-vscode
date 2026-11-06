@@ -7,6 +7,7 @@ import { DiagramToolbar, type PanelName } from './DiagramToolbar';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
+import { useIsolation } from './hooks/useIsolation';
 import { useMouseBackButton } from './hooks/useMouseBackButton';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
@@ -41,9 +42,11 @@ export function WorkbenchLayout({
   );
   const [showClockReset, setShowClockReset] = useState(false);
   const [query, setQuery] = useState('');
-  const search = useSearchStepper(graph, query, nav.selection, nav.revealMatch);
+  const view = useIsolation(graph, nav, showClockReset);
+  const { isolation } = view;
+  const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
   const [tab, setTab] = useState<BottomTab>('address');
-  const { layout, error } = useElkLayout(graph, nav.levelPath, showClockReset);
+  const { layout, error } = useElkLayout(graph, nav.levelPath, showClockReset, isolation);
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -73,6 +76,8 @@ export function WorkbenchLayout({
         query={query}
         searchCounter={search.counter}
         showClockReset={showClockReset}
+        isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
+        onShowAll={view.showAll}
         onNavigate={nav.navigate}
         onQueryChange={setQuery}
         onSearchStep={search.step}
@@ -99,7 +104,7 @@ export function WorkbenchLayout({
                   graph={graph}
                   levelPath={nav.levelPath}
                   selection={nav.selection}
-                  onSelect={nav.selectAndReveal}
+                  onSelect={view.selectAndReveal}
                 />
               </div>
               <ResizeHandle label="Resize Outline" {...panels.outline.separator} />
@@ -110,10 +115,15 @@ export function WorkbenchLayout({
               layout={layout}
               error={error}
               selection={nav.selection}
+              selectedNodeIds={nav.selectedNodeIds}
+              isolated={isolation !== null}
               query={query}
               flash={search.flash}
               onFlashEnd={search.clearFlash}
               onSelect={nav.select}
+              onToggleNode={nav.toggleNode}
+              onIsolate={view.isolate}
+              onShowAll={view.showAll}
               onEnterHierarchy={nav.enterHierarchy}
               onFocusNode={focusNode}
               onFit={fit}
@@ -129,7 +139,8 @@ export function WorkbenchLayout({
                 <DetailsPanel
                   graph={graph}
                   selection={nav.selection}
-                  onSelect={nav.selectAndReveal}
+                  selectedNodeIds={nav.selectedNodeIds}
+                  onSelect={view.selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
                   onReveal={revealSource}
                   onOpenDefinition={openDefinition}
@@ -146,7 +157,7 @@ export function WorkbenchLayout({
                 graph={graph}
                 tab={tab}
                 onTabChange={setTab}
-                onSelectInstance={nav.selectInstance}
+                onSelectInstance={view.selectInstance}
                 onReveal={revealSource}
               />
             </div>

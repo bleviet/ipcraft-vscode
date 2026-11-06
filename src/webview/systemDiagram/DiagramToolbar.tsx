@@ -9,6 +9,9 @@ interface DiagramToolbarProps {
   query: string;
   searchCounter: string;
   showClockReset: boolean;
+  /** Selected and shown node counts while the level is isolated, else null. */
+  isolated: { selected: number; shown: number } | null;
+  onShowAll: () => void;
   onNavigate: (levelPath: string) => void;
   onQueryChange: (query: string) => void;
   onSearchStep: (direction: 1 | -1) => void;
@@ -42,6 +45,8 @@ export function DiagramToolbar({
   query,
   searchCounter,
   showClockReset,
+  isolated,
+  onShowAll,
   onNavigate,
   onQueryChange,
   onSearchStep,
@@ -75,6 +80,16 @@ export function DiagramToolbar({
           );
         })}
       </nav>
+      {isolated && (
+        <span className="sd-isolated">
+          <span>
+            Isolated · {isolated.selected} selected · {isolated.shown} shown
+          </span>
+          <button type="button" className="sd-tool" onClick={onShowAll}>
+            Show All
+          </button>
+        </span>
+      )}
       <div className="flex-1" />
       <input
         type="search"

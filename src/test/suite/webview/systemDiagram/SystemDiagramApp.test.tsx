@@ -50,6 +50,8 @@ interface MockFlowProps {
   nodeTypes: Record<string, React.ComponentType<{ data: unknown; selected?: boolean }>>;
   onNodeClick: (event: unknown, node: MockFlowNode) => void;
   onNodeDoubleClick: (event: unknown, node: MockFlowNode) => void;
+  onNodeContextMenu: (event: unknown, node: MockFlowNode) => void;
+  onPaneContextMenu: (event: unknown) => void;
 }
 
 jest.mock('@xyflow/react', () => {
@@ -97,7 +99,11 @@ jest.mock('@xyflow/react', () => {
         },
         React.createElement(
           'div',
-          { className: 'react-flow__pane', 'data-testid': 'pane' },
+          {
+            className: 'react-flow__pane',
+            'data-testid': 'pane',
+            onContextMenu: (event: unknown) => props.onPaneContextMenu(event),
+          },
           props.nodes.map((node) =>
             React.createElement(
               'div',
@@ -108,6 +114,11 @@ jest.mock('@xyflow/react', () => {
                   'data-testid': `node:${node.id}`,
                   onClick: (event: unknown) => props.onNodeClick(event, node),
                   onDoubleClick: (event: unknown) => props.onNodeDoubleClick(event, node),
+                  onContextMenu: (event: { stopPropagation: () => void }) => {
+                    // Like React Flow, a node's context menu does not reach the pane.
+                    event.stopPropagation();
+                    props.onNodeContextMenu(event, node);
+                  },
                 },
                 node.id
               ),
@@ -1032,6 +1043,151 @@ describe('SystemDiagramApp', () => {
       mockFitBounds.mockClear();
       fireEvent.doubleClick(screen.getByRole('separator', { name: 'Resize Details' }));
       await waitFor(() => expect(mockFitBounds).toHaveBeenCalledTimes(1));
+    });
+  });
+
+  describe('isolating blocks', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const node = (id: string) => screen.getByTestId(`node:${id}`);
+    const nodeIds = () =>
+      screen
+        .queryAllByTestId(/^node:/)
+        .map((element) => element.getAttribute('data-testid')!.slice(5))
+        .sort();
+    const ISOLATED = [
+      '/::leds_4bits',
+      '/axi_dma_0',
+      '/axi_gpio_0',
+      '/axi_mem_intercon',
+      '/dsp_pipeline',
+      '/ps7_0_axi_periph',
+      '/xlconcat_0',
+    ];
+    const chip = () => screen.queryByText(/^Isolated · /);
+
+    async function selectTwo() {
+      await renderWithGraph();
+      await settle();
+      fireEvent.click(node('/axi_gpio_0'));
+      fireEvent.click(node('/axi_dma_0'), { ctrlKey: true });
+    }
+    async function isolateTwo() {
+      await selectTwo();
+      fireEvent.contextMenu(node('/axi_dma_0'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate 2 Selected' }));
+      await waitFor(() => expect(nodeIds()).toEqual(ISOLATED));
+    }
+
+    it('adds a node to the selection with Ctrl+Click and lists it in Details', async () => {
+      await selectTwo();
+      expect(details().getByRole('heading', { name: '2 selected' })).toBeVisible();
+      expect(details().getByRole('button', { name: 'axi_dma_0' })).toBeVisible();
+      fireEvent.click(details().getByRole('button', { name: 'axi_gpio_0' }));
+      expect(details().getByRole('heading', { name: 'axi_gpio_0' })).toBeVisible();
+      fireEvent.click(node('/axi_dma_0'), { metaKey: true });
+      expect(details().getByRole('heading', { name: '2 selected' })).toBeVisible();
+      fireEvent.click(node('/axi_gpio_0'), { metaKey: true });
+      expect(details().getByRole('heading', { name: 'axi_dma_0' })).toBeVisible();
+    });
+
+    it('isolates the selection with its connections and the chip, then shows all', async () => {
+      await isolateTwo();
+      expect(chip()).toHaveTextContent('Isolated · 2 selected · 7 shown');
+      fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+      await waitFor(() => expect(nodeIds().length).toBeGreaterThan(ISOLATED.length));
+      expect(chip()).toBeNull();
+    });
+
+    it('isolates a right-clicked node outside the selection alone', async () => {
+      await selectTwo();
+      fireEvent.contextMenu(node('/pulse_gen_0'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+      await waitFor(() =>
+        expect(nodeIds()).toEqual(['/::ext_trigger', '/::trigger_pulse', '/pulse_gen_0'])
+      );
+    });
+
+    it('shows all from the pane menu, where Show All is disabled when not isolated', async () => {
+      await renderWithGraph();
+      await settle();
+      fireEvent.contextMenu(screen.getByTestId('pane'));
+      expect(screen.getByRole('menuitem', { name: 'Show All' })).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      fireEvent.keyDown(screen.getByRole('menu'), { key: 'Escape' });
+      expect(screen.queryByRole('menu')).toBeNull();
+
+      fireEvent.click(node('/pulse_gen_0'));
+      fireEvent.contextMenu(node('/pulse_gen_0'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+      await waitFor(() => expect(nodeIds()).toHaveLength(3));
+      fireEvent.contextMenu(screen.getByTestId('pane'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Show All' }));
+      await waitFor(() => expect(nodeIds().length).toBeGreaterThan(3));
+      expect(chip()).toBeNull();
+    });
+
+    it('operates the menu from the keyboard', async () => {
+      await renderWithGraph();
+      await settle();
+      fireEvent.contextMenu(node('/pulse_gen_0'));
+      const menu = screen.getByRole('menu');
+      expect(menu).toHaveFocus();
+      fireEvent.keyDown(menu, { key: 'ArrowDown' });
+      fireEvent.keyDown(menu, { key: 'ArrowUp' });
+      fireEvent.keyDown(menu, { key: 'Enter' });
+      expect(screen.queryByRole('menu')).toBeNull();
+      await waitFor(() => expect(nodeIds()).toHaveLength(3));
+    });
+
+    it('ends isolation when entering a hierarchy', async () => {
+      await isolateTwo();
+      fireEvent.doubleClick(node('/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/axis_data_fifo_0');
+      expect(chip()).toBeNull();
+    });
+
+    it('ends isolation when a search step reaches a hidden node, then reveals it', async () => {
+      await isolateTwo();
+      await settle();
+      const input = buildElkInput(graph, '/', { showClockReset: false, measure: appMeasure });
+      const pulseCentre = nodeCenter(
+        toFlowElements(await runElkLayout(input), graph, '/', appMeasure),
+        '/pulse_gen_0'
+      )!;
+      mockSetCenter.mockClear();
+      mockSetViewport.mockClear();
+      fireEvent.change(screen.getByLabelText('Search instances'), { target: { value: 'pulse' } });
+      fireEvent.keyDown(screen.getByLabelText('Search instances'), { key: 'Enter' });
+      await screen.findByTestId('node:/pulse_gen_0');
+      expect(chip()).toBeNull();
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      // The reveal waits for the full layout, so it centres after the restore.
+      expect(mockSetViewport).toHaveBeenCalledTimes(1);
+      expect(mockSetCenter.mock.invocationCallOrder[0]).toBeGreaterThan(
+        mockSetViewport.mock.invocationCallOrder[0]
+      );
+      expect(mockSetCenter).toHaveBeenCalledWith(pulseCentre.x, pulseCentre.y, expect.anything());
+      expect(details().getByRole('heading', { name: 'pulse_gen_0' })).toBeVisible();
+    });
+
+    it('fits on isolating and restores the previous viewport on Show All', async () => {
+      await renderWithGraph();
+      await settle();
+      const before = { x: 40, y: 50, zoom: 1.5 };
+      mockViewport = before;
+      mockFitBounds.mockClear();
+      mockSetViewport.mockClear();
+      fireEvent.click(node('/pulse_gen_0'));
+      fireEvent.contextMenu(node('/pulse_gen_0'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+      await waitFor(() => expect(mockFitBounds).toHaveBeenCalledTimes(1));
+      await settle();
+      expect(mockSetViewport).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+      await waitFor(() => expect(mockSetViewport).toHaveBeenCalledWith(before));
+      expect(mockFitBounds).toHaveBeenCalledTimes(1);
     });
   });
 

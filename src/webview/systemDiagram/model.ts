@@ -58,6 +58,20 @@ export function parseBoundaryId(id: string): { level: string; pin: string } {
   return { level: id.slice(0, cut), pin: id.slice(cut + 2) };
 }
 
+/** Selection of a diagram node: boundary pin ids contain `::` (see {@link boundaryId}), instance paths do not. */
+export function nodeSelection(nodeId: string): Selection {
+  return { kind: nodeId.includes('::') ? 'boundary' : 'instance', id: nodeId };
+}
+
+/** Whether `nodeId` is an instance or boundary pin node of `levelPath`. */
+export function isLevelNode(graph: SystemGraph, levelPath: string, nodeId: string): boolean {
+  const level = graph.levels[levelPath];
+  return (
+    (level?.instances.includes(nodeId) ?? false) ||
+    (level?.boundaryPins.some((pin) => boundaryId(levelPath, pin.name) === nodeId) ?? false)
+  );
+}
+
 export function pinRole(pin: SystemPin, isBoundary: boolean): EndpointRole {
   return endpointRole(pin.direction, isBoundary);
 }

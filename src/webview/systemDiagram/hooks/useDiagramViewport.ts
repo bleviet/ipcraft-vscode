@@ -19,12 +19,16 @@ export interface DiagramViewport {
  * Owns the React Flow viewport. Each level keeps its own zoom and pan in
  * memory: the first visit fits the whole diagram (badges included), returning
  * restores the saved viewport, and a new layout of the same level changes
- * nothing. `fit` fits the current level (Fit button); it also
- * runs when `resizeKey` changes (a panel was shown or hidden), once the canvas
- * has its new size. A reveal request centres its node at the current zoom (a
- * readable one for search steps: see `revealZoom`) once
- * its level is shown (after the policy above applied). `focusNode` zooms to
- * one node of the current level, badges included (double-click). Must run inside a React Flow provider.
+ * nothing. An isolated view (see `viewKey`) is never saved: each new isolation
+ * fits, and leaving it restores the level's viewport from before. `fit` fits
+ * the current level (Fit button); it also runs when `resizeKey` changes (a
+ * panel was shown or hidden), once the canvas has its new size. A reveal
+ * request centres its node at the current zoom (a readable one for search
+ * steps: see `revealZoom`) once its level is shown (after the policy above
+ * applied) and its node is in the layout; until then it waits, for example
+ * while an isolated layout that hides the node is still displayed.
+ * `focusNode` zooms to one node of the current level, badges included
+ * (double-click). Must run inside a React Flow provider.
  */
 export function useDiagramViewport(
   layout: DiagramLayout | null,
@@ -35,7 +39,7 @@ export function useDiagramViewport(
   const store = useStoreApi();
   const bounds = useMemo(() => (layout ? diagramBounds(layout) : null), [layout]);
   const saved = useRef<ReadonlyMap<string, Viewport>>(new Map());
-  const shownLevel = useRef<string | null>(null);
+  const shownKey = useRef<string | null>(null);
   const handledToken = useRef(0);
 
   const fit = useCallback(() => {
@@ -56,24 +60,25 @@ export function useDiagramViewport(
   fitRef.current = fit;
 
   useEffect(() => {
-    const left = shownLevel.current;
+    const left = shownKey.current;
     if (!layout) {
       // The layout is unavailable (error). React Flow stays mounted, so the
       // view survives; save it so the recovered layout restores it even if the
       // user pans the empty canvas meanwhile.
       saved.current = withSavedViewport(saved.current, left, getViewport());
-      shownLevel.current = null;
+      shownKey.current = null;
       return;
     }
-    if (left !== layout.levelPath) {
+    if (left !== layout.viewKey) {
       saved.current = withSavedViewport(saved.current, left, getViewport());
     }
-    const action = decideViewportAction(left, layout.levelPath, saved.current);
-    shownLevel.current = layout.levelPath;
+    const action = decideViewportAction(left, layout.viewKey, saved.current);
+    shownKey.current = layout.viewKey;
     const reveal =
       revealRequest &&
       revealRequest.token !== handledToken.current &&
-      revealRequest.levelPath === layout.levelPath
+      revealRequest.levelPath === layout.levelPath &&
+      nodeCenter(layout, revealRequest.selection.id)
         ? revealRequest
         : null;
     if (reveal) {

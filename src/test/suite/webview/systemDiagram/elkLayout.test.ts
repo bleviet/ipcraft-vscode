@@ -5,6 +5,7 @@ import {
   type DiagramFlowNode,
 } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
+import { isolationSubset } from '../../../../webview/systemDiagram/isolation';
 import { boundaryId } from '../../../../webview/systemDiagram/model';
 import {
   loadFixtureGraph,
@@ -338,5 +339,37 @@ describe('unconnected pin rows', () => {
       bareDma?.type === 'instance' ? [...bareDma.data.west, ...bareDma.data.east] : [];
     expect(bareRows.length).toBeGreaterThan(0);
     expect(bareRows.every((row) => row.unconnected)).toBe(true);
+  });
+});
+
+describe('buildElkInput isolate', () => {
+  const full = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
+
+  it('emits only the subset and keeps the shared edge ids', () => {
+    const subset = isolationSubset(graph, '/', ['/axi_dma_0'], false);
+    const input = buildElkInput(graph, '/', {
+      showClockReset: false,
+      measure: fakeMeasure,
+      isolate: subset,
+    });
+    expect(input.children?.map((node) => node.id).sort()).toEqual([...subset.nodeIds].sort());
+    expect(input.edges?.map((edge) => edge.id).sort()).toEqual([...subset.edgeIds].sort());
+    const fullIds = new Set(full.edges?.map((edge) => edge.id));
+    expect(input.edges?.every((edge) => fullIds.has(edge.id))).toBe(true);
+    expect(fullIds.has('/::axi_dma_0_M_AXI_MM2S#1')).toBe(true);
+  });
+
+  it('keeps every pin of an isolated block and the graph-based unconnected flags', () => {
+    const subset = isolationSubset(graph, '/', ['/axi_dma_0'], false);
+    const input = buildElkInput(graph, '/', {
+      showClockReset: false,
+      measure: fakeMeasure,
+      isolate: subset,
+    });
+    expect(child(input, '/axi_dma_0').ports).toEqual(child(full, '/axi_dma_0').ports);
+    const nodes = toFlowElements(input, graph, '/', fakeMeasure).nodes;
+    const dma = nodes.find((node) => node.id === '/axi_dma_0');
+    const rows = dma?.type === 'instance' ? [...dma.data.west, ...dma.data.east] : [];
+    expect(rows.find((row) => row.name === 's_axi_lite_aclk')?.unconnected).toBe(false);
   });
 });

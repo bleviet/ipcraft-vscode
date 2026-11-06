@@ -53,6 +53,17 @@ The diagram shows one hierarchy level at a time.
 
 ![A hierarchy level with clocks and resets drawn](../images/system-diagram-hierarchy-light.png)
 
+## Isolate blocks
+
+To focus on a few blocks of a busy level, select them and isolate them.
+
+1. Click a block or port, then Cmd+Click (macOS) or Ctrl+Click (Windows and Linux) to add more, or to remove one that is already selected. Details shows "N selected" with a list of the names; clicking a name selects that block alone.
+2. Right-click one of the selected blocks and choose **Isolate N Selected** (N is the number of selected blocks). Right-clicking a block that is not selected selects it alone, and the item reads **Isolate Selection**.
+
+The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden. Clock and reset wires count only while Clocks and resets is on. A toolbar chip reads "Isolated · N selected · M shown", where M counts every block and port on screen.
+
+Choose **Show All** from the right-click menu (on a block or on the empty canvas) or the toolbar to return to the full level, with the zoom and pan it had before. Isolation also ends when you go to another level (breadcrumb, opening a hierarchy block, the mouse back button, or an outline or search jump) or when a search step or outline row selects a block that the isolated view hides.
+
 ## Panels
 
 The outline, details, and bottom panels start hidden so the diagram has the

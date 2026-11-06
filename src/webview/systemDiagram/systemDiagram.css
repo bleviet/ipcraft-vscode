@@ -554,3 +554,43 @@ input:focus-visible {
   border-radius: 10px;
   cursor: pointer;
 }
+
+.sd-isolated {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 3px 1px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+  color: var(--vscode-badge-foreground);
+  background: var(--vscode-badge-background);
+  border-radius: 10px;
+}
+
+.sd-menu {
+  position: absolute;
+  z-index: 20;
+  min-width: 160px;
+  padding: 4px 0;
+  outline: none;
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border, transparent));
+  border-radius: 5px;
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+}
+
+.sd-menu-item {
+  padding: 3px 20px;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.sd-menu-item-active {
+  color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+}
+
+.sd-menu-item[aria-disabled='true'] {
+  opacity: 0.5;
+}
