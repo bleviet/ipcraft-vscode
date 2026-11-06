@@ -16,7 +16,7 @@ import { ResizeHandle } from './ResizeHandle';
 interface WorkbenchLayoutProps {
   graph: SystemGraph;
   problem?: DiagramProblem;
-  revealSource: (line: number) => void;
+  revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
 }
 

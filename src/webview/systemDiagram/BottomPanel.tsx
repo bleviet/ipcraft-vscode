@@ -10,7 +10,7 @@ interface BottomPanelProps {
   tab: BottomTab;
   onTabChange: (tab: BottomTab) => void;
   onSelectInstance: (instancePath: string) => void;
-  onReveal: (line: number) => void;
+  onReveal: (line: number, uri?: string) => void;
 }
 
 export function BottomPanel({

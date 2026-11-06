@@ -70,6 +70,14 @@ export interface SystemInstance {
   definition?: { kind: 'ip.yml' | 'hdl'; file: string; uri: string; displayName: string };
 }
 
+/** A workspace file a level's contents were read from. */
+export interface SystemSourceRef {
+  /** Workspace-relative display name. */
+  fileName: string;
+  /** `Uri.toString()`, used to open the file. */
+  uri: string;
+}
+
 export interface SystemLevel {
   /** `/` or the hier instance path. */
   path: string;
@@ -79,6 +87,12 @@ export interface SystemLevel {
   boundaryPins: SystemPin[];
   /** Child instance paths, in creation order. */
   instances: string[];
+  /**
+   * The file the level's contents were read from; absent = the graph's own
+   * document. Line numbers of the level's instances, nets, boundary pins and
+   * address segments (by master instance) refer to this file.
+   */
+  source?: SystemSourceRef;
 }
 
 /** `instance: null` is a boundary pin of the net's level. */
@@ -102,9 +116,9 @@ export interface SystemNet {
 }
 
 export interface AddressSegment {
-  /** As written, e.g. `processing_system7_0/Data`; qsys: the connection start (`cpu.data_master`). */
+  /** As written, e.g. `processing_system7_0/Data`; qsys: the connection start (`cpu.data_master`). Grafted subsystem segments are prefixed with `<subsystem instance name>/`. */
   addressSpace: string;
-  /** As written, e.g. `axi_dma_0/S_AXI_LITE/Reg`; qsys: the connection end (`uart.avalon_slave`). */
+  /** As written, e.g. `axi_dma_0/S_AXI_LITE/Reg`; qsys: the connection end (`uart.avalon_slave`). Grafted subsystem segments are prefixed with `<subsystem instance name>/`. */
   segment: string;
   /** Address space minus its last component, e.g. `/processing_system7_0`; qsys: the start instance. */
   masterInstance: string;
@@ -121,6 +135,8 @@ export interface SystemDiagnostic {
   severity: 'warning' | 'info';
   message: string;
   lines?: number[];
+  /** Level whose file `lines` refer to; absent = `/`. */
+  level?: string;
 }
 
 export interface SystemGraph {

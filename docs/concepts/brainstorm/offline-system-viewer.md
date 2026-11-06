@@ -152,8 +152,12 @@ element records its source line.
 
 Decisions for the `.qsys` reader (`src/parser/system/QsysReader.ts`):
 
-- **Flat hierarchy.** Each enabled `module` is an `ip` instance at the root
-  level with `component` (module `kind`) and `version`; there is no `vlnv`.
+- **Flat hierarchy, subsystems grafted.** Each enabled `module` is an `ip`
+  instance at the root level with `component` (module `kind`) and `version`;
+  there is no `vlnv`. When the `kind` is the base name of another workspace
+  `.qsys` file, `SubsystemExpander` reads that file and `graftSubsystem` inlines
+  it as a `hier` level (paths, nets and address segments prefixed, the level
+  records its `source` file), recursively and with cycle detection.
   Modules with `enabled="0"` are skipped together with every connection and
   exported interface touching them, with one info diagnostic.
 - **Direction from start and end.** A connection `kind` and the end of the

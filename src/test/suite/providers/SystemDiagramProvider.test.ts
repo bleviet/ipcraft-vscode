@@ -343,6 +343,54 @@ describe('SystemDiagramProvider', () => {
     expect(options.selection).toMatchObject({ startLine: 41, endLine: 41, startCharacter: 0 });
   });
 
+  describe('revealSource with a uri', () => {
+    const subUri = 'file:///ws/lib/sub_system.qsys';
+    const openSubsystemDocument = async (requested: string) => {
+      const ctx = setup(fixtureText);
+      mockEnrich.mockImplementation((graph: { levels: Record<string, unknown> }) =>
+        Promise.resolve({
+          ...graph,
+          levels: {
+            ...graph.levels,
+            '/sub_0': {
+              path: '/sub_0',
+              name: 'sub_0',
+              boundaryPins: [],
+              instances: [],
+              source: { fileName: 'lib/sub_system.qsys', uri: subUri },
+            },
+          },
+        })
+      );
+      const subDocument = { uri: { toString: () => subUri } };
+      const openTextDocument = jest.fn().mockResolvedValue(subDocument);
+      (vscode.workspace as unknown as { openTextDocument: jest.Mock }).openTextDocument =
+        openTextDocument;
+      await ctx.send({ type: 'ready' });
+      await ctx.send({ type: 'revealSource', line: 7, uri: requested });
+      return { openTextDocument, subDocument };
+    };
+
+    it('opens a file that a graph level was read from', async () => {
+      const { openTextDocument, subDocument } = await openSubsystemDocument(subUri);
+      expect(openTextDocument).toHaveBeenCalledWith(
+        expect.objectContaining({ parsedFrom: subUri })
+      );
+      const [document, options] = (vscode.window.showTextDocument as jest.Mock).mock.calls[0] as [
+        unknown,
+        { selection: vscode.Range },
+      ];
+      expect(document).toBe(subDocument);
+      expect(options.selection).toMatchObject({ startLine: 6, endLine: 6 });
+    });
+
+    it('ignores a uri that no level was read from', async () => {
+      const { openTextDocument } = await openSubsystemDocument('file:///etc/passwd');
+      expect(openTextDocument).not.toHaveBeenCalled();
+      expect(vscode.window.showTextDocument).not.toHaveBeenCalled();
+    });
+  });
+
   it('disposes the document subscription with the panel', () => {
     const { changeSubscription, dispose } = setup(fixtureText);
     dispose();

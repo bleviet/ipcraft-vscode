@@ -77,7 +77,18 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
 
     router.on('revealSource', async (message) => {
       const line = Math.max(message.line - 1, 0);
-      await vscode.window.showTextDocument(document, {
+      let target = document;
+      if (message.uri !== undefined) {
+        // Only files a level was read from may be opened.
+        const known = Object.values(lastGraph?.levels ?? {}).some(
+          (level) => level.source?.uri === message.uri
+        );
+        if (!known) {
+          return;
+        }
+        target = await vscode.workspace.openTextDocument(vscode.Uri.parse(message.uri));
+      }
+      await vscode.window.showTextDocument(target, {
         viewColumn: vscode.ViewColumn.Beside,
         selection: new vscode.Range(line, 0, line, 0),
         preserveFocus: false,

@@ -1,12 +1,13 @@
 import React from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { LineLink } from './LineLink';
+import { levelSource, segmentLevel } from './sourceFile';
 import { segmentHigh, segmentRangeText } from './model';
 
 interface AddressMapTableProps {
   graph: SystemGraph;
   onSelectInstance: (instancePath: string) => void;
-  onReveal: (line: number) => void;
+  onReveal: (line: number, uri?: string) => void;
 }
 
 export function AddressMapTable({ graph, onSelectInstance, onReveal }: AddressMapTableProps) {
@@ -42,7 +43,11 @@ export function AddressMapTable({ graph, onSelectInstance, onReveal }: AddressMa
             <td className="px-2">{segmentRangeText(segment, graph.source.format)}</td>
             <td className="px-2">{segmentHigh(segment) ?? '-'}</td>
             <td className="px-2" onClick={(event) => event.stopPropagation()}>
-              <LineLink fileName={graph.source.fileName} line={segment.line} onReveal={onReveal} />
+              <LineLink
+                source={levelSource(graph, segmentLevel(graph, segment))}
+                line={segment.line}
+                onReveal={onReveal}
+              />
             </td>
           </tr>
         ))}

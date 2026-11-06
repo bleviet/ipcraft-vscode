@@ -1,8 +1,12 @@
 import {
   matchDefinitions,
+  matchSubsystems,
+  type QsysFileKey,
   type HdlFileKey,
   type IpFileKey,
 } from '../../../../../services/systemDiagram/enrichment/matchDefinitions';
+import type { SystemGraph } from '../../../../../domain/systemGraph';
+import { readQsys } from '../../../../../parser/system/QsysReader';
 import { bdGraph, qsysGraph, qsysTclGraph } from './definitionFixtures';
 
 const DESIGN = '/ws/design.tcl';
@@ -60,6 +64,20 @@ describe('matchDefinitions', () => {
         message: 'Several definitions match cpu: a.ip.yml, b.ip.yml',
         lines: [qsysGraph.instances['/cpu'].line],
       },
+    ]);
+  });
+
+  it('puts the level of a non-root instance on an ambiguity diagnostic', () => {
+    const graph = JSON.parse(JSON.stringify(bdGraph)) as typeof bdGraph;
+    graph.instances['/my_core_0'].parent = '/dsp';
+    const match = run(
+      graph,
+      [ip('My_Core', '1.0', 'a.ip.yml'), ip('My_Core', '1.0', 'b.ip.yml')],
+      []
+    );
+    expect(match.ip.size).toBe(0);
+    expect(match.diagnostics).toEqual([
+      expect.objectContaining({ level: '/dsp', lines: [graph.instances['/my_core_0'].line] }),
     ]);
   });
 
@@ -132,5 +150,58 @@ describe('matchDefinitions', () => {
       const far = hdl('other/pulse_gen.v', [], ['pulse_gen']);
       expect(run(bdGraph, [], [far, near], design).hdl.get('/pulse_0')).toBe(near);
     });
+  });
+});
+
+describe('matchSubsystems', () => {
+  const sub = readQsys(
+    `<system name="s">
+ <module name="sub_0" kind="Sub_System" version="1.0" />
+ <module name="cpu" kind="altera_nios2_gen2" version="1.0" />
+</system>`,
+    's.qsys'
+  );
+  const qsys = (file: string, systemName = 'sub_system'): QsysFileKey => ({
+    file: `/ws/${file}`,
+    displayName: file,
+    systemName,
+  });
+  const run = (graph: SystemGraph, files: QsysFileKey[], designFile = '/ws/top.qsys') =>
+    matchSubsystems(graph, files, designFile);
+
+  it('matches a module kind to a file base name case-insensitively', () => {
+    const match = run(sub, [qsys('sub_system.qsys', 'SUB_system'), qsys('other.qsys', 'other')]);
+    expect([...match.qsys.keys()]).toEqual(['/sub_0']);
+    expect(match.qsys.get('/sub_0')?.displayName).toBe('sub_system.qsys');
+  });
+
+  it('prefers the nearest file and reports a tie', () => {
+    const near = qsys('proj/sub_system.qsys');
+    const far = qsys('lib/sub_system.qsys');
+    expect(run(sub, [far, near], '/ws/proj/top.qsys').qsys.get('/sub_0')).toBe(near);
+    const tie = run(sub, [qsys('a/sub_system.qsys'), qsys('b/sub_system.qsys')]);
+    expect(tie.qsys.size).toBe(0);
+    expect(tie.diagnostics).toEqual([
+      {
+        severity: 'info',
+        message: 'Several definitions match sub_0: a/sub_system.qsys, b/sub_system.qsys',
+        lines: [sub.instances['/sub_0'].line],
+      },
+    ]);
+  });
+
+  it('never matches the design file itself', () => {
+    expect(run(sub, [qsys('top.qsys', 'sub_system')]).qsys.size).toBe(0);
+  });
+
+  it('ignores Vivado graphs and non-root instances', () => {
+    expect(run(bdGraph, [qsys('my_core.qsys', 'my_core')]).qsys.size).toBe(0);
+    const nested: SystemGraph = {
+      ...sub,
+      instances: {
+        '/sub_0': { ...sub.instances['/sub_0'], parent: '/x' },
+      },
+    };
+    expect(run(nested, [qsys('sub_system.qsys')]).qsys.size).toBe(0);
   });
 });

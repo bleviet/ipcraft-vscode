@@ -113,6 +113,13 @@ along connections, and as a last step from names. Connections whose kind came
 from names, or could not be determined, are listed in Problems. A script that
 uses Tcl that cannot be evaluated marks the view partial.
 
+A module whose kind is the base name of another `.qsys` file in the workspace
+(for example `kind="sub_system"` and `sub_system.qsys`) is a Platform Designer
+subsystem. IPCraft reads that file and shows the module as a hierarchy level:
+double-click the block to enter it. Go to source from inside the subsystem opens
+the subsystem file. Subsystems that instantiate each other, or a file that cannot
+be read, stay opaque blocks and are listed in Problems.
+
 ![A Platform Designer system with the address map open](../images/system-diagram-platform-designer-light.png)
 
 ## What the offline view cannot show

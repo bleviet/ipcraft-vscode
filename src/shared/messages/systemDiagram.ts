@@ -7,5 +7,5 @@ export type SystemDiagramToWebviewMessage =
 
 export type SystemDiagramToExtensionMessage =
   | { type: 'ready' }
-  | { type: 'revealSource'; line: number }
+  | { type: 'revealSource'; line: number; uri?: string }
   | { type: 'openDefinition'; instance: string };

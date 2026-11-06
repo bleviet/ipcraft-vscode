@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SystemGraph, SystemInstance } from '../../domain/systemGraph';
 import { LineLink } from './LineLink';
+import { levelSource } from './sourceFile';
 import { endpointKey, netsByEndpoint, shortVlnv, type Selection } from './model';
 
 interface InstanceDetailsProps {
@@ -8,7 +9,7 @@ interface InstanceDetailsProps {
   instance: SystemInstance;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
-  onReveal: (line: number) => void;
+  onReveal: (line: number, uri?: string) => void;
   onOpenDefinition: (instance: string) => void;
 }
 
@@ -20,6 +21,7 @@ export function InstanceDetails({
   onReveal,
   onOpenDefinition,
 }: InstanceDetailsProps) {
+  const source = levelSource(graph, instance.parent);
   const nets = netsByEndpoint(graph, instance.parent);
   const parameters = Object.entries(instance.parameters);
   const identity =
@@ -39,17 +41,11 @@ export function InstanceDetails({
         </p>
       </header>
       <p>
-        Created at{' '}
-        <LineLink fileName={graph.source.fileName} line={instance.line} onReveal={onReveal} />
+        Created at <LineLink source={source} line={instance.line} onReveal={onReveal} />
         {instance.procLine !== undefined && (
           <>
             {' '}
-            · proc at{' '}
-            <LineLink
-              fileName={graph.source.fileName}
-              line={instance.procLine}
-              onReveal={onReveal}
-            />
+            · proc at <LineLink source={source} line={instance.procLine} onReveal={onReveal} />
           </>
         )}
       </p>

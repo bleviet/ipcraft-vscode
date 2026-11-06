@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
+import { readQsys } from '../../../../parser/system/QsysReader';
 import { SystemDesignEnricher } from '../../../../services/systemDiagram/SystemDesignEnricher';
+import { readFileSync } from 'fs';
+import * as path from 'path';
 import { bdGraph, IP_YML } from './enrichment/definitionFixtures';
 
 const PULSE_VHDL = `
@@ -36,11 +39,14 @@ function setup(files: Record<string, string>, sizes: Record<string, number> = {}
       const path = `${glob.base}/${glob.pattern}`;
       return Promise.resolve(excluded.has(path) || !(path in files) ? [] : [uri(path)]);
     }
+    // `**/*.{a,b}` or `**/*.ext`: keep the files with one of the extensions.
+    const extensions = glob
+      .replace(/^\*\*\/\*\./, '')
+      .replace(/^\{|\}$/g, '')
+      .split(',');
     return Promise.resolve(
       Object.keys(files)
-        .filter((file) =>
-          glob.includes('ip.yml') ? file.endsWith('.ip.yml') : !file.endsWith('.ip.yml')
-        )
+        .filter((file) => extensions.some((extension) => file.endsWith(`.${extension}`)))
         .map(uri)
     );
   });
@@ -316,5 +322,112 @@ describe('SystemDesignEnricher', () => {
     for (const watcher of watchers) {
       expect(watcher.dispose).toHaveBeenCalled();
     }
+  });
+});
+
+describe('SystemDesignEnricher subsystems', () => {
+  const fixture = (name: string) =>
+    readFileSync(
+      path.join(__dirname, '../../../fixtures/system-design/qsys-subsystem', name),
+      'utf8'
+    );
+  const system = (modules: string[]) =>
+    `<system name="s">${modules
+      .map((kind, i) => `<module name="${kind}_${i}" kind="${kind}" version="1" />`)
+      .join('')}</system>`;
+  const enrichTop = (text: string) =>
+    new SystemDesignEnricher().enrich(readQsys(text, 'top.qsys'), '/ws/top.qsys');
+
+  it('grafts a sub_system.qsys instance as a hierarchy level and enriches its children', async () => {
+    setup({
+      '/ws/top.qsys': fixture('top.qsys'),
+      '/ws/lib/sub_system.qsys': fixture('sub_system.qsys'),
+      '/ws/mem.ip.yml': IP_YML.replace('My_Core', 'altera_avalon_onchip_memory2'),
+    });
+    const result = await enrichTop(fixture('top.qsys'));
+    expect(result.instances['/sub_0'].kind).toBe('hier');
+    expect(result.levels['/sub_0'].source).toEqual({
+      fileName: 'lib/sub_system.qsys',
+      uri: 'file:///ws/lib/sub_system.qsys',
+    });
+    expect(result.levels['/sub_0'].instances).toEqual([
+      '/sub_0/inner_bridge',
+      '/sub_0/onchip_memory2_0',
+    ]);
+    expect(result.instances['/sub_0'].pins.map((pin) => pin.name)).toEqual(['clk', 'reset', 's0']);
+    expect(result.instances['/sub_0/onchip_memory2_0'].definition?.file).toBe('/ws/mem.ip.yml');
+    expect(result.diagnostics.filter((d) => d.severity === 'warning')).toEqual([]);
+  });
+
+  it('tags diagnostics about grafted instances with their level', async () => {
+    setup({
+      '/ws/top.qsys': fixture('top.qsys'),
+      '/ws/lib/sub_system.qsys': fixture('sub_system.qsys'),
+      '/ws/mem.ip.yml': IP_YML.replace('My_Core', 'altera_avalon_onchip_memory2'),
+    });
+    const result = await enrichTop(fixture('top.qsys'));
+    const notes = result.diagnostics.filter((d) => d.message.startsWith('Pins not in'));
+    expect(notes).toHaveLength(1);
+    expect(notes[0].level).toBe('/sub_0');
+    expect(notes[0].message).toContain('sub_0/onchip_memory2_0/');
+    expect(notes[0].lines).toEqual([result.instances['/sub_0/onchip_memory2_0'].line]);
+  });
+
+  it('expands nested subsystems', async () => {
+    setup({
+      '/ws/mid_sys.qsys': system(['leaf_sys']),
+      '/ws/leaf_sys.qsys': system(['altera_avalon_pio']),
+    });
+    const result = await enrichTop(system(['mid_sys']));
+    expect(result.instances['/mid_sys_0'].kind).toBe('hier');
+    expect(result.instances['/mid_sys_0/leaf_sys_0'].kind).toBe('hier');
+    expect(result.instances['/mid_sys_0/leaf_sys_0/altera_avalon_pio_0'].parent).toBe(
+      '/mid_sys_0/leaf_sys_0'
+    );
+    expect(result.levels['/mid_sys_0/leaf_sys_0'].source?.fileName).toBe('leaf_sys.qsys');
+  });
+
+  it('stops at a subsystem that instantiates itself', async () => {
+    setup({ '/ws/loop_sys.qsys': system(['loop_sys']) });
+    const result = await enrichTop(system(['loop_sys']));
+    expect(result.instances['/loop_sys_0'].kind).toBe('hier');
+    expect(result.instances['/loop_sys_0/loop_sys_0'].kind).toBe('ip');
+  });
+
+  it('warns about a mutual cycle and terminates', async () => {
+    setup({
+      '/ws/a_sys.qsys': system(['b_sys']),
+      '/ws/b_sys.qsys': system(['a_sys']),
+    });
+    const result = await enrichTop(system(['a_sys']));
+    expect(result.instances['/a_sys_0/b_sys_0/a_sys_0'].kind).toBe('ip');
+    expect(result.diagnostics).toContainEqual(
+      expect.objectContaining({
+        severity: 'warning',
+        message: 'a_sys_0: a_sys.qsys instantiates itself.',
+        level: '/a_sys_0/b_sys_0',
+      })
+    );
+  });
+
+  it('warns when a subsystem file cannot be read and leaves the instance as ip', async () => {
+    setup({ '/ws/bad_sys.qsys': '<system' });
+    const result = await enrichTop(system(['bad_sys']));
+    expect(result.instances['/bad_sys_0'].kind).toBe('ip');
+    expect(result.diagnostics[0]).toMatchObject({
+      severity: 'warning',
+      lines: [result.instances['/bad_sys_0'].line],
+    });
+    expect(result.diagnostics[0].message).toMatch(
+      /^bad_sys_0: Could not read subsystem bad_sys\.qsys: /
+    );
+  });
+
+  it('does not expand in an untrusted workspace', async () => {
+    const { workspace } = setup({ '/ws/sub_system.qsys': system(['x']) });
+    workspace.isTrusted = false;
+    const result = await enrichTop(system(['sub_system']));
+    expect(result.instances['/sub_system_0'].kind).toBe('ip');
+    expect(workspace.findFiles).not.toHaveBeenCalled();
   });
 });

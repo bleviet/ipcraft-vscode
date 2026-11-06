@@ -83,6 +83,31 @@ describe('applyDefinitions with an ip.yml definition', () => {
     expect(message).toContain('dsp/my_core_0/stale_pin');
   });
 
+  it('groups out-of-date pins per level, root first, so each diagnostic has one file', () => {
+    const graph = JSON.parse(JSON.stringify(bdGraph)) as typeof bdGraph;
+    graph.instances['/dsp/my_core_0'] = {
+      ...graph.instances['/my_core_0'],
+      path: '/dsp/my_core_0',
+      parent: '/dsp',
+      line: 99,
+    };
+    const out = applyDefinitions(
+      graph,
+      new Map([
+        ['/dsp/my_core_0', ipDefinition],
+        ['/my_core_0', ipDefinition],
+      ])
+    );
+    const notes = out.diagnostics.filter((d) => d.message.startsWith('Pins not in'));
+    expect(notes).toHaveLength(2);
+    expect(notes[0].level).toBeUndefined();
+    expect(notes[0].message).toContain('my_core_0/stale_pin');
+    expect(notes[0].message).not.toContain('dsp/');
+    expect(notes[0].lines).toEqual([graph.instances['/my_core_0'].line]);
+    expect(notes[1]).toMatchObject({ level: '/dsp', lines: [99] });
+    expect(notes[1].message).toContain('dsp/my_core_0/stale_pin');
+  });
+
   it('does not mutate its input', () => {
     const before = JSON.stringify(bdGraph);
     applyDefinitions(bdGraph, defs('/my_core_0', ipDefinition));

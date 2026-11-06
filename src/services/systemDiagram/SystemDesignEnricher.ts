@@ -23,6 +23,7 @@ import {
   type InstanceDefinition,
 } from './enrichment/instanceDefinition';
 import { matchDefinitions, type HdlFileKey, type IpFileKey } from './enrichment/matchDefinitions';
+import { SubsystemExpander } from './SubsystemExpander';
 import { WorkspaceFileIndex } from './WorkspaceFileIndex';
 
 const IP_GLOB = '**/*.ip.yml';
@@ -58,6 +59,7 @@ export class SystemDesignEnricher {
     (uri) => this.readIpEntry(uri),
     this.logger
   );
+  private readonly subsystems = new SubsystemExpander();
   private readonly hdlIndex = new WorkspaceFileIndex<HdlEntry>(
     HDL_GLOB,
     HDL_LIMIT,
@@ -66,16 +68,20 @@ export class SystemDesignEnricher {
   );
 
   /** `designFile` is the path of the design: the nearest definition wins a tie. */
-  async enrich(graph: SystemGraph, designFile: string): Promise<SystemGraph> {
-    const typed = Object.values(graph.instances).filter((instance) => instance.kind !== 'hier');
-    if (typed.length === 0) {
-      return graph;
+  async enrich(read: SystemGraph, designFile: string): Promise<SystemGraph> {
+    if (Object.values(read.instances).every((instance) => instance.kind === 'hier')) {
+      return read;
     }
     if (!vscode.workspace.isTrusted) {
       return {
-        ...graph,
-        diagnostics: [...graph.diagnostics, { severity: 'info', message: UNTRUSTED_MESSAGE }],
+        ...read,
+        diagnostics: [...read.diagnostics, { severity: 'info', message: UNTRUSTED_MESSAGE }],
       };
+    }
+    const graph = await this.subsystems.expand(read, designFile);
+    const typed = Object.values(graph.instances).filter((instance) => instance.kind !== 'hier');
+    if (typed.length === 0) {
+      return graph;
     }
     const ipFiles = await this.ipIndex.get();
     const hdlFiles = typed.some((instance) => instance.kind === 'module')
@@ -111,6 +117,7 @@ export class SystemDesignEnricher {
             severity: 'info',
             message: `${instance.name}: ${entry.displayName} declares ${moduleRef} after another unit; its ports are not read.`,
             lines: [instance.line],
+            ...(instance.parent !== '/' && { level: instance.parent }),
           });
         }
       } catch (error) {
@@ -125,6 +132,7 @@ export class SystemDesignEnricher {
   dispose(): void {
     this.ipIndex.dispose();
     this.hdlIndex.dispose();
+    this.subsystems.dispose();
   }
 
   private async readText(uri: vscode.Uri): Promise<string> {

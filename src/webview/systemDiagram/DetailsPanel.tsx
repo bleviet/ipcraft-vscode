@@ -2,6 +2,7 @@ import React from 'react';
 import type { SystemGraph, SystemNet, SystemPin } from '../../domain/systemGraph';
 import { InstanceDetails } from './InstanceDetails';
 import { LineLink } from './LineLink';
+import { levelSource } from './sourceFile';
 import { boundaryId, parseBoundaryId, type Selection } from './model';
 
 interface DetailsPanelProps {
@@ -9,7 +10,7 @@ interface DetailsPanelProps {
   selection: Selection | null;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
-  onReveal: (line: number) => void;
+  onReveal: (line: number, uri?: string) => void;
   onOpenDefinition: (instance: string) => void;
 }
 
@@ -57,7 +58,7 @@ function NetDetails({
   graph: SystemGraph;
   net: SystemNet;
   onSelect: DetailsPanelProps['onSelect'];
-  onReveal: (line: number) => void;
+  onReveal: (line: number, uri?: string) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -69,7 +70,7 @@ function NetDetails({
       </header>
       <p>
         First connected at{' '}
-        <LineLink fileName={graph.source.fileName} line={net.line} onReveal={onReveal} />
+        <LineLink source={levelSource(graph, net.level)} line={net.line} onReveal={onReveal} />
       </p>
       <section>
         <h3 className="font-semibold">Endpoints</h3>
@@ -102,12 +103,14 @@ function NetDetails({
 
 function BoundaryDetails({
   graph,
+  level,
   pin,
   onReveal,
 }: {
   graph: SystemGraph;
+  level: string;
   pin: SystemPin;
-  onReveal: (line: number) => void;
+  onReveal: (line: number, uri?: string) => void;
 }) {
   const parameters = Object.entries(pin.parameters);
   return (
@@ -122,7 +125,7 @@ function BoundaryDetails({
       {pin.line !== undefined && (
         <p>
           Declared at{' '}
-          <LineLink fileName={graph.source.fileName} line={pin.line} onReveal={onReveal} />
+          <LineLink source={levelSource(graph, level)} line={pin.line} onReveal={onReveal} />
         </p>
       )}
       {parameters.length > 0 && (
@@ -170,7 +173,7 @@ export function DetailsPanel({
     const { level, pin: pinName } = parseBoundaryId(selection.id);
     const pin = graph.levels[level]?.boundaryPins.find((candidate) => candidate.name === pinName);
     if (pin) {
-      content = <BoundaryDetails graph={graph} pin={pin} onReveal={onReveal} />;
+      content = <BoundaryDetails graph={graph} level={level} pin={pin} onReveal={onReveal} />;
     }
   }
   return (

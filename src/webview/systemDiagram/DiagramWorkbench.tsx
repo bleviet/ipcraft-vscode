@@ -7,7 +7,7 @@ import { WorkbenchLayout } from './WorkbenchLayout';
 interface DiagramWorkbenchProps {
   graph: SystemGraph;
   problem?: DiagramProblem;
-  revealSource: (line: number) => void;
+  revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
 }
 

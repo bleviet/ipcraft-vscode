@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags="INTERNAL_COMPONENT=true"
+   categories="System" />
+ <parameter name="deviceFamily" value="Cyclone V" />
+ <parameter name="hideFromIPCatalog" value="false" />
+ <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
+ <interface name="reset" internal="clk_0.clk_in_reset" type="reset" dir="end" />
+ <module name="clk_0" kind="clock_source" version="18.1" enabled="1">
+  <parameter name="clockFrequency" value="50000000" />
+  <parameter name="clockFrequencyKnown" value="true" />
+ </module>
+ <module name="mm_bridge_0" kind="altera_avalon_mm_bridge" version="18.1" enabled="1">
+  <parameter name="DATA_WIDTH" value="32" />
+ </module>
+ <module name="sub_0" kind="sub_system" version="1.0" enabled="1" />
+ <connection kind="avalon" version="18.1" start="mm_bridge_0.m0" end="sub_0.s0">
+  <parameter name="baseAddress" value="0x00001000" />
+ </connection>
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="mm_bridge_0.clk" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="sub_0.clk" />
+ <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="mm_bridge_0.reset" />
+ <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="sub_0.reset" />
+</system>

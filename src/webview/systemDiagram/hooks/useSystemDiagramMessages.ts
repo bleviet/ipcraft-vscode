@@ -12,7 +12,7 @@ function post(message: SystemDiagramToExtensionMessage): void {
 
 export function useSystemDiagramMessages(): {
   state: SystemDiagramState;
-  revealSource: (line: number) => void;
+  revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
 } {
   const [state, setState] = useState<SystemDiagramState>({ status: 'loading' });
@@ -29,7 +29,10 @@ export function useSystemDiagramMessages(): {
     return () => window.removeEventListener('message', onMessage);
   }, []);
 
-  const revealSource = useCallback((line: number) => post({ type: 'revealSource', line }), []);
+  const revealSource = useCallback(
+    (line: number, uri?: string) => post({ type: 'revealSource', line, uri }),
+    []
+  );
   const openDefinition = useCallback(
     (instance: string) => post({ type: 'openDefinition', instance }),
     []

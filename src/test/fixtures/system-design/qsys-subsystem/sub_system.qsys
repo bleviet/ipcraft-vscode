@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags="INTERNAL_COMPONENT=true"
+   categories="System" />
+ <parameter name="deviceFamily" value="Cyclone V" />
+ <parameter name="hideFromIPCatalog" value="false" />
+ <interface name="clk" internal="inner_bridge.clk" type="clock" dir="end" />
+ <interface name="reset" internal="inner_bridge.reset" type="reset" dir="end" />
+ <interface name="s0" internal="inner_bridge.s0" type="avalon" dir="end" />
+ <module name="inner_bridge" kind="altera_avalon_mm_bridge" version="18.1" enabled="1">
+  <parameter name="DATA_WIDTH" value="32" />
+ </module>
+ <module name="onchip_memory2_0" kind="altera_avalon_onchip_memory2" version="18.1" enabled="1">
+  <parameter name="memorySize" value="4096" />
+ </module>
+ <connection kind="avalon" version="18.1" start="inner_bridge.m0" end="onchip_memory2_0.s1">
+  <parameter name="baseAddress" value="0x00000000" />
+ </connection>
+ <connection kind="clock" version="18.1" start="inner_bridge.clk" end="onchip_memory2_0.clk1" />
+ <connection kind="reset" version="18.1" start="inner_bridge.reset" end="onchip_memory2_0.reset1" />
+</system>

@@ -4,7 +4,7 @@
  * module name. Pure: the caller supplies the indexes.
  */
 
-import type { SystemDiagnostic, SystemGraph } from '../../../domain/systemGraph';
+import type { SystemDiagnostic, SystemGraph, SystemInstance } from '../../../domain/systemGraph';
 
 export interface IpFileKey {
   file: string;
@@ -40,6 +40,45 @@ function treeDistance(a: string, b: string): number {
   return left.length - shared + (right.length - shared);
 }
 
+/** The single candidate, or the one with `version`; otherwise none plus a diagnostic. */
+function pickOne<T extends { file: string; displayName: string }>(
+  diagnostics: SystemDiagnostic[],
+  candidates: T[],
+  instance: SystemInstance,
+  designFile: string,
+  versionOf?: (candidate: T) => string,
+  version?: string
+): T | undefined {
+  if (candidates.length <= 1) {
+    return candidates[0];
+  }
+  const byVersion =
+    versionOf && version !== undefined
+      ? candidates.filter((candidate) => versionOf(candidate) === version)
+      : [];
+  if (byVersion.length === 1) {
+    return byVersion[0];
+  }
+  // Prefer the candidate nearest to the design file; a tie stays ambiguous.
+  const pool = byVersion.length > 1 ? byVersion : candidates;
+  const distances = pool.map((candidate) => treeDistance(candidate.file, designFile));
+  const best = Math.min(...distances);
+  const nearest = pool.filter((_, index) => distances[index] === best);
+  if (nearest.length === 1) {
+    return nearest[0];
+  }
+  diagnostics.push({
+    severity: 'info',
+    message: `Several definitions match ${instance.name}: ${candidates
+      .map((candidate) => candidate.displayName)
+      .sort()
+      .join(', ')}`,
+    lines: [instance.line],
+    ...(instance.parent !== '/' && { level: instance.parent }),
+  });
+  return undefined;
+}
+
 const vlnvText = (vlnv: IpFileKey['vlnv']) =>
   `${vlnv.vendor}:${vlnv.library}:${vlnv.name}:${vlnv.version}`.toLowerCase();
 
@@ -51,50 +90,14 @@ export function matchDefinitions<Ip extends IpFileKey, Hdl extends HdlFileKey>(
 ): DefinitionMatches<Ip, Hdl> {
   const result: DefinitionMatches<Ip, Hdl> = { ip: new Map(), hdl: new Map(), diagnostics: [] };
 
-  /** The single candidate, or the one with `version`; otherwise none plus a diagnostic. */
-  const pickOne = <T extends { file: string; displayName: string }>(
-    candidates: T[],
-    instanceName: string,
-    line: number,
-    versionOf?: (candidate: T) => string,
-    version?: string
-  ): T | undefined => {
-    if (candidates.length <= 1) {
-      return candidates[0];
-    }
-    const byVersion =
-      versionOf && version !== undefined
-        ? candidates.filter((candidate) => versionOf(candidate) === version)
-        : [];
-    if (byVersion.length === 1) {
-      return byVersion[0];
-    }
-    // Prefer the candidate nearest to the design file; a tie stays ambiguous.
-    const pool = byVersion.length > 1 ? byVersion : candidates;
-    const distances = pool.map((candidate) => treeDistance(candidate.file, designFile));
-    const best = Math.min(...distances);
-    const nearest = pool.filter((_, index) => distances[index] === best);
-    if (nearest.length === 1) {
-      return nearest[0];
-    }
-    result.diagnostics.push({
-      severity: 'info',
-      message: `Several definitions match ${instanceName}: ${candidates
-        .map((candidate) => candidate.displayName)
-        .sort()
-        .join(', ')}`,
-      lines: [line],
-    });
-    return undefined;
-  };
-
   for (const instance of Object.values(graph.instances)) {
     if (instance.kind === 'ip' && instance.vlnv) {
       const wanted = instance.vlnv.toLowerCase();
       const found = pickOne(
+        result.diagnostics,
         ipFiles.filter((file) => vlnvText(file.vlnv) === wanted),
-        instance.name,
-        instance.line
+        instance,
+        designFile
       );
       if (found) {
         result.ip.set(instance.path, found);
@@ -102,9 +105,10 @@ export function matchDefinitions<Ip extends IpFileKey, Hdl extends HdlFileKey>(
     } else if (instance.kind === 'ip' && instance.component) {
       const wanted = instance.component.toLowerCase();
       const found = pickOne(
+        result.diagnostics,
         ipFiles.filter((file) => file.vlnv.name.toLowerCase() === wanted),
-        instance.name,
-        instance.line,
+        instance,
+        designFile,
         (file) => file.vlnv.version,
         instance.version
       );
@@ -114,17 +118,59 @@ export function matchDefinitions<Ip extends IpFileKey, Hdl extends HdlFileKey>(
     } else if (instance.kind === 'module' && instance.moduleRef) {
       const ref = instance.moduleRef;
       const found = pickOne(
+        result.diagnostics,
         hdlFiles.filter(
           (file) =>
             file.vhdlEntities.some((name) => name.toLowerCase() === ref.toLowerCase()) ||
             file.verilogModules.includes(ref)
         ),
-        instance.name,
-        instance.line
+        instance,
+        designFile
       );
       if (found) {
         result.hdl.set(instance.path, found);
       }
+    }
+  }
+  return result;
+}
+
+export interface QsysFileKey {
+  file: string;
+  displayName: string;
+  /** The file's base name: the `kind` of the modules that instantiate it. */
+  systemName: string;
+}
+
+export interface SubsystemMatches<Q extends QsysFileKey> {
+  qsys: Map<string, Q>;
+  diagnostics: SystemDiagnostic[];
+}
+
+/** Matches root-level Platform Designer modules to the `.qsys` files named like their `kind`. */
+export function matchSubsystems<Q extends QsysFileKey>(
+  graph: SystemGraph,
+  qsysFiles: readonly Q[],
+  designFile: string
+): SubsystemMatches<Q> {
+  const result: SubsystemMatches<Q> = { qsys: new Map(), diagnostics: [] };
+  if (graph.source.format !== 'qsys' && graph.source.format !== 'qsys-tcl') {
+    return result;
+  }
+  const candidateFiles = qsysFiles.filter((file) => file.file !== designFile);
+  for (const instance of Object.values(graph.instances)) {
+    if (instance.parent !== '/' || instance.kind !== 'ip' || instance.vlnv || !instance.component) {
+      continue;
+    }
+    const wanted = instance.component.toLowerCase();
+    const found = pickOne(
+      result.diagnostics,
+      candidateFiles.filter((file) => file.systemName.toLowerCase() === wanted),
+      instance,
+      designFile
+    );
+    if (found) {
+      result.qsys.set(instance.path, found);
     }
   }
   return result;

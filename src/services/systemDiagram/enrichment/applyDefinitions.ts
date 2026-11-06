@@ -74,8 +74,10 @@ export function applyDefinitions(
   definitions: ReadonlyMap<string, InstanceDefinition>
 ): SystemGraph {
   const result = JSON.parse(JSON.stringify(graph)) as SystemGraph;
-  const outOfDate: string[] = [];
-  const lines: number[] = [];
+  // One diagnostic per level so its lines refer to a single file; root first.
+  const outOfDate = new Map<string, { pins: string[]; lines: number[] }>([
+    ['/', { pins: [], lines: [] }],
+  ]);
   for (const [path, definition] of definitions) {
     const instance = result.instances[path];
     if (!instance) {
@@ -83,16 +85,21 @@ export function applyDefinitions(
     }
     const missing = applyToInstance(instance, definition);
     if (missing.length > 0) {
-      outOfDate.push(...missing);
-      lines.push(instance.line);
+      const group = outOfDate.get(instance.parent) ?? { pins: [], lines: [] };
+      group.pins.push(...missing);
+      group.lines.push(instance.line);
+      outOfDate.set(instance.parent, group);
     }
   }
-  if (outOfDate.length > 0) {
-    result.diagnostics.push({
-      severity: 'info',
-      message: `Pins not in their definition (the definition may be out of date): ${outOfDate.join(', ')}`,
-      lines,
-    });
+  for (const [level, { pins, lines }] of outOfDate) {
+    if (pins.length > 0) {
+      result.diagnostics.push({
+        severity: 'info',
+        message: `Pins not in their definition (the definition may be out of date): ${pins.join(', ')}`,
+        lines,
+        ...(level !== '/' && { level }),
+      });
+    }
   }
   const typed = Object.values(result.instances).filter((instance) => instance.kind !== 'hier');
   const defined = typed.filter((instance) => instance.definition !== undefined).length;
