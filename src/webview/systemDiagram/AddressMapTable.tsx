@@ -2,6 +2,7 @@ import React from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { LineLink } from './LineLink';
 import { levelSource, segmentLevel } from './sourceFile';
+import { formatRange, groupHex } from './addressFormat';
 import { segmentHigh, segmentRangeText } from './model';
 
 interface AddressMapTableProps {
@@ -15,34 +16,36 @@ export function AddressMapTable({ graph, onSelectInstance, onReveal }: AddressMa
     return <p className="p-3 opacity-70">No address segments are assigned in this design.</p>;
   }
   return (
-    <table className="w-full text-left">
+    <table className="sd-table">
       <thead>
         <tr>
-          <th className="px-2">Address space</th>
-          <th className="px-2">Segment</th>
-          <th className="px-2">Base</th>
-          <th className="px-2">Range</th>
-          <th className="px-2">High</th>
-          <th className="px-2">Line</th>
+          <th>Address space</th>
+          <th>Segment</th>
+          <th>Base</th>
+          <th>Range</th>
+          <th>High</th>
+          <th>Source</th>
         </tr>
       </thead>
       <tbody>
         {graph.addressSegments.map((segment) => (
           <tr
             key={`${segment.line}:${segment.segment}`}
-            className="sd-row cursor-pointer"
+            className="sd-clickable cursor-pointer"
             onClick={() => {
               if (graph.instances[segment.slaveInstance]) {
                 onSelectInstance(segment.slaveInstance);
               }
             }}
           >
-            <td className="px-2">{segment.addressSpace || '-'}</td>
-            <td className="px-2">{segment.segment}</td>
-            <td className="px-2">{segment.offset ?? 'auto'}</td>
-            <td className="px-2">{segmentRangeText(segment, graph.source.format)}</td>
-            <td className="px-2">{segmentHigh(segment) ?? '-'}</td>
-            <td className="px-2" onClick={(event) => event.stopPropagation()}>
+            <td>{segment.addressSpace || '-'}</td>
+            <td>{segment.segment}</td>
+            <td className="sd-num">{groupHex(segment.offset ?? 'auto')}</td>
+            <td className="sd-num">
+              {formatRange(segmentRangeText(segment, graph.source.format))}
+            </td>
+            <td className="sd-num">{groupHex(segmentHigh(segment) ?? '-')}</td>
+            <td onClick={(event) => event.stopPropagation()}>
               <LineLink
                 source={levelSource(graph, segmentLevel(graph, segment))}
                 line={segment.line}

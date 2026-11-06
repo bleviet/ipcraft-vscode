@@ -78,6 +78,7 @@ jest.mock('@xyflow/react', () => {
     BackgroundVariant: { Dots: 'dots' },
     BaseEdge: () => null,
     Handle: () => null,
+    Panel: () => null,
     Position: { Left: 'left', Right: 'right' },
     ReactFlow: (props: MockFlowProps) => {
       // Like React Flow's StoreUpdater, unmounting resets the viewport to the default.
@@ -184,7 +185,7 @@ describe('SystemDiagramApp', () => {
   it('shows the design summary first and instance details after selecting an outline row', async () => {
     await renderWithGraph();
     expect(details().getByText('zynq_dma_system')).toBeVisible();
-    expect(details().getByText('Capabilities')).toBeVisible();
+    expect(details().getByText('What this view knows')).toBeVisible();
 
     fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
 
@@ -303,7 +304,7 @@ describe('SystemDiagramApp', () => {
     await renderWithGraph();
     const row = screen.getByText('axi_dma_0/S_AXI_LITE/Reg').closest('tr');
     expect(row).not.toBeNull();
-    expect(within(row!).getByText('0x4040FFFF')).toBeVisible();
+    expect(within(row!).getByText('0x4040_FFFF')).toBeVisible();
 
     fireEvent.click(row!);
 
@@ -333,7 +334,7 @@ describe('SystemDiagramApp', () => {
     const badges = screen.getAllByTitle(
       'Clock net processing_system7_0_FCLK_CLK0. Turn on Clocks and resets to draw it.'
     );
-    expect(badges[0]).toHaveTextContent('processing_system7_0_FCL…');
+    expect(badges[0]).toHaveTextContent('FCLK_CLK0');
 
     fireEvent.click(badges[0]);
 
@@ -801,7 +802,7 @@ describe('SystemDiagramApp', () => {
       await waitFor(() =>
         expect(details().queryByRole('heading', { name: 'axi_dma_0' })).not.toBeInTheDocument()
       );
-      expect(details().getByText('Capabilities')).toBeVisible();
+      expect(details().getByText('What this view knows')).toBeVisible();
 
       // The selection is really cleared, not just hidden: it does not come back.
       send({ type: 'graph', graph: clone() });

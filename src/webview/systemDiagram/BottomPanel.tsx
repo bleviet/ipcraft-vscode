@@ -20,30 +20,31 @@ export function BottomPanel({
   onSelectInstance,
   onReveal,
 }: BottomPanelProps) {
-  const tabs: { id: BottomTab; label: string }[] = [
-    { id: 'address', label: `Address map (${graph.addressSegments.length})` },
-    { id: 'problems', label: `Problems (${graph.diagnostics.length})` },
+  const tabs: { id: BottomTab; label: string; count: number }[] = [
+    { id: 'address', label: 'Address map', count: graph.addressSegments.length },
+    { id: 'problems', label: 'Problems', count: graph.diagnostics.length },
   ];
   return (
     <section
       aria-label="Bottom panel"
       className="flex min-h-0 flex-col border-t border-[var(--vscode-panel-border)]"
     >
-      <div role="tablist" className="flex gap-3 px-3 py-1">
+      <div role="tablist" className="sd-ptabs flex h-[30px] shrink-0 gap-0.5 px-2.5">
         {tabs.map((item) => (
           <button
             key={item.id}
             type="button"
             role="tab"
             aria-selected={tab === item.id}
-            className={tab === item.id ? 'font-semibold underline' : 'opacity-70'}
             onClick={() => onTabChange(item.id)}
           >
             {item.label}
+            <span className="sr-only"> </span>
+            <span className="sd-count">{item.count}</span>
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto px-2.5 pb-2.5">
         {tab === 'address' ? (
           <AddressMapTable graph={graph} onSelectInstance={onSelectInstance} onReveal={onReveal} />
         ) : (

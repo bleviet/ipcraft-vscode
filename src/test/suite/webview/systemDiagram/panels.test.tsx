@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import { AddressMapTable } from '../../../../webview/systemDiagram/AddressMapTable';
+import { BottomPanel } from '../../../../webview/systemDiagram/BottomPanel';
+import { OutlineTree } from '../../../../webview/systemDiagram/OutlineTree';
 import { InstanceDetails } from '../../../../webview/systemDiagram/InstanceDetails';
 import { loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
 
@@ -63,7 +65,7 @@ describe('AddressMapTable ranges', () => {
     render(<AddressMapTable graph={qsys} {...props} />);
     const row = screen.getByText('jtag_uart_0.avalon_jtag_slave').closest('tr')!;
     const cells = within(row).getAllByRole('cell');
-    expect(cells[2]).toHaveTextContent('0x00011000');
+    expect(cells[2]).toHaveTextContent('0x0001_1000');
     expect(cells[3]).toHaveTextContent('-');
     expect(screen.queryByText('auto')).toBeNull();
   });
@@ -82,5 +84,34 @@ describe('AddressMapTable ranges', () => {
   it('says the design when there are no segments', () => {
     render(<AddressMapTable graph={{ ...qsys, addressSegments: [] }} {...props} />);
     expect(screen.getByText('No address segments are assigned in this design.')).toBeVisible();
+  });
+});
+
+describe('outline and tab text', () => {
+  it('lets the type detail take only leftover room so the name shrinks last', () => {
+    const graph = loadFixtureGraph();
+    render(<OutlineTree graph={graph} levelPath="/" selection={null} onSelect={jest.fn()} />);
+    const row = screen.getByRole('button', { name: /^axi_dma_0/ });
+    const [name, detail] = Array.from(row.querySelectorAll('span')).filter(
+      (span) => !span.hasAttribute('aria-hidden')
+    );
+    expect(name).toHaveClass('min-w-0', 'truncate');
+    expect(name).not.toHaveClass('flex-1');
+    expect(detail).toHaveClass('flex-1', 'basis-0', 'min-w-0', 'truncate');
+  });
+
+  it('separates counts from labels in accessible names', () => {
+    const graph = loadFixtureGraph();
+    render(
+      <BottomPanel
+        graph={graph}
+        tab="address"
+        onTabChange={jest.fn()}
+        onSelectInstance={jest.fn()}
+        onReveal={jest.fn()}
+      />
+    );
+    expect(screen.getByRole('tab', { name: /^Address map \d+$/ })).toBeVisible();
+    expect(screen.getByRole('tab', { name: /^Problems \d+$/ })).toBeVisible();
   });
 });

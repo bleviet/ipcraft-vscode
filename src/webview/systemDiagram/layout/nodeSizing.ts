@@ -5,7 +5,7 @@
 
 import type { SystemInstance, SystemPin } from '../../../domain/systemGraph';
 
-export type TextWeight = 'normal' | 'semibold';
+export type TextWeight = 'normal' | 'semibold' | 'subtitle';
 /** Pixel width of `text` at the node font size. */
 export type TextMeasure = (text: string, weight: TextWeight) => number;
 
@@ -21,6 +21,8 @@ const MARKER_GAP = 4;
 const COLUMN_GAP = 16;
 /** Horizontal space a pin row spends besides its text. */
 const ROW_CHROME = ROW_PADDING + MARKER_WIDTH + MARKER_GAP;
+/** Room for the right-aligned "OPEN" hint and chevron in a hierarchy block header. */
+const HIER_HINT_WIDTH = 52;
 const ELLIPSIS = '…';
 const START_SHARE = 0.6;
 
@@ -118,8 +120,12 @@ export function instanceLayout(
     measure
   );
   const columns = west + east + (west > 0 && east > 0 ? COLUMN_GAP : 0) + NODE_BORDER;
-  const header = measure(instance.name, 'semibold') + ROW_PADDING + NODE_BORDER;
-  const sub = subtitle === '' ? 0 : measure(subtitle, 'normal') + ROW_PADDING + NODE_BORDER;
+  const header =
+    measure(instance.name, 'semibold') +
+    ROW_PADDING +
+    NODE_BORDER +
+    (instance.kind === 'hier' ? HIER_HINT_WIDTH : 0);
+  const sub = subtitle === '' ? 0 : measure(subtitle, 'subtitle') + ROW_PADDING + NODE_BORDER;
   const width = Math.ceil(
     clamp(Math.max(header, sub, columns), INSTANCE_MIN_WIDTH, INSTANCE_MAX_WIDTH)
   );

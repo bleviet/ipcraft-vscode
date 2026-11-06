@@ -61,6 +61,7 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
   return (
     <div
       className="sd-node"
+      data-kind={instance.kind}
       data-selected={selected}
       data-dimmed={data.dimmed === true}
       style={{ width: data.width }}
@@ -73,9 +74,17 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
           onAnimationEnd={() => data.onFlashEnd?.(data.flashToken as number)}
         />
       )}
-      <div className="px-2 py-1" style={{ height: HEADER_HEIGHT }}>
-        <div className="truncate font-semibold">{instance.name}</div>
-        <div className="truncate opacity-70">{subtitle}</div>
+      <div className="sd-node-head" style={{ height: HEADER_HEIGHT }}>
+        <div className="sd-node-title">
+          <span className="sd-node-name">{instance.name}</span>
+          {instance.kind === 'hier' && (
+            <span className="sd-node-open" aria-hidden="true">
+              OPEN
+              <span className="codicon codicon-chevron-right" />
+            </span>
+          )}
+        </div>
+        <div className="sd-node-subtitle">{subtitle}</div>
       </div>
       {[...data.west, ...data.east].map(
         (row) =>

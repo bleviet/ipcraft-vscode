@@ -91,7 +91,10 @@ export function WorkbenchLayout({
         <div ref={rowRef} className="flex min-h-0 flex-1">
           {panelsVisible.outline && (
             <>
-              <div className="flex min-h-0 flex-col" style={{ width: panels.outline.size }}>
+              <div
+                className="sd-side sd-side-left flex min-h-0 flex-col"
+                style={{ width: panels.outline.size }}
+              >
                 <OutlineTree
                   graph={graph}
                   levelPath={nav.levelPath}
@@ -119,7 +122,10 @@ export function WorkbenchLayout({
           {panelsVisible.details && (
             <>
               <ResizeHandle label="Resize Details" {...panels.details.separator} />
-              <div className="flex min-h-0 flex-col" style={{ width: panels.details.size }}>
+              <div
+                className="sd-side sd-side-right flex min-h-0 flex-col"
+                style={{ width: panels.details.size }}
+              >
                 <DetailsPanel
                   graph={graph}
                   selection={nav.selection}

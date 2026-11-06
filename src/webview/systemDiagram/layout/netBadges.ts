@@ -6,7 +6,7 @@
 
 import type { ElkLabel, ElkPort } from 'elkjs/lib/elk-api';
 import type { NetCategory, PinRef, SystemGraph, SystemNet } from '../../../domain/systemGraph';
-import { endpointKey, isClockOrReset, netsOfLevel } from '../model';
+import { endpointKey, isClockOrReset, netsOfLevel, pinRole, resolvePin } from '../model';
 
 export const BADGE_MAX_CHARS = 24;
 export const BADGE_CHAR_WIDTH = 6.5;
@@ -33,6 +33,40 @@ export function badgeText(netName: string, extra = 0): string {
   return extra > 0 ? `${name} +${extra}` : name;
 }
 
+/**
+ * Badge name of a net: Vivado names a net after its driver instance
+ * (`rst_ps7_0_100M_peripheral_aresetn`), so the instance prefix is dropped.
+ * The full name stays in the tooltip.
+ */
+export function shortNetName(netName: string, driverName: string | undefined): string {
+  const prefix = driverName ? `${driverName}_` : undefined;
+  return prefix && netName.startsWith(prefix) && netName.length > prefix.length
+    ? netName.slice(prefix.length)
+    : netName;
+}
+
+/**
+ * Path of the instance that drives the net: the first instance pin with the
+ * source role. Vivado scripts leave most pin directions unknown, so when there
+ * is no known source and the first endpoint is an instance pin of unknown
+ * direction, it stands in (Vivado lists the driver first). A net whose first
+ * endpoint is a known sink or a boundary port has none.
+ */
+export function sourceInstance(graph: SystemGraph, net: SystemNet): string | undefined {
+  const roles = net.endpoints.map((ref) => {
+    const pin = resolvePin(graph, net.level, ref);
+    return pin ? pinRole(pin, ref.instance === null) : 'none';
+  });
+  const source = net.endpoints.find(
+    (ref, index) => roles[index] === 'source' && ref.instance !== null
+  );
+  if (source) {
+    return source.instance ?? undefined;
+  }
+  const first = net.endpoints[0];
+  return first?.instance !== null && roles[0] === 'none' ? first?.instance : undefined;
+}
+
 /** Nets whose wires are omitted, keyed by {@link endpointKey}; empty when shown. */
 export function hiddenNetsByEndpoint(
   graph: SystemGraph,
@@ -53,8 +87,10 @@ export function hiddenNetsByEndpoint(
 }
 
 /** One badge per pin: the first hidden net's name, plus ` +N` for the others. */
-export function badgeLabel(nets: readonly SystemNet[], ref: PinRef): ElkLabel {
-  const text = badgeText(nets[0].name, nets.length - 1);
+export function badgeLabel(graph: SystemGraph, nets: readonly SystemNet[], ref: PinRef): ElkLabel {
+  const driver = sourceInstance(graph, nets[0]);
+  const name = shortNetName(nets[0].name, driver ? graph.instances[driver]?.name : undefined);
+  const text = badgeText(name, nets.length - 1);
   return {
     id: `${BADGE_ID_PREFIX}${endpointKey(ref)}`,
     text,
@@ -64,11 +100,12 @@ export function badgeLabel(nets: readonly SystemNet[], ref: PinRef): ElkLabel {
 }
 
 export function badgeLabels(
+  graph: SystemGraph,
   hidden: ReadonlyMap<string, readonly SystemNet[]>,
   ref: PinRef
 ): ElkLabel[] | undefined {
   const nets = hidden.get(endpointKey(ref));
-  return nets ? [badgeLabel(nets, ref)] : undefined;
+  return nets ? [badgeLabel(graph, nets, ref)] : undefined;
 }
 
 /**

@@ -9,6 +9,10 @@ All notable changes to this project are documented in this file.
 - **Mouse back button goes up a level.** In the system viewer, the mouse back button goes up one hierarchy level, like clicking the parent in the breadcrumb.
 - **Search steps through matches.** In the system viewer, Enter and Shift+Enter in the search box go to the next and previous match on any hierarchy level, centring it (and zooming in if it is small) with a brief pulse. A counter shows the position, and Escape clears the search.
 
+### Changed
+
+- **System viewer restyled.** Blocks get a header band (hierarchy blocks a dashed outline and an OPEN hint), clock and reset labels are quieter and drop the driver instance prefix from their names, a legend names the wire categories on screen, the outline and details panels follow the side bar theme, and the address map shows grouped hex addresses and humanized ranges.
+
 ## [1.3.1] - 2026-11-06
 
 ### Added

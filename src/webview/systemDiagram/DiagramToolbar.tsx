@@ -56,7 +56,7 @@ export function DiagramToolbar({
   const badge = completenessLabel(graph);
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-[var(--vscode-panel-border)] px-3 py-1">
-      <nav aria-label="Hierarchy" className="flex items-center gap-1">
+      <nav aria-label="Hierarchy" className="flex min-w-0 items-center gap-1 whitespace-nowrap">
         {crumbs.map((crumb, index) => {
           const last = index === crumbs.length - 1;
           return (
@@ -75,9 +75,10 @@ export function DiagramToolbar({
           );
         })}
       </nav>
+      <div className="flex-1" />
       <input
         type="search"
-        className="sd-input"
+        className="sd-input w-[220px] min-w-0"
         placeholder="Search instances"
         aria-label="Search instances"
         value={query}
@@ -101,7 +102,7 @@ export function DiagramToolbar({
           {searchCounter}
         </span>
       )}
-      <label className="flex items-center gap-1">
+      <label className="flex cursor-pointer select-none items-center gap-1 whitespace-nowrap">
         <input
           type="checkbox"
           checked={showClockReset}
@@ -110,52 +111,50 @@ export function DiagramToolbar({
         Clocks and resets
       </label>
       <div className="flex gap-1">
-        <button type="button" className="sd-button" onClick={onFit}>
+        <button
+          type="button"
+          className="sd-tool"
+          aria-label="Zoom out"
+          onClick={() => void zoomOut()}
+        >
+          &minus;
+        </button>
+        <button type="button" className="sd-tool" onClick={onFit}>
           Fit
         </button>
         <button
           type="button"
-          className="sd-button"
+          className="sd-tool"
           aria-label="Zoom in"
           onClick={() => void zoomIn()}
         >
           +
         </button>
-        <button
-          type="button"
-          className="sd-button"
-          aria-label="Zoom out"
-          onClick={() => void zoomOut()}
-        >
-          -
-        </button>
       </div>
-      <div className="ml-auto flex items-center gap-3">
-        {badge && (
-          <button type="button" className="sd-link" onClick={onOpenProblems}>
-            {badge}
-          </button>
-        )}
-        <div className="flex gap-1">
-          {PANEL_TOGGLES.map(({ panel, title, icon }) => {
-            const visible = panelsVisible[panel];
-            return (
-              <button
-                key={panel}
-                type="button"
-                className="sd-icon-button"
-                title={title}
-                aria-label={title}
-                aria-pressed={visible}
-                onClick={() => onTogglePanel(panel)}
-              >
-                <span
-                  className={`codicon codicon-${icon}${visible || panel === 'bottom' ? '' : '-off'}`}
-                />
-              </button>
-            );
-          })}
-        </div>
+      {badge && (
+        <button type="button" className="sd-completeness" onClick={onOpenProblems}>
+          {badge}
+        </button>
+      )}
+      <div className="flex gap-1">
+        {PANEL_TOGGLES.map(({ panel, title, icon }) => {
+          const visible = panelsVisible[panel];
+          return (
+            <button
+              key={panel}
+              type="button"
+              className="sd-icon-button"
+              title={title}
+              aria-label={title}
+              aria-pressed={visible}
+              onClick={() => onTogglePanel(panel)}
+            >
+              <span
+                className={`codicon codicon-${icon}${visible || panel === 'bottom' ? '' : '-off'}`}
+              />
+            </button>
+          );
+        })}
       </div>
     </div>
   );

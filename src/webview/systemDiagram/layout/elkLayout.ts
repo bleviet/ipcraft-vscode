@@ -107,7 +107,12 @@ function sizeOfInstance(
   );
 }
 
-function instanceNode(instance: SystemInstance, width: number, hidden: HiddenNets): ElkNode {
+function instanceNode(
+  graph: SystemGraph,
+  instance: SystemInstance,
+  width: number,
+  hidden: HiddenNets
+): ElkNode {
   const sides = splitSides(instance.pins);
   const ports: ElkPort[] = (['west', 'east'] as const).flatMap((side) =>
     sides[side].map((pin, index) => ({
@@ -116,7 +121,7 @@ function instanceNode(instance: SystemInstance, width: number, hidden: HiddenNet
       y: HEADER_HEIGHT + index * PIN_ROW_HEIGHT + PIN_TOP_OFFSET,
       width: PORT_SIZE,
       height: PORT_SIZE,
-      labels: badgeLabels(hidden, { instance: instance.path, pin: pin.name }),
+      labels: badgeLabels(graph, hidden, { instance: instance.path, pin: pin.name }),
     }))
   );
   return {
@@ -133,6 +138,7 @@ function boundarySide(pin: SystemPin): PinSide {
 }
 
 function boundaryNode(
+  graph: SystemGraph,
   levelPath: string,
   pin: SystemPin,
   width: number,
@@ -162,7 +168,7 @@ function boundaryNode(
         y: (BOUNDARY_HEIGHT - PORT_SIZE) / 2,
         width: PORT_SIZE,
         height: PORT_SIZE,
-        labels: badgeLabels(hidden, { instance: null, pin: pin.name }),
+        labels: badgeLabels(graph, hidden, { instance: null, pin: pin.name }),
       },
     ],
   };
@@ -195,12 +201,19 @@ export function buildElkInput(
     const instance = graph.instances[path];
     if (instance) {
       children.push(
-        instanceNode(instance, sizeOfInstance(graph, instance, options.measure).width, hidden)
+        instanceNode(
+          graph,
+          instance,
+          sizeOfInstance(graph, instance, options.measure).width,
+          hidden
+        )
       );
     }
   }
   for (const pin of level?.boundaryPins ?? []) {
-    children.push(boundaryNode(levelPath, pin, boundaryLayout(pin, options.measure).width, hidden));
+    children.push(
+      boundaryNode(graph, levelPath, pin, boundaryLayout(pin, options.measure).width, hidden)
+    );
   }
 
   const knownPorts = new Set(children.flatMap((child) => (child.ports ?? []).map((p) => p.id)));

@@ -12,7 +12,7 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
   const position = east ? Position.Right : Position.Left;
   return (
     <div
-      className="sd-node flex items-center gap-1 px-2"
+      className="sd-node sd-node-port flex items-center gap-1 px-2"
       data-selected={selected}
       data-dimmed={data.dimmed === true}
       style={{ width: data.width, height: BOUNDARY_HEIGHT }}

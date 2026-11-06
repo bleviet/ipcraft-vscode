@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
-import { boundaryId, instanceTypeLabel, type Selection } from './model';
+import { boundaryId, cellCount, instanceTypeLabel, type Selection } from './model';
 
 interface OutlineTreeProps {
   graph: SystemGraph;
@@ -9,17 +9,32 @@ interface OutlineTreeProps {
   onSelect: (selection: Selection | null, levelPath?: string) => void;
 }
 
+type IconKind = 'ip' | 'module' | 'hier' | 'port';
+
 interface RowProps {
   depth: number;
   label: string;
+  icon?: IconKind;
   detail?: string;
+  /** Right-aligned muted count that never gives way to the name. */
+  count?: number;
   current: boolean;
   expanded?: boolean;
   onToggle?: () => void;
   onSelect: () => void;
 }
 
-function OutlineRow({ depth, label, detail, current, expanded, onToggle, onSelect }: RowProps) {
+function OutlineRow({
+  depth,
+  label,
+  icon,
+  detail,
+  count,
+  current,
+  expanded,
+  onToggle,
+  onSelect,
+}: RowProps) {
   return (
     <div
       className="sd-row flex items-center"
@@ -41,11 +56,20 @@ function OutlineRow({ depth, label, detail, current, expanded, onToggle, onSelec
       )}
       <button
         type="button"
-        className="flex min-w-0 flex-1 items-baseline gap-2 py-0.5 text-left"
+        className="flex min-w-0 flex-1 items-center gap-1.5 py-0.5 pr-2 text-left"
         onClick={onSelect}
       >
-        <span className="truncate">{label}</span>
-        {detail && <span className="truncate text-xs opacity-60">{detail}</span>}
+        {icon && <span aria-hidden="true" className={`sd-ico sd-ico-${icon}`} />}
+        <span className="min-w-0 truncate">{label}</span>
+        {detail && (
+          <span className="min-w-0 flex-1 basis-0 truncate text-xs opacity-60">{detail}</span>
+        )}
+        {count !== undefined && (
+          <span className="ml-auto shrink-0 text-[11px] text-[var(--vscode-descriptionForeground)]">
+            <span className="sr-only"> </span>
+            {count}
+          </span>
+        )}
       </button>
     </div>
   );
@@ -74,7 +98,9 @@ export function OutlineTree({ graph, levelPath, selection, onSelect }: OutlineTr
           <OutlineRow
             depth={depth}
             label={instance.name}
-            detail={isHier ? 'hierarchy' : instanceTypeLabel(instance)}
+            icon={instance.kind}
+            detail={isHier ? undefined : instanceTypeLabel(instance)}
+            count={isHier ? cellCount(graph, instancePath) : undefined}
             current={selection?.kind === 'instance' && selection.id === instancePath}
             expanded={isHier ? expanded.has(instancePath) : undefined}
             onToggle={isHier ? () => toggle(instancePath) : undefined}
@@ -86,7 +112,8 @@ export function OutlineTree({ graph, levelPath, selection, onSelect }: OutlineTr
     });
 
   return (
-    <nav aria-label="Design outline" className="overflow-auto py-1">
+    <nav aria-label="Design outline" className="min-h-0 flex-1 overflow-auto pb-3">
+      <h3 className="sd-section">Outline</h3>
       <OutlineRow
         depth={0}
         label={graph.name}
@@ -114,6 +141,7 @@ export function OutlineTree({ graph, levelPath, selection, onSelect }: OutlineTr
                 key={pin.name}
                 depth={2}
                 label={pin.name}
+                icon="port"
                 detail={pin.direction}
                 current={
                   selection?.kind === 'boundary' && selection.id === boundaryId('/', pin.name)

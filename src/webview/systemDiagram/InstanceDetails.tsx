@@ -35,7 +35,8 @@ export function InstanceDetails({
   return (
     <div className="space-y-3">
       <header>
-        <h2 className="font-semibold">{instance.name}</h2>
+        <div className="sd-eyebrow">Instance</div>
+        <h2 className="sd-h2">{instance.name}</h2>
         <p className="opacity-70">
           {instance.kind} · {identity}
         </p>
@@ -68,7 +69,7 @@ export function InstanceDetails({
         </button>
       )}
       <section>
-        <h3 className="font-semibold">Parameters</h3>
+        <h3 className="sd-h3">Parameters</h3>
         <p className="text-xs opacity-70">
           Only values set in the design file are shown. Defaults and propagated values are not
           available offline.
@@ -76,21 +77,19 @@ export function InstanceDetails({
         {parameters.length === 0 ? (
           <p className="opacity-70">None set.</p>
         ) : (
-          <table className="w-full text-left">
-            <tbody>
-              {parameters.map(([key, value]) => (
-                <tr key={key}>
-                  <th className="pr-2 font-normal opacity-70">{key}</th>
-                  <td className="break-all">{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <dl className="sd-kv">
+            {parameters.map(([key, value]) => (
+              <React.Fragment key={key}>
+                <dt>{key}</dt>
+                <dd className="break-all">{value}</dd>
+              </React.Fragment>
+            ))}
+          </dl>
         )}
       </section>
       <section>
-        <h3 className="font-semibold">Pins</h3>
-        <table className="w-full text-left">
+        <h3 className="sd-h3">Pins</h3>
+        <table className="sd-table">
           <thead>
             <tr>
               <th>Pin</th>

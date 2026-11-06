@@ -7,6 +7,7 @@ import {
   type NodeTypes,
 } from '@xyflow/react';
 import { BoundaryNode } from './BoundaryNode';
+import { DiagramLegend } from './DiagramLegend';
 import { ElkEdge } from './ElkEdge';
 import { InstanceNode } from './InstanceNode';
 import { isPaneDoubleClick } from './canvasTargets';
@@ -127,6 +128,7 @@ export function DiagramCanvas({
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} />
+        <DiagramLegend edges={layout?.edges ?? []} nodes={layout?.nodes ?? []} />
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}
     </div>

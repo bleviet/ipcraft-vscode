@@ -25,6 +25,16 @@ const layout = (west: string[], east: string[], name = 'u', subtitle = '') =>
     fakeMeasure
   );
 
+describe('hierarchy block width', () => {
+  it('reserves room for the OPEN hint beside the name', () => {
+    const name = chars(30);
+    const sides = { west: [], east: [] };
+    const ip = instanceLayout(instance(name), sides, '', fakeMeasure);
+    const hier = instanceLayout({ ...instance(name), kind: 'hier' }, sides, '', fakeMeasure);
+    expect(hier.width).toBeGreaterThan(ip.width);
+  });
+});
+
 describe('middleEllipsis', () => {
   it('keeps text that fits', () => {
     expect(middleEllipsis('short', 100, fakeMeasure)).toBe('short');

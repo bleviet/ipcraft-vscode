@@ -286,9 +286,7 @@ describe('hidden clock and reset net badges', () => {
     const labelled = labelledPorts(hidden);
     for (const id of expected) {
       const port = labelled.find((candidate) => candidate.id === id);
-      expect(port?.labels?.[0].text).toBe(
-        fclk.name.length > 24 ? `${fclk.name.slice(0, 24)}…` : fclk.name
-      );
+      expect(port?.labels?.[0].text).toBe('FCLK_CLK0');
     }
     const dmaMaster = (hidden.children ?? [])
       .find((node) => node.id === '/axi_dma_0')

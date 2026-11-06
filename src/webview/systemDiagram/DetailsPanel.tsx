@@ -1,5 +1,7 @@
 import React from 'react';
 import type { SystemGraph, SystemNet, SystemPin } from '../../domain/systemGraph';
+import { CapabilityPill } from './CapabilityPill';
+import { capabilityRows, designEyebrow, formatLabel } from './detailsLabels';
 import { InstanceDetails } from './InstanceDetails';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
@@ -16,35 +18,34 @@ interface DetailsPanelProps {
 
 function DesignSummary({ graph }: { graph: SystemGraph }) {
   return (
-    <div className="space-y-3">
-      <h2 className="font-semibold">{graph.name}</h2>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-3">
-        <dt className="opacity-70">Source</dt>
+    <div>
+      <div className="sd-eyebrow">{designEyebrow(graph.source.format)}</div>
+      <h2 className="sd-h2">{graph.name}</h2>
+      <dl className="sd-kv">
+        <dt>Source</dt>
         <dd>{graph.source.fileName}</dd>
-        <dt className="opacity-70">Format</dt>
-        <dd>{graph.source.format}</dd>
+        <dt>Format</dt>
+        <dd>{formatLabel(graph.source.format)}</dd>
         {graph.source.toolVersion && (
           <>
-            <dt className="opacity-70">Tool version</dt>
+            <dt>Tool version</dt>
             <dd>{graph.source.toolVersion}</dd>
           </>
         )}
-        <dt className="opacity-70">Instances</dt>
+        <dt>Instances</dt>
         <dd>{Object.keys(graph.instances).length}</dd>
-        <dt className="opacity-70">Nets</dt>
+        <dt>Nets</dt>
         <dd>{graph.nets.length}</dd>
       </dl>
-      <table className="w-full text-left">
-        <caption className="text-left font-semibold">Capabilities</caption>
-        <tbody>
-          {Object.entries(graph.capabilities).map(([name, state]) => (
-            <tr key={name}>
-              <th className="pr-2 font-normal opacity-70">{name}</th>
-              <td>{state}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h3 className="sd-h3">What this view knows</h3>
+      <ul className="sd-cap-list">
+        {capabilityRows(graph.capabilities).map(({ key, label, state }) => (
+          <li key={key}>
+            <span>{label}</span>
+            <CapabilityPill state={state} />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -63,7 +64,8 @@ function NetDetails({
   return (
     <div className="space-y-3">
       <header>
-        <h2 className="font-semibold">{net.name}</h2>
+        <div className="sd-eyebrow">Net</div>
+        <h2 className="sd-h2">{net.name}</h2>
         <p className="opacity-70">
           {net.category} net ({net.categorySource})
         </p>
@@ -73,7 +75,7 @@ function NetDetails({
         <LineLink source={levelSource(graph, net.level)} line={net.line} onReveal={onReveal} />
       </p>
       <section>
-        <h3 className="font-semibold">Endpoints</h3>
+        <h3 className="sd-h3">Endpoints</h3>
         <ul>
           {net.endpoints.map((ref) => {
             const label = ref.instance === null ? ref.pin : `${ref.instance}/${ref.pin}`;
@@ -116,7 +118,8 @@ function BoundaryDetails({
   return (
     <div className="space-y-3">
       <header>
-        <h2 className="font-semibold">{pin.name}</h2>
+        <div className="sd-eyebrow">Port</div>
+        <h2 className="sd-h2">{pin.name}</h2>
         <p className="opacity-70">
           {pin.direction} ({pin.directionSource}) ·{' '}
           {pin.vlnv ?? pin.interfaceType ?? pin.signalType ?? 'scalar'}
@@ -129,16 +132,14 @@ function BoundaryDetails({
         </p>
       )}
       {parameters.length > 0 && (
-        <table className="w-full text-left">
-          <tbody>
-            {parameters.map(([key, value]) => (
-              <tr key={key}>
-                <th className="pr-2 font-normal opacity-70">{key}</th>
-                <td className="break-all">{value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <dl className="sd-kv">
+          {parameters.map(([key, value]) => (
+            <React.Fragment key={key}>
+              <dt>{key}</dt>
+              <dd className="break-all">{value}</dd>
+            </React.Fragment>
+          ))}
+        </dl>
       )}
     </div>
   );
@@ -177,7 +178,7 @@ export function DetailsPanel({
     }
   }
   return (
-    <aside aria-label="Details" className="overflow-auto p-3">
+    <aside aria-label="Details" className="min-h-0 flex-1 overflow-auto px-3.5 pb-5 pt-3">
       {content}
     </aside>
   );

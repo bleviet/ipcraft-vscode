@@ -5,6 +5,8 @@ import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram
 import {
   badgeOfPort,
   hiddenNetsByEndpoint,
+  shortNetName,
+  sourceInstance,
 } from '../../../../webview/systemDiagram/layout/netBadges';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { NetBadgeView } from '../../../../webview/systemDiagram/NetBadgeView';
@@ -62,4 +64,49 @@ describe('net badges of pins on several hidden nets', () => {
     expect(row?.badge?.netId).toBe('/::clk_0.clk_reset\nline2');
     expect(row?.badge?.nets.map((n) => n.id)).toContain('/::clk_0.clk_reset\nline2');
   }, 20000);
+});
+
+describe('shortNetName', () => {
+  it('drops the driver instance prefix of Vivado net names', () => {
+    expect(shortNetName('processing_system7_0_FCLK_CLK0', 'processing_system7_0')).toBe(
+      'FCLK_CLK0'
+    );
+    expect(shortNetName('rst_ps7_0_100M_peripheral_aresetn', 'rst_ps7_0_100M')).toBe(
+      'peripheral_aresetn'
+    );
+  });
+
+  it('keeps names without the prefix, equal to the instance, or without a driver', () => {
+    expect(shortNetName('clk_0.clk', 'clk_0')).toBe('clk_0.clk');
+    expect(shortNetName('ps7', 'ps7')).toBe('ps7');
+    expect(shortNetName('ps7_', 'ps7')).toBe('ps7_');
+    expect(shortNetName('ext_clk', undefined)).toBe('ext_clk');
+  });
+});
+
+describe('sourceInstance', () => {
+  it('finds the instance whose pin sources the net', () => {
+    const net = graph.nets.find((candidate) => candidate.id === '/::clk_0.clk_reset')!;
+    expect(sourceInstance(graph, net)).toBe('/clk_0');
+  });
+
+  it('is undefined when no endpoint resolves to a source pin', () => {
+    const net = graph.nets.find((candidate) => candidate.id === '/::clk_0.clk_reset')!;
+    const sinksOnly = {
+      ...net,
+      endpoints: net.endpoints.filter((ref) => ref.instance !== '/clk_0'),
+    };
+    expect(sourceInstance(graph, sinksOnly)).toBeUndefined();
+  });
+
+  it('falls back to the first endpoint when its direction is unknown', () => {
+    const net = graph.nets.find((candidate) => candidate.id === '/::clk_0.clk_reset')!;
+    const unknown = JSON.parse(JSON.stringify(graph)) as typeof graph;
+    for (const ref of net.endpoints) {
+      for (const pin of unknown.instances[ref.instance ?? '']?.pins ?? []) {
+        pin.direction = 'unknown';
+      }
+    }
+    expect(sourceInstance(unknown, net)).toBe(net.endpoints[0].instance);
+  });
 });

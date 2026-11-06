@@ -27,7 +27,16 @@ export function useElkLayout(
     error: string | null;
   }>({ layout: null, error: null });
 
-  const measure = useMemo(() => createTextMeasurer(getComputedStyle(document.body).fontFamily), []);
+  const measure = useMemo(
+    () =>
+      createTextMeasurer(
+        getComputedStyle(document.body).fontFamily,
+        getComputedStyle(document.documentElement)
+          .getPropertyValue('--vscode-editor-font-family')
+          .trim() || 'monospace'
+      ),
+    []
+  );
 
   useEffect(() => {
     let stale = false;
