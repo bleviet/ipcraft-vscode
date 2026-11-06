@@ -28,6 +28,24 @@ function boundaryNode(id: string, x: number, y: number, badgeBox?: object): Diag
   };
 }
 
+function frameNode(x: number, y: number, badgeBox?: object): DiagramFlowNode {
+  const row = {
+    name: 'aclk',
+    y: 60,
+    badge: badgeBox ? { ...badge, ...badgeBox } : undefined,
+  };
+  return {
+    id: '/frame',
+    type: 'frame',
+    position: { x, y },
+    width: 400,
+    height: 300,
+    draggable: false,
+    zIndex: -1,
+    data: { instance: {} as never, cellCount: 3, west: [row as never], east: [] },
+  };
+}
+
 describe('diagramBounds', () => {
   it('is null for an empty layout', () => {
     expect(diagramBounds({ nodes: [], edges: [] })).toBeNull();
@@ -79,7 +97,7 @@ describe('diagramBounds', () => {
     let leftmostBadge = Infinity;
     for (const node of layout.nodes) {
       leftmostNode = Math.min(leftmostNode, node.position.x);
-      const rows = node.type === 'instance' ? [...node.data.west, ...node.data.east] : [node.data];
+      const rows = node.type === 'boundary' ? [node.data] : [...node.data.west, ...node.data.east];
       for (const row of rows) {
         if (row.badge) {
           leftmostBadge = Math.min(leftmostBadge, node.position.x + row.badge.x);
@@ -89,6 +107,18 @@ describe('diagramBounds', () => {
     expect(leftmostBadge).toBeLessThan(leftmostNode);
     expect(bounds.x).toBeLessThanOrEqual(leftmostBadge);
   }, 20000);
+});
+
+describe('nodeBounds of a frame', () => {
+  it('is the frame box, or extends to the badge of a pin', () => {
+    expect(nodeBounds(frameNode(10, 20))).toEqual({ x: 10, y: 20, width: 400, height: 300 });
+    expect(nodeBounds(frameNode(10, 20, { x: -90, y: 55, width: 86, height: 14 }))).toEqual({
+      x: -80,
+      y: 20,
+      width: 490,
+      height: 300,
+    });
+  });
 });
 
 describe('nodeBounds', () => {

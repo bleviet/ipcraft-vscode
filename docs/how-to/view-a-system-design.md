@@ -37,6 +37,15 @@ The diagram shows one hierarchy level at a time.
 
 - **Levels.** Double-click a hierarchy block to enter it. Use the breadcrumb at
   the top left, or the mouse back button, to go up one level.
+- **Expand in place.** Click the **+** button in the header of a hierarchy block,
+  or right-click it and choose **Expand In-Place**, to see inside without leaving
+  the level. The block becomes a frame with its pins on the border: wires from
+  outside meet the pins from outside, and the wires inside meet them from
+  inside. Click **-** in the frame header, or right-click and choose
+  **Collapse**, to fold it again. **Open Subsystem** in the same menu enters the
+  block like a double-click. Hierarchy blocks inside a frame can be expanded
+  too, and expanded blocks stay expanded when you go to another level and back.
+  Isolate works on the blocks of the level on show, not on those inside a frame.
 - **Outline.** Lists the instances of the current design and its external
   ports. Select an item to select it in the diagram and center it.
 - **Search.** Type in **Search instances** to dim the blocks whose name or
@@ -144,7 +153,7 @@ uses Tcl that cannot be evaluated marks the view partial.
 A module whose kind is the base name of another `.qsys` file in the workspace
 (for example `kind="sub_system"` and `sub_system.qsys`) is a Platform Designer
 subsystem. IPCraft reads that file and shows the module as a hierarchy level:
-double-click the block to enter it. Go to source from inside the subsystem opens
+double-click the block to enter it, or expand it in place with its **+** button. Go to source from inside the subsystem opens
 the subsystem file. Subsystems that instantiate each other, or a file that cannot
 be read, stay opaque blocks and are listed in Problems.
 

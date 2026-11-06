@@ -223,6 +223,59 @@ describe('SystemDiagramApp', () => {
     expect(screen.queryByTestId('node:/dsp_pipeline/axis_data_fifo_0')).not.toBeInTheDocument();
   });
 
+  describe('expanding a hierarchy block in place', () => {
+    const crumbs = () => within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+    const expandToggle = () => screen.getByRole('button', { name: 'Expand dsp_pipeline in place' });
+
+    it('draws the inner level inside the block and collapses it again, staying on the level', async () => {
+      await renderWithGraph();
+      expect(screen.queryByTestId('node:/dsp_pipeline/fir_compiler_0')).not.toBeInTheDocument();
+
+      fireEvent.click(expandToggle());
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      expect(screen.getByTestId('node:/axi_dma_0')).toBeInTheDocument();
+      expect(crumbs().getByText('zynq_dma_system')).toHaveAttribute('aria-current', 'page');
+      expect(screen.getByRole('button', { name: 'Collapse dsp_pipeline' })).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse dsp_pipeline' }));
+      await waitFor(() =>
+        expect(screen.queryByTestId('node:/dsp_pipeline/fir_compiler_0')).not.toBeInTheDocument()
+      );
+      expect(expandToggle()).toBeInTheDocument();
+    });
+
+    it('selects a block inside without leaving the level', async () => {
+      await renderWithGraph();
+      fireEvent.click(expandToggle());
+      fireEvent.click(await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0'));
+
+      expect(details().getByRole('heading', { name: 'fir_compiler_0' })).toBeVisible();
+      expect(crumbs().getByText('zynq_dma_system')).toHaveAttribute('aria-current', 'page');
+      expect(screen.getByTestId('node:/axi_dma_0')).toBeInTheDocument();
+    });
+
+    it('keeps the block expanded when entering it and coming back', async () => {
+      await renderWithGraph();
+      fireEvent.click(expandToggle());
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await waitFor(() =>
+        expect(crumbs().getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page')
+      );
+      await waitFor(() => expect(screen.queryByTestId('node:/axi_dma_0')).not.toBeInTheDocument());
+      expect(screen.getByTestId('node:/dsp_pipeline/fir_compiler_0')).toBeInTheDocument();
+
+      fireEvent.click(crumbs().getByRole('button', { name: 'zynq_dma_system' }));
+      await screen.findByTestId('node:/axi_dma_0');
+      expect(await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Collapse dsp_pipeline' })).toBeInTheDocument();
+    });
+  });
+
   describe('mouse back button', () => {
     const crumbs = () => within(screen.getByRole('navigation', { name: 'Hierarchy' }));
 

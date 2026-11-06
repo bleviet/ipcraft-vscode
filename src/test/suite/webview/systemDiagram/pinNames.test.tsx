@@ -42,6 +42,8 @@ function canvas(layout: Layout) {
         onIsolate={jest.fn()}
         onShowAll={jest.fn()}
         onEnterHierarchy={jest.fn()}
+        onToggleExpand={jest.fn()}
+        isolatable={jest.fn()}
         onFocusNode={jest.fn()}
         onFit={jest.fn()}
       />

@@ -18,7 +18,7 @@ normal typing shortcuts unless a table cell is explicitly in navigation mode.
 
 Panels start hidden; open them with the toolbar toggles. Double-click a separator to collapse its panel again.
 
-Double-click a block or port to zoom to it, or empty canvas to fit the level. Double-clicking a hierarchy block opens it.
+Double-click a block or port to zoom to it, or empty canvas to fit the level. Double-clicking a hierarchy block opens it. Its **+** button, or right-click and **Expand In-Place**, draws its inside in place instead; **-** or **Collapse** folds it again, and **Open Subsystem** in the same menu opens it.
 
 ## IP Core Canvas
 

@@ -1,16 +1,13 @@
 /**
  * Pure conversion between a {@link SystemGraph} level and ELK / React Flow.
- * One flat ELK graph per level: a node per instance and per boundary pin, a
+ * One ELK graph per level: a node per instance and per boundary pin, a
  * fixed-position port per pin, and one edge per net sink from the net driver.
+ * An expanded hierarchy block is a compound node holding its inner level (see
+ * `expandedLayout.ts`); the flow nodes stay flat, in absolute coordinates.
  */
 
 import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
-import type {
-  PinDirection,
-  SystemGraph,
-  SystemInstance,
-  SystemPin,
-} from '../../../domain/systemGraph';
+import type { SystemGraph, SystemInstance, SystemPin } from '../../../domain/systemGraph';
 import type {
   DiagramFlowEdge,
   DiagramFlowNode,
@@ -25,8 +22,10 @@ import {
   type TextMeasure,
 } from './nodeSizing';
 import { extendRouteEnds } from './edgePoints';
-import { levelEdges, portId } from './levelEdges';
+import { compoundNode, frameData } from './expandedLayout';
+import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
 import { badgeLabels, badgeOfPort, hiddenNetsByEndpoint } from './netBadges';
+import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, pinRow, splitSides } from './pinRows';
 import {
   boundaryId,
   cellCount,
@@ -36,10 +35,8 @@ import {
   pinRole,
 } from '../model';
 
-export const HEADER_HEIGHT = 42;
-export const PIN_ROW_HEIGHT = 18;
+export { HEADER_HEIGHT, PIN_ROW_HEIGHT } from './pinRows';
 export const BOUNDARY_HEIGHT = 26;
-const PORT_SIZE = 8;
 /** Port top below its row top: 1 px border + 9 px row middle - half the 8 px port. */
 const PIN_TOP_OFFSET = 6;
 const PIN_BOTTOM_PADDING = 10;
@@ -49,6 +46,8 @@ export type {
   DiagramFlowEdge,
   DiagramFlowNode,
   ElkEdgeData,
+  FrameNodeData,
+  FramePinRow,
   InstanceNodeData,
   PinRow,
   PinSide,
@@ -65,6 +64,8 @@ export interface BuildElkOptions {
   measure: TextMeasure;
   /** Emit only this subset of the level's nodes and edges. */
   isolate?: IsolationSubset;
+  /** Hierarchy blocks (instance paths) drawn expanded, with their inner level inside. */
+  expanded?: ReadonlySet<string>;
 }
 
 const LAYOUT_OPTIONS = {
@@ -76,18 +77,6 @@ const LAYOUT_OPTIONS = {
   'elk.layered.spacing.edgeNodeBetweenLayers': '24',
   'elk.spacing.edgeEdge': '12',
 };
-
-function sideOfInstancePin(direction: PinDirection): PinSide {
-  return direction === 'out' || direction === 'master' || direction === 'inout' ? 'east' : 'west';
-}
-
-function splitSides(pins: readonly SystemPin[]): Record<PinSide, SystemPin[]> {
-  const sides: Record<PinSide, SystemPin[]> = { west: [], east: [] };
-  for (const pin of pins) {
-    sides[sideOfInstancePin(pin.direction)].push(pin);
-  }
-  return sides;
-}
 
 function instanceHeight(instance: SystemInstance): number {
   const sides = splitSides(instance.pins);
@@ -179,18 +168,60 @@ function boundaryNode(
   };
 }
 
-export function buildElkInput(
-  graph: SystemGraph,
-  levelPath: string,
-  options: BuildElkOptions
-): ElkNode {
+interface BuildContext {
+  graph: SystemGraph;
+  /** The level the graph is built for; its boundary pins are nodes and isolation applies to it. */
+  levelPath: string;
+  options: BuildElkOptions;
+  /** Edges of every level in the graph; ELK routes them all from the root. */
+  edges: ElkExtendedEdge[];
+  /** Whether a hierarchy block was emitted as a compound node. */
+  compound: boolean;
+}
+
+/** ELK edges of `levelPath`: those of an inner level end on the pins of its frame. */
+function elkEdges(context: BuildContext, levelPath: string): ElkExtendedEdge[] {
+  const { graph, options } = context;
+  const edges = levelEdges(graph, levelPath, options.showClockReset);
+  return (
+    levelPath === context.levelPath
+      ? edges.filter((edge) => options.isolate?.edgeIds.has(edge.id) ?? true)
+      : remapBoundaryEnds(edges, levelPath)
+  ).map((edge) => ({
+    id: edge.id,
+    sources: [portId(edge.sourceNode, edge.sourcePin)],
+    targets: [portId(edge.targetNode, edge.targetPin)],
+  }));
+}
+
+/** Nodes of `levelPath`; an expanded hierarchy block holds the nodes of its own level. */
+function levelNodes(context: BuildContext, levelPath: string): ElkNode[] {
+  const { graph, options } = context;
+  const isCurrent = levelPath === context.levelPath;
   const level = graph.levels[levelPath];
   const children: ElkNode[] = [];
   const hidden = hiddenNetsByEndpoint(graph, levelPath, options.showClockReset);
-  const shown = (id: string) => options.isolate?.nodeIds.has(id) ?? true;
+  const isolate = isCurrent ? options.isolate : undefined;
+  const shown = (id: string) => isolate?.nodeIds.has(id) ?? true;
+  context.edges.push(...elkEdges(context, levelPath));
   for (const path of level?.instances ?? []) {
     const instance = graph.instances[path];
-    if (instance && shown(path)) {
+    if (!instance || !shown(path)) {
+      continue;
+    }
+    if (instance.kind === 'hier' && options.expanded?.has(path)) {
+      context.compound = true;
+      children.push(
+        compoundNode(graph, instance, hidden, levelNodes(context, path), {
+          measure: options.measure,
+          baseOptions: { ...LAYOUT_OPTIONS, ...PORT_LABEL_OPTIONS },
+          minSize: {
+            width: sizeOfInstance(graph, instance, options.measure).width,
+            height: instanceHeight(instance),
+          },
+        })
+      );
+    } else {
       children.push(
         instanceNode(
           graph,
@@ -201,27 +232,35 @@ export function buildElkInput(
       );
     }
   }
-  for (const pin of level?.boundaryPins ?? []) {
+  // The boundary pins of an expanded level are the pins of its frame, not nodes.
+  for (const pin of isCurrent ? (level?.boundaryPins ?? []) : []) {
     if (shown(boundaryId(levelPath, pin.name))) {
       children.push(
         boundaryNode(graph, levelPath, pin, boundaryLayout(pin, options.measure).width, hidden)
       );
     }
   }
+  return children;
+}
 
-  const edges: ElkExtendedEdge[] = levelEdges(graph, levelPath, options.showClockReset)
-    .filter((edge) => options.isolate?.edgeIds.has(edge.id) ?? true)
-    .map((edge) => ({
-      id: edge.id,
-      sources: [portId(edge.sourceNode, edge.sourcePin)],
-      targets: [portId(edge.targetNode, edge.targetPin)],
-    }));
-
+export function buildElkInput(
+  graph: SystemGraph,
+  levelPath: string,
+  options: BuildElkOptions
+): ElkNode {
+  const context: BuildContext = { graph, levelPath, options, edges: [], compound: false };
+  const children = levelNodes(context, levelPath);
   return {
     id: `level:${levelPath}`,
-    layoutOptions: LAYOUT_OPTIONS,
+    layoutOptions: context.compound
+      ? {
+          ...LAYOUT_OPTIONS,
+          'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+          'elk.json.edgeCoords': 'ROOT',
+        }
+      : LAYOUT_OPTIONS,
     children,
-    edges,
+    edges: context.edges,
   };
 }
 
@@ -235,25 +274,13 @@ function pinRows(
   const rows: Record<PinSide, PinRow[]> = { west: [], east: [] };
   for (const pin of instance.pins) {
     const ref = { instance: instance.path, pin: pin.name };
-    const nets = netLookup.get(endpointKey(ref)) ?? [];
-    const net = nets[0];
-    const side = sideOfInstancePin(pin.direction);
-    rows[side].push({
-      name: pin.name,
-      isInterface: pin.isInterface,
-      side,
-      direction: pin.direction,
-      directionSource: pin.directionSource,
-      category: net?.category,
-      netName: net?.name,
-      netNames: nets.map((candidate) => candidate.name),
-      ...(pin.definedBy !== undefined && { definedBy: pin.definedBy }),
-      ...(pin.interfaceType !== undefined && { interfaceType: pin.interfaceType }),
-      ...(pin.signalType !== undefined && { signalType: pin.signalType }),
-      label: labels.get(pin.name)!,
-      unconnected: nets.length === 0,
-      badge: badgeOfPort(ports.get(portId(instance.path, pin.name)), hidden.get(endpointKey(ref))),
-    });
+    const row = pinRow(
+      pin,
+      netLookup.get(endpointKey(ref)) ?? [],
+      labels.get(pin.name)!,
+      badgeOfPort(ports.get(portId(instance.path, pin.name)), hidden.get(endpointKey(ref)))
+    );
+    rows[row.side].push(row);
   }
   return rows;
 }
@@ -262,26 +289,47 @@ function portsOf(node: ElkNode): Map<string, ElkPort> {
   return new Map((node.ports ?? []).map((port) => [port.id, port]));
 }
 
-export function toFlowElements(
-  layoutResult: ElkNode,
-  graph: SystemGraph,
+interface FlowContext {
+  graph: SystemGraph;
+  measure: TextMeasure;
+}
+
+/**
+ * Appends the flow nodes of the children of `parent`, the laid-out node of
+ * `levelPath` placed at `origin` (ELK positions are relative to the parent). A
+ * frame precedes the nodes of its inner level.
+ */
+function addLevelNodes(
+  parent: ElkNode,
   levelPath: string,
-  measure: TextMeasure
-): { nodes: DiagramFlowNode[]; edges: DiagramFlowEdge[] } {
+  origin: { x: number; y: number },
+  { graph, measure }: FlowContext,
+  nodes: DiagramFlowNode[]
+): void {
   const netLookup = netsByEndpoint(graph, levelPath);
   // Only pins whose ELK port carries a badge label read these nets.
   const hidden = hiddenNetsByEndpoint(graph, levelPath, false);
   const boundaryPins = graph.levels[levelPath]?.boundaryPins ?? [];
-  const nodes: DiagramFlowNode[] = [];
 
-  for (const child of layoutResult.children ?? []) {
+  for (const child of parent.children ?? []) {
     const base = {
-      position: { x: child.x ?? 0, y: child.y ?? 0 },
+      position: { x: origin.x + (child.x ?? 0), y: origin.y + (child.y ?? 0) },
       width: child.width ?? 0,
       height: child.height ?? 0,
       draggable: false as const,
     };
     const instance = graph.instances[child.id];
+    if (instance && child.children) {
+      nodes.push({
+        ...base,
+        id: child.id,
+        type: 'frame',
+        zIndex: -1,
+        data: frameData(graph, instance, portsOf(child), { nets: netLookup, hidden }),
+      });
+      addLevelNodes(child, instance.path, base.position, { graph, measure }, nodes);
+      continue;
+    }
     if (instance) {
       const sizing = sizeOfInstance(graph, instance, measure);
       nodes.push({
@@ -325,6 +373,16 @@ export function toFlowElements(
       });
     }
   }
+}
+
+export function toFlowElements(
+  layoutResult: ElkNode,
+  graph: SystemGraph,
+  levelPath: string,
+  measure: TextMeasure
+): { nodes: DiagramFlowNode[]; edges: DiagramFlowEdge[] } {
+  const nodes: DiagramFlowNode[] = [];
+  addLevelNodes(layoutResult, levelPath, { x: 0, y: 0 }, { graph, measure }, nodes);
 
   const netsById = new Map(graph.nets.map((net) => [net.id, net]));
   const edges: DiagramFlowEdge[] = [];
@@ -336,6 +394,10 @@ export function toFlowElements(
     }
     const [source, sourceHandle] = splitPort(elkEdge.sources[0]);
     const [target, targetHandle] = splitPort(elkEdge.targets[0]);
+    // ELK ends a wire at the outer side of the port box. A wire of an expanded
+    // block's inner level meets its frame pin from the inside: pull it back to
+    // the border instead of pushing it past.
+    const reach = (nodeId: string) => (nodeId === net.level ? -PORT_SIZE / 2 : PORT_SIZE / 2);
     edges.push({
       id: elkEdge.id,
       type: 'elk',
@@ -346,7 +408,8 @@ export function toFlowElements(
       data: {
         points: extendRouteEnds(
           [section.startPoint, ...(section.bendPoints ?? []), section.endPoint],
-          PORT_SIZE / 2
+          reach(source),
+          reach(target)
         ),
         netId: net.id,
         category: net.category,

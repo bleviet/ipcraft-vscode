@@ -25,8 +25,10 @@ const COLUMN_GAP = 16;
 const ROW_CHROME = 18;
 /** External port tag: text starts 12 px in and stops before the 12 px arrow tip. */
 const BOUNDARY_CHROME = 24;
-/** Room for the right-aligned "OPEN" hint and chevron in a hierarchy block header. */
-const HIER_HINT_WIDTH = 52;
+/** Room for the expand toggle (16 px button plus the 6 px title gap) before a hierarchy block's name. */
+const HIER_TOGGLE_WIDTH = 22;
+/** Least gap between an expanded frame's border and the blocks inside it. */
+export const FRAME_MARGIN = 20;
 const ELLIPSIS = '…';
 const START_SHARE = 0.6;
 
@@ -128,7 +130,7 @@ export function instanceLayout(
     measure(instance.name, 'semibold') +
     ROW_PADDING +
     NODE_BORDER +
-    (instance.kind === 'hier' ? HIER_HINT_WIDTH : 0);
+    (instance.kind === 'hier' ? HIER_TOGGLE_WIDTH : 0);
   const sub = subtitle === '' ? 0 : measure(subtitle, 'subtitle') + ROW_PADDING + NODE_BORDER;
   const width = Math.ceil(
     clamp(Math.max(header, sub, columns), INSTANCE_MIN_WIDTH, INSTANCE_MAX_WIDTH)
@@ -142,6 +144,25 @@ export function instanceLayout(
     labels.set(pin.name, labelFor(pin.name, eastWidth, measure));
   }
   return { width, westWidth, eastWidth, labels };
+}
+
+/**
+ * Inner padding of an expanded frame beside its west and east borders: wide
+ * enough for the widest pin label of that side, which sits inside the border.
+ */
+export function framePadding(
+  sides: { west: readonly SystemPin[]; east: readonly SystemPin[] },
+  measure: TextMeasure
+): { west: number; east: number } {
+  const room = (pins: readonly SystemPin[]) =>
+    Math.max(
+      FRAME_MARGIN,
+      naturalColumn(
+        pins.map((pin) => pin.name),
+        measure
+      )
+    );
+  return { west: room(sides.west), east: room(sides.east) };
 }
 
 export function boundaryLayout(pin: SystemPin, measure: TextMeasure): BoundaryLayout {

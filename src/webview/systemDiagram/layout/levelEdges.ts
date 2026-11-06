@@ -64,3 +64,22 @@ export function levelEdges(
   }
   return edges;
 }
+
+/**
+ * Edges of an expanded block's inner level, with the boundary pins re-pointed
+ * at the block's own pins: boundary pin `p` of `levelPath` is port `p` of the
+ * node `levelPath` (the hierarchy instance shares its path with its level).
+ */
+export function remapBoundaryEnds(edges: readonly LevelEdge[], levelPath: string): LevelEdge[] {
+  const remap = (node: string, pin: string) =>
+    node === boundaryId(levelPath, pin) ? levelPath : node;
+  return edges
+    .map((edge) => ({
+      ...edge,
+      sourceNode: remap(edge.sourceNode, edge.sourcePin),
+      targetNode: remap(edge.targetNode, edge.targetPin),
+    }))
+    .filter(
+      (edge) => portId(edge.sourceNode, edge.sourcePin) !== portId(edge.targetNode, edge.targetPin)
+    );
+}

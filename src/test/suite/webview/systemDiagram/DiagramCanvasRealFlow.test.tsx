@@ -49,6 +49,8 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
     onIsolate: jest.fn(),
     onShowAll: jest.fn(),
     onEnterHierarchy: jest.fn(),
+    onToggleExpand: jest.fn(),
+    isolatable: jest.fn(),
     onFocusNode: jest.fn(),
     onFit: jest.fn(),
   };
@@ -88,6 +90,8 @@ it('fits on a double-click of the real pane but not of a real node', async () =>
       onIsolate={jest.fn()}
       onShowAll={jest.fn()}
       onEnterHierarchy={jest.fn()}
+      onToggleExpand={jest.fn()}
+      isolatable={jest.fn()}
       onFocusNode={onFocusNode}
       onFit={onFit}
       layout={layout}

@@ -6,10 +6,12 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- **Expand a hierarchy block in place in the system viewer.** The + button in the header of a hierarchy block, or right-click, Expand In-Place, draws its blocks and wires inside it without leaving the level: the block becomes a frame with its pins on the border, outside wires meeting the pins from outside and inner wires from inside. Hierarchy blocks inside can be expanded too, and expanded blocks stay expanded when you go to another level and back. The - button or right-click, Collapse, folds it again. Double-click and right-click, Open Subsystem, still enter the block. The + button replaces the OPEN hint in the block header. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))
 - **Review unconnected pins in the system viewer.** The Unconnected pins toolbar toggle dims the diagram and marks pins that no net touches, undriven inputs in the warning color and unused outputs muted, with per-block counts, a level banner, and an Unconnected tab that lists them and jumps to each pin. Only blocks with a known pin list (an `.ip.yml` or HDL definition, hierarchy pins, external ports) are checked. Details also tags unconnected pins. ([#245](https://github.com/bleviet/ipcraft-vscode/issues/245), [#246](https://github.com/bleviet/ipcraft-vscode/pull/246))
 
 ### Changed
 
+- **Stronger block outlines in the system viewer.** Blocks, external ports and expanded hierarchy frames are outlined in a darker shade of the theme foreground, so they stand out on light and dark themes. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))
 - **Plainer problems button in the system viewer.** The toolbar note "Offline view, partial · N warnings" is now "N problems", the same count as the Problems tab, and is hidden when there are none. What the offline view cannot know is still listed in Details under "What this view knows". ([#246](https://github.com/bleviet/ipcraft-vscode/pull/246))
 
 ## [1.4.0] - 2026-11-06
