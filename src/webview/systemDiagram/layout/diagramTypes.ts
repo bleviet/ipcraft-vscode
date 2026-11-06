@@ -34,14 +34,8 @@ export interface PinRow {
   unconnected: boolean;
 }
 
-export interface InstanceNodeData extends Record<string, unknown> {
-  instance: SystemInstance;
-  cellCount: number;
-  width: number;
-  westWidth: number;
-  eastWidth: number;
-  west: PinRow[];
-  east: PinRow[];
+/** Display state the canvas adds to the nodes of a hierarchy-capable block (instance or frame). */
+export interface InstanceUiData {
   /** Pins on the selected net; their labels are drawn bold. */
   highlightedPins?: ReadonlySet<string>;
   dimmed?: boolean;
@@ -54,6 +48,29 @@ export interface InstanceNodeData extends Record<string, unknown> {
   onFlashEnd?: (token: number) => void;
   onSelectNet?: (netId: string) => void;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
+  /** Expands or collapses the hierarchy block `instancePath` in place. */
+  onToggleExpand?: (instancePath: string) => void;
+}
+
+export interface InstanceNodeData extends Record<string, unknown>, InstanceUiData {
+  instance: SystemInstance;
+  cellCount: number;
+  width: number;
+  westWidth: number;
+  eastWidth: number;
+  west: PinRow[];
+  east: PinRow[];
+}
+
+/** Pin row of an expanded block; `y` is the pin centre below the frame top. */
+export type FramePinRow = PinRow & { y: number };
+
+/** An expanded hierarchy block: a frame around its inner level, its pins on the border. */
+export interface FrameNodeData extends Record<string, unknown>, InstanceUiData {
+  instance: SystemInstance;
+  cellCount: number;
+  west: FramePinRow[];
+  east: FramePinRow[];
 }
 
 export interface BoundaryNodeData extends Record<string, unknown> {
@@ -80,11 +97,14 @@ interface FlowNodeBase {
   width: number;
   height: number;
   draggable: false;
+  /** Stacking order; a frame sits below the nodes and wires it contains. */
+  zIndex?: number;
 }
 
 export type DiagramFlowNode =
   | (FlowNodeBase & { type: 'instance'; data: InstanceNodeData })
-  | (FlowNodeBase & { type: 'boundary'; data: BoundaryNodeData });
+  | (FlowNodeBase & { type: 'boundary'; data: BoundaryNodeData })
+  | (FlowNodeBase & { type: 'frame'; data: FrameNodeData });
 
 export interface ElkEdgeData extends Record<string, unknown> {
   points: { x: number; y: number }[];

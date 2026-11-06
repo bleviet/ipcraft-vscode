@@ -20,6 +20,24 @@ describe('extendRouteEnds', () => {
     ]);
   });
 
+  it('takes a separate length per end, and a negative one pulls the end back', () => {
+    expect(
+      extendRouteEnds(
+        [
+          { x: 640, y: 10 },
+          { x: 700, y: 10 },
+          { x: 780, y: 10 },
+        ],
+        -4,
+        4
+      )
+    ).toEqual([
+      { x: 644, y: 10 },
+      { x: 700, y: 10 },
+      { x: 784, y: 10 },
+    ]);
+  });
+
   it('keeps degenerate routes', () => {
     expect(extendRouteEnds([{ x: 1, y: 1 }], 4)).toEqual([{ x: 1, y: 1 }]);
     expect(

@@ -11,6 +11,7 @@ import {
   loadFixtureGraph,
   loadQsysFixtureGraph,
   loadQsysTclFixtureGraph,
+  loadReviewFixtureGraph,
   fakeMeasure,
 } from './fixtureGraph';
 
@@ -33,7 +34,7 @@ function expectBadgesClearOfNodes(nodes: DiagramFlowNode[]): void {
   }));
   let badges = 0;
   for (const node of nodes) {
-    const rows = node.type === 'instance' ? [...node.data.west, ...node.data.east] : [node.data];
+    const rows = node.type === 'boundary' ? [node.data] : [...node.data.west, ...node.data.east];
     for (const badge of rows.flatMap((row) => (row.badge ? [row.badge] : []))) {
       badges += 1;
       const box = {
@@ -372,4 +373,305 @@ describe('buildElkInput isolate', () => {
     const rows = dma?.type === 'instance' ? [...dma.data.west, ...dma.data.east] : [];
     expect(rows.find((row) => row.name === 's_axi_lite_aclk')?.unconnected).toBe(false);
   });
+});
+
+describe('buildElkInput with expanded blocks', () => {
+  const DSP = '/dsp_pipeline';
+  const BANK = '/dsp_pipeline/coeff_bank';
+  const options = { showClockReset: true, measure: fakeMeasure };
+  const expandedInput = buildElkInput(graph, '/', { ...options, expanded: new Set([DSP]) });
+
+  it('equals the collapsed input when nothing is expanded, or the expanded block is not shown', () => {
+    const collapsed = buildElkInput(graph, '/', options);
+    expect(buildElkInput(graph, '/', { ...options, expanded: new Set() })).toEqual(collapsed);
+    expect(buildElkInput(graph, '/', { ...options, expanded: new Set([BANK]) })).toEqual(collapsed);
+    expect(buildElkInput(graph, '/', { ...options, expanded: new Set(['/axi_dma_0']) })).toEqual(
+      collapsed
+    );
+    expect(collapsed.layoutOptions).not.toHaveProperty('elk.hierarchyHandling');
+    expect(collapsed.layoutOptions).not.toHaveProperty('elk.json.edgeCoords');
+  });
+
+  it('turns the block into a compound node of its inner level and sets the root options', () => {
+    expect(expandedInput.layoutOptions).toMatchObject({
+      'elk.algorithm': 'layered',
+      'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
+      'elk.json.edgeCoords': 'ROOT',
+    });
+    const frame = child(expandedInput, DSP);
+    expect(frame.width).toBeUndefined();
+    expect(frame.height).toBeUndefined();
+    expect(frame.children?.map((node) => node.id)).toEqual(graph.levels[DSP].instances);
+    expect(frame.layoutOptions).toMatchObject({
+      'elk.algorithm': 'layered',
+      'elk.portConstraints': 'FIXED_SIDE',
+      'elk.spacing.portPort': '18',
+    });
+    expect(frame.layoutOptions?.['elk.padding']).toMatch(
+      /^\[top=\d+,left=\d+,bottom=\d+,right=\d+\]$/
+    );
+    // The collapsed sibling is a plain node, and the root keeps its other children.
+    expect(child(expandedInput, '/axi_dma_0').children).toBeUndefined();
+    expect(expandedInput.children).toHaveLength(
+      buildElkInput(graph, '/', options).children?.length ?? NaN
+    );
+  });
+
+  it('puts the pins on the border as side ports centred on it', () => {
+    const frame = child(expandedInput, DSP);
+    const sides = new Map(
+      (frame.ports ?? []).map((port) => [port.id, port.layoutOptions?.['elk.port.side']])
+    );
+    expect([...sides]).toEqual([
+      [`${DSP}::S_AXIS`, 'WEST'],
+      [`${DSP}::aclk`, 'WEST'],
+      [`${DSP}::aresetn`, 'WEST'],
+      [`${DSP}::M_AXIS`, 'EAST'],
+    ]);
+    for (const port of frame.ports ?? []) {
+      expect(port).toMatchObject({ width: 8, height: 8 });
+      expect(port.layoutOptions?.['elk.port.borderOffset']).toBe('-4');
+    }
+  });
+
+  it('does not emit the boundary pins of the inner level as nodes', () => {
+    const ids = (child(expandedInput, DSP).children ?? []).map((node) => node.id);
+    expect(ids.some((id) => id.includes('::'))).toBe(false);
+  });
+
+  it('ends the inner edges on the ports of the block', () => {
+    const edges = new Map((expandedInput.edges ?? []).map((edge) => [edge.id, edge]));
+    expect(edges.get(`${DSP}::Conn1#1`)).toMatchObject({
+      sources: [`${DSP}::S_AXIS`],
+      targets: [`${DSP}/axis_data_fifo_0::S_AXIS`],
+    });
+    expect(edges.get(`${DSP}::Conn2#0`)).toMatchObject({
+      sources: [`${DSP}/fir_compiler_0::M_AXIS_DATA`],
+      targets: [`${DSP}::M_AXIS`],
+    });
+    // The outer wires end on the same ports, from outside.
+    expect(edges.get('/::axi_dma_0_M_AXIS_MM2S#1')?.targets).toEqual([`${DSP}::S_AXIS`]);
+    const ports = new Set(
+      [
+        expandedInput,
+        ...(expandedInput.children ?? []),
+        ...(child(expandedInput, DSP).children ?? []),
+      ]
+        .flatMap((node) => node.ports ?? [])
+        .map((port) => port.id)
+    );
+    for (const edge of expandedInput.edges ?? []) {
+      expect(ports.has(edge.sources[0])).toBe(true);
+      expect(ports.has(edge.targets[0])).toBe(true);
+    }
+  });
+
+  it('nests a block expanded inside an expanded block', () => {
+    const nested = buildElkInput(graph, '/', { ...options, expanded: new Set([DSP, BANK]) });
+    const bank = child(child(nested, DSP), BANK);
+    expect(bank.children?.map((node) => node.id)).toEqual(graph.levels[BANK].instances);
+    const edge = (nested.edges ?? []).find((candidate) =>
+      candidate.id.startsWith(`${BANK}::config_fifo_M_AXIS#`)
+    );
+    expect(edge?.targets).toEqual([`${BANK}::M_AXIS_CONFIG`]);
+  });
+
+  it('keeps the inner content of an isolated expanded block and drops the hidden ones', () => {
+    const withBlock = isolationSubset(graph, '/', [DSP], true);
+    const kept = buildElkInput(graph, '/', {
+      ...options,
+      expanded: new Set([DSP]),
+      isolate: withBlock,
+    });
+    expect(child(kept, DSP).children).toHaveLength(graph.levels[DSP].instances.length);
+    expect(kept.edges?.some((edge) => edge.id.startsWith(`${DSP}::`))).toBe(true);
+
+    const without = isolationSubset(graph, '/', ['/axi_dma_0'], true);
+    const dropped = buildElkInput(graph, '/', {
+      ...options,
+      expanded: new Set([DSP]),
+      isolate: { ...without, nodeIds: new Set([...without.nodeIds].filter((id) => id !== DSP)) },
+    });
+    expect(dropped.children?.some((node) => node.id === DSP)).toBe(false);
+    expect(dropped.edges?.every((edge) => !edge.id.startsWith(`${DSP}::`))).toBe(true);
+    expect(dropped.layoutOptions).not.toHaveProperty('elk.hierarchyHandling');
+  });
+
+  it('never makes an expanded block smaller than the collapsed one', () => {
+    const empty = JSON.parse(JSON.stringify(graph)) as typeof graph;
+    empty.levels[BANK].instances = [];
+    empty.nets = empty.nets.filter((net) => net.level !== BANK);
+    const input = buildElkInput(empty, '/', {
+      ...options,
+      expanded: new Set([DSP, BANK]),
+    });
+    const bank = child(child(input, DSP), BANK);
+    expect(bank.children).toEqual([]);
+    expect(bank.layoutOptions?.['elk.nodeSize.minimum']).toMatch(/^\(\d+,\d+\)$/);
+  });
+});
+
+describe('real ELK layout of expanded blocks', () => {
+  const DSP = '/dsp_pipeline';
+  const BANK = '/dsp_pipeline/coeff_bank';
+
+  async function layoutOf(expanded: string[], showClockReset = true, design = graph) {
+    const input = buildElkInput(design, '/', {
+      showClockReset,
+      measure: fakeMeasure,
+      expanded: new Set(expanded),
+    });
+    const result = await runElkLayout(input);
+    return { input, result, ...toFlowElements(result, design, '/', fakeMeasure) };
+  }
+
+  const nodeOf = (nodes: DiagramFlowNode[], id: string) => nodes.find((node) => node.id === id)!;
+
+  /** Every wire ends on the left or right border of its node, within the node's height. */
+  function expectEndsOnBorders(
+    nodes: DiagramFlowNode[],
+    edges: {
+      id: string;
+      source: string;
+      target: string;
+      data: { points: { x: number; y: number }[] };
+    }[]
+  ) {
+    for (const edge of edges) {
+      const points = edge.data.points;
+      for (const [point, id] of [
+        [points[0], edge.source],
+        [points[points.length - 1], edge.target],
+      ] as const) {
+        const node = nodeOf(nodes, id);
+        const onBorder =
+          Math.abs(point.x - node.position.x) < 0.5 ||
+          Math.abs(point.x - (node.position.x + node.width)) < 0.5;
+        const inRange =
+          point.y >= node.position.y - 0.5 && point.y <= node.position.y + node.height + 0.5;
+        expect({ edge: edge.id, node: id, onBorder, inRange }).toEqual({
+          edge: edge.id,
+          node: id,
+          onBorder: true,
+          inRange: true,
+        });
+      }
+    }
+  }
+
+  it('draws the block as a frame below its inner blocks, which lie inside it', async () => {
+    const { nodes, edges, input } = await layoutOf([DSP]);
+    const frame = nodeOf(nodes, DSP);
+    expect(frame.type).toBe('frame');
+    expect(frame.zIndex).toBe(-1);
+    const innerIds = graph.levels[DSP].instances;
+    expect(nodes.filter((node) => node.type === 'frame')).toHaveLength(1);
+    expect(nodes.filter((node) => node.type === 'boundary')).toHaveLength(
+      graph.levels['/'].boundaryPins.length
+    );
+    for (const id of innerIds) {
+      const inner = nodeOf(nodes, id);
+      expect(nodes.indexOf(frame)).toBeLessThan(nodes.indexOf(inner));
+      expect(inner.type).toBe('instance');
+      expect(inner.zIndex).toBeUndefined();
+      expect(inner.position.x).toBeGreaterThanOrEqual(frame.position.x);
+      expect(inner.position.x + inner.width).toBeLessThanOrEqual(frame.position.x + frame.width);
+      expect(inner.position.y).toBeGreaterThanOrEqual(frame.position.y + 42);
+      expect(inner.position.y + inner.height).toBeLessThanOrEqual(frame.position.y + frame.height);
+    }
+    expect(edges).toHaveLength(input.edges?.length ?? NaN);
+    expectEndsOnBorders(nodes, edges);
+  }, 20000);
+
+  it('centres the ports on the border and the pin rows on the ports', async () => {
+    const { result, nodes } = await layoutOf([DSP]);
+    const laidOut = child(result, DSP);
+    const frame = nodeOf(nodes, DSP);
+    if (frame.type !== 'frame') {
+      throw new Error('expected a frame');
+    }
+    for (const port of laidOut.ports ?? []) {
+      expect([-4, (laidOut.width ?? 0) - 4]).toContain(port.x);
+    }
+    const rows = [...frame.data.west, ...frame.data.east];
+    expect(rows.map((row) => row.name).sort()).toEqual(
+      graph.instances[DSP].pins.map((pin) => pin.name).sort()
+    );
+    for (const row of rows) {
+      const port = laidOut.ports?.find((candidate) => candidate.id === `${DSP}::${row.name}`);
+      expect(row.y).toBe((port?.y ?? NaN) + 4);
+      expect(row.y).toBeGreaterThanOrEqual(42);
+      expect(row.y).toBeLessThanOrEqual(frame.height);
+    }
+    expect(frame.data.west.map((row) => row.side)).toEqual(['west', 'west', 'west']);
+    expect(frame.data.east.map((row) => row.name)).toEqual(['M_AXIS']);
+    expect(frame.data.cellCount).toBe(graph.levels[DSP].instances.length);
+  }, 20000);
+
+  it('gives a frame pin the nets of both sides, outer first, and the badge of the outer clock only', async () => {
+    const { nodes } = await layoutOf([DSP], false);
+    const frame = nodeOf(nodes, DSP);
+    if (frame.type !== 'frame') {
+      throw new Error('expected a frame');
+    }
+    const row = (name: string) =>
+      [...frame.data.west, ...frame.data.east].find((r) => r.name === name)!;
+    expect(row('S_AXIS').netNames).toEqual(['axi_dma_0_M_AXIS_MM2S', 'Conn1']);
+    expect(row('S_AXIS').netName).toBe('axi_dma_0_M_AXIS_MM2S');
+    expect(row('S_AXIS').badge).toBeUndefined();
+    expect(row('aclk').netNames).toEqual(['processing_system7_0_FCLK_CLK0', 'aclk_1']);
+    expect(row('aclk').badge?.netId).toBe('/::processing_system7_0_FCLK_CLK0');
+    expect(row('aclk').badge?.nets.map((net) => net.id)).toEqual([
+      '/::processing_system7_0_FCLK_CLK0',
+    ]);
+    expect(row('aclk').unconnected).toBe(false);
+    // The inner blocks keep their own clock badge.
+    const fifo = nodeOf(nodes, `${DSP}/axis_data_fifo_0`);
+    const clockRow =
+      fifo.type === 'instance' ? fifo.data.west.find((r) => r.name === 's_axis_aclk') : undefined;
+    expect(clockRow?.badge?.netId).toBe('/dsp_pipeline::aclk_1');
+  }, 20000);
+
+  it('flags a frame pin that no net touches on either side', async () => {
+    const review = loadReviewFixtureGraph();
+    const { nodes } = await layoutOf([BANK, DSP], true, review);
+    const bank = nodeOf(nodes, BANK);
+    if (bank.type !== 'frame') {
+      throw new Error('expected a frame');
+    }
+    const rows = [...bank.data.west, ...bank.data.east];
+    expect(rows.find((row) => row.name === 'cfg_open')?.unconnected).toBe(true);
+    expect(rows.find((row) => row.name === 'aclk')?.unconnected).toBe(false);
+  }, 20000);
+
+  it('lays out nested expansion with absolute positions and wires on the borders', async () => {
+    const { nodes, edges, input } = await layoutOf([DSP, BANK]);
+    const outer = nodeOf(nodes, DSP);
+    const frame = nodeOf(nodes, BANK);
+    expect([outer.type, frame.type]).toEqual(['frame', 'frame']);
+    expect(nodes.indexOf(outer)).toBeLessThan(nodes.indexOf(frame));
+    expect(frame.position.x).toBeGreaterThanOrEqual(outer.position.x);
+    expect(frame.position.x + frame.width).toBeLessThanOrEqual(outer.position.x + outer.width);
+    for (const id of graph.levels[BANK].instances) {
+      const inner = nodeOf(nodes, id);
+      expect(nodes.indexOf(frame)).toBeLessThan(nodes.indexOf(inner));
+      expect(inner.position.x).toBeGreaterThanOrEqual(frame.position.x);
+      expect(inner.position.x + inner.width).toBeLessThanOrEqual(frame.position.x + frame.width);
+      expect(inner.position.y).toBeGreaterThanOrEqual(frame.position.y);
+      expect(inner.position.y + inner.height).toBeLessThanOrEqual(frame.position.y + frame.height);
+    }
+    expect(edges).toHaveLength(input.edges?.length ?? NaN);
+    expectEndsOnBorders(nodes, edges);
+  }, 20000);
+
+  it('sizes an expanded block with an empty level inside as the collapsed block', async () => {
+    const empty = JSON.parse(JSON.stringify(graph)) as typeof graph;
+    empty.levels[BANK].instances = [];
+    empty.nets = empty.nets.filter((net) => net.level !== BANK);
+    const { nodes } = await layoutOf([DSP, BANK], true, empty);
+    const bank = nodeOf(nodes, BANK);
+    expect(bank.type).toBe('frame');
+    expect(bank.width).toBeGreaterThanOrEqual(180);
+    expect(bank.height).toBeGreaterThanOrEqual(42);
+  }, 20000);
 });

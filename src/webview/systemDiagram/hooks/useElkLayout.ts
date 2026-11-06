@@ -20,12 +20,16 @@ export interface DiagramLayout {
   edges: DiagramFlowEdge[];
 }
 
-/** Lays out one level; results of superseded requests are ignored. */
+/**
+ * Lays out one level, with the hierarchy blocks in `expanded` drawn as frames
+ * around their inner level; results of superseded requests are ignored.
+ */
 export function useElkLayout(
   graph: SystemGraph,
   levelPath: string,
   showClockReset: boolean,
-  isolation: IsolatedView | null = null
+  isolation: IsolatedView | null = null,
+  expanded?: ReadonlySet<string>
 ): { layout: DiagramLayout | null; error: string | null } {
   const [result, setResult] = useState<{
     layout: DiagramLayout | null;
@@ -51,6 +55,7 @@ export function useElkLayout(
         showClockReset,
         measure,
         ...(isolation && { isolate: isolation }),
+        ...(expanded && { expanded }),
       })
     ).then(
       (laidOut) => {
@@ -73,7 +78,7 @@ export function useElkLayout(
     return () => {
       stale = true;
     };
-  }, [graph, levelPath, showClockReset, isolation, measure]);
+  }, [graph, levelPath, showClockReset, isolation, expanded, measure]);
 
   return result;
 }

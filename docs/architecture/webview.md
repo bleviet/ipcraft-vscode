@@ -147,9 +147,9 @@ host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
 | Layer | Owner |
 |---|---|
 | Composition root | `SystemDiagramApp.tsx`, `DiagramWorkbench.tsx`, `WorkbenchLayout.tsx` wire the toolbar, outline, canvas, details, and bottom panels |
-| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes) |
-| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation, pin hover, panel resize) |
-| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/` |
+| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
+| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize) |
+| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place |
 
 `messageState.ts` keeps the last valid graph when a later message reports an
 error or says the file is no longer recognized, so the workbench and the

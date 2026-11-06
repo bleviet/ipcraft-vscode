@@ -16,9 +16,9 @@ export function DiagramLegend({
   review: boolean;
 }) {
   const badges = nodes.flatMap((node) =>
-    node.type === 'instance'
-      ? [...node.data.west, ...node.data.east].flatMap((row) => row.badge?.nets ?? [])
-      : (node.data.badge?.nets ?? [])
+    node.type === 'boundary'
+      ? (node.data.badge?.nets ?? [])
+      : [...node.data.west, ...node.data.east].flatMap((row) => row.badge?.nets ?? [])
   );
   const entries = legendEntries(
     edges.map((edge) => edge.data),

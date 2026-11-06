@@ -24,14 +24,16 @@ export function highlightedPinsByNode(
     }
   }
   for (const node of nodes) {
-    if (node.type === 'instance') {
+    if (node.type === 'boundary') {
+      if (node.data.badge?.nets.some((net) => net.id === netId)) {
+        add(node.id, node.data.pin.name);
+      }
+    } else {
       for (const row of [...node.data.west, ...node.data.east]) {
         if (row.badge?.nets.some((net) => net.id === netId)) {
           add(node.id, row.name);
         }
       }
-    } else if (node.data.badge?.nets.some((net) => net.id === netId)) {
-      add(node.id, node.data.pin.name);
     }
   }
   return pins;

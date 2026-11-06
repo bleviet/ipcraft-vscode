@@ -1,16 +1,12 @@
 import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import {
-  HEADER_HEIGHT,
-  PIN_ROW_HEIGHT,
-  type InstanceNodeData,
-  type PinRow,
-} from './layout/elkLayout';
-import { instanceSubtitle, type PinHoverTarget } from './model';
+import { PIN_ROW_HEIGHT, type InstanceNodeData, type PinRow } from './layout/elkLayout';
+import type { PinHoverTarget } from './model';
 import { NetBadgeView } from './NetBadgeView';
+import { NodeHeader } from './NodeHeader';
 import { PinMarker } from './PinMarker';
 import { PinHalo, PinStub } from './PinDecor';
-import { unconnectedClass, type NodeReview } from './unconnectedPins';
+import { unconnectedClass } from './unconnectedPins';
 
 export type InstanceFlowNode = Node<InstanceNodeData, 'instance'>;
 
@@ -70,14 +66,8 @@ function PinRowView({ row, highlighted, review, focused, onHoverPin }: PinRowVie
   );
 }
 
-function unconnectedLabel(review: NodeReview): string {
-  return `${review.all} unconnected pins (${review.undriven} undriven, ${review.all - review.undriven} unused)`;
-}
-
 export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
-  const { instance } = data;
-  const subtitle = instanceSubtitle(instance, data.cellCount);
-  const { review } = data;
+  const { instance, review } = data;
   const pinRowView = (row: PinRow) => (
     <PinRowView
       key={row.name}
@@ -109,34 +99,13 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
           onAnimationEnd={() => data.onFlashEnd?.(data.flashToken as number)}
         />
       )}
-      <div className="sd-node-head" style={{ height: HEADER_HEIGHT }}>
-        <div className="sd-node-title">
-          <span className="sd-node-name">{instance.name}</span>
-          {review && review.all > 0 ? (
-            <span
-              className="sd-node-open sd-node-unc"
-              data-tone={review.undriven > 0 ? 'undriven' : 'unused'}
-              role="img"
-              title={unconnectedLabel(review)}
-              aria-label={unconnectedLabel(review)}
-            >
-              <span
-                className={`codicon ${review.undriven > 0 ? 'codicon-warning' : 'codicon-debug-disconnect'}`}
-              />
-              {review.all}
-              {instance.kind === 'hier' && <span className="codicon codicon-chevron-right" />}
-            </span>
-          ) : (
-            instance.kind === 'hier' && (
-              <span className="sd-node-open" aria-hidden="true">
-                OPEN
-                <span className="codicon codicon-chevron-right" />
-              </span>
-            )
-          )}
-        </div>
-        <div className="sd-node-subtitle">{subtitle}</div>
-      </div>
+      <NodeHeader
+        instance={instance}
+        cellCount={data.cellCount}
+        review={review}
+        expanded={false}
+        onToggleExpand={data.onToggleExpand}
+      />
       {[...data.west, ...data.east].map(
         (row) =>
           row.badge && (

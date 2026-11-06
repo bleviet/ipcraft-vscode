@@ -48,4 +48,22 @@ describe('highlightedPinsByNode', () => {
     expect([...(pins.get('/a') ?? [])]).toEqual(['aclk']);
     expect([...(pins.get('::p') ?? [])]).toEqual(['p']);
   });
+
+  it('includes the badge pins of an expanded block frame', () => {
+    const pins = highlightedPinsByNode(
+      'clk',
+      [edge('clk', '/a', 'out', '/frame', 'aclk')],
+      [
+        {
+          id: '/frame',
+          type: 'frame',
+          data: {
+            west: [{ name: 'aclk', y: 60 }],
+            east: [{ name: 'rst', y: 80, badge: { nets: [{ id: 'clk' }] } }],
+          },
+        } as never,
+      ]
+    );
+    expect([...(pins.get('/frame') ?? [])].sort()).toEqual(['aclk', 'rst']);
+  });
 });

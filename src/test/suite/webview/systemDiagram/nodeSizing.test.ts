@@ -1,6 +1,8 @@
 import type { SystemInstance, SystemPin } from '../../../../domain/systemGraph';
 import {
   boundaryLayout,
+  FRAME_MARGIN,
+  framePadding,
   instanceLayout,
   middleEllipsis,
 } from '../../../../webview/systemDiagram/layout/nodeSizing';
@@ -26,12 +28,42 @@ const layout = (west: string[], east: string[], name = 'u', subtitle = '') =>
   );
 
 describe('hierarchy block width', () => {
-  it('reserves room for the OPEN hint beside the name', () => {
+  it('reserves room for the expand toggle beside the name', () => {
     const name = chars(30);
     const sides = { west: [], east: [] };
     const ip = instanceLayout(instance(name), sides, '', fakeMeasure);
     const hier = instanceLayout({ ...instance(name), kind: 'hier' }, sides, '', fakeMeasure);
     expect(hier.width).toBeGreaterThan(ip.width);
+  });
+
+  it('reserves exactly the expand toggle width, with no OPEN hint', () => {
+    const name = chars(30);
+    const hier = instanceLayout(
+      { ...instance(name), kind: 'hier' },
+      { west: [], east: [] },
+      '',
+      fakeMeasure
+    );
+    // name + padding + border + toggle and gap (22)
+    expect(hier.width).toBe(30 * 7 + 16 + 2 + 22);
+  });
+});
+
+describe('framePadding', () => {
+  it('leaves room for the widest pin label of each side', () => {
+    const padding = framePadding(
+      { west: [pin(chars(10)), pin(chars(4))], east: [pin(chars(12))] },
+      fakeMeasure
+    );
+    // 18 px of chrome beside the text, as in an instance pin row
+    expect(padding).toEqual({ west: 18 + 70, east: 18 + 84 });
+  });
+
+  it('keeps a margin on a side without pins', () => {
+    expect(framePadding({ west: [], east: [] }, fakeMeasure)).toEqual({
+      west: FRAME_MARGIN,
+      east: FRAME_MARGIN,
+    });
   });
 });
 

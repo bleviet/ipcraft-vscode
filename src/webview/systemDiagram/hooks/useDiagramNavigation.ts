@@ -1,24 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
-import {
-  isLevelNode,
-  nodeSelection,
-  reconcileNavigation,
-  selectionLevel,
-  type RevealRequest,
-  type Selection,
-} from '../model';
+import { isShownNode, pruneExpanded, targetLevel } from '../expansion';
+import { nodeSelection, reconcileNavigation, type RevealRequest, type Selection } from '../model';
 
 /**
- * Current level and selection of the diagram, and the gestures that change
- * them. `selection` is the primary item (it drives Details); `selectedNodeIds`
- * are all selected nodes of the level (Cmd/Ctrl+Click adds to them).
+ * Current level, expanded hierarchy blocks and selection of the diagram, and
+ * the gestures that change them. `selection` is the primary item (it drives
+ * Details); `selectedNodeIds` are all selected nodes of the view (Cmd/Ctrl+Click
+ * adds to them). The expanded blocks are a set of instance paths that survives
+ * navigation: entering a block shows its own expanded children expanded.
  */
 export function useDiagramNavigation(graph: SystemGraph) {
   const [levelPath, setLevelPath] = useState('/');
   const [selection, setSelection] = useState<Selection | null>(null);
   const [nodeIds, setNodeIds] = useState<string[]>([]);
   const [revealRequest, setRevealRequest] = useState<RevealRequest | null>(null);
+  const [expandedState, setExpandedState] = useState<ReadonlySet<string>>(() => new Set());
+  const expanded = useMemo(() => pruneExpanded(graph, expandedState), [graph, expandedState]);
   const lastToken = useRef(0);
 
   const select = useCallback(
@@ -26,18 +24,18 @@ export function useDiagramNavigation(graph: SystemGraph) {
       setSelection(next);
       setNodeIds(next && next.kind !== 'net' ? [next.id] : []);
       setRevealRequest(null);
-      const target = level ?? (next ? selectionLevel(graph, next) : undefined);
+      const target = targetLevel(graph, levelPath, expanded, next, level);
       if (target !== undefined) {
         setLevelPath(target);
       }
     },
-    [graph]
+    [graph, levelPath, expanded]
   );
   /** Selection made outside the canvas: also centres the selected node. */
   const selectAndReveal = useCallback(
     (next: Selection | null, level?: string, readable?: true) => {
       select(next, level);
-      const target = level ?? (next ? selectionLevel(graph, next) : undefined);
+      const target = targetLevel(graph, levelPath, expanded, next, level);
       if (next && next.kind !== 'net' && target !== undefined) {
         lastToken.current += 1;
         setRevealRequest({
@@ -48,7 +46,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
         });
       }
     },
-    [graph, select]
+    [graph, levelPath, expanded, select]
   );
   /** Search step: select the instance, switch to its level, and centre it at a readable zoom. */
   const revealMatch = useCallback(
@@ -70,6 +68,22 @@ export function useDiagramNavigation(graph: SystemGraph) {
     },
     [graph, navigate]
   );
+  /** Expands or collapses a hierarchy block in place; the level, selection and viewport stay. */
+  const toggleExpanded = useCallback(
+    (instancePath: string) => {
+      if (graph.instances[instancePath]?.kind !== 'hier') {
+        return;
+      }
+      setExpandedState((current) => {
+        const next = new Set(current);
+        if (!next.delete(instancePath)) {
+          next.add(instancePath);
+        }
+        return next;
+      });
+    },
+    [graph]
+  );
   const selectInstance = useCallback(
     (instancePath: string) => selectAndReveal({ kind: 'instance', id: instancePath }),
     [selectAndReveal]
@@ -86,9 +100,9 @@ export function useDiagramNavigation(graph: SystemGraph) {
     if (!current || current.kind === 'net') {
       return [];
     }
-    const ids = nodeIds.filter((id) => isLevelNode(graph, level, id));
+    const ids = nodeIds.filter((id) => isShownNode(graph, level, expanded, id));
     return ids.includes(current.id) ? ids : [current.id];
-  }, [graph, shown, nodeIds]);
+  }, [graph, expanded, shown, nodeIds]);
   /** Cmd/Ctrl+Click: adds the node to the selection, or removes it when already selected. */
   const toggleNode = useCallback(
     (node: Selection) => {
@@ -117,6 +131,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
 
   return {
     levelPath: shown.levelPath,
+    expanded,
     selection: shown.selection,
     selectedNodeIds,
     revealRequest,
@@ -126,6 +141,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
     revealMatch,
     navigate,
     enterHierarchy,
+    toggleExpanded,
     selectInstance,
   };
 }

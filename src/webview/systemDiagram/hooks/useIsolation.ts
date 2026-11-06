@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
+import { levelNodeOf, targetLevel } from '../expansion';
 import { isolationSubset } from '../isolation';
-import { isLevelNode, selectionLevel, type Selection } from '../model';
+import { isLevelNode, type Selection } from '../model';
 
 /** The isolated view being shown; a new `token` marks a new isolation (it refits the view). */
 export interface IsolatedView {
@@ -20,6 +21,8 @@ interface IsolationState {
 
 interface IsolationNavigation {
   levelPath: string;
+  /** Hierarchy blocks drawn expanded; an instance inside one is shown with its outermost block. */
+  expanded: ReadonlySet<string>;
   selectAndReveal: (next: Selection | null, level?: string, readable?: true) => void;
   revealMatch: (instancePath: string) => void;
   selectInstance: (instancePath: string) => void;
@@ -36,7 +39,7 @@ export function useIsolation(
   nav: IsolationNavigation,
   showClockReset: boolean
 ) {
-  const { levelPath } = nav;
+  const { levelPath, expanded } = nav;
   const [state, setState] = useState<IsolationState | null>(null);
   const lastToken = useRef(0);
 
@@ -73,18 +76,24 @@ export function useIsolation(
     [levelPath]
   );
   const showAll = useCallback(() => setState(null), []);
+  /** Only nodes of the level on show can be isolated, not those inside an expanded frame. */
+  const canIsolate = useCallback(
+    (nodeIds: string[]) => nodeIds.every((id) => isLevelNode(graph, levelPath, id)),
+    [graph, levelPath]
+  );
 
   const endIfHidden = useCallback(
     (next: Selection | null, level?: string) => {
       if (!isolation || !next || next.kind === 'net') {
         return;
       }
-      const target = level ?? selectionLevel(graph, next);
-      if (target === levelPath && !isolation.nodeIds.has(next.id)) {
+      const shownHere = targetLevel(graph, levelPath, expanded, next, level) === levelPath;
+      const nodeId = next.kind === 'instance' ? levelNodeOf(levelPath, next.id) : next.id;
+      if (shownHere && !isolation.nodeIds.has(nodeId)) {
         setState(null);
       }
     },
-    [graph, isolation, levelPath]
+    [graph, isolation, levelPath, expanded]
   );
   const { selectAndReveal, revealMatch, selectInstance } = nav;
   const selectAndRevealShown = useCallback(
@@ -112,6 +121,7 @@ export function useIsolation(
   return {
     isolation,
     isolate,
+    canIsolate,
     showAll,
     selectAndReveal: selectAndRevealShown,
     revealMatch: revealMatchShown,

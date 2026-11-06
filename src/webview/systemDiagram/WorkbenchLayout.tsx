@@ -55,7 +55,13 @@ export function WorkbenchLayout({
     [reviewUnconnected, graph, nav.levelPath, findings]
   );
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
-  const { layout, error } = useElkLayout(graph, nav.levelPath, showClockReset, isolation);
+  const { layout, error } = useElkLayout(
+    graph,
+    nav.levelPath,
+    showClockReset,
+    isolation,
+    nav.expanded
+  );
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -151,6 +157,8 @@ export function WorkbenchLayout({
               onIsolate={view.isolate}
               onShowAll={view.showAll}
               onEnterHierarchy={nav.enterHierarchy}
+              onToggleExpand={nav.toggleExpanded}
+              isolatable={view.canIsolate}
               onFocusNode={focusNode}
               onFit={fit}
             />

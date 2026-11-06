@@ -5,12 +5,14 @@ import {
   Panel,
   ReactFlow,
   type EdgeTypes,
+  type Node,
   type NodeTypes,
 } from '@xyflow/react';
 import { BoundaryNode } from './BoundaryNode';
 import { DiagramContextMenu, type ContextMenuItem } from './DiagramContextMenu';
 import { DiagramLegend } from './DiagramLegend';
 import { ElkEdge } from './ElkEdge';
+import { FrameNode } from './FrameNode';
 import { InstanceNode } from './InstanceNode';
 import { isPaneDoubleClick } from './canvasTargets';
 import { PinHoverCard } from './PinHoverCard';
@@ -35,7 +37,7 @@ export interface ReviewContext {
   findings: readonly UnconnectedPin[];
 }
 
-const NODE_TYPES: NodeTypes = { instance: InstanceNode, boundary: BoundaryNode };
+const NODE_TYPES: NodeTypes = { instance: InstanceNode, boundary: BoundaryNode, frame: FrameNode };
 const EDGE_TYPES: EdgeTypes = { elk: ElkEdge };
 
 interface DiagramCanvasProps {
@@ -55,8 +57,20 @@ interface DiagramCanvasProps {
   onIsolate: (nodeIds: string[]) => void;
   onShowAll: () => void;
   onEnterHierarchy: (instancePath: string) => void;
+  /** Expands a hierarchy block in place, or collapses it. */
+  onToggleExpand: (instancePath: string) => void;
+  /** Whether the nodes can be isolated: all of them belong to the level on show. */
+  isolatable: (nodeIds: string[]) => boolean;
   onFocusNode: (nodeId: string) => void;
   onFit: () => void;
+}
+
+/** Whether a React Flow node is a hierarchy block, collapsed (an instance) or expanded (a frame). */
+function isHierarchy(node: Node): boolean {
+  return (
+    node.type === 'frame' ||
+    (node.type === 'instance' && (node.data as InstanceNodeData).instance.kind === 'hier')
+  );
 }
 
 export function DiagramCanvas({
@@ -75,6 +89,8 @@ export function DiagramCanvas({
   onIsolate,
   onShowAll,
   onEnterHierarchy,
+  onToggleExpand,
+  isolatable,
   onFocusNode,
   onFit,
 }: DiagramCanvasProps) {
@@ -110,9 +126,9 @@ export function DiagramCanvas({
     return (layout?.nodes ?? []).map((node) => {
       const dimmed =
         searching &&
-        (node.type === 'instance'
-          ? !matchesQuery(node.data.instance, query)
-          : !boundaryMatchesQuery(node.data.pin, query));
+        (node.type === 'boundary'
+          ? !boundaryMatchesQuery(node.data.pin, query)
+          : !matchesQuery(node.data.instance, query));
       return {
         ...node,
         selected: selectedIds.has(node.id),
@@ -126,6 +142,7 @@ export function DiagramCanvas({
           ...(highlighted?.has(node.id) && { highlightedPins: highlighted.get(node.id) }),
           onSelectNet,
           onHoverPin,
+          onToggleExpand,
           ...(flash?.id === node.id && { flashToken: flash.token, onFlashEnd }),
         },
       };
@@ -141,6 +158,7 @@ export function DiagramCanvas({
     focusedPin,
     onSelectNet,
     onHoverPin,
+    onToggleExpand,
   ]);
 
   const edges = useMemo(
@@ -178,6 +196,8 @@ export function DiagramCanvas({
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable
+        // A selected frame must not rise above the blocks and wires inside it.
+        elevateNodesOnSelect={false}
         selectionKeyCode={null}
         minZoom={0.05}
         zoomOnDoubleClick={false}
@@ -195,8 +215,18 @@ export function DiagramCanvas({
             onSelect(nodeSelection(node.id));
           }
           openMenu(event, [
+            ...(isHierarchy(node)
+              ? [
+                  {
+                    label: node.type === 'frame' ? 'Collapse' : 'Expand In-Place',
+                    onSelect: () => onToggleExpand(node.id),
+                  },
+                  { label: 'Open Subsystem', onSelect: () => onEnterHierarchy(node.id) },
+                ]
+              : []),
             {
               label: ids.length > 1 ? `Isolate ${ids.length} Selected` : 'Isolate Selection',
+              disabled: !isolatable(ids),
               onSelect: () => onIsolate(ids),
             },
             showAllItem,
@@ -209,10 +239,7 @@ export function DiagramCanvas({
           onSelect(null);
         }}
         onNodeDoubleClick={(_event, node) => {
-          if (
-            node.type === 'instance' &&
-            (node.data as InstanceNodeData).instance.kind === 'hier'
-          ) {
+          if (isHierarchy(node)) {
             onEnterHierarchy(node.id);
           } else {
             onFocusNode(node.id);

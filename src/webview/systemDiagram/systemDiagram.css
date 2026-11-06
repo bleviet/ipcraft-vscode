@@ -68,8 +68,9 @@ input:focus-visible {
 /* Theme border tokens are nearly invisible on light themes; derive the block
    and port outline from the foreground so they stand out in every theme. */
 .sd-node,
-.sd-port {
-  --sd-node-line: color-mix(in srgb, var(--vscode-foreground) 45%, transparent);
+.sd-port,
+.sd-frame {
+  --sd-node-line: color-mix(in srgb, var(--vscode-foreground) 75%, transparent);
 }
 
 .sd-node {
@@ -183,6 +184,68 @@ input:focus-visible {
   font-size: 10.5px;
   line-height: 14px;
   color: var(--vscode-descriptionForeground);
+}
+
+.sd-node-toggle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--vscode-foreground);
+  background: transparent;
+  border: 1px solid var(--sd-node-line);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.sd-node-toggle .codicon {
+  font-size: 12px;
+}
+
+.sd-node-toggle:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+/* Expanded hierarchy block: a frame around its inner level, below the blocks and wires inside it. */
+.sd-frame {
+  position: relative;
+  border: 2px solid var(--sd-node-line);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--vscode-editorWidget-background) 35%, transparent);
+  font-size: 11px;
+}
+
+.sd-frame > .sd-node-head {
+  border-radius: 4px 4px 0 0;
+}
+
+.sd-frame[data-selected='true'] {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 0.5px var(--vscode-focusBorder);
+}
+
+.sd-frame[data-dimmed='true'] {
+  opacity: 0.25;
+}
+
+/* The pin box starts 16 px above the pin height; its 14 px label ends 2 px above it. */
+.sd-frame-pin {
+  position: absolute;
+  display: flex;
+  max-width: 50%;
+  line-height: 14px;
+}
+
+.sd-frame-pin[data-side='west'] {
+  padding-left: 10px;
+}
+
+.sd-frame-pin[data-side='east'] {
+  padding-right: 10px;
+  justify-content: flex-end;
 }
 
 .sd-node[data-kind='hier']::after {
@@ -628,6 +691,7 @@ input:focus-visible {
 }
 
 [data-review='true'] .sd-node[data-has-unc='false']:not([data-dimmed='true']),
+[data-review='true'] .sd-frame[data-has-unc='false']:not([data-dimmed='true']),
 [data-review='true'] .sd-port[data-has-unc='false']:not([data-dimmed='true']) {
   opacity: 0.45;
 }
@@ -636,7 +700,8 @@ input:focus-visible {
   border-style: dashed;
 }
 
-[data-review='true'] .sd-node[data-has-undriven='true']:not([data-selected='true']) {
+[data-review='true'] .sd-node[data-has-undriven='true']:not([data-selected='true']),
+[data-review='true'] .sd-frame[data-has-undriven='true']:not([data-selected='true']) {
   border-color: var(--vscode-editorWarning-foreground);
 }
 
