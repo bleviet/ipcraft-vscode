@@ -34,6 +34,8 @@ function canvas(layout: Layout) {
         selection={null}
         selectedNodeIds={[]}
         isolated={false}
+        review={null}
+        focusedPin={null}
         query=""
         onSelect={jest.fn()}
         onToggleNode={jest.fn()}

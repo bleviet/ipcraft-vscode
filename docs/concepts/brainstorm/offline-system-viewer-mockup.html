@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- Static mockup for issue #239 (docs/concepts/brainstorm/offline-system-viewer.md). Self-contained: open directly in a browser. Sample data only. -->
+<!-- Static mockup for issue #239 (docs/concepts/brainstorm/offline-system-viewer.md), with the unconnected-pin review of issue #245. Self-contained: open directly in a browser. Sample data only. -->
 <title>Offline System Viewer</title>
 <style>
 /* Layout: a VS Code editor frame hosting the read-only webview: outline | diagram | details, address map and problems below. */
@@ -79,6 +79,10 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .icon-btn:hover { background: var(--hover); }
 .partial { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--warn); color: var(--warn); border-radius: 10px; padding: 1px 9px; font-size: 12px; cursor: pointer; background: none; white-space: nowrap; }
 .partial b { font-weight: 600; }
+.ubtn { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; cursor: pointer; white-space: nowrap; }
+.ubtn:hover { background: var(--hover); }
+.ubtn[aria-pressed="true"] { background: var(--sel); border-color: var(--accent); }
+.wn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); border-radius: 8px; padding: 0 6px; font-size: 11px; font-weight: 600; }
 :focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 
 .main { display: grid; grid-template-columns: 220px minmax(0, 1fr) 300px; min-height: 0; }
@@ -90,7 +94,10 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .tree li > .row { display: flex; align-items: center; gap: 6px; padding: 2px 8px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tree .row:hover { background: var(--hover); }
 .tree .row.sel { background: var(--sel); }
-.tree .row .cnt { margin-left: auto; color: var(--muted); font-size: 11px; }
+.tree .row .trail { margin-left: auto; display: inline-flex; gap: 6px; align-items: baseline; }
+.tree .row .cnt { color: var(--muted); font-size: 11px; }
+.tree .row .ucnt { color: var(--warn); font-size: 11px; font-weight: 600; }
+.tree .row .ucnt.m { color: var(--muted); }
 .tree .row.nomatch { opacity: .35; }
 .twisty { width: 10px; color: var(--muted); font-size: 9px; flex: none; text-align: center; }
 .ico { width: 12px; height: 12px; border-radius: 2px; flex: none; border: 1.5px solid var(--k-ext); }
@@ -107,7 +114,8 @@ code, .mono { font-family: var(--mono); font-size: 12px; }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .legend i { width: 16px; height: 3px; border-radius: 2px; display: inline-block; }
 .legend i.thin { height: 1.5px; }
-.hint { position: absolute; right: 10px; top: 10px; font-size: 11px; color: var(--muted); background: var(--side); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; }
+.hint { position: absolute; right: 10px; top: 10px; font-size: 11px; color: var(--muted); background: var(--side); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; max-width: min(440px, 60%); }
+.hint.rev { border-left: 3px solid var(--warn); color: var(--fg); }
 
 /* SVG diagram */
 svg text { font-family: var(--ui); fill: var(--fg); }
@@ -129,6 +137,19 @@ svg text { font-family: var(--ui); fill: var(--fg); }
 .pin .pm { stroke-width: 1.5; }
 .pin.u .pm { fill: var(--node) !important; }
 .pin.hl text { font-weight: 700; }
+/* Unconnected-pin review (issue #245): undriven sinks in warning color, unused sources muted, unchecked blocks dashed. */
+.pin.undriven text { fill: var(--warn); font-style: normal; font-weight: 600; }
+.stub { fill: none; stroke-width: 1.5; stroke-dasharray: 3 2; }
+.stub-end { fill: var(--node); stroke-width: 1.5; }
+.undriven .stub, .undriven .stub-end { stroke: var(--warn); }
+.unused .stub, .unused .stub-end { stroke: var(--muted); }
+.pin .ring { fill: color-mix(in srgb, var(--accent) 30%, transparent); stroke: var(--accent); stroke-width: 1.5; }
+.legend span[hidden] { display: none; }
+.review .wire { opacity: .18; }
+.review .net.sel .wire { opacity: 1; }
+.review .node:not(.has-unc) { opacity: .45; }
+.review .node.unchecked .nbody { stroke-dasharray: 4 3; }
+.review .node.has-undriven .nbody, .review .port.has-undriven .pshape { stroke: var(--warn); }
 .port .pshape { fill: var(--node-head); stroke: var(--node-line); }
 .port.sel .pshape { stroke: var(--accent); stroke-width: 2; }
 .port text { font-size: 11.5px; font-weight: 600; }
@@ -162,6 +183,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: 12px; }
 table.t th { text-align: left; font-weight: 600; color: var(--muted); padding: 3px 6px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-align: top; }
 .details table.t td:first-child { font-family: var(--mono); word-break: break-all; }
+.details table.t td .link { white-space: normal; word-break: break-all; text-align: left; }
 .note { color: var(--muted); font-size: 12px; border-left: 2px solid var(--warn); padding: 2px 0 2px 8px; margin: 8px 0; }
 .chip { display: inline-block; background: var(--chip); border-radius: 8px; padding: 0 6px; font-size: 11px; white-space: nowrap; }
 .chip.yml { background: color-mix(in srgb, var(--accent) 20%, var(--chip)); }
@@ -189,6 +211,13 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
 .prob .sev { width: 14px; flex: none; text-align: center; font-weight: 700; }
 .prob .sev.warning { color: var(--warn); } .prob .sev.info { color: var(--info); }
 .prob .txt { flex: 1; min-width: 0; }
+.sev.undriven { color: var(--warn); font-weight: 700; } .sev.unused { color: var(--muted); font-weight: 700; }
+.ubar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 0; position: sticky; top: 0; background: var(--bg); }
+.fchip { background: none; border: 1px solid var(--border); border-radius: 10px; padding: 0 8px; font-size: 12px; cursor: pointer; color: var(--muted); }
+.fchip[aria-pressed="true"] { color: var(--fg); background: var(--chip); }
+.cov { color: var(--muted); font-size: 12px; flex: 1; min-width: 240px; }
+tr.focus td, .details tr.focus td { background: var(--sel); }
+.utag { font-size: 11.5px; } .utag.undriven { color: var(--warn); font-weight: 600; } .utag.unused { color: var(--muted); }
 
 .status { display: flex; gap: 14px; align-items: center; padding: 0 10px; font-size: 11.5px; background: var(--accent); color: #fff; white-space: nowrap; overflow: hidden; }
 .toast { position: absolute; right: 14px; bottom: 34px; max-width: min(520px, calc(100% - 28px)); background: var(--side); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 4px; padding: 8px 12px; box-shadow: 0 6px 20px var(--shadow); z-index: 5; }
@@ -212,8 +241,9 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
 
 <header class="review">
   <h1>Offline System Viewer</h1>
-  <span class="sub">Mockup for issue #239. Sample design, static data.</span>
+  <span class="sub">Mockup for issues #239 and #245. Sample design, static data.</span>
   <div class="tries" aria-label="Things to try">
+    <span class="try">Turn on <b>Unconnected pins</b>, click a row</span>
     <span class="try">Double-click <b>dsp_pipeline</b></span>
     <span class="try">Click a wire or an address row</span>
     <span class="try">Show clocks and resets</span>
@@ -236,11 +266,11 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     <span class="spacer"></span>
     <input class="search" id="search" type="search" placeholder="Search instances, VLNVs, nets" aria-label="Search">
     <label class="tgl"><input type="checkbox" id="tglClk"> Clocks and resets</label>
-    <label class="tgl"><input type="checkbox" id="tglUnc" checked> Unconnected pins</label>
+    <button class="ubtn" id="tglUnc" type="button" aria-pressed="false" title="Highlight unconnected pins on the diagram and list them">Unconnected pins <span class="wn" id="uncCount"></span></button>
     <button class="icon-btn" id="zoomOut" type="button" aria-label="Zoom out">&minus;</button>
     <button class="icon-btn" id="zoomFit" type="button">Fit</button>
     <button class="icon-btn" id="zoomIn" type="button" aria-label="Zoom in">+</button>
-    <button class="partial" id="partialBadge" type="button" title="Show what the offline view could not resolve">Offline view <b>partial</b> &middot; 3 warnings</button>
+    <button class="partial" id="partialBadge" type="button" title="Open Problems">5 problems</button>
   </div>
   <div class="main">
     <aside class="outline" aria-label="Outline">
@@ -257,6 +287,9 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
         <span><i class="thin" style="background:var(--k-irq)"></i>Interrupt</span>
         <span><i class="thin" style="background:var(--k-clk)"></i>Clock</span>
         <span><i class="thin" style="background:var(--k-rst)"></i>Reset</span>
+        <span class="ulg" hidden><i class="thin" style="background:var(--warn)"></i>Undriven pin</span>
+        <span class="ulg" hidden><i class="thin" style="background:var(--muted)"></i>Unused pin</span>
+        <span class="ulg" hidden><i class="thin" style="background:none;border-top:1.5px dashed var(--muted);height:0"></i>Block not checked</span>
       </div>
     </section>
     <aside class="details" id="details" aria-label="Details"></aside>
@@ -264,6 +297,7 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
   <div class="panel">
     <div class="ptabs" role="tablist">
       <button type="button" role="tab" data-ptab="addr" aria-selected="true">Address map <span class="n">5</span></button>
+      <button type="button" role="tab" data-ptab="unc" aria-selected="false">Unconnected <span class="n" id="uncTabCount"></span></button>
       <button type="button" role="tab" data-ptab="prob" aria-selected="false">Problems <span class="n">5</span></button>
     </div>
     <div class="pbody" id="pbody"></div>
@@ -327,7 +361,7 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
         [P('CONFIG.C_GPIO_WIDTH', '4'), P('CONFIG.C_ALL_OUTPUTS', '1')]),
       { id: 'dsp', name: 'dsp_pipeline', kind: 'hier', col: 3, line: 296, procLine: 92, child: 'dsp_pipeline', vlnv: '',
         west: [pin('S_AXIS', 's-s'), pin('S_AXI_CTRL', 'mm-s'), pin('aclk', 'clk'), pin('aresetn', 'rst')],
-        east: [pin('M_AXIS', 's-m')], params: [], prov: 'hierarchy',
+        east: [pin('M_AXIS', 's-m'), pin('irq', 'irq', { p: 'declared', u: 1 })], params: [], prov: 'hierarchy',
         tcl: 'create_hier_cell_dsp_pipeline [current_bd_instance .] dsp_pipeline' },
       ipNode('memic', 'axi_mem_intercon', 'xilinx.com:ip:smartconnect:1.0', 3, 291,
         [pin('S00_AXI', 'mm-s'), pin('S01_AXI', 'mm-s'), pin('aclk', 'clk'), pin('aresetn', 'rst')],
@@ -374,7 +408,7 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
         [pin('S_AXIS', 's-s'), pin('s_axis_aclk', 'clk'), pin('s_axis_aresetn', 'rst')],
         [pin('M_AXIS', 's-m')], [P('CONFIG.FIFO_DEPTH', '1024')]),
       ipNode('ctrl', 'fir_ctrl_0', 'example.com:ipcraft:fir_ctrl:1.0', 1, 116,
-        [pin('S_AXI', 'mm-s', { p: 'ip.yml' }), pin('clk', 'clk', { p: 'ip.yml' }), pin('rst_n', 'rst', { p: 'ip.yml' })],
+        [pin('S_AXI', 'mm-s', { p: 'ip.yml' }), pin('clk', 'clk', { p: 'ip.yml' }), pin('rst_n', 'rst', { p: 'ip.yml' }), pin('reload_req', 'sig', { p: 'ip.yml', u: 1 })],
         [pin('M_AXIS_CONFIG', 's-m', { p: 'ip.yml' }), pin('irq', 'irq', { p: 'ip.yml', u: 1 }), pin('coeff_reload', 'sig', { p: 'ip.yml', u: 1 })],
         [P('NUM_TAPS', '32', 'ip.yml default'), P('COEFF_WIDTH', '16', 'ip.yml default'), P('CONFIG.C_S_AXI_DATA_WIDTH', '32')],
         { kind: 'ipcraft', prov: 'ip.yml', ipYml: 'ip/fir_ctrl/fir_ctrl.ip.yml', mmYml: 'ip/fir_ctrl/fir_ctrl.mm.yml' }),
@@ -382,7 +416,13 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
         [pin('S_AXIS_DATA', 's-s'), pin('S_AXIS_CONFIG', 's-s'), pin('aclk', 'clk'), pin('aresetn', 'rst')],
         [pin('M_AXIS_DATA', 's-m')],
         [P('CONFIG.Data_Width', '16'), P('CONFIG.Coefficient_Width', '16'), P('CONFIG.Coefficient_Reload', 'true'), P('CONFIG.CoefficientVector', '12,-34,87,210,...')]),
+      ipNode('ovf', 'ovf_monitor_0', '', 2, 120,
+        [pin('S_AXIS_MON', 's-s', { u: 1 }), pin('clk', 'clk'), pin('rst_n', 'rst')],
+        [pin('ovf_irq', 'irq', { u: 1 })], [],
+        { kind: 'module', prov: 'hdl', moduleRef: 'ovf_monitor', hdl: 'rtl/ovf_monitor.vhd',
+          tcl: 'set ovf_monitor_0 [ create_bd_cell -type module -reference ovf_monitor ovf_monitor_0 ]' }),
       hierOut('h_maxis', 'M_AXIS', 'xilinx.com:interface:axis_rtl:1.0', 3, 99, 's-s'),
+      Object.assign(hierOut('h_irq', 'irq', '', 3, 100, 'irq'), { tcl: 'create_bd_pin -dir O -type intr irq' }),
     ],
     nets: [
       ['d1', 'S_AXIS_1', 's', 'h_saxis.S_AXIS', ['fifo.S_AXIS'], 125],
@@ -390,8 +430,8 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
       ['d3', 'fir_compiler_0_M_AXIS_DATA', 's', 'fir.M_AXIS_DATA', ['h_maxis.M_AXIS'], 127],
       ['d4', 'S_AXI_CTRL_1', 'mm', 'h_ctrl.S_AXI_CTRL', ['ctrl.S_AXI'], 128],
       ['d5', 'fir_ctrl_0_M_AXIS_CONFIG', 's', 'ctrl.M_AXIS_CONFIG', ['fir.S_AXIS_CONFIG'], 129],
-      ['d6', 'aclk_1', 'clk', 'h_aclk.aclk', ['fifo.s_axis_aclk', 'ctrl.clk', 'fir.aclk'], 132],
-      ['d7', 'aresetn_1', 'rst', 'h_arst.aresetn', ['fifo.s_axis_aresetn', 'ctrl.rst_n', 'fir.aresetn'], 133],
+      ['d6', 'aclk_1', 'clk', 'h_aclk.aclk', ['fifo.s_axis_aclk', 'ctrl.clk', 'fir.aclk', 'ovf.clk'], 132],
+      ['d7', 'aresetn_1', 'rst', 'h_arst.aresetn', ['fifo.s_axis_aresetn', 'ctrl.rst_n', 'fir.aresetn', 'ovf.rst_n'], 133],
     ],
   };
 
@@ -408,6 +448,33 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     L.netOfPin = {};
     L.nets.forEach((net) => { [net.from, ...net.to].forEach((r) => { L.netOfPin[r] = net; }); });
   }
+
+  // ---------- unconnected pins (issue #245) ----------
+  // A pin can be checked only when the full pin list is known: an .ip.yml or HDL definition, or a declared
+  // hierarchy pin or external port. AMD IP read offline lists only the pins seen in connections.
+  // Class by role on the level: a sink without a net is "undriven" (the tool ties it to a default value),
+  // a source without a net is "unused" (often intentional).
+  const CHECKED = { ipcraft: 1, module: 1, hier: 1, port: 1, hport: 1 };
+  const PIN_KIND = { 'mm-s': 'AXI memory-mapped', 'mm-m': 'AXI memory-mapped', 's-s': 'AXI4-Stream', 's-m': 'AXI4-Stream',
+    irq: 'Interrupt', clk: 'Clock', rst: 'Reset', sig: 'Signal', ext: 'Interface' };
+  const UNC = [];
+  for (const L of Object.values(LEVELS)) {
+    L.nodes.filter((n) => CHECKED[n.kind]).forEach((n) => {
+      [['w', n.west], ['e', n.east]].forEach(([side, list]) => list.forEach((p) => {
+        const ref = n.id + '.' + p.n;
+        if (!L.netOfPin[ref]) UNC.push({ level: L.key, node: n, pin: p, ref, side, cls: side === 'w' ? 'undriven' : 'unused' });
+      }));
+    });
+  }
+  UNC.sort((a, b) => (a.cls === b.cls ? 0 : a.cls === 'undriven' ? -1 : 1));
+  const uncCount = (level, n) => {
+    const list = UNC.filter((f) => (f.level === level && f.node === n) || (n.child && f.level === n.child));
+    return { all: list.length, undriven: list.filter((f) => f.cls === 'undriven').length };
+  };
+  const uncDir = (f) => f.node.kind === 'hport' ? f.node.dir : INTF[kindOfPin(f.pin.t)] ? (f.side === 'w' ? 'slave' : 'master') : (f.side === 'w' ? 'in' : 'out');
+  const uncFrom = (f) => f.pin.p || ({ hier: 1, port: 1, hport: 1 }[f.node.kind] ? 'declared' : f.node.prov);
+  const uncBlock = (f) => f.node.kind === 'hport' ? `${f.level} (hierarchy pin)` : f.node.name;
+  const uncheckedCount = () => Object.values(LEVELS).reduce((s, L) => s + L.nodes.filter((n) => !CHECKED[n.kind]).length, 0);
 
   const ADDR = [
     { m: 'processing_system7_0', sp: 'Data', seg: 'axi_dma_0/S_AXI_LITE/Reg', base: 0x40400000, range: 0x10000, from: 'script', line: 402, sel: ['', 'dma'] },
@@ -427,14 +494,13 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     ['Default and propagated parameters', 'unavailable'], ['Unconnected pins', 'partial'], ['Layout', 'auto']];
 
   // ---------- state ----------
-  const state = { level: '', sel: null, showClk: false, showUnc: true, query: '', view: { x: 0, y: 0, k: 1 }, ptab: 'addr', expanded: { dsp: true } };
+  const state = { level: '', sel: null, showClk: false, unc: false, ufilter: { undriven: true, unused: true }, focusPin: null, query: '', view: { x: 0, y: 0, k: 1 }, ptab: 'addr', expanded: { dsp: true } };
   const $ = (id) => document.getElementById(id);
   const svg = $('svg'), vp = $('vp'), canvas = $('canvas');
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const hex = (v) => { const h = v.toString(16).toUpperCase().padStart(8, '0'); return '0x' + h.slice(0, 4) + '_' + h.slice(4); };
   const size = (v) => v >= 0x100000 ? (v / 0x100000) + 'M' : (v / 0x400) + 'K';
   const isPortNode = (n) => n.kind === 'port' || n.kind === 'hport';
-  const visPins = (list) => list.filter((p) => state.showUnc || !p.u);
   const netVisible = (net) => state.showClk || (net.kind !== 'clk' && net.kind !== 'rst');
 
   // ---------- layout (stand-in for ELK) ----------
@@ -442,7 +508,7 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     const cols = {};
     L.nodes.forEach((n) => {
       n.w = isPortNode(n) ? PW : NW;
-      n.h = isPortNode(n) ? PH : HEAD + Math.max(visPins(n.west).length, visPins(n.east).length) * ROW + 10;
+      n.h = isPortNode(n) ? PH : HEAD + Math.max(n.west.length, n.east.length) * ROW + 10;
       (cols[n.col] = cols[n.col] || []).push(n);
     });
     const heights = Object.values(cols).map((c) => c.reduce((s, n) => s + n.h, 0) + (c.length - 1) * GAPY);
@@ -459,8 +525,8 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
         n.east.forEach((p) => { L.pos[n.id + '.' + p.n] = { x: n.x + n.w, y: n.y + PH / 2 }; });
         return;
       }
-      visPins(n.west).forEach((p, i) => { L.pos[n.id + '.' + p.n] = { x: n.x, y: n.y + HEAD + i * ROW + ROW / 2 }; });
-      visPins(n.east).forEach((p, i) => { L.pos[n.id + '.' + p.n] = { x: n.x + n.w, y: n.y + HEAD + i * ROW + ROW / 2 }; });
+      n.west.forEach((p, i) => { L.pos[n.id + '.' + p.n] = { x: n.x, y: n.y + HEAD + i * ROW + ROW / 2 }; });
+      n.east.forEach((p, i) => { L.pos[n.id + '.' + p.n] = { x: n.x + n.w, y: n.y + HEAD + i * ROW + ROW / 2 }; });
     });
     L.minY = Math.min(...L.nodes.map((n) => n.y));
     L.maxY = Math.max(...L.nodes.map((n) => n.y + n.h));
@@ -519,16 +585,23 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     const selPins = new Set();
     if (selNet) { const n = L.nets.find((x) => x.id === selNet); [n.from, ...n.to].forEach((r) => selPins.add(r)); }
 
+    const review = state.unc;
+    vp.setAttribute('class', review ? 'review' : '');
+    const stubSvg = (x, y, dir) => `<path class="stub" d="M${x},${y} H${x + dir * 16}"/><circle class="stub-end" cx="${x + dir * 19}" cy="${y}" r="3"/>`;
     L.nodes.forEach((n) => {
-      const cls = ['node', n.kind, n.id === selNode ? 'sel' : '', q ? (matches(n) ? 'match' : 'dim') : ''].join(' ');
+      const u = uncCount(state.level, n);
+      const cls = ['node', n.kind, n.id === selNode ? 'sel' : '', q ? (matches(n) ? 'match' : 'dim') : '',
+        review && u.all ? 'has-unc' : '', review && u.undriven ? 'has-undriven' : '', review && !CHECKED[n.kind] ? 'unchecked' : ''].join(' ');
       if (isPortNode(n)) {
         const p = n.west[0] || n.east[0];
         const w = n.w, h = PH;
         const shape = `M0,0 H${w - 12} L${w},${h / 2} L${w - 12},${h} H0 Z`;
         const k = kindOfPin(p.t);
         const net = L.netOfPin[n.id + '.' + p.n];
-        html += `<g class="port ${cls}" data-node="${n.id}" transform="translate(${n.x},${n.y})"><title>${esc(n.name)}${net ? ' · net ' + esc(net.name) : ''}</title>` +
-          `<path class="pshape" d="${shape}"/><rect class="pm k-${k}" x="${n.east.length ? w - 4 : -4}" y="${h / 2 - 4}" width="8" height="8" rx="1"/>` +
+        const mx = n.east.length ? w : 0;
+        const stub = review && !net ? `<g class="${n.east.length ? 'unused' : 'undriven'}">${stubSvg(mx, h / 2, n.east.length ? 1 : -1)}</g>` : '';
+        html += `<g class="port ${cls}" data-node="${n.id}" transform="translate(${n.x},${n.y})"><title>${esc(n.name)}${net ? ' · net ' + esc(net.name) : ' · unconnected on this level'}</title>` +
+          `<path class="pshape" d="${shape}"/>${stub}<rect class="pm k-${k}" x="${mx - 4}" y="${h / 2 - 4}" width="8" height="8" rx="1"/>` +
           `<text x="12" y="${h / 2 + 4}">${esc(n.name)}</text></g>`;
         return;
       }
@@ -537,22 +610,26 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
       g += `<rect class="nhead" x="1" y="1" width="${n.w - 2}" height="${HEAD - 8}" rx="2"/>`;
       if (n.kind === 'hier') g += `<rect class="ninner" x="4" y="4" width="${n.w - 8}" height="${n.h - 8}" rx="2"/>`;
       g += `<text class="nname" x="10" y="16">${esc(n.name)}</text>`;
-      const sub = n.kind === 'hier' ? `Hierarchy · ${DSP.nodes.filter((x) => !isPortNode(x)).length} cells` : n.vlnv.split(':').slice(2).join(':');
+      const sub = n.kind === 'hier' ? `Hierarchy · ${DSP.nodes.filter((x) => !isPortNode(x)).length} cells` : n.kind === 'module' ? `module ${n.moduleRef}` : n.vlnv.split(':').slice(2).join(':');
       g += `<text class="nvlnv" x="10" y="29">${esc(sub)}</text>`;
-      if (n.kind === 'hier') g += `<text class="nbadge" x="${n.w - 10}" y="16" text-anchor="end">OPEN ▸</text>`;
-      if (n.kind === 'ipcraft') g += `<text class="nbadge" x="${n.w - 10}" y="16" text-anchor="end" style="fill:var(--accent)">IPCRAFT</text>`;
+      let badge = { hier: ['OPEN ▸', ''], ipcraft: ['IPCRAFT', 'var(--accent)'], module: ['RTL', ''] }[n.kind];
+      if (review && u.all) badge = [`${u.all} UNCONNECTED${n.kind === 'hier' ? ' ▸' : ''}`, u.undriven ? 'var(--warn)' : ''];
+      if (badge) g += `<text class="nbadge" x="${n.w - 10}" y="16" text-anchor="end"${badge[1] ? ` style="fill:${badge[1]}"` : ''}>${badge[0]}</text>`;
       const pinSvg = (p, i, side) => {
         const ref = n.id + '.' + p.n, y = HEAD + i * ROW + ROW / 2, k = kindOfPin(p.t);
         const net = L.netOfPin[ref];
         const intf = !!INTF[k];
         const x = side === 'w' ? 0 : n.w;
+        const ucls = side === 'w' ? 'undriven' : 'unused';
         const mark = intf ? `<rect class="pm k-${k}" x="${x - 4}" y="${y - 4}" width="8" height="8" rx="1"/>` : `<circle class="pm k-${k}" cx="${x}" cy="${y}" r="3"/>`;
+        const stub = review && !net ? stubSvg(x, y, side === 'w' ? -1 : 1) : '';
+        const ring = state.focusPin === state.level + '|' + ref ? `<circle class="ring" cx="${x}" cy="${y}" r="10"/>` : '';
         const tx = side === 'w' ? `<text x="10" y="${y + 4}">${esc(p.n)}</text>` : `<text x="${n.w - 10}" y="${y + 4}" text-anchor="end">${esc(p.n)}</text>`;
-        const tip = `${p.n}${net ? ' · net ' + net.name : ' · unconnected'} · pin from ${p.p || n.prov}`;
-        return `<g class="pin${p.u ? ' u' : ''}${selPins.has(ref) ? ' hl' : ''}"><title>${esc(tip)}</title>${mark}${tx}</g>`;
+        const tip = `${p.n}${net ? ' · net ' + net.name : ucls === 'undriven' ? ' · unconnected, no driver' : ' · unconnected, unused'} · pin from ${p.p || n.prov}`;
+        return `<g class="pin${net ? '' : ' u'}${review && !net ? ' ' + ucls : ''}${selPins.has(ref) ? ' hl' : ''}"><title>${esc(tip)}</title>${ring}${stub}${mark}${tx}</g>`;
       };
-      visPins(n.west).forEach((p, i) => { g += pinSvg(p, i, 'w'); });
-      visPins(n.east).forEach((p, i) => { g += pinSvg(p, i, 'e'); });
+      n.west.forEach((p, i) => { g += pinSvg(p, i, 'w'); });
+      n.east.forEach((p, i) => { g += pinSvg(p, i, 'e'); });
       html += g + '</g>';
     });
     html += rs.filter((r) => r.net.id === selNet).map(wire).join('');
@@ -590,11 +667,15 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     const row = (level, n, depth, extra) => {
       const sel = state.sel && state.sel.type === 'node' && state.sel.level === level && state.sel.id === n.id;
       const nm = q && !(n.name.toLowerCase().includes(q) || (n.vlnv || '').toLowerCase().includes(q));
+      const u = uncCount(level, n);
+      const trail = (state.unc && u.all ? `<span class="ucnt${u.undriven ? '' : ' m'}" title="${u.undriven} undriven, ${u.all - u.undriven} unused">${u.all}</span>` : '') +
+        (n.kind === 'hier' ? `<span class="cnt">${DSP.nodes.filter((x) => !isPortNode(x)).length}</span>` : '');
       return `<div class="row${sel ? ' sel' : ''}${nm ? ' nomatch' : ''}" style="padding-left:${8 + depth * 14}px" data-act="sel" data-level="${level}" data-node="${n.id}">` +
         `<span class="twisty">${extra || ''}</span><span class="ico ${n.kind}"></span><span>${esc(n.name)}</span>` +
-        (n.kind === 'hier' ? `<span class="cnt">${DSP.nodes.filter((x) => !isPortNode(x)).length}</span>` : '') + '</div>';
+        (trail ? `<span class="trail">${trail}</span>` : '') + '</div>';
     };
-    let h = `<li><div class="row${state.level === '' && !state.sel ? ' sel' : ''}" data-act="root"><span class="twisty">▾</span><span class="ico hier"></span><b>system</b><span class="cnt">${TOP.nodes.filter((n) => !isPortNode(n)).length}</span></div></li>`;
+    const rootUnc = state.unc ? `<span class="ucnt" title="Unconnected pins in the design">${UNC.length}</span>` : '';
+    let h = `<li><div class="row${state.level === '' && !state.sel ? ' sel' : ''}" data-act="root"><span class="twisty">▾</span><span class="ico hier"></span><b>system</b><span class="trail">${rootUnc}<span class="cnt">${TOP.nodes.filter((n) => !isPortNode(n)).length}</span></span></div></li>`;
     TOP.nodes.filter((n) => !isPortNode(n)).forEach((n) => {
       if (n.kind === 'hier') {
         const open = state.expanded[n.id];
@@ -612,6 +693,14 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     if (state.level) h += `<span class="sep">›</span><button type="button" class="cur" data-act="noop">${esc(state.level)}</button>`;
     $('crumbs').innerHTML = h;
     $('hint').textContent = state.level ? 'Inside hierarchy dsp_pipeline. Click "system" to go back.' : 'Double-click a hierarchy to open it';
+    $('hint').classList.toggle('rev', state.unc);
+    if (state.unc) {
+      const own = UNC.filter((f) => f.level === state.level), inner = state.level === '' ? UNC.length - own.length : 0;
+      const skipped = LEVELS[state.level].nodes.filter((n) => !CHECKED[n.kind]).length;
+      const nU = own.filter((f) => f.cls === 'undriven').length;
+      $('hint').textContent = `This level: ${nU} undriven, ${own.length - nU} unused` +
+        `${inner ? `; ${inner} more inside dsp_pipeline` : ''}. ${skipped} AMD IP blocks (dashed) list only connected pins and were not checked.`;
+    }
   }
 
   // ---------- details ----------
@@ -643,22 +732,27 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
       return;
     }
     const n = L.byId[s.id];
-    const kindLabel = { ip: 'AMD IP instance', ipcraft: 'IPCraft IP instance', hier: 'Hierarchy', port: 'External port', hport: 'Hierarchy pin' }[n.kind];
+    const kindLabel = { ip: 'AMD IP instance', ipcraft: 'IPCraft IP instance', module: 'Module reference', hier: 'Hierarchy', port: 'External port', hport: 'Hierarchy pin' }[n.kind];
     let h = `<div class="eyebrow">${kindLabel}</div><h2>${esc(n.name)}</h2>`;
     if (n.vlnv && n.kind !== 'hport') h += `<code class="vlnv">${esc(n.vlnv)}</code>`;
+    if (n.kind === 'module') h += `<code class="vlnv">-reference ${esc(n.moduleRef)}</code>`;
     h += `<p>Created at ${srcLink(n.line)}${n.procLine ? `, contents in proc <span class="mono">create_hier_cell_dsp_pipeline</span> at ${srcLink(n.procLine)}` : ''}</p>`;
     if (n.kind === 'hier') h += `<div class="btns"><button type="button" class="btn" data-act="enter" data-node="${n.id}">Open hierarchy</button></div>`;
     if (n.kind === 'ipcraft') h += `<div class="btns"><button type="button" class="btn" data-act="open" data-file="${n.ipYml}">Open fir_ctrl.ip.yml</button><button type="button" class="btn sec2" data-act="open" data-file="${n.mmYml}">Open memory map</button></div>`;
+    if (n.kind === 'module') h += `<div class="btns"><button type="button" class="btn sec2" data-act="open" data-file="${n.hdl}">Open ${esc(n.hdl.split('/').pop())}</button></div>`;
+    if (n.kind === 'hport' && uncCount(s.level, n).all) h += `<p class="note">${n.dir === 'out' ? `No net drives this hierarchy output inside ${esc(s.level)}.` : `Nothing inside ${esc(s.level)} uses this hierarchy input.`}</p>`;
     if (!isPortNode(n) && n.kind !== 'hier') {
       h += `<h3>Parameters</h3>`;
       h += n.params.length ? `<table class="t"><thead><tr><th>Name</th><th>Value</th><th>From</th></tr></thead><tbody>${n.params.map((p) => `<tr><td>${esc(p.k)}</td><td class="mono">${esc(p.v)}</td><td>${provChip(p.o)}</td></tr>`).join('')}</tbody></table>` : '<p style="color:var(--muted)">No parameters set in the script.</p>';
       h += n.kind === 'ipcraft' ? '<p class="note">Defaults come from fir_ctrl.ip.yml. Values Vivado propagates at validation are not available offline.</p>' : '<p class="note">Only values set in the script are shown. Defaults and propagated values are not available offline.</p>';
     }
     if (!isPortNode(n)) {
-      const rows = [...visPins(n.west), ...visPins(n.east)].map((p) => { const net = L.netOfPin[n.id + '.' + p.n];
-        return `<tr><td>${esc(p.n)}</td><td>${net ? `<button type="button" class="link" data-act="net" data-level="${s.level}" data-net="${net.id}">${esc(net.name)}</button>` : '<span style="color:var(--muted)">unconnected</span>'}</td><td>${provChip(p.p || n.prov)}</td></tr>`; }).join('');
+      const rows = [...n.west.map((p) => [p, 'w']), ...n.east.map((p) => [p, 'e'])].map(([p, side]) => { const ref = n.id + '.' + p.n, net = L.netOfPin[ref];
+        const free = side === 'w' ? '<span class="utag undriven" title="Unconnected: no net drives this pin">undriven</span>' : '<span class="utag unused" title="Unconnected: nothing uses this pin">unused</span>';
+        return `<tr${state.focusPin === s.level + '|' + ref ? ' class="focus"' : ''}><td>${esc(p.n)}</td><td>${net ? `<button type="button" class="link" data-act="net" data-level="${s.level}" data-net="${net.id}">${esc(net.name)}</button>` : free}</td><td>${provChip(p.p || n.prov)}</td></tr>`; }).join('');
       h += `<h3>Pins</h3><table class="t"><thead><tr><th>Pin</th><th>Net</th><th>From</th></tr></thead><tbody>${rows}</tbody></table>`;
-      if (n.kind === 'ip') h += '<p class="note">Pins come from the connections in the script. Set the Vivado install directory to also show unconnected pins.</p>';
+      if (n.kind === 'ip') h += '<p class="note">Pins come from the connections in the script, so unconnected pins cannot be checked. Set the Vivado install directory to read the IP definition.</p>';
+      if (n.west.some((p) => !L.netOfPin[n.id + '.' + p.n])) h += '<p class="note">Vivado ties an input without a driver to its default value, often 0. An active-low reset tied to 0 holds the block in reset; an undriven slave interface never receives data.</p>';
     }
     el.innerHTML = h;
   }
@@ -670,6 +764,18 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     if (state.ptab === 'addr') {
       el.innerHTML = `<table class="t"><thead><tr><th>Master</th><th>Address space</th><th>Slave segment</th><th>Base</th><th>Range</th><th>High</th><th>From</th><th>Source</th></tr></thead><tbody>` +
         ADDR.map((a, i) => `<tr class="click" data-act="addr" data-i="${i}"><td>${esc(a.m)}</td><td>${esc(a.sp)}</td><td class="mono">${esc(a.seg)}</td><td class="num">${hex(a.base)}</td><td class="num">${size(a.range)}</td><td class="num">${hex(a.base + a.range - 1)}</td><td>${esc(a.from)}</td><td>${srcLink(a.line)}</td></tr>`).join('') + '</tbody></table>';
+    } else if (state.ptab === 'unc') {
+      const nU = UNC.filter((f) => f.cls === 'undriven').length;
+      const chip = (k, label, n) => `<button type="button" class="fchip" data-act="ufilter" data-k="${k}" aria-pressed="${state.ufilter[k]}"><span class="sev ${k}">${k === 'undriven' ? '!' : '–'}</span> ${label} ${n}</button>`;
+      const rows = UNC.filter((f) => state.ufilter[f.cls]).map((f) => {
+        const focus = state.focusPin === f.level + '|' + f.ref;
+        return `<tr class="click${focus ? ' focus' : ''}" data-act="unc" data-i="${UNC.indexOf(f)}"><td><span class="sev ${f.cls}" title="${f.cls}">${f.cls === 'undriven' ? '!' : '–'}</span></td>` +
+          `<td class="mono">${esc(f.pin.n)}</td><td>${esc(uncBlock(f))}</td><td>${esc(f.level || 'system')}</td><td>${uncDir(f)}</td><td>${PIN_KIND[f.pin.t]}</td>` +
+          `<td>${provChip(uncFrom(f))}</td><td>${srcLink(f.node.line)}</td></tr>`;
+      }).join('');
+      el.innerHTML = `<div class="ubar">${chip('undriven', 'Undriven', nU)}${chip('unused', 'Unused', UNC.length - nU)}` +
+        `<span class="cov">Checked: blocks with an .ip.yml or HDL definition, hierarchy pins, and external ports. <b>Not checked: ${uncheckedCount()} AMD IP blocks</b>, whose pins come from connections only. <button type="button" class="link" data-act="ptab" data-to="prob">See Problems</button></span></div>` +
+        `<table class="t"><thead><tr><th></th><th>Pin</th><th>Block</th><th>Level</th><th>Direction</th><th>Type</th><th>Known from</th><th>Source</th></tr></thead><tbody>${rows}</tbody></table>`;
     } else {
       el.innerHTML = PROBLEMS.map((p, i) => `<div class="prob"><span class="sev ${p.sev}">${p.sev === 'warning' ? '!' : 'i'}</span><span class="txt">${esc(p.text)}</span>` +
         (p.loc ? `<button type="button" class="link" data-act="prob" data-i="${i}">${esc(p.loc)}</button>` : '') + '</div>').join('');
@@ -677,6 +783,9 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
   }
 
   function renderAll() { renderCrumbs(); renderTree(); renderDiagram(); renderDetails(); renderPanel();
+    $('tglUnc').setAttribute('aria-pressed', String(state.unc));
+    $('uncCount').textContent = UNC.length; $('uncTabCount').textContent = UNC.length;
+    document.querySelectorAll('.ulg').forEach((x) => { x.hidden = !state.unc; });
     $('stCount').textContent = `${state.level || 'system'}: ${LEVELS[state.level].nodes.filter((n) => !isPortNode(n)).length} instances, ${LEVELS[state.level].nets.length} nets`; }
 
   // ---------- actions ----------
@@ -694,9 +803,9 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     if (line === 431) return 'validate_bd_design';
     return '';
   }
-  function select(level, sel) {
+  function select(level, sel, focusPin) {
     const changed = level !== state.level;
-    state.level = level; state.sel = sel;
+    state.level = level; state.sel = sel; state.focusPin = focusPin || null;
     renderAll();
     if (changed) fit();
     if (sel && sel.type === 'node') revealNode(sel.id);
@@ -729,6 +838,9 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
     else if (a === 'src') { const line = +t.dataset.line; const code = tclAt(line); toast(`Opens <b>system.tcl</b> at line ${line} in the text editor.${code ? `<code>${esc(code)}</code>` : ''}`); }
     else if (a === 'open') toast(`Opens <b>${esc(t.dataset.file)}</b> in the IPCraft editor.`);
     else if (a === 'addr') { const r = ADDR[+t.dataset.i]; select(r.sel[0], { type: 'node', level: r.sel[0], id: r.sel[1] }); }
+    else if (a === 'unc') { const f = UNC[+t.dataset.i]; select(f.level, { type: 'node', level: f.level, id: f.node.id }, f.level + '|' + f.ref); }
+    else if (a === 'ufilter') { state.ufilter[t.dataset.k] = !state.ufilter[t.dataset.k]; renderPanel(); }
+    else if (a === 'ptab') { state.ptab = t.dataset.to; renderPanel(); }
     else if (a === 'prob') { const p = PROBLEMS[+t.dataset.i];
       if (p.sel) select(p.sel[0], { type: 'node', level: p.sel[0], id: p.sel[1] });
       else if (p.act === 'settings') toast('Opens Settings at <b>ipcraft.vivado.installDir</b>. IPCraft then reads IP definitions from the installation. It starts no tool and uses no license.');
@@ -737,7 +849,7 @@ table.t td { padding: 3px 6px; border-bottom: 1px solid var(--border); vertical-
 
   $('partialBadge').addEventListener('click', () => { state.ptab = 'prob'; renderPanel(); });
   $('tglClk').addEventListener('change', (e) => { state.showClk = e.target.checked; renderDiagram(); });
-  $('tglUnc').addEventListener('change', (e) => { state.showUnc = e.target.checked; renderDiagram(); renderDetails(); });
+  $('tglUnc').addEventListener('click', () => { state.unc = !state.unc; if (state.unc) state.ptab = 'unc'; renderAll(); });
   $('search').addEventListener('input', (e) => { state.query = e.target.value; renderDiagram(); renderTree(); });
   $('search').addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;

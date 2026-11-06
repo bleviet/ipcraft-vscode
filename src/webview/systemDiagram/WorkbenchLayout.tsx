@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { BottomPanel, type BottomTab } from './BottomPanel';
 import { DetailsPanel } from './DetailsPanel';
@@ -12,10 +12,11 @@ import { useMouseBackButton } from './hooks/useMouseBackButton';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
-import { levelOf } from './model';
+import { levelOf, nodeSelection } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
+import { unconnectedPins, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
 
 interface WorkbenchLayoutProps {
   graph: SystemGraph;
@@ -46,6 +47,14 @@ export function WorkbenchLayout({
   const { isolation } = view;
   const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
   const [tab, setTab] = useState<BottomTab>('address');
+  const [reviewUnconnected, setReviewUnconnected] = useState(false);
+  const [focusedPin, setFocusedPin] = useState<FocusedPin | null>(null);
+  const findings = useMemo(() => unconnectedPins(graph), [graph]);
+  const reviewContext = useMemo(
+    () => (reviewUnconnected ? { graph, levelPath: nav.levelPath, findings } : null),
+    [reviewUnconnected, graph, nav.levelPath, findings]
+  );
+  const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
   const { layout, error } = useElkLayout(graph, nav.levelPath, showClockReset, isolation);
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -59,6 +68,17 @@ export function WorkbenchLayout({
     outline: !panels.outline.collapsed,
     details: !panels.details.collapsed,
     bottom: !panels.bottom.collapsed,
+  };
+
+  const openBottomTab = (next: BottomTab) => {
+    setTab(next);
+    if (panels.bottom.collapsed) {
+      panels.bottom.toggle();
+    }
+  };
+  const selectFinding = (finding: UnconnectedPin) => {
+    view.selectAndReveal(nodeSelection(finding.nodeId), finding.level);
+    setFocusedPin({ nodeId: finding.nodeId, pin: finding.pin.name });
   };
 
   const { fit, focusNode } = useDiagramViewport(
@@ -76,18 +96,21 @@ export function WorkbenchLayout({
         query={query}
         searchCounter={search.counter}
         showClockReset={showClockReset}
+        reviewUnconnected={reviewUnconnected}
+        unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
         onShowAll={view.showAll}
         onNavigate={nav.navigate}
         onQueryChange={setQuery}
         onSearchStep={search.step}
         onShowClockResetChange={setShowClockReset}
-        onOpenProblems={() => {
-          setTab('problems');
-          if (panels.bottom.collapsed) {
-            panels.bottom.toggle();
+        onReviewUnconnectedChange={(on) => {
+          setReviewUnconnected(on);
+          if (on) {
+            openBottomTab('unconnected');
           }
         }}
+        onOpenProblems={() => openBottomTab('problems')}
         onFit={fit}
         panelsVisible={panelsVisible}
         onTogglePanel={(panel) => panels[panel].toggle()}
@@ -104,6 +127,7 @@ export function WorkbenchLayout({
                   graph={graph}
                   levelPath={nav.levelPath}
                   selection={nav.selection}
+                  review={reviewUnconnected ? findings : null}
                   onSelect={view.selectAndReveal}
                 />
               </div>
@@ -117,6 +141,8 @@ export function WorkbenchLayout({
               selection={nav.selection}
               selectedNodeIds={nav.selectedNodeIds}
               isolated={isolation !== null}
+              review={reviewContext}
+              focusedPin={focusedPin}
               query={query}
               flash={search.flash}
               onFlashEnd={search.clearFlash}
@@ -140,6 +166,7 @@ export function WorkbenchLayout({
                   graph={graph}
                   selection={nav.selection}
                   selectedNodeIds={nav.selectedNodeIds}
+                  focusedPin={focusedPin}
                   onSelect={view.selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
                   onReveal={revealSource}
@@ -157,7 +184,11 @@ export function WorkbenchLayout({
                 graph={graph}
                 tab={tab}
                 onTabChange={setTab}
+                findings={findings}
+                selection={nav.selection}
+                focusedPin={focusedPin}
                 onSelectInstance={view.selectInstance}
+                onSelectPin={selectFinding}
                 onReveal={revealSource}
               />
             </div>

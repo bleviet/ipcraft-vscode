@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
+  Panel,
   ReactFlow,
   type EdgeTypes,
   type NodeTypes,
@@ -15,10 +16,24 @@ import { isPaneDoubleClick } from './canvasTargets';
 import { PinHoverCard } from './PinHoverCard';
 import { usePinHover } from './hooks/usePinHover';
 import type { DiagramLayout } from './hooks/useElkLayout';
+import type { SystemGraph } from '../../domain/systemGraph';
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
 import { highlightedPinsByNode } from './pinHighlight';
 import { boundaryMatchesQuery, matchesQuery, nodeSelection, type Selection } from './model';
+import {
+  levelReviewSummary,
+  nodeReview,
+  type FocusedPin,
+  type UnconnectedPin,
+} from './unconnectedPins';
+
+/** Everything the canvas needs to draw the unconnected-pin review; null while the review is off. */
+export interface ReviewContext {
+  graph: SystemGraph;
+  levelPath: string;
+  findings: readonly UnconnectedPin[];
+}
 
 const NODE_TYPES: NodeTypes = { instance: InstanceNode, boundary: BoundaryNode };
 const EDGE_TYPES: EdgeTypes = { elk: ElkEdge };
@@ -30,6 +45,8 @@ interface DiagramCanvasProps {
   /** Every selected node (the primary selection included). */
   selectedNodeIds: readonly string[];
   isolated: boolean;
+  review: ReviewContext | null;
+  focusedPin: FocusedPin | null;
   query: string;
   flash?: SearchFlash | null;
   onFlashEnd?: (token: number) => void;
@@ -48,6 +65,8 @@ export function DiagramCanvas({
   selection,
   selectedNodeIds,
   isolated,
+  review,
+  focusedPin,
   query,
   flash,
   onFlashEnd,
@@ -100,6 +119,10 @@ export function DiagramCanvas({
         data: {
           ...node.data,
           dimmed,
+          ...(review && { review: nodeReview(review.findings, node.id, review.graph) }),
+          ...(focusedPin?.nodeId === node.id &&
+            selection?.kind !== 'net' &&
+            selection?.id === node.id && { focusedPin: focusedPin.pin }),
           ...(highlighted?.has(node.id) && { highlightedPins: highlighted.get(node.id) }),
           onSelectNet,
           onHoverPin,
@@ -107,7 +130,18 @@ export function DiagramCanvas({
         },
       };
     });
-  }, [layout, query, flash, onFlashEnd, selection, selectedIds, onSelectNet, onHoverPin]);
+  }, [
+    layout,
+    query,
+    flash,
+    onFlashEnd,
+    selection,
+    selectedIds,
+    review,
+    focusedPin,
+    onSelectNet,
+    onHoverPin,
+  ]);
 
   const edges = useMemo(
     () =>
@@ -124,6 +158,7 @@ export function DiagramCanvas({
     <div
       ref={containerRef}
       className="relative h-full w-full"
+      data-review={review !== null}
       onDoubleClick={(event) => {
         if (event.target instanceof Element && isPaneDoubleClick(event.target)) {
           onFit();
@@ -187,7 +222,16 @@ export function DiagramCanvas({
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} />
-        <DiagramLegend edges={layout?.edges ?? []} nodes={layout?.nodes ?? []} />
+        <DiagramLegend
+          edges={layout?.edges ?? []}
+          nodes={layout?.nodes ?? []}
+          review={review !== null}
+        />
+        {review && (
+          <Panel position="top-right" className="sd-review-banner" aria-label="Unconnected pins">
+            {levelReviewSummary(review.findings, review.graph, review.levelPath)}
+          </Panel>
+        )}
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}
       {menu && (

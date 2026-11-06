@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { SystemDiagramToWebviewMessage } from '../../../../shared/messages/systemDiagram';
 import { SystemDiagramApp } from '../../../../webview/systemDiagram/SystemDiagramApp';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
@@ -8,7 +8,7 @@ import { diagramBounds, nodeBounds } from '../../../../webview/systemDiagram/lay
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { createTextMeasurer } from '../../../../webview/systemDiagram/layout/textMeasure';
 import { searchMatches } from '../../../../webview/systemDiagram/search';
-import { loadFixtureGraph } from './fixtureGraph';
+import { loadFixtureGraph, loadReviewFixtureGraph } from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
 let mockElkFailures = 0;
@@ -156,9 +156,12 @@ function openPanels(): void {
 }
 
 /** Renders the app with a graph; `panelsOpen: false` keeps the initial hidden panels. */
-async function renderWithGraph({ panelsOpen = true } = {}) {
+async function renderWithGraph({
+  panelsOpen = true,
+  design = graph,
+}: { panelsOpen?: boolean; design?: typeof graph } = {}) {
   render(<SystemDiagramApp />);
-  send({ type: 'graph', graph });
+  send({ type: 'graph', graph: design });
   await waitFor(() => expect(screen.getByTestId('flow')).toBeInTheDocument());
   await screen.findByTestId('node:/axi_dma_0');
   if (panelsOpen) {
@@ -188,7 +191,7 @@ describe('SystemDiagramApp', () => {
 
     expect(await outline().findByRole('button', { name: 'axi_dma_0 axi_dma:7.1' })).toBeVisible();
     expect(outline().getByRole('button', { name: /^dsp_pipeline/ })).toBeVisible();
-    expect(screen.getByRole('button', { name: /Offline view, partial/ })).toBeVisible();
+    expect(screen.getByRole('button', { name: /^\d+ problems?$/ })).toBeVisible();
     await screen.findByTestId('node:/axi_dma_0');
     expect(screen.getByTestId('flow')).toHaveAttribute('data-read-only', 'true');
   });
@@ -335,9 +338,20 @@ describe('SystemDiagramApp', () => {
 
   it('lists problems from the badge', async () => {
     await renderWithGraph({ panelsOpen: false });
-    fireEvent.click(screen.getByRole('button', { name: /Offline view, partial/ }));
+    fireEvent.click(screen.getByRole('button', { name: /^\d+ problems?$/ }));
     expect(screen.getByRole('tab', { name: /Problems/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText(/Skipped Vivado-only commands/)).toBeVisible();
+  });
+
+  it('counts the problems on the badge and hides it when there are none', async () => {
+    await renderWithGraph({ panelsOpen: false });
+    expect(graph.diagnostics.length).toBeGreaterThan(1);
+    expect(
+      screen.getByRole('button', { name: `${graph.diagnostics.length} problems` })
+    ).toBeVisible();
+    cleanup();
+    await renderWithGraph({ panelsOpen: false, design: { ...graph, diagnostics: [] } });
+    expect(screen.queryByRole('button', { name: /^\d+ problems?$/ })).not.toBeInTheDocument();
   });
 
   it('labels pins of hidden clock nets with a badge that selects the net', async () => {
@@ -1191,6 +1205,174 @@ describe('SystemDiagramApp', () => {
     });
   });
 
+  describe('unconnected pins review', () => {
+    const bank = '/dsp_pipeline/coeff_bank';
+    const reviewGraph = loadReviewFixtureGraph();
+    const bottom = () => within(screen.getByRole('region', { name: 'Bottom panel' }));
+    const rowOf = (pin: string, block: string) =>
+      bottom()
+        .getAllByText(pin)
+        .map((cell) => cell.closest('tr'))
+        .find((row) => row !== null && within(row).queryByText(block) !== null)!;
+    async function review() {
+      await renderWithGraph({ design: reviewGraph });
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+    }
+
+    it('turns on from the toolbar, opens the Unconnected tab, and lists the pins', async () => {
+      await review();
+      expect(screen.getByRole('button', { name: /^Unconnected pins/ })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
+      expect(screen.getByRole('tab', { name: /^Unconnected 6$/ })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(rowOf('spare_in', 'axi_gpio_0')).toBeDefined();
+      expect(rowOf('ext_out', 'external port')).toBeDefined();
+      expect(rowOf('cfg_open', 'coeff_bank (hierarchy pin)')).toBeDefined();
+      expect(bottom().getByText(/Not checked: 11 blocks/)).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(screen.getByRole('button', { name: /^Unconnected pins/ })).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+    });
+
+    it('hides rows of a class when its filter chip is turned off', async () => {
+      await review();
+      fireEvent.click(bottom().getByRole('button', { name: /^Unused/ }));
+      expect(bottom().queryByText('spare_out')).not.toBeInTheDocument();
+      expect(bottom().getByText('spare_in')).toBeVisible();
+      fireEvent.click(bottom().getByRole('button', { name: /^Undriven/ }));
+      expect(bottom().queryByText('spare_in')).not.toBeInTheDocument();
+    });
+
+    it('selects the block of a clicked row', async () => {
+      await review();
+      fireEvent.click(rowOf('spare_in', 'axi_gpio_0'));
+      expect(details().getByRole('heading', { name: 'axi_gpio_0' })).toBeVisible();
+      expect(rowOf('spare_in', 'axi_gpio_0')).toHaveClass('sd-row-selected');
+    });
+
+    it('switches level for a pin of a nested hierarchy', async () => {
+      await review();
+      fireEvent.click(rowOf('cfg_open', 'coeff_bank (hierarchy pin)'));
+      await screen.findByTestId(`node:${bank}::cfg_open`);
+      expect(details().getByRole('heading', { name: 'cfg_open' })).toBeVisible();
+      expect(details().getByText('Nothing on this level uses this port.')).toBeVisible();
+      const crumbs = within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+      expect(crumbs.getByText('coeff_bank')).toHaveAttribute('aria-current', 'page');
+    });
+
+    const nodeBox = (id: string, selector: string) =>
+      screen.getByTestId(`node:${id}`).parentElement!.querySelector(selector) as HTMLElement;
+    const stubs = (id: string, cls: string) =>
+      screen
+        .getByTestId(`node:${id}`)
+        .parentElement!.querySelectorAll(`.sd-pin-stub[data-class="${cls}"]`);
+
+    it('shows a compact count badge only while the review is on', async () => {
+      await renderWithGraph({ design: reviewGraph });
+      const label = '3 unconnected pins (1 undriven, 2 unused)';
+      expect(screen.queryByRole('img', { name: label })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      const badge = within(nodeBox('/axi_gpio_0', '.sd-node')).getByRole('img', { name: label });
+      expect(badge).toHaveAttribute('title', label);
+      expect(badge).toHaveTextContent('3');
+      expect(badge.querySelector('.codicon-warning')).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(screen.queryByRole('img', { name: label })).not.toBeInTheDocument();
+    });
+
+    it('marks nodes and unconnected rows with the review attributes and stubs', async () => {
+      await renderWithGraph({ design: reviewGraph });
+      expect(
+        screen.getByTestId('node:/axi_gpio_0').parentElement!.querySelector('.sd-pin-stub')
+      ).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      const gpio = nodeBox('/axi_gpio_0', '.sd-node');
+      expect(gpio).toHaveAttribute('data-has-unc', 'true');
+      expect(gpio).toHaveAttribute('data-has-undriven', 'true');
+      expect(gpio).toHaveAttribute('data-unchecked', 'false');
+      expect(stubs('/axi_gpio_0', 'undriven')).toHaveLength(1);
+      expect(stubs('/axi_gpio_0', 'unused')).toHaveLength(2);
+      const dma = nodeBox('/axi_dma_0', '.sd-node');
+      expect(dma).toHaveAttribute('data-has-unc', 'false');
+      expect(dma).toHaveAttribute('data-unchecked', 'true');
+      const port = nodeBox('/::ext_out', '.sd-port');
+      expect(port).toHaveAttribute('data-has-undriven', 'true');
+      expect(stubs('/::ext_out', 'undriven')).toHaveLength(1);
+    });
+
+    it('counts findings on outline rows while the review is on', async () => {
+      await renderWithGraph({ design: reviewGraph });
+      expect(outline().queryByTitle('1 undriven, 2 unused')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(
+        within(outline().getByRole('button', { name: /^axi_gpio_0/ })).getByTitle(
+          '1 undriven, 2 unused'
+        )
+      ).toHaveTextContent('3');
+      expect(
+        within(outline().getByRole('button', { name: /^dsp_pipeline/ })).getByTitle(
+          '1 undriven, 1 unused'
+        )
+      ).toHaveTextContent('2');
+      expect(
+        within(outline().getByRole('button', { name: /^ext_out/ })).getByTitle(
+          '1 undriven, 0 unused'
+        )
+      ).toHaveTextContent('1');
+      expect(
+        within(outline().getByRole('button', { name: /^zynq_dma_system/ })).getByTitle(
+          '3 undriven, 3 unused'
+        )
+      ).toHaveTextContent('6');
+    });
+
+    it('haloes the focused pin only while its node is the primary selection', async () => {
+      await review();
+      const halos = (id: string) =>
+        screen.getByTestId(`node:${id}`).parentElement!.querySelectorAll('.sd-pin-halo');
+      expect(halos('/axi_gpio_0')).toHaveLength(0);
+      fireEvent.click(rowOf('spare_in', 'axi_gpio_0'));
+      expect(halos('/axi_gpio_0')).toHaveLength(1);
+      fireEvent.click(screen.getByTestId('node:/axi_dma_0'));
+      expect(halos('/axi_gpio_0')).toHaveLength(0);
+    });
+
+    it('expands a collapsed bottom panel when turned on and leaves the tab when turned off', async () => {
+      await renderWithGraph({ design: reviewGraph, panelsOpen: false });
+      expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(screen.getByRole('tab', { name: /^Unconnected/ })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      fireEvent.click(screen.getByRole('tab', { name: /^Problems/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(screen.getByRole('tab', { name: /^Problems/ })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+    });
+
+    it('tags unconnected pins in the instance details without the review on', async () => {
+      await renderWithGraph({ design: reviewGraph });
+      fireEvent.click(outline().getByRole('button', { name: /^axi_gpio_0/ }));
+      expect(details().getByText('undriven')).toHaveAttribute(
+        'title',
+        'Unconnected: no net drives this pin'
+      );
+      expect(details().getAllByText('unused')).toHaveLength(2);
+      expect(details().getByText(/ties an input without a driver/)).toBeVisible();
+      fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+      expect(details().getByText(/unconnected pins cannot be checked/)).toBeVisible();
+    });
+  });
+
   describe('panel toggles', () => {
     const panels = [
       ['Toggle Outline', 'Resize Outline', 'ArrowRight', '276'],
@@ -1249,7 +1431,7 @@ describe('SystemDiagramApp', () => {
       await renderWithGraph();
       fireEvent.click(screen.getByRole('button', { name: 'Toggle Bottom Panel' }));
       expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: /Offline view, partial/ }));
+      fireEvent.click(screen.getByRole('button', { name: /^\d+ problems?$/ }));
       expect(screen.getByRole('tab', { name: /Problems/ })).toHaveAttribute(
         'aria-selected',
         'true'

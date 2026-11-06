@@ -90,7 +90,15 @@ describe('AddressMapTable ranges', () => {
 describe('outline and tab text', () => {
   it('lets the type detail take only leftover room so the name shrinks last', () => {
     const graph = loadFixtureGraph();
-    render(<OutlineTree graph={graph} levelPath="/" selection={null} onSelect={jest.fn()} />);
+    render(
+      <OutlineTree
+        graph={graph}
+        levelPath="/"
+        selection={null}
+        review={null}
+        onSelect={jest.fn()}
+      />
+    );
     const row = screen.getByRole('button', { name: /^axi_dma_0/ });
     const [name, detail] = Array.from(row.querySelectorAll('span')).filter(
       (span) => !span.hasAttribute('aria-hidden')
@@ -107,7 +115,11 @@ describe('outline and tab text', () => {
         graph={graph}
         tab="address"
         onTabChange={jest.fn()}
+        findings={[]}
+        selection={null}
+        focusedPin={null}
         onSelectInstance={jest.fn()}
+        onSelectPin={jest.fn()}
         onReveal={jest.fn()}
       />
     );

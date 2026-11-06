@@ -2,6 +2,8 @@ import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { NetBadgeView } from './NetBadgeView';
 import { PinMarker } from './PinMarker';
+import { PinHalo, PinStub } from './PinDecor';
+import { unconnectedClass } from './unconnectedPins';
 import { BOUNDARY_HEIGHT, type BoundaryNodeData } from './layout/elkLayout';
 import { portShapePath } from './layout/portShape';
 
@@ -12,11 +14,17 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
   const { pin } = data;
   const east = data.side === 'east';
   const position = east ? Position.Right : Position.Left;
+  const { review } = data;
+  const unconnected = review !== undefined && data.netNames.length === 0;
   return (
     <div
       className="sd-port"
       data-selected={selected}
       data-dimmed={data.dimmed === true}
+      {...(review && {
+        'data-has-unc': review.all > 0,
+        'data-has-undriven': review.undriven > 0,
+      })}
       style={{ width: data.width, height: BOUNDARY_HEIGHT }}
       aria-label={data.label === pin.name ? undefined : pin.name}
       onPointerEnter={(event) =>
@@ -30,6 +38,8 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
       <svg className="sd-port-shape" aria-hidden="true" width={data.width} height={BOUNDARY_HEIGHT}>
         <path d={portShapePath(data.width, BOUNDARY_HEIGHT, pin.direction === 'inout')} />
       </svg>
+      {data.focusedPin === pin.name && <PinHalo side={data.side} inset={0} />}
+      {unconnected && <PinStub cls={unconnectedClass(pin, true)} side={data.side} inset={0} />}
       <PinMarker
         isInterface={pin.isInterface}
         category={data.category}

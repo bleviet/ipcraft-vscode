@@ -1,4 +1,4 @@
-import { legendEntries } from '../../../../webview/systemDiagram/legend';
+import { legendEntries, REVIEW_LEGEND } from '../../../../webview/systemDiagram/legend';
 
 describe('legendEntries', () => {
   it('lists only the present categories in legend order, once each', () => {
@@ -48,5 +48,16 @@ describe('legendEntries', () => {
       ['Clock', false],
       ['Reset', false],
     ]);
+  });
+});
+
+describe('REVIEW_LEGEND', () => {
+  it('names the undriven, unused, and unchecked marks', () => {
+    expect(REVIEW_LEGEND.map((entry) => entry.label)).toEqual([
+      'Undriven pin',
+      'Unused pin',
+      'Block not checked',
+    ]);
+    expect(REVIEW_LEGEND[2].dashed).toBe(true);
   });
 });

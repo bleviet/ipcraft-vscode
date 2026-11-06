@@ -32,3 +32,17 @@ export function legendEntries(
   const present = new Set([...edges, ...hiddenNets].map((net) => net.category));
   return LEGEND_ORDER.filter((entry) => present.has(entry.category));
 }
+
+export interface ReviewLegendEntry {
+  key: 'undriven' | 'unused' | 'unchecked';
+  label: string;
+  color?: string;
+  dashed?: true;
+}
+
+/** Entries appended to the legend while the unconnected-pin review is on. */
+export const REVIEW_LEGEND: readonly ReviewLegendEntry[] = [
+  { key: 'undriven', label: 'Undriven pin', color: 'var(--vscode-editorWarning-foreground)' },
+  { key: 'unused', label: 'Unused pin', color: 'var(--vscode-descriptionForeground)' },
+  { key: 'unchecked', label: 'Block not checked', dashed: true },
+];

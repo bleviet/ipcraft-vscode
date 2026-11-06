@@ -41,6 +41,8 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
     selection: null,
     selectedNodeIds: [],
     isolated: false,
+    review: null,
+    focusedPin: null,
     query: '',
     onSelect: jest.fn(),
     onToggleNode: jest.fn(),
@@ -78,6 +80,8 @@ it('fits on a double-click of the real pane but not of a real node', async () =>
       selection={null}
       selectedNodeIds={[]}
       isolated={false}
+      review={null}
+      focusedPin={null}
       query=""
       onSelect={jest.fn()}
       onToggleNode={jest.fn()}
