@@ -1512,9 +1512,8 @@ describe('SystemDiagramApp', () => {
       await screen.findByTestId('node:/dsp_pipeline/coeff_bank/tie_valid');
       const row = rowOf('tie_valid/dout');
       const cells = within(row).getAllByRole('cell');
-      expect(cells[1]).toHaveTextContent('tied to a constant');
-      expect(cells[2]).toHaveTextContent('xlconstant, tied to a constant');
-      expect(cells[3]).toHaveTextContent('1');
+      expect(cells).toHaveLength(3);
+      expect(cells[1]).toHaveTextContent('1');
       fireEvent.click(row);
       expect(details().getByText(/^Reset net · tied to a constant/)).toBeVisible();
       expect(
@@ -1582,11 +1581,14 @@ describe('SystemDiagramApp', () => {
       );
       expect(bottom().getByRole('heading', { name: 'Reset sources' })).toBeVisible();
       expect(bottom().queryByText('FCLK_CLK0')).not.toBeInTheDocument();
-      const asynchronous = rowOf('processing_system7_0/FCLK_RESET0_N');
-      expect(within(asynchronous).getAllByRole('cell')[1]).toHaveTextContent('asynchronous');
+      const resetTable = rowOf('processing_system7_0/FCLK_RESET0_N').closest('table')!;
+      expect(
+        within(resetTable)
+          .getAllByRole('columnheader')
+          .map((header) => header.textContent)
+      ).toEqual(['Reset source', 'Sinks', 'Source']);
       const released = rowOf('rst_ps7_0_100M/peripheral_aresetn');
-      expect(within(released).getAllByRole('cell')[1]).toHaveTextContent('FCLK_CLK0 · 100 MHz');
-      expect(within(released).getAllByRole('cell')[3]).toHaveTextContent('6');
+      expect(within(released).getAllByRole('cell')[1]).toHaveTextContent('6');
     });
 
     it('opens the clock tree of a clicked domain row', async () => {
@@ -2185,9 +2187,7 @@ describe('SystemDiagramApp', () => {
       await domains(loadVersalGraphWithUnknownIp('versal_cips'));
       openResets();
       const row = rowOf('ps_cips_pl0_resetn');
-      expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('unknown');
-      expect(within(row).getAllByRole('cell')[2]).toHaveTextContent('source not known');
-      expect(within(row).getAllByRole('cell')[3]).toHaveTextContent('4');
+      expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('4');
       fireEvent.click(row);
       expect(details().getByText(/^Reset net · release clock unknown/)).toBeVisible();
       expect(

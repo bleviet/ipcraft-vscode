@@ -5,7 +5,6 @@ import type { ResetSource } from './clocks/clockTypes';
 import { resetCrossingsHeadline, sourceFocus } from './clocks/crossingRows';
 import type { ClocksInView } from './clocks/viewScope';
 import { CrossingsTable } from './CrossingsTable';
-import { DomainLabel } from './DomainLabel';
 import { LineLink } from './LineLink';
 import type { Selection } from './model';
 import { levelSource } from './sourceFile';
@@ -21,16 +20,6 @@ interface ResetsTableProps {
   /** Opens a net and reveals the given pin: a reset row its source, a crossing row its sink. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
   onReveal: (line: number, uri?: string) => void;
-}
-
-function ReleasedOn({ reset }: { reset: ResetSource }) {
-  if (reset.async) {
-    return <>asynchronous</>;
-  }
-  if (reset.constant) {
-    return <>tied to a constant</>;
-  }
-  return reset.domain ? <DomainLabel domain={reset.domain} /> : <>unknown</>;
 }
 
 /** Bottom-panel tab: the reset sources, and the reset crossings of the view on screen. */
@@ -55,14 +44,6 @@ export function ResetsTable({
       }
     >
       <td className="sd-num">{reset.label}</td>
-      <td>
-        <ReleasedOn reset={reset} />
-      </td>
-      <td>
-        <span className="sd-chip-tag">
-          {reset.source ? (reset.from ?? 'no rule') : 'source not known'}
-        </span>
-      </td>
       <td className="sd-num">{reset.sinks.length}</td>
       <td onClick={(event) => event.stopPropagation()}>
         <LineLink source={levelSource(graph, reset.level)} line={reset.line} onReveal={onReveal} />
@@ -80,8 +61,6 @@ export function ResetsTable({
           <thead>
             <tr>
               <th>Reset source</th>
-              <th>Released on</th>
-              <th>Known from</th>
               <th>Sinks</th>
               <th>Source</th>
             </tr>

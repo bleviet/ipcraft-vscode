@@ -275,9 +275,9 @@ table of crossings.
 **Resets**
 
 - **Reset sources:** each reset source with its source or a sink on a level in
-  view, the domain that releases it (or `asynchronous`), what says so, and the
-  number of sinks. Click a row to select the reset net, centre the block of its
-  source pin (zooming in when it is too small to read), and mark that pin.
+  view, and the number of sinks. Click a row to select the reset net, centre the
+  block of its source pin (zooming in when it is too small to read), and mark
+  that pin. Details shows which clock releases the reset, when that is known.
 - **Reset domain crossings:** one line says how many resets in view are released
   on another clock domain or asynchronously ("2 reset crossings without a
   synchronizer.", or "No reset domain crossings on this level."), scoped as
