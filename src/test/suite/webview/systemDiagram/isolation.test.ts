@@ -1,6 +1,7 @@
 import { isolationSubset } from '../../../../webview/systemDiagram/isolation';
 import { levelEdges } from '../../../../webview/systemDiagram/layout/levelEdges';
 import { boundaryId } from '../../../../webview/systemDiagram/model';
+import { chainGraph } from './chainGraph';
 import { loadFixtureGraph } from './fixtureGraph';
 
 const graph = loadFixtureGraph();
@@ -86,5 +87,78 @@ describe('isolationSubset', () => {
         )
       ).toBe(false);
     });
+  });
+});
+
+describe('isolationSubset with two hops', () => {
+  const chain = chainGraph(
+    ['S', 'A', 'B', 'C', 'D', 'X', 'Y'],
+    [
+      ['S', 'A', 'axis'],
+      ['A', 'B', 'axis'],
+      ['A', 'C', 'axis'],
+      ['B', 'C', 'axis'],
+      ['B', 'D', 'axis'],
+      ['A', 'X', 'clock'],
+      ['X', 'Y', 'axis'],
+      ['S', 'Y', 'reset'],
+      ['S', 'B', 'clock'],
+    ]
+  );
+
+  it('shows the blocks within two data edges of the selection', () => {
+    const { nodeIds } = isolationSubset(chain, '/', ['/S'], 2);
+    expect(sorted(nodeIds)).toEqual(['/A', '/B', '/C', '/S']);
+  });
+
+  it('keeps the one-hop result by default', () => {
+    expect(sorted(isolationSubset(chain, '/', ['/S']).nodeIds)).toEqual(['/A', '/S']);
+    expect(sorted(isolationSubset(chain, '/', ['/S'], 1).nodeIds)).toEqual(['/A', '/S']);
+  });
+
+  it('hides the edge between two blocks of the second ring', () => {
+    const { edgeIds } = isolationSubset(chain, '/', ['/S'], 2);
+    const between = (a: string, b: string) =>
+      levelEdges(chain, '/')
+        .filter((edge) => edge.sourceNode === a && edge.targetNode === b)
+        .map((edge) => edge.id);
+    expect(between('/B', '/C').some((id) => edgeIds.has(id))).toBe(false);
+    expect(between('/A', '/B').every((id) => edgeIds.has(id))).toBe(true);
+    expect(between('/A', '/C').every((id) => edgeIds.has(id))).toBe(true);
+  });
+
+  it('never pulls a block in over a clock or reset edge, but draws the wire between kept blocks', () => {
+    const { nodeIds, edgeIds } = isolationSubset(chain, '/', ['/A'], 2);
+    // X hangs on A by a clock only, and Y on S by a reset only.
+    expect(nodeIds.has('/X')).toBe(false);
+    expect(nodeIds.has('/Y')).toBe(false);
+    expect(sorted(nodeIds)).toEqual(['/A', '/B', '/C', '/D', '/S']);
+    const reset = levelEdges(chain, '/').find((edge) => edge.category === 'reset');
+    expect(reset && edgeIds.has(reset.id)).toBe(false);
+    const withS = isolationSubset(chain, '/', ['/S', '/A'], 2);
+    expect(withS.nodeIds.has('/Y')).toBe(false);
+  });
+
+  it('keeps a clock wire between a selected block and a kept one at two hops', () => {
+    const clock = levelEdges(chain, '/').find(
+      (edge) => edge.category === 'clock' && edge.sourceNode === '/S' && edge.targetNode === '/B'
+    )!;
+    const { nodeIds, edgeIds } = isolationSubset(chain, '/', ['/S'], 2);
+    // B is kept for its data wires; the clock wire to it is drawn, and Y still stays out.
+    expect(nodeIds.has('/B')).toBe(true);
+    expect(edgeIds.has(clock.id)).toBe(true);
+    expect(nodeIds.has('/Y')).toBe(false);
+    // A clock wire alone brings B in at no hop count.
+    const alone = chainGraph(['S', 'B'], [['S', 'B', 'clock']]);
+    expect(isolationSubset(alone, '/', ['/S'], 2).nodeIds.has('/B')).toBe(false);
+  });
+
+  it('is a superset of one hop on the fixture', () => {
+    const one = isolationSubset(graph, '/', ['/axi_gpio_0']);
+    const two = isolationSubset(graph, '/', ['/axi_gpio_0'], 2);
+    expect([...one.nodeIds].every((id) => two.nodeIds.has(id))).toBe(true);
+    expect([...one.edgeIds].every((id) => two.edgeIds.has(id))).toBe(true);
+    expect(two.nodeIds.has('/processing_system7_0')).toBe(true);
+    expect(two.nodeIds.has('/axi_dma_0')).toBe(true);
   });
 });

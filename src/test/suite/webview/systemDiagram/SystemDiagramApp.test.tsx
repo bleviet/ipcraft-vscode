@@ -1226,7 +1226,7 @@ describe('SystemDiagramApp', () => {
 
     it('isolates the selection with its connections and the chip, then shows all', async () => {
       await isolateTwo();
-      expect(chip()).toHaveTextContent('Isolated · 2 selected · 7 shown');
+      expect(chip()).toHaveTextContent('Isolated · 2 selected · 7 of 15 shown');
       fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
       await waitFor(() => expect(nodeIds().length).toBeGreaterThan(ISOLATED.length));
       expect(chip()).toBeNull();
@@ -1322,6 +1322,199 @@ describe('SystemDiagramApp', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
       await waitFor(() => expect(mockSetViewport).toHaveBeenCalledWith(before));
       expect(mockFitBounds).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('hops and path tracing', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const node = (id: string) => screen.getByTestId(`node:${id}`);
+    const nodeIds = () =>
+      screen
+        .queryAllByTestId(/^node:/)
+        .map((element) => element.getAttribute('data-testid')!.slice(5))
+        .sort();
+    const PS = '/processing_system7_0';
+    const GPIO = '/axi_gpio_0';
+    const PATH = [PS, '/ps7_0_axi_periph', GPIO];
+    const pathChip = () => screen.queryByText(/^Path · /);
+    const fromSelect = () => screen.getByRole('combobox', { name: 'From' });
+    const toSelect = () => screen.getByRole('combobox', { name: 'To' });
+    const openBar = () => fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
+    const choose = (from: string, to: string) => {
+      fireEvent.change(fromSelect(), { target: { value: from } });
+      fireEvent.change(toSelect(), { target: { value: to } });
+    };
+    async function tracePath(from = PS, to = GPIO, expected = PATH) {
+      await renderWithGraph();
+      await settle();
+      openBar();
+      choose(from, to);
+      await waitFor(() => expect(nodeIds()).toEqual([...expected].sort()));
+    }
+
+    it('switches an isolation between 1-Hop and 2-Hop', async () => {
+      await renderWithGraph();
+      await settle();
+      fireEvent.click(node(GPIO));
+      fireEvent.contextMenu(node(GPIO));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+      await waitFor(() => expect(nodeIds()).toEqual(['/::leds_4bits', GPIO, '/ps7_0_axi_periph']));
+      expect(screen.getByRole('button', { name: '1-Hop' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText(/^Isolated · /)).toHaveTextContent('3 of 15 shown');
+
+      fireEvent.click(screen.getByRole('button', { name: '2-Hop' }));
+      await waitFor(() => expect(nodeIds()).toHaveLength(5));
+      expect(nodeIds()).toEqual(
+        ['/::leds_4bits', GPIO, '/ps7_0_axi_periph', PS, '/axi_dma_0'].sort()
+      );
+      expect(screen.getByRole('button', { name: '2-Hop' })).toHaveAttribute('aria-pressed', 'true');
+
+      fireEvent.click(screen.getByRole('button', { name: '1-Hop' }));
+      await waitFor(() => expect(nodeIds()).toHaveLength(3));
+    });
+
+    it('has no hop switch on a traced path, shows the chip, badges and Path tab', async () => {
+      await tracePath();
+      expect(pathChip()).toHaveTextContent('Path · processing_system7_0 -> axi_gpio_0 · 3 blocks');
+      expect(screen.queryByRole('button', { name: '2-Hop' })).toBeNull();
+      expect(screen.getAllByLabelText(/^Hop \d$/).map((badge) => badge.textContent)).toEqual([
+        '#1',
+        '#2',
+        '#3',
+      ]);
+      const tab = screen.getByRole('tab', { name: /^Path/ });
+      expect(tab).toHaveAttribute('aria-selected', 'true');
+      expect(screen.getAllByText('2 hops · follows signal direction')).toHaveLength(2);
+      const rows = within(screen.getByRole('table')).getAllByRole('row');
+      expect(rows.map((row) => row.textContent)).toEqual([
+        '#FromToConnections',
+        '1processing_system7_0ps7_0_axi_periph1 AXI',
+        '2ps7_0_axi_periphaxi_gpio_01 AXI',
+      ]);
+    });
+
+    it('selects the nets of a hop from its row, and keeps Details on the selection', async () => {
+      await tracePath();
+      fireEvent.click(screen.getByRole('row', { name: /^1 processing_system7_0/ }));
+      const selected = screen
+        .getAllByTestId(/^edge:/)
+        .filter((edge) => edge.getAttribute('data-selected') === 'true');
+      expect(selected).toHaveLength(1);
+      expect(selected[0].getAttribute('data-net-id')).toBe('/::processing_system7_0_M_AXI_GP0');
+      expect(details().queryByText('Path')).toBeNull();
+    });
+
+    it('swaps the ends, running the trace the other way', async () => {
+      await tracePath();
+      fireEvent.click(screen.getByRole('button', { name: 'Swap From and To' }));
+      expect(fromSelect()).toHaveValue(GPIO);
+      expect(toSelect()).toHaveValue(PS);
+      await waitFor(() =>
+        expect(pathChip()).toHaveTextContent('axi_gpio_0 -> processing_system7_0')
+      );
+      expect(nodeIds()).toEqual([...PATH].sort());
+      expect(screen.getAllByText('2 hops · ignores direction')).toHaveLength(2);
+    });
+
+    it('reports no path and leaves the view as it was', async () => {
+      await renderWithGraph();
+      await settle();
+      const before = nodeIds();
+      openBar();
+      choose('/pulse_gen_0', GPIO);
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'No path from pulse_gen_0 to axi_gpio_0'
+      );
+      await settle();
+      expect(nodeIds()).toEqual(before);
+      expect(pathChip()).toBeNull();
+      expect(screen.queryByRole('tab', { name: /^Path/ })).toBeNull();
+    });
+
+    it('closes the bar and ends the trace', async () => {
+      await tracePath();
+      fireEvent.click(screen.getByRole('button', { name: 'Close trace' }));
+      await waitFor(() => expect(nodeIds().length).toBeGreaterThan(PATH.length));
+      expect(screen.queryByRole('combobox', { name: 'From' })).toBeNull();
+      expect(pathChip()).toBeNull();
+      expect(screen.queryByRole('tab', { name: /^Path/ })).toBeNull();
+      expect(screen.getByRole('button', { name: 'Trace path' })).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+    });
+
+    it('ends a trace with Show All', async () => {
+      await tracePath();
+      fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+      await waitFor(() => expect(nodeIds().length).toBeGreaterThan(PATH.length));
+      expect(screen.queryByRole('combobox', { name: 'From' })).toBeNull();
+    });
+
+    it('sets the ends from the node menu', async () => {
+      await renderWithGraph();
+      await settle();
+      fireEvent.contextMenu(node(PS));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Trace From Here' }));
+      expect(fromSelect()).toHaveValue(PS);
+      expect(toSelect()).toHaveValue('');
+      fireEvent.contextMenu(node(GPIO));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Trace To Here' }));
+      expect(toSelect()).toHaveValue(GPIO);
+      await waitFor(() => expect(nodeIds()).toEqual([...PATH].sort()));
+    });
+
+    it('closes the bar when leaving the level and does not bring it back on return', async () => {
+      await tracePath('/axi_dma_0', '/dsp_pipeline', ['/axi_dma_0', '/dsp_pipeline']);
+      fireEvent.doubleClick(node('/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/axis_data_fifo_0');
+      expect(screen.queryByRole('combobox', { name: 'From' })).toBeNull();
+      fireEvent.click(
+        within(screen.getByRole('navigation', { name: 'Hierarchy' })).getByRole('button', {
+          name: 'zynq_dma_system',
+        })
+      );
+      await screen.findByTestId('node:/axi_dma_0');
+      expect(screen.queryByRole('combobox', { name: 'From' })).toBeNull();
+      expect(screen.queryByRole('status')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Trace path' })).toHaveAttribute(
+        'aria-pressed',
+        'false'
+      );
+      expect(pathChip()).toBeNull();
+    });
+
+    it('disables Trace From Here and Trace To Here for a block inside an expanded frame', async () => {
+      await renderWithGraph();
+      await settle();
+      fireEvent.click(screen.getByRole('button', { name: 'Expand dsp_pipeline in place' }));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      fireEvent.contextMenu(node('/dsp_pipeline/fir_compiler_0'));
+      for (const name of ['Trace From Here', 'Trace To Here']) {
+        expect(screen.getByRole('menuitem', { name })).toHaveAttribute('aria-disabled', 'true');
+      }
+    });
+
+    it('refits when the hop count or the trace ends change', async () => {
+      await renderWithGraph();
+      await settle();
+      fireEvent.click(node(GPIO));
+      fireEvent.contextMenu(node(GPIO));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+      await waitFor(() => expect(nodeIds()).toHaveLength(3));
+      await settle();
+      mockFitBounds.mockClear();
+      fireEvent.click(screen.getByRole('button', { name: '2-Hop' }));
+      await waitFor(() => expect(mockFitBounds).toHaveBeenCalledTimes(1));
+    });
+
+    it('ends the trace when a search step reaches a hidden node', async () => {
+      await tracePath();
+      fireEvent.change(screen.getByLabelText('Search instances'), { target: { value: 'pulse' } });
+      fireEvent.keyDown(screen.getByLabelText('Search instances'), { key: 'Enter' });
+      await screen.findByTestId('node:/pulse_gen_0');
+      expect(pathChip()).toBeNull();
+      expect(screen.queryByRole('tab', { name: /^Path/ })).toBeNull();
     });
   });
 

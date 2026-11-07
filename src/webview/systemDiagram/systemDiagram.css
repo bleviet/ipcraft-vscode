@@ -1052,3 +1052,18 @@ input:focus-visible {
   text-align: center;
   color: var(--vscode-descriptionForeground);
 }
+
+.sd-hop {
+  position: absolute;
+  top: -9px;
+  left: -9px;
+  z-index: 2;
+  padding: 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  pointer-events: none;
+  color: var(--vscode-badge-foreground);
+  background: var(--vscode-badge-background);
+  border-radius: 8px;
+}

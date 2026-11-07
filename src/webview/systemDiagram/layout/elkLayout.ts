@@ -30,6 +30,7 @@ import {
   sizeOfInstance,
 } from './instanceElk';
 import type { PinFolding } from './pinGrouping';
+import { PARTITIONING_ON, withHopIndexes, withPartitions } from './tracePartition';
 import { PORT_SIZE } from './pinRows';
 import { boundaryId, cellCount, endpointKey, netsByEndpoint, pinRole } from '../model';
 
@@ -82,7 +83,8 @@ function boundaryNode(
   levelPath: string,
   pin: SystemPin,
   width: number,
-  clockReset: ClockResetNets
+  clockReset: ClockResetNets,
+  traced: boolean
 ): ElkNode {
   const id = boundaryId(levelPath, pin.name);
   const side = boundarySide(pin);
@@ -91,9 +93,10 @@ function boundaryNode(
     'org.eclipse.elk.portConstraints': 'FIXED_POS',
     ...PORT_LABEL_OPTIONS,
   };
-  if (role === 'source') {
+  // A traced path is ordered by partitions; ELK rejects a layer constraint beside them.
+  if (!traced && role === 'source') {
     layoutOptions['elk.layered.layering.layerConstraint'] = 'FIRST';
-  } else if (role === 'sink') {
+  } else if (!traced && role === 'sink') {
     layoutOptions['elk.layered.layering.layerConstraint'] = 'LAST';
   }
   return {
@@ -224,11 +227,18 @@ function levelNodes(context: BuildContext, levelPath: string): ElkNode[] {
   for (const pin of isCurrent ? (level?.boundaryPins ?? []) : []) {
     if (shown(boundaryId(levelPath, pin.name))) {
       children.push(
-        boundaryNode(graph, levelPath, pin, boundaryLayout(pin, options.measure).width, clockReset)
+        boundaryNode(
+          graph,
+          levelPath,
+          pin,
+          boundaryLayout(pin, options.measure).width,
+          clockReset,
+          isolate?.order?.includes(boundaryId(levelPath, pin.name)) ?? false
+        )
       );
     }
   }
-  return children;
+  return isolate?.order !== undefined ? withPartitions(children, isolate.order) : children;
 }
 
 export function buildElkInput(
@@ -238,15 +248,19 @@ export function buildElkInput(
 ): ElkNode {
   const context: BuildContext = { graph, levelPath, options, edges: [], compound: false };
   const children = levelNodes(context, levelPath);
+  const layoutOptions =
+    options.isolate?.order !== undefined
+      ? { ...LAYOUT_OPTIONS, ...PARTITIONING_ON }
+      : LAYOUT_OPTIONS;
   return {
     id: `level:${levelPath}`,
     layoutOptions: context.compound
       ? {
-          ...LAYOUT_OPTIONS,
+          ...layoutOptions,
           'elk.hierarchyHandling': 'INCLUDE_CHILDREN',
           'elk.json.edgeCoords': 'ROOT',
         }
-      : LAYOUT_OPTIONS,
+      : layoutOptions,
     children,
     edges: context.edges,
   };
@@ -401,7 +415,7 @@ export function toFlowElements(
       },
     });
   }
-  return { nodes, edges };
+  return { nodes: withHopIndexes(nodes, isolate?.order), edges };
 }
 
 /** Splits `${nodeId}::${pin}` at the last separator (node ids may contain '::'). */

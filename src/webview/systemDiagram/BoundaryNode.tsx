@@ -1,5 +1,6 @@
 import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
+import { HopBadge } from './HopBadge';
 import { NetBadgeView } from './NetBadgeView';
 import { PinMarker } from './PinMarker';
 import { PinFrequency, PinHalo, PinStub } from './PinDecor';
@@ -45,6 +46,7 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
       <svg className="sd-port-shape" aria-hidden="true" width={data.width} height={BOUNDARY_HEIGHT}>
         <path d={portShapePath(data.width, BOUNDARY_HEIGHT, pin.direction === 'inout')} />
       </svg>
+      {data.hopIndex !== undefined && <HopBadge index={data.hopIndex} />}
       {data.focusedPin === pin.name && <PinHalo side={data.side} inset={0} />}
       {unconnected && <PinStub cls={unconnectedClass(pin, true)} side={data.side} inset={0} />}
       <PinMarker

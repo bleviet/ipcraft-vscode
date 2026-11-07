@@ -12,6 +12,7 @@ import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
 import { useIsolation } from './hooks/useIsolation';
+import { usePathTrace } from './hooks/usePathTrace';
 import { useMouseBackButton } from './hooks/useMouseBackButton';
 import { useBusBundling } from './hooks/useBusBundling';
 import { usePinFolding } from './hooks/usePinFolding';
@@ -20,6 +21,7 @@ import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
 import { levelOf, nodeSelection, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
+import { TraceBar } from './TraceBar';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
 import { unconnectedPins, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
@@ -108,6 +110,16 @@ export function WorkbenchLayout({
       panels.bottom.toggle();
     }
   };
+  const tracer = usePathTrace(
+    graph,
+    nav.levelPath,
+    { trace: view.trace, endTrace: view.endTrace, shownTrace: isolation?.trace },
+    () => openBottomTab('path')
+  );
+  const showAll = () => {
+    view.showAll();
+    tracer.close();
+  };
   // Zoom in to a readable size: on a large design the pin is unreadable at the fitted zoom.
   const selectFinding = (finding: UnconnectedPin) => {
     view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
@@ -155,8 +167,11 @@ export function WorkbenchLayout({
         compactPins={pins.compact}
         bundleBuses={buses.on}
         unconnected={{ count: findings.length, anyUndriven }}
-        isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
-        onShowAll={view.showAll}
+        isolated={isolation}
+        traceOpen={tracer.open}
+        onShowAll={showAll}
+        onSetHops={view.setHops}
+        onToggleTrace={tracer.toggle}
         highlightedCount={highlightedCount}
         onClearHighlights={handleClearHighlights}
         onNavigate={nav.navigate}
@@ -176,6 +191,19 @@ export function WorkbenchLayout({
         panelsVisible={panelsVisible}
         onTogglePanel={(panel) => panels[panel].toggle()}
       />
+      {tracer.open && (
+        <TraceBar
+          endpoints={tracer.endpoints}
+          from={tracer.from}
+          to={tracer.to}
+          status={tracer.status}
+          noPath={tracer.noPath}
+          onFromChange={tracer.setFrom}
+          onToChange={tracer.setTo}
+          onSwap={tracer.swap}
+          onClose={tracer.close}
+        />
+      )}
       <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col">
         <div ref={rowRef} className="flex min-h-0 flex-1">
           {panelsVisible.outline && (
@@ -219,7 +247,9 @@ export function WorkbenchLayout({
               onToggleItems={nav.toggleItems}
               onUnbundle={buses.unbundle}
               onIsolate={view.isolate}
-              onShowAll={view.showAll}
+              onTraceFrom={tracer.setFrom}
+              onTraceTo={tracer.setTo}
+              onShowAll={showAll}
               onHighlight={handleHighlight}
               onClearHighlights={handleClearHighlights}
               onEnterHierarchy={nav.enterHierarchy}
@@ -276,6 +306,10 @@ export function WorkbenchLayout({
                 onSelectPin={selectFinding}
                 onSelectNet={selectNet}
                 onReveal={revealSource}
+                trace={isolation?.trace}
+                onSelectNets={(netIds) =>
+                  nav.selectItems(netIds.map((id) => ({ kind: 'net' as const, id })))
+                }
               />
             </div>
           </>

@@ -21,6 +21,8 @@ export type PinSide = 'west' | 'east';
 export interface IsolationSubset {
   nodeIds: ReadonlySet<string>;
   edgeIds: ReadonlySet<string>;
+  /** Present on a traced path: its node ids from start to end, laid out left to right. */
+  order?: readonly string[];
 }
 
 export interface PinRow {
@@ -70,6 +72,8 @@ export interface InstanceUiData {
   selectedNetIds?: ReadonlySet<string>;
   /** Name of the pin whose marker gets the focus halo. */
   focusedPin?: string;
+  /** 1-based position on the traced path, shown as a badge; present only while a trace is shown. */
+  hopIndex?: number;
   /** Set on the node being pulsed after a search step; a new value restarts the pulse. */
   flashToken?: number;
   onFlashEnd?: (token: number) => void;
@@ -114,6 +118,8 @@ export interface BoundaryNodeData extends Record<string, unknown> {
   netNames: string[];
   badge?: NetBadge;
   dimmed?: boolean;
+  /** 1-based position on the traced path, shown as a badge; present only while a trace is shown. */
+  hopIndex?: number;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
   /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */

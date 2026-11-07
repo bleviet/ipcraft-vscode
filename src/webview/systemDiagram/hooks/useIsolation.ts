@@ -1,22 +1,62 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import { levelNodeOf, targetLevel } from '../expansion';
-import { isolationSubset } from '../isolation';
+import { isolationSubset, type IsolationHops } from '../isolation';
+import type { IsolationSubset } from '../layout/diagramTypes';
 import { isLevelNode, type Selection } from '../model';
+import { computePathTrace, traceSubset, type PathTrace } from '../pathTrace';
 
 /** The isolated view being shown; a new `token` marks a new isolation (it refits the view). */
-export interface IsolatedView {
+export interface IsolatedView extends IsolationSubset {
   token: number;
-  nodeIds: ReadonlySet<string>;
-  edgeIds: ReadonlySet<string>;
   /** Nodes isolated on purpose, as opposed to the neighbours kept for their connections. */
   selectedCount: number;
+  /** Nodes on the level, shown or not. */
+  levelNodeCount: number;
+  /** Present on a node isolation: how many hops around the selected nodes are shown. */
+  hops?: IsolationHops;
+  /** Present on a traced path: the path between `from` and `to`. */
+  trace?: PathTrace & { from: string; to: string };
 }
 
-interface IsolationState {
-  levelPath: string;
-  nodeIds: string[];
-  token: number;
+type IsolationState =
+  | { kind: 'nodes'; levelPath: string; nodeIds: string[]; hops: IsolationHops; token: number }
+  | { kind: 'trace'; levelPath: string; from: string; to: string; token: number };
+
+/** The isolated view of a state on `levelPath` with the graph as it is now; null once it has nothing to show. */
+function viewOf(
+  graph: SystemGraph,
+  levelPath: string,
+  state: IsolationState | null
+): IsolatedView | null {
+  if (state?.levelPath !== levelPath) {
+    return null;
+  }
+  const { token } = state;
+  const level = graph.levels[levelPath];
+  const levelNodeCount = (level?.instances.length ?? 0) + (level?.boundaryPins.length ?? 0);
+  if (state.kind === 'trace') {
+    const trace = computePathTrace(graph, levelPath, state.from, state.to);
+    return trace
+      ? {
+          token,
+          selectedCount: 2,
+          levelNodeCount,
+          trace: { ...trace, from: state.from, to: state.to },
+          ...traceSubset(graph, levelPath, trace),
+        }
+      : null;
+  }
+  const ids = state.nodeIds.filter((id) => isLevelNode(graph, levelPath, id));
+  return ids.length === 0
+    ? null
+    : {
+        token,
+        selectedCount: ids.length,
+        levelNodeCount,
+        hops: state.hops,
+        ...isolationSubset(graph, levelPath, ids, state.hops),
+      };
 }
 
 interface IsolationNavigation {
@@ -44,25 +84,7 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
   const [state, setState] = useState<IsolationState | null>(null);
   const lastToken = useRef(0);
 
-  const ids = useMemo(
-    () =>
-      state?.levelPath === levelPath
-        ? state.nodeIds.filter((id) => isLevelNode(graph, levelPath, id))
-        : [],
-    [graph, levelPath, state]
-  );
-  const token = state?.token ?? 0;
-  const isolation = useMemo<IsolatedView | null>(
-    () =>
-      ids.length === 0
-        ? null
-        : {
-            token,
-            selectedCount: ids.length,
-            ...isolationSubset(graph, levelPath, ids),
-          },
-    [graph, levelPath, ids, token]
-  );
+  const isolation = useMemo(() => viewOf(graph, levelPath, state), [graph, levelPath, state]);
   useEffect(() => {
     if (state && !isolation) {
       setState(null);
@@ -72,11 +94,37 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
   const isolate = useCallback(
     (nodeIds: string[]) => {
       lastToken.current += 1;
-      setState({ levelPath, nodeIds, token: lastToken.current });
+      setState({ kind: 'nodes', levelPath, nodeIds, hops: 1, token: lastToken.current });
     },
     [levelPath]
   );
+  /** Changes the hop radius of a node isolation; a new view, so it refits. */
+  const setHops = useCallback((hops: IsolationHops) => {
+    lastToken.current += 1;
+    setState((current) =>
+      current?.kind === 'nodes' && current.hops !== hops
+        ? { ...current, hops, token: lastToken.current }
+        : current
+    );
+  }, []);
+  /** Isolates the shortest path between two nodes; without one the view stays as it was. */
+  const trace = useCallback(
+    (from: string, to: string): boolean => {
+      if (!computePathTrace(graph, levelPath, from, to)) {
+        return false;
+      }
+      lastToken.current += 1;
+      setState({ kind: 'trace', levelPath, from, to, token: lastToken.current });
+      return true;
+    },
+    [graph, levelPath]
+  );
   const showAll = useCallback(() => setState(null), []);
+  /** Ends a traced path, leaving a node isolation alone. */
+  const endTrace = useCallback(
+    () => setState((current) => (current?.kind === 'trace' ? null : current)),
+    []
+  );
   /** Only nodes of the level on show can be isolated, not those inside an expanded frame. */
   const canIsolate = useCallback(
     (nodeIds: string[]) => nodeIds.every((id) => isLevelNode(graph, levelPath, id)),
@@ -122,6 +170,9 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
   return {
     isolation,
     isolate,
+    setHops,
+    trace,
+    endTrace,
     canIsolate,
     showAll,
     selectAndReveal: selectAndRevealShown,

@@ -3,6 +3,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { FrameNodeData, FramePinRow } from './layout/elkLayout';
 import type { PinMark } from './clocks/nodeView';
 import type { PinHoverTarget } from './model';
+import { HopBadge } from './HopBadge';
 import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
 import { PinFrequency, PinHalo, PinStub } from './PinDecor';
@@ -120,6 +121,7 @@ export function FrameNode({ data, selected, width, height }: NodeProps<FrameFlow
           onAnimationEnd={() => data.onFlashEnd?.(data.flashToken as number)}
         />
       )}
+      {data.hopIndex !== undefined && <HopBadge index={data.hopIndex} />}
       <NodeHeader
         instance={instance}
         cellCount={data.cellCount}
