@@ -2,7 +2,6 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
-  Panel,
   ReactFlow,
   type EdgeTypes,
   type Node,
@@ -24,18 +23,11 @@ import type { SearchFlash } from './hooks/useSearchStepper';
 import { clockDecor, type ClockContext } from './clockDecor';
 import { highlightedPinsByNode } from './pinHighlight';
 import { boundaryMatchesQuery, matchesQuery, nodeSelection, type Selection } from './model';
-import {
-  focusedPinOf,
-  levelReviewSummary,
-  nodeReview,
-  type FocusedPin,
-  type UnconnectedPin,
-} from './unconnectedPins';
+import { focusedPinOf, nodeReview, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
 
 /** Everything the canvas needs to draw the unconnected-pin review; null while the review is off. */
 export interface ReviewContext {
   graph: SystemGraph;
-  levelPath: string;
   findings: readonly UnconnectedPin[];
 }
 
@@ -276,11 +268,6 @@ export function DiagramCanvas({
           review={review !== null}
           domains={decor.legend}
         />
-        {review && (
-          <Panel position="top-right" className="sd-review-banner" aria-label="Unconnected pins">
-            {levelReviewSummary(review.findings, review.graph, review.levelPath)}
-          </Panel>
-        )}
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}
       {menu && (

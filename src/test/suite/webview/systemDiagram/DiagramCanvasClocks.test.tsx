@@ -9,6 +9,7 @@ import { domainLegend } from '../../../../webview/systemDiagram/legend';
 import type { DiagramFlowEdge } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
+import { unconnectedPins } from '../../../../webview/systemDiagram/unconnectedPins';
 import { clockContextOf } from './clockContext';
 import { fakeMeasure, loadClockFixtureGraph, loadVersalClockGraph } from './fixtureGraph';
 
@@ -27,7 +28,12 @@ async function layoutOf(levelPath: string, design = graph) {
   };
 }
 
-function canvas(layout: Awaited<ReturnType<typeof layoutOf>>, domainMode: boolean, design = graph) {
+function canvas(
+  layout: Awaited<ReturnType<typeof layoutOf>>,
+  domainMode: boolean,
+  design = graph,
+  review = false
+) {
   return (
     <ReactFlowProvider>
       <DiagramCanvas
@@ -36,7 +42,7 @@ function canvas(layout: Awaited<ReturnType<typeof layoutOf>>, domainMode: boolea
         selection={null}
         selectedNodeIds={[]}
         isolated={false}
-        review={null}
+        review={review ? { graph: design, findings: unconnectedPins(design) } : null}
         clocks={clockContextOf(design, domainMode, layout.levelPath)}
         focusedPin={null}
         query=""
@@ -59,6 +65,14 @@ describe('the canvas in the domain mode', () => {
   beforeAll(async () => {
     root = await layoutOf('/');
   }, 20000);
+
+  it('draws no level banner in the unconnected pin review either', async () => {
+    render(canvas(root, false, graph, true));
+    await screen.findByLabelText('Legend');
+    expect(screen.getByText('Undriven pin')).toBeVisible();
+    expect(screen.queryByLabelText('Unconnected pins')).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/This level:/);
+  });
 
   it('draws no level banner: the Clocks tab says what is on the level', async () => {
     render(canvas(root, true));
