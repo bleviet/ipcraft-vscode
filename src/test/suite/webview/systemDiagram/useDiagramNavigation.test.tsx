@@ -232,3 +232,67 @@ describe('useDiagramNavigation multi-selection with nets and nodes', () => {
     expect(result.current.selectedItems).toEqual([dma, port]);
   });
 });
+
+describe('useDiagramNavigation bundle gestures', () => {
+  const nets = graph.nets
+    .filter((net) => net.level === '/')
+    .slice(0, 3)
+    .map((net) => ({ kind: 'net' as const, id: net.id }));
+
+  it('selects all the items at once, the last one primary', () => {
+    const { result } = setup();
+    act(() => result.current.select({ kind: 'instance', id: '/axi_dma_0' }));
+    act(() => result.current.selectItems(nets));
+    expect(result.current.selectedItems).toEqual(nets);
+    expect(result.current.selection).toEqual(nets[2]);
+    expect(result.current.selectedNodeIds).toEqual([]);
+  });
+
+  it('adds only the missing items when some are selected', () => {
+    const { result } = setup();
+    act(() => result.current.select(nets[1]));
+    act(() => result.current.toggleItems(nets));
+    expect(result.current.selectedItems.map((item) => item.id).sort()).toEqual(
+      nets.map((net) => net.id).sort()
+    );
+  });
+
+  it('removes all the items when all are selected, keeping the others', () => {
+    const { result } = setup();
+    const node = { kind: 'instance' as const, id: '/axi_dma_0' };
+    act(() => result.current.selectItems([node, ...nets]));
+    act(() => result.current.toggleItems(nets));
+    expect(result.current.selectedItems).toEqual([node]);
+    expect(result.current.selection).toEqual(node);
+    act(() => result.current.toggleItems(nets));
+    expect(result.current.selectedItems).toHaveLength(4);
+  });
+
+  it('records the bundle of a selection and clears it on every other gesture', () => {
+    const { result } = setup();
+    act(() => result.current.selectItems(nets, 'bundle:x'));
+    expect(result.current.activeBundleKey).toBe('bundle:x');
+    act(() => result.current.select(nets[0]));
+    expect(result.current.activeBundleKey).toBeNull();
+
+    act(() => result.current.selectItems(nets, 'bundle:x'));
+    act(() => result.current.toggleSelection({ kind: 'instance', id: '/axi_dma_0' }));
+    expect(result.current.activeBundleKey).toBeNull();
+
+    act(() => result.current.selectItems(nets, 'bundle:x'));
+    act(() => result.current.selectAndReveal(nets[1]));
+    expect(result.current.activeBundleKey).toBeNull();
+
+    act(() => result.current.selectItems(nets, 'bundle:x'));
+    act(() => result.current.navigate('/'));
+    expect(result.current.activeBundleKey).toBeNull();
+  });
+
+  it('keeps the key when a toggle adds the nets and drops it when it removes them', () => {
+    const { result } = setup();
+    act(() => result.current.toggleItems(nets, 'bundle:x'));
+    expect(result.current.activeBundleKey).toBe('bundle:x');
+    act(() => result.current.toggleItems(nets, 'bundle:x'));
+    expect(result.current.activeBundleKey).toBeNull();
+  });
+});

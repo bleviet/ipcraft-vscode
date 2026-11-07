@@ -8,25 +8,32 @@ import { nameWithFrequency } from './clocks/frequency';
 export interface LegendEntry {
   category: NetCategory;
   label: string;
+  /** Short name for a bundle badge, e.g. `AXI` in `x12 AXI`. */
+  short: string;
   /** Interface categories draw a thick bar, scalar ones a thin bar. */
   thick: boolean;
 }
 
 const LEGEND_ORDER: LegendEntry[] = [
-  { category: 'aximm', label: 'AXI memory-mapped', thick: true },
-  { category: 'axis', label: 'AXI4-Stream', thick: true },
-  { category: 'avalonmm', label: 'Avalon-MM', thick: true },
-  { category: 'avalonst', label: 'Avalon-ST', thick: true },
-  { category: 'interface', label: 'Other interface', thick: true },
-  { category: 'interrupt', label: 'Interrupt', thick: false },
-  { category: 'clock', label: 'Clock', thick: false },
-  { category: 'reset', label: 'Reset', thick: false },
-  { category: 'signal', label: 'Signal', thick: false },
+  { category: 'aximm', label: 'AXI memory-mapped', short: 'AXI', thick: true },
+  { category: 'axis', label: 'AXI4-Stream', short: 'AXIS', thick: true },
+  { category: 'avalonmm', label: 'Avalon-MM', short: 'AVMM', thick: true },
+  { category: 'avalonst', label: 'Avalon-ST', short: 'AVST', thick: true },
+  { category: 'interface', label: 'Other interface', short: 'IF', thick: true },
+  { category: 'interrupt', label: 'Interrupt', short: 'IRQ', thick: false },
+  { category: 'clock', label: 'Clock', short: 'CLK', thick: false },
+  { category: 'reset', label: 'Reset', short: 'RST', thick: false },
+  { category: 'signal', label: 'Signal', short: 'SIG', thick: false },
 ];
 
 /** Human label of a net category, as the legend names it. */
 export function categoryLabel(category: NetCategory): string {
   return LEGEND_ORDER.find((entry) => entry.category === category)?.label ?? category;
+}
+
+/** Short name of a net category for a bundle badge. */
+export function categoryShort(category: NetCategory): string {
+  return LEGEND_ORDER.find((entry) => entry.category === category)?.short ?? category;
 }
 
 /**

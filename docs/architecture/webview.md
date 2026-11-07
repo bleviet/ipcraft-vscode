@@ -147,10 +147,10 @@ host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
 | Layer | Owner |
 |---|---|
 | Composition root | `SystemDiagramApp.tsx`, `DiagramWorkbench.tsx`, `WorkbenchLayout.tsx` wire the toolbar, outline, canvas, details, and bottom panels |
-| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place, `pinGrouping.ts` for folding numbered pin arrays into rows, `instanceElk.ts` for the rows, size, ELK node and drawn pin rows of an instance block), `drawnLayout.ts` (which of the clock and reset wires or badges of a layout the canvas draws) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
+| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place, `pinGrouping.ts` for folding numbered pin arrays into rows, `instanceElk.ts` for the rows, size, ELK node and drawn pin rows of an instance block, `foldedEdges.ts` for the level edges attached to the ports ELK sees, `edgeBundling.ts` for the pure bus bundling rules and comb branches, `levelBundles.ts` for planning bundles on the ELK input and on the laid-out level), `drawnLayout.ts` (which of the clock and reset wires or badges of a layout the canvas draws), `edgeNets.ts` (the nets of a drawn wire, one or every member of a bundle, and the bundle a selection matches) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
 | Clock and reset analysis | `clocks/`, pure and computed once per graph by `analyzeClocks`: `clockTypes.ts` (the result types), `frequency.ts` (parse and format), `unionFind.ts` and `levelPaths.ts` (small shared helpers), `physicalNets.ts` (nets joined across hierarchy pins, and the driver of each), `clockRules.ts` (declarative clock output, frequency, forwarding, generator, and reset rules; which Vivado IP pins are outputs is the shared `src/domain/knownIpPins.ts`, which the Vivado reader also uses to give those pins the direction `out` with source `rule`), `clockDomains.ts`, `relatedClocks.ts` (clocks of one generator), `pinClocks.ts`, `resetSources.ts`, `crossings.ts`, and the helpers each surface reads: `crossingSummary.ts` (counts and toolbar text), `crossingEdges.ts`, `domainView.ts`, `treeSelection.ts`, `edgeView.ts`, `nodeView.ts` (wire styles, pin marks, node strips), `netTree.ts` and `treeChecks.ts` (the tree rows and checks of Details), `instanceClocks.ts`, `crossingRows.ts` (the texts of its crossing rows), `viewScope.ts` (which domains, resets and crossings the Clocks and Resets tabs list for the level and expanded blocks on screen). `clockDecor.ts` merges them into one description of what the canvas adds to a layout |
-| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize, `usePinFolding.ts` for Compact pins and the open pin arrays) |
-| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `PinGroupRow.tsx` draws a folded or open pin array row of an instance block; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, and `InstanceClockDetails.tsx` the clocks of a block or port |
+| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize, `usePinFolding.ts` for Compact pins and the open pin arrays, `useBusBundling.ts` for Bundle buses and the unbundled keys) |
+| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `PinGroupRow.tsx` draws a folded or open pin array row of an instance block; `ElkEdge.tsx` also draws a bundle's comb branches and count badge and `BundleDetails.tsx` is the Details view of a selected bundle; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, and `InstanceClockDetails.tsx` the clocks of a block or port |
 
 `messageState.ts` keeps the last valid graph when a later message reports an
 error or says the file is no longer recognized, so the workbench and the
@@ -177,6 +177,20 @@ direction, and kind, none of them on a clock or reset net) and `instanceElk.ts`
 turns them into one port per folded group; `elkLayout.ts` points the edge ends
 of the members at that port, while `levelEdges.ts` keeps one edge per pin. Frame
 border pins and boundary pins are not folded.
+
+Bus bundling is a layout input too (Bundle buses and the keys the user
+unbundled; absent, every edge is drawn on its own). On the current level only,
+`edgeBundling.ts` groups the edges that remain after isolation and pin folding by
+(source block, target block, category, interface-ness). A group of two or more
+that is not a clock or reset, not unbundled, and has its member ports on
+consecutive rows at both ends becomes one ELK edge between the median port of
+each end; ELK cannot route a hyperedge of parallel edges, so the other member
+pins join the trunk through comb branches computed after layout. `levelEdges.ts`
+still keeps one edge per pin: `toFlowElements` replans the bundles from the same
+inputs (the isolation subset is passed along) and attaches the members, label and
+branches to the flow edge as `data.bundle`. Edges on expanded frames and on inner
+levels are never bundled. Whatever reads the net of a drawn wire goes through
+`edgeNets.ts`, so a bundle selects, highlights and decorates as all its nets.
 
 ## Updates and drafts
 

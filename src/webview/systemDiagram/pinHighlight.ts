@@ -1,5 +1,6 @@
 /** Pure lookup of the pins on a selected net, per node, for bold pin labels. */
 
+import { edgeNetIds } from './edgeNets';
 import type { DiagramFlowEdge, DiagramFlowNode } from './layout/elkLayout';
 
 /**
@@ -20,7 +21,12 @@ export function highlightedPinsByNode(
     pins.set(nodeId, set);
   };
   for (const edge of edges) {
-    if (onNet(edge.data.netId)) {
+    if (edge.data.bundle) {
+      for (const member of edge.data.bundle.members.filter((m) => onNet(m.netId))) {
+        add(edge.source, member.sourceHandle);
+        add(edge.target, member.targetHandle);
+      }
+    } else if (edgeNetIds(edge).some(onNet)) {
       add(edge.source, edge.sourceHandle);
       add(edge.target, edge.targetHandle);
     }

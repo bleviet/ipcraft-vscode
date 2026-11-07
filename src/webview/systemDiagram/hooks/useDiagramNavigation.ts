@@ -26,6 +26,8 @@ export function useDiagramNavigation(graph: SystemGraph) {
   const [levelPath, setLevelPath] = useState('/');
   const [selection, setSelection] = useState<Selection | null>(null);
   const [items, setItems] = useState<Selection[]>([]);
+  // The bundle whose click selected `items`; any other selection gesture clears it.
+  const [activeBundleKey, setActiveBundleKey] = useState<string | null>(null);
   const [revealRequest, setRevealRequest] = useState<RevealRequest | null>(null);
   const [expandedState, setExpandedState] = useState<ReadonlySet<string>>(() => new Set());
   const expanded = useMemo(() => pruneExpanded(graph, expandedState), [graph, expandedState]);
@@ -35,6 +37,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
     (next: Selection | null, level?: string) => {
       setSelection(next);
       setItems(next ? [next] : []);
+      setActiveBundleKey(null);
       setRevealRequest(null);
       const target = targetLevel(graph, levelPath, expanded, next, level);
       if (target !== undefined) {
@@ -83,6 +86,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
     setLevelPath(path);
     setSelection(null);
     setItems([]);
+    setActiveBundleKey(null);
     setRevealRequest(null);
   }, []);
   const enterHierarchy = useCallback(
@@ -142,11 +146,35 @@ export function useDiagramNavigation(graph: SystemGraph) {
       if (!selectedItems.some((current) => sameSelection(current, item))) {
         setSelection(item);
         setItems([...selectedItems, item]);
+        setActiveBundleKey(null);
       } else {
         const rest = selectedItems.filter((current) => !sameSelection(current, item));
         setSelection(rest[rest.length - 1] ?? null);
         setItems(rest);
+        setActiveBundleKey(null);
       }
+      setRevealRequest(null);
+    },
+    [selectedItems]
+  );
+  /** Click on a bundle: selects all its items at once, the last one primary, and records the bundle. */
+  const selectItems = useCallback((next: readonly Selection[], bundleKey: string | null = null) => {
+    setSelection(next[next.length - 1] ?? null);
+    setItems([...next]);
+    setActiveBundleKey(bundleKey);
+    setRevealRequest(null);
+  }, []);
+  /** Cmd/Ctrl+Click on a bundle: removes its items when all are selected, else adds the missing ones. */
+  const toggleItems = useCallback(
+    (next: readonly Selection[], bundleKey: string | null = null) => {
+      const selected = (item: Selection) => selectedItems.some((c) => sameSelection(c, item));
+      const removing = next.every(selected);
+      const rest = removing
+        ? selectedItems.filter((current) => !next.some((item) => sameSelection(item, current)))
+        : [...selectedItems, ...next.filter((item) => !selected(item))];
+      setSelection(rest[rest.length - 1] ?? null);
+      setItems(rest);
+      setActiveBundleKey(removing ? null : bundleKey);
       setRevealRequest(null);
     },
     [selectedItems]
@@ -157,6 +185,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
       navigate(shown.levelPath);
     } else if (shown.selection !== selection) {
       setSelection(shown.selection);
+      setActiveBundleKey(null);
       setRevealRequest(null);
     }
   }, [shown, levelPath, selection, navigate]);
@@ -168,9 +197,12 @@ export function useDiagramNavigation(graph: SystemGraph) {
     selectedItems,
     selectedNodeIds,
     selectedNetIds,
+    activeBundleKey,
     revealRequest,
     select,
     toggleSelection,
+    selectItems,
+    toggleItems,
     toggleNode: toggleSelection,
     selectAndReveal,
     revealMatch,

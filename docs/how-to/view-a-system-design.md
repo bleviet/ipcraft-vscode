@@ -55,6 +55,20 @@ The diagram shows one hierarchy level at a time.
   on their own rows. Turn **Compact pins** off in the toolbar to give every pin
   its own row. Folding changes the layout, so the blocks may move, but the zoom
   and pan stay.
+- **Bundle buses.** Parallel connections between the same two blocks, such as
+  eight AXI4-Stream links or twelve AXI masters, would draw a wall of wires. With
+  **Bundle buses** on, the default, connections of the same kind between the same
+  two blocks are drawn as one wire with a count badge such as `×12 AXI`; the
+  other pins join it through short branches next to the block. A group is
+  bundled only when its pins sit on consecutive rows at both ends, and clock and
+  reset wires are never bundled. Click the wire to select all its connections;
+  Details then shows the **Bus bundle**: the blocks at both ends, each
+  connection (click one to select just that net), **Unbundle**, which draws that
+  pair as separate wires, and **Isolate pair**. Right-click the wire for the same
+  two actions. Cmd+Click (macOS) or Ctrl+Click (other systems) adds the
+  connections to the selection, or removes them when all are selected. Turn
+  **Bundle buses** off in the toolbar to draw every connection on its own.
+  Bundling changes the layout, so the blocks may move, but the zoom and pan stay.
 - **Outline.** Lists the instances of the current design and its external
   ports. Select an item to select it in the diagram and center it.
 - **Search.** Type in **Search instances** to dim the blocks whose name or

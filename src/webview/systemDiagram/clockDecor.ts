@@ -9,10 +9,11 @@ import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { crossingEdgeIds } from './clocks/crossingEdges';
 import { crossingEndKeys, levelDomains } from './clocks/crossingSummary';
 import { nodeDomains, type NodeDomains } from './clocks/domainView';
-import { edgeMarks, type EdgeMarks } from './clocks/edgeView';
+import { bundleMarks, edgeMarks, type EdgeMarks } from './clocks/edgeView';
 import { nodePinMarks, type PinMarks } from './clocks/nodeView';
 import { selectedTree, type SelectedTree } from './clocks/treeSelection';
 import type { DiagramFlowEdge, DiagramFlowNode } from './layout/elkLayout';
+import { memberEdges } from './edgeNets';
 import { domainLegend, type DomainLegendEntry } from './legend';
 import type { Selection } from './model';
 
@@ -56,12 +57,13 @@ export function clockDecor(
   }
   const nodes = layout?.nodes ?? [];
   const edges = layout?.edges ?? [];
+  const members = new Map(edges.map((edge) => [edge.id, memberEdges(edge)]));
   const edgeContext = {
     analysis,
     domainMode,
     tree,
     crossingEdgeIds: domainMode
-      ? crossingEdgeIds(graph, edges, analysis.crossings)
+      ? crossingEdgeIds(graph, [...members.values()].flat(), analysis.crossings)
       : new Set<string>(),
   };
   const pinContext = {
@@ -73,7 +75,10 @@ export function clockDecor(
   };
   const marksOf = new Map<string, EdgeMarks>();
   for (const edge of edges) {
-    const marks = edgeMarks(edgeContext, edge);
+    const parts = members.get(edge.id) ?? [];
+    const marks = edge.data.bundle
+      ? bundleMarks(parts.map((part) => edgeMarks(edgeContext, part)))
+      : edgeMarks(edgeContext, edge);
     if (Object.keys(marks).length > 0) {
       marksOf.set(edge.id, marks);
     }
