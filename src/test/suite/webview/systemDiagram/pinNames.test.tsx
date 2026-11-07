@@ -20,7 +20,7 @@ async function longNameLayout() {
   for (const pin of dma.pins.slice(1)) {
     pin.direction = 'in';
   }
-  const input = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
+  const input = buildElkInput(graph, '/', { measure: fakeMeasure });
   const laidOut = await runElkLayout(input);
   return { levelPath: '/', viewKey: '/', ...toFlowElements(laidOut, graph, '/', fakeMeasure) };
 }
@@ -38,6 +38,7 @@ function canvas(layout: Layout) {
         isolated={false}
         review={null}
         clocks={clocks}
+        drawClockReset={false}
         focusedPin={null}
         query=""
         onSelect={jest.fn()}

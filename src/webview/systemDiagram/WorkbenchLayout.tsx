@@ -13,6 +13,7 @@ import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
 import { useIsolation } from './hooks/useIsolation';
 import { useMouseBackButton } from './hooks/useMouseBackButton';
+import { usePinFolding } from './hooks/usePinFolding';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
@@ -51,12 +52,10 @@ export function WorkbenchLayout({
       }
     }, [levelPath, navigate])
   );
-  const [showClockReset, setShowClockReset] = useState(false);
-  const [domainMode, setDomainMode] = useState(false);
-  // The domain mode draws clocks and resets whatever the checkbox says.
-  const drawClockReset = showClockReset || domainMode;
+  // Clocks and resets is drawn, not laid out: no toggle moves a block.
+  const [clocksOn, setClocksOn] = useState(false);
   const [query, setQuery] = useState('');
-  const view = useIsolation(graph, nav, drawClockReset);
+  const view = useIsolation(graph, nav);
   const { isolation } = view;
   const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
   const [tab, setTab] = useState<BottomTab>('address');
@@ -64,22 +63,26 @@ export function WorkbenchLayout({
   const [focusedPin, setFocusedPin] = useState<FocusedPin | null>(null);
   const findings = useMemo(() => unconnectedPins(graph), [graph]);
   const clocks = useMemo(() => analyzeClocks(graph), [graph]);
-  const domainSummary = useMemo(() => toolbarSummary(clocks), [clocks]);
+  const clockSummary = useMemo(() => toolbarSummary(clocks), [clocks]);
+  // The review pauses the domain decorations, not the clock and reset wires.
+  const domainsShown = clocksOn && !reviewUnconnected;
   const clockContext = useMemo(
-    () => ({ graph, analysis: clocks, levelPath: nav.levelPath, domainMode }),
-    [graph, clocks, nav.levelPath, domainMode]
+    () => ({ graph, analysis: clocks, levelPath: nav.levelPath, domainMode: domainsShown }),
+    [graph, clocks, nav.levelPath, domainsShown]
   );
   const reviewContext = useMemo(
     () => (reviewUnconnected ? { graph, findings } : null),
     [reviewUnconnected, graph, findings]
   );
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
+  // Compact pins is a layout input: folding a pin array re-runs the layout.
+  const pins = usePinFolding();
   const { layout, error } = useElkLayout(
     graph,
     nav.levelPath,
-    drawClockReset,
     isolation,
-    nav.expanded
+    nav.expanded,
+    pins.folding
   );
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -142,10 +145,10 @@ export function WorkbenchLayout({
         levelPath={nav.levelPath}
         query={query}
         searchCounter={search.counter}
-        showClockReset={showClockReset}
-        domainMode={domainMode}
-        domainSummary={domainSummary}
+        clocksOn={clocksOn}
+        clockSummary={clockSummary}
         reviewUnconnected={reviewUnconnected}
+        compactPins={pins.compact}
         unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
         onShowAll={view.showAll}
@@ -154,18 +157,12 @@ export function WorkbenchLayout({
         onNavigate={nav.navigate}
         onQueryChange={setQuery}
         onSearchStep={search.step}
-        onShowClockResetChange={setShowClockReset}
-        onDomainModeChange={(on) => {
-          setDomainMode(on);
-          if (on) {
-            setReviewUnconnected(false);
-            openBottomTab('clocks');
-          }
-        }}
+        onClocksChange={setClocksOn}
+        onCompactPinsChange={pins.setCompact}
+        onOpenClocksTab={() => openBottomTab('clocks')}
         onReviewUnconnectedChange={(on) => {
           setReviewUnconnected(on);
           if (on) {
-            setDomainMode(false);
             openBottomTab('unconnected');
           }
         }}
@@ -186,7 +183,7 @@ export function WorkbenchLayout({
                   levelPath={nav.levelPath}
                   selection={nav.selection}
                   review={reviewUnconnected ? findings : null}
-                  clocks={domainMode ? clocks : null}
+                  clocks={domainsShown ? clocks : null}
                   onSelect={view.selectAndReveal}
                 />
               </div>
@@ -205,6 +202,7 @@ export function WorkbenchLayout({
               isolated={isolation !== null}
               review={reviewContext}
               clocks={clockContext}
+              drawClockReset={clocksOn}
               focusedPin={focusedPin}
               query={query}
               flash={search.flash}
@@ -217,6 +215,7 @@ export function WorkbenchLayout({
               onClearHighlights={handleClearHighlights}
               onEnterHierarchy={nav.enterHierarchy}
               onToggleExpand={nav.toggleExpanded}
+              onTogglePinGroup={pins.togglePinGroup}
               isolatable={view.canIsolate}
               onFocusNode={focusNode}
               onFit={fit}

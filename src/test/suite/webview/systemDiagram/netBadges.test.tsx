@@ -4,7 +4,7 @@ import React from 'react';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import {
   badgeOfPort,
-  hiddenNetsByEndpoint,
+  clockResetNetsByEndpoint,
   shortNetName,
   sourceInstance,
 } from '../../../../webview/systemDiagram/layout/netBadges';
@@ -15,7 +15,7 @@ import { loadQsysFixtureGraph, fakeMeasure } from './fixtureGraph';
 const graph = loadQsysFixtureGraph();
 
 function reservedPort(instance: string, pin: string): ElkPort {
-  const input = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
+  const input = buildElkInput(graph, '/', { measure: fakeMeasure });
   const port = input.children
     ?.find((node) => node.id === instance)
     ?.ports?.find((candidate) => candidate.id === `${instance}::${pin}`);
@@ -34,7 +34,7 @@ describe('net badges of pins on several hidden nets', () => {
   it('lists every hidden net in the tooltip and selects the first on click', () => {
     const badge = badgeOfPort(
       reservedPort('/jtag_uart_0', 'reset'),
-      hiddenNetsByEndpoint(graph, '/', false).get('/jtag_uart_0::reset')
+      clockResetNetsByEndpoint(graph, '/').get('/jtag_uart_0::reset')
     )!;
     expect(badge.netId).toBe('/::clk_0.clk_reset');
     expect(badge.nets.map((net) => net.name)).toEqual([
@@ -54,9 +54,7 @@ describe('net badges of pins on several hidden nets', () => {
     const net = odd.nets.find((candidate) => candidate.id === '/::clk_0.clk_reset')!;
     net.id = '/::clk_0.clk_reset\nline2';
     net.name = 'clk_0.clk_reset\nline2';
-    const result = await runElkLayout(
-      buildElkInput(odd, '/', { showClockReset: false, measure: fakeMeasure })
-    );
+    const result = await runElkLayout(buildElkInput(odd, '/', { measure: fakeMeasure }));
     const { nodes } = toFlowElements(result, odd, '/', fakeMeasure);
     const jtag = nodes.find((node) => node.id === '/jtag_uart_0');
     const row =

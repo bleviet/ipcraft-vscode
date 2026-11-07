@@ -22,6 +22,7 @@ import type { HighlightColor, HighlightMap } from '../../shared/messages/systemD
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
 import { clockDecor, type ClockContext } from './clockDecor';
+import { drawnLayout } from './drawnLayout';
 import {
   HIGHLIGHT_COLORS,
   hasAnyHighlight,
@@ -61,6 +62,8 @@ interface DiagramCanvasProps {
   isolated: boolean;
   review: ReviewContext | null;
   clocks: ClockContext;
+  /** Draw the clock and reset wires (and no badges); otherwise their badges (and no wires). */
+  drawClockReset: boolean;
   focusedPin: FocusedPin | null;
   query: string;
   flash?: SearchFlash | null;
@@ -74,6 +77,8 @@ interface DiagramCanvasProps {
   onEnterHierarchy: (instancePath: string) => void;
   /** Expands a hierarchy block in place, or collapses it. */
   onToggleExpand: (instancePath: string) => void;
+  /** Folds or expands a numbered pin array of an instance block. */
+  onTogglePinGroup?: (instancePath: string, groupId: string) => void;
   /** Whether the nodes can be isolated: all of them belong to the level on show. */
   isolatable: (nodeIds: string[]) => boolean;
   onFocusNode: (nodeId: string) => void;
@@ -99,6 +104,7 @@ export function DiagramCanvas({
   isolated,
   review,
   clocks,
+  drawClockReset,
   focusedPin,
   query,
   flash,
@@ -111,6 +117,7 @@ export function DiagramCanvas({
   onClearHighlights,
   onEnterHierarchy,
   onToggleExpand,
+  onTogglePinGroup,
   isolatable,
   onFocusNode,
   onFit,
@@ -177,9 +184,13 @@ export function DiagramCanvas({
       selectedNetIds ?? (selection?.kind === 'net' ? new Set([selection.id]) : new Set<string>()),
     [selectedNetIds, selection]
   );
-  const showHighlights = !clocks.domainMode && review === null;
+  const showHighlights = review === null;
 
-  const decor = useMemo(() => clockDecor(layout, clocks, selection), [layout, clocks, selection]);
+  const drawn = useMemo(
+    () => (layout ? drawnLayout(layout, drawClockReset) : null),
+    [layout, drawClockReset]
+  );
+  const decor = useMemo(() => clockDecor(drawn, clocks, selection), [drawn, clocks, selection]);
   const { tree } = decor;
 
   const nodes = useMemo(() => {
@@ -193,12 +204,12 @@ export function DiagramCanvas({
       }
     }
     const highlighted =
-      activeNetIds.size > 0 && layout
-        ? highlightedPinsByNode(activeNetIds, layout.edges, layout.nodes)
+      activeNetIds.size > 0 && drawn
+        ? highlightedPinsByNode(activeNetIds, drawn.edges, drawn.nodes)
         : undefined;
     const badgeNetIds = selectedAndTreeNetIds.size > 0 ? selectedAndTreeNetIds : undefined;
     const searching = query.trim() !== '';
-    return (layout?.nodes ?? []).map((node) => {
+    return (drawn?.nodes ?? []).map((node) => {
       const dimmed =
         (searching &&
           (node.type === 'boundary'
@@ -227,12 +238,13 @@ export function DiagramCanvas({
           onSelectNet,
           onHoverPin,
           onToggleExpand,
+          onTogglePinGroup,
           ...(flash?.id === node.id && { flashToken: flash.token, onFlashEnd }),
         },
       };
     });
   }, [
-    layout,
+    drawn,
     query,
     flash,
     onFlashEnd,
@@ -248,11 +260,12 @@ export function DiagramCanvas({
     onSelectNet,
     onHoverPin,
     onToggleExpand,
+    onTogglePinGroup,
   ]);
 
   const edges = useMemo(
     () =>
-      (layout?.edges ?? []).map((edge) => {
+      (drawn?.edges ?? []).map((edge) => {
         const marks = decor.edges.get(edge.id);
         const highlightColor =
           showHighlights && highlights ? netHighlightColor(highlights, edge.data.netId) : undefined;
@@ -271,7 +284,7 @@ export function DiagramCanvas({
           }),
         };
       }),
-    [layout, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
+    [drawn, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
   );
 
   // React Flow stays mounted on error: unmounting resets its store to the
@@ -403,8 +416,8 @@ export function DiagramCanvas({
       >
         <Background variant={BackgroundVariant.Dots} />
         <DiagramLegend
-          edges={layout?.edges ?? []}
-          nodes={layout?.nodes ?? []}
+          edges={drawn?.edges ?? []}
+          nodes={drawn?.nodes ?? []}
           review={review !== null}
           domains={decor.legend}
         />

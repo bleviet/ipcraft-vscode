@@ -6,6 +6,7 @@ import {
   type DiagramFlowEdge,
   type DiagramFlowNode,
 } from '../layout/elkLayout';
+import type { PinFolding } from '../layout/pinGrouping';
 import { runElkLayout } from '../layout/runElkLayout';
 import { isolatedViewKey } from '../layout/viewportPolicy';
 import { createTextMeasurer } from '../layout/textMeasure';
@@ -22,14 +23,17 @@ export interface DiagramLayout {
 
 /**
  * Lays out one level, with the hierarchy blocks in `expanded` drawn as frames
- * around their inner level; results of superseded requests are ignored.
+ * around their inner level and, with `folding`, numbered pin arrays folded;
+ * results of superseded requests are ignored. No
+ * view toggle (clock and reset wires, domains, review) is an input: they change
+ * what the canvas draws of the layout, never where the blocks sit.
  */
 export function useElkLayout(
   graph: SystemGraph,
   levelPath: string,
-  showClockReset: boolean,
   isolation: IsolatedView | null = null,
-  expanded?: ReadonlySet<string>
+  expanded?: ReadonlySet<string>,
+  folding?: PinFolding
 ): { layout: DiagramLayout | null; error: string | null } {
   const [result, setResult] = useState<{
     layout: DiagramLayout | null;
@@ -52,16 +56,20 @@ export function useElkLayout(
     const viewKey = isolation ? isolatedViewKey(levelPath, isolation.token) : levelPath;
     runElkLayout(
       buildElkInput(graph, levelPath, {
-        showClockReset,
         measure,
         ...(isolation && { isolate: isolation }),
         ...(expanded && { expanded }),
+        ...(folding && { pinFolding: folding }),
       })
     ).then(
       (laidOut) => {
         if (!stale) {
           setResult({
-            layout: { levelPath, viewKey, ...toFlowElements(laidOut, graph, levelPath, measure) },
+            layout: {
+              levelPath,
+              viewKey,
+              ...toFlowElements(laidOut, graph, levelPath, measure, folding),
+            },
             error: null,
           });
         }
@@ -78,7 +86,7 @@ export function useElkLayout(
     return () => {
       stale = true;
     };
-  }, [graph, levelPath, showClockReset, isolation, expanded, measure]);
+  }, [graph, levelPath, isolation, expanded, folding, measure]);
 
   return result;
 }

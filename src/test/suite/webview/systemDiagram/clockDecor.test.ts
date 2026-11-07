@@ -13,7 +13,6 @@ const analysis = analyzeClocks(graph);
 async function layoutOf(levelPath: string, expanded: readonly string[] = []) {
   const laidOut = await runElkLayout(
     buildElkInput(graph, levelPath, {
-      showClockReset: true,
       measure: fakeMeasure,
       expanded: new Set(expanded),
     })

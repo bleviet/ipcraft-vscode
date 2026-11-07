@@ -1,7 +1,9 @@
 /**
- * Net-name badges for pins of hidden clock and reset nets. The badge text and
- * size are reserved in the ELK graph as OUTSIDE port labels so ELK keeps room
- * for them; the label position ELK returns is where the badge is drawn.
+ * Net-name badges for pins of clock and reset nets, drawn in place of those
+ * nets' wires while the wires are off. The badge text and size are always
+ * reserved in the ELK graph as OUTSIDE port labels, so the layout is the same
+ * whether the wires or the badges are drawn; the label position ELK returns is
+ * where the badge is drawn.
  */
 
 import type { ElkLabel, ElkPort } from 'elkjs/lib/elk-api';
@@ -18,7 +20,7 @@ export interface NetBadge {
   netId: string;
   netName: string;
   category: NetCategory;
-  /** Every hidden net of the pin, in graph order; the first is `netId`. */
+  /** Every clock and reset net of the pin, in graph order; the first is `netId`. */
   nets: { id: string; name: string; category: NetCategory }[];
   text: string;
   /** Position relative to the owning node, as reserved by ELK. */
@@ -67,16 +69,12 @@ export function sourceInstance(graph: SystemGraph, net: SystemNet): string | und
   return first?.instance !== null && roles[0] === 'none' ? first?.instance : undefined;
 }
 
-/** Nets whose wires are omitted, keyed by {@link endpointKey}; empty when shown. */
-export function hiddenNetsByEndpoint(
+/** The clock and reset nets of the level, whose wires can be off, keyed by {@link endpointKey}. */
+export function clockResetNetsByEndpoint(
   graph: SystemGraph,
-  levelPath: string,
-  showClockReset: boolean
+  levelPath: string
 ): Map<string, SystemNet[]> {
   const lookup = new Map<string, SystemNet[]>();
-  if (showClockReset) {
-    return lookup;
-  }
   for (const net of netsOfLevel(graph, levelPath).filter(isClockOrReset)) {
     for (const ref of net.endpoints) {
       const key = endpointKey(ref);
@@ -86,7 +84,7 @@ export function hiddenNetsByEndpoint(
   return lookup;
 }
 
-/** One badge per pin: the first hidden net's name, plus ` +N` for the others. */
+/** One badge per pin: the first net's name, plus ` +N` for the others. */
 export function badgeLabel(graph: SystemGraph, nets: readonly SystemNet[], ref: PinRef): ElkLabel {
   const driver = sourceInstance(graph, nets[0]);
   const name = shortNetName(nets[0].name, driver ? graph.instances[driver]?.name : undefined);
@@ -101,16 +99,16 @@ export function badgeLabel(graph: SystemGraph, nets: readonly SystemNet[], ref: 
 
 export function badgeLabels(
   graph: SystemGraph,
-  hidden: ReadonlyMap<string, readonly SystemNet[]>,
+  clockReset: ReadonlyMap<string, readonly SystemNet[]>,
   ref: PinRef
 ): ElkLabel[] | undefined {
-  const nets = hidden.get(endpointKey(ref));
+  const nets = clockReset.get(endpointKey(ref));
   return nets ? [badgeLabel(graph, nets, ref)] : undefined;
 }
 
 /**
  * Reads back the badge ELK placed for a port; label x is port-relative. The
- * label carries geometry only: `nets` are the pin's hidden nets.
+ * label carries geometry only: `nets` are the pin's clock and reset nets.
  */
 export function badgeOfPort(
   port: ElkPort | undefined,

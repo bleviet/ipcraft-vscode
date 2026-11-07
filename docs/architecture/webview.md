@@ -147,15 +147,36 @@ host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
 | Layer | Owner |
 |---|---|
 | Composition root | `SystemDiagramApp.tsx`, `DiagramWorkbench.tsx`, `WorkbenchLayout.tsx` wire the toolbar, outline, canvas, details, and bottom panels |
-| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
+| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place, `pinGrouping.ts` for folding numbered pin arrays into rows, `instanceElk.ts` for the rows, size, ELK node and drawn pin rows of an instance block), `drawnLayout.ts` (which of the clock and reset wires or badges of a layout the canvas draws) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
 | Clock and reset analysis | `clocks/`, pure and computed once per graph by `analyzeClocks`: `clockTypes.ts` (the result types), `frequency.ts` (parse and format), `unionFind.ts` and `levelPaths.ts` (small shared helpers), `physicalNets.ts` (nets joined across hierarchy pins, and the driver of each), `clockRules.ts` (declarative clock output, frequency, forwarding, generator, and reset rules; which Vivado IP pins are outputs is the shared `src/domain/knownIpPins.ts`, which the Vivado reader also uses to give those pins the direction `out` with source `rule`), `clockDomains.ts`, `relatedClocks.ts` (clocks of one generator), `pinClocks.ts`, `resetSources.ts`, `crossings.ts`, and the helpers each surface reads: `crossingSummary.ts` (counts and toolbar text), `crossingEdges.ts`, `domainView.ts`, `treeSelection.ts`, `edgeView.ts`, `nodeView.ts` (wire styles, pin marks, node strips), `netTree.ts` and `treeChecks.ts` (the tree rows and checks of Details), `instanceClocks.ts`, `crossingRows.ts` (the texts of its crossing rows), `viewScope.ts` (which domains, resets and crossings the Clocks and Resets tabs list for the level and expanded blocks on screen). `clockDecor.ts` merges them into one description of what the canvas adds to a layout |
-| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize) |
-| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, and `InstanceClockDetails.tsx` the clocks of a block or port |
+| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize, `usePinFolding.ts` for Compact pins and the open pin arrays) |
+| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `PinGroupRow.tsx` draws a folded or open pin array row of an instance block; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, and `InstanceClockDetails.tsx` the clocks of a block or port |
 
 `messageState.ts` keeps the last valid graph when a later message reports an
 error or says the file is no longer recognized, so the workbench and the
 user's view stay mounted. Layout and viewport decisions are pure functions that
 are tested without React.
+
+A view's ELK layout depends on its level, its expanded blocks, its
+isolation, and its pin folding (Compact pins and the open pin arrays; absent,
+every pin has its own row), and on no other toggle. It holds every net of the level as an edge, clock
+and reset nets included, and reserves a badge label on the pins of those nets.
+`WorkbenchLayout.tsx` passes the Clocks and resets toggle to `DiagramCanvas` as
+`drawClockReset` (the unconnected-pin review pauses only the domain decorations
+of the clock context, not these wires);
+`drawnLayout.ts` then keeps either the clock and reset wires or their badges,
+and the legend, pin highlights, and clock decoration read that result. Toggling
+therefore never runs ELK again, never moves a block, and never changes the
+viewport. `isolationSubset` picks its blocks the same way in every mode: the
+selected blocks and the other end of each data wire, with the wires of any
+category between a selected block and a kept block.
+
+Pin folding is a layout input like the expanded blocks. `pinGrouping.ts` finds
+the numbered pin arrays of one side (four or more pins with the same stem,
+direction, and kind, none of them on a clock or reset net) and `instanceElk.ts`
+turns them into one port per folded group; `elkLayout.ts` points the edge ends
+of the members at that port, while `levelEdges.ts` keeps one edge per pin. Frame
+border pins and boundary pins are not folded.
 
 ## Updates and drafts
 

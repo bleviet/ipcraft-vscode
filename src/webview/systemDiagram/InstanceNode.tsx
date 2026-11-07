@@ -6,6 +6,7 @@ import type { PinHoverTarget } from './model';
 import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
 import { PinMarker } from './PinMarker';
+import { PinGroupRow } from './PinGroupRow';
 import { PinFrequency, PinHalo, PinStub } from './PinDecor';
 import { unconnectedClass } from './unconnectedPins';
 
@@ -81,17 +82,29 @@ function PinRowView({ row, highlighted, review, focused, mark, onHoverPin }: Pin
 
 export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
   const { instance, review } = data;
-  const pinRowView = (row: PinRow) => (
-    <PinRowView
-      key={row.name}
-      row={row}
-      highlighted={data.highlightedPins?.has(row.name) ?? false}
-      review={review !== undefined}
-      focused={data.focusedPin === row.name}
-      mark={data.pinMarks?.[row.name]}
-      onHoverPin={data.onHoverPin}
-    />
-  );
+  const pinRowView = (row: PinRow) =>
+    row.group ? (
+      <PinGroupRow
+        key={row.name}
+        row={row}
+        highlighted={data.highlightedPins?.has(row.name) ?? false}
+        review={review !== undefined}
+        focusedPin={data.focusedPin}
+        pinMarks={data.pinMarks}
+        onToggle={() => data.onTogglePinGroup?.(instance.path, row.name)}
+        onHoverPin={data.onHoverPin}
+      />
+    ) : (
+      <PinRowView
+        key={row.name}
+        row={row}
+        highlighted={data.highlightedPins?.has(row.name) ?? false}
+        review={review !== undefined}
+        focused={data.focusedPin === row.name}
+        mark={data.pinMarks?.[row.name]}
+        onHoverPin={data.onHoverPin}
+      />
+    );
   return (
     <div
       className="sd-node"

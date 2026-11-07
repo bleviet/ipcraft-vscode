@@ -18,9 +18,7 @@ import { fakeMeasure, loadClockFixtureGraph, loadVersalClockGraph } from './fixt
 const graph = loadClockFixtureGraph();
 
 async function layoutOf(levelPath: string, design = graph) {
-  const laidOut = await runElkLayout(
-    buildElkInput(design, levelPath, { showClockReset: true, measure: fakeMeasure })
-  );
+  const laidOut = await runElkLayout(buildElkInput(design, levelPath, { measure: fakeMeasure }));
   return {
     levelPath,
     viewKey: levelPath,
@@ -44,6 +42,7 @@ function canvas(
         isolated={false}
         review={review ? { graph: design, findings: unconnectedPins(design) } : null}
         clocks={clockContextOf(design, domainMode, layout.levelPath)}
+        drawClockReset
         focusedPin={null}
         query=""
         onSelect={jest.fn()}
@@ -66,10 +65,16 @@ describe('the canvas in the domain mode', () => {
     root = await layoutOf('/');
   }, 20000);
 
-  it('draws no level banner in the unconnected pin review either', async () => {
+  it('draws no level banner and no domain decoration in the unconnected pin review either', async () => {
+    // Clocks and resets on with the review on: the wires are drawn (`drawClockReset`) and the
+    // clock context is inactive, so the review pauses the domain decorations.
     render(canvas(root, false, graph, true));
-    await screen.findByLabelText('Legend');
+    const legend = await screen.findByLabelText('Legend');
     expect(screen.getByText('Undriven pin')).toBeVisible();
+    expect(legend).not.toHaveTextContent('FCLK_CLK0');
+    expect(legend).not.toHaveTextContent('Clock or reset domain crossing');
+    expect(document.querySelectorAll('.sd-node-strip')).toHaveLength(0);
+    expect(document.querySelectorAll('.sd-pin-freq')).toHaveLength(0);
     expect(screen.queryByLabelText('Unconnected pins')).not.toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/This level:/);
   });
@@ -205,6 +210,21 @@ describe('ElkEdge', () => {
     expect(path.style.stroke).toBe('var(--vscode-editorWarning-foreground)');
     expect(path.style.strokeDasharray).toBe('6 4');
     expect(path.style.opacity).toBe('');
+  });
+
+  it('strokes a highlighted wire in its highlight color over the domain color', () => {
+    const path = drawn({ highlightColor: 'var(--vscode-terminal-ansiRed)', domainColor: 'blue' });
+    expect(path.style.stroke).toBe('var(--vscode-terminal-ansiRed)');
+  });
+
+  it('keeps the warning color of a crossing over a highlight color', () => {
+    const path = drawn({
+      crossing: true,
+      highlightColor: 'var(--vscode-terminal-ansiRed)',
+      domainColor: 'blue',
+    });
+    expect(path.style.stroke).toBe('var(--vscode-editorWarning-foreground)');
+    expect(path.style.strokeDasharray).toBe('6 4');
   });
 
   it('fades a dimmed wire unless it is selected', () => {

@@ -29,14 +29,23 @@ const BOUNDARY_CHROME = 24;
 const HIER_TOGGLE_WIDTH = 22;
 /** Least gap between an expanded frame's border and the blocks inside it. */
 export const FRAME_MARGIN = 20;
+/** Room for the chevron of a folded or open pin array row. */
+export const CHEVRON_WIDTH = 14;
 const ELLIPSIS = '…';
 const START_SHARE = 0.6;
+
+/** A pin row to size: its `name` keys the label; the row shows `text` (default `name`) and `extra` px of chrome. */
+export interface SizedRow {
+  name: string;
+  text?: string;
+  extra?: number;
+}
 
 export interface InstanceLayout {
   width: number;
   westWidth: number;
   eastWidth: number;
-  /** Display text per pin name: the full name or its middle-ellipsized form. */
+  /** Display text per row name: the full text or its middle-ellipsized form. */
   labels: Map<string, string>;
 }
 
@@ -78,15 +87,18 @@ export function middleEllipsis(text: string, maxWidth: number, measure: TextMeas
   return middleCut(chars, low);
 }
 
-function labelFor(name: string, columnWidth: number, measure: TextMeasure): string {
-  return middleEllipsis(name, columnWidth - ROW_CHROME, measure);
+function labelFor(row: SizedRow, columnWidth: number, measure: TextMeasure): string {
+  return middleEllipsis(row.text ?? row.name, columnWidth - ROW_CHROME - (row.extra ?? 0), measure);
 }
 
-function naturalColumn(names: readonly string[], measure: TextMeasure): number {
-  if (names.length === 0) {
+function naturalColumn(rows: readonly SizedRow[], measure: TextMeasure): number {
+  if (rows.length === 0) {
     return 0;
   }
-  return ROW_CHROME + Math.max(...names.map((name) => measure(name, 'normal')));
+  return (
+    ROW_CHROME +
+    Math.max(...rows.map((row) => measure(row.text ?? row.name, 'normal') + (row.extra ?? 0)))
+  );
 }
 
 /** Splits `width` between the sides: natural widths when they fit, else the narrow side first. */
@@ -112,19 +124,13 @@ function splitColumns(width: number, west: number, east: number): [number, numbe
 
 export function instanceLayout(
   instance: SystemInstance,
-  sides: { west: readonly SystemPin[]; east: readonly SystemPin[] },
+  sides: { west: readonly SizedRow[]; east: readonly SizedRow[] },
   subtitle: string,
   measure: TextMeasure
 ): InstanceLayout {
   const { west: westPins, east: eastPins } = sides;
-  const west = naturalColumn(
-    westPins.map((pin) => pin.name),
-    measure
-  );
-  const east = naturalColumn(
-    eastPins.map((pin) => pin.name),
-    measure
-  );
+  const west = naturalColumn(westPins, measure);
+  const east = naturalColumn(eastPins, measure);
   const columns = west + east + (west > 0 && east > 0 ? COLUMN_GAP : 0) + NODE_BORDER;
   const header =
     measure(instance.name, 'semibold') +
@@ -137,11 +143,11 @@ export function instanceLayout(
   );
   const [westWidth, eastWidth] = splitColumns(width - NODE_BORDER, west, east);
   const labels = new Map<string, string>();
-  for (const pin of westPins) {
-    labels.set(pin.name, labelFor(pin.name, westWidth, measure));
+  for (const row of westPins) {
+    labels.set(row.name, labelFor(row, westWidth, measure));
   }
-  for (const pin of eastPins) {
-    labels.set(pin.name, labelFor(pin.name, eastWidth, measure));
+  for (const row of eastPins) {
+    labels.set(row.name, labelFor(row, eastWidth, measure));
   }
   return { width, westWidth, eastWidth, labels };
 }
@@ -154,14 +160,7 @@ export function framePadding(
   sides: { west: readonly SystemPin[]; east: readonly SystemPin[] },
   measure: TextMeasure
 ): { west: number; east: number } {
-  const room = (pins: readonly SystemPin[]) =>
-    Math.max(
-      FRAME_MARGIN,
-      naturalColumn(
-        pins.map((pin) => pin.name),
-        measure
-      )
-    );
+  const room = (pins: readonly SystemPin[]) => Math.max(FRAME_MARGIN, naturalColumn(pins, measure));
   return { west: room(sides.west), east: room(sides.east) };
 }
 

@@ -10,11 +10,11 @@ import type { SystemGraph, SystemInstance } from '../../../domain/systemGraph';
 import { cellCount, endpointKey, netsByEndpoint } from '../model';
 import type { FrameNodeData, FramePinRow, PinSide } from './diagramTypes';
 import { portId } from './levelEdges';
-import { badgeLabels, badgeOfPort, hiddenNetsByEndpoint } from './netBadges';
+import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
 import { FRAME_MARGIN, framePadding, type TextMeasure } from './nodeSizing';
 import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, pinRow, splitSides } from './pinRows';
 
-type HiddenNets = ReturnType<typeof hiddenNetsByEndpoint>;
+type ClockResetNets = ReturnType<typeof clockResetNetsByEndpoint>;
 type NetLookup = ReturnType<typeof netsByEndpoint>;
 
 export interface CompoundOptions {
@@ -29,12 +29,12 @@ export interface CompoundOptions {
  * ELK node of an expanded block: ELK sizes it around `children`, the inner
  * level; its pins are ports pinned to their side and centred on the border like
  * instance ports, with room inside for the header and the pin labels. The
- * ports carry the badge labels of the outer level's hidden nets.
+ * ports carry the badge labels of the outer level's clock and reset nets.
  */
 export function compoundNode(
   graph: SystemGraph,
   instance: SystemInstance,
-  hidden: HiddenNets,
+  clockReset: ClockResetNets,
   children: ElkNode[],
   { measure, baseOptions, minSize }: CompoundOptions
 ): ElkNode {
@@ -49,7 +49,7 @@ export function compoundNode(
         'elk.port.side': side === 'west' ? 'WEST' : 'EAST',
         'elk.port.borderOffset': String(-PORT_SIZE / 2),
       },
-      labels: badgeLabels(graph, hidden, { instance: instance.path, pin: pin.name }),
+      labels: badgeLabels(graph, clockReset, { instance: instance.path, pin: pin.name }),
     }))
   );
   return {
@@ -69,14 +69,14 @@ export function compoundNode(
 
 /**
  * Data of the frame drawn for a laid-out compound node. A pin sits on the nets
- * of both levels (outside nets first); only the outer level's hidden nets give
+ * of both levels (outside nets first); only the outer level's clock and reset nets give
  * it a badge, as the inner blocks show their own.
  */
 export function frameData(
   graph: SystemGraph,
   instance: SystemInstance,
   ports: ReadonlyMap<string, ElkPort>,
-  outer: { nets: NetLookup; hidden: HiddenNets }
+  outer: { nets: NetLookup; clockReset: ClockResetNets }
 ): FrameNodeData {
   const inner = netsByEndpoint(graph, instance.path);
   const rows: Record<PinSide, FramePinRow[]> = { west: [], east: [] };
@@ -87,7 +87,12 @@ export function frameData(
       ...(outer.nets.get(endpointKey(ref)) ?? []),
       ...(inner.get(endpointKey({ instance: null, pin: pin.name })) ?? []),
     ];
-    const row = pinRow(pin, nets, pin.name, badgeOfPort(port, outer.hidden.get(endpointKey(ref))));
+    const row = pinRow(
+      pin,
+      nets,
+      pin.name,
+      badgeOfPort(port, outer.clockReset.get(endpointKey(ref)))
+    );
     rows[row.side].push({ ...row, y: (port?.y ?? 0) + (port?.height ?? PORT_SIZE) / 2 });
   }
   return { instance, cellCount: cellCount(graph, instance.path), ...rows };

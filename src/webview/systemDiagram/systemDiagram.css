@@ -779,6 +779,22 @@ input:focus-visible {
   color: var(--vscode-editorWarning-foreground);
 }
 
+/* The Clocks and resets toggle and its count chip, which is a button of its own. */
+.sd-tool-group {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.sd-tool-group > .sd-tool-count {
+  margin-left: 0;
+  cursor: pointer;
+}
+
+.sd-tool-group > .sd-tool-count:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
 .sd-row-selected {
   background: var(--vscode-list-inactiveSelectionBackground);
 }
@@ -999,5 +1015,28 @@ input:focus-visible {
 }
 
 .sd-check[data-tone='muted'] {
+  color: var(--vscode-descriptionForeground);
+}
+
+/* Folded numbered pin arrays (issue #256). */
+.sd-pin-group {
+  cursor: pointer;
+}
+
+.sd-pin-group:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.sd-pin-group:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.sd-pin-chevron {
+  flex: none;
+  width: 14px;
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
   color: var(--vscode-descriptionForeground);
 }

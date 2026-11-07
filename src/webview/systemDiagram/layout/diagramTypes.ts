@@ -27,7 +27,7 @@ export interface PinRow {
   /** Every net the pin sits on, in graph order. */
   netNames: string[];
   definedBy?: SystemPin['definedBy'];
-  /** Present when the pin's clock or reset net is hidden. */
+  /** Present on a pin of a clock or reset net; drawn while the wires of those nets are not. */
   badge?: NetBadge;
   interfaceType?: string;
   signalType?: SystemPin['signalType'];
@@ -35,6 +35,17 @@ export interface PinRow {
   label: string;
   /** No net touches the pin (a clock or reset net hidden behind a badge still counts). */
   unconnected: boolean;
+  /** Present on the row of a numbered pin array: the folded row, or the header of an open one. */
+  group?: PinGroupRow;
+}
+
+/** What a group row stands for; `id` is its row name, port name and handle id. */
+export interface PinGroupRow {
+  id: string;
+  /** The whole label, e.g. `M00..M27_AXI [28]`; `PinRow.label` may be its ellipsized form. */
+  label: string;
+  open: boolean;
+  members: PinRow[];
 }
 
 /** Display state the canvas adds to the nodes of a hierarchy-capable block (instance or frame). */
@@ -44,7 +55,7 @@ export interface InstanceUiData {
   dimmed?: boolean;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
-  /** Present only while the Clock domains mode is on. */
+  /** Present only while the domain decorations are on (Clocks and resets on, review off). */
   domains?: NodeDomains;
   /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */
   pinMarks?: PinMarks;
@@ -61,6 +72,8 @@ export interface InstanceUiData {
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
   /** Expands or collapses the hierarchy block `instancePath` in place. */
   onToggleExpand?: (instancePath: string) => void;
+  /** Folds or expands the numbered pin array `groupId` of the block `instancePath`. */
+  onTogglePinGroup?: (instancePath: string, groupId: string) => void;
 }
 
 export interface InstanceNodeData extends Record<string, unknown>, InstanceUiData {

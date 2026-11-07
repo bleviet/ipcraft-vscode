@@ -11,7 +11,7 @@ interface OutlineTreeProps {
   selection: Selection | null;
   /** Findings to count on rows while the unconnected-pin review is on, else null. */
   review: readonly UnconnectedPin[] | null;
-  /** The analysis to show domain dots and crossing counts from while the Clock domains mode is on, else null. */
+  /** The analysis to show domain dots and crossing counts from while the domain decorations are on, else null. */
   clocks: ClockAnalysis | null;
   onSelect: (selection: Selection | null, levelPath?: string) => void;
 }

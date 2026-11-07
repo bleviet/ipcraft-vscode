@@ -48,3 +48,31 @@ export function pinRow(
     badge,
   };
 }
+
+/** Row of a numbered pin array: the folded row, or (`open`) the header above its member rows. */
+export function groupRow(
+  id: string,
+  fullLabel: string,
+  label: string,
+  open: boolean,
+  members: PinRow[]
+): PinRow {
+  const first = members[0];
+  // Unconnected members have no category: only the connected ones decide it.
+  const categories = new Set(
+    members.filter((member) => !member.unconnected).map((member) => member.category)
+  );
+  const category = categories.size === 1 ? [...categories][0] : undefined;
+  return {
+    name: id,
+    isInterface: first.isInterface,
+    side: first.side,
+    direction: first.direction,
+    directionSource: first.directionSource,
+    ...(category !== undefined && { category }),
+    netNames: members.flatMap((member) => member.netNames),
+    label,
+    unconnected: members.every((member) => member.unconnected),
+    group: { id, label: fullLabel, open, members },
+  };
+}

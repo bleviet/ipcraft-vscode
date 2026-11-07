@@ -19,6 +19,32 @@ export interface PinMark {
 /** Marks by pin name; pins without a mark are absent. */
 export type PinMarks = Readonly<Record<string, PinMark>>;
 
+/**
+ * The mark of a folded pin array: a crossing when any member is a crossing end;
+ * color and frequency only when every member with a mark agrees on them.
+ */
+export function groupPinMark(
+  marks: PinMarks | undefined,
+  memberNames: readonly string[]
+): PinMark | undefined {
+  const own = memberNames.flatMap((name) => (marks?.[name] ? [marks[name]] : []));
+  if (own.length === 0) {
+    return undefined;
+  }
+  const shared = <Key extends 'color' | 'frequency'>(key: Key) =>
+    own.every((mark) => mark[key] === own[0][key]) ? own[0][key] : undefined;
+  const color = shared('color');
+  const frequency = shared('frequency');
+  const crossing = own.some((mark) => mark.crossing);
+  return color !== undefined || frequency !== undefined || crossing
+    ? {
+        ...(color !== undefined && { color }),
+        ...(frequency !== undefined && { frequency }),
+        ...(crossing && { crossing: true as const }),
+      }
+    : undefined;
+}
+
 export interface PinMarkContext {
   graph: SystemGraph;
   analysis: ClockAnalysis;

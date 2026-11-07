@@ -10,7 +10,7 @@ const graph = loadFixtureGraph();
 const DSP = '/dsp_pipeline';
 
 describe('remapBoundaryEnds', () => {
-  const edges = levelEdges(graph, DSP, true);
+  const edges = levelEdges(graph, DSP);
 
   it('re-points boundary ends at the pins of the block and leaves instance ends alone', () => {
     const remapped = remapBoundaryEnds(edges, DSP);
@@ -21,6 +21,7 @@ describe('remapBoundaryEnds', () => {
     });
     expect(byId(remapped, `${DSP}::Conn1#1`)).toEqual({
       id: `${DSP}::Conn1#1`,
+      category: 'axis',
       sourceNode: DSP,
       sourcePin: 'S_AXIS',
       targetNode: `${DSP}/axis_data_fifo_0`,
@@ -37,6 +38,7 @@ describe('remapBoundaryEnds', () => {
   it('drops an edge that starts and ends on the same port', () => {
     const loop: LevelEdge = {
       id: 'loop#0',
+      category: 'clock',
       sourceNode: boundaryId(DSP, 'aclk'),
       sourcePin: 'aclk',
       targetNode: DSP,

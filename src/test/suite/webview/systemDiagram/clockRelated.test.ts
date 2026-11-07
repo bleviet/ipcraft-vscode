@@ -302,7 +302,11 @@ describe('related crossings are no CDC or RDC', () => {
   const analysis = analyzeClocks(graph);
 
   it('leaves the toolbar count at the number of domains', () => {
-    expect(toolbarSummary(analysis)).toEqual({ text: '3', warning: false });
+    expect(toolbarSummary(analysis)).toEqual({
+      text: '3',
+      label: '3 clock domains',
+      warning: false,
+    });
   });
 
   it('marks no pin, wire or node as a crossing', () => {
