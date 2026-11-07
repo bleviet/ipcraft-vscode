@@ -61,7 +61,7 @@ foundations that this proposal extends rather than replaces:
 |---|---|---|
 | Multi-select 1-hop isolation | `src/webview/systemDiagram/isolation.ts` (`isolateLevel`), triggered from the context menu (`Isolate N Selected`) | Adds a toolbar **Isolate** toggle with **1-Hop / 2-Hop** depth switching and a floating canvas banner showing `M of N blocks` |
 | In-place subsystem expansion | `src/webview/systemDiagram/expansion.ts` (`expandGraph`) and `FrameNode.tsx` (`+` / `-` header button) | Adds a compact 1-line **inline pipeline preview** (`stage_0 -> stage_1 -> stage_2`) and recursive cell count on collapsed hierarchy blocks so users can see what is inside before expanding |
-| Clock and reset wire hiding | `visibleNets` in `src/webview/systemDiagram/model.ts` and net-name badges on pins (`netBadges.ts`) | Also folds clock/reset utility blocks (`proc_sys_reset`) and clock/reset pins out of the default dataflow layout when **Clocks and resets** is off |
+| Clock and reset wire hiding | `visibleNets` in `src/webview/systemDiagram/model.ts` and net-name badges on pins (`netBadges.ts`) | Unchanged: **Clocks and resets** stays a drawing toggle. Clock and reset utility blocks (`proc_sys_reset`), clock and reset pins, and clock and reset ports are never hidden, so toggling it never moves a block |
 | Outline search and stepper | `src/webview/systemDiagram/search.ts` and `useSearchStepper.ts` | Adds outline kind filter pills (`All`, `Subsystems`, `IP / RTL`, `Ports`), recursive subsystem cell counts, and search-hit markers on the world minimap |
 
 ## Proposed Navigation Capabilities
@@ -95,6 +95,7 @@ block geometry, and one zoom-driven drawing mode (`Auto`), which never does:
 | Decision | Rationale |
 |---|---|
 | **`Compact` is the default for every design**, not only for large levels. A **Compact pins** toolbar toggle switches to `Full pins`. | One predictable default. Folding only acts on arrays of 4 or more pins, so small designs are mostly unchanged, and the same design never opens in a different mode because of a size heuristic. |
+| **`proc_sys_reset` blocks and clock and reset pins are never hidden**, whatever the state of **Clocks and resets**. | Hiding them would save column height on Vivado designs (one `proc_sys_reset` per clock domain), but it would make the Clocks and resets toggle move blocks, and the user would lose their place on every toggle. Pin folding and the `Arch` mode reduce height without that cost. |
 | **`Auto` changes only what is drawn, never block geometry.** It does not switch between `Arch`, `Compact`, and `Full pins` while zooming. | A geometry switch re-runs ELK at every threshold crossing and moves blocks under the cursor while the user zooms, which costs layout time on large levels and breaks the zoom anchor. Hiding or rescaling text is a CSS change with no layout run. This also keeps the existing rule that view toggles change what is drawn, never where blocks sit; `Compact`, `Full pins`, `Arch`, and opening a pin group remain explicit user actions that re-run layout, like expanding a hierarchy block in place. |
 
 Rules for **Pin-Group Folding**:
@@ -230,5 +231,4 @@ without changing the extension-host parsers (`BdTclReader`, `QsysReader`,
 
 | Question | Options / Notes |
 |---|---|
-| Hiding `proc_sys_reset` blocks when `Clocks and resets` is off | Hiding reset-only utility blocks saves substantial column height on Vivado designs (which often instantiate one `proc_sys_reset` per clock domain), but must remain discoverable via the Outline and re-appear immediately when `Clocks and resets`, `Clock domains`, or `Unconnected pins` is enabled |
 | Bundling across expanded `FrameNode` boundaries | Phase 1 should bundle edges between collapsed blocks on the active level; bundling edges that cross into an in-place expanded `FrameNode` can follow once ELK port-group constraints are characterized |

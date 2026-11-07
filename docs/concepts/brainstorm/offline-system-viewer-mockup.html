@@ -1529,10 +1529,6 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
   }
 
   // ---------- 2. Neighborhood Focus (1-Hop / 2-Hop Slice) & Path Tracer ----------
-  function isResetUtilityNode(n) {
-    return (n.vlnv || '').includes('proc_sys_reset');
-  }
-
   function computeIsolatedSet(L) {
     if (!state.isolate || state.ux === 'baseline') return null;
     const { rootId, hops } = state.isolate;
@@ -1608,20 +1604,13 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
   function layout(L) {
     const lod = effectiveLod();
     const keep = activeNodeFilter(L);
-    const hideRstBlocks = state.ux === 'proposed' && !state.showClk && !state.dom && !state.unc && !keep;
-    const hideClkRstPins = state.ux === 'proposed' && !state.showClk && !state.dom && !state.unc;
-    const filterPins = (list) => hideClkRstPins ? list.filter((p) => p.t !== 'clk' && p.t !== 'rst') : list;
-    const visibleNodes = L.nodes.filter((n) => {
-      if (keep) return keep.has(n.id);
-      if (hideRstBlocks && isResetUtilityNode(n)) return false;
-      if (hideClkRstPins && n.kind === 'hport' && (n.east[0] || n.west[0]) && ['clk', 'rst'].includes((n.east[0] || n.west[0]).t)) return false;
-      return true;
-    });
+    // Clocks and resets only changes what is drawn: no block, port, or pin is hidden, so nothing moves.
+    const visibleNodes = L.nodes.filter((n) => !keep || keep.has(n.id));
     const traceOrder = state.trace && state.trace.open && state.trace.order ? state.trace.order : null;
     const cols = {};
     visibleNodes.forEach((n) => {
-      n._wRows = displayPinRows(L.key, n, 'w', filterPins(n.west), lod);
-      n._eRows = displayPinRows(L.key, n, 'e', filterPins(n.east), lod);
+      n._wRows = displayPinRows(L.key, n, 'w', n.west, lod);
+      n._eRows = displayPinRows(L.key, n, 'e', n.east, lod);
       n.w = isPortNode(n) ? PW : NW;
       if (isPortNode(n)) {
         n.h = PH;
