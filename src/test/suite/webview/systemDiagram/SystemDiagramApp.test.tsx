@@ -1309,6 +1309,25 @@ describe('SystemDiagramApp', () => {
       expect(rowOf('spare_in', 'axi_gpio_0')).toHaveClass('sd-row-selected');
     });
 
+    it('zooms in to the block of a clicked row at low zoom, but never zooms out', async () => {
+      const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      await review();
+      await settle();
+      mockSetCenter.mockClear();
+      mockViewport = { x: 0, y: 0, zoom: 0.3 };
+      fireEvent.click(rowOf('spare_in', 'axi_gpio_0'));
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      const zoom = (mockSetCenter.mock.calls[0][2] as { zoom: number }).zoom;
+      expect(zoom).toBeGreaterThan(0.3);
+      expect(zoom).toBeLessThanOrEqual(0.8);
+
+      mockViewport = { x: 0, y: 0, zoom: 1.7 };
+      mockSetCenter.mockClear();
+      fireEvent.click(rowOf('spare_out', 'axi_gpio_0'));
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+      expect(mockSetCenter.mock.calls[0][2]).toEqual({ zoom: 1.7 });
+    });
+
     it('switches level for a pin of a nested hierarchy', async () => {
       await review();
       fireEvent.click(rowOf('cfg_open', 'coeff_bank (hierarchy pin)'));
