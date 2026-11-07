@@ -10,7 +10,7 @@ import type { SystemGraph, SystemInstance } from '../../../domain/systemGraph';
 import { cellCount, endpointKey, netsByEndpoint } from '../model';
 import type { FrameNodeData, FramePinRow, PinSide } from './diagramTypes';
 import { portId } from './levelEdges';
-import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
+import { badgeOfPort, type BadgeLabels, type clockResetNetsByEndpoint } from './netBadges';
 import { FRAME_MARGIN, framePadding, type TextMeasure } from './nodeSizing';
 import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, pinRow, splitSides } from './pinRows';
 
@@ -32,9 +32,8 @@ export interface CompoundOptions {
  * ports carry the badge labels of the outer level's clock and reset nets.
  */
 export function compoundNode(
-  graph: SystemGraph,
   instance: SystemInstance,
-  clockReset: ClockResetNets,
+  badges: BadgeLabels,
   children: ElkNode[],
   { measure, baseOptions, minSize }: CompoundOptions
 ): ElkNode {
@@ -49,7 +48,7 @@ export function compoundNode(
         'elk.port.side': side === 'west' ? 'WEST' : 'EAST',
         'elk.port.borderOffset': String(-PORT_SIZE / 2),
       },
-      labels: badgeLabels(graph, clockReset, { instance: instance.path, pin: pin.name }),
+      labels: badges({ instance: instance.path, pin: pin.name }),
     }))
   );
   return {

@@ -17,7 +17,7 @@ import {
 } from './archCard';
 import type { InstanceNodeData, PinRow, PinSide } from './diagramTypes';
 import { portId } from './levelEdges';
-import { badgeLabels, badgeOfPort, type clockResetNetsByEndpoint } from './netBadges';
+import { badgeOfPort, type BadgeLabels, type clockResetNetsByEndpoint } from './netBadges';
 import {
   CHEVRON_WIDTH,
   INSTANCE_MAX_WIDTH,
@@ -152,11 +152,10 @@ export function sizeOfInstance(
 
 /** ELK node of an instance block: a port per pin row and per folded group row, or per side of a card. */
 export function instanceNode(
-  graph: SystemGraph,
   instance: SystemInstance,
   rows: InstanceRows,
   width: number,
-  clockReset: ClockResetNets
+  badges: BadgeLabels
 ): ElkNode {
   const ports: ElkPort[] = rows.arch
     ? archPorts(instance.path, rows.arch, width)
@@ -173,10 +172,7 @@ export function instanceNode(
                   height: PORT_SIZE,
                   labels:
                     row.kind === 'pin'
-                      ? badgeLabels(graph, clockReset, {
-                          instance: instance.path,
-                          pin: row.pin.name,
-                        })
+                      ? badges({ instance: instance.path, pin: row.pin.name })
                       : undefined,
                 },
               ]

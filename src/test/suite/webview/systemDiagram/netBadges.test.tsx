@@ -3,14 +3,16 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import {
+  BADGE_CHAR_WIDTH,
   badgeOfPort,
   clockResetNetsByEndpoint,
+  levelBadgeLabels,
   shortNetName,
   sourceInstance,
 } from '../../../../webview/systemDiagram/layout/netBadges';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { NetBadgeView } from '../../../../webview/systemDiagram/NetBadgeView';
-import { loadQsysFixtureGraph, fakeMeasure } from './fixtureGraph';
+import { loadFixtureGraph, loadQsysFixtureGraph, fakeMeasure } from './fixtureGraph';
 
 const graph = loadQsysFixtureGraph();
 
@@ -62,6 +64,24 @@ describe('net badges of pins on several hidden nets', () => {
     expect(row?.badge?.netId).toBe('/::clk_0.clk_reset\nline2');
     expect(row?.badge?.nets.map((n) => n.id)).toContain('/::clk_0.clk_reset\nline2');
   }, 20000);
+});
+
+describe('levelBadgeLabels', () => {
+  const zynq = loadFixtureGraph();
+  const badges = levelBadgeLabels(zynq, clockResetNetsByEndpoint(zynq, '/'));
+
+  it('labels every pin of a clock net with its short name, sized to the text', () => {
+    const dma = badges({ instance: '/axi_dma_0', pin: 's_axi_lite_aclk' });
+    const reset = badges({ instance: '/rst_ps7_0_100M', pin: 'slowest_sync_clk' });
+    expect(dma).toHaveLength(1);
+    expect(dma?.[0]).toMatchObject({ id: 'badge:/axi_dma_0::s_axi_lite_aclk', text: 'FCLK_CLK0' });
+    expect(reset).toEqual([{ ...dma?.[0], id: 'badge:/rst_ps7_0_100M::slowest_sync_clk' }]);
+    expect(dma?.[0].width).toBeGreaterThan('FCLK_CLK0'.length * BADGE_CHAR_WIDTH);
+  });
+
+  it('gives no label to a pin off clock and reset nets', () => {
+    expect(badges({ instance: '/axi_dma_0', pin: 'S_AXI_LITE' })).toBeUndefined();
+  });
 });
 
 describe('shortNetName', () => {

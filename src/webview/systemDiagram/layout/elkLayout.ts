@@ -21,7 +21,7 @@ import { foldedEdges, toElkEdge } from './foldedEdges';
 import { compoundNode, frameData } from './expandedLayout';
 import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
 import { bundleElkEdge, laidOutBundleEdges, planInputBundles } from './levelBundles';
-import { badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
+import { badgeOfPort, clockResetNetsByEndpoint, levelBadgeLabels } from './netBadges';
 import {
   PORT_LABEL_OPTIONS,
   type InstanceRows,
@@ -31,6 +31,7 @@ import {
   instanceRows,
   sizeOfInstance,
 } from './instanceElk';
+import { NODE_PLACEMENT, withNodePlacement } from './nodePlacement';
 import type { PinFolding } from './pinGrouping';
 import { PARTITIONING_ON, withHopIndexes, withPartitions } from './tracePartition';
 import { boundaryId, cellCount, endpointKey, netsByEndpoint } from '../model';
@@ -71,8 +72,8 @@ const LAYOUT_OPTIONS = {
   'elk.layered.spacing.nodeNodeBetweenLayers': '32',
   'elk.layered.spacing.edgeNodeBetweenLayers': '12',
   'elk.spacing.edgeEdge': '8',
-  // Network simplex placement pulls connected blocks into line, so levels stay short.
-  'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
+  // Replaced by Brandes-Koepf on large graphs, see `nodePlacement.ts`.
+  [NODE_PLACEMENT]: 'NETWORK_SIMPLEX',
 };
 
 type ClockResetNets = ReturnType<typeof clockResetNetsByEndpoint>;
@@ -152,6 +153,7 @@ function levelNodes(context: BuildContext, levelPath: string): ElkNode[] {
   const level = graph.levels[levelPath];
   const children: ElkNode[] = [];
   const clockReset = clockResetNetsByEndpoint(graph, levelPath);
+  const badges = levelBadgeLabels(graph, clockReset);
   const rows = levelRows(context, levelPath, clockReset);
   const isolate = isCurrent ? options.isolate : undefined;
   const shown = (id: string) => isolate?.nodeIds.has(id) ?? true;
@@ -166,7 +168,7 @@ function levelNodes(context: BuildContext, levelPath: string): ElkNode[] {
       context.compound = true;
       const full = instanceRows(instance, clockReset);
       children.push(
-        compoundNode(graph, instance, clockReset, levelNodes(context, path), {
+        compoundNode(instance, badges, levelNodes(context, path), {
           measure: options.measure,
           baseOptions: { ...LAYOUT_OPTIONS, ...PORT_LABEL_OPTIONS },
           minSize: {
@@ -178,11 +180,10 @@ function levelNodes(context: BuildContext, levelPath: string): ElkNode[] {
     } else {
       children.push(
         instanceNode(
-          graph,
           instance,
           collapsed,
           sizeOfInstance(graph, instance, collapsed, options.measure).width,
-          clockReset
+          badges
         )
       );
     }
@@ -192,11 +193,10 @@ function levelNodes(context: BuildContext, levelPath: string): ElkNode[] {
     if (shown(boundaryId(levelPath, pin.name))) {
       children.push(
         boundaryNode(
-          graph,
           levelPath,
           pin,
           boundaryLayout(pin, options.measure).width,
-          clockReset,
+          badges,
           isolate?.order?.includes(boundaryId(levelPath, pin.name)) ?? false
         )
       );
@@ -216,7 +216,7 @@ export function buildElkInput(
     options.isolate?.order !== undefined
       ? { ...LAYOUT_OPTIONS, ...PARTITIONING_ON }
       : LAYOUT_OPTIONS;
-  return {
+  return withNodePlacement({
     id: `level:${levelPath}`,
     layoutOptions: context.compound
       ? {
@@ -227,7 +227,7 @@ export function buildElkInput(
       : layoutOptions,
     children,
     edges: context.edges,
-  };
+  });
 }
 
 function portsOf(node: ElkNode): Map<string, ElkPort> {
