@@ -12,7 +12,7 @@ interface BundleDetailsProps {
   /** Selects one net of the bundle. */
   onSelect: (selection: Selection) => void;
   onUnbundle: (key: string) => void;
-  onIsolate: (nodeIds: string[]) => void;
+  onIsolatePair: (a: string, b: string) => void;
 }
 
 /** Instance name, or boundary pin name, of a node of the level. */
@@ -27,13 +27,13 @@ export function BundleDetails({
   isolatable,
   onSelect,
   onUnbundle,
-  onIsolate,
+  onIsolatePair,
 }: BundleDetailsProps) {
   const bundle = edge.data.bundle;
   if (!bundle) {
     return null;
   }
-  const pair = [edge.source, edge.target];
+  const pair: [string, string] = [edge.source, edge.target];
   const netName = (netId: string) => graph.nets.find((net) => net.id === netId)?.name ?? netId;
   return (
     <div className="space-y-3">
@@ -52,7 +52,7 @@ export function BundleDetails({
           type="button"
           className="sd-tool"
           disabled={!isolatable(pair)}
-          onClick={() => onIsolate(pair)}
+          onClick={() => onIsolatePair(...pair)}
         >
           Isolate pair
         </button>

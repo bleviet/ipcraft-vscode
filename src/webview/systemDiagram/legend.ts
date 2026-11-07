@@ -36,6 +36,12 @@ export function categoryShort(category: NetCategory): string {
   return LEGEND_ORDER.find((entry) => entry.category === category)?.short ?? category;
 }
 
+/** Position of a net category in the legend order (unknown categories last). */
+export function categoryRank(category: NetCategory): number {
+  const index = LEGEND_ORDER.findIndex((entry) => entry.category === category);
+  return index < 0 ? LEGEND_ORDER.length : index;
+}
+
 /**
  * Entries for the categories among `edges`, in legend order. `hiddenNets` are
  * the clock and reset nets drawn only as badges; their categories count too.

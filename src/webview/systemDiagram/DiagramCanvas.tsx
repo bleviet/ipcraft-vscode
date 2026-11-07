@@ -80,6 +80,8 @@ interface DiagramCanvasProps {
   /** Draws the bundle `key` as separate wires. */
   onUnbundle?: (key: string) => void;
   onIsolate: (nodeIds: string[]) => void;
+  /** Isolates exactly two blocks and the wires between them (a bundle's Isolate Pair); absent, the bundle menu has no such item. */
+  onIsolatePair?: (a: string, b: string) => void;
   /** Sets the From / To end of a path trace to a block or port; absent, the menu offers no trace. */
   onTraceFrom?: (nodeId: string) => void;
   onTraceTo?: (nodeId: string) => void;
@@ -128,6 +130,7 @@ export function DiagramCanvas({
   onToggleItems,
   onUnbundle,
   onIsolate,
+  onIsolatePair,
   onTraceFrom,
   onTraceTo,
   onShowAll,
@@ -176,7 +179,10 @@ export function DiagramCanvas({
     bundleKey !== undefined && onToggleItems
       ? onToggleItems(nets, bundleKey)
       : onToggleNode(nets[0]);
-  const pair = (edge: { source: string; target: string }) => [edge.source, edge.target];
+  const pair = (edge: { source: string; target: string }): [string, string] => [
+    edge.source,
+    edge.target,
+  ];
 
   const { hover, onHoverPin } = usePinHover(layout);
 
@@ -381,7 +387,7 @@ export function DiagramCanvas({
                   pair: pair(edge),
                   isolatable,
                   onUnbundle,
-                  onIsolate,
+                  onIsolatePair,
                 })
               : []),
             ...highlightItems(targets),

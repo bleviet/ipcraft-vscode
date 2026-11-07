@@ -16,16 +16,20 @@ const HOPS: { hops: IsolationHops; label: string }[] = [
   { hops: 2, label: '2-Hop' },
 ];
 
-/** Toolbar chip of the isolated view: a node isolation with its hop radius, or a traced path. */
+/** Toolbar chip of the isolated view: a node isolation with its hop radius, a traced path, or a pair. */
 export function IsolationChip({ graph, view, onSetHops, onShowAll }: IsolationChipProps) {
-  const { trace } = view;
+  const { trace, pair } = view;
   const shown = `${view.nodeIds.size} of ${view.levelNodeCount} shown`;
   return (
     <span className="sd-isolated">
       <span>
         {trace
           ? `Path · ${nodeName(graph, trace.from)} -> ${nodeName(graph, trace.to)} · ${trace.order.length} blocks`
-          : `Isolated · ${view.selectedCount} selected · ${shown}`}
+          : pair
+            ? pair.a === pair.b
+              ? `Pair · ${nodeName(graph, pair.a)} (self)`
+              : `Pair · ${nodeName(graph, pair.a)} ↔ ${nodeName(graph, pair.b)}`
+            : `Isolated · ${view.selectedCount} selected · ${shown}`}
       </span>
       {view.hops !== undefined &&
         HOPS.map(({ hops, label }) => (

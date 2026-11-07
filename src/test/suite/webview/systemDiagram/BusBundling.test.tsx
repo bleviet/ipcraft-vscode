@@ -200,7 +200,7 @@ describe('clicking a bundle', () => {
     fireEvent.click(bundleEdge()!);
     fireEvent.click(details().getByRole('button', { name: 'Isolate pair' }));
     await settle();
-    expect(screen.getByText(/Isolated · 2 selected/)).toBeInTheDocument();
+    expect(screen.getByText('Pair · src ↔ dst')).toBeInTheDocument();
   }, 20000);
 });
 
@@ -218,13 +218,13 @@ describe('the context menu of a bundle', () => {
     expect(edgeIds()).toEqual(['/::n_a#1', '/::n_b#1', '/::n_c#1']);
   }, 20000);
 
-  it('isolates the two blocks on Isolate Pair', async () => {
+  it('isolates the pair on Isolate Pair', async () => {
     fireEvent.contextMenu(bundleEdge()!);
     fireEvent.click(
       within(screen.getByRole('menu')).getByRole('menuitem', { name: 'Isolate Pair' })
     );
     await settle();
-    expect(screen.getByText(/Isolated · 2 selected/)).toBeInTheDocument();
+    expect(screen.getByText('Pair · src ↔ dst')).toBeInTheDocument();
   }, 20000);
 });
 

@@ -1,4 +1,4 @@
-import { isolationSubset } from '../../../../webview/systemDiagram/isolation';
+import { isolationSubset, pairSubset } from '../../../../webview/systemDiagram/isolation';
 import { levelEdges } from '../../../../webview/systemDiagram/layout/levelEdges';
 import { boundaryId } from '../../../../webview/systemDiagram/model';
 import { chainGraph } from './chainGraph';
@@ -160,5 +160,38 @@ describe('isolationSubset with two hops', () => {
     expect([...one.edgeIds].every((id) => two.edgeIds.has(id))).toBe(true);
     expect(two.nodeIds.has('/processing_system7_0')).toBe(true);
     expect(two.nodeIds.has('/axi_dma_0')).toBe(true);
+  });
+});
+
+describe('pairSubset', () => {
+  const edges = levelEdges(graph, '/');
+  const between = (a: string, b: string) =>
+    edges.filter(
+      (edge) =>
+        (edge.sourceNode === a && edge.targetNode === b) ||
+        (edge.sourceNode === b && edge.targetNode === a)
+    );
+
+  it('keeps exactly the two nodes and the edges between them in both directions', () => {
+    const a = '/axi_dma_0';
+    const b = '/dsp_pipeline';
+    const { nodeIds, edgeIds } = pairSubset(graph, '/', a, b);
+    expect(sorted(nodeIds)).toEqual([a, b].sort());
+    expect(between(a, b).length).toBeGreaterThan(0);
+    expect(sorted(edgeIds)).toEqual(
+      between(a, b)
+        .map((edge) => edge.id)
+        .sort()
+    );
+    expect(pairSubset(graph, '/', b, a).edgeIds).toEqual(edgeIds);
+  });
+
+  it('keeps clock edges between the pair too, and no edge to a third node', () => {
+    const ps = '/processing_system7_0';
+    const dma = '/axi_dma_0';
+    const { edgeIds } = pairSubset(graph, '/', ps, dma);
+    const categories = between(ps, dma).map((edge) => edge.category);
+    expect(categories).toContain('clock');
+    expect(edgeIds.size).toBe(categories.length);
   });
 });

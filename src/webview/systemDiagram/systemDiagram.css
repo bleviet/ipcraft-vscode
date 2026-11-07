@@ -1175,3 +1175,128 @@ input:focus-visible {
   font-size: calc(12px * var(--sd-name-scale, 1));
   line-height: 1.1;
 }
+
+/* The connectivity matrix: an opaque overlay on the canvas area, scrolling inside. */
+.sd-matrix {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  overflow: auto;
+  background: var(--vscode-editor-background);
+  outline: none;
+}
+
+.sd-matrix-empty {
+  padding: 16px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.sd-matrix-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+}
+
+.sd-matrix-table th,
+.sd-matrix-table td {
+  border-right: 1px solid var(--vscode-panel-border);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.sd-matrix-corner,
+.sd-matrix-col,
+.sd-matrix-row {
+  position: sticky;
+  background: var(--vscode-editor-background);
+}
+
+.sd-matrix-corner {
+  top: 0;
+  left: 0;
+  z-index: 3;
+}
+
+.sd-matrix-col {
+  top: 0;
+  z-index: 2;
+  vertical-align: bottom;
+}
+
+.sd-matrix-row {
+  left: 0;
+  z-index: 1;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.sd-matrix-col[data-hover],
+.sd-matrix-row[data-hover] {
+  background: var(--vscode-list-hoverBackground);
+  font-weight: 600;
+}
+
+.sd-matrix-head {
+  padding: 4px 6px;
+  color: var(--vscode-foreground);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sd-matrix-col .sd-matrix-head {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
+
+.sd-matrix-head:hover {
+  text-decoration: underline;
+}
+
+.sd-matrix-cell {
+  min-width: 56px;
+  height: 28px;
+  padding: 0;
+  text-align: center;
+}
+
+.sd-matrix-cell[data-diagonal] {
+  background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
+}
+
+.sd-matrix-button {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 2px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.sd-matrix-button:hover,
+.sd-matrix-button:focus-visible {
+  background: var(--vscode-list-hoverBackground);
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.sd-matrix-pill {
+  padding: 0 5px;
+  font-size: 10px;
+  white-space: nowrap;
+  color: var(--vscode-foreground);
+  border: 1px solid var(--pill);
+  border-left-width: 3px;
+  border-radius: 3px;
+}
+
+.sd-matrix-port {
+  font-size: 9px;
+  font-weight: 400;
+  text-transform: uppercase;
+  color: var(--vscode-descriptionForeground);
+}
