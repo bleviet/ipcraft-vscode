@@ -8,7 +8,12 @@ import { diagramBounds, nodeBounds } from '../../../../webview/systemDiagram/lay
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { createTextMeasurer } from '../../../../webview/systemDiagram/layout/textMeasure';
 import { searchMatches } from '../../../../webview/systemDiagram/search';
-import { loadClockFixtureGraph, loadFixtureGraph, loadReviewFixtureGraph } from './fixtureGraph';
+import {
+  loadClockFixtureGraph,
+  loadFixtureGraph,
+  loadReviewFixtureGraph,
+  loadVersalClockGraph,
+} from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
 let mockElkFailures = 0;
@@ -155,15 +160,19 @@ function openPanels(): void {
   }
 }
 
-/** Renders the app with a graph; `panelsOpen: false` keeps the initial hidden panels. */
+/**
+ * Renders the app with a graph; `panelsOpen: false` keeps the initial hidden panels.
+ * `ready` is the node whose presence says the level is drawn.
+ */
 async function renderWithGraph({
   panelsOpen = true,
   design = graph,
-}: { panelsOpen?: boolean; design?: typeof graph } = {}) {
+  ready = '/axi_dma_0',
+}: { panelsOpen?: boolean; design?: typeof graph; ready?: string } = {}) {
   render(<SystemDiagramApp />);
   send({ type: 'graph', graph: design });
   await waitFor(() => expect(screen.getByTestId('flow')).toBeInTheDocument());
-  await screen.findByTestId('node:/axi_dma_0');
+  await screen.findByTestId(`node:${ready}`);
   if (panelsOpen) {
     openPanels();
   }
@@ -1480,6 +1489,23 @@ describe('SystemDiagramApp', () => {
       expect(toggle()).toHaveAttribute('aria-pressed', 'false');
     });
 
+    it('lists a reset tied to a constant as such, with its one sink checked ok', async () => {
+      await renderWithGraph();
+      fireEvent.click(toggle());
+      const row = rowOf('tie_valid/dout');
+      const cells = within(row).getAllByRole('cell');
+      expect(cells[1]).toHaveTextContent('tied to a constant');
+      expect(cells[2]).toHaveTextContent('xlconstant, tied to a constant');
+      expect(cells[3]).toHaveTextContent('1');
+      fireEvent.click(row);
+      expect(details().getByText(/^Reset net · tied to a constant/)).toBeVisible();
+      expect(
+        details().getByText('is tied to a constant and never toggles.', { exact: false })
+      ).toBeVisible();
+      expect(details().getByText('✓ tied to a constant')).toBeVisible();
+      expect(details().getByText('None found.')).toBeVisible();
+    });
+
     it('counts the domains when no crossing is flagged', async () => {
       await renderWithGraph();
       expect(toggle()).toHaveTextContent(/Clock domains\s*1$/);
@@ -1842,6 +1868,132 @@ describe('SystemDiagramApp', () => {
       fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
       fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
       expect(details().getByText(/Clock domains not checked:/)).toBeVisible();
+    });
+  });
+
+  describe('clock domains of a design that sets no frequency (Versal platform)', () => {
+    const versal = loadVersalClockGraph();
+    const bottom = () => within(screen.getByRole('region', { name: 'Bottom panel' }));
+    const toggle = () => screen.getByRole('button', { name: /^Clock domains/ });
+    const nodeBox = (id: string, selector: string) =>
+      screen.getByTestId(`node:${id}`).parentElement!.querySelector(selector) as HTMLElement;
+    const rowOf = (text: string) =>
+      bottom()
+        .getAllByRole('row')
+        .find((row) => within(row).queryAllByRole('cell')[0]?.textContent?.trim() === text)!;
+    async function domains(design: typeof versal = versal) {
+      await renderWithGraph({ design, ready: '/stream_src' });
+      fireEvent.click(toggle());
+    }
+
+    it('counts the domains in the toolbar: related clocks are no crossing', async () => {
+      await renderWithGraph({ design: versal, ready: '/stream_src' });
+      expect(toggle()).toHaveTextContent(/Clock domains\s*3$/);
+    });
+
+    it('shows no word "unknown" and no frequency anywhere in the domain mode', async () => {
+      await domains();
+      fireEvent.click(bottom().getByRole('button', { name: /^OK/ }));
+      expect(screen.getByRole('region', { name: 'Bottom panel' }).textContent).not.toMatch(
+        /unknown/i
+      );
+      expect(document.body.textContent).not.toMatch(/unknown|\bMHz\b|\bGHz\b|\bkHz\b/i);
+      expect(document.querySelectorAll('.sd-pin-freq')).toHaveLength(0);
+    });
+
+    it('leaves the Frequency cell of a domain empty, and shows where it comes from only when known', async () => {
+      await domains();
+      const cells = within(rowOf('clk_out1')).getAllByRole('cell');
+      expect(cells[1]).toBeEmptyDOMElement();
+      expect(cells[2]).toHaveTextContent('clk_wizard_0/clk_out1');
+      expect(cells[3]).toBeEmptyDOMElement();
+      expect(cells[4]).toHaveTextContent('5');
+    });
+
+    it('lists the related crossings under their own chip, on by default', async () => {
+      await domains();
+      const chip = bottom().getByRole('button', { name: /^Related clocks 2$/ });
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+      const row = bottom().getByText('stream_src/M_AXIS').closest('tr')!;
+      expect(within(row).getByRole('img', { name: 'Related clocks' })).toBeVisible();
+      expect(row).toHaveTextContent(
+        'Both clocks come from clk_wizard_0; Vivado times paths between its outputs'
+      );
+      expect(bottom().getByRole('button', { name: /^Crossing 0$/ })).toBeVisible();
+      fireEvent.click(chip);
+      expect(bottom().queryByText('stream_src/M_AXIS')).not.toBeInTheDocument();
+    });
+
+    it('marks no block as a crossing and badges no node', async () => {
+      await domains();
+      expect(nodeBox('/stream_src', '.sd-node')).toHaveAttribute('data-crossing-end', 'false');
+      expect(nodeBox('/stream_sink', '.sd-node')).toHaveAttribute('data-crossing-end', 'false');
+      expect(document.querySelectorAll('.sd-node-dom')).toHaveLength(0);
+    });
+
+    it('opens a clock tree without a frequency line: the source and a muted note', async () => {
+      await domains();
+      fireEvent.click(rowOf('clk_out1'));
+      expect(details().getByText(/^Clock net · domain/)).toHaveTextContent('clk_out1');
+      expect(document.querySelector('.sd-freq-big')).toBeNull();
+      expect(details().getByText('Frequency not set in the script.')).toBeVisible();
+      expect(details().getByRole('button', { name: 'clk_wizard_0/clk_out1' })).toBeVisible();
+      expect(details().queryByText(/Source not known/)).not.toBeInTheDocument();
+      expect(details().queryByText('None found.')).not.toBeInTheDocument();
+      expect(details().getByText(/Both clocks come from clk_wizard_0/)).toBeVisible();
+      expect(details().getByText('Related clocks.')).toBeVisible();
+    });
+
+    it('checks a reset sink on a related clock as related, not as a crossing', async () => {
+      await domains();
+      fireEvent.click(rowOf('rst_clk_out2/peripheral_aresetn'));
+      expect(details().getByText(/^Reset net · released on/)).toHaveTextContent('clk_out2');
+      expect(details().getByText('≈ related clocks')).toBeVisible();
+      expect(details().getByText('✓ clk_out2')).toBeVisible();
+      expect(details().queryByText('Reset domain crossing.')).not.toBeInTheDocument();
+    });
+
+    it('says the source is not known when no rule or direction names it', async () => {
+      const unknown = loadVersalClockGraph();
+      unknown.instances['/clk_wizard_0'].vlnv = 'acme.com:ip:other_wizard:1.0';
+      await domains(unknown);
+      const first = rowOf('clk_wizard_0_clk_out1');
+      expect(within(first).getAllByRole('cell')[2]).toHaveTextContent('not known');
+      fireEvent.click(first);
+      expect(
+        details().getByText(
+          'Source not known: no rule or declared direction names one pin as the driver.'
+        )
+      ).toBeVisible();
+      expect(details().getByText('Frequency not set in the script.')).toBeVisible();
+      expect(details().queryByText('source')).not.toBeInTheDocument();
+      expect(document.querySelector('.sd-freq-big')).toBeNull();
+    });
+
+    it('lists a reset whose source is not known, and checks none of its non-asynchronous sinks', async () => {
+      const unknown = loadVersalClockGraph();
+      unknown.instances['/ps_cips'].vlnv = 'acme.com:ip:other_ps:1.0';
+      await domains(unknown);
+      const row = rowOf('ps_cips_pl0_resetn');
+      expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('unknown');
+      expect(within(row).getAllByRole('cell')[2]).toHaveTextContent('source not known');
+      expect(within(row).getAllByRole('cell')[3]).toHaveTextContent('4');
+      fireEvent.click(row);
+      expect(details().getByText(/^Reset net · release clock unknown/)).toBeVisible();
+      expect(
+        details().getByText(
+          'Source not known: no rule or declared direction names one pin as the driver.'
+        )
+      ).toBeVisible();
+      expect(details().queryByText('source')).not.toBeInTheDocument();
+      expect(details().getByText('Reset tree · 4 sinks')).toBeVisible();
+      expect(details().getByText('? source not known')).toBeVisible();
+      expect(details().getAllByText('✓ asynchronous input')).toHaveLength(3);
+      expect(
+        bottom().getByText(
+          'The source of ps_cips_pl0_resetn is not known, so the clock that releases it is not known'
+        )
+      ).toBeVisible();
     });
   });
 

@@ -9,6 +9,7 @@ import type { Crossing, CrossingEnd, CrossingStatus } from './clockTypes';
 export const CROSSING_STATUSES: readonly { status: CrossingStatus; label: string; icon: string }[] =
   [
     { status: 'cross', label: 'Crossing', icon: '!' },
+    { status: 'related', label: 'Related clocks', icon: '≈' },
     { status: 'inside', label: 'Block spans domains', icon: '⇄' },
     { status: 'unchecked', label: 'Not checked', icon: '?' },
     { status: 'ok', label: 'OK', icon: '✓' },
@@ -33,9 +34,13 @@ export function asynchronousText(end: CrossingEnd, role: 'from' | 'to'): string 
   return role === 'from' ? 'asynchronous' : 'asynchronous input';
 }
 
-/** What tells the clocks of a crossing: the reason when not checked, else where each end's clock is known from. */
+/** What tells the clocks of a crossing: the reason when not checked or related, else where each end's clock is known from. */
 export function crossingKnownFrom(crossing: Crossing): { reason?: string; sources: string[] } {
-  if (crossing.kind === 'block' || crossing.status === 'unchecked') {
+  if (
+    crossing.kind === 'block' ||
+    crossing.status === 'unchecked' ||
+    crossing.status === 'related'
+  ) {
     return { reason: crossing.reason, sources: [] };
   }
   return {

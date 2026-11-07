@@ -526,3 +526,75 @@ describe('readBdTcl: review regressions', () => {
     });
   });
 });
+
+describe('readBdTcl: -freq_hz', () => {
+  const read = (script: string) => readBdTcl(script, '/x/design.tcl');
+  const boundary = (g: SystemGraph, name: string, level = '/') =>
+    g.levels[level].boundaryPins.find((p) => p.name === name)!;
+
+  it('stores the flag of a port as CONFIG.FREQ_HZ and keeps the port name', () => {
+    const g = read(
+      [
+        'set clk [ create_bd_port -dir I -type clk -freq_hz 100000000 s_axi_aclk ]',
+        'set bare [ create_bd_port -dir I -type clk m_axis_clk ]',
+      ].join('\n')
+    );
+    expect(g.levels['/'].boundaryPins.map((p) => p.name)).toEqual(['s_axi_aclk', 'm_axis_clk']);
+    expect(boundary(g, 's_axi_aclk')).toMatchObject({
+      direction: 'in',
+      signalType: 'clk',
+      parameters: { 'CONFIG.FREQ_HZ': '100000000' },
+    });
+    expect(boundary(g, 'm_axis_clk').parameters).toEqual({});
+  });
+
+  it('never takes the value for the name, wherever the flag stands', () => {
+    const g = read(
+      [
+        'create_bd_port -dir I -freq_hz 250000000 -type clk a_clk',
+        'create_bd_port -freq_hz 50000000 -dir I -type clk b_clk',
+      ].join('\n')
+    );
+    expect(g.levels['/'].boundaryPins.map((p) => [p.name, p.parameters['CONFIG.FREQ_HZ']])).toEqual(
+      [
+        ['a_clk', '250000000'],
+        ['b_clk', '50000000'],
+      ]
+    );
+  });
+
+  it('stores the flag of a hierarchy pin', () => {
+    const g = read(
+      [
+        'set h [create_bd_cell -type hier h]',
+        'current_bd_instance $h',
+        'create_bd_pin -dir I -type clk -freq_hz 125000000 aclk',
+      ].join('\n')
+    );
+    expect(boundary(g, 'aclk', '/h').parameters).toEqual({ 'CONFIG.FREQ_HZ': '125000000' });
+    expect(g.instances['/h'].pins.find((p) => p.name === 'aclk')?.parameters).toEqual({
+      'CONFIG.FREQ_HZ': '125000000',
+    });
+  });
+
+  it('lets a later set_property override the flag', () => {
+    const g = read(
+      [
+        'set clk [ create_bd_port -dir I -type clk -freq_hz 100000000 s_axi_aclk ]',
+        'set_property -dict [ list CONFIG.FREQ_HZ {200000000} ] $clk',
+      ].join('\n')
+    );
+    expect(boundary(g, 's_axi_aclk').parameters['CONFIG.FREQ_HZ']).toBe('200000000');
+  });
+
+  it('keeps a set_property that precedes the flag of a later declaration of the same port', () => {
+    const g = read(
+      [
+        'set clk [ create_bd_port -dir I -type clk s_axi_aclk ]',
+        'set_property CONFIG.FREQ_HZ 200000000 $clk',
+        'create_bd_port -dir I -type clk -freq_hz 100000000 s_axi_aclk',
+      ].join('\n')
+    );
+    expect(boundary(g, 's_axi_aclk').parameters['CONFIG.FREQ_HZ']).toBe('200000000');
+  });
+});

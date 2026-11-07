@@ -3,7 +3,7 @@ import type { PinRef, SystemGraph, SystemNet } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import type { ClockDomain, ResetSource } from './clocks/clockTypes';
 import { UNRELEASED_RESET_COLOR } from './clocks/domainView';
-import { formatHz } from './clocks/frequency';
+import { formatHz, nameWithFrequency } from './clocks/frequency';
 import { netTreeRows, pinRow, type TreePinRow, type TreeRow } from './clocks/netTree';
 import { endKey } from './clocks/physicalNets';
 import {
@@ -28,6 +28,10 @@ interface TreeDetailsProps {
   onSelect: (selection: Selection) => void;
   onReveal: (line: number, uri?: string) => void;
 }
+
+/** Said where a domain or a reset has no pin that is known to drive it. */
+const SOURCE_NOT_KNOWN =
+  'Source not known: no rule or declared direction names one pin as the driver.';
 
 const ROLE_TEXT: Partial<Record<TreePinRow['role'], string>> = {
   enter: 'enters hierarchy',
@@ -127,10 +131,13 @@ export function ClockTreeDetails({
           Clock net · domain <DomainDot color={domain.color} /> {domain.name}
         </div>
         <h2 className="sd-h2">{net.name}</h2>
-        <div className="sd-freq-big" style={{ color: domain.color }}>
-          {formatHz(domain.hz)}
-        </div>
+        {domain.hz !== undefined && (
+          <div className="sd-freq-big" style={{ color: domain.color }}>
+            {formatHz(domain.hz)}
+          </div>
+        )}
       </header>
+      {domain.sourceRef === undefined && <p className="sd-note">{SOURCE_NOT_KNOWN}</p>}
       {origin ? (
         <>
           <p>
@@ -154,21 +161,20 @@ export function ClockTreeDetails({
           </p>
         </>
       ) : (
-        <p className="sd-note">
-          No frequency rule or value for this source. Set CONFIG.FREQ_HZ on the port, or read the IP
-          definition.
-        </p>
+        <p className="sd-note">Frequency not set in the script.</p>
       )}
       <section>
         <h3 className="sd-h3">
           Clock tree · {domain.loads} loads in {domain.levels} {levelPlural}
         </h3>
-        <SourceLine
-          graph={graph}
-          level={domain.sourceLevel}
-          source={domain.sourceRef}
-          onSelect={onSelect}
-        />
+        {domain.sourceRef && (
+          <SourceLine
+            graph={graph}
+            level={domain.sourceLevel}
+            source={domain.sourceRef}
+            onSelect={onSelect}
+          />
+        )}
         <TreeList
           rows={rows}
           selectedNetId={net.id}
@@ -206,15 +212,14 @@ export function ClockTreeDetails({
       </section>
       <section>
         <h3 className="sd-h3">Crossings with other domains</h3>
-        {relations.crossings.length > 0 ? (
-          relations.crossings.map((crossing) => (
-            <CrossingNote
-              key={crossing.id}
-              crossing={crossing}
-              onShowNet={(netId) => onSelect({ kind: 'net', id: netId })}
-            />
-          ))
-        ) : (
+        {[...relations.crossings, ...relations.related].map((crossing) => (
+          <CrossingNote
+            key={crossing.id}
+            crossing={crossing}
+            onShowNet={(netId) => onSelect({ kind: 'net', id: netId })}
+          />
+        ))}
+        {relations.crossings.length + relations.related.length === 0 && (
           <p className="opacity-70">None found.</p>
         )}
         {relations.spanning.length > 0 && (
@@ -258,6 +263,8 @@ export function ResetTreeDetails({
   const color = reset.domain?.color ?? UNRELEASED_RESET_COLOR;
   const release = reset.async ? (
     'asynchronous'
+  ) : reset.constant ? (
+    'tied to a constant'
   ) : reset.domain ? (
     <>
       released on <DomainDot color={reset.domain.color} /> {reset.domain.name}
@@ -271,23 +278,31 @@ export function ResetTreeDetails({
         <div className="sd-eyebrow">Reset net · {release}</div>
         <h2 className="sd-h2">{net.name}</h2>
       </header>
-      <p>
-        {reset.label}{' '}
-        {reset.async
-          ? 'is asserted and released asynchronously.'
-          : reset.domain
-            ? `is released synchronously to ${reset.domain.name}.`
-            : 'has no rule that says which clock releases it.'}{' '}
-        {reset.from && <span className="sd-chip-tag">{reset.from}</span>}
-      </p>
+      {reset.source ? (
+        <p>
+          {reset.label}{' '}
+          {reset.async
+            ? 'is asserted and released asynchronously.'
+            : reset.constant
+              ? 'is tied to a constant and never toggles.'
+              : reset.domain
+                ? `is released synchronously to ${reset.domain.name}.`
+                : 'has no rule that says which clock releases it.'}{' '}
+          {reset.from && <span className="sd-chip-tag">{reset.from}</span>}
+        </p>
+      ) : (
+        <p className="sd-note">{SOURCE_NOT_KNOWN}</p>
+      )}
       <section>
         <h3 className="sd-h3">Reset tree · {reset.sinks.length} sinks</h3>
-        <SourceLine
-          graph={graph}
-          level={reset.source.level}
-          source={{ instance: reset.source.instance, pin: reset.source.pin }}
-          onSelect={onSelect}
-        />
+        {reset.source && (
+          <SourceLine
+            graph={graph}
+            level={reset.level}
+            source={{ instance: reset.source.instance, pin: reset.source.pin }}
+            onSelect={onSelect}
+          />
+        )}
         <TreeList
           rows={rows}
           selectedNetId={net.id}
@@ -298,24 +313,20 @@ export function ResetTreeDetails({
       </section>
       <section>
         <h3 className="sd-h3">Reset domain crossings</h3>
-        {relations.crossings.length > 0 ? (
-          <>
-            {relations.crossings.map((crossing) => (
-              <CrossingNote
-                key={crossing.id}
-                crossing={crossing}
-                onShowNet={(netId) => onSelect({ kind: 'net', id: netId })}
-              />
-            ))}
-            {relations.domains.map((domain) => (
-              <p key={domain.id} className="sd-note">
-                Give the blocks on {domain.name} · {formatHz(domain.hz)} their own proc_sys_reset
-                with slowest_sync_clk on {domain.name}, so that their reset is released on their
-                clock.
-              </p>
-            ))}
-          </>
-        ) : (
+        {[...relations.crossings, ...relations.related].map((crossing) => (
+          <CrossingNote
+            key={crossing.id}
+            crossing={crossing}
+            onShowNet={(netId) => onSelect({ kind: 'net', id: netId })}
+          />
+        ))}
+        {relations.domains.map((domain) => (
+          <p key={domain.id} className="sd-note">
+            Give the blocks on {nameWithFrequency(domain)} their own proc_sys_reset with
+            slowest_sync_clk on {domain.name}, so that their reset is released on their clock.
+          </p>
+        ))}
+        {relations.crossings.length + relations.related.length === 0 && (
           <p className="opacity-70">None found.</p>
         )}
       </section>

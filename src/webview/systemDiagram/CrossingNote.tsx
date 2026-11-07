@@ -7,10 +7,17 @@ interface CrossingNoteProps {
   onShowNet?: (netId: string) => void;
 }
 
-/** One sentence about a data or reset crossing: flagged, not checked, or fine. */
+/** One sentence about a data or reset crossing: flagged, related clocks, not checked, or fine. */
 export function CrossingNote({ crossing, onShowNet }: CrossingNoteProps) {
   if (crossing.status === 'unchecked') {
     return <p className="sd-note">Clock domains not checked: {crossing.reason}.</p>;
+  }
+  if (crossing.status === 'related') {
+    return (
+      <p className="sd-note">
+        <b>Related clocks.</b> {crossing.reason}.
+      </p>
+    );
   }
   if (crossing.status !== 'cross') {
     return <p className="opacity-70">{crossing.reason}.</p>;

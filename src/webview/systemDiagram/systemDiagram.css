@@ -921,6 +921,10 @@ input:focus-visible {
   color: var(--vscode-editorWarning-foreground);
 }
 
+.sd-sev[data-status='related'] {
+  color: var(--vscode-editorInfo-foreground, var(--vscode-charts-blue));
+}
+
 .sd-sev[data-status='unchecked'] {
   color: var(--vscode-descriptionForeground);
 }

@@ -39,8 +39,9 @@ export function edgeMarks(
     return {};
   }
   if (category === 'clock') {
+    // A clock-named net on no domain (a `locked` output) is an ordinary net.
     const domain = analysis.domainOfNet(netId);
-    return domain ? { domainColor: domain.color } : {};
+    return domain ? { domainColor: domain.color } : { dimmed: true };
   }
   if (category === 'reset') {
     const reset = analysis.resetOfNet(netId);

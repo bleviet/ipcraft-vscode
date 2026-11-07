@@ -51,7 +51,7 @@ export interface InstanceClocks {
 }
 
 function isSourceOf(reset: ResetSource, instance: SystemInstance, pin: string): boolean {
-  return reset.source.instance === instance.path && reset.source.pin === pin;
+  return reset.source?.instance === instance.path && reset.source.pin === pin;
 }
 
 function resetCrossingOf(
@@ -118,6 +118,6 @@ export function instanceClocks(
     resets,
     hasUnchecked:
       interfaces.some((row) => row.knownFrom === undefined) ||
-      resets.some((row) => row.check?.tone === 'muted'),
+      resets.some((row) => row.source.source !== undefined && row.check?.tone === 'muted'),
   };
 }

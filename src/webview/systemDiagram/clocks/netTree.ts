@@ -69,10 +69,11 @@ export function pinRow(
 }
 
 /**
- * Rows of the tree that starts at net `netId`, whose pin `source` is the driver.
+ * Rows of the tree that starts at net `netId`, whose pin `source` is the driver
+ * (absent when the source is not known: every pin of the net is listed).
  * The net rows start at depth 1; the caller draws the source above them.
  */
-export function netTreeRows(graph: SystemGraph, netId: string, source: PinRef): TreeRow[] {
+export function netTreeRows(graph: SystemGraph, netId: string, source?: PinRef): TreeRow[] {
   const nets = new Map<string, ReadonlyMap<string, SystemNet[]>>();
   const netsAt = (level: string, ref: PinRef): SystemNet[] => {
     let lookup = nets.get(level);
@@ -85,14 +86,14 @@ export function netTreeRows(graph: SystemGraph, netId: string, source: PinRef): 
   const rows: TreeRow[] = [];
   const visited = new Set<string>();
 
-  const walk = (net: SystemNet, entry: PinRef, depth: number): void => {
+  const walk = (net: SystemNet, entry: PinRef | undefined, depth: number): void => {
     if (visited.has(net.id)) {
       return;
     }
     visited.add(net.id);
     rows.push({ kind: 'net', depth, net, levelName: levelName(graph, net.level) });
     for (const ref of net.endpoints) {
-      if (sameRef(ref, entry)) {
+      if (entry && sameRef(ref, entry)) {
         continue;
       }
       if (ref.instance === null) {

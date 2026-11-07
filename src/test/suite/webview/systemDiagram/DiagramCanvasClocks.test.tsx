@@ -10,24 +10,24 @@ import type { DiagramFlowEdge } from '../../../../webview/systemDiagram/layout/e
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { clockContextOf } from './clockContext';
-import { fakeMeasure, loadClockFixtureGraph } from './fixtureGraph';
+import { fakeMeasure, loadClockFixtureGraph, loadVersalClockGraph } from './fixtureGraph';
 
 // Uses the real @xyflow/react, whose panels the app tests mock away: the banner and the
 // legend of the domain mode, and how a wire and a pin frequency are drawn.
 const graph = loadClockFixtureGraph();
 
-async function layoutOf(levelPath: string) {
+async function layoutOf(levelPath: string, design = graph) {
   const laidOut = await runElkLayout(
-    buildElkInput(graph, levelPath, { showClockReset: true, measure: fakeMeasure })
+    buildElkInput(design, levelPath, { showClockReset: true, measure: fakeMeasure })
   );
   return {
     levelPath,
     viewKey: levelPath,
-    ...toFlowElements(laidOut, graph, levelPath, fakeMeasure),
+    ...toFlowElements(laidOut, design, levelPath, fakeMeasure),
   };
 }
 
-function canvas(layout: Awaited<ReturnType<typeof layoutOf>>, domainMode: boolean) {
+function canvas(layout: Awaited<ReturnType<typeof layoutOf>>, domainMode: boolean, design = graph) {
   return (
     <ReactFlowProvider>
       <DiagramCanvas
@@ -37,7 +37,7 @@ function canvas(layout: Awaited<ReturnType<typeof layoutOf>>, domainMode: boolea
         selectedNodeIds={[]}
         isolated={false}
         review={null}
-        clocks={clockContextOf(graph, domainMode, layout.levelPath)}
+        clocks={clockContextOf(design, domainMode, layout.levelPath)}
         focusedPin={null}
         query=""
         onSelect={jest.fn()}
@@ -109,6 +109,39 @@ describe('the canvas in the domain mode', () => {
     const labels = [...document.querySelectorAll('.sd-pin-freq')].map((label) => label.textContent);
     expect(labels).toContain('125 MHz');
     expect(labels).toContain('200 MHz');
+  });
+});
+
+describe('the canvas in the domain mode, on a design that sets no frequency', () => {
+  const versal = loadVersalClockGraph();
+  let root: Awaited<ReturnType<typeof layoutOf>>;
+  beforeAll(async () => {
+    root = await layoutOf('/', versal);
+  }, 20000);
+
+  it('names the domains of the level alone and mentions the related clocks apart', async () => {
+    render(canvas(root, true, versal));
+    expect(await screen.findByLabelText('Clock domains')).toHaveTextContent(
+      'This level: clk_out1, clk_out2, pl0_ref_clk. 2 between related clocks.'
+    );
+  });
+
+  it('lists the domains in the legend by name, with no frequency', async () => {
+    render(canvas(root, true, versal));
+    const legend = within(await screen.findByLabelText('Legend'));
+    for (const name of ['clk_out1', 'clk_out2', 'pl0_ref_clk']) {
+      expect(legend.getByText(name)).toBeVisible();
+    }
+    expect(screen.getByLabelText('Legend').textContent).not.toMatch(/unknown|Hz/i);
+  });
+
+  it('draws no frequency label and no word "unknown" on the canvas', async () => {
+    render(canvas(root, true, versal));
+    await screen.findByText('stream_src');
+    expect(document.querySelectorAll('.sd-pin-freq')).toHaveLength(0);
+    expect(document.body.textContent).not.toMatch(/unknown|Hz/i);
+    // The domain strips and pin colors stay.
+    expect(document.querySelectorAll('.sd-node-strip').length).toBeGreaterThan(0);
   });
 });
 

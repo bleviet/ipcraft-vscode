@@ -34,7 +34,7 @@ describe('domain view helpers', () => {
     expect(pinDomainColor(analysis, '/', at('/axi_dma_0', 'M_AXI_MM2S'))).toBeUndefined();
   });
 
-  it('labels a clock pin with its frequency, `unknown` without one', () => {
+  it('labels a clock pin with its frequency, and gives none when the script sets none', () => {
     expect(pinFrequencyLabel(analysis, DSP, at(`${DSP}/fir_compiler_0`, 'aclk'))).toBe('200 MHz');
     expect(pinFrequencyLabel(analysis, '/', at(null, 'ext_clk'))).toBe('125 MHz');
     expect(pinFrequencyLabel(analysis, '/', at('/axi_dma_0', 'S_AXIS_S2MM'))).toBeUndefined();
@@ -44,7 +44,7 @@ describe('domain view helpers', () => {
     ];
     expect(
       pinFrequencyLabel(analyzeClocks(unknown), DSP, at(`${DSP}/fir_compiler_0`, 'aclk'))
-    ).toBe('unknown');
+    ).toBeUndefined();
   });
 
   it('gives a node one strip segment per domain and its crossing counts', () => {

@@ -10,7 +10,12 @@ import {
 } from '../../../../webview/systemDiagram/clocks/crossingSummary';
 import { endKey } from '../../../../webview/systemDiagram/clocks/physicalNets';
 import { loadTwoClockGraph } from './clockTestGraphs';
-import { loadClockFixtureGraph, loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
+import {
+  loadClockFixtureGraph,
+  loadFixtureGraph,
+  loadPortClocksGraph,
+  loadQsysFixtureGraph,
+} from './fixtureGraph';
 
 const DSP = '/dsp_pipeline';
 
@@ -18,21 +23,35 @@ describe('crossingCounts', () => {
   const { crossings } = analyzeClocks(loadClockFixtureGraph());
 
   it('counts per status, all kinds or one', () => {
-    expect(crossingCounts(crossings)).toEqual({ cross: 4, inside: 1, unchecked: 3, ok: 9 });
-    expect(crossingCounts(crossings, 'data')).toEqual({ cross: 2, inside: 0, unchecked: 2, ok: 4 });
+    expect(crossingCounts(crossings)).toEqual({
+      cross: 4,
+      related: 0,
+      inside: 1,
+      unchecked: 3,
+      ok: 9,
+    });
+    expect(crossingCounts(crossings, 'data')).toEqual({
+      cross: 2,
+      related: 0,
+      inside: 0,
+      unchecked: 2,
+      ok: 4,
+    });
     expect(crossingCounts(crossings, 'reset')).toEqual({
       cross: 2,
+      related: 0,
       inside: 0,
       unchecked: 1,
       ok: 5,
     });
     expect(crossingCounts(crossings, 'block')).toEqual({
       cross: 0,
+      related: 0,
       inside: 1,
       unchecked: 0,
       ok: 0,
     });
-    expect(crossingCounts([])).toEqual({ cross: 0, inside: 0, unchecked: 0, ok: 0 });
+    expect(crossingCounts([])).toEqual({ cross: 0, related: 0, inside: 0, unchecked: 0, ok: 0 });
   });
 });
 
@@ -99,7 +118,7 @@ describe('levelClockSummary', () => {
         '1 clock domain crossing without a synchronizer. ' +
         '2 resets released by another clock domain. ' +
         'axis_data_fifo_0 spans more than one domain. ' +
-        '2 not checked: the clock of a pin is unknown offline.'
+        '2 not checked; see the Clocks tab.'
     );
   });
 
@@ -109,7 +128,7 @@ describe('levelClockSummary', () => {
       'This level: ext_clk 125 MHz, FCLK_CLK0 100 MHz, FCLK_CLK1 200 MHz. ' +
         '1 clock domain crossing without a synchronizer. ' +
         '3 more inside nested hierarchies. ' +
-        '1 not checked: the clock of a pin is unknown offline.'
+        '1 not checked; see the Clocks tab.'
     );
   });
 
@@ -148,15 +167,20 @@ describe('levelClockSummary', () => {
     );
   });
 
-  it('shows an unknown frequency as unknown and ignores an unknown level', () => {
+  it('names a domain without a frequency alone and ignores an unknown level', () => {
     const graph = loadClockFixtureGraph();
     delete graph.instances['/processing_system7_0'].parameters[
       'CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ'
     ];
     const analysis = analyzeClocks(graph);
-    expect(levelClockSummary(analysis, graph, DSP)).toContain(
-      'FCLK_CLK0 unknown, FCLK_CLK1 200 MHz'
-    );
+    expect(levelClockSummary(analysis, graph, DSP)).toContain('FCLK_CLK0, FCLK_CLK1 200 MHz');
     expect(levelClockSummary(analysis, graph, '/nope')).toBe('This level: no clock domains.');
+  });
+
+  it('sends a connection that is not checked for a port or unknown source to the Clocks tab', () => {
+    const ports = loadPortClocksGraph();
+    expect(levelClockSummary(analyzeClocks(ports), ports, '/')).toBe(
+      'This level: m_axis_clk, s_axi_aclk 100 MHz. 1 not checked; see the Clocks tab.'
+    );
   });
 });

@@ -117,12 +117,38 @@ checkbox is disabled while it is on. It also turns the **Unconnected pins**
 review off, and turning that review on turns this mode off.
 
 A clock domain is a clock source and every pin its nets reach, followed through
-hierarchy pins and, in Platform Designer, through clock source blocks.
+hierarchy pins and, in Platform Designer, through clock source blocks. What
+matters is which pins share one clock; the frequency is extra information.
+
+### The source of a clock
+
+Vivado's exported script does not list the driver of a net first, so IPCraft
+does not take the first pin of a net as its source. The source is the one pin
+that a rule names as a clock output (for example `FCLK_CLK<n>` of a Zynq PS,
+`clk_out<n>` of a clocking wizard, `pl<n>_ref_clk` of Versal CIPS) or whose
+direction the design or an `.ip.yml` states, such as an input port of the
+design. When there is none or more than one, the source is not known: the
+domain is still there, named after the first net of the clock, and Details says
+"Source not known". A reset source is found the same way, from the rules for
+reset outputs. The output of an `xlconstant` is a constant that never toggles,
+so the sinks of a reset tied to it are **OK** ("Tied to a constant"). The
+outputs of `util_vector_logic`, `util_reduced_logic` and `axi_gpio`
+(`gpio_io_o`, `gpio2_io_o`) are known to drive a reset, but no rule says which
+clock releases it, so its sinks are **Not checked**. A reset net without a known
+source is still a reset source, named after its first net, with every pin on it
+as a sink; an asynchronous input still passes, and every other sink is **Not
+checked**.
+
+Status outputs of clocking blocks, such as `locked` of a clocking wizard or
+`dcm_locked` of a `proc_sys_reset`, are not clocks even when their net is named
+like one. They belong to no domain and are drawn as ordinary nets.
 
 ### Frequencies
 
-A frequency comes only from a value the design file sets, never from a vendor
-default. It is the requested value: Vivado can round the output of a processing
+A frequency is shown only when the design file sets it, never from a vendor
+default, and the word "unknown" is never printed for it: a domain without a
+frequency shows its name alone, and Details says "Frequency not set in the
+script." It is the requested value: Vivado can round the output of a processing
 system or a clocking wizard during validation, and the achieved frequency is not
 available offline.
 
@@ -132,16 +158,16 @@ available offline.
 | Zynq UltraScale+ `zynq_ultra_ps_e`, pin `pl_clk<n>` | `CONFIG.PSU__CRL_APB__PL<n>_REF_CTRL__FREQMHZ` |
 | Clocking Wizard `clk_wiz`, pin `clk_out<n>` | `CONFIG.CLKOUT<n>_REQUESTED_OUT_FREQ` |
 | Platform Designer `clock_source` | `clockFrequency` |
-| External port or hierarchy pin | `CONFIG.FREQ_HZ` |
+| External port or hierarchy pin | `CONFIG.FREQ_HZ`, or the `-freq_hz` flag of `create_bd_port` / `create_bd_pin` that Vivado writes in exported scripts |
 
-When the parameter is not set, or the source has no rule, the frequency is shown
-as `unknown`. An `.ip.yml` clock can declare the frequency it expects
-(`frequency`); Details then checks it against the domain it sits on.
+When the parameter is not set, or the source has no rule, no frequency is shown.
+An `.ip.yml` clock can declare the frequency it expects (`frequency`); Details
+then checks it against the domain it sits on.
 
 ### On the diagram
 
 - Clock wires and the markers of clock pins take the color of their domain, and
-  each clock pin shows its frequency next to the wire.
+  each clock pin of a domain with a frequency shows it next to the wire.
 - Reset wires are dotted and take the color of the domain that releases them;
   an asynchronous reset, or one whose release clock is unknown, is muted.
 - Other wires are dimmed.
@@ -153,7 +179,9 @@ as `unknown`. An `.ip.yml` clock can declare the frequency it expects
   block, anywhere inside it), or `N DOMAINS` when it spans several domains.
 - A banner summarizes the level on show, the legend lists the domains of the
   level, and the outline shows a dot per domain on each block and the number of
-  crossings inside each hierarchy block.
+  crossings inside each hierarchy block. Connections between related clocks
+  are mentioned in the banner ("N between related clocks") and are not counted
+  or drawn as crossings.
 
 ### Select a clock or reset net
 
@@ -162,8 +190,9 @@ on every level: the wires and pins of the tree are highlighted, the blocks and
 ports it does not touch are dimmed, and the clock pins of a clock tree show the
 frequency. Details shows the tree:
 
-- a **clock tree** with the frequency, the parameter it was requested by and
-  where, the tree from the source through every level with a check against the
+- a **clock tree** with the frequency and the parameter it was requested by and
+  where (or "Frequency not set in the script."), the tree from the source
+  through every level with a check against the
   `.ip.yml` expectation where there is one, the resets released on that domain,
   the crossings with other domains, and the blocks that have clocks on another
   domain too;
@@ -187,9 +216,18 @@ followed through hierarchies.
   other than the one that releases the reset, or a reset that is asynchronous
   (the Zynq PS resets) feeding a sink that does not accept an asynchronous reset.
   A `proc_sys_reset` accepts one on `ext_reset_in` and `aux_reset_in`.
+- A connection between **related clocks** is neither flagged nor unchecked. The
+  outputs of one clocking wizard (`clk_wiz`, `clk_wizard`) are related, and so
+  is the clock that feeds its input (`clk_in1`, `clk_in2`, ...): Vivado times
+  the paths between them. The status shows as **Related clocks**, with the
+  generator in its reason. Processor system clocks are never treated as related.
 - A **block that spans domains** (for example an asynchronous FIFO) is listed
   for review, not flagged.
-- A crossing is **not checked** when the clock of one end is unknown.
+- A crossing is **not checked** when the clock of one end is unknown, when both
+  clocks enter the design through ports, or when the source of one clock is not
+  known. Two clocks that enter through ports may be one clock: the top level
+  that uses the design decides. A port clock against a clock made inside the
+  design (a PS clock, a clocking wizard output) is still a crossing.
 
 The clock of an interface or reset pin is never guessed from its name. It comes
 from the `associatedClock` of its `.ip.yml`, from the only clock of its block,
@@ -207,20 +245,21 @@ system.
 
 The **Clocks** tab has three sections.
 
-- **Clock domains:** the frequency, the source pin, the parameter the frequency
-  was read from (`script` for an IP parameter, `declared` for a port or
+- **Clock domains:** the frequency (empty when the design does not set it), the
+  source pin ("not known" when no rule or direction names it), the parameter the
+  frequency was read from (`script` for an IP parameter, `declared` for a port or
   hierarchy pin), the number of loads and levels, and a link to the source
   line. Click a row to select the clock net of the domain.
 - **Resets:** each reset source, the domain that releases it (or
   `asynchronous`), what says so, and the number of sinks. Click a row to select
   the reset net.
-- **Crossings:** the **Crossing**, **Block spans domains**, **Not checked** and
-  **OK** chips filter the rows (OK is off at first). A row shows the kind (the
-  interface type, `Reset` or `Block`), both ends with their domains, where each
-  clock is known from or why it is not, and a link to the source line. Click a
-  row to select its net, centre the sink's block and mark the sink pin; click a
-  block row to select and centre the block. Both zoom in when the block is too
-  small to read.
+- **Crossings:** the **Crossing**, **Related clocks**, **Block spans domains**,
+  **Not checked** and **OK** chips filter the rows (OK is off at first). A row
+  shows the kind (the interface type, `Reset` or `Block`), both ends with their
+  domains, where each clock is known from or why it is not, and a link to the
+  source line. Click a row to select its net, centre the sink's block and mark
+  the sink pin; click a block row to select and centre the block. Both zoom in
+  when the block is too small to read.
 
 ## Zoom
 

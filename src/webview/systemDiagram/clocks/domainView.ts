@@ -3,7 +3,7 @@
 import type { PinRef, SystemGraph } from '../../../domain/systemGraph';
 import type { ClockAnalysis } from './analyzeClocks';
 import { crossingCountText, crossingsWithin, nodeCrossings, plural } from './crossingSummary';
-import { formatHz } from './frequency';
+import { formatHz, nameWithFrequency } from './frequency';
 
 /** Marker color of a reset that is asynchronous or released by an unknown clock. */
 export const UNRELEASED_RESET_COLOR = 'var(--vscode-descriptionForeground)';
@@ -22,14 +22,14 @@ export function pinDomainColor(
   return reset && (reset.domain?.color ?? UNRELEASED_RESET_COLOR);
 }
 
-/** Frequency label of a clock pin on a known domain (`unknown` when the domain has no frequency); undefined for other pins. */
+/** Frequency label of a clock pin on a domain whose frequency the script sets; undefined for other pins. */
 export function pinFrequencyLabel(
   analysis: ClockAnalysis,
   level: string,
   ref: PinRef
 ): string | undefined {
   const domain = analysis.domainOfPin(level, ref);
-  return domain && formatHz(domain.hz);
+  return domain?.hz === undefined ? undefined : formatHz(domain.hz);
 }
 
 /** One segment of a node's domain strip. */
@@ -101,7 +101,7 @@ export function domainBadge({ segments, cdc, rdc }: NodeDomains): DomainBadge | 
 export interface OutlineDomains {
   /** One dot per clock domain of the block. */
   colors: string[];
-  /** `name frequency` per domain, for the dots' tooltip. */
+  /** `name frequency` per domain (the name alone without a frequency), for the dots' tooltip. */
   title: string;
   /** Flagged crossings inside a hierarchy block; 0 for a leaf block. */
   crossings: number;
@@ -119,7 +119,7 @@ export function outlineDomains(
       : { data: 0, reset: 0 };
   return {
     colors: domains.map((domain) => domain.color),
-    title: domains.map((domain) => `${domain.name} ${formatHz(domain.hz)}`).join(', '),
+    title: domains.map((domain) => nameWithFrequency(domain, ' ')).join(', '),
     crossings: inside.data + inside.reset,
   };
 }

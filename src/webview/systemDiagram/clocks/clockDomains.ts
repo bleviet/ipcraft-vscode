@@ -1,8 +1,10 @@
 /**
  * Clock domains: every clock physical net belongs to one, and a clock-forwarding
  * block (Platform Designer `clock_source`) joins its input's and output's nets
- * into one. A domain's frequency comes only from values the script sets (rules
- * in `clockRules.ts`); otherwise it is unknown.
+ * into one. A domain is its clock identity first: the pins that share one clock
+ * source. Its source may be unknown (the script does not say which pin of the net
+ * drives it), and its frequency is extra information that comes only from values
+ * the script sets (rules in `clockRules.ts`).
  */
 
 import type {
@@ -12,10 +14,12 @@ import type {
   SystemNet,
   SystemPin,
 } from '../../../domain/systemGraph';
-import { endpointKey, netDriver, netsByEndpoint, pinRole, resolvePin } from '../model';
+import { endpointKey, netsByEndpoint, pinRole, resolvePin } from '../model';
 import type { ClockDomain, FrequencyOrigin } from './clockTypes';
 import {
   boundaryFrequency,
+  isClockOutput,
+  isNotClockPin,
   passThroughOf,
   sourceFrequency,
   type RuleFrequency,
@@ -35,15 +39,18 @@ export const DOMAIN_COLORS: readonly string[] = [
 
 type NetLookup = ReadonlyMap<string, readonly SystemNet[]>;
 
+/** Whether a pin is a clock load on a net: the net is a clock, and the pin neither drives it nor is a clock output. */
+type IsClockLoad = (instance: SystemInstance, net: SystemNet, pin: SystemPin) => boolean;
+
 /**
  * Clock input pins of an instance: pins declared as clocks and the pins that
- * load a clock net (every endpoint but its driver), never an output. `lookup`
- * holds the nets of the level the instance is seen on.
+ * load a clock net, never an output. `lookup` holds the nets of the level the
+ * instance is seen on.
  */
 function clockInputPins(
-  graph: SystemGraph,
   instance: SystemInstance,
-  lookup: NetLookup
+  lookup: NetLookup,
+  isClockLoad: IsClockLoad
 ): SystemPin[] {
   return instance.pins.filter((pin) => {
     if (pinRole(pin, false) === 'source') {
@@ -53,13 +60,32 @@ function clockInputPins(
       return true;
     }
     const nets = lookup.get(endpointKey({ instance: instance.path, pin: pin.name })) ?? [];
-    return nets.some((net) => {
-      const driver = netDriver(graph, net);
-      return (
-        net.category === 'clock' && !(driver?.instance === instance.path && driver.pin === pin.name)
-      );
-    });
+    return nets.some((net) => isClockLoad(instance, net, pin));
   });
+}
+
+/** Ids of the nets on a status output of a clock IP (see `NOT_CLOCK_PINS`): named like clocks, but no clocks. */
+function notClockNetIds(graph: SystemGraph, physical: PhysicalNets): Set<string> {
+  const excluded = new Set<string>();
+  for (const net of physical.nets) {
+    const touches = net.ends.some((end) => {
+      const instance = end.instance === null ? undefined : graph.instances[end.instance];
+      return instance !== undefined && isNotClockPin(instance, end.pin);
+    });
+    if (touches) {
+      net.nets.forEach((member) => excluded.add(member.id));
+    }
+  }
+  return excluded;
+}
+
+/** A root input port: it brings a clock in from outside the design. */
+function isRootInput(graph: SystemGraph, end: PinEnd): boolean {
+  if (end.instance !== null || end.level !== '/') {
+    return false;
+  }
+  const pin = resolvePin(graph, end.level, { instance: null, pin: end.pin });
+  return pin !== undefined && pinRole(pin, true) === 'source';
 }
 
 export interface ClockDomains {
@@ -197,7 +223,10 @@ function disambiguateNames(domains: readonly ClockDomain[]): void {
 }
 
 export function buildClockDomains(graph: SystemGraph, physical: PhysicalNets): ClockDomains {
-  const clockNets = physical.nets.filter((net) => net.nets.some((n) => n.category === 'clock'));
+  const notClock = notClockNetIds(graph, physical);
+  const isClockNet = (net: SystemNet) => net.category === 'clock' && !notClock.has(net.id);
+  // A net with no leaf pin and no port (hierarchy pins only) has nothing on it: no domain.
+  const clockNets = physical.nets.filter((net) => net.ends.length > 0 && net.nets.some(isClockNet));
   const { groups, forwarders, derived } = forwardingGroups(graph, physical, clockNets);
   const netOrder = new Map(graph.nets.map((net, index) => [net.id, index]));
   const byPhysical = new Map<string, ClockDomain>();
@@ -209,32 +238,41 @@ export function buildClockDomains(graph: SystemGraph, physical: PhysicalNets): C
       members.find((index) => !derived.has(index) && hasDriver(index)) ?? members.find(hasDriver);
     const sourceNet = sourceIndex === undefined ? undefined : clockNets[sourceIndex];
     const source = sourceNet?.driver;
-    if (!sourceNet || !source) {
-      continue;
-    }
     const physicalNets = members.map((index) => clockNets[index]);
     const nets = physicalNets
       .flatMap((net) => net.nets)
       .sort((a, b) => (netOrder.get(a.id) ?? 0) - (netOrder.get(b.id) ?? 0));
-    const sourceInstance = source.instance === null ? undefined : graph.instances[source.instance];
-    const frequency = domainFrequency(
-      graph,
-      source,
-      forwarders.filter((forwarder) => members.includes(forwarder.output)),
-      nets
-    );
+    const first = nets[0];
+    const sourceInstance =
+      source && source.instance !== null ? graph.instances[source.instance] : undefined;
+    const frequency =
+      source &&
+      domainFrequency(
+        graph,
+        source,
+        forwarders.filter((forwarder) => members.includes(forwarder.output)),
+        nets
+      );
     const index = domains.length;
-    const line = sourceInstance
-      ? sourceInstance.line
-      : resolvePin(graph, source.level, source)?.line;
+    const line = source
+      ? sourceInstance
+        ? sourceInstance.line
+        : resolvePin(graph, source.level, source)?.line
+      : first.line;
+    const name = source?.pin ?? first.name;
+    // Net names repeat across levels: without a source pin, the label says which level the net is on.
+    const levelQualifier = !source && first.level !== '/' ? `${first.level.slice(1)}/` : '';
     const domain: ClockDomain = {
       id: `clock:${index}`,
       index,
-      name: source.pin,
-      label: sourceInstance ? `${sourceInstance.name}/${source.pin}` : source.pin,
-      sourceLevel: source.level,
-      sourceRef: { instance: source.instance, pin: source.pin },
-      sourceNetId: sourceNet.driverNet?.id ?? sourceNet.nets[0].id,
+      name,
+      label: sourceInstance ? `${sourceInstance.name}/${name}` : `${levelQualifier}${name}`,
+      sourceLevel: source?.level ?? first.level,
+      ...(source && { sourceRef: { instance: source.instance, pin: source.pin } }),
+      sourceNetId: sourceNet?.driverNet?.id ?? first.id,
+      portClock: source
+        ? isRootInput(graph, source)
+        : physicalNets.some((net) => net.ends.some((end) => isRootInput(graph, end))),
       ...(frequency && { hz: frequency.hz, frequencyFrom: frequency.from }),
       ...(line !== undefined && { line }),
       netIds: nets.map((net) => net.id),
@@ -249,6 +287,14 @@ export function buildClockDomains(graph: SystemGraph, physical: PhysicalNets): C
   }
   disambiguateNames(domains);
 
+  const isClockLoad: IsClockLoad = (instance, net, pin) => {
+    const driver = physical.ofNet(net.id)?.driver;
+    return (
+      isClockNet(net) &&
+      !(driver?.instance === instance.path && driver.pin === pin.name) &&
+      !isClockOutput(instance, pin.name)
+    );
+  };
   const lookups = new Map<string, NetLookup>();
   const inputCache = new Map<string, SystemPin[]>();
   const domainOfPin = (level: string, ref: PinRef) => {
@@ -267,7 +313,7 @@ export function buildClockDomains(graph: SystemGraph, physical: PhysicalNets): C
         lookup = netsByEndpoint(graph, instance.parent);
         lookups.set(instance.parent, lookup);
       }
-      inputs = clockInputPins(graph, instance, lookup);
+      inputs = clockInputPins(instance, lookup, isClockLoad);
       inputCache.set(instancePath, inputs);
     }
     return inputs;
@@ -293,10 +339,4 @@ export function buildClockDomains(graph: SystemGraph, physical: PhysicalNets): C
       return [...found].sort((a, b) => a.index - b.index);
     },
   };
-}
-
-/** Clock input pins of an instance (declared clocks and loads of clock nets, never outputs). */
-export function clockInputs(graph: SystemGraph, instancePath: string): SystemPin[] {
-  const instance = graph.instances[instancePath];
-  return instance ? clockInputPins(graph, instance, netsByEndpoint(graph, instance.parent)) : [];
 }

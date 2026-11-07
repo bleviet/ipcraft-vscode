@@ -40,7 +40,8 @@ export interface NewInstance {
   procLine?: number;
 }
 
-export type PinSpec = Omit<SystemPin, 'parameters'>;
+/** A pin to declare; `parameters` are those the declaration itself sets (e.g. `-freq_hz`). */
+export type PinSpec = Omit<SystemPin, 'parameters'> & { parameters?: Record<string, string> };
 
 /** Where `set_property` writes: a cell, or a (boundary or instance) pin. */
 export type ParameterTarget = { owner: string; pin?: string };
@@ -140,7 +141,7 @@ export class SystemGraphBuilder {
       return undefined;
     }
     if (!pins.some((p) => p.name === spec.name)) {
-      pins.push({ ...spec, parameters: {} });
+      pins.push({ ...spec, parameters: { ...spec.parameters } });
     }
     return joinPath(level, spec.name);
   }

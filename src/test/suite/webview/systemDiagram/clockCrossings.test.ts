@@ -236,9 +236,15 @@ describe('crossings of the clock fixture', () => {
     expect(result.crossings.filter((x) => x.status === 'inside')).toHaveLength(1);
   });
 
-  it('is unchecked when the source of a reset is unknown', () => {
+  it('is unchecked when no rule says which clock releases a reset', () => {
     const unknown = loadClockFixtureGraph();
     unknown.instances['/rst_ps7_0_100M'].vlnv = 'xilinx.com:ip:other_reset:1.0';
+    // The pin is a known output (its definition says so), but no rule knows its release.
+    const output = unknown.instances['/rst_ps7_0_100M'].pins.find(
+      (pin) => pin.name === 'peripheral_aresetn'
+    )!;
+    output.direction = 'out';
+    output.directionSource = 'definition';
     const result = analyzeClocks(unknown);
     const crossing = between(
       result,
@@ -347,10 +353,13 @@ describe('crossings of the plain zynq fixture', () => {
       []
     );
     const unchecked = analysis.crossings.filter((x) => x.status === 'unchecked');
-    // A constant tied to a reset input: no rule says which clock releases it.
-    expect(summary(unchecked)).toEqual([
-      'unchecked reset tie_valid/dout -> config_fifo/s_axis_aresetn',
-    ]);
+    expect(summary(unchecked)).toEqual([]);
+    // A constant tied to a reset input never toggles: one row for its sink, none for the driver.
+    const constant = analysis.crossings.filter(
+      (x) => x.kind === 'reset' && x.from.label === 'tie_valid/dout'
+    );
+    expect(summary(constant)).toEqual(['ok reset tie_valid/dout -> config_fifo/s_axis_aresetn']);
+    expect(constant[0].reason).toBe('Tied to a constant');
   });
 });
 

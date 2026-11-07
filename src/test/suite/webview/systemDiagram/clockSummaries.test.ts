@@ -20,7 +20,12 @@ import {
 import { domainBadge, outlineDomains } from '../../../../webview/systemDiagram/clocks/domainView';
 import { instanceClocks } from '../../../../webview/systemDiagram/clocks/instanceClocks';
 import { categoryLabel, domainLegend } from '../../../../webview/systemDiagram/legend';
-import { loadClockFixtureGraph, loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
+import {
+  loadClockFixtureGraph,
+  loadFixtureGraph,
+  loadQsysFixtureGraph,
+  loadVersalClockGraph,
+} from './fixtureGraph';
 
 const DSP = '/dsp_pipeline';
 const graph = loadClockFixtureGraph();
@@ -79,6 +84,13 @@ describe('outlineDomains', () => {
     });
   });
 
+  it('lists the names alone as title when no frequency is set', () => {
+    const versal = loadVersalClockGraph();
+    expect(outlineDomains(analyzeClocks(versal), versal, '/stream_src').title).toBe('clk_out1');
+    const wizard = outlineDomains(analyzeClocks(versal), versal, '/clk_wizard_0');
+    expect(wizard.title).toBe('pl0_ref_clk');
+  });
+
   it('counts the flagged crossings inside a hierarchy block only', () => {
     expect(outlineDomains(analysis, graph, DSP).crossings).toBe(4);
     expect(outlineDomains(analysis, graph, `${DSP}/fir_compiler_0`).crossings).toBe(0);
@@ -130,6 +142,11 @@ describe('legend', () => {
     expect(entries[0]).toMatchObject({ color: DOMAIN_COLORS[1] });
     expect(entries[0].line).toBeUndefined();
     expect(entries.slice(2).map((entry) => entry.line)).toEqual(['dotted', 'dashed']);
+  });
+
+  it('names a domain without a frequency alone', () => {
+    const [clk0] = analysis.domains.slice(1, 2).map((domain) => ({ ...domain, hz: undefined }));
+    expect(domainLegend([clk0])[0].label).toBe('FCLK_CLK0');
   });
 
   it('keeps the reset and crossing marks without domains', () => {
@@ -231,6 +248,17 @@ describe('instanceClocks', () => {
   });
 });
 
+describe('crossing rows of related clocks', () => {
+  it('give the reason where the known-from texts would be', () => {
+    const versal = loadVersalClockGraph();
+    const related = analyzeClocks(versal).crossings.find(
+      (crossing) => crossing.status === 'related'
+    )!;
+    expect(crossingKnownFrom(related)).toEqual({ reason: related.reason, sources: [] });
+    expect(crossingKnownFrom(related).reason).toMatch(/^Both clocks come from clk_wizard_0/);
+  });
+});
+
 describe('crossing rows', () => {
   const find = (predicate: (crossing: Crossing) => boolean) => analysis.crossings.find(predicate)!;
   const cdc = find((crossing) => crossing.kind === 'data' && crossing.status === 'cross');
@@ -242,11 +270,12 @@ describe('crossing rows', () => {
   it('lists the statuses in order with their icons', () => {
     expect(CROSSING_STATUSES.map((entry) => entry.status)).toEqual([
       'cross',
+      'related',
       'inside',
       'unchecked',
       'ok',
     ]);
-    expect(CROSSING_STATUSES.map((entry) => entry.icon)).toEqual(['!', '⇄', '?', '✓']);
+    expect(CROSSING_STATUSES.map((entry) => entry.icon)).toEqual(['!', '≈', '⇄', '?', '✓']);
   });
 
   it('names the kind: the interface type, reset, or block', () => {

@@ -29,6 +29,9 @@ function ReleasedOn({ reset }: { reset: ResetSource }) {
   if (reset.async) {
     return <>asynchronous</>;
   }
+  if (reset.constant) {
+    return <>tied to a constant</>;
+  }
   return reset.domain ? <DomainLabel domain={reset.domain} /> : <>unknown</>;
 }
 
@@ -57,15 +60,15 @@ export function ClocksTable({
         <td>
           <DomainName domain={domain} />
         </td>
-        <td className="sd-num">{formatHz(domain.hz)}</td>
-        <td className="sd-num">{domain.label}</td>
+        <td className="sd-num">{domain.hz !== undefined && formatHz(domain.hz)}</td>
+        <td className="sd-num">
+          {domain.sourceRef ? domain.label : <span className="opacity-60">not known</span>}
+        </td>
         <td>
-          {origin ? (
+          {origin && (
             <>
               <span className="sd-num">{origin.text}</span> <Chip>{origin.kind}</Chip>
             </>
-          ) : (
-            <Chip>no rule</Chip>
           )}
         </td>
         <td className="sd-num">{domain.loads}</td>
@@ -93,14 +96,12 @@ export function ClocksTable({
       <td>
         <ReleasedOn reset={reset} />
       </td>
-      <td>{reset.from ? <Chip>{reset.from}</Chip> : <Chip>no rule</Chip>}</td>
+      <td>
+        {reset.source ? <Chip>{reset.from ?? 'no rule'}</Chip> : <Chip>source not known</Chip>}
+      </td>
       <td className="sd-num">{reset.sinks.length}</td>
       <td onClick={(event) => event.stopPropagation()}>
-        <LineLink
-          source={levelSource(graph, reset.source.level)}
-          line={reset.line}
-          onReveal={onReveal}
-        />
+        <LineLink source={levelSource(graph, reset.level)} line={reset.line} onReveal={onReveal} />
       </td>
     </tr>
   );

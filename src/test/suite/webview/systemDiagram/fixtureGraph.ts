@@ -23,6 +23,26 @@ export function loadClockFixtureGraph(): SystemGraph {
   return readBdTcl(fs.readFileSync(CLOCK_FIXTURE, 'utf8'), 'zynq_clock_domains.tcl');
 }
 
+const VERSAL_FIXTURE = path.resolve(__dirname, '../../../fixtures/system-design/versal_clocks.tcl');
+
+/**
+ * A Versal-style platform (hardening of #243): endpoints are listed alphabetically, so a net
+ * lists a load before its driver; a clocking wizard makes two clocks and sets no frequency.
+ */
+export function loadVersalClockGraph(): SystemGraph {
+  return readBdTcl(fs.readFileSync(VERSAL_FIXTURE, 'utf8'), 'versal_clocks.tcl');
+}
+
+const PORT_CLOCKS_FIXTURE = path.resolve(
+  __dirname,
+  '../../../fixtures/system-design/subsystem_two_clocks.tcl'
+);
+
+/** A kernel-style subsystem whose two clocks enter through ports, one with `-freq_hz`. */
+export function loadPortClocksGraph(): SystemGraph {
+  return readBdTcl(fs.readFileSync(PORT_CLOCKS_FIXTURE, 'utf8'), 'subsystem_two_clocks.tcl');
+}
+
 const QSYS_FIXTURE = path.resolve(
   __dirname,
   '../../../fixtures/system-design/nios_avalon_system.qsys'

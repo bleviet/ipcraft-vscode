@@ -4,12 +4,13 @@
  * handler turns one parsed command into graph mutations through the builder.
  */
 
-import type { PinDirection, PinRef, SignalType, SystemPin } from '../../domain/systemGraph';
+import type { PinDirection, PinRef, SignalType } from '../../domain/systemGraph';
 import {
   joinPath,
   lastComponent,
   parentPath,
   type ParameterTarget,
+  type PinSpec,
   type SystemGraphBuilder,
 } from './bdTclGraphBuilder';
 import {
@@ -36,7 +37,7 @@ export interface CommandEnv {
 }
 
 const CELL_FLAGS = new Set(['-type', '-vlnv', '-reference', '-dict']);
-const PIN_FLAGS = new Set(['-dir', '-type', '-from', '-to', '-mode', '-vlnv']);
+const PIN_FLAGS = new Set(['-dir', '-type', '-from', '-to', '-mode', '-vlnv', '-freq_hz']);
 const NET_FLAGS = new Set(['-net', '-intf_net', '-boundary_type']);
 const ADDR_FLAGS = new Set(['-offset', '-range', '-target_address_space', '-dict']);
 const SIGNAL_TYPES: readonly string[] = ['clk', 'rst', 'intr', 'data', 'ce', 'undef'];
@@ -82,7 +83,9 @@ const SCALAR_DIRECTIONS: Record<string, PinDirection> = { I: 'in', O: 'out', IO:
 
 /**
  * `create_bd_(intf_)port` (root boundary) and `create_bd_(intf_)pin` (current
- * level boundary). Returns the created pin's path.
+ * level boundary). Returns the created pin's path. The `-freq_hz` flag, which
+ * Vivado writes in exported scripts, is stored as `CONFIG.FREQ_HZ`; a later
+ * `set_property` on the pin overrides it.
  */
 export function createBoundaryPin(
   env: CommandEnv,
@@ -94,7 +97,7 @@ export function createBoundaryPin(
   if (!nameWord) {
     return undefined;
   }
-  const spec: Omit<SystemPin, 'parameters'> = {
+  const spec: PinSpec = {
     name: env.argValue(nameWord),
     isInterface: kind.isInterface,
     direction: 'unknown',
@@ -118,6 +121,10 @@ export function createBoundaryPin(
   }
   if (spec.direction === 'unknown') {
     spec.directionSource = 'unknown';
+  }
+  const frequency = flagValue(env, opts, '-freq_hz');
+  if (frequency !== undefined) {
+    spec.parameters = { 'CONFIG.FREQ_HZ': frequency };
   }
   return env.builder.addBoundaryPin(kind.isPort ? '/' : env.current, spec);
 }

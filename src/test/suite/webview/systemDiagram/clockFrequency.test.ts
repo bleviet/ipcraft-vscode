@@ -1,4 +1,8 @@
-import { formatHz, parseFrequency } from '../../../../webview/systemDiagram/clocks/frequency';
+import {
+  formatHz,
+  nameWithFrequency,
+  parseFrequency,
+} from '../../../../webview/systemDiagram/clocks/frequency';
 
 describe('parseFrequency', () => {
   it.each([
@@ -34,14 +38,25 @@ describe('formatHz', () => {
     [125e6, '125 MHz'],
     [33.333333e6, '33.333 MHz'],
     [200e6, '200 MHz'],
-    [undefined, 'unknown'],
   ])('formats %s as %s', (hz, text) => {
     expect(formatHz(hz)).toBe(text);
   });
 
   it('round-trips what it prints', () => {
     for (const text of ['100 MHz', '1.5 GHz', '32.768 kHz', '50 Hz']) {
-      expect(formatHz(parseFrequency(text))).toBe(text);
+      expect(formatHz(parseFrequency(text)!)).toBe(text);
     }
+  });
+});
+
+describe('nameWithFrequency', () => {
+  it('appends the frequency when the script sets one', () => {
+    expect(nameWithFrequency({ name: 'FCLK_CLK0', hz: 100e6 })).toBe('FCLK_CLK0 · 100 MHz');
+    expect(nameWithFrequency({ name: 'FCLK_CLK0', hz: 100e6 }, ' ')).toBe('FCLK_CLK0 100 MHz');
+  });
+
+  it('is the name alone, with no word for a missing frequency', () => {
+    expect(nameWithFrequency({ name: 'clk_out1' })).toBe('clk_out1');
+    expect(nameWithFrequency({ name: 'clk_out1' }, ' ')).toBe('clk_out1');
   });
 });

@@ -6,8 +6,14 @@
  * pin name), never by what the diagram draws.
  */
 
-import type { PinRef, SystemGraph, SystemNet } from '../../../domain/systemGraph';
-import { endpointKey, netDriver } from '../model';
+import type {
+  PinDirectionSource,
+  PinRef,
+  SystemGraph,
+  SystemNet,
+} from '../../../domain/systemGraph';
+import { endpointKey, isClockOrReset, netDriver, pinRole, resolvePin } from '../model';
+import { isClockOutput, resetRelease } from './clockRules';
 import { UnionFind } from './unionFind';
 
 /** A pin as seen on one level; `instance` is null for a boundary pin of `level`. */
@@ -33,7 +39,11 @@ export interface PhysicalNet {
   nets: SystemNet[];
   /** Leaf instance pins and root external ports; hierarchy pins are pass-through, never ends. */
   ends: PinEnd[];
-  /** First end that drives one of the member nets (Vivado lists the driver first). */
+  /**
+   * The end that drives the net. A data net takes the first end that drives one of its member
+   * nets. A clock or reset net takes the one end that a rule or a known direction names as an
+   * output (the script does not list the driver first); absent when none or several do.
+   */
   driver?: PinEnd;
   /** The member net that holds the driver. */
   driverNet?: SystemNet;
@@ -65,6 +75,66 @@ function isEnd(graph: SystemGraph, level: string, ref: PinRef): boolean {
   }
   const kind = graph.instances[ref.instance]?.kind;
   return kind === 'ip' || kind === 'module';
+}
+
+/** Direction sources that are facts of the script or the definition, not guesses. */
+const KNOWN_DIRECTION: ReadonlySet<PinDirectionSource> = new Set([
+  'declared',
+  'definition',
+  'connection',
+]);
+
+/** Whether a rule or a known direction makes `end` an output: a source pin, or a root input port. */
+function isKnownOutput(graph: SystemGraph, nets: readonly SystemNet[], end: PinEnd): boolean {
+  const instance = end.instance === null ? undefined : graph.instances[end.instance];
+  if (instance) {
+    const categories = new Set(nets.map((net) => net.category));
+    if (
+      (categories.has('clock') && isClockOutput(instance, end.pin)) ||
+      (categories.has('reset') && resetRelease(instance, end.pin) !== undefined)
+    ) {
+      return true;
+    }
+  }
+  const pin = resolvePin(graph, end.level, { instance: end.instance, pin: end.pin });
+  return (
+    pin !== undefined &&
+    KNOWN_DIRECTION.has(pin.directionSource) &&
+    pinRole(pin, end.instance === null) === 'source'
+  );
+}
+
+/** The member net of `nets` that holds `end`. */
+function holderOf(nets: readonly SystemNet[], end: PinEnd): SystemNet | undefined {
+  return nets.find(
+    (net) =>
+      net.level === end.level &&
+      net.endpoints.some((ref) => ref.instance === end.instance && ref.pin === end.pin)
+  );
+}
+
+/** Driver of a clock or reset net: the one end that is a known output. */
+function clockResetDriver(
+  graph: SystemGraph,
+  nets: readonly SystemNet[],
+  ends: readonly PinEnd[]
+): { driver?: PinEnd; driverNet?: SystemNet } {
+  const outputs = ends.filter((end) => isKnownOutput(graph, nets, end));
+  return outputs.length === 1 ? { driver: outputs[0], driverNet: holderOf(nets, outputs[0]) } : {};
+}
+
+/** Driver of any other net: the first end that drives one of its member nets. */
+function firstDriver(
+  graph: SystemGraph,
+  nets: readonly SystemNet[]
+): { driver?: PinEnd; driverNet?: SystemNet } {
+  for (const net of nets) {
+    const ref = netDriver(graph, net);
+    if (ref && isEnd(graph, net.level, ref)) {
+      return { driver: { level: net.level, instance: ref.instance, pin: ref.pin }, driverNet: net };
+    }
+  }
+  return {};
 }
 
 export function buildPhysicalNets(graph: SystemGraph): PhysicalNets {
@@ -110,17 +180,11 @@ export function buildPhysicalNets(graph: SystemGraph): PhysicalNets {
         }
       }
     }
-    let driver: PinEnd | undefined;
-    let driverNet: SystemNet | undefined;
-    for (const net of nets) {
-      const ref = netDriver(graph, net);
-      if (ref && isEnd(graph, net.level, ref)) {
-        driver = { level: net.level, instance: ref.instance, pin: ref.pin };
-        driverNet = net;
-        break;
-      }
-    }
-    return { nets, ends: [...ends.values()], driver, driverNet };
+    const endList = [...ends.values()];
+    const { driver, driverNet } = nets.some(isClockOrReset)
+      ? clockResetDriver(graph, nets, endList)
+      : firstDriver(graph, nets);
+    return { nets, ends: endList, driver, driverNet };
   });
   const order = (net: SystemNet | undefined, fallback: SystemNet) =>
     netIndex.get((net ?? fallback).id) ?? 0;

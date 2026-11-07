@@ -11,13 +11,14 @@ import type { ClockDomain, Crossing, ExpectedFrequency, PinClock, ResetSource } 
 import { buildCrossings } from './crossings';
 import { buildPhysicalNets } from './physicalNets';
 import { buildPinClocks } from './pinClocks';
+import { buildRelatedClocks } from './relatedClocks';
 import { buildResetSources } from './resetSources';
 
 export interface ClockAnalysis {
   /** In creation order (the script order of their source nets). */
   readonly domains: readonly ClockDomain[];
   readonly resets: readonly ResetSource[];
-  /** `cross` first, then `inside`, `unchecked`, `ok`; data before reset. */
+  /** `cross` first, then `related`, `inside`, `unchecked`, `ok`; data before reset. */
   readonly crossings: readonly Crossing[];
   /** The clock domain a net belongs to (any net of its tree, on any level). */
   domainOfNet: (netId: string) => ClockDomain | undefined;
@@ -46,7 +47,14 @@ export function analyzeClocks(graph: SystemGraph): ClockAnalysis {
   return {
     domains: model.domains,
     resets: sources.resets,
-    crossings: buildCrossings(graph, physical, model, pinClocks, sources),
+    crossings: buildCrossings(
+      graph,
+      physical,
+      model,
+      pinClocks,
+      sources,
+      buildRelatedClocks(graph, model)
+    ),
     domainOfNet: model.domainOfNet,
     domainOfPin: model.domainOfPin,
     resetOfNet: sources.resetOfNet,

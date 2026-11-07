@@ -9,7 +9,7 @@ import type {
   PinCrossing,
   ResetSource,
 } from './clockTypes';
-import { formatHz } from './frequency';
+import { nameWithFrequency } from './frequency';
 import { endKey } from './physicalNets';
 
 export interface RowCheck {
@@ -28,29 +28,55 @@ export function frequencyCheck(expected: ExpectedFrequency): RowCheck {
   }
   return expected.status === 'mismatch'
     ? { tone: 'warning', text: `✗ ${text}` }
-    : { tone: 'muted', text: `? ${text}`, title: 'The frequency of the domain is unknown' };
+    : { tone: 'muted', text: `? ${text}`, title: 'The script sets no frequency for this domain' };
 }
 
-/** The check of a reset sink: released on its own clock, on another one, or not checkable. */
+/** The check of a reset sink: released on its own clock, on another one, on a related one, or not checkable. */
 export function resetCheck(crossing: PinCrossing): RowCheck {
   const { to } = crossing;
   if (to.async) {
     return { tone: 'ok', text: '✓ asynchronous input', title: crossing.reason };
   }
+  if (crossing.from.constant) {
+    return { tone: 'ok', text: '✓ tied to a constant', title: crossing.reason };
+  }
   if (crossing.status === 'cross') {
     return {
       tone: 'warning',
-      text: `✗ clocked by ${to.domain?.name ?? 'unknown'} · ${formatHz(to.domain?.hz)}`,
+      text: `✗ clocked by ${to.domain ? nameWithFrequency(to.domain) : 'unknown'}`,
       title: crossing.reason,
     };
   }
-  return crossing.status === 'unchecked'
-    ? { tone: 'muted', text: '? clock unknown', title: crossing.reason }
-    : { tone: 'ok', text: `✓ ${to.domain?.name ?? 'released'}`, title: crossing.reason };
+  if (crossing.status === 'related') {
+    return { tone: 'ok', text: '≈ related clocks', title: crossing.reason };
+  }
+  if (crossing.status === 'unchecked') {
+    return {
+      tone: 'muted',
+      text: crossing.from.sourceUnknown ? '? source not known' : '? clock unknown',
+      title: crossing.reason,
+    };
+  }
+  return { tone: 'ok', text: `✓ ${to.domain?.name ?? 'released'}`, title: crossing.reason };
+}
+
+/** Keeps the first crossing of each reason: a generator with many connections has one note. */
+export function uniqueByReason(crossings: readonly PinCrossing[]): PinCrossing[] {
+  return crossings.filter(
+    (crossing, index) => crossings.findIndex((other) => other.reason === crossing.reason) === index
+  );
 }
 
 function isReset(crossing: Crossing): crossing is PinCrossing {
   return crossing.kind === 'reset';
+}
+
+/** The reset crossings of a reset source: its net ids are those of the crossing, and no other source shares one. */
+function resetCrossingsOf(analysis: ClockAnalysis, reset: ResetSource): PinCrossing[] {
+  return analysis.crossings.filter(
+    (crossing): crossing is PinCrossing =>
+      isReset(crossing) && crossing.netIds.includes(reset.netId)
+  );
 }
 
 /** The check of every sink of a reset source, by sink key (see `endKey`). */
@@ -59,10 +85,8 @@ export function resetSinkChecks(
   reset: ResetSource
 ): ReadonlyMap<string, RowCheck> {
   const checks = new Map<string, RowCheck>();
-  for (const crossing of analysis.crossings.filter(isReset)) {
-    if (endKey(crossing.from) === endKey(reset.source)) {
-      checks.set(endKey(crossing.to), resetCheck(crossing));
-    }
+  for (const crossing of resetCrossingsOf(analysis, reset)) {
+    checks.set(endKey(crossing.to), resetCheck(crossing));
   }
   return checks;
 }
@@ -73,19 +97,24 @@ export interface DomainRelations {
   resets: ResetSource[];
   /** Flagged data crossings with the domain at one end. */
   crossings: PinCrossing[];
+  /** Data connections between the domain and a related one. */
+  related: PinCrossing[];
   /** Blocks that have clocks on this and another domain. */
   spanning: BlockCrossing[];
 }
 
 export function domainRelations(analysis: ClockAnalysis, domain: ClockDomain): DomainRelations {
-  return {
-    resets: analysis.resets.filter((reset) => reset.domain === domain),
-    crossings: analysis.crossings.filter(
+  const dataOf = (status: Crossing['status']) =>
+    analysis.crossings.filter(
       (crossing): crossing is PinCrossing =>
         crossing.kind === 'data' &&
-        crossing.status === 'cross' &&
+        crossing.status === status &&
         (crossing.from.domain === domain || crossing.to.domain === domain)
-    ),
+    );
+  return {
+    resets: analysis.resets.filter((reset) => reset.domain === domain),
+    crossings: dataOf('cross'),
+    related: uniqueByReason(dataOf('related')),
     spanning: analysis.crossings.filter(
       (crossing): crossing is BlockCrossing =>
         crossing.kind === 'block' && crossing.domains.includes(domain)
@@ -93,36 +122,40 @@ export function domainRelations(analysis: ClockAnalysis, domain: ClockDomain): D
   };
 }
 
-/** The flagged reset crossings of a reset source and the domains of the sinks they hit. */
+/** The flagged and the related reset crossings of a reset source, and the domains of the sinks the flagged ones hit. */
 export function resetRelations(
   analysis: ClockAnalysis,
   reset: ResetSource
-): { crossings: PinCrossing[]; domains: ClockDomain[] } {
-  const crossings = analysis.crossings.filter(
-    (crossing): crossing is PinCrossing =>
-      isReset(crossing) &&
-      crossing.status === 'cross' &&
-      endKey(crossing.from) === endKey(reset.source)
-  );
+): { crossings: PinCrossing[]; related: PinCrossing[]; domains: ClockDomain[] } {
+  const of = (status: Crossing['status']) =>
+    resetCrossingsOf(analysis, reset).filter((crossing) => crossing.status === status);
+  const crossings = of('cross');
   const domains = new Set<ClockDomain>();
   for (const crossing of crossings) {
     if (crossing.to.domain) {
       domains.add(crossing.to.domain);
     }
   }
-  return { crossings, domains: [...domains].sort((a, b) => a.index - b.index) };
+  return {
+    crossings,
+    related: uniqueByReason(of('related')),
+    domains: [...domains].sort((a, b) => a.index - b.index),
+  };
 }
 
-/** The data crossings that touch a net, for the note in its details; fine ones are listed once per reason. */
+/** The data crossings that touch a net, for the note in its details; fine and related ones are listed once per reason. */
 export function netCrossings(analysis: ClockAnalysis, netId: string): PinCrossing[] {
   const found = analysis.crossings.filter(
     (crossing): crossing is PinCrossing =>
       crossing.kind === 'data' && crossing.netIds.includes(netId)
   );
+  const repeats = (crossing: PinCrossing) =>
+    crossing.status === 'ok' || crossing.status === 'related';
   return found.filter(
     (crossing, index) =>
-      crossing.status !== 'ok' ||
-      found.findIndex((other) => other.status === 'ok' && other.reason === crossing.reason) ===
-        index
+      !repeats(crossing) ||
+      found.findIndex(
+        (other) => other.status === crossing.status && other.reason === crossing.reason
+      ) === index
   );
 }

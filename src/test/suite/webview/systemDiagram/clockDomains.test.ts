@@ -1,8 +1,7 @@
 import type { SystemGraph } from '../../../../domain/systemGraph';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import { clockInputs, DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
-import { formatHz } from '../../../../webview/systemDiagram/clocks/frequency';
+import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
 import { loadQsysSubsystemGraph, loadQsysTwoClockGraph } from './clockTestGraphs';
 import {
   loadClockFixtureGraph,
@@ -116,8 +115,6 @@ describe('clock domains of the clock fixture', () => {
     expect(names(`${DSP}/axis_data_fifo_0`)).toEqual(['s_axis_aclk', 'm_axis_aclk']);
     expect(names(DSP)).toEqual(['aclk', 'dsp_clk']);
     expect(names('/rst_ps7_0_100M')).toEqual(['slowest_sync_clk']);
-    expect(clockInputs(graph, '/axi_dma_0').map((pin) => pin.name)).toEqual(names('/axi_dma_0'));
-    expect(clockInputs(graph, '/nope')).toEqual([]);
     expect(analysis.clockInputs('/nope')).toEqual([]);
   });
 
@@ -192,7 +189,6 @@ describe('frequency origins', () => {
     const fast = analyzeClocks(graph).domains.find((d) => d.name === 'FCLK_CLK1')!;
     expect(fast.hz).toBeUndefined();
     expect(fast.frequencyFrom).toBeUndefined();
-    expect(formatHz(fast.hz)).toBe('unknown');
   });
 
   it('falls back to CONFIG.FREQ_HZ on a hierarchy pin of the domain', () => {

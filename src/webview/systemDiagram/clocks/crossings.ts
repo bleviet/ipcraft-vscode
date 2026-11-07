@@ -14,6 +14,7 @@ import { levelDepth } from './levelPaths';
 import type { ClockDomains } from './clockDomains';
 import type {
   BlockCrossing,
+  ClockDomain,
   Crossing,
   CrossingEnd,
   CrossingKind,
@@ -22,11 +23,18 @@ import type {
 } from './clockTypes';
 import type { PinClocks } from './pinClocks';
 import { endKey, type PhysicalNet, type PhysicalNets, type PinEnd } from './physicalNets';
+import type { RelatedClocks } from './relatedClocks';
 import type { ResetSources } from './resetSources';
 
 /** Net categories of the data connections that are checked for clock domain crossings. */
 export const DATA_CATEGORIES: readonly NetCategory[] = ['aximm', 'axis', 'avalonmm', 'avalonst'];
-const STATUS_ORDER: Record<CrossingStatus, number> = { cross: 0, inside: 1, unchecked: 2, ok: 3 };
+const STATUS_ORDER: Record<CrossingStatus, number> = {
+  cross: 0,
+  related: 1,
+  inside: 2,
+  unchecked: 3,
+  ok: 4,
+};
 const KIND_ORDER: Record<CrossingKind, number> = { data: 0, reset: 1, block: 2 };
 const HANDLED = 'Handled by Platform Designer';
 
@@ -41,6 +49,7 @@ interface Context {
   model: ClockDomains;
   pinClocks: PinClocks;
   sources: ResetSources;
+  related: RelatedClocks;
 }
 
 /** The member net of `net` on `end`'s level that holds `end`. */
@@ -93,6 +102,39 @@ function crossesDomains(ctx: Context, reason: string): Verdict {
     : { status: 'cross', reason };
 }
 
+/**
+ * Verdict for two different clock domains. Clocks of one generator are related,
+ * and clocks that enter through ports or whose source is not known cannot be
+ * told apart from one clock, so those are not checked. Only the rest cross.
+ */
+function betweenDomains(ctx: Context, a: ClockDomain, b: ClockDomain, reason: string): Verdict {
+  if (isPlatformDesigner(ctx.graph.source.format)) {
+    return { status: 'ok', reason: HANDLED };
+  }
+  const generator = ctx.related(a, b);
+  if (generator) {
+    return {
+      status: 'related',
+      reason: `Both clocks come from ${generator.name}; Vivado times paths between its outputs`,
+    };
+  }
+  if (a.portClock && b.portClock) {
+    return {
+      status: 'unchecked',
+      reason: `Both clocks enter through ports (${a.name}, ${b.name}); the top level decides whether they are the same clock`,
+    };
+  }
+  const unknown = [a, b].find((domain) => domain.sourceRef === undefined);
+  if (unknown) {
+    const other = unknown === a ? b : a;
+    return {
+      status: 'unchecked',
+      reason: `The source of ${unknown.name} is not known, so its relation to ${other.name} is not known`,
+    };
+  }
+  return { status: 'cross', reason };
+}
+
 function dataVerdict(ctx: Context, from: CrossingEnd, to: CrossingEnd): Verdict {
   if (!from.domain || !to.domain) {
     return { status: 'unchecked', reason: unknownClocks(ctx, [from, to]) };
@@ -100,8 +142,10 @@ function dataVerdict(ctx: Context, from: CrossingEnd, to: CrossingEnd): Verdict 
   if (from.domain === to.domain) {
     return { status: 'ok', reason: `Both ends on ${from.domain.name}` };
   }
-  return crossesDomains(
+  return betweenDomains(
     ctx,
+    from.domain,
+    to.domain,
     `${from.label} is on ${from.domain.name} and ${to.label} on ${to.domain.name}; no synchronizer is known between them`
   );
 }
@@ -147,6 +191,15 @@ function resetVerdict(ctx: Context, source: CrossingEnd, sink: CrossingEnd): Ver
   if (sinkInstance && isAsyncResetSink(sinkInstance, sink.pin)) {
     return { status: 'ok', reason: 'The input accepts an asynchronous reset' };
   }
+  if (source.constant) {
+    return { status: 'ok', reason: 'Tied to a constant' };
+  }
+  if (source.sourceUnknown && !isPlatformDesigner(graph.source.format)) {
+    return {
+      status: 'unchecked',
+      reason: `The source of ${source.label} is not known, so the clock that releases it is not known`,
+    };
+  }
   if (!sink.domain) {
     return { status: 'unchecked', reason: unknownClocks(ctx, [sink]) };
   }
@@ -161,10 +214,10 @@ function resetVerdict(ctx: Context, source: CrossingEnd, sink: CrossingEnd): Ver
   }
   if (source.async || source.domain !== sink.domain) {
     const released = source.async ? 'asynchronous' : `released on ${source.domain?.name}`;
-    return crossesDomains(
-      ctx,
-      `${sink.label} is clocked by ${sink.domain.name} but its reset ${source.label} is ${released}`
-    );
+    const reason = `${sink.label} is clocked by ${sink.domain.name} but its reset ${source.label} is ${released}`;
+    return source.domain
+      ? betweenDomains(ctx, source.domain, sink.domain, reason)
+      : crossesDomains(ctx, reason);
   }
   return { status: 'ok', reason: `Released on ${sink.domain.name}` };
 }
@@ -172,11 +225,22 @@ function resetVerdict(ctx: Context, source: CrossingEnd, sink: CrossingEnd): Ver
 function resetCrossings(ctx: Context): PinCrossing[] {
   const found: PinCrossing[] = [];
   for (const [reset, net] of ctx.sources.trees) {
-    const from = crossingEnd(ctx, reset.source, {
-      async: reset.async,
-      ...(reset.domain && { domain: reset.domain }),
-      ...(reset.from !== undefined && { knownFrom: reset.from }),
-    });
+    const from = reset.source
+      ? crossingEnd(ctx, reset.source, {
+          async: reset.async,
+          ...(reset.constant && { constant: true as const }),
+          ...(reset.domain && { domain: reset.domain }),
+          ...(reset.from !== undefined && { knownFrom: reset.from }),
+        })
+      : {
+          level: reset.level,
+          instance: null,
+          pin: reset.label,
+          label: reset.label,
+          nodeId: '',
+          async: false,
+          sourceUnknown: true as const,
+        };
     for (const sink of reset.sinks) {
       const instance = sink.instance === null ? undefined : ctx.graph.instances[sink.instance];
       const asyncSink = instance !== undefined && isAsyncResetSink(instance, sink.pin);
@@ -184,7 +248,7 @@ function resetCrossings(ctx: Context): PinCrossing[] {
         ? crossingEnd(ctx, sink, { async: true, knownFrom: 'asynchronous input' })
         : clockedEnd(ctx, sink);
       found.push({
-        id: `reset:${endKey(reset.source)}>${endKey(sink)}`,
+        id: `reset:${reset.source ? endKey(reset.source) : `net ${reset.netId}`}>${endKey(sink)}`,
         kind: 'reset',
         ...resetVerdict(ctx, from, to),
         level: sink.level,
@@ -218,15 +282,16 @@ function blockCrossings({ graph, model }: Context): BlockCrossing[] {
   return found;
 }
 
-/** All crossings: `cross` first, then `inside`, `unchecked`, `ok`; data before reset within a status. */
+/** All crossings: `cross` first, then `related`, `inside`, `unchecked`, `ok`; data before reset within a status. */
 export function buildCrossings(
   graph: SystemGraph,
   physical: PhysicalNets,
   model: ClockDomains,
   pinClocks: PinClocks,
-  sources: ResetSources
+  sources: ResetSources,
+  related: RelatedClocks
 ): Crossing[] {
-  const ctx: Context = { graph, physical, model, pinClocks, sources };
+  const ctx: Context = { graph, physical, model, pinClocks, sources, related };
   return [...dataCrossings(ctx), ...resetCrossings(ctx), ...blockCrossings(ctx)].sort(
     (a, b) =>
       STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || KIND_ORDER[a.kind] - KIND_ORDER[b.kind]

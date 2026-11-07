@@ -12,7 +12,7 @@ import type {
   CrossingKind,
   CrossingStatus,
 } from './clockTypes';
-import { formatHz } from './frequency';
+import { nameWithFrequency } from './frequency';
 import { isWithinLevel } from './levelPaths';
 import { endKey } from './physicalNets';
 
@@ -23,7 +23,7 @@ export function crossingCounts(
   crossings: readonly Crossing[],
   kind?: CrossingKind
 ): CrossingCounts {
-  const counts: CrossingCounts = { cross: 0, inside: 0, unchecked: 0, ok: 0 };
+  const counts: CrossingCounts = { cross: 0, related: 0, inside: 0, unchecked: 0, ok: 0 };
   for (const crossing of crossings) {
     if (kind === undefined || crossing.kind === kind) {
       counts[crossing.status] += 1;
@@ -139,6 +139,7 @@ export function levelClockSummary(
   const own = analysis.crossings.filter((crossing) => crossing.level === levelPath);
   const flagged = (kind: CrossingKind) =>
     own.filter((crossing) => crossing.kind === kind && crossing.status === 'cross').length;
+  const related = own.filter((crossing) => crossing.status === 'related').length;
   const nested = analysis.crossings.filter(
     (crossing) =>
       crossing.status === 'cross' &&
@@ -152,7 +153,7 @@ export function levelClockSummary(
 
   const parts = [
     domains.length > 0
-      ? `This level: ${domains.map((domain) => `${domain.name} ${formatHz(domain.hz)}`).join(', ')}.`
+      ? `This level: ${domains.map((domain) => nameWithFrequency(domain, ' ')).join(', ')}.`
       : 'This level: no clock domains.',
   ];
   const data = flagged('data');
@@ -168,13 +169,16 @@ export function levelClockSummary(
   if (nested > 0) {
     parts.push(`${nested} more inside nested hierarchies.`);
   }
+  if (related > 0) {
+    parts.push(`${related} between related clocks.`);
+  }
   if (spanning.length > 0) {
     parts.push(
       `${spanning.join(', ')} ${spanning.length === 1 ? 'spans' : 'span'} more than one domain.`
     );
   }
   if (unchecked > 0) {
-    parts.push(`${unchecked} not checked: the clock of a pin is unknown offline.`);
+    parts.push(`${unchecked} not checked; see the Clocks tab.`);
   }
   return parts.join(' ');
 }

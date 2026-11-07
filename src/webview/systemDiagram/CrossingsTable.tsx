@@ -53,6 +53,7 @@ export function CrossingsTable({
 }: CrossingsTableProps) {
   const [shown, setShown] = useState<Record<CrossingStatus, boolean>>({
     cross: true,
+    related: true,
     inside: true,
     unchecked: true,
     ok: false,

@@ -2,7 +2,7 @@ import React from 'react';
 import type { PinRef, SystemGraph, SystemInstance, SystemPin } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import type { ClockDomain } from './clocks/clockTypes';
-import { formatHz } from './clocks/frequency';
+import { nameWithFrequency } from './clocks/frequency';
 import { instanceClocks, type InterfaceClockRow } from './clocks/instanceClocks';
 import { frequencyCheck } from './clocks/treeChecks';
 import { CheckMark } from './CheckMark';
@@ -25,7 +25,7 @@ function DomainLink({
   netId?: string;
   onSelect: ClockDetailsProps['onSelect'];
 }) {
-  const text = `${domain.name} · ${formatHz(domain.hz)}`;
+  const text = nameWithFrequency(domain);
   return (
     <>
       <DomainDot color={domain.color} />{' '}
@@ -133,6 +133,7 @@ export function InstanceClockDetails({
                     >
                       {row.source.label}
                     </button>
+                    {!row.source.source && <span className="opacity-60"> (source not known)</span>}
                   </td>
                   <td>{row.check && <CheckMark check={row.check} />}</td>
                 </tr>

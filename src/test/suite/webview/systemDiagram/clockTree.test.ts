@@ -72,11 +72,7 @@ describe('netTreeRows', () => {
   it('follows a reset out of a hierarchy through its boundary pin', () => {
     const inner = loadInnerResetGraph();
     const reset = analyzeClocks(inner).resets[0];
-    expect(
-      outline(
-        netTreeRows(inner, reset.netId, { instance: reset.source.instance, pin: reset.source.pin })
-      )
-    ).toEqual([
+    expect(outline(netTreeRows(inner, reset.netId, reset.source))).toEqual([
       '1 net h::r_out',
       '1 exit rst_out',
       '2 net inner_reset::h_rst',

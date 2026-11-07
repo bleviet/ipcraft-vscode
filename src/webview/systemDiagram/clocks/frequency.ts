@@ -14,12 +14,17 @@ export function parseFrequency(text: string): number | undefined {
   return Number.isFinite(hz) ? Number(hz.toPrecision(12)) : undefined;
 }
 
-/** `100 MHz`, `1.5 GHz`, `32.768 kHz`, `50 Hz`; `unknown` without a value. At most 3 decimals. */
-export function formatHz(hz: number | undefined): string {
-  if (hz === undefined) {
-    return 'unknown';
-  }
+/** `100 MHz`, `1.5 GHz`, `32.768 kHz`, `50 Hz`. At most 3 decimals. */
+export function formatHz(hz: number): string {
   const [scale, unit] =
     hz >= 1e9 ? [1e9, 'GHz'] : hz >= 1e6 ? [1e6, 'MHz'] : hz >= 1e3 ? [1e3, 'kHz'] : [1, 'Hz'];
   return `${Number((hz / scale).toFixed(3))} ${unit}`;
+}
+
+/** `name · 100 MHz`, or the name alone when the script sets no frequency. */
+export function nameWithFrequency(
+  domain: { name: string; hz?: number },
+  separator = ' · '
+): string {
+  return domain.hz === undefined ? domain.name : `${domain.name}${separator}${formatHz(domain.hz)}`;
 }

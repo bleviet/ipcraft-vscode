@@ -3,7 +3,7 @@
 import type { NetCategory } from '../../domain/systemGraph';
 import type { ClockDomain } from './clocks/clockTypes';
 import { UNRELEASED_RESET_COLOR } from './clocks/domainView';
-import { formatHz } from './clocks/frequency';
+import { nameWithFrequency } from './clocks/frequency';
 
 export interface LegendEntry {
   category: NetCategory;
@@ -68,7 +68,7 @@ export function domainLegend(domains: readonly ClockDomain[]): DomainLegendEntry
   return [
     ...domains.map((domain) => ({
       key: domain.id,
-      label: `${domain.name} · ${formatHz(domain.hz)}`,
+      label: nameWithFrequency(domain),
       color: domain.color,
     })),
     {
