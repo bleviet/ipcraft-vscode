@@ -219,10 +219,12 @@ followed through hierarchies.
 - A connection between **related clocks** is neither flagged nor unchecked. The
   outputs of one clocking wizard (`clk_wiz`, `clk_wizard`) are related, and so
   is the clock that feeds its input (`clk_in1`, `clk_in2`, ...): Vivado times
-  the paths between them. The status shows as **Related clocks**, with the
-  generator in its reason. Processor system clocks are never treated as related.
-- A **block that spans domains** (for example an asynchronous FIFO) is listed
-  for review, not flagged.
+  the paths between them. The Clocks tab does not list it; Details of its net
+  says **Related clocks**, with the generator in its reason. Processor system
+  clocks are never treated as related.
+- A **block that spans domains** (for example an asynchronous FIFO) is not
+  flagged. Its header badge reads `N DOMAINS`, and its Details say "This block
+  uses N clock domains" with their names.
 - A crossing is **not checked** when the clock of one end is unknown, when both
   clocks enter the design through ports, or when the source of one clock is not
   known. Two clocks that enter through ports may be one clock: the top level
@@ -237,9 +239,9 @@ parameters of a clock port. Otherwise the pin is not checked; the **Clocks** tab
 and Details say why.
 
 Platform Designer inserts clock-crossing adapters and reset synchronizers when it
-generates the system, so its crossings are listed as **OK**, "Handled by
-Platform Designer". The domains and frequencies are shown as for any other
-system.
+generates the system, so its crossings are **OK**, "Handled by Platform
+Designer", and the Clocks tab lists none. The domains and frequencies are shown
+as for any other system.
 
 ### The Clocks tab
 
@@ -253,13 +255,19 @@ The **Clocks** tab has three sections.
 - **Resets:** each reset source, the domain that releases it (or
   `asynchronous`), what says so, and the number of sinks. Click a row to select
   the reset net.
-- **Crossings:** the **Crossing**, **Related clocks**, **Block spans domains**,
-  **Not checked** and **OK** chips filter the rows (OK is off at first). A row
-  shows the kind (the interface type, `Reset` or `Block`), both ends with their
-  domains, where each clock is known from or why it is not, and a link to the
-  source line. Click a row to select its net, centre the sink's block and mark
-  the sink pin; click a block row to select and centre the block. Both zoom in
-  when the block is too small to read.
+- **Clock domain crossings:** one line says how many crossings have no
+  synchronizer ("No clock domain crossings found." when there are none). The
+  table lists those data and reset crossings, each with a `!` icon, the kind (the
+  interface type or `Reset`), the pin at each end, the problem in plain words
+  ("200 MHz to 100 MHz, no synchronizer", "released by clk_a, clocked by clk_b",
+  or "asynchronous reset, clocked by clk_b"; domain names stand in for
+  frequencies the script does not set or sets alike), and a link to the source line. Hover a
+  row to see how the clock of each end was determined. Tick **Show N that could
+  not be checked** to add the connections whose clocks are not known (`?`), with
+  the reason as the problem. Related clocks, blocks that span domains and
+  connections that are fine are not listed. Click a row to select its net,
+  centre the sink's block and mark the sink pin; it zooms in when the block is
+  too small to read.
 
 ## Zoom
 

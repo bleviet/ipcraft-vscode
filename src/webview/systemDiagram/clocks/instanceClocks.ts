@@ -4,6 +4,7 @@ import type { SystemGraph, SystemInstance } from '../../../domain/systemGraph';
 import { endpointKey, netsByEndpoint } from '../model';
 import type { ClockAnalysis } from './analyzeClocks';
 import type {
+  BlockCrossing,
   ClockDomain,
   ClockKnownFrom,
   ExpectedFrequency,
@@ -43,6 +44,8 @@ export interface ResetPinRow {
 
 export interface InstanceClocks {
   clockPins: ClockPinRow[];
+  /** Domains of the clock inputs of a leaf block that has them on two or more; empty otherwise. */
+  spannedDomains: ClockDomain[];
   /** Empty for a hierarchy block. */
   interfaces: InterfaceClockRow[];
   resets: ResetPinRow[];
@@ -63,6 +66,14 @@ function resetCrossingOf(
     (crossing): crossing is PinCrossing =>
       crossing.kind === 'reset' && crossing.to.instance === instance.path && crossing.to.pin === pin
   );
+}
+
+function spannedDomainsOf(analysis: ClockAnalysis, instance: SystemInstance): ClockDomain[] {
+  const block = analysis.crossings.find(
+    (crossing): crossing is BlockCrossing =>
+      crossing.kind === 'block' && crossing.instance === instance.path
+  );
+  return block?.domains ?? [];
 }
 
 export function instanceClocks(
@@ -114,6 +125,7 @@ export function instanceClocks(
   }
   return {
     clockPins,
+    spannedDomains: spannedDomainsOf(analysis, instance),
     interfaces,
     resets,
     hasUnchecked:

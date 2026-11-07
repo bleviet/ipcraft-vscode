@@ -916,21 +916,12 @@ input:focus-visible {
   font-weight: 700;
 }
 
-.sd-sev[data-status='cross'],
-.sd-sev[data-status='inside'] {
+.sd-sev[data-status='cross'] {
   color: var(--vscode-editorWarning-foreground);
-}
-
-.sd-sev[data-status='related'] {
-  color: var(--vscode-editorInfo-foreground, var(--vscode-charts-blue));
 }
 
 .sd-sev[data-status='unchecked'] {
   color: var(--vscode-descriptionForeground);
-}
-
-.sd-sev[data-status='ok'] {
-  color: var(--vscode-testing-iconPassed, var(--vscode-charts-green));
 }
 
 .sd-note {

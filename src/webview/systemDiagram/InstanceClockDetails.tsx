@@ -58,7 +58,11 @@ export function InstanceClockDetails({
   instance,
   onSelect,
 }: ClockDetailsProps & { instance: SystemInstance }) {
-  const { clockPins, interfaces, resets, hasUnchecked } = instanceClocks(graph, clocks, instance);
+  const { clockPins, spannedDomains, interfaces, resets, hasUnchecked } = instanceClocks(
+    graph,
+    clocks,
+    instance
+  );
   if (clockPins.length === 0) {
     return null;
   }
@@ -88,6 +92,12 @@ export function InstanceClockDetails({
           ))}
         </tbody>
       </table>
+      {spannedDomains.length > 0 && (
+        <p className="sd-note mt-2">
+          This block uses {spannedDomains.length} clock domains:{' '}
+          {spannedDomains.map((domain) => domain.name).join(', ')}.
+        </p>
+      )}
       {interfaces.length > 0 && (
         <table className="sd-table mt-2">
           <thead>

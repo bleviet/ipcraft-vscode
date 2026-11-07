@@ -106,8 +106,6 @@ export function WorkbenchLayout({
     }
     setFocusedPin(focus ? { ...focus, netId } : null);
   };
-  const revealBlock = (instancePath: string) =>
-    view.selectAndReveal(nodeSelection(instancePath), undefined, true);
 
   const { fit, focusNode } = useDiagramViewport(
     layout,
@@ -232,7 +230,6 @@ export function WorkbenchLayout({
                 selection={nav.selection}
                 focusedPin={focusedPin}
                 onSelectInstance={view.selectInstance}
-                onRevealBlock={revealBlock}
                 onSelectPin={selectFinding}
                 onSelectNet={selectNet}
                 onReveal={revealSource}

@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
-import type { Crossing, CrossingEnd, CrossingStatus } from './clocks/clockTypes';
+import type { PinCrossing } from './clocks/clockTypes';
 import {
-  asynchronousText,
-  coverageNote,
-  CROSSING_STATUSES,
-  crossingBlockLabel,
   crossingKind,
-  crossingKnownFrom,
+  crossingProblem,
+  crossingProvenance,
+  crossingsHeadline,
   crossingSource,
+  listedCrossings,
 } from './clocks/crossingRows';
 import { crossingCounts } from './clocks/crossingSummary';
-import { DomainLabel } from './DomainLabel';
 import { LineLink } from './LineLink';
 import type { Selection } from './model';
 import { focusedPinOf, type FocusedPin } from './unconnectedPins';
@@ -24,86 +22,37 @@ interface CrossingsTableProps {
   focusedPin: FocusedPin | null;
   /** Opens a crossing's net and haloes its sink pin. */
   onSelectNet: (netId: string, focus: { nodeId: string; pin: string }) => void;
-  onSelectInstance: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
 }
 
-function Status({ status }: { status: CrossingStatus }) {
-  const { label, icon } = CROSSING_STATUSES.find((entry) => entry.status === status)!;
+function Mark({ unchecked }: { unchecked: boolean }) {
   return (
-    <span className="sd-sev" data-status={status} role="img" aria-label={label} title={label}>
-      {icon}
+    <span
+      className="sd-sev"
+      data-status={unchecked ? 'unchecked' : 'cross'}
+      role="img"
+      aria-label={unchecked ? 'Could not be checked' : 'Crossing'}
+    >
+      {unchecked ? '?' : '!'}
     </span>
   );
 }
 
-function EndDomain({ end, role }: { end: CrossingEnd; role: 'from' | 'to' }) {
-  return <>{asynchronousText(end, role) ?? <DomainLabel domain={end.domain} />}</>;
-}
-
-/** Crossing rows of the Clocks tab: data (CDC), reset (RDC) and block records, filterable by status. */
+/** Crossings of the Clocks tab that need action: data (CDC) and reset (RDC) crossings without a synchronizer. */
 export function CrossingsTable({
   graph,
   clocks,
   selection,
   focusedPin,
   onSelectNet,
-  onSelectInstance,
   onReveal,
 }: CrossingsTableProps) {
-  const [shown, setShown] = useState<Record<CrossingStatus, boolean>>({
-    cross: true,
-    related: true,
-    inside: true,
-    unchecked: true,
-    ok: false,
-  });
+  const [showUnchecked, setShowUnchecked] = useState(false);
   const counts = crossingCounts(clocks.crossings);
-  const rows = clocks.crossings.filter((crossing) => shown[crossing.status]);
+  const rows = listedCrossings(clocks.crossings, showUnchecked);
 
-  const renderRow = (crossing: Crossing) => {
-    const known = crossingKnownFrom(crossing);
+  const renderRow = (crossing: PinCrossing) => {
     const source = crossingSource(graph, crossing);
-    const link = source && (
-      <td onClick={(event) => event.stopPropagation()}>
-        <LineLink source={source.source} line={source.line} onReveal={onReveal} />
-      </td>
-    );
-    const knownFrom = (
-      <td>
-        {known.reason ??
-          known.sources.map((text, index) => (
-            <span key={index} className="sd-chip-tag">
-              {text}
-            </span>
-          ))}
-      </td>
-    );
-    if (crossing.kind === 'block') {
-      return (
-        <tr
-          key={crossing.id}
-          className="sd-clickable cursor-pointer"
-          onClick={() => onSelectInstance(crossing.instance)}
-        >
-          <td>
-            <Status status={crossing.status} />
-          </td>
-          <td>{crossingKind(crossing)}</td>
-          <td colSpan={2}>{crossingBlockLabel(graph, crossing)}</td>
-          <td colSpan={2}>
-            {crossing.domains.map((domain, index) => (
-              <React.Fragment key={domain.id}>
-                {index > 0 && ' and '}
-                <DomainLabel domain={domain} />
-              </React.Fragment>
-            ))}
-          </td>
-          {knownFrom}
-          {link ?? <td />}
-        </tr>
-      );
-    }
     const focused =
       focusedPin?.netId === crossing.netId &&
       focusedPinOf(focusedPin, selection, crossing.to.nodeId) === crossing.to.pin;
@@ -111,24 +60,21 @@ export function CrossingsTable({
       <tr
         key={crossing.id}
         className={`sd-clickable cursor-pointer${focused ? ' sd-row-selected' : ''}`}
+        title={crossingProvenance(crossing)}
         onClick={() =>
           onSelectNet(crossing.netId, { nodeId: crossing.to.nodeId, pin: crossing.to.pin })
         }
       >
         <td>
-          <Status status={crossing.status} />
+          <Mark unchecked={crossing.status === 'unchecked'} />
         </td>
         <td>{crossingKind(crossing)}</td>
         <td>{crossing.from.label}</td>
-        <td>
-          <EndDomain end={crossing.from} role="from" />
-        </td>
         <td>{crossing.to.label}</td>
-        <td>
-          <EndDomain end={crossing.to} role="to" />
+        <td>{crossingProblem(crossing)}</td>
+        <td onClick={(event) => event.stopPropagation()}>
+          {source && <LineLink source={source.source} line={source.line} onReveal={onReveal} />}
         </td>
-        {knownFrom}
-        {link ?? <td />}
       </tr>
     );
   };
@@ -136,25 +82,19 @@ export function CrossingsTable({
   return (
     <div>
       <div className="sd-ubar">
-        {CROSSING_STATUSES.map(({ status, label, icon }) => (
-          <button
-            key={status}
-            type="button"
-            className="sd-chip"
-            aria-pressed={shown[status]}
-            onClick={() => setShown((previous) => ({ ...previous, [status]: !previous[status] }))}
-          >
-            <span aria-hidden="true" className="sd-sev" data-status={status}>
-              {icon}
-            </span>{' '}
-            {label} {counts[status]}
-          </button>
-        ))}
-        <span className="min-w-0 flex-1 text-xs opacity-80">{coverageNote(graph)}</span>
+        <span className="min-w-0 flex-1">{crossingsHeadline(counts.cross)}</span>
+        {counts.unchecked > 0 && (
+          <label className="flex cursor-pointer select-none items-center gap-1 whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={showUnchecked}
+              onChange={(event) => setShowUnchecked(event.target.checked)}
+            />
+            Show {counts.unchecked} that could not be checked
+          </label>
+        )}
       </div>
-      {clocks.crossings.length === 0 ? (
-        <p className="p-3 opacity-70">No data connections or resets to check.</p>
-      ) : (
+      {rows.length > 0 && (
         <table className="sd-table">
           <thead>
             <tr>
@@ -163,10 +103,8 @@ export function CrossingsTable({
               </th>
               <th>Kind</th>
               <th>From</th>
-              <th>Domain</th>
               <th>To</th>
-              <th>Domain</th>
-              <th>Known from</th>
+              <th>Problem</th>
               <th>Source</th>
             </tr>
           </thead>

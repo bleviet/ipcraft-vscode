@@ -1627,45 +1627,75 @@ describe('SystemDiagramApp', () => {
       expect(details().getByText('None found.')).toBeVisible();
     });
 
-    it('filters the crossings by status, with the fine ones off by default', async () => {
+    // The rows of the crossings table, header row excluded.
+    const crossingRows = () =>
+      within(bottom().getByRole('columnheader', { name: 'Problem' }).closest('table')!)
+        .getAllByRole('row')
+        .slice(1);
+    const showUnchecked = () =>
+      bottom().getByRole('checkbox', { name: 'Show 3 that could not be checked' });
+
+    it('lists only the crossings without a synchronizer, with one line and no status chips', async () => {
       await domains();
-      const chip = (name: RegExp) => bottom().getByRole('button', { name });
-      expect(chip(/^Crossing 4$/)).toHaveAttribute('aria-pressed', 'true');
-      expect(chip(/^Block spans domains 1$/)).toHaveAttribute('aria-pressed', 'true');
-      expect(chip(/^Not checked 3$/)).toHaveAttribute('aria-pressed', 'true');
-      expect(chip(/^OK 9$/)).toHaveAttribute('aria-pressed', 'false');
-      const rows = () => bottom().getAllByRole('row').length;
-      const shown = rows();
+      expect(bottom().getByRole('heading', { name: 'Clock domain crossings' })).toBeVisible();
+      expect(bottom().getByText('4 crossings without a synchronizer.')).toBeVisible();
+      expect(crossingRows()).toHaveLength(4);
+      expect(bottom().queryByText(/has clocks on 2 domains/)).not.toBeInTheDocument();
       expect(bottom().queryByText('Both ends on FCLK_CLK0')).not.toBeInTheDocument();
-      fireEvent.click(chip(/^OK 9$/));
-      expect(rows()).toBe(shown + 9);
-      fireEvent.click(chip(/^Crossing 4$/));
-      expect(rows()).toBe(shown + 9 - 4);
-      expect(bottom().getByText(/Checked: memory-mapped and streaming connections/)).toBeVisible();
+      expect(bottom().queryByText('axis_data_fifo_0 (dsp_pipeline)')).not.toBeInTheDocument();
+      expect(bottom().queryByText(/Checked: memory-mapped/)).not.toBeInTheDocument();
+      for (const chip of [/^Crossing/, /^Related clocks/, /^Block spans/, /^Not checked/, /^OK/]) {
+        expect(bottom().queryByRole('button', { name: chip })).not.toBeInTheDocument();
+      }
     });
 
-    it('describes each crossing: kind, both ends, their domains and where the clocks are known from', async () => {
+    it('shows the crossings that could not be checked on request, and hides them again', async () => {
       await domains();
-      const row = bottom().getByText('fir_compiler_0/M_AXIS_DATA').closest('tr')!;
-      const cells = within(row).getAllByRole('cell');
-      expect(within(cells[0]).getByRole('img', { name: 'Crossing' })).toBeVisible();
-      expect(cells[1]).toHaveTextContent('AXI4-Stream');
-      expect(cells[3]).toHaveTextContent('FCLK_CLK1 · 200 MHz');
-      expect(cells[4]).toHaveTextContent('axi_dma_0/S_AXIS_S2MM');
-      expect(cells[5]).toHaveTextContent('FCLK_CLK0 · 100 MHz');
-      expect(cells[6]).toHaveTextContent('single clock');
-      expect(cells[6]).toHaveTextContent('all clocks one domain');
-      const reset = bottom().getByText('fir_compiler_0/aresetn').closest('tr')!;
-      expect(within(reset).getAllByRole('cell')[1]).toHaveTextContent('Reset');
-      const block = bottom().getByText('axis_data_fifo_0 (dsp_pipeline)').closest('tr')!;
-      expect(block).toHaveTextContent('Block');
-      expect(block).toHaveTextContent('FCLK_CLK0 · 100 MHz and FCLK_CLK1 · 200 MHz');
+      expect(showUnchecked()).not.toBeChecked();
+      fireEvent.click(showUnchecked());
+      expect(showUnchecked()).toBeChecked();
+      expect(crossingRows()).toHaveLength(7);
+      expect(bottom().getByText('4 crossings without a synchronizer.')).toBeVisible();
       const unchecked = bottom()
         .getAllByText(/has clocks on 2 domains/)[0]
         .closest('tr')!;
       expect(
-        within(unchecked.firstElementChild as HTMLElement).getByRole('img', { name: 'Not checked' })
-      ).toBeVisible();
+        within(unchecked.firstElementChild as HTMLElement).getByRole('img', {
+          name: 'Could not be checked',
+        })
+      ).toHaveTextContent('?');
+      fireEvent.click(showUnchecked());
+      expect(crossingRows()).toHaveLength(4);
+      expect(bottom().queryByText(/has clocks on 2 domains/)).not.toBeInTheDocument();
+    });
+
+    it('describes each crossing: kind, both ends, the problem, and how the clocks were determined', async () => {
+      await domains();
+      const row = bottom().getByText('fir_compiler_0/M_AXIS_DATA').closest('tr')!;
+      const cells = within(row).getAllByRole('cell');
+      expect(within(cells[0]).getByRole('img', { name: 'Crossing' })).toHaveTextContent('!');
+      expect(cells[1]).toHaveTextContent('AXI4-Stream');
+      expect(cells[2]).toHaveTextContent('fir_compiler_0/M_AXIS_DATA');
+      expect(cells[3]).toHaveTextContent('axi_dma_0/S_AXIS_S2MM');
+      expect(cells[4]).toHaveTextContent('200 MHz to 100 MHz, no synchronizer');
+      expect(row).toHaveAttribute(
+        'title',
+        'fir_compiler_0/M_AXIS_DATA: FCLK_CLK1 · 200 MHz, known from single clock\n' +
+          'axi_dma_0/S_AXIS_S2MM: FCLK_CLK0 · 100 MHz, known from all clocks one domain'
+      );
+      const reset = bottom().getByText('fir_compiler_0/aresetn').closest('tr')!;
+      expect(within(reset).getAllByRole('cell')[1]).toHaveTextContent('Reset');
+      expect(within(reset).getAllByRole('cell')[4]).toHaveTextContent(
+        'released by FCLK_CLK0 · 100 MHz, clocked by FCLK_CLK1 · 200 MHz'
+      );
+      expect(reset.getAttribute('title')).toContain(
+        'rst_ps7_0_100M/peripheral_aresetn: FCLK_CLK0 · 100 MHz, known from proc_sys_reset slowest_sync_clk'
+      );
+      expect(
+        within(bottom().getByRole('columnheader', { name: 'Problem' }).closest('tr')!)
+          .getAllByRole('columnheader')
+          .map((header) => header.textContent)
+      ).toEqual(['Status', 'Kind', 'From', 'To', 'Problem', 'Source']);
     });
 
     it('selects the net of a clicked crossing and haloes its sink pin', async () => {
@@ -1685,14 +1715,7 @@ describe('SystemDiagramApp', () => {
       expect(halos(`${DSP}/fir_compiler_0`)).toHaveLength(0);
     });
 
-    it('selects the block of a clicked block row', async () => {
-      await domains();
-      fireEvent.click(bottom().getByText('axis_data_fifo_0 (dsp_pipeline)').closest('tr')!);
-      await screen.findByTestId(`node:${DSP}/axis_data_fifo_0`);
-      expect(details().getByRole('heading', { name: 'axis_data_fifo_0' })).toBeVisible();
-    });
-
-    describe('zooms in to the block of a clicked row at low zoom, but never zooms out', () => {
+    describe('zooms in to the sink block of a clicked crossing at low zoom, but never zooms out', () => {
       const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
       // The first click goes to the row's level, whose first visit fits; the second measures.
       async function clickAt(zoom: number, text: string, nodeId: string) {
@@ -1713,14 +1736,6 @@ describe('SystemDiagramApp', () => {
         expect(zoom).toBeGreaterThan(0.3);
         expect(zoom).toBeLessThanOrEqual(0.8);
         expect(await clickAt(1.7, 'ovf_monitor_0/rst_n', `${DSP}/ovf_monitor_0`)).toBe(1.7);
-      });
-
-      it('for a block row', async () => {
-        await domains();
-        const text = 'axis_data_fifo_0 (dsp_pipeline)';
-        const zoom = await clickAt(0.3, text, `${DSP}/axis_data_fifo_0`);
-        expect(zoom).toBeGreaterThan(0.3);
-        expect(zoom).toBeLessThanOrEqual(0.8);
       });
     });
 
@@ -1832,6 +1847,20 @@ describe('SystemDiagramApp', () => {
       expect(details().getByText(/^Clock net · domain/)).toBeVisible();
     });
 
+    it('says how many clock domains a leaf block uses, not a block on one domain or a hierarchy', async () => {
+      await renderWithGraph({ design: clockGraph });
+      fireEvent.click(outline().getByRole('button', { name: 'Expand dsp_pipeline' }));
+      fireEvent.click(outline().getByRole('button', { name: /^axis_data_fifo_0/ }));
+      const clocks = details().getByRole('heading', { name: 'Clocks' }).closest('section')!;
+      expect(
+        within(clocks).getByText('This block uses 2 clock domains: FCLK_CLK0, FCLK_CLK1.')
+      ).toBeVisible();
+      fireEvent.click(outline().getByRole('button', { name: /^fir_compiler_0/ }));
+      expect(details().queryByText(/This block uses/)).not.toBeInTheDocument();
+      fireEvent.click(outline().getByRole('button', { name: /^dsp_pipeline/ }));
+      expect(details().queryByText(/This block uses/)).not.toBeInTheDocument();
+    });
+
     it('says when the clocks of a block are not known, and why', async () => {
       await renderWithGraph({ design: clockGraph });
       fireEvent.click(outline().getByRole('button', { name: 'Expand dsp_pipeline' }));
@@ -1893,7 +1922,6 @@ describe('SystemDiagramApp', () => {
 
     it('shows no word "unknown" and no frequency anywhere in the domain mode', async () => {
       await domains();
-      fireEvent.click(bottom().getByRole('button', { name: /^OK/ }));
       expect(screen.getByRole('region', { name: 'Bottom panel' }).textContent).not.toMatch(
         /unknown/i
       );
@@ -1910,18 +1938,13 @@ describe('SystemDiagramApp', () => {
       expect(cells[4]).toHaveTextContent('5');
     });
 
-    it('lists the related crossings under their own chip, on by default', async () => {
+    it('lists no row for related clocks, and says no crossing was found', async () => {
       await domains();
-      const chip = bottom().getByRole('button', { name: /^Related clocks 2$/ });
-      expect(chip).toHaveAttribute('aria-pressed', 'true');
-      const row = bottom().getByText('stream_src/M_AXIS').closest('tr')!;
-      expect(within(row).getByRole('img', { name: 'Related clocks' })).toBeVisible();
-      expect(row).toHaveTextContent(
-        'Both clocks come from clk_wizard_0; Vivado times paths between its outputs'
-      );
-      expect(bottom().getByRole('button', { name: /^Crossing 0$/ })).toBeVisible();
-      fireEvent.click(chip);
+      expect(bottom().getByText('No clock domain crossings found.')).toBeVisible();
+      expect(bottom().queryByRole('columnheader', { name: 'Problem' })).not.toBeInTheDocument();
       expect(bottom().queryByText('stream_src/M_AXIS')).not.toBeInTheDocument();
+      expect(bottom().queryByText(/Both clocks come from/)).not.toBeInTheDocument();
+      expect(bottom().queryByRole('checkbox')).not.toBeInTheDocument();
     });
 
     it('marks no block as a crossing and badges no node', async () => {
@@ -1989,11 +2012,11 @@ describe('SystemDiagramApp', () => {
       expect(details().getByText('Reset tree · 4 sinks')).toBeVisible();
       expect(details().getByText('? source not known')).toBeVisible();
       expect(details().getAllByText('✓ asynchronous input')).toHaveLength(3);
-      expect(
-        bottom().getByText(
-          'The source of ps_cips_pl0_resetn is not known, so the clock that releases it is not known'
-        )
-      ).toBeVisible();
+      const reason =
+        'The source of ps_cips_pl0_resetn is not known, so the clock that releases it is not known';
+      expect(bottom().queryByText(reason)).not.toBeInTheDocument();
+      fireEvent.click(bottom().getByRole('checkbox', { name: 'Show 2 that could not be checked' }));
+      expect(bottom().getByText(reason)).toBeVisible();
     });
   });
 

@@ -17,7 +17,6 @@ interface ClocksTableProps {
   focusedPin: FocusedPin | null;
   /** Opens a net; a crossing row also haloes its sink pin. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
-  onSelectInstance: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
 }
 
@@ -42,7 +41,6 @@ export function ClocksTable({
   selection,
   focusedPin,
   onSelectNet,
-  onSelectInstance,
   onReveal,
 }: ClocksTableProps) {
   const selectedNet = selection?.kind === 'net' ? selection.id : undefined;
@@ -144,14 +142,13 @@ export function ClocksTable({
           <tbody>{clocks.resets.map(resetRow)}</tbody>
         </table>
       )}
-      <h3 className="sd-psec">Crossings</h3>
+      <h3 className="sd-psec">Clock domain crossings</h3>
       <CrossingsTable
         graph={graph}
         clocks={clocks}
         selection={selection}
         focusedPin={focusedPin}
         onSelectNet={onSelectNet}
-        onSelectInstance={onSelectInstance}
         onReveal={onReveal}
       />
     </div>

@@ -2,82 +2,79 @@
 
 import type { SystemGraph } from '../../../domain/systemGraph';
 import { categoryLabel } from '../legend';
-import { isPlatformDesigner } from '../model';
 import { levelSource, type LevelSource } from '../sourceFile';
-import type { Crossing, CrossingEnd, CrossingStatus } from './clockTypes';
+import type { Crossing, CrossingEnd, PinCrossing } from './clockTypes';
+import { plural } from './crossingSummary';
+import { formatHz, nameWithFrequency } from './frequency';
 
-export const CROSSING_STATUSES: readonly { status: CrossingStatus; label: string; icon: string }[] =
-  [
-    { status: 'cross', label: 'Crossing', icon: '!' },
-    { status: 'related', label: 'Related clocks', icon: '≈' },
-    { status: 'inside', label: 'Block spans domains', icon: '⇄' },
-    { status: 'unchecked', label: 'Not checked', icon: '?' },
-    { status: 'ok', label: 'OK', icon: '✓' },
-  ];
+/** The rows of the Clocks tab: crossings without a synchronizer, and the ones not checked when asked for. */
+export function listedCrossings(
+  crossings: readonly Crossing[],
+  showUnchecked: boolean
+): PinCrossing[] {
+  return crossings.filter(
+    (crossing): crossing is PinCrossing =>
+      crossing.kind !== 'block' &&
+      (crossing.status === 'cross' || (showUnchecked && crossing.status === 'unchecked'))
+  );
+}
 
-/** Interface type of a data crossing, `Reset`, or `Block`. */
-export function crossingKind(crossing: Crossing): string {
-  if (crossing.kind === 'block') {
-    return 'Block';
-  }
+/** The one line above the table: how many crossings need a synchronizer. */
+export function crossingsHeadline(flagged: number): string {
+  return flagged === 0
+    ? 'No clock domain crossings found.'
+    : `${plural(flagged, 'crossing', 'crossings')} without a synchronizer.`;
+}
+
+/** Interface type of a data crossing, or `Reset`. */
+export function crossingKind(crossing: PinCrossing): string {
   if (crossing.kind === 'reset') {
     return 'Reset';
   }
   return crossing.category ? categoryLabel(crossing.category) : 'Data';
 }
 
-/** The word that replaces the domain of an asynchronous end; undefined for a clocked end. */
-export function asynchronousText(end: CrossingEnd, role: 'from' | 'to'): string | undefined {
-  if (!end.async) {
-    return undefined;
-  }
-  return role === 'from' ? 'asynchronous' : 'asynchronous input';
+function domainText(end: CrossingEnd): string {
+  return end.domain ? nameWithFrequency(end.domain) : end.label;
 }
 
-/** What tells the clocks of a crossing: the reason when not checked or related, else where each end's clock is known from. */
-export function crossingKnownFrom(crossing: Crossing): { reason?: string; sources: string[] } {
-  if (
-    crossing.kind === 'block' ||
-    crossing.status === 'unchecked' ||
-    crossing.status === 'related'
-  ) {
-    return { reason: crossing.reason, sources: [] };
+/** What is wrong with a row, in plain words; for a row not checked, why it could not be. */
+export function crossingProblem(crossing: PinCrossing): string {
+  if (crossing.status === 'unchecked') {
+    return crossing.reason;
   }
-  return {
-    sources: [crossing.from.knownFrom, crossing.to.knownFrom].filter(
-      (text): text is string => text !== undefined
-    ),
-  };
+  const { from, to } = crossing;
+  if (crossing.kind === 'reset') {
+    return `${from.async ? 'asynchronous reset' : `released by ${domainText(from)}`}, clocked by ${domainText(to)}`;
+  }
+  const [fromHz, toHz] = [from.domain?.hz, to.domain?.hz];
+  // Frequencies tell the domains apart only when both are set and differ; otherwise name them.
+  return fromHz !== undefined && toHz !== undefined && fromHz !== toHz
+    ? `${formatHz(fromHz)} to ${formatHz(toHz)}, no synchronizer`
+    : `${domainText(from)} to ${domainText(to)}, no synchronizer`;
 }
 
-/** Where to open the script for a crossing: its net, or the block. */
+function endProvenance(end: CrossingEnd): string {
+  const clock = end.async
+    ? 'asynchronous'
+    : end.domain
+      ? nameWithFrequency(end.domain)
+      : end.sourceUnknown
+        ? 'source not known'
+        : 'clock not known';
+  return `${end.label}: ${clock}${end.knownFrom === undefined ? '' : `, known from ${end.knownFrom}`}`;
+}
+
+/** The clock of each end of a crossing and how it was determined, one end per line, for the row's tooltip. */
+export function crossingProvenance(crossing: PinCrossing): string {
+  return `${endProvenance(crossing.from)}\n${endProvenance(crossing.to)}`;
+}
+
+/** Where to open the script for a crossing: its net. */
 export function crossingSource(
   graph: SystemGraph,
-  crossing: Crossing
+  crossing: PinCrossing
 ): { source: LevelSource; line: number } | undefined {
-  if (crossing.kind === 'block') {
-    const instance = graph.instances[crossing.instance];
-    return instance && { source: levelSource(graph, instance.parent), line: instance.line };
-  }
   const net = graph.nets.find((candidate) => candidate.id === crossing.netId);
   return net && { source: levelSource(graph, net.level), line: net.line };
-}
-
-/** Name of a block and its level, for a block row. */
-export function crossingBlockLabel(graph: SystemGraph, crossing: Crossing): string {
-  if (crossing.kind !== 'block') {
-    return '';
-  }
-  const instance = graph.instances[crossing.instance];
-  const level = crossing.level === '/' ? graph.name : (graph.levels[crossing.level]?.name ?? '');
-  return `${instance?.name ?? crossing.instance} (${level})`;
-}
-
-/** What the crossing list covers, as one sentence for the filter bar. */
-export function coverageNote(graph: SystemGraph): string {
-  const checked =
-    'Checked: memory-mapped and streaming connections (AXI, Avalon) and resets, followed through hierarchies. A pin takes its clock from its .ip.yml, the only clock of its block, or all its clocks being on one domain.';
-  return isPlatformDesigner(graph.source.format)
-    ? `${checked} Platform Designer inserts clock-crossing adapters and reset synchronizers itself, so its crossings are listed as OK.`
-    : checked;
 }

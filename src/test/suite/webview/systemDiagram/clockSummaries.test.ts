@@ -1,15 +1,14 @@
 import type { SystemGraph } from '../../../../domain/systemGraph';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
 import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
-import type { Crossing } from '../../../../webview/systemDiagram/clocks/clockTypes';
+import type { CrossingEnd, PinCrossing } from '../../../../webview/systemDiagram/clocks/clockTypes';
 import {
-  asynchronousText,
-  coverageNote,
-  crossingBlockLabel,
   crossingKind,
-  crossingKnownFrom,
+  crossingProblem,
+  crossingProvenance,
+  crossingsHeadline,
   crossingSource,
-  CROSSING_STATUSES,
+  listedCrossings,
 } from '../../../../webview/systemDiagram/clocks/crossingRows';
 import {
   crossingCountText,
@@ -190,6 +189,16 @@ describe('instanceClocks', () => {
     expect(fifo.hasUnchecked).toBe(true);
   });
 
+  it('lists the domains of a leaf block that spans two or more, and none otherwise', () => {
+    expect(rows(`${DSP}/axis_data_fifo_0`).spannedDomains.map((domain) => domain.name)).toEqual([
+      'FCLK_CLK0',
+      'FCLK_CLK1',
+    ]);
+    expect(rows('/axi_dma_0').spannedDomains).toEqual([]);
+    // A hierarchy block on two domains is no block that "uses" them.
+    expect(rows(DSP).spannedDomains).toEqual([]);
+  });
+
   it('takes the only clock of a block as the clock of its interfaces', () => {
     const fir = rows(`${DSP}/fir_compiler_0`);
     expect(
@@ -248,79 +257,144 @@ describe('instanceClocks', () => {
   });
 });
 
-describe('crossing rows of related clocks', () => {
-  it('give the reason where the known-from texts would be', () => {
-    const versal = loadVersalClockGraph();
-    const related = analyzeClocks(versal).crossings.find(
-      (crossing) => crossing.status === 'related'
-    )!;
-    expect(crossingKnownFrom(related)).toEqual({ reason: related.reason, sources: [] });
-    expect(crossingKnownFrom(related).reason).toMatch(/^Both clocks come from clk_wizard_0/);
-  });
-});
-
 describe('crossing rows', () => {
-  const find = (predicate: (crossing: Crossing) => boolean) => analysis.crossings.find(predicate)!;
-  const cdc = find((crossing) => crossing.kind === 'data' && crossing.status === 'cross');
-  const rdc = find((crossing) => crossing.kind === 'reset' && crossing.status === 'cross');
-  const block = find((crossing) => crossing.kind === 'block');
-  const unchecked = find((crossing) => crossing.status === 'unchecked');
-  const asyncReset = find((crossing) => crossing.kind === 'reset' && crossing.from.async === true);
-
-  it('lists the statuses in order with their icons', () => {
-    expect(CROSSING_STATUSES.map((entry) => entry.status)).toEqual([
-      'cross',
-      'related',
-      'inside',
-      'unchecked',
-      'ok',
-    ]);
-    expect(CROSSING_STATUSES.map((entry) => entry.icon)).toEqual(['!', '≈', '⇄', '?', '✓']);
+  const findPin = (predicate: (crossing: PinCrossing) => boolean) =>
+    analysis.crossings.find(
+      (crossing): crossing is PinCrossing => crossing.kind !== 'block' && predicate(crossing)
+    )!;
+  const cdc = findPin((crossing) => crossing.kind === 'data' && crossing.status === 'cross');
+  const rdc = findPin((crossing) => crossing.kind === 'reset' && crossing.status === 'cross');
+  const unchecked = findPin((crossing) => crossing.status === 'unchecked');
+  const withoutFrequency = (end: CrossingEnd): CrossingEnd => ({
+    ...end,
+    domain: end.domain && { ...end.domain, hz: undefined },
   });
 
-  it('names the kind: the interface type, reset, or block', () => {
+  it('lists the crossings without a synchronizer, and the unchecked ones when asked for', () => {
+    const flagged = listedCrossings(analysis.crossings, false);
+    expect(flagged).toHaveLength(4);
+    expect(flagged.every((crossing) => crossing.status === 'cross')).toBe(true);
+    const all = listedCrossings(analysis.crossings, true);
+    expect(all.map((crossing) => crossing.status)).toEqual([
+      'cross',
+      'cross',
+      'cross',
+      'cross',
+      'unchecked',
+      'unchecked',
+      'unchecked',
+    ]);
+  });
+
+  it('never lists a block, related, or ok row', () => {
+    const versal = analyzeClocks(loadVersalClockGraph());
+    expect(versal.crossings.some((crossing) => crossing.status === 'related')).toBe(true);
+    expect(listedCrossings(versal.crossings, true)).toEqual([]);
+    expect(analysis.crossings.some((crossing) => crossing.kind === 'block')).toBe(true);
+    expect(
+      listedCrossings(analysis.crossings, true).some((crossing) =>
+        ['inside', 'related', 'ok'].includes(crossing.status)
+      )
+    ).toBe(false);
+  });
+
+  it('counts the crossings in one line: none, one, or many', () => {
+    expect(crossingsHeadline(0)).toBe('No clock domain crossings found.');
+    expect(crossingsHeadline(1)).toBe('1 crossing without a synchronizer.');
+    expect(crossingsHeadline(4)).toBe('4 crossings without a synchronizer.');
+  });
+
+  it('names the kind: the interface type, or reset', () => {
     expect(crossingKind(cdc)).toBe('AXI4-Stream');
     expect(crossingKind(rdc)).toBe('Reset');
-    expect(crossingKind(block)).toBe('Block');
+    expect(crossingKind({ ...cdc, category: undefined })).toBe('Data');
   });
 
-  it('replaces the domain of an asynchronous end', () => {
-    if (asyncReset.kind !== 'reset') {
-      throw new Error('expected a reset crossing');
-    }
-    expect(asynchronousText(asyncReset.from, 'from')).toBe('asynchronous');
-    expect(asynchronousText(asyncReset.to, 'to')).toBe('asynchronous input');
-    if (cdc.kind === 'data') {
-      expect(asynchronousText(cdc.from, 'from')).toBeUndefined();
-    }
+  describe('problem text', () => {
+    it('gives both frequencies of a data crossing when they are known', () => {
+      expect(crossingProblem(cdc)).toBe('200 MHz to 100 MHz, no synchronizer');
+    });
+
+    it('gives the domains of a data crossing when a frequency is not known', () => {
+      expect(crossingProblem({ ...cdc, from: withoutFrequency(cdc.from) })).toBe(
+        'FCLK_CLK1 to FCLK_CLK0 · 100 MHz, no synchronizer'
+      );
+      const bare = { ...cdc, from: withoutFrequency(cdc.from), to: withoutFrequency(cdc.to) };
+      expect(crossingProblem(bare)).toBe('FCLK_CLK1 to FCLK_CLK0, no synchronizer');
+    });
+
+    it('gives the domains of a data crossing when both are on the same frequency', () => {
+      const sameHz = (end: CrossingEnd, hz: number): CrossingEnd => ({
+        ...end,
+        domain: end.domain && { ...end.domain, hz },
+      });
+      const alike = { ...cdc, from: sameHz(cdc.from, 100e6), to: sameHz(cdc.to, 100e6) };
+      expect(crossingProblem(alike)).toBe(
+        'FCLK_CLK1 · 100 MHz to FCLK_CLK0 · 100 MHz, no synchronizer'
+      );
+    });
+
+    it('names the releasing domain and the sink domain of a reset', () => {
+      expect(crossingProblem(rdc)).toBe(
+        'released by FCLK_CLK0 · 100 MHz, clocked by FCLK_CLK1 · 200 MHz'
+      );
+      expect(crossingProblem({ ...rdc, from: withoutFrequency(rdc.from) })).toBe(
+        'released by FCLK_CLK0, clocked by FCLK_CLK1 · 200 MHz'
+      );
+    });
+
+    it('says an asynchronous reset is, instead of a releasing domain', () => {
+      const asynchronous = { ...rdc, from: { ...rdc.from, async: true } };
+      expect(crossingProblem(asynchronous)).toBe(
+        'asynchronous reset, clocked by FCLK_CLK1 · 200 MHz'
+      );
+    });
+
+    it('gives the reason of a crossing that was not checked', () => {
+      expect(crossingProblem(unchecked)).toBe(unchecked.reason);
+      expect(crossingProblem(unchecked)).toMatch(/has clocks on 2 domains/);
+    });
+
+    it('never says unknown', () => {
+      for (const crossing of listedCrossings(analysis.crossings, true)) {
+        expect(crossingProblem(crossing)).not.toMatch(/unknown/i);
+      }
+    });
   });
 
-  it('tells where the clocks are known from, or why they are not', () => {
-    expect(crossingKnownFrom(cdc)).toEqual({ sources: ['single clock', 'all clocks one domain'] });
-    expect(crossingKnownFrom(unchecked).reason).toMatch(/has clocks on 2 domains/);
-    expect(crossingKnownFrom(block).reason).toMatch(/review that it synchronizes/);
+  describe('provenance tooltip', () => {
+    it('tells how the clock of each end of a data crossing was determined', () => {
+      expect(crossingProvenance(cdc)).toBe(
+        'fir_compiler_0/M_AXIS_DATA: FCLK_CLK1 · 200 MHz, known from single clock\n' +
+          'axi_dma_0/S_AXIS_S2MM: FCLK_CLK0 · 100 MHz, known from all clocks one domain'
+      );
+    });
+
+    it('tells which rule releases a reset, and how the sink clock is known', () => {
+      expect(crossingProvenance(rdc)).toBe(
+        'rst_ps7_0_100M/peripheral_aresetn: FCLK_CLK0 · 100 MHz, known from proc_sys_reset slowest_sync_clk\n' +
+          `${rdc.to.label}: FCLK_CLK1 · 200 MHz, known from single clock`
+      );
+    });
+
+    it('says an asynchronous end is, and when a clock or a source is not known', () => {
+      const asynchronous = crossingProvenance({
+        ...rdc,
+        from: { ...rdc.from, async: true, knownFrom: undefined },
+      });
+      expect(asynchronous.split('\n')[0]).toBe('rst_ps7_0_100M/peripheral_aresetn: asynchronous');
+      expect(crossingProvenance(unchecked)).toMatch(/axis_data_fifo_0\/\w+: clock not known/);
+      const sourceUnknown = { ...rdc.from, domain: undefined, sourceUnknown: true as const };
+      expect(crossingProvenance({ ...rdc, from: sourceUnknown })).toMatch(
+        /^rst_ps7_0_100M\/peripheral_aresetn: source not known, known from /
+      );
+    });
   });
 
-  it('opens the net of a crossing and the block of a block record', () => {
+  it('opens the net of a crossing in its script', () => {
     expect(crossingSource(graph, cdc)).toMatchObject({
       source: { fileName: 'zynq_clock_domains.tcl' },
     });
     expect(crossingSource(graph, cdc)?.line).toBeGreaterThan(0);
-    expect(crossingSource(graph, block)?.line).toBe(
-      graph.instances[`${DSP}/axis_data_fifo_0`].line
-    );
-  });
-
-  it('names a block with its level', () => {
-    expect(crossingBlockLabel(graph, block)).toBe('axis_data_fifo_0 (dsp_pipeline)');
-    expect(crossingBlockLabel(graph, cdc)).toBe('');
-  });
-
-  it('adds to the coverage note that Platform Designer synchronizes by itself', () => {
-    expect(coverageNote(graph)).toMatch(/^Checked: memory-mapped and streaming connections/);
-    expect(coverageNote(graph)).not.toMatch(/Platform Designer/);
-    expect(coverageNote(loadQsysFixtureGraph())).toMatch(
-      /Platform Designer inserts clock-crossing adapters/
-    );
   });
 });
