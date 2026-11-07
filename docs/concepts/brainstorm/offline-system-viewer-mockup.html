@@ -206,6 +206,9 @@ svg text { font-family: var(--ui); fill: var(--fg); }
 
 /* Pin-group folded row */
 .pin text { font-size: 11px; }
+/* Render-only Auto detail: far out, pin text goes and block names are enlarged (up to 3x). Geometry never changes. */
+.canvas.far .pin text, .canvas.far .nvlnv { display: none; }
+.canvas.far .nname { font-size: calc(12.5px * var(--inv-k, 1)); }
 .pin.pgrp { cursor: pointer; }
 .pin.pgrp rect.pg-bg { fill: color-mix(in srgb, var(--accent) 10%, var(--node-head)); stroke: var(--border); stroke-width: .7; }
 .pin.pgrp:hover rect.pg-bg { fill: color-mix(in srgb, var(--accent) 22%, var(--node-head)); stroke: var(--accent); }
@@ -378,7 +381,7 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
   <details class="proposal" open>
     <summary>UI/UX Proposal: Navigating Huge Block Designs &amp; Qsys Systems (10+ Subsystems, 1,000+ Connections)</summary>
     <ul>
-      <li><b>1. Semantic Zoom &amp; Pin-Group Folding (<code>Auto</code> / <code>Arch</code> / <code>Compact</code> / <code>Full</code>)</b>: High-pin-count blocks (e.g. 28-port <code>smartconnect</code>, 16-bit <code>xlconcat</code>, 8-channel DMA/ADC) automatically fold repetitive bus arrays into expandable rows (<code>&#9656; M00..M27_AXI [28]</code>), shrinking block height by 70%. At low zoom (<code>Arch</code>), blocks render as high-contrast Architectural Cards with interface summary pills and inline subsystem stage previews.</li>
+      <li><b>1. Pin-Group Folding &amp; Level of Detail (<code>Arch</code> / <code>Compact</code> / <code>Full pins</code>, plus <code>Auto</code>)</b>: <code>Compact</code> is the default for every design: high-pin-count blocks (e.g. 28-port <code>smartconnect</code>, 16-bit <code>xlconcat</code>, 8-channel DMA/ADC) fold repetitive bus arrays into expandable rows (<code>&#9656; M00..M27_AXI [28]</code>), shrinking block height by 70%. <code>Arch</code> renders blocks as Architectural Cards with interface summary pills and inline subsystem stage previews. <code>Auto</code> changes only what is drawn: zoomed out below 42%, pin labels are hidden and block names are enlarged (up to 3x) to stay legible; blocks never move while zooming.</li>
       <li><b>2. Smart Bus Bundling &amp; Collision-Free Routing</b>: Parallel nets between the same block pair merge into a single trunk cable with a clickable badge (<code>&times;12 AXI</code>, <code>&times;8 AXIS</code>, <code>&times;16 IRQ</code>) that expands on selection. Vertical wire channels use interval-packed lanes so wires never stack on top of each other.</li>
       <li><b>3. Neighborhood Focus (1-Hop / 2-Hop Slice) &amp; Path Tracer</b>: Select any block and click <b>Isolate</b> to slice a 1,500-connection system down to its 1-hop or 2-hop data/control neighborhood (ignoring global clock/reset fanout). Use <b>Trace path (From &rarr; To)</b> to highlight and isolate the shortest multi-hop signal chain between any two endpoints.</li>
       <li><b>4. Subsystem Adjacency Matrix, World Minimap &amp; Layer Filtering</b>: Switch to <b>Matrix</b> for an N&times;N subsystem connectivity overview (click any cell to isolate that interface pair), pan via the bottom-right <b>World Minimap</b> (with search/CDC heat dots), and click Legend chips to toggle or solo wire categories.</li>
@@ -407,12 +410,12 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
       <input class="search" id="search" type="search" placeholder="Search 240+ cells, VLNVs, nets" aria-label="Search">
       <span class="search-cnt" id="searchCnt"></span>
     </div>
-    <div class="lod-sel" id="lodGroup" role="group" aria-label="Detail level" title="Semantic Level of Detail">
-      <button type="button" data-lod="auto" aria-pressed="false">Auto</button>
+    <div class="lod-sel" id="lodGroup" role="group" aria-label="Layout mode" title="Layout mode: sets block geometry">
       <button type="button" data-lod="arch" aria-pressed="false">Arch</button>
       <button type="button" data-lod="compact" aria-pressed="true">Compact</button>
       <button type="button" data-lod="full" aria-pressed="false">Full pins</button>
     </div>
+    <button class="ubtn" id="tglAutoLod" type="button" aria-pressed="true" title="Auto detail: when zoomed out below 42%, hide pin labels and enlarge block names. Drawing only; blocks never move">Auto</button>
     <button class="ubtn" id="tglBundle" type="button" aria-pressed="true" title="Coalesce parallel connections between the same blocks into trunk cables">Bundle buses <span class="in-badge" id="bundleCount"></span></button>
     <button class="ubtn" id="btnIsolate" type="button" aria-pressed="false" title="Isolate 1-hop or 2-hop connected neighborhood of the selected block">Isolate</button>
     <button class="ubtn" id="btnTrace" type="button" aria-pressed="false" title="Find and isolate the shortest signal path between any two blocks">Trace path</button>
@@ -1380,7 +1383,8 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
   const state = {
     scale: 'huge',
     ux: 'proposed',          // 'proposed' | 'baseline'
-    lod: 'compact',          // 'auto' | 'arch' | 'compact' | 'full'
+    lod: 'compact',          // layout mode: 'arch' | 'compact' | 'full'
+    autoLod: true,           // render-only zoom detail; never changes geometry
     bundle: true,            // coalesce parallel wires between same node pair
     isolate: null,           // { rootId, hops: 1 | 2 } | null
     trace: null,             // { open: true, fromId, toId, nodes: Set, nets: Set, steps: [] } | null
@@ -1472,11 +1476,10 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
 
   function effectiveLod() {
     if (state.ux === 'baseline') return 'full';
-    if (state.lod !== 'auto') return state.lod;
-    if (state.view.k < 0.42) return 'arch';
-    if (state.view.k < 0.85) return 'compact';
-    return 'full';
+    return state.lod;
   }
+  // Render-only: whether the zoom is far enough out to drop pin text (Auto detail).
+  const isFar = () => state.ux === 'proposed' && state.autoLod && state.view.k < 0.42;
 
   // ---------- 1. Pin-Group Folding for High-Pin-Count Blocks ----------
   function pinStem(name) {
@@ -2097,23 +2100,24 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
     if (!r.width) return;
     const k = Math.min(r.width / b.w, (r.height - 40) / b.h, 1.15);
     state.view = { k, x: (r.width - b.w * k) / 2 - b.x * k, y: (r.height - 30 - b.h * k) / 2 - b.y * k };
-    if (state.lod === 'auto') renderDiagram(); else applyView();
+    applyView();
   }
   function applyView() {
     const v = state.view;
     vp.setAttribute('transform', `translate(${v.x},${v.y}) scale(${v.k})`);
     canvas.style.backgroundSize = `${20 * v.k}px ${20 * v.k}px`;
     canvas.style.backgroundPosition = `${v.x}px ${v.y}px`;
+    canvas.classList.toggle('far', isFar());
+    canvas.style.setProperty('--inv-k', String(Math.min(1 / v.k, 3)));
     const pct = Math.round(v.k * 100);
-    $('stZoom').textContent = `Zoom ${pct}% (${effectiveLod().toUpperCase()})`;
+    $('stZoom').textContent = `Zoom ${pct}% (${effectiveLod().toUpperCase()}${isFar() ? ', far' : ''})`;
     $('mmTitle').textContent = `World radar · ${pct}%`;
     renderMinimap();
   }
   function zoomAt(f, cx, cy) {
-    const prevLod = effectiveLod();
     const v = state.view, k = Math.max(0.08, Math.min(3, v.k * f));
     v.x = cx - (cx - v.x) * (k / v.k); v.y = cy - (cy - v.y) * (k / v.k); v.k = k;
-    if (state.lod === 'auto' && effectiveLod() !== prevLod) renderDiagram(); else applyView();
+    applyView();
   }
 
   function renderMinimap() {
@@ -2472,6 +2476,7 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
     document.querySelectorAll('[data-ux]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ux === state.ux)));
     document.querySelectorAll('[data-scale]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.scale === state.scale)));
     document.querySelectorAll('[data-lod]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.lod === state.lod)));
+    $('tglAutoLod').setAttribute('aria-pressed', String(state.autoLod));
     document.querySelectorAll('[data-ofilter]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ofilter === state.ofilter)));
     document.querySelectorAll('[data-kfilter]').forEach((b) => b.classList.toggle('off', !state.kfilter[b.dataset.kfilter]));
     $('tglBundle').setAttribute('aria-pressed', String(state.ux === 'proposed' && state.bundle));
@@ -2621,6 +2626,7 @@ tr.focus td, .details tr.focus td { background: var(--sel); }
   $('partialBadge').addEventListener('click', () => { state.ptab = 'prob'; renderPanel(); });
   $('tglClk').addEventListener('change', (e) => { state.showClk = e.target.checked; renderDiagram(); });
   $('tglBundle').addEventListener('click', () => { state.bundle = !state.bundle; state.unbundledKeys = {}; renderAll(); });
+  $('tglAutoLod').addEventListener('click', () => { state.autoLod = !state.autoLod; renderAll(); applyView(); });
   $('btnIsolate').addEventListener('click', () => {
     if (state.isolate) { state.isolate = null; renderAll(); fit(); return; }
     const targetId = (state.sel && state.sel.type === 'node' && state.sel.level === state.level) ? state.sel.id : (LEVELS[state.level].nodes.find((n) => n.kind === 'hier') || LEVELS[state.level].nodes[0]).id;

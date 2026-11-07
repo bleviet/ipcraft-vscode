@@ -80,15 +80,22 @@ flowchart LR
 ### 1. Semantic Level of Detail (`Auto` | `Arch` | `Compact` | `Full pins`) and Pin-Group Folding
 
 High-pin-count blocks are the primary driver of vertical height bloat. The
-viewer introduces four explicit detail modes in the toolbar (`Auto`, `Arch`,
-`Compact`, `Full pins`):
+viewer offers three layout modes (`Compact`, `Arch`, `Full pins`), which set
+block geometry, and one zoom-driven drawing mode (`Auto`), which never does:
 
 | Mode | Pin rendering | Block height | When used |
 |---|---|---|---|
-| `Compact` (default for large levels) | Consecutive numbered pin arrays of length >= 4 with the same stem and direction/category fold into a single expandable row (`▸ M00..M27_AXI [28]`, `▸ S00..S15_AXIS [16]`, `▸ In0..15 [16]`) | Reduced by 60-75% on interconnects, switches, concats, and multi-channel IPs | Default interactive working view |
+| `Compact` (default for every design) | Consecutive numbered pin arrays of length >= 4 with the same stem and direction/category fold into a single expandable row (`▸ M00..M27_AXI [28]`, `▸ S00..S15_AXIS [16]`, `▸ In0..15 [16]`) | Reduced by 60-75% on interconnects, switches, concats, and multi-channel IPs | Default interactive working view |
 | `Arch` | Individual pins are hidden; blocks render as compact architectural cards (`62-86 px` tall) with interface count pills (`28× AXI`, `8× AXIS`) and a 1-line subsystem stage preview | Fixed compact height (`62-86 px`), raising top-level **Fit** zoom from ~14% to ~48% | System-level block diagram reviews and documentation overviews |
 | `Full pins` | Every pin rendered on its own row (`18 px`) | Current behavior | Detailed pin-by-pin inspection |
-| `Auto` | Switches automatically by viewport zoom scale (`k < 0.42` -> `Arch`, `0.42 <= k < 0.85` -> `Compact`, `k >= 0.85` -> `Full pins`) | Adapts on zoom | Continuous semantic zoom |
+| `Auto` | Render-only level of detail by viewport zoom scale: below `k < 0.42`, pin labels and net badges are not drawn and block names are enlarged (up to 3x) to stay legible without overlapping their neighbours; at `k >= 0.42`, everything is drawn as usual | Unchanged: the geometry of the chosen layout mode | Continuous semantic zoom |
+
+#### Decisions
+
+| Decision | Rationale |
+|---|---|
+| **`Compact` is the default for every design**, not only for large levels. A **Compact pins** toolbar toggle switches to `Full pins`. | One predictable default. Folding only acts on arrays of 4 or more pins, so small designs are mostly unchanged, and the same design never opens in a different mode because of a size heuristic. |
+| **`Auto` changes only what is drawn, never block geometry.** It does not switch between `Arch`, `Compact`, and `Full pins` while zooming. | A geometry switch re-runs ELK at every threshold crossing and moves blocks under the cursor while the user zooms, which costs layout time on large levels and breaks the zoom anchor. Hiding or rescaling text is a CSS change with no layout run. This also keeps the existing rule that view toggles change what is drawn, never where blocks sit; `Compact`, `Full pins`, `Arch`, and opening a pin group remain explicit user actions that re-run layout, like expanding a hierarchy block in place. |
 
 Rules for **Pin-Group Folding**:
 
@@ -203,7 +210,7 @@ each new capability belongs to a focused pure module or component under
 | `src/webview/systemDiagram/connectivityMatrix.ts` (new) | Pure graph projection | Computes the N×N block-to-block interface count table for `levelPath` |
 | `src/webview/systemDiagram/ConnectivityMatrixView.tsx` (new) | Component | Renders the N×N adjacency matrix and dispatches pair-isolation actions |
 | `src/webview/systemDiagram/DiagramMinimap.tsx` (new) | Component | Renders the collapsible world radar SVG overlay and handles click-to-pan |
-| `src/webview/systemDiagram/DiagramToolbar.tsx` (extend) | Component | Adds LOD selector (`Auto \| Arch \| Compact \| Full`), `Bundle buses`, `Trace path`, and `Matrix` controls |
+| `src/webview/systemDiagram/DiagramToolbar.tsx` (extend) | Component | Adds the `Compact pins` toggle (Phase 1), the `Arch` layout mode and the render-only `Auto` level of detail (Phase 3), `Bundle buses`, `Trace path`, and `Matrix` controls |
 | `src/webview/systemDiagram/DetailsPanel.tsx` (extend) | Component | Adds `BundleDetails` (with unbundle action) and `PathTraceDetails` views |
 
 All transformations operate on the existing `SystemGraph` level in the webview
@@ -214,15 +221,14 @@ without changing the extension-host parsers (`BdTclReader`, `QsysReader`,
 
 | Phase | Scope | Primary value |
 |---|---|---|
-| **Phase 1: Pin-Group Folding & Bus Bundling** | `pinGrouping.ts`, `edgeBundling.ts`, `Compact` vs `Full pins` toggle, `Bundle buses` toggle, and bundle inspection/unbundling in `DetailsPanel.tsx` | Immediately cuts vertical block height by 60-75% and collapses parallel multi-channel wire walls on existing ELK layouts |
+| **Phase 1: Pin-Group Folding & Bus Bundling** | `pinGrouping.ts`, `edgeBundling.ts`, `Compact pins` toggle (on by default), `Bundle buses` toggle, and bundle inspection/unbundling in `DetailsPanel.tsx` | Immediately cuts vertical block height by 60-75% and collapses parallel multi-channel wire walls on existing ELK layouts |
 | **Phase 2: 2-Hop Isolation & Path Tracer** | Extend `isolation.ts` with `1-Hop / 2-Hop` banner and `computePathTrace`, plus the floating Path Tracer bar and hop table | Lets users slice a 200+ cell design down to a 5-to-8 block signal chain in two clicks |
-| **Phase 3: Architectural LOD, Minimap & Layer Filters** | `Arch` card rendering, `Auto` semantic zoom threshold, `DiagramMinimap.tsx`, clickable Legend category filters, and Outline kind filters | Makes full-chip overview zoom readable (~50% zoom) and keeps users oriented when panning zoomed-in views |
+| **Phase 3: Architectural LOD, Minimap & Layer Filters** | `Arch` card rendering, render-only `Auto` zoom level of detail, `DiagramMinimap.tsx`, clickable Legend category filters, and Outline kind filters | Makes full-chip overview zoom readable (~50% zoom) and keeps users oriented when panning zoomed-in views |
 | **Phase 4: Subsystem Connectivity Matrix** | `connectivityMatrix.ts` and `ConnectivityMatrixView.tsx` with click-to-isolate cell actions | Provides a zero-wire-crossing tabular overview for interconnect-heavy top levels |
 
 ## Open Questions
 
 | Question | Options / Notes |
 |---|---|
-| Default LOD when opening a level | Start in `Compact` whenever a level has any pin array of >= 4 pins or > 30 total pins; otherwise start in `Full pins`. Alternatively, default to `Auto` so zoom level alone governs the transition |
 | Hiding `proc_sys_reset` blocks when `Clocks and resets` is off | Hiding reset-only utility blocks saves substantial column height on Vivado designs (which often instantiate one `proc_sys_reset` per clock domain), but must remain discoverable via the Outline and re-appear immediately when `Clocks and resets`, `Clock domains`, or `Unconnected pins` is enabled |
 | Bundling across expanded `FrameNode` boundaries | Phase 1 should bundle edges between collapsed blocks on the active level; bundling edges that cross into an in-place expanded `FrameNode` can follow once ELK port-group constraints are characterized |
