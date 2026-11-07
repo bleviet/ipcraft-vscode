@@ -15,7 +15,7 @@ export function DiagramLegend({
   nodes: readonly DiagramFlowNode[];
   /** Append the unconnected-pin entries. */
   review: boolean;
-  /** Entries to append in the Clock domains mode. */
+  /** Entries to append while the domain decorations are on. */
   domains?: readonly DomainLegendEntry[] | null;
 }) {
   const badges = nodes.flatMap((node) =>

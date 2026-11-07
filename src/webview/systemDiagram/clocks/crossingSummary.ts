@@ -89,21 +89,34 @@ export function plural(amount: number, one: string, many: string): string {
 }
 
 /** `2 CDC · 1 RDC`: only the kinds that are present, empty when there are none. */
-export function crossingCountText(data: number, reset: number): string {
+export function crossingCountText(data: number, reset: number, separator = ' · '): string {
   return [data > 0 ? `${data} CDC` : '', reset > 0 ? `${reset} RDC` : '']
     .filter(Boolean)
-    .join(' · ');
+    .join(separator);
 }
 
-/** Toolbar chip of the domain mode: the flagged crossings, else the number of domains. */
-export function toolbarSummary(analysis: ClockAnalysis): { text: string; warning: boolean } {
+/** The count chip of the Clocks and resets toggle: its text, the same in words for a screen reader, and its tone. */
+export interface ToolbarSummary {
+  text: string;
+  label: string;
+  warning: boolean;
+}
+
+/** Count chip of the Clocks and resets toggle: the flagged crossings, else the number of domains. */
+export function toolbarSummary(analysis: ClockAnalysis): ToolbarSummary {
   const data = crossingCounts(analysis.crossings, 'data').cross;
   const reset = crossingCounts(analysis.crossings, 'reset').cross;
   if (data === 0 && reset === 0) {
-    return { text: String(analysis.domains.length), warning: false };
+    const domains = analysis.domains.length;
+    return {
+      text: String(domains),
+      label: plural(domains, 'clock domain', 'clock domains'),
+      warning: false,
+    };
   }
   return {
     text: crossingCountText(data, reset),
+    label: crossingCountText(data, reset, ', '),
     warning: true,
   };
 }

@@ -21,7 +21,7 @@ export interface ClockContext {
   graph: SystemGraph;
   analysis: ClockAnalysis;
   levelPath: string;
-  /** The Clock domains mode is on. */
+  /** The domain decorations are on: Clocks and resets is on and the unconnected-pin review is off. */
   domainMode: boolean;
 }
 

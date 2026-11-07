@@ -1,6 +1,7 @@
 import React from 'react';
 import { useReactFlow } from '@xyflow/react';
 import type { SystemGraph } from '../../domain/systemGraph';
+import type { ToolbarSummary } from './clocks/crossingSummary';
 import { breadcrumbs } from './model';
 
 interface DiagramToolbarProps {
@@ -8,11 +9,10 @@ interface DiagramToolbarProps {
   levelPath: string;
   query: string;
   searchCounter: string;
-  showClockReset: boolean;
-  /** The Clock domains mode, which draws clocks and resets by itself. */
-  domainMode: boolean;
-  /** Chip text of the Clock domains toggle: the crossings, else the number of domains. */
-  domainSummary: { text: string; warning: boolean };
+  /** Clocks and resets is on: the wires are drawn, colored by domain, with the domain decorations. */
+  clocksOn: boolean;
+  /** The count chip next to the Clocks and resets toggle: the crossings, else the number of domains. */
+  clockSummary: ToolbarSummary;
   reviewUnconnected: boolean;
   /** Number of unconnected pins in the design, and whether any is undriven. */
   unconnected: { count: number; anyUndriven: boolean };
@@ -24,8 +24,8 @@ interface DiagramToolbarProps {
   onNavigate: (levelPath: string) => void;
   onQueryChange: (query: string) => void;
   onSearchStep: (direction: 1 | -1) => void;
-  onShowClockResetChange: (show: boolean) => void;
-  onDomainModeChange: (on: boolean) => void;
+  onClocksChange: (on: boolean) => void;
+  onOpenClocksTab: () => void;
   onReviewUnconnectedChange: (on: boolean) => void;
   onFit: () => void;
   panelsVisible: Record<PanelName, boolean>;
@@ -45,9 +45,8 @@ export function DiagramToolbar({
   levelPath,
   query,
   searchCounter,
-  showClockReset,
-  domainMode,
-  domainSummary,
+  clocksOn,
+  clockSummary,
   reviewUnconnected,
   unconnected,
   isolated,
@@ -57,8 +56,8 @@ export function DiagramToolbar({
   onNavigate,
   onQueryChange,
   onSearchStep,
-  onShowClockResetChange,
-  onDomainModeChange,
+  onClocksChange,
+  onOpenClocksTab,
   onReviewUnconnectedChange,
   onFit,
   panelsVisible,
@@ -132,28 +131,27 @@ export function DiagramToolbar({
           {searchCounter}
         </span>
       )}
-      <label className="flex cursor-pointer select-none items-center gap-1 whitespace-nowrap">
-        <input
-          type="checkbox"
-          checked={showClockReset}
-          disabled={domainMode}
-          title={domainMode ? 'Clock domains mode draws clocks and resets' : undefined}
-          onChange={(event) => onShowClockResetChange(event.target.checked)}
-        />
-        Clocks and resets
-      </label>
-      <button
-        type="button"
-        className="sd-tool"
-        aria-pressed={domainMode}
-        title="Color clocks by domain, show frequencies and clock domain crossings"
-        onClick={() => onDomainModeChange(!domainMode)}
-      >
-        Clock domains{' '}
-        <span className="sd-tool-count" data-tone={domainSummary.warning ? 'warning' : 'info'}>
-          {domainSummary.text}
-        </span>
-      </button>
+      <span className="sd-tool-group">
+        <button
+          type="button"
+          className="sd-tool"
+          aria-pressed={clocksOn}
+          title="Draw clock and reset wires colored by domain, with frequencies and clock domain crossings"
+          onClick={() => onClocksChange(!clocksOn)}
+        >
+          Clocks and resets
+        </button>
+        <button
+          type="button"
+          className="sd-tool-count"
+          data-tone={clockSummary.warning ? 'warning' : 'info'}
+          aria-label={`Open the Clocks tab: ${clockSummary.label}`}
+          title="Open the Clocks tab"
+          onClick={onOpenClocksTab}
+        >
+          {clockSummary.text}
+        </button>
+      </span>
       <button
         type="button"
         className="sd-tool"

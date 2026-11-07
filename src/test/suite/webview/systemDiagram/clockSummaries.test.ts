@@ -39,6 +39,7 @@ describe('crossing count text', () => {
     expect(crossingCountText(0, 3)).toBe('3 RDC');
     expect(crossingCountText(4, 0)).toBe('4 CDC');
     expect(crossingCountText(0, 0)).toBe('');
+    expect(crossingCountText(2, 1, ', ')).toBe('2 CDC, 1 RDC');
   });
 
   it('pluralizes by the amount', () => {
@@ -101,12 +102,17 @@ describe('outlineDomains', () => {
 
 describe('toolbarSummary', () => {
   it('shows the flagged crossings of each kind', () => {
-    expect(toolbarSummary(analysis)).toEqual({ text: '2 CDC · 2 RDC', warning: true });
+    expect(toolbarSummary(analysis)).toEqual({
+      text: '2 CDC · 2 RDC',
+      label: '2 CDC, 2 RDC',
+      warning: true,
+    });
   });
 
   it('shows the number of domains when nothing is flagged', () => {
     expect(toolbarSummary(analyzeClocks(loadFixtureGraph()))).toEqual({
       text: '1',
+      label: '1 clock domain',
       warning: false,
     });
     expect(toolbarSummary(analyzeClocks(loadQsysFixtureGraph())).warning).toBe(false);
@@ -115,6 +121,7 @@ describe('toolbarSummary', () => {
   it('names only the kind that is flagged', () => {
     const fewer = { ...analysis, crossings: analysis.crossings.filter((c) => c.kind !== 'reset') };
     expect(toolbarSummary(fewer).text).toBe('2 CDC');
+    expect(toolbarSummary(fewer).label).toBe('2 CDC');
   });
 });
 

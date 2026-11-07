@@ -779,6 +779,22 @@ input:focus-visible {
   color: var(--vscode-editorWarning-foreground);
 }
 
+/* The Clocks and resets toggle and its count chip, which is a button of its own. */
+.sd-tool-group {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.sd-tool-group > .sd-tool-count {
+  margin-left: 0;
+  cursor: pointer;
+}
+
+.sd-tool-group > .sd-tool-count:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
 .sd-row-selected {
   background: var(--vscode-list-inactiveSelectionBackground);
 }

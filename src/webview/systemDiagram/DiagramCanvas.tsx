@@ -181,7 +181,7 @@ export function DiagramCanvas({
       selectedNetIds ?? (selection?.kind === 'net' ? new Set([selection.id]) : new Set<string>()),
     [selectedNetIds, selection]
   );
-  const showHighlights = !clocks.domainMode && review === null;
+  const showHighlights = review === null;
 
   const drawn = useMemo(
     () => (layout ? drawnLayout(layout, drawClockReset) : null),

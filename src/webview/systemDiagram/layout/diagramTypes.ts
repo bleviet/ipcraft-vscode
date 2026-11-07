@@ -44,7 +44,7 @@ export interface InstanceUiData {
   dimmed?: boolean;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
-  /** Present only while the Clock domains mode is on. */
+  /** Present only while the domain decorations are on (Clocks and resets on, review off). */
   domains?: NodeDomains;
   /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */
   pinMarks?: PinMarks;
