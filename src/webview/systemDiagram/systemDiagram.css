@@ -304,6 +304,18 @@ input:focus-visible {
   border-radius: 1px;
 }
 
+.sd-bundle-badge rect {
+  fill: var(--vscode-editor-background);
+  stroke-width: 1;
+}
+
+.sd-bundle-badge text {
+  fill: var(--vscode-foreground);
+  stroke: none;
+  font-size: 10px;
+  pointer-events: none;
+}
+
 .sd-legend {
   display: flex;
   flex-wrap: wrap;

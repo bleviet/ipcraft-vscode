@@ -6,6 +6,7 @@ import {
   type DiagramFlowEdge,
   type DiagramFlowNode,
 } from '../layout/elkLayout';
+import type { BusBundling } from '../layout/edgeBundling';
 import type { PinFolding } from '../layout/pinGrouping';
 import { runElkLayout } from '../layout/runElkLayout';
 import { isolatedViewKey } from '../layout/viewportPolicy';
@@ -23,8 +24,9 @@ export interface DiagramLayout {
 
 /**
  * Lays out one level, with the hierarchy blocks in `expanded` drawn as frames
- * around their inner level and, with `folding`, numbered pin arrays folded;
- * results of superseded requests are ignored. No
+ * around their inner level, with `folding` numbered pin arrays folded and with
+ * `bundling` parallel buses drawn as one wire; results of superseded requests
+ * are ignored. No
  * view toggle (clock and reset wires, domains, review) is an input: they change
  * what the canvas draws of the layout, never where the blocks sit.
  */
@@ -33,7 +35,8 @@ export function useElkLayout(
   levelPath: string,
   isolation: IsolatedView | null = null,
   expanded?: ReadonlySet<string>,
-  folding?: PinFolding
+  folding?: PinFolding,
+  bundling?: BusBundling
 ): { layout: DiagramLayout | null; error: string | null } {
   const [result, setResult] = useState<{
     layout: DiagramLayout | null;
@@ -60,6 +63,7 @@ export function useElkLayout(
         ...(isolation && { isolate: isolation }),
         ...(expanded && { expanded }),
         ...(folding && { pinFolding: folding }),
+        ...(bundling && { busBundling: bundling }),
       })
     ).then(
       (laidOut) => {
@@ -68,7 +72,15 @@ export function useElkLayout(
             layout: {
               levelPath,
               viewKey,
-              ...toFlowElements(laidOut, graph, levelPath, measure, folding),
+              ...toFlowElements(
+                laidOut,
+                graph,
+                levelPath,
+                measure,
+                folding,
+                bundling,
+                isolation ?? undefined
+              ),
             },
             error: null,
           });
@@ -86,7 +98,7 @@ export function useElkLayout(
     return () => {
       stale = true;
     };
-  }, [graph, levelPath, isolation, expanded, folding, measure]);
+  }, [graph, levelPath, isolation, expanded, folding, bundling, measure]);
 
   return result;
 }

@@ -13,6 +13,7 @@ import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
 import { useIsolation } from './hooks/useIsolation';
 import { useMouseBackButton } from './hooks/useMouseBackButton';
+import { useBusBundling } from './hooks/useBusBundling';
 import { usePinFolding } from './hooks/usePinFolding';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
@@ -77,12 +78,15 @@ export function WorkbenchLayout({
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
   // Compact pins is a layout input: folding a pin array re-runs the layout.
   const pins = usePinFolding();
+  // Bundle buses is a layout input too: fewer wires, so a different routing.
+  const buses = useBusBundling();
   const { layout, error } = useElkLayout(
     graph,
     nav.levelPath,
     isolation,
     nav.expanded,
-    pins.folding
+    pins.folding,
+    buses.busBundling
   );
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -149,6 +153,7 @@ export function WorkbenchLayout({
         clockSummary={clockSummary}
         reviewUnconnected={reviewUnconnected}
         compactPins={pins.compact}
+        bundleBuses={buses.on}
         unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
         onShowAll={view.showAll}
@@ -159,6 +164,7 @@ export function WorkbenchLayout({
         onSearchStep={search.step}
         onClocksChange={setClocksOn}
         onCompactPinsChange={pins.setCompact}
+        onBundleBusesChange={buses.setOn}
         onOpenClocksTab={() => openBottomTab('clocks')}
         onReviewUnconnectedChange={(on) => {
           setReviewUnconnected(on);
@@ -209,6 +215,9 @@ export function WorkbenchLayout({
               onFlashEnd={search.clearFlash}
               onSelect={nav.select}
               onToggleNode={nav.toggleNode}
+              onSelectItems={nav.selectItems}
+              onToggleItems={nav.toggleItems}
+              onUnbundle={buses.unbundle}
               onIsolate={view.isolate}
               onShowAll={view.showAll}
               onHighlight={handleHighlight}
@@ -235,8 +244,13 @@ export function WorkbenchLayout({
                   selectedNodeIds={nav.selectedNodeIds}
                   selectedItems={nav.selectedItems}
                   focusedPin={focusedPin}
+                  edges={layout?.edges}
+                  activeBundleKey={nav.activeBundleKey}
+                  isolatable={view.canIsolate}
                   onSelect={view.selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
+                  onUnbundle={buses.unbundle}
+                  onIsolate={view.isolate}
                   onReveal={revealSource}
                   onOpenDefinition={openDefinition}
                 />

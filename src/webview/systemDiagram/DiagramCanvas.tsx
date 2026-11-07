@@ -23,6 +23,7 @@ import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
 import { clockDecor, type ClockContext } from './clockDecor';
 import { drawnLayout } from './drawnLayout';
+import { edgeNetIds } from './edgeNets';
 import {
   HIGHLIGHT_COLORS,
   hasAnyHighlight,
@@ -70,6 +71,12 @@ interface DiagramCanvasProps {
   onFlashEnd?: (token: number) => void;
   onSelect: (selection: Selection | null) => void;
   onToggleNode: (selection: Selection) => void;
+  /** Click on a bundled wire: selects all its nets (the last one primary). */
+  onSelectItems?: (items: readonly Selection[], bundleKey?: string) => void;
+  /** Cmd/Ctrl+Click on a bundled wire: removes all its nets when all are selected, else adds the missing ones. */
+  onToggleItems?: (items: readonly Selection[], bundleKey?: string) => void;
+  /** Draws the bundle `key` as separate wires. */
+  onUnbundle?: (key: string) => void;
   onIsolate: (nodeIds: string[]) => void;
   onShowAll: () => void;
   onHighlight?: (targets: readonly Selection[], color: HighlightColor | null) => void;
@@ -111,6 +118,9 @@ export function DiagramCanvas({
   onFlashEnd,
   onSelect,
   onToggleNode,
+  onSelectItems,
+  onToggleItems,
+  onUnbundle,
   onIsolate,
   onShowAll,
   onHighlight,
@@ -175,6 +185,16 @@ export function DiagramCanvas({
             : []),
         ]
       : [];
+
+  const netSelection = (id: string): Selection => ({ kind: 'net', id });
+  // A bundle selects its nets together, even when it holds one net (a fan-out).
+  const selectNets = (nets: Selection[], bundleKey?: string) =>
+    bundleKey !== undefined && onSelectItems ? onSelectItems(nets, bundleKey) : onSelect(nets[0]);
+  const toggleNets = (nets: Selection[], bundleKey?: string) =>
+    bundleKey !== undefined && onToggleItems
+      ? onToggleItems(nets, bundleKey)
+      : onToggleNode(nets[0]);
+  const pair = (edge: { source: string; target: string }) => [edge.source, edge.target];
 
   const { hover, onHoverPin } = usePinHover(layout);
 
@@ -267,14 +287,21 @@ export function DiagramCanvas({
     () =>
       (drawn?.edges ?? []).map((edge) => {
         const marks = decor.edges.get(edge.id);
+        const netIds = edgeNetIds(edge);
         const highlightColor =
-          showHighlights && highlights ? netHighlightColor(highlights, edge.data.netId) : undefined;
+          showHighlights && highlights
+            ? netIds
+                .map((netId) => netHighlightColor(highlights, netId))
+                .find((color) => color !== undefined)
+            : undefined;
         return {
           ...edge,
-          selected:
-            activeSelectedNetIds.has(edge.data.netId) ||
-            (selection?.kind === 'net' &&
-              (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId)),
+          selected: netIds.some(
+            (netId) =>
+              activeSelectedNetIds.has(netId) ||
+              (selection?.kind === 'net' &&
+                (tree ? tree.netIds.has(netId) : selection.id === netId))
+          ),
           ...((marks !== undefined || highlightColor !== undefined) && {
             data: {
               ...edge.data,
@@ -366,14 +393,33 @@ export function DiagramCanvas({
           if (!edge.data?.netId) {
             return;
           }
-          const netSel: Selection = { kind: 'net', id: edge.data.netId };
+          const nets = edgeNetIds(edge).map(netSelection);
           const currentItems = selectedItems ?? selectedNodeIds.map(nodeSelection);
-          const inSelection = currentItems.some((item) => sameSelection(item, netSel));
-          const targets = inSelection ? [...currentItems] : [netSel];
+          const inSelection = nets.every((net) => currentItems.some((c) => sameSelection(c, net)));
+          const targets = inSelection ? [...currentItems] : nets;
+          const bundle = edge.data.bundle;
           if (!inSelection) {
-            onSelect(netSel);
+            selectNets(nets, bundle?.key);
+          } else if (bundle && onSelectItems) {
+            // Keep the selection, but name the bundle the menu opened on.
+            onSelectItems(currentItems, bundle.key);
           }
-          openMenu(event, [...highlightItems(targets), showAllItem]);
+          openMenu(event, [
+            ...(bundle
+              ? [
+                  ...(onUnbundle
+                    ? [{ label: 'Unbundle', onSelect: () => onUnbundle(bundle.key) }]
+                    : []),
+                  {
+                    label: 'Isolate Pair',
+                    disabled: !isolatable(pair(edge)),
+                    onSelect: () => onIsolate(pair(edge)),
+                  },
+                ]
+              : []),
+            ...highlightItems(targets),
+            showAllItem,
+          ]);
         }}
         onPaneContextMenu={(event) =>
           openMenu(event, [
@@ -405,11 +451,12 @@ export function DiagramCanvas({
           if (!edge.data?.netId) {
             return;
           }
-          const next: Selection = { kind: 'net', id: edge.data.netId };
+          const nets = edgeNetIds(edge).map(netSelection);
+          const bundle = edge.data.bundle;
           if (event.metaKey || event.ctrlKey) {
-            onToggleNode(next);
+            toggleNets(nets, bundle?.key);
           } else {
-            onSelect(next);
+            selectNets(nets, bundle?.key);
           }
         }}
         proOptions={{ hideAttribution: true }}

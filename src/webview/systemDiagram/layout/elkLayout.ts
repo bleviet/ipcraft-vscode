@@ -11,17 +11,19 @@
 
 import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
 import type { SystemGraph, SystemInstance, SystemPin } from '../../../domain/systemGraph';
-import type { DiagramFlowEdge, DiagramFlowNode, PinSide } from './diagramTypes';
+import type { DiagramFlowEdge, DiagramFlowNode, IsolationSubset, PinSide } from './diagramTypes';
 import { boundaryLayout, type TextMeasure } from './nodeSizing';
 import { extendRouteEnds } from './edgePoints';
+import type { BusBundling } from './edgeBundling';
+import { foldedEdges, toElkEdge } from './foldedEdges';
 import { compoundNode, frameData } from './expandedLayout';
 import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
+import { bundleElkEdge, laidOutBundleEdges, planInputBundles } from './levelBundles';
 import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
 import {
   PORT_LABEL_OPTIONS,
   type InstanceRows,
   flowPinRows,
-  foldedPorts,
   instanceHeight,
   instanceNode,
   instanceRows,
@@ -42,15 +44,10 @@ export type {
   FrameNodeData,
   FramePinRow,
   InstanceNodeData,
+  IsolationSubset,
   PinRow,
   PinSide,
 } from './diagramTypes';
-
-/** The nodes and edges (by id) an isolated view keeps. */
-export interface IsolationSubset {
-  nodeIds: ReadonlySet<string>;
-  edgeIds: ReadonlySet<string>;
-}
 
 export interface BuildElkOptions {
   measure: TextMeasure;
@@ -60,6 +57,8 @@ export interface BuildElkOptions {
   expanded?: ReadonlySet<string>;
   /** Fold numbered pin arrays of instance blocks; absent, every pin has its own row. */
   pinFolding?: PinFolding;
+  /** Draw parallel connections between the same two blocks of the level as one trunk edge; absent, none. */
+  busBundling?: BusBundling;
 }
 
 const LAYOUT_OPTIONS = {
@@ -150,7 +149,8 @@ function levelRows(
 /**
  * ELK edges of `levelPath`: those of an inner level end on the pins of its
  * frame. An end on a pin of a folded group attaches to the group's port; an
- * edge that then starts and ends on one port is dropped.
+ * edge that then starts and ends on one port is dropped. On the current level
+ * with bus bundling, a bundle is one edge between its representative ports.
  */
 function elkEdges(
   context: BuildContext,
@@ -159,21 +159,23 @@ function elkEdges(
 ): ElkExtendedEdge[] {
   const { graph, options } = context;
   const edges = levelEdges(graph, levelPath);
-  const folded = new Map<string, string>();
-  for (const [path, instance] of rows) {
-    foldedPorts(graph.instances[path], instance).forEach((group, pin) => folded.set(pin, group));
-  }
-  return (
-    levelPath === context.levelPath
+  const isCurrent = levelPath === context.levelPath;
+  const ported = foldedEdges(
+    graph,
+    isCurrent
       ? edges.filter((edge) => options.isolate?.edgeIds.has(edge.id) ?? true)
-      : remapBoundaryEnds(edges, levelPath)
-  ).flatMap((edge) => {
-    const source = portId(edge.sourceNode, edge.sourcePin);
-    const target = portId(edge.targetNode, edge.targetPin);
-    const from = folded.get(source) ?? source;
-    const to = folded.get(target) ?? target;
-    return from === to ? [] : [{ id: edge.id, sources: [from], targets: [to] }];
-  });
+      : remapBoundaryEnds(edges, levelPath),
+    rows
+  );
+  if (!isCurrent || !options.busBundling) {
+    return ported.map(toElkEdge);
+  }
+  const { bundles, rest } = planInputBundles(graph, levelPath, ported, rows, options.busBundling);
+  const unbundled = new Set(rest.map((candidate) => candidate.edgeId));
+  return [
+    ...ported.filter(({ edge }) => unbundled.has(edge.id)).map(toElkEdge),
+    ...bundles.map(bundleElkEdge),
+  ];
 }
 
 /** Nodes of `levelPath`; an expanded hierarchy block holds the nodes of its own level. */
@@ -347,15 +349,29 @@ export function toFlowElements(
   graph: SystemGraph,
   levelPath: string,
   measure: TextMeasure,
-  pinFolding?: PinFolding
+  pinFolding?: PinFolding,
+  busBundling?: BusBundling,
+  isolate?: IsolationSubset
 ): { nodes: DiagramFlowNode[]; edges: DiagramFlowEdge[] } {
   const nodes: DiagramFlowNode[] = [];
   addLevelNodes(layoutResult, levelPath, { x: 0, y: 0 }, { graph, measure, pinFolding }, nodes);
 
   const netsById = new Map(graph.nets.map((net) => [net.id, net]));
   const edges: DiagramFlowEdge[] = [];
+  const bundleEdges = busBundling
+    ? laidOutBundleEdges(graph, levelPath, layoutResult, {
+        pinFolding,
+        isolate,
+        bundling: busBundling,
+      })
+    : undefined;
   for (const elkEdge of layoutResult.edges ?? []) {
     const section = elkEdge.sections?.[0];
+    const bundleEdge = bundleEdges?.get(elkEdge.id);
+    if (section && bundleEdge) {
+      edges.push(bundleEdge(section));
+      continue;
+    }
     const net = netsById.get(elkEdge.id.slice(0, elkEdge.id.lastIndexOf('#')));
     if (!section || !net) {
       continue;

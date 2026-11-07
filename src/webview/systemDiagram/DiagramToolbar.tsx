@@ -16,6 +16,8 @@ interface DiagramToolbarProps {
   reviewUnconnected: boolean;
   /** Compact pins is on: numbered pin arrays are folded into one row. */
   compactPins: boolean;
+  /** Bundle buses is on: parallel connections between the same two blocks are one wire with a count. */
+  bundleBuses: boolean;
   /** Number of unconnected pins in the design, and whether any is undriven. */
   unconnected: { count: number; anyUndriven: boolean };
   /** Selected and shown node counts while the level is isolated, else null. */
@@ -28,6 +30,7 @@ interface DiagramToolbarProps {
   onSearchStep: (direction: 1 | -1) => void;
   onClocksChange: (on: boolean) => void;
   onCompactPinsChange: (on: boolean) => void;
+  onBundleBusesChange: (on: boolean) => void;
   onOpenClocksTab: () => void;
   onReviewUnconnectedChange: (on: boolean) => void;
   onFit: () => void;
@@ -52,6 +55,7 @@ export function DiagramToolbar({
   clockSummary,
   reviewUnconnected,
   compactPins,
+  bundleBuses,
   unconnected,
   isolated,
   onShowAll,
@@ -62,6 +66,7 @@ export function DiagramToolbar({
   onSearchStep,
   onClocksChange,
   onCompactPinsChange,
+  onBundleBusesChange,
   onOpenClocksTab,
   onReviewUnconnectedChange,
   onFit,
@@ -177,6 +182,15 @@ export function DiagramToolbar({
         onClick={() => onCompactPinsChange(!compactPins)}
       >
         Compact pins
+      </button>
+      <button
+        type="button"
+        className="sd-tool"
+        aria-pressed={bundleBuses}
+        title="Draw parallel connections between the same two blocks as one wire with a count; click it to see the connections"
+        onClick={() => onBundleBusesChange(!bundleBuses)}
+      >
+        Bundle buses
       </button>
       <div className="flex gap-1">
         <button

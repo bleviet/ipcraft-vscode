@@ -1,4 +1,7 @@
-import { extendRouteEnds } from '../../../../webview/systemDiagram/layout/edgePoints';
+import {
+  extendRouteEnds,
+  longestSegmentMidpoint,
+} from '../../../../webview/systemDiagram/layout/edgePoints';
 
 describe('extendRouteEnds', () => {
   it('pushes both ends along their last segments', () => {
@@ -52,5 +55,22 @@ describe('extendRouteEnds', () => {
       { x: 0, y: 0 },
       { x: 0, y: 0 },
     ]);
+  });
+});
+
+describe('longestSegmentMidpoint', () => {
+  it('is the middle of the longest segment, the first of equals', () => {
+    expect(
+      longestSegmentMidpoint([
+        { x: 0, y: 0 },
+        { x: 10, y: 0 },
+        { x: 10, y: 40 },
+        { x: 50, y: 40 },
+      ])
+    ).toEqual({ x: 10, y: 20 });
+  });
+
+  it('is undefined for fewer than two points', () => {
+    expect(longestSegmentMidpoint([{ x: 1, y: 1 }])).toBeUndefined();
   });
 });

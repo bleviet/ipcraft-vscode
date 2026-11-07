@@ -1,4 +1,8 @@
-import { legendEntries, REVIEW_LEGEND } from '../../../../webview/systemDiagram/legend';
+import {
+  categoryShort,
+  legendEntries,
+  REVIEW_LEGEND,
+} from '../../../../webview/systemDiagram/legend';
 
 describe('legendEntries', () => {
   it('lists only the present categories in legend order, once each', () => {
@@ -59,5 +63,25 @@ describe('REVIEW_LEGEND', () => {
       'Block not checked',
     ]);
     expect(REVIEW_LEGEND[2].dashed).toBe(true);
+  });
+});
+
+describe('categoryShort', () => {
+  it('names each category in a few letters for a bundle badge', () => {
+    expect(
+      (
+        [
+          'aximm',
+          'axis',
+          'avalonmm',
+          'avalonst',
+          'interface',
+          'interrupt',
+          'clock',
+          'reset',
+          'signal',
+        ] as const
+      ).map(categoryShort)
+    ).toEqual(['AXI', 'AXIS', 'AVMM', 'AVST', 'IF', 'IRQ', 'CLK', 'RST', 'SIG']);
   });
 });

@@ -17,6 +17,7 @@ import {
   type SizedRow,
   type TextMeasure,
 } from './nodeSizing';
+import type { PortSpot } from './edgeBundling';
 import { foldSide, rowName, type PinFolding, type SideRow } from './pinGrouping';
 import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, groupRow, pinRow, splitSides } from './pinRows';
 
@@ -28,6 +29,8 @@ export type InstanceRows = Record<PinSide, SideRow[]>;
 /** Port top below its row top: 1 px border + 9 px row middle - half the 8 px port. */
 const PIN_TOP_OFFSET = 6;
 const PIN_BOTTOM_PADDING = 10;
+/** Port y within a block, by row index. */
+const portTop = (index: number) => HEADER_HEIGHT + index * PIN_ROW_HEIGHT + PIN_TOP_OFFSET;
 
 export const PORT_LABEL_OPTIONS = { 'org.eclipse.elk.portLabels.placement': 'OUTSIDE' };
 
@@ -63,6 +66,19 @@ export function foldedPorts(instance: SystemInstance, rows: InstanceRows): Map<s
     }
   }
   return ports;
+}
+
+/** Centre y and side of each port of a block within it, by port name. */
+export function portCentres(rows: InstanceRows): Map<string, PortSpot> {
+  const centres = new Map<string, PortSpot>();
+  for (const side of ['west', 'east'] as const) {
+    rows[side].forEach((row, index) => {
+      if (row.kind !== 'header') {
+        centres.set(rowName(row), { y: portTop(index) + PORT_SIZE / 2, side });
+      }
+    });
+  }
+  return centres;
 }
 
 export function instanceHeight(rows: InstanceRows): number {
@@ -111,7 +127,7 @@ export function instanceNode(
             {
               id: portId(instance.path, rowName(row)),
               x: side === 'west' ? -PORT_SIZE / 2 : width - PORT_SIZE / 2,
-              y: HEADER_HEIGHT + index * PIN_ROW_HEIGHT + PIN_TOP_OFFSET,
+              y: portTop(index),
               width: PORT_SIZE,
               height: PORT_SIZE,
               labels:

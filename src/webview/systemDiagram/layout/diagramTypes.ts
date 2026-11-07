@@ -7,6 +7,7 @@ import type {
   SystemInstance,
   SystemPin,
 } from '../../../domain/systemGraph';
+import type { BundleMember } from './edgeBundling';
 import type { NodeDomains } from '../clocks/domainView';
 import type { EdgeMarks } from '../clocks/edgeView';
 import type { PinMarks } from '../clocks/nodeView';
@@ -15,6 +16,12 @@ import type { NodeReview } from '../unconnectedPins';
 import type { NetBadge } from './netBadges';
 
 export type PinSide = 'west' | 'east';
+
+/** The nodes and edges (by id) an isolated view keeps. */
+export interface IsolationSubset {
+  nodeIds: ReadonlySet<string>;
+  edgeIds: ReadonlySet<string>;
+}
 
 export interface PinRow {
   name: string;
@@ -136,11 +143,24 @@ export type DiagramFlowNode =
   | (FlowNodeBase & { type: 'boundary'; data: BoundaryNodeData })
   | (FlowNodeBase & { type: 'frame'; data: FrameNodeData });
 
+/** What a bundled edge stands for: its member connections and the comb branches joining them to the trunk. */
+export interface EdgeBundle {
+  /** Also the edge id; the key of the Unbundle gesture. */
+  key: string;
+  /** Badge text, e.g. `×12 AXI`. */
+  label: string;
+  members: BundleMember[];
+  /** Absolute polylines, one per member pin that is not on the trunk. */
+  branches: { x: number; y: number }[][];
+}
+
 export interface ElkEdgeData extends Record<string, unknown>, EdgeMarks {
   points: { x: number; y: number }[];
   netId: string;
   category: NetCategory;
   isInterface: boolean;
+  /** Present on a bundled edge: `netId` is then its first member's net; see `edgeNetIds`. */
+  bundle?: EdgeBundle;
   /** User-assigned highlight color CSS value, when highlights are active on the canvas. */
   highlightColor?: string;
 }

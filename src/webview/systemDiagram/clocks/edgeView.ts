@@ -52,3 +52,21 @@ export function edgeMarks(
   }
   return { dimmed: true };
 }
+
+/**
+ * Marks of a bundled wire from the marks of its members. A crossing member
+ * makes the whole wire a crossing (a finding is never hidden); any other mark
+ * shows only when every member has it, a color when they all share it.
+ */
+export function bundleMarks(members: readonly EdgeMarks[]): EdgeMarks {
+  if (members.some((marks) => marks.crossing)) {
+    return { crossing: true };
+  }
+  const colors = new Set(members.map((marks) => marks.domainColor));
+  const [color] = colors;
+  return {
+    ...(colors.size === 1 && color !== undefined && { domainColor: color }),
+    ...(members.every((marks) => marks.dotted) && { dotted: true as const }),
+    ...(members.every((marks) => marks.dimmed) && { dimmed: true as const }),
+  };
+}

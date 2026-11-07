@@ -5,6 +5,9 @@ import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { netCrossings } from './clocks/treeChecks';
 import { ClockTreeDetails, ResetTreeDetails } from './ClockTreeDetails';
 import { CrossingNote } from './CrossingNote';
+import { BundleDetails } from './BundleDetails';
+import { bundleOfSelection } from './edgeNets';
+import type { DiagramFlowEdge } from './layout/diagramTypes';
 import { capabilityRows, designEyebrow, formatLabel } from './detailsLabels';
 import { InstanceDetails } from './InstanceDetails';
 import { PortClockDetails } from './InstanceClockDetails';
@@ -28,8 +31,15 @@ interface DetailsPanelProps {
   selectedNodeIds: readonly string[];
   selectedItems?: readonly Selection[];
   focusedPin: FocusedPin | null;
+  /** The drawn edges of the level; a selection of exactly a bundle's nets shows the bundle. */
+  edges?: readonly DiagramFlowEdge[];
+  /** Key of the bundle last clicked; Details shows it while the selection is exactly its nets. */
+  activeBundleKey?: string | null;
+  isolatable?: (nodeIds: string[]) => boolean;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
+  onUnbundle?: (key: string) => void;
+  onIsolate?: (nodeIds: string[]) => void;
   onReveal: (line: number, uri?: string) => void;
   onOpenDefinition: (instance: string) => void;
 }
@@ -190,14 +200,31 @@ export function DetailsPanel({
   selectedNodeIds,
   selectedItems,
   focusedPin,
+  edges,
+  activeBundleKey = null,
+  isolatable,
   onSelect,
   onEnterHierarchy,
+  onUnbundle,
+  onIsolate,
   onReveal,
   onOpenDefinition,
 }: DetailsPanelProps) {
   const items = selectedItems ?? selectedNodeIds.map(nodeSelection);
   let content: React.ReactNode = <DesignSummary graph={graph} />;
-  if (items.length > 1) {
+  const bundleEdge = edges && bundleOfSelection(edges, items, activeBundleKey);
+  if (bundleEdge && onUnbundle && onIsolate) {
+    content = (
+      <BundleDetails
+        graph={graph}
+        edge={bundleEdge}
+        isolatable={isolatable ?? (() => false)}
+        onSelect={onSelect}
+        onUnbundle={onUnbundle}
+        onIsolate={onIsolate}
+      />
+    );
+  } else if (items.length > 1) {
     content = <MultiSelectionDetails graph={graph} items={items} onSelect={onSelect} />;
   } else if (selection?.kind === 'instance' && graph.instances[selection.id]) {
     content = (

@@ -34,3 +34,18 @@ export function extendRouteEnds(
     extend(points[last - 1], points[last], end),
   ];
 }
+
+/** Midpoint of the longest segment of a route (the first of equals); undefined for fewer than two points. */
+export function longestSegmentMidpoint(points: readonly Point[]): Point | undefined {
+  let best: { length: number; at: Point } | undefined;
+  for (let i = 1; i < points.length; i += 1) {
+    const length = Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+    if (!best || length > best.length) {
+      best = {
+        length,
+        at: { x: (points[i].x + points[i - 1].x) / 2, y: (points[i].y + points[i - 1].y) / 2 },
+      };
+    }
+  }
+  return best?.at;
+}

@@ -211,6 +211,8 @@ const edgeCount = () => Number(screen.getByTestId('flow').getAttribute('data-edg
 
 // jsdom has no canvas; the app and these tests share the length-based fallback.
 const appMeasure = createTextMeasurer('sans-serif');
+/** The layout input the app starts with: Bundle buses is on. */
+const appBundling = { unbundled: new Set<string>() };
 
 describe('SystemDiagramApp', () => {
   beforeEach(() => {
@@ -604,8 +606,15 @@ describe('SystemDiagramApp', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
     async function centerOf(level: string, nodeId: string) {
-      const input = buildElkInput(graph, level, { measure: appMeasure });
-      const layout = toFlowElements(await runElkLayout(input), graph, level, appMeasure);
+      const input = buildElkInput(graph, level, { measure: appMeasure, busBundling: appBundling });
+      const layout = toFlowElements(
+        await runElkLayout(input),
+        graph,
+        level,
+        appMeasure,
+        undefined,
+        appBundling
+      );
       return nodeCenter(layout, nodeId)!;
     }
     async function ready() {
@@ -1080,8 +1089,15 @@ describe('SystemDiagramApp', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
     async function levelLayout() {
-      const input = buildElkInput(graph, '/', { measure: appMeasure });
-      return toFlowElements(await runElkLayout(input), graph, '/', appMeasure);
+      const input = buildElkInput(graph, '/', { measure: appMeasure, busBundling: appBundling });
+      return toFlowElements(
+        await runElkLayout(input),
+        graph,
+        '/',
+        appMeasure,
+        undefined,
+        appBundling
+      );
     }
 
     it.each(['/axi_dma_0', '/::DDR'])('zooms to %s by double-clicking it', async (id) => {
@@ -1269,9 +1285,9 @@ describe('SystemDiagramApp', () => {
     it('ends isolation when a search step reaches a hidden node, then reveals it', async () => {
       await isolateTwo();
       await settle();
-      const input = buildElkInput(graph, '/', { measure: appMeasure });
+      const input = buildElkInput(graph, '/', { measure: appMeasure, busBundling: appBundling });
       const pulseCentre = nodeCenter(
-        toFlowElements(await runElkLayout(input), graph, '/', appMeasure),
+        toFlowElements(await runElkLayout(input), graph, '/', appMeasure, undefined, appBundling),
         '/pulse_gen_0'
       )!;
       mockSetCenter.mockClear();
