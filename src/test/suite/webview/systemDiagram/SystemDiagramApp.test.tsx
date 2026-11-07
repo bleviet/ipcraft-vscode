@@ -220,7 +220,9 @@ describe('SystemDiagramApp', () => {
     render(<SystemDiagramApp />);
     expect(mockPostMessage).toHaveBeenCalledWith({ type: 'ready' });
     send({ type: 'graph', graph });
-    await screen.findByTestId('node:/axi_dma_0');
+    // The first layout of the file also loads ELK; give it room when the suites run in parallel
+    // (this wait and the test's own timeout, which Jest defaults to 5 s).
+    await screen.findByTestId('node:/axi_dma_0', {}, { timeout: 10000 });
     openPanels();
 
     expect(await outline().findByRole('button', { name: 'axi_dma_0 axi_dma:7.1' })).toBeVisible();
@@ -228,7 +230,7 @@ describe('SystemDiagramApp', () => {
     expect(screen.queryByRole('button', { name: /problems?$/ })).not.toBeInTheDocument();
     await screen.findByTestId('node:/axi_dma_0');
     expect(screen.getByTestId('flow')).toHaveAttribute('data-read-only', 'true');
-  });
+  }, 20000);
 
   it('shows the design summary first and instance details after selecting an outline row', async () => {
     await renderWithGraph();
@@ -600,7 +602,7 @@ describe('SystemDiagramApp', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
     async function centerOf(level: string, nodeId: string) {
-      const input = buildElkInput(graph, level, { showClockReset: false, measure: appMeasure });
+      const input = buildElkInput(graph, level, { measure: appMeasure });
       const layout = toFlowElements(await runElkLayout(input), graph, level, appMeasure);
       return nodeCenter(layout, nodeId)!;
     }
@@ -1076,7 +1078,7 @@ describe('SystemDiagramApp', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
 
     async function levelLayout() {
-      const input = buildElkInput(graph, '/', { showClockReset: false, measure: appMeasure });
+      const input = buildElkInput(graph, '/', { measure: appMeasure });
       return toFlowElements(await runElkLayout(input), graph, '/', appMeasure);
     }
 
@@ -1265,7 +1267,7 @@ describe('SystemDiagramApp', () => {
     it('ends isolation when a search step reaches a hidden node, then reveals it', async () => {
       await isolateTwo();
       await settle();
-      const input = buildElkInput(graph, '/', { showClockReset: false, measure: appMeasure });
+      const input = buildElkInput(graph, '/', { measure: appMeasure });
       const pulseCentre = nodeCenter(
         toFlowElements(await runElkLayout(input), graph, '/', appMeasure),
         '/pulse_gen_0'

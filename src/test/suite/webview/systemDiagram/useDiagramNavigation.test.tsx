@@ -151,7 +151,7 @@ describe('useIsolation with an expanded block', () => {
   function setupBoth() {
     return renderHook(() => {
       const nav = useDiagramNavigation(graph);
-      const view = useIsolation(graph, nav, true);
+      const view = useIsolation(graph, nav);
       return { nav, view };
     });
   }

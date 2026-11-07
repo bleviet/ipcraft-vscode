@@ -53,10 +53,11 @@ export function WorkbenchLayout({
   );
   const [showClockReset, setShowClockReset] = useState(false);
   const [domainMode, setDomainMode] = useState(false);
-  // The domain mode draws clocks and resets whatever the checkbox says.
+  // The domain mode draws clocks and resets whatever the checkbox says. It is drawn, not laid out:
+  // no toggle moves a block.
   const drawClockReset = showClockReset || domainMode;
   const [query, setQuery] = useState('');
-  const view = useIsolation(graph, nav, drawClockReset);
+  const view = useIsolation(graph, nav);
   const { isolation } = view;
   const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
   const [tab, setTab] = useState<BottomTab>('address');
@@ -74,13 +75,7 @@ export function WorkbenchLayout({
     [reviewUnconnected, graph, findings]
   );
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
-  const { layout, error } = useElkLayout(
-    graph,
-    nav.levelPath,
-    drawClockReset,
-    isolation,
-    nav.expanded
-  );
+  const { layout, error } = useElkLayout(graph, nav.levelPath, isolation, nav.expanded);
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -205,6 +200,7 @@ export function WorkbenchLayout({
               isolated={isolation !== null}
               review={reviewContext}
               clocks={clockContext}
+              drawClockReset={drawClockReset}
               focusedPin={focusedPin}
               query={query}
               flash={search.flash}

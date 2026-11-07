@@ -1,11 +1,13 @@
 /** The drawn connections of one level: one edge per net sink, from the net driver. */
 
-import type { SystemGraph } from '../../../domain/systemGraph';
-import { boundaryId, netDriver, visibleNets } from '../model';
+import type { NetCategory, SystemGraph } from '../../../domain/systemGraph';
+import { boundaryId, netDriver, netsOfLevel } from '../model';
 
 export interface LevelEdge {
   /** `${net.id}#${endpointIndex}`; also the id of the ELK and React Flow edge. */
   id: string;
+  /** Category of the net the edge belongs to. */
+  category: NetCategory;
   sourceNode: string;
   sourcePin: string;
   targetNode: string;
@@ -32,15 +34,11 @@ function knownPorts(graph: SystemGraph, levelPath: string): Set<string> {
   return ports;
 }
 
-/** Edges of the level under the clock/reset toggle, between nodes that exist. */
-export function levelEdges(
-  graph: SystemGraph,
-  levelPath: string,
-  showClockReset: boolean
-): LevelEdge[] {
+/** Every edge of the level, clock and reset wires included, between nodes that exist. */
+export function levelEdges(graph: SystemGraph, levelPath: string): LevelEdge[] {
   const known = knownPorts(graph, levelPath);
   const edges: LevelEdge[] = [];
-  for (const net of visibleNets(graph, levelPath, showClockReset)) {
+  for (const net of netsOfLevel(graph, levelPath)) {
     const driver = netDriver(graph, net);
     if (!driver) {
       continue;
@@ -55,6 +53,7 @@ export function levelEdges(
       }
       edges.push({
         id: `${net.id}#${index}`,
+        category: net.category,
         sourceNode,
         sourcePin: driver.pin,
         targetNode,

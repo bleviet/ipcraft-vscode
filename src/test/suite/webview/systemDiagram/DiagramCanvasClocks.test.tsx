@@ -18,9 +18,7 @@ import { fakeMeasure, loadClockFixtureGraph, loadVersalClockGraph } from './fixt
 const graph = loadClockFixtureGraph();
 
 async function layoutOf(levelPath: string, design = graph) {
-  const laidOut = await runElkLayout(
-    buildElkInput(design, levelPath, { showClockReset: true, measure: fakeMeasure })
-  );
+  const laidOut = await runElkLayout(buildElkInput(design, levelPath, { measure: fakeMeasure }));
   return {
     levelPath,
     viewKey: levelPath,
@@ -44,6 +42,7 @@ function canvas(
         isolated={false}
         review={review ? { graph: design, findings: unconnectedPins(design) } : null}
         clocks={clockContextOf(design, domainMode, layout.levelPath)}
+        drawClockReset
         focusedPin={null}
         query=""
         onSelect={jest.fn()}

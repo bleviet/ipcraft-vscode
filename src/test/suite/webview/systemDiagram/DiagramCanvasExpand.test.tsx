@@ -18,7 +18,6 @@ const FIR = `${DSP}/fir_compiler_0`;
 async function layoutOf(expanded: string[], design = graph) {
   const laidOut = await runElkLayout(
     buildElkInput(design, '/', {
-      showClockReset: false,
       measure: fakeMeasure,
       expanded: new Set(expanded),
     })
@@ -42,6 +41,7 @@ function canvas(
         isolated={false}
         review={review}
         clocks={clockContextOf(graph)}
+        drawClockReset={false}
         focusedPin={null}
         query=""
         isolatable={(ids) => ids.every((id) => isLevelNode(graph, '/', id))}

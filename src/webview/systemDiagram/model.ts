@@ -95,7 +95,7 @@ export function netDriver(graph: SystemGraph, net: SystemNet): PinRef | undefine
   return source ?? net.endpoints[0];
 }
 
-export function isClockOrReset(net: SystemNet): boolean {
+export function isClockOrReset(net: Pick<SystemNet, 'category'>): boolean {
   return net.category === 'clock' || net.category === 'reset';
 }
 
@@ -175,14 +175,6 @@ export function instanceSubtitle(instance: SystemInstance, cells: number): strin
 
 export function netsOfLevel(graph: SystemGraph, level: string): SystemNet[] {
   return graph.nets.filter((net) => net.level === level);
-}
-
-export function visibleNets(
-  graph: SystemGraph,
-  level: string,
-  showClockReset: boolean
-): SystemNet[] {
-  return netsOfLevel(graph, level).filter((net) => showClockReset || !isClockOrReset(net));
 }
 
 /** Key identifying an endpoint within a level, for pin -> net lookups. */
