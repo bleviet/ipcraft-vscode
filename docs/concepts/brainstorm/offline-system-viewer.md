@@ -19,7 +19,10 @@ through the vendor tool remains a later, optional way to get resolved
 A clickable UI mockup with sample data is in
 [offline-system-viewer-mockup.html](offline-system-viewer-mockup.html). Open it
 directly in a browser. Its layout and wire routing are a simplified stand-in
-for ELK.
+for ELK. For the UI/UX proposal addressing large multi-subsystem designs
+(pin-group folding, bus bundling, 1-hop/2-hop isolation, path tracing, and the
+subsystem connectivity matrix), see
+[Large-System Navigation for the Offline System Viewer](large-system-navigation.md).
 
 ## Problem
 
