@@ -2,7 +2,7 @@ import React from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import type { ClockDomain } from './clocks/clockTypes';
-import { dataCrossingsHeadline } from './clocks/crossingRows';
+import { dataCrossingsHeadline, sourceFocus } from './clocks/crossingRows';
 import { formatHz } from './clocks/frequency';
 import type { ClocksInView } from './clocks/viewScope';
 import { CrossingsTable } from './CrossingsTable';
@@ -19,7 +19,7 @@ interface ClocksTableProps {
   view: ClocksInView;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
-  /** Opens a net; a crossing row also haloes its sink pin. */
+  /** Opens a net and reveals the given pin: a domain row its source, a crossing row its sink. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
   onReveal: (line: number, uri?: string) => void;
 }
@@ -47,7 +47,12 @@ export function ClocksTable({
       <tr
         key={domain.id}
         className={`sd-clickable cursor-pointer${selectedDomain === domain ? ' sd-row-selected' : ''}`}
-        onClick={() => onSelectNet(domain.sourceNetId)}
+        onClick={() =>
+          onSelectNet(
+            domain.sourceNetId,
+            domain.sourceRef && sourceFocus(domain.sourceLevel, domain.sourceRef)
+          )
+        }
       >
         <td>
           <DomainName domain={domain} />

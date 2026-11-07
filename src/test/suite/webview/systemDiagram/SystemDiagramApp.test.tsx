@@ -1873,8 +1873,12 @@ describe('SystemDiagramApp', () => {
     describe('zooms in to the sink block of a clicked crossing at low zoom, but never zooms out', () => {
       const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
       // The first click goes to the row's level, whose first visit fits; the second measures.
-      async function clickAt(zoom: number, text: string, nodeId: string) {
-        const row = () => bottom().getByText(text).closest('tr')!;
+      async function clickAt(
+        zoom: number,
+        text: string,
+        nodeId: string,
+        row: () => HTMLElement = () => bottom().getByText(text).closest('tr')!
+      ) {
         fireEvent.click(row());
         await screen.findByTestId(`node:${nodeId}`);
         await settle();
@@ -1892,6 +1896,30 @@ describe('SystemDiagramApp', () => {
         expect(zoom).toBeGreaterThan(0.3);
         expect(zoom).toBeLessThanOrEqual(0.8);
         expect(await clickAt(1.7, 'ovf_monitor_0/rst_n', `${DSP}/ovf_monitor_0`)).toBe(1.7);
+      });
+
+      const halos = (id: string) =>
+        screen.getByTestId(`node:${id}`).parentElement!.querySelectorAll('.sd-pin-halo');
+
+      it('for a clock domain, centring its source block and marking the source pin', async () => {
+        await domains();
+        const ps7 = '/processing_system7_0';
+        const zoom = await clickAt(0.3, 'FCLK_CLK1', ps7, () => rowOf('FCLK_CLK1'));
+        expect(zoom).toBeGreaterThan(0.3);
+        expect(zoom).toBeLessThanOrEqual(0.8);
+        expect(halos(ps7)).toHaveLength(1);
+        expect(await clickAt(1.7, 'FCLK_CLK0', ps7, () => rowOf('FCLK_CLK0'))).toBe(1.7);
+      });
+
+      it('for a reset source, centring its source block and marking the source pin', async () => {
+        await domains();
+        openResets();
+        const rst = '/rst_ps7_0_100M';
+        const text = 'rst_ps7_0_100M/peripheral_aresetn';
+        const zoom = await clickAt(0.3, text, rst, () => rowOf(text));
+        expect(zoom).toBeGreaterThan(0.3);
+        expect(zoom).toBeLessThanOrEqual(0.8);
+        expect(halos(rst)).toHaveLength(1);
       });
     });
 

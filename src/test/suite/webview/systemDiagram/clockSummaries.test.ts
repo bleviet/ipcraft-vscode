@@ -1,3 +1,4 @@
+import { boundaryId } from '../../../../webview/systemDiagram/model';
 import type { SystemGraph } from '../../../../domain/systemGraph';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
 import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
@@ -10,6 +11,7 @@ import {
   dataCrossingsHeadline,
   listedCrossings,
   resetCrossingsHeadline,
+  sourceFocus,
 } from '../../../../webview/systemDiagram/clocks/crossingRows';
 import {
   crossingCountText,
@@ -403,5 +405,18 @@ describe('crossing rows', () => {
       source: { fileName: 'zynq_clock_domains.tcl' },
     });
     expect(crossingSource(graph, cdc)?.line).toBeGreaterThan(0);
+  });
+});
+
+describe('sourceFocus', () => {
+  it('reveals an instance pin on its block and a port on its boundary node', () => {
+    expect(sourceFocus('/', { instance: '/clk_wiz_0', pin: 'clk_out1' })).toEqual({
+      nodeId: '/clk_wiz_0',
+      pin: 'clk_out1',
+    });
+    expect(sourceFocus('/', { instance: null, pin: 'sys_clk' })).toEqual({
+      nodeId: boundaryId('/', 'sys_clk'),
+      pin: 'sys_clk',
+    });
   });
 });

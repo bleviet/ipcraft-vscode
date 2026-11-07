@@ -98,7 +98,8 @@ export function WorkbenchLayout({
     view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
     setFocusedPin({ nodeId: finding.nodeId, pin: finding.pin.name });
   };
-  // A crossing row (with a sink pin) centres the sink's block, zooming in when it is unreadable.
+  // A row of the Clocks or Resets tab with a pin (a source, or a crossing's sink) centres that
+  // pin's block, zooming in when it is unreadable, and haloes the pin.
   const selectNet = (netId: string, focus?: { nodeId: string; pin: string }) => {
     if (focus) {
       view.selectAndReveal({ kind: 'net', id: netId }, undefined, true, focus.nodeId);

@@ -1,6 +1,7 @@
 /** Texts and links of the crossing rows in the Clocks and Resets tabs. */
 
-import type { SystemGraph } from '../../../domain/systemGraph';
+import type { PinRef, SystemGraph } from '../../../domain/systemGraph';
+import { boundaryId } from '../model';
 import { categoryLabel } from '../legend';
 import { levelSource, type LevelSource } from '../sourceFile';
 import type { Crossing, CrossingEnd, PinCrossing } from './clockTypes';
@@ -84,4 +85,9 @@ export function crossingSource(
 ): { source: LevelSource; line: number } | undefined {
   const net = graph.nets.find((candidate) => candidate.id === crossing.netId);
   return net && { source: levelSource(graph, net.level), line: net.line };
+}
+
+/** The node and pin a row of the Clocks or Resets tab reveals: its source pin, as seen on `level`. */
+export function sourceFocus(level: string, ref: PinRef): { nodeId: string; pin: string } {
+  return { nodeId: ref.instance ?? boundaryId(level, ref.pin), pin: ref.pin };
 }
