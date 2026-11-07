@@ -21,9 +21,11 @@ import type { DiagramLayout } from './hooks/useElkLayout';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
+import { clockDecor, type ClockContext } from './clockDecor';
 import { highlightedPinsByNode } from './pinHighlight';
 import { boundaryMatchesQuery, matchesQuery, nodeSelection, type Selection } from './model';
 import {
+  focusedPinOf,
   levelReviewSummary,
   nodeReview,
   type FocusedPin,
@@ -48,6 +50,7 @@ interface DiagramCanvasProps {
   selectedNodeIds: readonly string[];
   isolated: boolean;
   review: ReviewContext | null;
+  clocks: ClockContext;
   focusedPin: FocusedPin | null;
   query: string;
   flash?: SearchFlash | null;
@@ -80,6 +83,7 @@ export function DiagramCanvas({
   selectedNodeIds,
   isolated,
   review,
+  clocks,
   focusedPin,
   query,
   flash,
@@ -117,18 +121,26 @@ export function DiagramCanvas({
 
   const selectedIds = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
 
+  const decor = useMemo(() => clockDecor(layout, clocks, selection), [layout, clocks, selection]);
+  const { tree } = decor;
+
   const nodes = useMemo(() => {
     const highlighted =
       selection?.kind === 'net' && layout
-        ? highlightedPinsByNode(selection.id, layout.edges, layout.nodes)
+        ? highlightedPinsByNode(tree?.netIds ?? selection.id, layout.edges, layout.nodes)
         : undefined;
     const searching = query.trim() !== '';
     return (layout?.nodes ?? []).map((node) => {
       const dimmed =
-        searching &&
-        (node.type === 'boundary'
-          ? !boundaryMatchesQuery(node.data.pin, query)
-          : !matchesQuery(node.data.instance, query));
+        (searching &&
+          (node.type === 'boundary'
+            ? !boundaryMatchesQuery(node.data.pin, query)
+            : !matchesQuery(node.data.instance, query))) ||
+        // A selected clock or reset tree dims the blocks and ports it does not touch.
+        (tree !== undefined && node.type !== 'frame' && !highlighted?.has(node.id));
+      const pinMarks = decor.pinMarks.get(node.id);
+      const domains = decor.domains.get(node.id);
+      const focused = focusedPinOf(focusedPin, selection, node.id);
       return {
         ...node,
         selected: selectedIds.has(node.id),
@@ -136,9 +148,10 @@ export function DiagramCanvas({
           ...node.data,
           dimmed,
           ...(review && { review: nodeReview(review.findings, node.id, review.graph) }),
-          ...(focusedPin?.nodeId === node.id &&
-            selection?.kind !== 'net' &&
-            selection?.id === node.id && { focusedPin: focusedPin.pin }),
+          ...(domains && { domains }),
+          ...(pinMarks && { pinMarks }),
+          ...(tree && { selectedNetIds: tree.netIds }),
+          ...(focused !== undefined && { focusedPin: focused }),
           ...(highlighted?.has(node.id) && { highlightedPins: highlighted.get(node.id) }),
           onSelectNet,
           onHoverPin,
@@ -155,6 +168,8 @@ export function DiagramCanvas({
     selection,
     selectedIds,
     review,
+    decor,
+    tree,
     focusedPin,
     onSelectNet,
     onHoverPin,
@@ -163,11 +178,17 @@ export function DiagramCanvas({
 
   const edges = useMemo(
     () =>
-      (layout?.edges ?? []).map((edge) => ({
-        ...edge,
-        selected: selection?.kind === 'net' && selection.id === edge.data.netId,
-      })),
-    [layout, selection]
+      (layout?.edges ?? []).map((edge) => {
+        const marks = decor.edges.get(edge.id);
+        return {
+          ...edge,
+          selected:
+            selection?.kind === 'net' &&
+            (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId),
+          ...(marks && { data: { ...edge.data, ...marks } }),
+        };
+      }),
+    [layout, selection, decor, tree]
   );
 
   // React Flow stays mounted on error: unmounting resets its store to the
@@ -253,6 +274,7 @@ export function DiagramCanvas({
           edges={layout?.edges ?? []}
           nodes={layout?.nodes ?? []}
           review={review !== null}
+          domains={decor.legend}
         />
         {review && (
           <Panel position="top-right" className="sd-review-banner" aria-label="Unconnected pins">

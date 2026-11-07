@@ -1,10 +1,11 @@
 import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { FrameNodeData, FramePinRow } from './layout/elkLayout';
+import type { PinMark } from './clocks/nodeView';
 import type { PinHoverTarget } from './model';
 import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
-import { PinHalo, PinStub } from './PinDecor';
+import { PinFrequency, PinHalo, PinStub } from './PinDecor';
 import { PinMarker } from './PinMarker';
 import { unconnectedClass } from './unconnectedPins';
 
@@ -22,11 +23,13 @@ interface FramePinProps {
   /** Review mode: draw a stub on an unconnected pin. */
   review: boolean;
   focused: boolean;
+  /** Domain colors and frequency label of the pin, when it has any. */
+  mark?: PinMark;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
 }
 
 /** One pin of the frame: marker on the border, label inside just above the inner wire. */
-function FramePin({ row, highlighted, review, focused, onHoverPin }: FramePinProps) {
+function FramePin({ row, highlighted, review, focused, mark, onHoverPin }: FramePinProps) {
   const east = row.side === 'east';
   const reviewClass = review && row.unconnected ? unconnectedClass(row, false) : undefined;
   const place = { inset: FRAME_BORDER, top: PIN_BOX_TOP };
@@ -51,14 +54,25 @@ function FramePin({ row, highlighted, review, focused, onHoverPin }: FramePinPro
           isInterface={row.isInterface}
           category={row.category}
           hollow={row.unconnected}
+          color={mark?.color}
           side={row.side}
           {...place}
         />
+        {mark?.frequency && (
+          <PinFrequency
+            text={mark.frequency}
+            color={mark.color}
+            side={row.side}
+            hasBadge={row.badge !== undefined}
+            top={PIN_BOX_TOP}
+          />
+        )}
         <span
           className="sd-pin-label"
           data-unconnected={row.unconnected}
           data-class={reviewClass}
           data-highlight={highlighted}
+          data-crossing={mark?.crossing}
         >
           {row.label}
         </span>
@@ -105,6 +119,7 @@ export function FrameNode({ data, selected, width, height }: NodeProps<FrameFlow
         instance={instance}
         cellCount={data.cellCount}
         review={review}
+        domains={data.domains}
         expanded
         onToggleExpand={data.onToggleExpand}
       />
@@ -114,6 +129,7 @@ export function FrameNode({ data, selected, width, height }: NodeProps<FrameFlow
             <NetBadgeView
               key={`badge:${row.name}`}
               badge={row.badge}
+              selectedNetIds={data.selectedNetIds}
               onSelectNet={data.onSelectNet}
             />
           )
@@ -125,6 +141,7 @@ export function FrameNode({ data, selected, width, height }: NodeProps<FrameFlow
           highlighted={data.highlightedPins?.has(row.name) ?? false}
           review={review !== undefined}
           focused={data.focusedPin === row.name}
+          mark={data.pinMarks?.[row.name]}
           onHoverPin={data.onHoverPin}
         />
       ))}

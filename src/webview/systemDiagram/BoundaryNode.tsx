@@ -2,7 +2,7 @@ import React from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { NetBadgeView } from './NetBadgeView';
 import { PinMarker } from './PinMarker';
-import { PinHalo, PinStub } from './PinDecor';
+import { PinFrequency, PinHalo, PinStub } from './PinDecor';
 import { unconnectedClass } from './unconnectedPins';
 import { BOUNDARY_HEIGHT, type BoundaryNodeData } from './layout/elkLayout';
 import { portShapePath } from './layout/portShape';
@@ -15,6 +15,7 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
   const east = data.side === 'east';
   const position = east ? Position.Right : Position.Left;
   const { review } = data;
+  const mark = data.pinMarks?.[pin.name];
   const unconnected = review !== undefined && data.netNames.length === 0;
   return (
     <div
@@ -25,6 +26,7 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
       })}
+      {...(mark?.crossing && { 'data-crossing-end': true })}
       style={{ width: data.width, height: BOUNDARY_HEIGHT }}
       aria-label={data.label === pin.name ? undefined : pin.name}
       onPointerEnter={(event) =>
@@ -43,13 +45,32 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
       <PinMarker
         isInterface={pin.isInterface}
         category={data.category}
+        color={mark?.color}
         side={data.side}
         inset={0}
       />
-      <span className="sd-port-label" style={{ lineHeight: `${BOUNDARY_HEIGHT}px` }}>
+      {mark?.frequency && (
+        <PinFrequency
+          text={mark.frequency}
+          color={mark.color}
+          side={data.side}
+          hasBadge={data.badge !== undefined}
+        />
+      )}
+      <span
+        className="sd-port-label"
+        data-crossing={mark?.crossing}
+        style={{ lineHeight: `${BOUNDARY_HEIGHT}px` }}
+      >
         {data.label}
       </span>
-      {data.badge && <NetBadgeView badge={data.badge} onSelectNet={data.onSelectNet} />}
+      {data.badge && (
+        <NetBadgeView
+          badge={data.badge}
+          selectedNetIds={data.selectedNetIds}
+          onSelectNet={data.onSelectNet}
+        />
+      )}
       {(['source', 'target'] as const).map((type) => (
         <Handle
           key={type}

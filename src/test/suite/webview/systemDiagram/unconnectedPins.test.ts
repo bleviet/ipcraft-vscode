@@ -1,5 +1,6 @@
 import type { SystemGraph } from '../../../../domain/systemGraph';
 import {
+  focusedPinOf,
   isPinListKnown,
   levelReviewSummary,
   nodeUnconnectedCount,
@@ -155,5 +156,28 @@ describe('levelReviewSummary', () => {
     expect(levelReviewSummary(unconnectedPins(graph), none, BANK)).toBe(
       'This level: 0 undriven, 1 unused.'
     );
+  });
+});
+
+describe('focusedPinOf', () => {
+  const instance = { kind: 'instance' as const, id: '/a' };
+  const net = { kind: 'net' as const, id: 'n1' };
+
+  it('haloes the pin while its node is the selection', () => {
+    expect(focusedPinOf({ nodeId: '/a', pin: 'p' }, instance, '/a')).toBe('p');
+    expect(focusedPinOf({ nodeId: '/a', pin: 'p' }, instance, '/b')).toBeUndefined();
+    expect(
+      focusedPinOf({ nodeId: '/a', pin: 'p' }, { kind: 'instance', id: '/b' }, '/a')
+    ).toBeUndefined();
+    expect(focusedPinOf({ nodeId: '/a', pin: 'p' }, net, '/a')).toBeUndefined();
+    expect(focusedPinOf(null, instance, '/a')).toBeUndefined();
+  });
+
+  it('haloes a pin focused with a net only while that net is selected', () => {
+    const focused = { nodeId: '/a', pin: 'p', netId: 'n1' };
+    expect(focusedPinOf(focused, net, '/a')).toBe('p');
+    expect(focusedPinOf(focused, { kind: 'net', id: 'n2' }, '/a')).toBeUndefined();
+    expect(focusedPinOf(focused, instance, '/a')).toBeUndefined();
+    expect(focusedPinOf(focused, null, '/a')).toBeUndefined();
   });
 });

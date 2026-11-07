@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { BottomPanel, type BottomTab } from './BottomPanel';
+import { analyzeClocks } from './clocks/analyzeClocks';
+import { toolbarSummary } from './clocks/crossingSummary';
 import { DetailsPanel } from './DetailsPanel';
 import { DiagramCanvas } from './DiagramCanvas';
 import { DiagramToolbar, type PanelName } from './DiagramToolbar';
@@ -42,14 +44,23 @@ export function WorkbenchLayout({
     }, [levelPath, navigate])
   );
   const [showClockReset, setShowClockReset] = useState(false);
+  const [domainMode, setDomainMode] = useState(false);
+  // The domain mode draws clocks and resets whatever the checkbox says.
+  const drawClockReset = showClockReset || domainMode;
   const [query, setQuery] = useState('');
-  const view = useIsolation(graph, nav, showClockReset);
+  const view = useIsolation(graph, nav, drawClockReset);
   const { isolation } = view;
   const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
   const [tab, setTab] = useState<BottomTab>('address');
   const [reviewUnconnected, setReviewUnconnected] = useState(false);
   const [focusedPin, setFocusedPin] = useState<FocusedPin | null>(null);
   const findings = useMemo(() => unconnectedPins(graph), [graph]);
+  const clocks = useMemo(() => analyzeClocks(graph), [graph]);
+  const domainSummary = useMemo(() => toolbarSummary(clocks), [clocks]);
+  const clockContext = useMemo(
+    () => ({ graph, analysis: clocks, levelPath: nav.levelPath, domainMode }),
+    [graph, clocks, nav.levelPath, domainMode]
+  );
   const reviewContext = useMemo(
     () => (reviewUnconnected ? { graph, levelPath: nav.levelPath, findings } : null),
     [reviewUnconnected, graph, nav.levelPath, findings]
@@ -58,7 +69,7 @@ export function WorkbenchLayout({
   const { layout, error } = useElkLayout(
     graph,
     nav.levelPath,
-    showClockReset,
+    drawClockReset,
     isolation,
     nav.expanded
   );
@@ -87,6 +98,15 @@ export function WorkbenchLayout({
     view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
     setFocusedPin({ nodeId: finding.nodeId, pin: finding.pin.name });
   };
+  // A crossing row (with a sink pin) centres the sink's block, zooming in when it is unreadable.
+  const selectNet = (netId: string, focus?: { nodeId: string; pin: string }) => {
+    if (focus) {
+      view.selectAndReveal({ kind: 'net', id: netId }, undefined, true, focus.nodeId);
+    } else {
+      view.selectAndReveal({ kind: 'net', id: netId });
+    }
+    setFocusedPin(focus ? { ...focus, netId } : null);
+  };
 
   const { fit, focusNode } = useDiagramViewport(
     layout,
@@ -103,6 +123,8 @@ export function WorkbenchLayout({
         query={query}
         searchCounter={search.counter}
         showClockReset={showClockReset}
+        domainMode={domainMode}
+        domainSummary={domainSummary}
         reviewUnconnected={reviewUnconnected}
         unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
@@ -111,9 +133,17 @@ export function WorkbenchLayout({
         onQueryChange={setQuery}
         onSearchStep={search.step}
         onShowClockResetChange={setShowClockReset}
+        onDomainModeChange={(on) => {
+          setDomainMode(on);
+          if (on) {
+            setReviewUnconnected(false);
+            openBottomTab('clocks');
+          }
+        }}
         onReviewUnconnectedChange={(on) => {
           setReviewUnconnected(on);
           if (on) {
+            setDomainMode(false);
             openBottomTab('unconnected');
           }
         }}
@@ -134,6 +164,7 @@ export function WorkbenchLayout({
                   levelPath={nav.levelPath}
                   selection={nav.selection}
                   review={reviewUnconnected ? findings : null}
+                  clocks={domainMode ? clocks : null}
                   onSelect={view.selectAndReveal}
                 />
               </div>
@@ -148,6 +179,7 @@ export function WorkbenchLayout({
               selectedNodeIds={nav.selectedNodeIds}
               isolated={isolation !== null}
               review={reviewContext}
+              clocks={clockContext}
               focusedPin={focusedPin}
               query={query}
               flash={search.flash}
@@ -172,6 +204,7 @@ export function WorkbenchLayout({
               >
                 <DetailsPanel
                   graph={graph}
+                  clocks={clocks}
                   selection={nav.selection}
                   selectedNodeIds={nav.selectedNodeIds}
                   focusedPin={focusedPin}
@@ -190,6 +223,9 @@ export function WorkbenchLayout({
             <div className="flex min-h-0 flex-col" style={{ height: panels.bottom.size }}>
               <BottomPanel
                 graph={graph}
+                clocks={clocks}
+                levelPath={nav.levelPath}
+                expanded={nav.expanded}
                 tab={tab}
                 onTabChange={setTab}
                 findings={findings}
@@ -197,6 +233,7 @@ export function WorkbenchLayout({
                 focusedPin={focusedPin}
                 onSelectInstance={view.selectInstance}
                 onSelectPin={selectFinding}
+                onSelectNet={selectNet}
                 onReveal={revealSource}
               />
             </div>

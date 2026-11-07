@@ -7,6 +7,9 @@ import type {
   SystemInstance,
   SystemPin,
 } from '../../../domain/systemGraph';
+import type { NodeDomains } from '../clocks/domainView';
+import type { EdgeMarks } from '../clocks/edgeView';
+import type { PinMarks } from '../clocks/nodeView';
 import type { PinHoverTarget } from '../model';
 import type { NodeReview } from '../unconnectedPins';
 import type { NetBadge } from './netBadges';
@@ -41,6 +44,12 @@ export interface InstanceUiData {
   dimmed?: boolean;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
+  /** Present only while the Clock domains mode is on. */
+  domains?: NodeDomains;
+  /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */
+  pinMarks?: PinMarks;
+  /** Nets of the selected clock or reset tree; badges on these nets are drawn selected. */
+  selectedNetIds?: ReadonlySet<string>;
   /** Name of the pin whose marker gets the focus halo. */
   focusedPin?: string;
   /** Set on the node being pulsed after a search step; a new value restarts the pulse. */
@@ -85,6 +94,10 @@ export interface BoundaryNodeData extends Record<string, unknown> {
   dimmed?: boolean;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
+  /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */
+  pinMarks?: PinMarks;
+  /** Nets of the selected clock or reset tree; the badge is drawn selected when it holds one. */
+  selectedNetIds?: ReadonlySet<string>;
   /** Name of the pin when its marker gets the focus halo. */
   focusedPin?: string;
   onSelectNet?: (netId: string) => void;
@@ -106,7 +119,7 @@ export type DiagramFlowNode =
   | (FlowNodeBase & { type: 'boundary'; data: BoundaryNodeData })
   | (FlowNodeBase & { type: 'frame'; data: FrameNodeData });
 
-export interface ElkEdgeData extends Record<string, unknown> {
+export interface ElkEdgeData extends Record<string, unknown>, EdgeMarks {
   points: { x: number; y: number }[];
   netId: string;
   category: NetCategory;

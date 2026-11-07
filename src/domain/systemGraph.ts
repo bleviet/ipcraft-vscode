@@ -7,7 +7,14 @@
  */
 
 export type PinDirection = 'in' | 'out' | 'inout' | 'master' | 'slave' | 'unknown';
-export type PinDirectionSource = 'declared' | 'connection' | 'name' | 'definition' | 'unknown';
+/** `rule`: a known output of a common IP (`knownIpPins`), which a Vivado script does not record. */
+export type PinDirectionSource =
+  | 'declared'
+  | 'connection'
+  | 'name'
+  | 'definition'
+  | 'rule'
+  | 'unknown';
 /** `create_bd_(port|pin) -type` */
 export type SignalType = 'clk' | 'rst' | 'intr' | 'data' | 'ce' | 'undef';
 export type NetCategory =
@@ -41,6 +48,10 @@ export interface SystemPin {
   line?: number;
   /** Set when the pin exists in the instance's definition (added or matched). */
   definedBy?: 'ip.yml' | 'hdl';
+  /** Definition (.ip.yml): the clock pin this interface or reset belongs to. */
+  associatedClock?: string;
+  /** Definition (.ip.yml) clock: the expected frequency as written, e.g. `100MHz`. */
+  frequency?: string;
 }
 
 export interface SystemInstance {

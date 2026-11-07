@@ -1,16 +1,22 @@
 import React from 'react';
 import type { SystemGraph, SystemNet, SystemPin } from '../../domain/systemGraph';
 import { CapabilityPill } from './CapabilityPill';
+import type { ClockAnalysis } from './clocks/analyzeClocks';
+import { netCrossings } from './clocks/treeChecks';
+import { ClockTreeDetails, ResetTreeDetails } from './ClockTreeDetails';
+import { CrossingNote } from './CrossingNote';
 import { capabilityRows, designEyebrow, formatLabel } from './detailsLabels';
 import { InstanceDetails } from './InstanceDetails';
+import { PortClockDetails } from './InstanceClockDetails';
 import { MultiSelectionDetails } from './MultiSelectionDetails';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
 import { boundaryId, endpointKey, netsByEndpoint, parseBoundaryId, type Selection } from './model';
-import { unconnectedClass, type FocusedPin } from './unconnectedPins';
+import { focusedPinOf, unconnectedClass, type FocusedPin } from './unconnectedPins';
 
 interface DetailsPanelProps {
   graph: SystemGraph;
+  clocks: ClockAnalysis;
   selection: Selection | null;
   selectedNodeIds: readonly string[];
   focusedPin: FocusedPin | null;
@@ -56,11 +62,13 @@ function DesignSummary({ graph }: { graph: SystemGraph }) {
 
 function NetDetails({
   graph,
+  clocks,
   net,
   onSelect,
   onReveal,
 }: {
   graph: SystemGraph;
+  clocks: ClockAnalysis;
   net: SystemNet;
   onSelect: DetailsPanelProps['onSelect'];
   onReveal: (line: number, uri?: string) => void;
@@ -78,6 +86,9 @@ function NetDetails({
         First connected at{' '}
         <LineLink source={levelSource(graph, net.level)} line={net.line} onReveal={onReveal} />
       </p>
+      {netCrossings(clocks, net.id).map((crossing) => (
+        <CrossingNote key={crossing.id} crossing={crossing} />
+      ))}
       <section>
         <h3 className="sd-h3">Endpoints</h3>
         <ul>
@@ -109,13 +120,17 @@ function NetDetails({
 
 function BoundaryDetails({
   graph,
+  clocks,
   level,
   pin,
+  onSelect,
   onReveal,
 }: {
   graph: SystemGraph;
+  clocks: ClockAnalysis;
   level: string;
   pin: SystemPin;
+  onSelect: DetailsPanelProps['onSelect'];
   onReveal: (line: number, uri?: string) => void;
 }) {
   const parameters = Object.entries(pin.parameters);
@@ -139,6 +154,7 @@ function BoundaryDetails({
             : 'Nothing on this level uses this port.'}
         </p>
       )}
+      <PortClockDetails graph={graph} clocks={clocks} level={level} pin={pin} onSelect={onSelect} />
       {pin.line !== undefined && (
         <p>
           Declared at{' '}
@@ -161,6 +177,7 @@ function BoundaryDetails({
 
 export function DetailsPanel({
   graph,
+  clocks,
   selection,
   selectedNodeIds,
   focusedPin,
@@ -176,8 +193,9 @@ export function DetailsPanel({
     content = (
       <InstanceDetails
         graph={graph}
+        clocks={clocks}
         instance={graph.instances[selection.id]}
-        focusedPin={focusedPin?.nodeId === selection.id ? focusedPin.pin : undefined}
+        focusedPin={focusedPinOf(focusedPin, selection, selection.id)}
         onSelect={onSelect}
         onEnterHierarchy={onEnterHierarchy}
         onReveal={onReveal}
@@ -187,13 +205,37 @@ export function DetailsPanel({
   } else if (selection?.kind === 'net') {
     const net = graph.nets.find((candidate) => candidate.id === selection.id);
     if (net) {
-      content = <NetDetails graph={graph} net={net} onSelect={onSelect} onReveal={onReveal} />;
+      const domain = clocks.domainOfNet(net.id);
+      const reset = clocks.resetOfNet(net.id);
+      const tree = { graph, clocks, net, onSelect, onReveal };
+      content = domain ? (
+        <ClockTreeDetails {...tree} domain={domain} />
+      ) : reset ? (
+        <ResetTreeDetails {...tree} reset={reset} />
+      ) : (
+        <NetDetails
+          graph={graph}
+          clocks={clocks}
+          net={net}
+          onSelect={onSelect}
+          onReveal={onReveal}
+        />
+      );
     }
   } else if (selection?.kind === 'boundary') {
     const { level, pin: pinName } = parseBoundaryId(selection.id);
     const pin = graph.levels[level]?.boundaryPins.find((candidate) => candidate.name === pinName);
     if (pin) {
-      content = <BoundaryDetails graph={graph} level={level} pin={pin} onReveal={onReveal} />;
+      content = (
+        <BoundaryDetails
+          graph={graph}
+          clocks={clocks}
+          level={level}
+          pin={pin}
+          onSelect={onSelect}
+          onReveal={onReveal}
+        />
+      );
     }
   }
   return (

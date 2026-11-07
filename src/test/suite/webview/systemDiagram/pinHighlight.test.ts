@@ -66,4 +66,28 @@ describe('highlightedPinsByNode', () => {
     );
     expect([...(pins.get('/frame') ?? [])].sort()).toEqual(['aclk', 'rst']);
   });
+
+  it('collects the endpoints of every net of a set, such as a clock tree', () => {
+    const pins = highlightedPinsByNode(
+      new Set(['n1', 'n3']),
+      [
+        edge('n1', '/a', 'out', '/b', 'in'),
+        edge('n2', '/a', 'x', '/c', 'y'),
+        edge('n3', '/d', 'q', '/b', 'in2'),
+      ],
+      [
+        {
+          id: '/e',
+          type: 'instance',
+          data: { west: [{ name: 'aclk', badge: { nets: [{ id: 'n3' }] } }], east: [] },
+        } as never,
+      ]
+    );
+    expect([...pins.entries()].map(([id, set]) => [id, [...set].sort()]).sort()).toEqual([
+      ['/a', ['out']],
+      ['/b', ['in', 'in2']],
+      ['/d', ['q']],
+      ['/e', ['aclk']],
+    ]);
+  });
 });

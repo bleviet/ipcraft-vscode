@@ -13,6 +13,49 @@ export function loadFixtureGraph(): SystemGraph {
   return readBdTcl(fixtureText, 'zynq_dma_system.tcl');
 }
 
+const CLOCK_FIXTURE = path.resolve(
+  __dirname,
+  '../../../fixtures/system-design/zynq_clock_domains.tcl'
+);
+
+/** The clock and reset domain fixture (issue #243): two PS clocks, a hierarchy on both, an external clock port. */
+export function loadClockFixtureGraph(): SystemGraph {
+  return readBdTcl(fs.readFileSync(CLOCK_FIXTURE, 'utf8'), 'zynq_clock_domains.tcl');
+}
+
+const VERSAL_FIXTURE = path.resolve(__dirname, '../../../fixtures/system-design/versal_clocks.tcl');
+
+/**
+ * A Versal-style platform (hardening of #243): endpoints are listed alphabetically, so a net
+ * lists a load before its driver; a clocking wizard makes two clocks and sets no frequency.
+ */
+export function loadVersalClockGraph(): SystemGraph {
+  return readBdTcl(fs.readFileSync(VERSAL_FIXTURE, 'utf8'), 'versal_clocks.tcl');
+}
+
+/**
+ * The Versal graph with every IP named `ip` replaced by one that no rule knows. The
+ * rename happens before the read, because the reader gives the pins of a known IP
+ * their direction from the rule table.
+ */
+export function loadVersalGraphWithUnknownIp(ip: string): SystemGraph {
+  const text = fs
+    .readFileSync(VERSAL_FIXTURE, 'utf8')
+    .split(`xilinx.com:ip:${ip}:`)
+    .join(`acme.com:ip:other_${ip}:`);
+  return readBdTcl(text, 'versal_clocks.tcl');
+}
+
+const PORT_CLOCKS_FIXTURE = path.resolve(
+  __dirname,
+  '../../../fixtures/system-design/subsystem_two_clocks.tcl'
+);
+
+/** A kernel-style subsystem whose two clocks enter through ports, one with `-freq_hz`. */
+export function loadPortClocksGraph(): SystemGraph {
+  return readBdTcl(fs.readFileSync(PORT_CLOCKS_FIXTURE, 'utf8'), 'subsystem_two_clocks.tcl');
+}
+
 const QSYS_FIXTURE = path.resolve(
   __dirname,
   '../../../fixtures/system-design/nios_avalon_system.qsys'

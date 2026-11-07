@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
-import { isShownNode, pruneExpanded, targetLevel } from '../expansion';
+import { isShownNode, levelNodeOf, pruneExpanded, targetLevel } from '../expansion';
 import { nodeSelection, reconcileNavigation, type RevealRequest, type Selection } from '../model';
 
 /**
@@ -31,16 +31,29 @@ export function useDiagramNavigation(graph: SystemGraph) {
     },
     [graph, levelPath, expanded]
   );
-  /** Selection made outside the canvas: also centres the selected node. */
+  /**
+   * Selection made outside the canvas: also centres the selected node. A net
+   * has no node of its own; `revealNode` names the node to centre for it (the
+   * outermost block containing it when that node is not drawn on the level).
+   */
   const selectAndReveal = useCallback(
-    (next: Selection | null, level?: string, readable?: true) => {
+    (next: Selection | null, level?: string, readable?: true, revealNode?: string) => {
       select(next, level);
       const target = targetLevel(graph, levelPath, expanded, next, level);
-      if (next && next.kind !== 'net' && target !== undefined) {
+      if (!next || target === undefined) {
+        return;
+      }
+      let shown: Selection | undefined = next.kind === 'net' ? undefined : next;
+      if (next.kind === 'net' && revealNode !== undefined) {
+        const drawn =
+          isShownNode(graph, target, expanded, revealNode) || !graph.instances[revealNode];
+        shown = nodeSelection(drawn ? revealNode : levelNodeOf(target, revealNode));
+      }
+      if (shown) {
         lastToken.current += 1;
         setRevealRequest({
           token: lastToken.current,
-          selection: next,
+          selection: shown,
           levelPath: target,
           ...(readable && { readable }),
         });

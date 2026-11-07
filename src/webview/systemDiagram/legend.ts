@@ -1,6 +1,9 @@
 /** Pure legend model: which wire categories a level shows, in a fixed order. */
 
 import type { NetCategory } from '../../domain/systemGraph';
+import type { ClockDomain } from './clocks/clockTypes';
+import { UNRELEASED_RESET_COLOR } from './clocks/domainView';
+import { nameWithFrequency } from './clocks/frequency';
 
 export interface LegendEntry {
   category: NetCategory;
@@ -20,6 +23,11 @@ const LEGEND_ORDER: LegendEntry[] = [
   { category: 'reset', label: 'Reset', thick: false },
   { category: 'signal', label: 'Signal', thick: false },
 ];
+
+/** Human label of a net category, as the legend names it. */
+export function categoryLabel(category: NetCategory): string {
+  return LEGEND_ORDER.find((entry) => entry.category === category)?.label ?? category;
+}
 
 /**
  * Entries for the categories among `edges`, in legend order. `hiddenNets` are
@@ -46,3 +54,34 @@ export const REVIEW_LEGEND: readonly ReviewLegendEntry[] = [
   { key: 'unused', label: 'Unused pin', color: 'var(--vscode-descriptionForeground)' },
   { key: 'unchecked', label: 'Block not checked', dashed: true },
 ];
+
+export interface DomainLegendEntry {
+  key: string;
+  label: string;
+  color: string;
+  /** Absent: a solid bar. */
+  line?: 'dotted' | 'dashed';
+}
+
+/** Entries appended to the legend in the domain mode: one per domain on the level, then the reset and crossing marks. */
+export function domainLegend(domains: readonly ClockDomain[]): DomainLegendEntry[] {
+  return [
+    ...domains.map((domain) => ({
+      key: domain.id,
+      label: nameWithFrequency(domain),
+      color: domain.color,
+    })),
+    {
+      key: 'reset',
+      label: 'Reset, colored by the domain that releases it',
+      color: UNRELEASED_RESET_COLOR,
+      line: 'dotted' as const,
+    },
+    {
+      key: 'crossing',
+      label: 'Clock or reset domain crossing',
+      color: 'var(--vscode-editorWarning-foreground)',
+      line: 'dashed' as const,
+    },
+  ];
+}

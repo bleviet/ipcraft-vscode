@@ -4,6 +4,7 @@ import { ReactFlowProvider, useStoreApi } from '@xyflow/react';
 import { DiagramCanvas } from '../../../../webview/systemDiagram/DiagramCanvas';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
+import { clockContextOf } from './clockContext';
 import { loadFixtureGraph, fakeMeasure } from './fixtureGraph';
 
 // Uses the real @xyflow/react: its store resets when <ReactFlow> unmounts, so the
@@ -42,6 +43,7 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
     selectedNodeIds: [],
     isolated: false,
     review: null,
+    clocks: clockContextOf(graph),
     focusedPin: null,
     query: '',
     onSelect: jest.fn(),
@@ -83,6 +85,7 @@ it('fits on a double-click of the real pane but not of a real node', async () =>
       selectedNodeIds={[]}
       isolated={false}
       review={null}
+      clocks={clockContextOf(graph)}
       focusedPin={null}
       query=""
       onSelect={jest.fn()}

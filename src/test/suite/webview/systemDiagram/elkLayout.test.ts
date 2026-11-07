@@ -1,4 +1,5 @@
 import type { ElkNode } from 'elkjs/lib/elk-api';
+import { readBdTcl } from '../../../../parser/system/BdTclReader';
 import {
   buildElkInput,
   toFlowElements,
@@ -674,4 +675,58 @@ describe('real ELK layout of expanded blocks', () => {
     expect(bank.width).toBeGreaterThanOrEqual(180);
     expect(bank.height).toBeGreaterThanOrEqual(42);
   }, 20000);
+});
+
+describe('known IP output pins in the pin rows', () => {
+  // The script records no pin direction; the known outputs of the clocking wizard, the
+  // reset block and the constant are drawn on the right, their loads on the left.
+  const script = [
+    'set clk_wizard_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wizard:1.0 clk_wizard_0 ]',
+    'set rst_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_0 ]',
+    'set one_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 one_0 ]',
+    'set blk_0 [ create_bd_cell -type ip -vlnv acme.com:ip:blk:1.0 blk_0 ]',
+    'connect_bd_net -net o1 [get_bd_pins blk_0/clk_a] [get_bd_pins clk_wizard_0/clk_out1_o1]',
+    'connect_bd_net -net o2 [get_bd_pins blk_0/clk_b] [get_bd_pins clk_wizard_0/clk_out1_o2]',
+    'connect_bd_net -net c2 [get_bd_pins blk_0/clk_c] [get_bd_pins clk_wizard_0/clk_out2]',
+    'connect_bd_net -net in1 [get_bd_pins clk_wizard_0/clk_in1] [get_bd_pins blk_0/clk_src]',
+    'connect_bd_net -net locked [get_bd_pins clk_wizard_0/locked] [get_bd_pins rst_0/dcm_locked]',
+    'connect_bd_net -net rstn [get_bd_pins blk_0/aresetn] [get_bd_pins rst_0/peripheral_aresetn]',
+    'connect_bd_net -net one [get_bd_pins clk_wizard_0/clk_out1_ce] [get_bd_pins clk_wizard_0/clk_out1_clr_n] [get_bd_pins one_0/dout]',
+  ].join('\n');
+  const design = readBdTcl(script, 'known.tcl');
+  const input = buildElkInput(design, '/', { showClockReset: true, measure: fakeMeasure });
+  const { nodes } = toFlowElements(input, design, '/', fakeMeasure);
+  const sidesOf = (id: string, side: 'west' | 'east') => {
+    const node = nodes.find((candidate) => candidate.id === id);
+    return node?.type === 'instance' ? node.data[side].map((row) => row.name) : [];
+  };
+
+  it('draws the clock and status outputs of the clocking wizard on the east side', () => {
+    expect(sidesOf('/clk_wizard_0', 'east')).toEqual(
+      expect.arrayContaining(['clk_out1_o1', 'clk_out1_o2', 'clk_out2', 'locked'])
+    );
+    expect(sidesOf('/clk_wizard_0', 'east')).toHaveLength(4);
+  });
+
+  it('keeps the inputs of the clocking wizard on the west side', () => {
+    expect(sidesOf('/clk_wizard_0', 'west').sort()).toEqual([
+      'clk_in1',
+      'clk_out1_ce',
+      'clk_out1_clr_n',
+    ]);
+  });
+
+  it('draws the reset output and the constant on the east side, and their loads on the west', () => {
+    expect(sidesOf('/rst_0', 'east')).toEqual(['peripheral_aresetn']);
+    expect(sidesOf('/rst_0', 'west')).toEqual(['dcm_locked']);
+    expect(sidesOf('/one_0', 'east')).toEqual(['dout']);
+    expect(sidesOf('/blk_0', 'east')).toEqual([]);
+    expect(sidesOf('/blk_0', 'west').sort()).toEqual([
+      'aresetn',
+      'clk_a',
+      'clk_b',
+      'clk_c',
+      'clk_src',
+    ]);
+  });
 });

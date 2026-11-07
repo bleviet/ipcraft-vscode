@@ -4,11 +4,13 @@ import type { NetBadge } from './layout/netBadges';
 
 interface NetBadgeViewProps {
   badge: NetBadge;
+  /** Nets of the selected clock or reset tree; the badge is drawn selected when it holds one. */
+  selectedNetIds?: ReadonlySet<string>;
   onSelectNet?: (netId: string) => void;
 }
 
 /** Quiet label drawn where ELK reserved space for a hidden clock or reset net. */
-export function NetBadgeView({ badge, onSelectNet }: NetBadgeViewProps) {
+export function NetBadgeView({ badge, selectedNetIds, onSelectNet }: NetBadgeViewProps) {
   const categories = new Set(badge.nets.map((net) => net.category));
   const kind =
     categories.size > 1 ? 'Clock and reset' : badge.category === 'reset' ? 'Reset' : 'Clock';
@@ -19,6 +21,7 @@ export function NetBadgeView({ badge, onSelectNet }: NetBadgeViewProps) {
       type="button"
       className="sd-badge nodrag nopan"
       data-side={badge.x < 0 ? 'west' : 'east'}
+      data-selected={badge.nets.some((net) => selectedNetIds?.has(net.id)) || undefined}
       style={{
         left: badge.x,
         top: badge.y,

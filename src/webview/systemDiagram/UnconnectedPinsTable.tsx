@@ -4,6 +4,7 @@ import { LineLink } from './LineLink';
 import type { Selection } from './model';
 import {
   findingRow,
+  focusedPinOf,
   uncheckedInstanceCount,
   type FocusedPin,
   type UnconnectedClass,
@@ -107,10 +108,7 @@ export function UnconnectedPinsTable({
             {rows.map((finding) => {
               const row = findingRow(graph, finding);
               const focused =
-                focusedPin?.nodeId === finding.nodeId &&
-                focusedPin.pin === finding.pin.name &&
-                selection?.kind !== 'net' &&
-                selection?.id === finding.nodeId;
+                focusedPinOf(focusedPin, selection, finding.nodeId) === finding.pin.name;
               return (
                 <tr
                   key={`${finding.nodeId}:${finding.pin.name}`}

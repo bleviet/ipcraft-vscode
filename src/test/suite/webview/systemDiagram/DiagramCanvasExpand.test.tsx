@@ -6,6 +6,7 @@ import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { isLevelNode } from '../../../../webview/systemDiagram/model';
 import { unconnectedPins } from '../../../../webview/systemDiagram/unconnectedPins';
+import { clockContextOf } from './clockContext';
 import { loadFixtureGraph, loadReviewFixtureGraph, fakeMeasure } from './fixtureGraph';
 
 // Uses the real @xyflow/react, like DiagramCanvasRealFlow: the expand toggle, the
@@ -40,6 +41,7 @@ function canvas(
         selectedNodeIds={selectedNodeIds}
         isolated={false}
         review={review}
+        clocks={clockContextOf(graph)}
         focusedPin={null}
         query=""
         isolatable={(ids) => ids.every((id) => isLevelNode(graph, '/', id))}

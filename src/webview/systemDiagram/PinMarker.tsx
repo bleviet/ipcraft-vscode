@@ -10,6 +10,8 @@ interface PinMarkerProps {
   category?: NetCategory;
   /** Hollow (node-colored fill, colored stroke) for a pin with no nets. */
   hollow?: boolean;
+  /** Overrides the category color: the clock domain of a clock pin in the domain mode. */
+  color?: string;
   /** Border the marker sits on. */
   side: 'west' | 'east';
   /** Gap between the positioned parent's edge and the node's outer edge. */
@@ -22,12 +24,13 @@ export function PinMarker({
   isInterface,
   category,
   hollow,
+  color: override,
   side,
   inset = 1,
   top = '50%',
 }: PinMarkerProps) {
   const size = isInterface ? SQUARE_MARKER : CIRCLE_MARKER;
-  const color = categoryColor(category);
+  const color = override ?? categoryColor(category);
   return (
     <span
       aria-hidden="true"

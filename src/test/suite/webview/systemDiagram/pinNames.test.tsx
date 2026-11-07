@@ -4,8 +4,10 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { DiagramCanvas } from '../../../../webview/systemDiagram/DiagramCanvas';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
+import { clockContextOf } from './clockContext';
 import { loadFixtureGraph, fakeMeasure } from './fixtureGraph';
 
+const clocks = clockContextOf(loadFixtureGraph());
 const LONG = `${'long_pin_name_'.repeat(8)}end`;
 
 async function longNameLayout() {
@@ -35,6 +37,7 @@ function canvas(layout: Layout) {
         selectedNodeIds={[]}
         isolated={false}
         review={null}
+        clocks={clocks}
         focusedPin={null}
         query=""
         onSelect={jest.fn()}

@@ -4,7 +4,8 @@ import { AddressMapTable } from '../../../../webview/systemDiagram/AddressMapTab
 import { BottomPanel } from '../../../../webview/systemDiagram/BottomPanel';
 import { OutlineTree } from '../../../../webview/systemDiagram/OutlineTree';
 import { InstanceDetails } from '../../../../webview/systemDiagram/InstanceDetails';
-import { loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
+import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
+import { loadClockFixtureGraph, loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
 
 const qsys = loadQsysFixtureGraph();
 
@@ -14,6 +15,7 @@ describe('InstanceDetails with a pin on several nets', () => {
     render(
       <InstanceDetails
         graph={qsys}
+        clocks={analyzeClocks(qsys)}
         instance={qsys.instances['/onchip_memory2_0']}
         onSelect={onSelect}
         onEnterHierarchy={jest.fn()}
@@ -21,7 +23,8 @@ describe('InstanceDetails with a pin on several nets', () => {
         onOpenDefinition={jest.fn()}
       />
     );
-    const row = screen.getByText('s1').closest('tr')!;
+    // The first match is the Pins table; the interface clocks table lists `s1` again.
+    const row = screen.getAllByText('s1')[0].closest('tr')!;
     const links = within(row).getAllByRole('button');
     expect(links.map((link) => link.textContent)).toEqual([
       'nios2_gen2_0.data_master',
@@ -45,6 +48,7 @@ describe('InstanceDetails pin provenance', () => {
     render(
       <InstanceDetails
         graph={graph}
+        clocks={analyzeClocks(graph)}
         instance={graph.instances['/pio_0']}
         onSelect={jest.fn()}
         onEnterHierarchy={jest.fn()}
@@ -52,7 +56,8 @@ describe('InstanceDetails pin provenance', () => {
         onOpenDefinition={jest.fn()}
       />
     );
-    const direction = (name: string) => screen.getByText(name).closest('tr')!.lastElementChild!;
+    const direction = (name: string) =>
+      screen.getAllByText(name)[0].closest('tr')!.lastElementChild!;
     expect(direction('s1')).toHaveTextContent('slave (connection) · ip.yml');
     expect(direction('clk')).not.toHaveTextContent('·');
   });
@@ -96,6 +101,7 @@ describe('outline and tab text', () => {
         levelPath="/"
         selection={null}
         review={null}
+        clocks={null}
         onSelect={jest.fn()}
       />
     );
@@ -113,6 +119,9 @@ describe('outline and tab text', () => {
     render(
       <BottomPanel
         graph={graph}
+        clocks={analyzeClocks(graph)}
+        levelPath="/"
+        expanded={new Set()}
         tab="address"
         onTabChange={jest.fn()}
         findings={[]}
@@ -120,10 +129,41 @@ describe('outline and tab text', () => {
         focusedPin={null}
         onSelectInstance={jest.fn()}
         onSelectPin={jest.fn()}
+        onSelectNet={jest.fn()}
         onReveal={jest.fn()}
       />
     );
     expect(screen.getByRole('tab', { name: /^Address map \d+$/ })).toBeVisible();
     expect(screen.queryByRole('tab', { name: /^Problems/ })).not.toBeInTheDocument();
+  });
+
+  it('puts the Resets tab right after the Clocks tab, each counting what is in view', () => {
+    const graph = loadClockFixtureGraph();
+    const props = {
+      graph,
+      clocks: analyzeClocks(graph),
+      expanded: new Set<string>(),
+      tab: 'resets' as const,
+      onTabChange: jest.fn(),
+      findings: [],
+      selection: null,
+      focusedPin: null,
+      onSelectInstance: jest.fn(),
+      onSelectPin: jest.fn(),
+      onSelectNet: jest.fn(),
+      onReveal: jest.fn(),
+    };
+    const { rerender } = render(<BottomPanel {...props} levelPath="/" />);
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'Address map 0',
+      'Clocks 3',
+      'Resets 3',
+      'Unconnected 0',
+    ]);
+    expect(screen.getByRole('tab', { name: /^Resets/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Reset sources' })).toBeVisible();
+    rerender(<BottomPanel {...props} levelPath="/dsp_pipeline" />);
+    expect(screen.getByRole('tab', { name: 'Clocks 2' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Resets 1' })).toBeVisible();
   });
 });
