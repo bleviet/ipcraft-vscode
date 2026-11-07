@@ -67,3 +67,26 @@ export function isolationSubset(
   );
   return { nodeIds: new Set(distance.keys()), edgeIds };
 }
+
+/**
+ * Exactly two nodes and every edge between them, of any category and either
+ * direction (clock and reset included). Two equal ids isolate one node and its
+ * own connections.
+ */
+export function pairSubset(
+  graph: SystemGraph,
+  levelPath: string,
+  a: string,
+  b: string
+): IsolationSubset {
+  const edgeIds = new Set(
+    levelEdges(graph, levelPath)
+      .filter(
+        (edge) =>
+          (edge.sourceNode === a && edge.targetNode === b) ||
+          (edge.sourceNode === b && edge.targetNode === a)
+      )
+      .map((edge) => edge.id)
+  );
+  return { nodeIds: new Set([a, b]), edgeIds };
+}

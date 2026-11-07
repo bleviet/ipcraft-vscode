@@ -188,6 +188,23 @@ the Path tab, present only while a trace is shown; `IsolationChip.tsx` is the
 toolbar chip with the 1-Hop / 2-Hop switch; `canvasMenuItems.ts` builds the
 highlight, bundle and trace context menu items.
 
+A third isolation kind is the pair: `pairSubset` (in `isolation.ts`, pure) keeps
+exactly two nodes and every edge of any category between them in either
+direction, and `useIsolation` holds it as `{ kind: 'pair', a, b }` next to the
+node isolation and the trace. The matrix cell and the bundle Isolate Pair both
+start it; the chip reads `Pair · a ↔ b`.
+
+The connectivity matrix is a view toggle, not a layout input. `connectivityMatrix.ts`
+(pure) counts the non-clock, non-reset `levelEdges` of the level per category
+from each source node to each target node, and orders rows and columns with
+`topologicalNodeOrder` in `layout/levelOrder.ts`, the helper that
+`topologicalInstanceOrder` (the Arch preview) also uses, so there is one order.
+`useMatrixView.ts` holds whether it is open, per level; `ConnectivityMatrixView.tsx`
+draws it as an opaque overlay in `<main>`, over a canvas that stays mounted, so
+opening it never re-runs the layout or touches the viewport, folding, bundling
+or isolation. Every gesture that reveals something on the diagram (outline row,
+search step, bottom panel row, Details link, a trace start) closes it first.
+
 Pin folding is a layout input like the expanded blocks. `pinGrouping.ts` finds
 the numbered pin arrays of one side (four or more pins with the same stem,
 direction, and kind, none of them on a clock or reset net) and `instanceElk.ts`

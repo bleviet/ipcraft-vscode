@@ -4,7 +4,7 @@
  */
 
 import type { SystemGraph } from '../../../domain/systemGraph';
-import { isClockOrReset } from '../model';
+import { isClockOrReset, parseBoundaryId } from '../model';
 import { levelEdges } from './levelEdges';
 
 /**
@@ -15,6 +15,19 @@ import { levelEdges } from './levelEdges';
  */
 export function topologicalInstanceOrder(graph: SystemGraph, levelPath: string): string[] {
   const paths = (graph.levels[levelPath]?.instances ?? []).filter((path) => graph.instances[path]);
+  return topologicalNodeOrder(graph, levelPath, paths);
+}
+
+/**
+ * The same order over any nodes of the level, instance paths and boundary pin
+ * ids alike (a boundary pin is named by its pin). Edges to nodes outside
+ * `paths` do not count.
+ */
+export function topologicalNodeOrder(
+  graph: SystemGraph,
+  levelPath: string,
+  paths: readonly string[]
+): string[] {
   const known = new Set(paths);
   const sinks = new Map<string, Set<string>>(paths.map((path) => [path, new Set()]));
   const drivers = new Map<string, number>(paths.map((path) => [path, 0]));
@@ -32,8 +45,8 @@ export function topologicalInstanceOrder(graph: SystemGraph, levelPath: string):
     sinks.get(sourceNode)!.add(targetNode);
     drivers.set(targetNode, drivers.get(targetNode)! + 1);
   }
-  const byName = (a: string, b: string) =>
-    graph.instances[a].name.localeCompare(graph.instances[b].name) || a.localeCompare(b);
+  const nameOf = (id: string) => graph.instances[id]?.name ?? parseBoundaryId(id).pin;
+  const byName = (a: string, b: string) => nameOf(a).localeCompare(nameOf(b)) || a.localeCompare(b);
   const byOrder = [...paths].sort(byName);
   // The ready instances, kept in name order by inserting each where it belongs.
   const ready = byOrder.filter((path) => drivers.get(path) === 0);

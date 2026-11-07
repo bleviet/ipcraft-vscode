@@ -43,10 +43,10 @@ export function highlightMenuItems(
 interface BundleMenuInput {
   bundleKey: string;
   /** The two blocks the bundled wire joins. */
-  pair: string[];
+  pair: [string, string];
   isolatable: (nodeIds: string[]) => boolean;
   onUnbundle?: (key: string) => void;
-  onIsolate: (nodeIds: string[]) => void;
+  onIsolatePair?: (a: string, b: string) => void;
 }
 
 export function bundleMenuItems({
@@ -54,15 +54,19 @@ export function bundleMenuItems({
   pair,
   isolatable,
   onUnbundle,
-  onIsolate,
+  onIsolatePair,
 }: BundleMenuInput): ContextMenuItem[] {
   return [
     ...(onUnbundle ? [{ label: 'Unbundle', onSelect: () => onUnbundle(bundleKey) }] : []),
-    {
-      label: 'Isolate Pair',
-      disabled: !isolatable(pair),
-      onSelect: () => onIsolate(pair),
-    },
+    ...(onIsolatePair
+      ? [
+          {
+            label: 'Isolate Pair',
+            disabled: !isolatable(pair),
+            onSelect: () => onIsolatePair(...pair),
+          },
+        ]
+      : []),
   ];
 }
 

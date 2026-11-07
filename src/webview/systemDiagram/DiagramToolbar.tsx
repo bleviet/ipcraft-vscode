@@ -30,9 +30,14 @@ interface DiagramToolbarProps {
   isolated: IsolatedView | null;
   /** The trace bar is open. */
   traceOpen: boolean;
+  /** The connectivity matrix replaces the diagram. */
+  matrixOpen: boolean;
+  /** Receives focus when the matrix closes from a gesture inside it. */
+  matrixToggleRef: React.Ref<HTMLButtonElement>;
   onShowAll: () => void;
   onSetHops: (hops: IsolationHops) => void;
   onToggleTrace: () => void;
+  onToggleMatrix: () => void;
   highlightedCount?: number;
   onClearHighlights?: () => void;
   onNavigate: (levelPath: string) => void;
@@ -86,9 +91,12 @@ export function DiagramToolbar({
   unconnected,
   isolated,
   traceOpen,
+  matrixOpen,
+  matrixToggleRef,
   onShowAll,
   onSetHops,
   onToggleTrace,
+  onToggleMatrix,
   highlightedCount,
   onClearHighlights,
   onNavigate,
@@ -238,6 +246,16 @@ export function DiagramToolbar({
         onClick={onToggleTrace}
       >
         Trace path
+      </button>
+      <button
+        ref={matrixToggleRef}
+        type="button"
+        className="sd-tool"
+        aria-pressed={matrixOpen}
+        title="Show the connections of this level as a source by target table; click a cell to isolate that pair"
+        onClick={onToggleMatrix}
+      >
+        Matrix
       </button>
       <div className="flex gap-1">
         <button

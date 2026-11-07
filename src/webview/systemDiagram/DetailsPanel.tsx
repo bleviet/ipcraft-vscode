@@ -39,7 +39,7 @@ interface DetailsPanelProps {
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onUnbundle?: (key: string) => void;
-  onIsolate?: (nodeIds: string[]) => void;
+  onIsolatePair?: (a: string, b: string) => void;
   onReveal: (line: number, uri?: string) => void;
   onOpenDefinition: (instance: string) => void;
 }
@@ -206,14 +206,14 @@ export function DetailsPanel({
   onSelect,
   onEnterHierarchy,
   onUnbundle,
-  onIsolate,
+  onIsolatePair,
   onReveal,
   onOpenDefinition,
 }: DetailsPanelProps) {
   const items = selectedItems ?? selectedNodeIds.map(nodeSelection);
   let content: React.ReactNode = <DesignSummary graph={graph} />;
   const bundleEdge = edges && bundleOfSelection(edges, items, activeBundleKey);
-  if (bundleEdge && onUnbundle && onIsolate) {
+  if (bundleEdge && onUnbundle && onIsolatePair) {
     content = (
       <BundleDetails
         graph={graph}
@@ -221,7 +221,7 @@ export function DetailsPanel({
         isolatable={isolatable ?? (() => false)}
         onSelect={onSelect}
         onUnbundle={onUnbundle}
-        onIsolate={onIsolate}
+        onIsolatePair={onIsolatePair}
       />
     );
   } else if (items.length > 1) {

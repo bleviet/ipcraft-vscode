@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import { levelNodeOf, targetLevel } from '../expansion';
-import { isolationSubset, type IsolationHops } from '../isolation';
+import { isolationSubset, pairSubset, type IsolationHops } from '../isolation';
 import type { IsolationSubset } from '../layout/diagramTypes';
 import { isLevelNode, type Selection } from '../model';
 import { computePathTrace, traceSubset, type PathTrace } from '../pathTrace';
@@ -17,11 +17,14 @@ export interface IsolatedView extends IsolationSubset {
   hops?: IsolationHops;
   /** Present on a traced path: the path between `from` and `to`. */
   trace?: PathTrace & { from: string; to: string };
+  /** Present on a pair isolation: the two nodes and the edges between them. */
+  pair?: { a: string; b: string };
 }
 
 type IsolationState =
   | { kind: 'nodes'; levelPath: string; nodeIds: string[]; hops: IsolationHops; token: number }
-  | { kind: 'trace'; levelPath: string; from: string; to: string; token: number };
+  | { kind: 'trace'; levelPath: string; from: string; to: string; token: number }
+  | { kind: 'pair'; levelPath: string; a: string; b: string; token: number };
 
 /** The isolated view of a state on `levelPath` with the graph as it is now; null once it has nothing to show. */
 function viewOf(
@@ -44,6 +47,17 @@ function viewOf(
           levelNodeCount,
           trace: { ...trace, from: state.from, to: state.to },
           ...traceSubset(graph, levelPath, trace),
+        }
+      : null;
+  }
+  if (state.kind === 'pair') {
+    return isLevelNode(graph, levelPath, state.a) && isLevelNode(graph, levelPath, state.b)
+      ? {
+          token,
+          selectedCount: state.a === state.b ? 1 : 2,
+          levelNodeCount,
+          pair: { a: state.a, b: state.b },
+          ...pairSubset(graph, levelPath, state.a, state.b),
         }
       : null;
   }
@@ -119,6 +133,14 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
     },
     [graph, levelPath]
   );
+  /** Isolates exactly two nodes and the edges between them (the matrix cell, a bundle). */
+  const isolatePair = useCallback(
+    (a: string, b: string) => {
+      lastToken.current += 1;
+      setState({ kind: 'pair', levelPath, a, b, token: lastToken.current });
+    },
+    [levelPath]
+  );
   const showAll = useCallback(() => setState(null), []);
   /** Ends a traced path, leaving a node isolation alone. */
   const endTrace = useCallback(
@@ -170,6 +192,7 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
   return {
     isolation,
     isolate,
+    isolatePair,
     setHops,
     trace,
     endTrace,

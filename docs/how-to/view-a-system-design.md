@@ -82,10 +82,13 @@ The diagram shows one hierarchy level at a time.
   reset wires are never bundled. Click the wire to select all its connections;
   Details then shows the **Bus bundle**: the blocks at both ends, each
   connection (click one to select just that net), **Unbundle**, which draws that
-  pair as separate wires, and **Isolate pair**. Right-click the wire for the same
-  two actions. Cmd+Click (macOS) or Ctrl+Click (other systems) adds the
-  connections to the selection, or removes them when all are selected. Turn
-  **Bundle buses** off in the toolbar to draw every connection on its own.
+  pair as separate wires, and **Isolate pair** (which shows only the two blocks
+  and the wires between them, see
+  [Show the connections as a matrix](#show-the-connections-as-a-matrix)).
+  Right-click the wire for the same two actions. Cmd+Click (macOS) or
+  Ctrl+Click (other systems) adds the connections to the selection, or removes
+  them when all are selected. Turn **Bundle buses** off in the toolbar to draw
+  every connection on its own.
   Bundling changes the layout, so the blocks may move, but the zoom and pan stay.
 - **Outline.** Lists the instances of the current design and its external
   ports. Select an item to select it in the diagram and center it. The pills
@@ -130,6 +133,17 @@ The diagram then isolates the shortest chain between the two, laid out from left
 A **Path** tab opens in the bottom panel while the trace is shown. A note above the table says how many hops the path has and whether it "follows signal direction" or "ignores direction". Each row is one hop with its `From` and `To` blocks and its `Connections` (such as `4 AXIS, 1 IRQ`); clicking a row selects the nets of that hop. When there is no path, the bar says "No path from X to Y" and the diagram stays as it was.
 
 **Show All**, the close button of the bar, going to another level, or a search step or outline row that selects a block the trace hides ends the trace.
+
+## Show the connections as a matrix
+
+To see how the blocks of a level connect to each other at a glance, click **Matrix** in the toolbar. A table replaces the diagram: rows are sources, columns are targets, and each cell shows the connections from the row to the column as count pills by category (`8 AXI`, `4 AXIS`, `6 IRQ`). Rows and columns are the blocks and ports of the current level that have at least one connection, in signal-flow order (drivers before sinks, ties by name). Clock and reset wires are not counted, and neither are the connections inside an expanded block. A block wired to itself is counted on the shaded diagonal.
+
+- Click a cell to leave the matrix and isolate exactly that pair: the two blocks and every wire between them, in either direction. The toolbar chip reads `Pair · a ↔ b` (`Pair · x (self)` for a block's own connections). The pair ends on **Show All**, on going to another level, when a search step or outline row selects a block the pair hides, and when one of its blocks disappears from the design.
+- Click a row or column header to select that block and show it on the diagram.
+- Hover a cell to mark its row and column headers.
+- External ports are marked `port` in the headers. Each cell has an accessible name such as `rx_dsp_bank_a to ddr4_sub: 8 AXI, 2 IRQ`, with `port` before a port's name.
+
+Press Esc inside the matrix or click **Matrix** again to close it; going to another level closes it too. The matrix is only a view: opening it does not move any block or change the zoom, folding, bundling or isolation.
 
 ## Find unconnected pins
 

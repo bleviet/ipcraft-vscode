@@ -26,7 +26,7 @@ function setup(edge: Awaited<ReturnType<typeof bundleEdge>>, isolatable = true) 
   const handlers = {
     onSelect: jest.fn(),
     onUnbundle: jest.fn(),
-    onIsolate: jest.fn(),
+    onIsolatePair: jest.fn(),
   };
   render(<BundleDetails graph={graph} edge={edge} isolatable={() => isolatable} {...handlers} />);
   return handlers;
@@ -53,11 +53,11 @@ describe('BundleDetails', () => {
 
   it('unbundles by key and isolates the pair', async () => {
     const edge = await bundleEdge();
-    const { onUnbundle, onIsolate } = setup(edge);
+    const { onUnbundle, onIsolatePair } = setup(edge);
     fireEvent.click(screen.getByRole('button', { name: 'Unbundle' }));
     expect(onUnbundle).toHaveBeenCalledWith('bundle:/src->/dst|axis|i');
     fireEvent.click(screen.getByRole('button', { name: 'Isolate pair' }));
-    expect(onIsolate).toHaveBeenCalledWith(['/src', '/dst']);
+    expect(onIsolatePair).toHaveBeenCalledWith('/src', '/dst');
   }, 20000);
 
   it('disables Isolate pair when the blocks cannot be isolated', async () => {

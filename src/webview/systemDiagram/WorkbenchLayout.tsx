@@ -4,6 +4,7 @@ import type { HighlightColor, HighlightMap } from '../../shared/messages/systemD
 import { BottomPanel, type BottomTab } from './BottomPanel';
 import { analyzeClocks } from './clocks/analyzeClocks';
 import { toolbarSummary } from './clocks/crossingSummary';
+import { ConnectivityMatrixView } from './ConnectivityMatrixView';
 import { DetailsPanel } from './DetailsPanel';
 import { DiagramCanvas } from './DiagramCanvas';
 import { DiagramToolbar, type PanelName } from './DiagramToolbar';
@@ -11,6 +12,7 @@ import { applyHighlight, highlightCount } from './highlights';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
+import { useMatrixView } from './hooks/useMatrixView';
 import { useIsolation } from './hooks/useIsolation';
 import { usePathTrace } from './hooks/usePathTrace';
 import { useMouseBackButton } from './hooks/useMouseBackButton';
@@ -61,7 +63,27 @@ export function WorkbenchLayout({
   const [query, setQuery] = useState('');
   const view = useIsolation(graph, nav);
   const { isolation } = view;
-  const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
+  const matrix = useMatrixView(levelPath);
+  const matrixToggleRef = useRef<HTMLButtonElement>(null);
+  // Closing by a gesture inside the matrix hands the focus back to its toggle.
+  const closeMatrix = () => {
+    matrixToggleRef.current?.focus();
+    matrix.close();
+  };
+  // Every gesture that reveals something on the diagram first closes the matrix hiding it.
+  const selectAndReveal: typeof view.selectAndReveal = (...args) => {
+    matrix.close();
+    view.selectAndReveal(...args);
+  };
+  const revealMatch: typeof view.revealMatch = (instancePath) => {
+    matrix.close();
+    view.revealMatch(instancePath);
+  };
+  const selectInstance: typeof view.selectInstance = (instancePath) => {
+    matrix.close();
+    view.selectInstance(instancePath);
+  };
+  const search = useSearchStepper(graph, query, nav.selection, revealMatch);
   const [tab, setTab] = useState<BottomTab>('address');
   const [reviewUnconnected, setReviewUnconnected] = useState(false);
   const [focusedPin, setFocusedPin] = useState<FocusedPin | null>(null);
@@ -117,7 +139,10 @@ export function WorkbenchLayout({
     graph,
     nav.levelPath,
     { trace: view.trace, endTrace: view.endTrace, shownTrace: isolation?.trace },
-    () => openBottomTab('path')
+    () => {
+      matrix.close();
+      openBottomTab('path');
+    }
   );
   const showAll = () => {
     view.showAll();
@@ -125,16 +150,16 @@ export function WorkbenchLayout({
   };
   // Zoom in to a readable size: on a large design the pin is unreadable at the fitted zoom.
   const selectFinding = (finding: UnconnectedPin) => {
-    view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
+    selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
     setFocusedPin({ nodeId: finding.nodeId, pin: finding.pin.name });
   };
   // A row of the Clocks or Resets tab with a pin (a source, or a crossing's sink) centres that
   // pin's block, zooming in when it is unreadable, and haloes the pin.
   const selectNet = (netId: string, focus?: { nodeId: string; pin: string }) => {
     if (focus) {
-      view.selectAndReveal({ kind: 'net', id: netId }, undefined, true, focus.nodeId);
+      selectAndReveal({ kind: 'net', id: netId }, undefined, true, focus.nodeId);
     } else {
-      view.selectAndReveal({ kind: 'net', id: netId });
+      selectAndReveal({ kind: 'net', id: netId });
     }
     setFocusedPin(focus ? { ...focus, netId } : null);
   };
@@ -173,9 +198,12 @@ export function WorkbenchLayout({
         unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation}
         traceOpen={tracer.open}
+        matrixOpen={matrix.open}
+        matrixToggleRef={matrixToggleRef}
         onShowAll={showAll}
         onSetHops={view.setHops}
         onToggleTrace={tracer.toggle}
+        onToggleMatrix={matrix.toggle}
         highlightedCount={highlightedCount}
         onClearHighlights={handleClearHighlights}
         onNavigate={nav.navigate}
@@ -223,13 +251,13 @@ export function WorkbenchLayout({
                   selection={nav.selection}
                   review={reviewUnconnected ? findings : null}
                   clocks={domainsShown ? clocks : null}
-                  onSelect={view.selectAndReveal}
+                  onSelect={selectAndReveal}
                 />
               </div>
               <ResizeHandle label="Resize Outline" {...panels.outline.separator} />
             </>
           )}
-          <main className="min-w-0 flex-1">
+          <main className="relative min-w-0 flex-1">
             <DiagramCanvas
               layout={layout}
               error={error}
@@ -253,6 +281,7 @@ export function WorkbenchLayout({
               onToggleItems={nav.toggleItems}
               onUnbundle={buses.unbundle}
               onIsolate={view.isolate}
+              onIsolatePair={view.isolatePair}
               onTraceFrom={tracer.setFrom}
               onTraceTo={tracer.setTo}
               onShowAll={showAll}
@@ -265,6 +294,21 @@ export function WorkbenchLayout({
               onFocusNode={focusNode}
               onFit={fit}
             />
+            {matrix.open && (
+              <ConnectivityMatrixView
+                graph={graph}
+                levelPath={levelPath}
+                onSelectNode={(nodeId) => {
+                  closeMatrix();
+                  view.selectAndReveal(nodeSelection(nodeId));
+                }}
+                onSelectPair={(rowId, colId) => {
+                  closeMatrix();
+                  view.isolatePair(rowId, colId);
+                }}
+                onClose={closeMatrix}
+              />
+            )}
           </main>
           {panelsVisible.details && (
             <>
@@ -283,10 +327,10 @@ export function WorkbenchLayout({
                   edges={layout?.edges}
                   activeBundleKey={nav.activeBundleKey}
                   isolatable={view.canIsolate}
-                  onSelect={view.selectAndReveal}
+                  onSelect={selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
                   onUnbundle={buses.unbundle}
-                  onIsolate={view.isolate}
+                  onIsolatePair={view.isolatePair}
                   onReveal={revealSource}
                   onOpenDefinition={openDefinition}
                 />
@@ -308,7 +352,7 @@ export function WorkbenchLayout({
                 findings={findings}
                 selection={nav.selection}
                 focusedPin={focusedPin}
-                onSelectInstance={view.selectInstance}
+                onSelectInstance={selectInstance}
                 onSelectPin={selectFinding}
                 onSelectNet={selectNet}
                 onReveal={revealSource}
