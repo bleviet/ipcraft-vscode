@@ -93,9 +93,22 @@ To focus on a few blocks of a busy level, select them and isolate them.
 1. Click a block or port, then Cmd+Click (macOS) or Ctrl+Click (Windows and Linux) to add more, or to remove one that is already selected. Details shows "N selected" with a list of the names; clicking a name selects that block alone.
 2. Right-click one of the selected blocks and choose **Isolate N Selected** (N is the number of selected blocks). Right-clicking a block that is not selected selects it alone, and the item reads **Isolate Selection**.
 
-The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden. Clock and reset wires bring in no block of their own; the ones between the blocks on screen are drawn while Clocks and resets is on. A toolbar chip reads "Isolated · N selected · M shown", where M counts every block and port on screen.
+The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden. Clock and reset wires bring in no block of their own; the ones between the blocks on screen are drawn while Clocks and resets is on. A toolbar chip reads "Isolated · N selected · M of T shown", where M counts the blocks and ports on screen and T those of the level. The chip also holds a **1-Hop | 2-Hop** switch: **2-Hop** adds the blocks one more data wire away, and shows the wires between those blocks and the ones closer in, but not the wires between two of the outermost blocks. Clock and reset wires never bring in a block, at any hop count.
 
 Choose **Show All** from the right-click menu (on a block or on the empty canvas) or the toolbar to return to the full level, with the zoom and pan it had before. Isolation also ends when you go to another level (breadcrumb, opening a hierarchy block, the mouse back button, or an outline or search jump) or when a search step or outline row selects a block that the isolated view hides.
+
+## Trace a path
+
+To follow a signal chain between two blocks or ports of the level, trace it.
+
+1. Click **Trace path** in the toolbar, or right-click a block or port and choose **Trace From Here** or **Trace To Here**. A bar opens under the toolbar.
+2. Choose the **From** and **To** blocks or ports in the bar (instances first, then ports, each sorted by name). The swap button exchanges them. Choosing both runs the trace.
+
+The diagram then isolates the shortest chain between the two, laid out from left to right with a `#1`, `#2`, ... badge on each block, and the wires of any kind between neighbours on the chain. The tracer first follows the signal direction over interface wires (AXI, AXI4-Stream, Avalon and other interfaces), then also over interrupts and plain signals, and as a last resort ignores the direction. Clock and reset wires never carry a trace. The toolbar chip reads "Path · From -> To · N blocks".
+
+A **Path** tab opens in the bottom panel while the trace is shown. A note above the table says how many hops the path has and whether it "follows signal direction" or "ignores direction". Each row is one hop with its `From` and `To` blocks and its `Connections` (such as `4 AXIS, 1 IRQ`); clicking a row selects the nets of that hop. When there is no path, the bar says "No path from X to Y" and the diagram stays as it was.
+
+**Show All**, the close button of the bar, going to another level, or a search step or outline row that selects a block the trace hides ends the trace.
 
 ## Find unconnected pins
 

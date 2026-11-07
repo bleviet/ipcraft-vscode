@@ -168,8 +168,25 @@ of the clock context, not these wires);
 and the legend, pin highlights, and clock decoration read that result. Toggling
 therefore never runs ELK again, never moves a block, and never changes the
 viewport. `isolationSubset` picks its blocks the same way in every mode: the
-selected blocks and the other end of each data wire, with the wires of any
-category between a selected block and a kept block.
+blocks within `hops` (1 or 2) data wires of the selected blocks, with the wires
+of any category between two kept blocks at least one of which is closer than
+`hops`; clock and reset wires never bring a block in.
+
+The path tracer is an isolation too. `pathTrace.ts` (pure) finds the shortest
+chain between two nodes of the level in tiers (directed over interface
+categories, directed adding interrupts and signals, then undirected, never over
+clock or reset wires) and builds the `IsolationSubset` with an `order`. Only
+`buildElkInput` reads `order`: `layout/tracePartition.ts` turns it into ELK
+partitions (one per hop index, so the path runs left to right whatever the wire
+direction) and a traced boundary node drops its FIRST / LAST layer constraint,
+which ELK rejects beside partitions; without `order` the ELK input is unchanged.
+`toFlowElements` adds the `hopIndex` of the badge to the nodes. `useIsolation`
+holds the isolation as a union of a node isolation (with its hops) and a trace;
+changing the hops or the ends is a new token and refits. `usePathTrace.ts` holds
+the trace bar (From, To, status) and `TraceBar.tsx` draws it; `PathTable.tsx` is
+the Path tab, present only while a trace is shown; `IsolationChip.tsx` is the
+toolbar chip with the 1-Hop / 2-Hop switch; `canvasMenuItems.ts` builds the
+highlight, bundle and trace context menu items.
 
 Pin folding is a layout input like the expanded blocks. `pinGrouping.ts` finds
 the numbered pin arrays of one side (four or more pins with the same stem,

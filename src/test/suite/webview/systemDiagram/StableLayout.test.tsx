@@ -263,6 +263,44 @@ describe('the placement of the blocks across the view toggles', () => {
     expect(mockLayoutRuns).toHaveLength(runs);
   }, 20000);
 
+  it('stays in a two-hop isolation and in a traced path', async () => {
+    await renderApp();
+    fireEvent.contextMenu(screen.getByTestId('node:/axi_gpio_0'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+    await settle();
+    fireEvent.click(screen.getByRole('button', { name: '2-Hop' }));
+    await settle();
+    expect(flow().nodes.length).toBe(5);
+
+    const toggles = async () => {
+      const before = placement();
+      const runs = mockLayoutRuns.length;
+      fireEvent.click(clocksAndResets());
+      await settle();
+      expect(placement()).toEqual(before);
+      fireEvent.click(unconnectedPins());
+      await settle();
+      expect(placement()).toEqual(before);
+      fireEvent.click(unconnectedPins());
+      fireEvent.click(clocksAndResets());
+      await settle();
+      expect(placement()).toEqual(before);
+      expect(mockLayoutRuns).toHaveLength(runs);
+    };
+    await toggles();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trace path' }));
+    fireEvent.change(screen.getByRole('combobox', { name: 'From' }), {
+      target: { value: '/processing_system7_0' },
+    });
+    fireEvent.change(screen.getByRole('combobox', { name: 'To' }), {
+      target: { value: '/axi_gpio_0' },
+    });
+    await settle();
+    expect(flow().nodes).toHaveLength(3);
+    await toggles();
+  }, 20000);
+
   it('stays with a hierarchy block expanded in place', async () => {
     await renderApp();
     fireEvent.click(screen.getByRole('button', { name: 'Expand dsp_pipeline in place' }));

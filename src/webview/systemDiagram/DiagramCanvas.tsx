@@ -24,9 +24,8 @@ import type { SearchFlash } from './hooks/useSearchStepper';
 import { clockDecor, type ClockContext } from './clockDecor';
 import { drawnLayout } from './drawnLayout';
 import { edgeNetIds } from './edgeNets';
+import { bundleMenuItems, highlightMenuItems, traceMenuItems } from './canvasMenuItems';
 import {
-  HIGHLIGHT_COLORS,
-  hasAnyHighlight,
   highlightCount,
   highlightedNetIds,
   netHighlightColor,
@@ -78,6 +77,9 @@ interface DiagramCanvasProps {
   /** Draws the bundle `key` as separate wires. */
   onUnbundle?: (key: string) => void;
   onIsolate: (nodeIds: string[]) => void;
+  /** Sets the From / To end of a path trace to a block or port; absent, the menu offers no trace. */
+  onTraceFrom?: (nodeId: string) => void;
+  onTraceTo?: (nodeId: string) => void;
   onShowAll: () => void;
   onHighlight?: (targets: readonly Selection[], color: HighlightColor | null) => void;
   onClearHighlights?: () => void;
@@ -122,6 +124,8 @@ export function DiagramCanvas({
   onToggleItems,
   onUnbundle,
   onIsolate,
+  onTraceFrom,
+  onTraceTo,
   onShowAll,
   onHighlight,
   onClearHighlights,
@@ -157,34 +161,8 @@ export function DiagramCanvas({
     disabled: !isolated,
     onSelect: onShowAll,
   };
-  const highlightItems = (targets: readonly Selection[]): ContextMenuItem[] =>
-    onHighlight
-      ? [
-          {
-            label: 'Highlight',
-            swatches: HIGHLIGHT_COLORS.map((swatch) => ({
-              label: swatch.label,
-              color: swatch.css,
-              onSelect: () => onHighlight(targets, swatch.id),
-            })),
-            onSelect: () => onHighlight(targets, HIGHLIGHT_COLORS[0].id),
-          },
-          {
-            label: 'Clear Highlight',
-            disabled: !hasAnyHighlight(highlights ?? {}, targets),
-            onSelect: () => onHighlight(targets, null),
-          },
-          ...(onClearHighlights
-            ? [
-                {
-                  label: 'Clear All Highlights',
-                  disabled: highlightCount(highlights ?? {}) === 0,
-                  onSelect: onClearHighlights,
-                },
-              ]
-            : []),
-        ]
-      : [];
+  const highlightItems = (targets: readonly Selection[]) =>
+    highlightMenuItems(highlights, targets, onHighlight, onClearHighlights);
 
   const netSelection = (id: string): Selection => ({ kind: 'net', id });
   // A bundle selects its nets together, even when it holds one net (a fan-out).
@@ -385,6 +363,7 @@ export function DiagramCanvas({
               disabled: isolateIds.length === 0 || !isolatable(isolateIds),
               onSelect: () => onIsolate(isolateIds),
             },
+            ...traceMenuItems(node.id, isolatable, onTraceFrom, onTraceTo),
             showAllItem,
             ...highlightItems(targets),
           ]);
@@ -406,16 +385,13 @@ export function DiagramCanvas({
           }
           openMenu(event, [
             ...(bundle
-              ? [
-                  ...(onUnbundle
-                    ? [{ label: 'Unbundle', onSelect: () => onUnbundle(bundle.key) }]
-                    : []),
-                  {
-                    label: 'Isolate Pair',
-                    disabled: !isolatable(pair(edge)),
-                    onSelect: () => onIsolate(pair(edge)),
-                  },
-                ]
+              ? bundleMenuItems({
+                  bundleKey: bundle.key,
+                  pair: pair(edge),
+                  isolatable,
+                  onUnbundle,
+                  onIsolate,
+                })
               : []),
             ...highlightItems(targets),
             showAllItem,

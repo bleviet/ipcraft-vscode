@@ -129,6 +129,7 @@ describe('outline and tab text', () => {
         focusedPin={null}
         onSelectInstance={jest.fn()}
         onSelectPin={jest.fn()}
+        onSelectNets={jest.fn()}
         onSelectNet={jest.fn()}
         onReveal={jest.fn()}
       />
@@ -150,6 +151,7 @@ describe('outline and tab text', () => {
       focusedPin: null,
       onSelectInstance: jest.fn(),
       onSelectPin: jest.fn(),
+      onSelectNets: jest.fn(),
       onSelectNet: jest.fn(),
       onReveal: jest.fn(),
     };

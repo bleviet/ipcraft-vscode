@@ -3,6 +3,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { PIN_ROW_HEIGHT, type InstanceNodeData, type PinRow } from './layout/elkLayout';
 import type { PinMark } from './clocks/nodeView';
 import type { PinHoverTarget } from './model';
+import { HopBadge } from './HopBadge';
 import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
 import { PinMarker } from './PinMarker';
@@ -133,6 +134,7 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
           onAnimationEnd={() => data.onFlashEnd?.(data.flashToken as number)}
         />
       )}
+      {data.hopIndex !== undefined && <HopBadge index={data.hopIndex} />}
       <NodeHeader
         instance={instance}
         cellCount={data.cellCount}

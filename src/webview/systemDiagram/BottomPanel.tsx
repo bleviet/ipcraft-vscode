@@ -5,12 +5,14 @@ import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { clocksInView } from './clocks/viewScope';
 import { ClocksTable } from './ClocksTable';
 import { shownLevels } from './expansion';
+import { PathTable } from './PathTable';
+import type { PathTrace } from './pathTrace';
 import { ResetsTable } from './ResetsTable';
 import type { Selection } from './model';
 import { UnconnectedPinsTable } from './UnconnectedPinsTable';
 import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
-export type BottomTab = 'address' | 'clocks' | 'resets' | 'unconnected';
+export type BottomTab = 'address' | 'clocks' | 'resets' | 'unconnected' | 'path';
 
 interface BottomPanelProps {
   graph: SystemGraph;
@@ -28,6 +30,10 @@ interface BottomPanelProps {
   /** Opens a net of the Clocks or Resets tab; a crossing row also haloes its sink pin. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
   onReveal: (line: number, uri?: string) => void;
+  /** The traced path on show; the Path tab exists only while there is one. */
+  trace?: PathTrace;
+  /** Selects the nets of one hop of the trace. */
+  onSelectNets: (netIds: string[]) => void;
 }
 
 export function BottomPanel({
@@ -44,6 +50,8 @@ export function BottomPanel({
   onSelectPin,
   onSelectNet,
   onReveal,
+  trace,
+  onSelectNets,
 }: BottomPanelProps) {
   const view = useMemo(
     () => clocksInView(graph, clocks, shownLevels(graph, levelPath, expanded)),
@@ -54,7 +62,10 @@ export function BottomPanel({
     { id: 'clocks', label: 'Clocks', count: view.domains.length },
     { id: 'resets', label: 'Resets', count: view.resets.length },
     { id: 'unconnected', label: 'Unconnected', count: findings.length },
+    ...(trace ? [{ id: 'path' as const, label: 'Path', count: trace.hops.length }] : []),
   ];
+  // The Path tab goes with its trace; the panel then shows the first tab.
+  const shownTab = tab === 'path' && !trace ? 'address' : tab;
   return (
     <section
       aria-label="Bottom panel"
@@ -66,7 +77,7 @@ export function BottomPanel({
             key={item.id}
             type="button"
             role="tab"
-            aria-selected={tab === item.id}
+            aria-selected={shownTab === item.id}
             onClick={() => onTabChange(item.id)}
           >
             {item.label}
@@ -76,9 +87,9 @@ export function BottomPanel({
         ))}
       </div>
       <div className="min-h-0 flex-1 overflow-auto px-2.5 pb-2.5">
-        {tab === 'address' ? (
+        {shownTab === 'address' ? (
           <AddressMapTable graph={graph} onSelectInstance={onSelectInstance} onReveal={onReveal} />
-        ) : tab === 'clocks' ? (
+        ) : shownTab === 'clocks' ? (
           <ClocksTable
             graph={graph}
             clocks={clocks}
@@ -88,7 +99,7 @@ export function BottomPanel({
             onSelectNet={onSelectNet}
             onReveal={onReveal}
           />
-        ) : tab === 'resets' ? (
+        ) : shownTab === 'resets' ? (
           <ResetsTable
             graph={graph}
             clocks={clocks}
@@ -98,6 +109,8 @@ export function BottomPanel({
             onSelectNet={onSelectNet}
             onReveal={onReveal}
           />
+        ) : shownTab === 'path' && trace ? (
+          <PathTable graph={graph} trace={trace} onSelectNets={onSelectNets} />
         ) : (
           <UnconnectedPinsTable
             graph={graph}

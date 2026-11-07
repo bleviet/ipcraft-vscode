@@ -2,6 +2,9 @@ import React from 'react';
 import { useReactFlow } from '@xyflow/react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ToolbarSummary } from './clocks/crossingSummary';
+import type { IsolatedView } from './hooks/useIsolation';
+import type { IsolationHops } from './isolation';
+import { IsolationChip } from './IsolationChip';
 import { breadcrumbs } from './model';
 
 interface DiagramToolbarProps {
@@ -20,9 +23,13 @@ interface DiagramToolbarProps {
   bundleBuses: boolean;
   /** Number of unconnected pins in the design, and whether any is undriven. */
   unconnected: { count: number; anyUndriven: boolean };
-  /** Selected and shown node counts while the level is isolated, else null. */
-  isolated: { selected: number; shown: number } | null;
+  /** The isolated view while the level is isolated, else null. */
+  isolated: IsolatedView | null;
+  /** The trace bar is open. */
+  traceOpen: boolean;
   onShowAll: () => void;
+  onSetHops: (hops: IsolationHops) => void;
+  onToggleTrace: () => void;
   highlightedCount?: number;
   onClearHighlights?: () => void;
   onNavigate: (levelPath: string) => void;
@@ -58,7 +65,10 @@ export function DiagramToolbar({
   bundleBuses,
   unconnected,
   isolated,
+  traceOpen,
   onShowAll,
+  onSetHops,
+  onToggleTrace,
   highlightedCount,
   onClearHighlights,
   onNavigate,
@@ -97,14 +107,7 @@ export function DiagramToolbar({
         })}
       </nav>
       {isolated && (
-        <span className="sd-isolated">
-          <span>
-            Isolated · {isolated.selected} selected · {isolated.shown} shown
-          </span>
-          <button type="button" className="sd-tool" onClick={onShowAll}>
-            Show All
-          </button>
-        </span>
+        <IsolationChip graph={graph} view={isolated} onSetHops={onSetHops} onShowAll={onShowAll} />
       )}
       {highlightedCount !== undefined && highlightedCount > 0 && (
         <span className="sd-isolated">
@@ -191,6 +194,15 @@ export function DiagramToolbar({
         onClick={() => onBundleBusesChange(!bundleBuses)}
       >
         Bundle buses
+      </button>
+      <button
+        type="button"
+        className="sd-tool"
+        aria-pressed={traceOpen}
+        title="Isolate the shortest signal chain between two blocks or ports"
+        onClick={onToggleTrace}
+      >
+        Trace path
       </button>
       <div className="flex gap-1">
         <button
