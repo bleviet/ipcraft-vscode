@@ -67,10 +67,12 @@ const LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.spacing.nodeNode': '28',
-  'elk.layered.spacing.nodeNodeBetweenLayers': '80',
-  'elk.layered.spacing.edgeNodeBetweenLayers': '24',
-  'elk.spacing.edgeEdge': '12',
+  'elk.spacing.nodeNode': '20',
+  'elk.layered.spacing.nodeNodeBetweenLayers': '32',
+  'elk.layered.spacing.edgeNodeBetweenLayers': '12',
+  'elk.spacing.edgeEdge': '8',
+  // Network simplex placement pulls connected blocks into line, so levels stay short.
+  'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX',
 };
 
 type ClockResetNets = ReturnType<typeof clockResetNetsByEndpoint>;

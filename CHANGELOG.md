@@ -18,6 +18,7 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- **Blocks sit closer together in the system viewer.** Tighter spacing between columns and wires, and a placement that keeps connected blocks in line, make a level 10 to 28 percent smaller with shorter wires, so a fitted view is easier to follow. External ports stay in the first and last columns. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
 - **Clocks and resets is a toggle button in the system viewer.** It draws the clock and reset wires colored by clock domain, and a count chip next to it opens the Clocks tab. ([#258](https://github.com/bleviet/ipcraft-vscode/issues/258), [#259](https://github.com/bleviet/ipcraft-vscode/pull/259))
 - **Clicking an unconnected pin zooms in to its block** in the system viewer when the block is too small to read. ([#245](https://github.com/bleviet/ipcraft-vscode/issues/245), [#249](https://github.com/bleviet/ipcraft-vscode/pull/249))
 - **Stronger block outlines in the system viewer** on light and dark themes. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))
