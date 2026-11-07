@@ -126,6 +126,7 @@ describe('outline and tab text', () => {
         selection={null}
         focusedPin={null}
         onSelectInstance={jest.fn()}
+        onRevealBlock={jest.fn()}
         onSelectPin={jest.fn()}
         onSelectNet={jest.fn()}
         onReveal={jest.fn()}

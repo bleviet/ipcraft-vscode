@@ -83,6 +83,31 @@ describe('useDiagramNavigation expansion', () => {
     expect(result.current.revealRequest).toMatchObject({ levelPath: '/', readable: true });
   });
 
+  it('reveals the given node for a net: itself when drawn, else its outermost block', () => {
+    const { result } = setup();
+    const net = { kind: 'net' as const, id: '/::axi_dma_0_M_AXIS_MM2S' };
+    act(() => result.current.selectAndReveal(net));
+    expect(result.current.revealRequest).toBeNull();
+
+    act(() => result.current.selectAndReveal(net, undefined, true, FIR));
+    expect(result.current.levelPath).toBe('/');
+    expect(result.current.selection).toEqual(net);
+    expect(result.current.revealRequest).toMatchObject({
+      levelPath: '/',
+      selection: { kind: 'instance', id: DSP },
+      readable: true,
+    });
+
+    act(() => result.current.toggleExpanded(DSP));
+    act(() => result.current.selectAndReveal(net, undefined, true, FIR));
+    expect(result.current.revealRequest).toMatchObject({ selection: { id: FIR } });
+
+    act(() => result.current.selectAndReveal(net, undefined, true, boundaryId('/', 'DDR')));
+    expect(result.current.revealRequest).toMatchObject({
+      selection: { kind: 'boundary', id: boundaryId('/', 'DDR') },
+    });
+  });
+
   it('opens the level of a pick that is not shown, such as a boundary pin of the block', () => {
     const { result } = setup();
     act(() => result.current.toggleExpanded(DSP));

@@ -19,6 +19,8 @@ interface BottomPanelProps {
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   onSelectInstance: (instancePath: string) => void;
+  /** Selects a block of the Clocks tab and zooms in to it when it is small. */
+  onRevealBlock: (instancePath: string) => void;
   onSelectPin: (finding: UnconnectedPin) => void;
   /** Opens a net of the Clocks tab; a crossing row also haloes its sink pin. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
@@ -34,6 +36,7 @@ export function BottomPanel({
   selection,
   focusedPin,
   onSelectInstance,
+  onRevealBlock,
   onSelectPin,
   onSelectNet,
   onReveal,
@@ -74,7 +77,7 @@ export function BottomPanel({
             selection={selection}
             focusedPin={focusedPin}
             onSelectNet={onSelectNet}
-            onSelectInstance={onSelectInstance}
+            onSelectInstance={onRevealBlock}
             onReveal={onReveal}
           />
         ) : tab === 'unconnected' ? (

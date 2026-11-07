@@ -1685,6 +1685,38 @@ describe('SystemDiagramApp', () => {
       expect(details().getByRole('heading', { name: 'axis_data_fifo_0' })).toBeVisible();
     });
 
+    describe('zooms in to the block of a clicked row at low zoom, but never zooms out', () => {
+      const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      // The first click goes to the row's level, whose first visit fits; the second measures.
+      async function clickAt(zoom: number, text: string, nodeId: string) {
+        const row = () => bottom().getByText(text).closest('tr')!;
+        fireEvent.click(row());
+        await screen.findByTestId(`node:${nodeId}`);
+        await settle();
+        mockSetCenter.mockClear();
+        mockViewport = { x: 0, y: 0, zoom };
+        fireEvent.click(row());
+        await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
+        return (mockSetCenter.mock.calls[0][2] as { zoom: number }).zoom;
+      }
+
+      it('for a crossing, centring its sink block', async () => {
+        await domains();
+        const zoom = await clickAt(0.3, 'fir_compiler_0/aresetn', `${DSP}/fir_compiler_0`);
+        expect(zoom).toBeGreaterThan(0.3);
+        expect(zoom).toBeLessThanOrEqual(0.8);
+        expect(await clickAt(1.7, 'ovf_monitor_0/rst_n', `${DSP}/ovf_monitor_0`)).toBe(1.7);
+      });
+
+      it('for a block row', async () => {
+        await domains();
+        const text = 'axis_data_fifo_0 (dsp_pipeline)';
+        const zoom = await clickAt(0.3, text, `${DSP}/axis_data_fifo_0`);
+        expect(zoom).toBeGreaterThan(0.3);
+        expect(zoom).toBeLessThanOrEqual(0.8);
+      });
+    });
+
     it('draws the frequency next to each clock pin, in its domain color', async () => {
       await domains();
       const labels = nodeBox('/axi_dma_0', '.sd-node').querySelectorAll('.sd-pin-freq');

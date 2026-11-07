@@ -218,8 +218,9 @@ The **Clocks** tab has three sections.
   **OK** chips filter the rows (OK is off at first). A row shows the kind (the
   interface type, `Reset` or `Block`), both ends with their domains, where each
   clock is known from or why it is not, and a link to the source line. Click a
-  row to select its net and mark the sink pin; click a block row to select the
-  block.
+  row to select its net, centre the sink's block and mark the sink pin; click a
+  block row to select and centre the block. Both zoom in when the block is too
+  small to read.
 
 ## Zoom
 

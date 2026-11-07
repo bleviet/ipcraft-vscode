@@ -98,10 +98,17 @@ export function WorkbenchLayout({
     view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
     setFocusedPin({ nodeId: finding.nodeId, pin: finding.pin.name });
   };
+  // A crossing row (with a sink pin) also zooms in to the sink's block, like a finding.
   const selectNet = (netId: string, focus?: { nodeId: string; pin: string }) => {
-    view.selectAndReveal({ kind: 'net', id: netId });
+    if (focus) {
+      view.selectAndReveal({ kind: 'net', id: netId }, undefined, true, focus.nodeId);
+    } else {
+      view.selectAndReveal({ kind: 'net', id: netId });
+    }
     setFocusedPin(focus ? { ...focus, netId } : null);
   };
+  const revealBlock = (instancePath: string) =>
+    view.selectAndReveal(nodeSelection(instancePath), undefined, true);
 
   const { fit, focusNode } = useDiagramViewport(
     layout,
@@ -226,6 +233,7 @@ export function WorkbenchLayout({
                 selection={nav.selection}
                 focusedPin={focusedPin}
                 onSelectInstance={view.selectInstance}
+                onRevealBlock={revealBlock}
                 onSelectPin={selectFinding}
                 onSelectNet={selectNet}
                 onReveal={revealSource}

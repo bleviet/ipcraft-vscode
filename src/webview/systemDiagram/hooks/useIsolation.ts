@@ -23,7 +23,12 @@ interface IsolationNavigation {
   levelPath: string;
   /** Hierarchy blocks drawn expanded; an instance inside one is shown with its outermost block. */
   expanded: ReadonlySet<string>;
-  selectAndReveal: (next: Selection | null, level?: string, readable?: true) => void;
+  selectAndReveal: (
+    next: Selection | null,
+    level?: string,
+    readable?: true,
+    revealNode?: string
+  ) => void;
   revealMatch: (instancePath: string) => void;
   selectInstance: (instancePath: string) => void;
 }
@@ -97,9 +102,9 @@ export function useIsolation(
   );
   const { selectAndReveal, revealMatch, selectInstance } = nav;
   const selectAndRevealShown = useCallback(
-    (next: Selection | null, level?: string, readable?: true) => {
+    (next: Selection | null, level?: string, readable?: true, revealNode?: string) => {
       endIfHidden(next, level);
-      selectAndReveal(next, level, readable);
+      selectAndReveal(next, level, readable, revealNode);
     },
     [endIfHidden, selectAndReveal]
   );
