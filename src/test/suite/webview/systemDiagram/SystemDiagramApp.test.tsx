@@ -1,5 +1,5 @@
 import React from 'react';
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { SystemDiagramToWebviewMessage } from '../../../../shared/messages/systemDiagram';
 import { SystemDiagramApp } from '../../../../webview/systemDiagram/SystemDiagramApp';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
@@ -191,7 +191,7 @@ describe('SystemDiagramApp', () => {
 
     expect(await outline().findByRole('button', { name: 'axi_dma_0 axi_dma:7.1' })).toBeVisible();
     expect(outline().getByRole('button', { name: /^dsp_pipeline/ })).toBeVisible();
-    expect(screen.getByRole('button', { name: /^\d+ problems?$/ })).toBeVisible();
+    expect(screen.queryByRole('button', { name: /problems?$/ })).not.toBeInTheDocument();
     await screen.findByTestId('node:/axi_dma_0');
     expect(screen.getByTestId('flow')).toHaveAttribute('data-read-only', 'true');
   });
@@ -389,22 +389,12 @@ describe('SystemDiagramApp', () => {
     expect(screen.getByTestId('flow')).toBeInTheDocument();
   });
 
-  it('lists problems from the badge', async () => {
-    await renderWithGraph({ panelsOpen: false });
-    fireEvent.click(screen.getByRole('button', { name: /^\d+ problems?$/ }));
-    expect(screen.getByRole('tab', { name: /Problems/ })).toHaveAttribute('aria-selected', 'true');
-    expect(screen.getByText(/Skipped Vivado-only commands/)).toBeVisible();
-  });
-
-  it('counts the problems on the badge and hides it when there are none', async () => {
-    await renderWithGraph({ panelsOpen: false });
+  it('shows no problems button or tab, even when the reader has diagnostics', async () => {
+    await renderWithGraph();
     expect(graph.diagnostics.length).toBeGreaterThan(1);
-    expect(
-      screen.getByRole('button', { name: `${graph.diagnostics.length} problems` })
-    ).toBeVisible();
-    cleanup();
-    await renderWithGraph({ panelsOpen: false, design: { ...graph, diagnostics: [] } });
-    expect(screen.queryByRole('button', { name: /^\d+ problems?$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /problems?$/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /^Problems/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Skipped Vivado-only commands/)).not.toBeInTheDocument();
   });
 
   it('labels pins of hidden clock nets with a badge that selects the net', async () => {
@@ -1423,9 +1413,9 @@ describe('SystemDiagramApp', () => {
         'aria-selected',
         'true'
       );
-      fireEvent.click(screen.getByRole('tab', { name: /^Problems/ }));
+      fireEvent.click(screen.getByRole('tab', { name: /^Address map/ }));
       fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
-      expect(screen.getByRole('tab', { name: /^Problems/ })).toHaveAttribute(
+      expect(screen.getByRole('tab', { name: /^Address map/ })).toHaveAttribute(
         'aria-selected',
         'true'
       );
@@ -1497,17 +1487,6 @@ describe('SystemDiagramApp', () => {
       expect(screen.queryByRole('complementary', { name: 'Details' })).not.toBeInTheDocument();
       expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
       expect(screen.getByTestId('flow')).toBeInTheDocument();
-    });
-
-    it('reopens the bottom panel on the problems tab from the badge', async () => {
-      await renderWithGraph();
-      fireEvent.click(screen.getByRole('button', { name: 'Toggle Bottom Panel' }));
-      expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: /^\d+ problems?$/ }));
-      expect(screen.getByRole('tab', { name: /Problems/ })).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
     });
   });
 

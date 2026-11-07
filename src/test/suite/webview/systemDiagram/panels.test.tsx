@@ -124,6 +124,6 @@ describe('outline and tab text', () => {
       />
     );
     expect(screen.getByRole('tab', { name: /^Address map \d+$/ })).toBeVisible();
-    expect(screen.getByRole('tab', { name: /^Problems \d+$/ })).toBeVisible();
+    expect(screen.queryByRole('tab', { name: /^Problems/ })).not.toBeInTheDocument();
   });
 });

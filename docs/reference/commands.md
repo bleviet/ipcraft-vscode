@@ -261,7 +261,7 @@ Available build targets:
 
 **Preview in IPCraft** — Opens a read-only IPCraft preview panel for any YAML file. Experimental.
 
-**Open as System Diagram** — Opens a system design file in a read-only system diagram with hierarchy, details, address map, and problems. Supported files are Vivado `write_bd_tcl` block design scripts (`.tcl`), Platform Designer `.qsys` systems (Standard), and Platform Designer system scripts (`qsys-script` `.tcl`). The file is read statically and never executed. A `_hw.tcl` file keeps its own preview. See [Viewing a System Design](../how-to/view-a-system-design.md). Press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) again to return to the text editor.
+**Open as System Diagram** — Opens a system design file in a read-only system diagram with hierarchy, details, and address map. Supported files are Vivado `write_bd_tcl` block design scripts (`.tcl`), Platform Designer `.qsys` systems (Standard), and Platform Designer system scripts (`qsys-script` `.tcl`). The file is read statically and never executed. A `_hw.tcl` file keeps its own preview. See [Viewing a System Design](../how-to/view-a-system-design.md). Press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) again to return to the text editor.
 
 ---
 
