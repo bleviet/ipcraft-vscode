@@ -134,7 +134,7 @@ describe('outline and tab text', () => {
       />
     );
     expect(screen.getByRole('tab', { name: /^Address map \d+$/ })).toBeVisible();
-    expect(screen.getByRole('tab', { name: /^Problems \d+$/ })).toBeVisible();
+    expect(screen.queryByRole('tab', { name: /^Problems/ })).not.toBeInTheDocument();
   });
 
   it('puts the Resets tab right after the Clocks tab, each counting what is in view', () => {
@@ -159,7 +159,6 @@ describe('outline and tab text', () => {
       'Clocks 3',
       'Resets 3',
       'Unconnected 0',
-      'Problems 2',
     ]);
     expect(screen.getByRole('tab', { name: /^Resets/ })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('heading', { name: 'Reset sources' })).toBeVisible();

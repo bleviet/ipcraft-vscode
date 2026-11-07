@@ -57,11 +57,9 @@ The diagram shows one hierarchy level at a time.
   nets. Select a line link to open the file at that line.
 - **Address map.** Lists the address segments found in the design. Select a
   row to select its instance.
-- **Clocks.** Lists the clock domains with their frequencies, the reset
-  sources, and the crossings between domains. See [Clock and reset
-  domains](#clock-and-reset-domains).
-- **Problems.** Lists what the reader could not resolve. The **N problems**
-  button in the toolbar opens this list; it is hidden when there are none.
+- **Clocks.** Lists the clock domains with their frequencies and the clock
+  domain crossings. See [Clock and reset domains](#clock-and-reset-domains).
+- **Resets.** Lists the reset sources and the reset domain crossings.
 
 ![A hierarchy level with clocks and resets drawn](../images/system-diagram-hierarchy-light.png)
 
@@ -87,7 +85,7 @@ A pin is unconnected when no net touches it on its level. There are two kinds:
 
 While the review is on, the diagram dims wires and blocks without findings. Each unconnected pin gets a short dashed stub ending in a hollow circle, a block header shows a warning icon (a disconnect icon when nothing is undriven) with the count, and hovering it gives the undriven and unused split (hierarchy blocks count the pins inside them too), and a banner summarizes the level on show. The outline shows a count on each block and external port.
 
-Only blocks whose full pin list is known can be checked: blocks with an `.ip.yml` or HDL definition, hierarchy blocks and their pins, and external ports. For the other blocks (drawn with a dashed border), the viewer knows only the pins that appear in connections, so it cannot tell which pins are open. They are listed as not checked; see Problems for the reason.
+Only blocks whose full pin list is known can be checked: blocks with an `.ip.yml` or HDL definition, hierarchy blocks and their pins, and external ports. For the other blocks (drawn with a dashed border), the viewer knows only the pins that appear in connections, so it cannot tell which pins are open. They are listed as not checked.
 
 The **Unconnected** tab lists every finding with its pin, block, level, direction, type, where the pin is known from, and a link to the line that created it. The **Undriven** and **Unused** chips filter the rows. Click a row to go to its level, select the block, centre it (zooming in if it is too small to read), and mark the pin on the diagram and in Details. A hierarchy pin that is open on both sides is listed twice: once on the hierarchy block in the parent level and once as the port inside. Details shows `undriven` or `unused` in the Net column of every unconnected pin, with or without the review on.
 
@@ -325,25 +323,25 @@ interface types. The details panel then shows a **Defined by** link that opens
 the definition. When several files match, a Platform Designer component first
 prefers the file with the same version; otherwise the file nearest to the design
 file wins. Large HDL files and generated or dependency folders are skipped.
-Matches that cannot be decided are listed in Problems.
+A match that cannot be decided is not used.
 
-In an untrusted workspace, IPCraft reads no definitions and says so in
-Problems. Trust the workspace to turn them on.
+In an untrusted workspace, IPCraft reads no definitions. Trust the workspace to
+turn them on.
 
 ## Platform Designer scripts
 
 A system script does not always say what a connection carries. IPCraft infers
 the kind from an explicit statement, from parameters, by propagating the kind
 along connections, and as a last step from names. Connections whose kind came
-from names, or could not be determined, are listed in Problems. A script that
-uses Tcl that cannot be evaluated marks the view partial.
+from names are a best guess; Details shows how the kind of a net was found. A
+script that uses Tcl that cannot be evaluated marks the view partial.
 
 A module whose kind is the base name of another `.qsys` file in the workspace
 (for example `kind="sub_system"` and `sub_system.qsys`) is a Platform Designer
 subsystem. IPCraft reads that file and shows the module as a hierarchy level:
 double-click the block to enter it, or expand it in place with its **+** button. Go to source from inside the subsystem opens
 the subsystem file. Subsystems that instantiate each other, or a file that cannot
-be read, stay opaque blocks and are listed in Problems.
+be read, stay opaque blocks.
 
 ![A Platform Designer system with the address map open](../images/system-diagram-platform-designer-light.png)
 
@@ -358,7 +356,7 @@ be read, stay opaque blocks and are listed in Problems.
   scripts. Base addresses are shown, and ranges that come from the IP
   definitions are not filled in yet.
 - Anything that needs Tcl to be evaluated, such as loops and computed names.
-  The view is marked partial and the cause is listed in Problems.
+  The view is marked partial in Details, under **What this view knows**.
 
 For the design behind this feature, see [Offline System
 Viewer](../concepts/brainstorm/offline-system-viewer.md).

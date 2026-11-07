@@ -5,13 +5,12 @@ import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { clocksInView } from './clocks/viewScope';
 import { ClocksTable } from './ClocksTable';
 import { shownLevels } from './expansion';
-import { ProblemsList } from './ProblemsList';
 import { ResetsTable } from './ResetsTable';
 import type { Selection } from './model';
 import { UnconnectedPinsTable } from './UnconnectedPinsTable';
 import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
-export type BottomTab = 'address' | 'clocks' | 'resets' | 'unconnected' | 'problems';
+export type BottomTab = 'address' | 'clocks' | 'resets' | 'unconnected';
 
 interface BottomPanelProps {
   graph: SystemGraph;
@@ -55,7 +54,6 @@ export function BottomPanel({
     { id: 'clocks', label: 'Clocks', count: view.domains.length },
     { id: 'resets', label: 'Resets', count: view.resets.length },
     { id: 'unconnected', label: 'Unconnected', count: findings.length },
-    { id: 'problems', label: 'Problems', count: graph.diagnostics.length },
   ];
   return (
     <section
@@ -100,18 +98,15 @@ export function BottomPanel({
             onSelectNet={onSelectNet}
             onReveal={onReveal}
           />
-        ) : tab === 'unconnected' ? (
+        ) : (
           <UnconnectedPinsTable
             graph={graph}
             findings={findings}
             selection={selection}
             focusedPin={focusedPin}
             onSelectPin={onSelectPin}
-            onShowProblems={() => onTabChange('problems')}
             onReveal={onReveal}
           />
-        ) : (
-          <ProblemsList graph={graph} onReveal={onReveal} />
         )}
       </div>
     </section>

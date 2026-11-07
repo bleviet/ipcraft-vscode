@@ -25,7 +25,6 @@ interface DiagramToolbarProps {
   onShowClockResetChange: (show: boolean) => void;
   onDomainModeChange: (on: boolean) => void;
   onReviewUnconnectedChange: (on: boolean) => void;
-  onOpenProblems: () => void;
   onFit: () => void;
   panelsVisible: Record<PanelName, boolean>;
   onTogglePanel: (panel: PanelName) => void;
@@ -38,15 +37,6 @@ const PANEL_TOGGLES: { panel: PanelName; title: string; icon: string }[] = [
   { panel: 'bottom', title: 'Toggle Bottom Panel', icon: 'layout-panel' },
   { panel: 'details', title: 'Toggle Details', icon: 'layout-sidebar-right' },
 ];
-
-/** Toolbar shortcut to the Problems tab: the same count, hidden when there are none. */
-function problemsLabel(graph: SystemGraph): string | null {
-  const count = graph.diagnostics.length;
-  if (count === 0) {
-    return null;
-  }
-  return `${count} ${count === 1 ? 'problem' : 'problems'}`;
-}
 
 export function DiagramToolbar({
   graph,
@@ -66,14 +56,12 @@ export function DiagramToolbar({
   onShowClockResetChange,
   onDomainModeChange,
   onReviewUnconnectedChange,
-  onOpenProblems,
   onFit,
   panelsVisible,
   onTogglePanel,
 }: DiagramToolbarProps) {
   const { zoomIn, zoomOut } = useReactFlow();
   const crumbs = breadcrumbs(levelPath, graph.name);
-  const badge = problemsLabel(graph);
   return (
     <div className="flex flex-wrap items-center gap-3 border-b border-[var(--vscode-panel-border)] px-3 py-1">
       <nav aria-label="Hierarchy" className="flex min-w-0 items-center gap-1 whitespace-nowrap">
@@ -187,11 +175,6 @@ export function DiagramToolbar({
           +
         </button>
       </div>
-      {badge && (
-        <button type="button" className="sd-problems" onClick={onOpenProblems}>
-          {badge}
-        </button>
-      )}
       <div className="flex gap-1">
         {PANEL_TOGGLES.map(({ panel, title, icon }) => {
           const visible = panelsVisible[panel];

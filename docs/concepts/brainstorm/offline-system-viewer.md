@@ -318,7 +318,7 @@ in connections.
 | Address map | Table of address segments per master address space, sortable and searchable |
 | Go to source | Every element opens its source file at the line that created it |
 | IPCraft links | Instances backed by an `.ip.yml` open in the IP Core editor; their address segments open the `.mm.yml` |
-| Problems button | "N problems" in the toolbar opens the Problems tab; hidden when there are none. What the offline view cannot know is listed in Details under "What this view knows" |
+| Reader diagnostics | Not shown in the viewer: what the offline reader could not resolve read like faults in the design. What the view cannot know is summarized in Details under "What this view knows" |
 
 The view reloads when the source file changes on disk. It is read-only, so it
 does not use the revisioned edit protocol.

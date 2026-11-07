@@ -147,7 +147,6 @@ export function WorkbenchLayout({
             openBottomTab('unconnected');
           }
         }}
-        onOpenProblems={() => openBottomTab('problems')}
         onFit={fit}
         panelsVisible={panelsVisible}
         onTogglePanel={(panel) => panels[panel].toggle()}

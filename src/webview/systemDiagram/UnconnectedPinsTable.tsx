@@ -17,7 +17,6 @@ interface UnconnectedPinsTableProps {
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   onSelectPin: (finding: UnconnectedPin) => void;
-  onShowProblems: () => void;
   onReveal: (line: number, uri?: string) => void;
 }
 
@@ -48,7 +47,6 @@ export function UnconnectedPinsTable({
   selection,
   focusedPin,
   onSelectPin,
-  onShowProblems,
   onReveal,
 }: UnconnectedPinsTableProps) {
   const [shown, setShown] = useState<Record<UnconnectedClass, boolean>>({
@@ -68,10 +66,7 @@ export function UnconnectedPinsTable({
           </b>
           , whose pins come from connections only.
         </>
-      )}{' '}
-      <button type="button" className="sd-link" onClick={onShowProblems}>
-        See Problems
-      </button>
+      )}
     </span>
   );
   const rows = findings.filter((finding) => shown[finding.cls]);
