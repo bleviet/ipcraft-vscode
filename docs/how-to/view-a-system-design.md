@@ -46,6 +46,15 @@ The diagram shows one hierarchy level at a time.
   block like a double-click. Hierarchy blocks inside a frame can be expanded
   too, and expanded blocks stay expanded when you go to another level and back.
   Isolate works on the blocks of the level on show, not on those inside a frame.
+- **Compact pins.** Large IPs such as an AXI SmartConnect have dozens of numbered
+  pins (`M00_AXI` to `M27_AXI`, `In0` to `In15`). With **Compact pins** on, the
+  default, four or more numbered pins of the same kind on one side of a block
+  fold into one row such as `M00..M27_AXI [28]`, with a chevron. Click the row
+  to show its pins in place, and click the header row above them to fold them
+  again. Wires to a folded row end on that row. Pins on clock and reset nets stay
+  on their own rows. Turn **Compact pins** off in the toolbar to give every pin
+  its own row. Folding changes the layout, so the blocks may move, but the zoom
+  and pan stay.
 - **Outline.** Lists the instances of the current design and its external
   ports. Select an item to select it in the diagram and center it.
 - **Search.** Type in **Search instances** to dim the blocks whose name or

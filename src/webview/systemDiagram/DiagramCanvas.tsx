@@ -77,6 +77,8 @@ interface DiagramCanvasProps {
   onEnterHierarchy: (instancePath: string) => void;
   /** Expands a hierarchy block in place, or collapses it. */
   onToggleExpand: (instancePath: string) => void;
+  /** Folds or expands a numbered pin array of an instance block. */
+  onTogglePinGroup?: (instancePath: string, groupId: string) => void;
   /** Whether the nodes can be isolated: all of them belong to the level on show. */
   isolatable: (nodeIds: string[]) => boolean;
   onFocusNode: (nodeId: string) => void;
@@ -115,6 +117,7 @@ export function DiagramCanvas({
   onClearHighlights,
   onEnterHierarchy,
   onToggleExpand,
+  onTogglePinGroup,
   isolatable,
   onFocusNode,
   onFit,
@@ -235,6 +238,7 @@ export function DiagramCanvas({
           onSelectNet,
           onHoverPin,
           onToggleExpand,
+          onTogglePinGroup,
           ...(flash?.id === node.id && { flashToken: flash.token, onFlashEnd }),
         },
       };
@@ -256,6 +260,7 @@ export function DiagramCanvas({
     onSelectNet,
     onHoverPin,
     onToggleExpand,
+    onTogglePinGroup,
   ]);
 
   const edges = useMemo(

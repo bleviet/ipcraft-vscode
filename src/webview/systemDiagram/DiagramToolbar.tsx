@@ -14,6 +14,8 @@ interface DiagramToolbarProps {
   /** The count chip next to the Clocks and resets toggle: the crossings, else the number of domains. */
   clockSummary: ToolbarSummary;
   reviewUnconnected: boolean;
+  /** Compact pins is on: numbered pin arrays are folded into one row. */
+  compactPins: boolean;
   /** Number of unconnected pins in the design, and whether any is undriven. */
   unconnected: { count: number; anyUndriven: boolean };
   /** Selected and shown node counts while the level is isolated, else null. */
@@ -25,6 +27,7 @@ interface DiagramToolbarProps {
   onQueryChange: (query: string) => void;
   onSearchStep: (direction: 1 | -1) => void;
   onClocksChange: (on: boolean) => void;
+  onCompactPinsChange: (on: boolean) => void;
   onOpenClocksTab: () => void;
   onReviewUnconnectedChange: (on: boolean) => void;
   onFit: () => void;
@@ -48,6 +51,7 @@ export function DiagramToolbar({
   clocksOn,
   clockSummary,
   reviewUnconnected,
+  compactPins,
   unconnected,
   isolated,
   onShowAll,
@@ -57,6 +61,7 @@ export function DiagramToolbar({
   onQueryChange,
   onSearchStep,
   onClocksChange,
+  onCompactPinsChange,
   onOpenClocksTab,
   onReviewUnconnectedChange,
   onFit,
@@ -163,6 +168,15 @@ export function DiagramToolbar({
         <span className="sd-tool-count" data-tone={unconnected.anyUndriven ? 'undriven' : 'unused'}>
           {unconnected.count}
         </span>
+      </button>
+      <button
+        type="button"
+        className="sd-tool"
+        aria-pressed={compactPins}
+        title="Fold numbered pin arrays such as M00_AXI..M27_AXI into one row; click a folded row to expand it"
+        onClick={() => onCompactPinsChange(!compactPins)}
+      >
+        Compact pins
       </button>
       <div className="flex gap-1">
         <button

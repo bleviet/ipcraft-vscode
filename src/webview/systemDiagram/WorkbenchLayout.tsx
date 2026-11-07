@@ -13,6 +13,7 @@ import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
 import { useIsolation } from './hooks/useIsolation';
 import { useMouseBackButton } from './hooks/useMouseBackButton';
+import { usePinFolding } from './hooks/usePinFolding';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
@@ -74,7 +75,15 @@ export function WorkbenchLayout({
     [reviewUnconnected, graph, findings]
   );
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
-  const { layout, error } = useElkLayout(graph, nav.levelPath, isolation, nav.expanded);
+  // Compact pins is a layout input: folding a pin array re-runs the layout.
+  const pins = usePinFolding();
+  const { layout, error } = useElkLayout(
+    graph,
+    nav.levelPath,
+    isolation,
+    nav.expanded,
+    pins.folding
+  );
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -139,6 +148,7 @@ export function WorkbenchLayout({
         clocksOn={clocksOn}
         clockSummary={clockSummary}
         reviewUnconnected={reviewUnconnected}
+        compactPins={pins.compact}
         unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
         onShowAll={view.showAll}
@@ -148,6 +158,7 @@ export function WorkbenchLayout({
         onQueryChange={setQuery}
         onSearchStep={search.step}
         onClocksChange={setClocksOn}
+        onCompactPinsChange={pins.setCompact}
         onOpenClocksTab={() => openBottomTab('clocks')}
         onReviewUnconnectedChange={(on) => {
           setReviewUnconnected(on);
@@ -204,6 +215,7 @@ export function WorkbenchLayout({
               onClearHighlights={handleClearHighlights}
               onEnterHierarchy={nav.enterHierarchy}
               onToggleExpand={nav.toggleExpanded}
+              onTogglePinGroup={pins.togglePinGroup}
               isolatable={view.canIsolate}
               onFocusNode={focusNode}
               onFit={fit}

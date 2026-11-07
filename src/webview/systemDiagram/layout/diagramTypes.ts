@@ -35,6 +35,17 @@ export interface PinRow {
   label: string;
   /** No net touches the pin (a clock or reset net hidden behind a badge still counts). */
   unconnected: boolean;
+  /** Present on the row of a numbered pin array: the folded row, or the header of an open one. */
+  group?: PinGroupRow;
+}
+
+/** What a group row stands for; `id` is its row name, port name and handle id. */
+export interface PinGroupRow {
+  id: string;
+  /** The whole label, e.g. `M00..M27_AXI [28]`; `PinRow.label` may be its ellipsized form. */
+  label: string;
+  open: boolean;
+  members: PinRow[];
 }
 
 /** Display state the canvas adds to the nodes of a hierarchy-capable block (instance or frame). */
@@ -61,6 +72,8 @@ export interface InstanceUiData {
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
   /** Expands or collapses the hierarchy block `instancePath` in place. */
   onToggleExpand?: (instancePath: string) => void;
+  /** Folds or expands the numbered pin array `groupId` of the block `instancePath`. */
+  onTogglePinGroup?: (instancePath: string, groupId: string) => void;
 }
 
 export interface InstanceNodeData extends Record<string, unknown>, InstanceUiData {

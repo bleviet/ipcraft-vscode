@@ -1017,3 +1017,26 @@ input:focus-visible {
 .sd-check[data-tone='muted'] {
   color: var(--vscode-descriptionForeground);
 }
+
+/* Folded numbered pin arrays (issue #256). */
+.sd-pin-group {
+  cursor: pointer;
+}
+
+.sd-pin-group:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.sd-pin-group:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.sd-pin-chevron {
+  flex: none;
+  width: 14px;
+  font-size: 12px;
+  line-height: 1;
+  text-align: center;
+  color: var(--vscode-descriptionForeground);
+}
