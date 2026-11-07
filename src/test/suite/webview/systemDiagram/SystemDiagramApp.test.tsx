@@ -51,7 +51,7 @@ interface MockFlowNode {
 interface MockFlowEdge {
   id: string;
   type: string;
-  data?: { netId?: string; highlightColor?: string };
+  data?: { netId?: string; highlightColor?: string; domainColor?: string; crossing?: boolean };
   selected?: boolean;
 }
 interface MockFlowProps {
@@ -151,6 +151,8 @@ jest.mock('@xyflow/react', () => {
               'data-selected': edge.selected ? 'true' : undefined,
               'data-highlighted': edge.data?.highlightColor !== undefined ? 'true' : undefined,
               'data-highlight-color': edge.data?.highlightColor,
+              'data-domain-color': edge.data?.domainColor,
+              'data-crossing': edge.data?.crossing ? 'true' : undefined,
               onClick: (event: unknown) => props.onEdgeClick?.(event, edge),
               onContextMenu: (event: { stopPropagation: () => void }) => {
                 event.stopPropagation();
@@ -366,7 +368,7 @@ describe('SystemDiagramApp', () => {
   it('adds clock and reset edges when the toggle is on', async () => {
     await renderWithGraph();
     const hidden = edgeCount();
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Clocks and resets' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
     await waitFor(() => expect(edgeCount()).toBeGreaterThan(hidden));
   });
 
@@ -449,7 +451,7 @@ describe('SystemDiagramApp', () => {
     expect(details().getByText(/^Clock net · domain/)).toBeVisible();
     expect(details().getByText('Requested by', { exact: false })).toBeVisible();
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Clocks and resets' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
     await waitFor(() =>
       expect(screen.queryAllByTitle(/Turn on Clocks and resets/)).toHaveLength(0)
     );
@@ -1045,7 +1047,7 @@ describe('SystemDiagramApp', () => {
       mockFitBounds.mockClear();
       const hidden = Number(screen.getByTestId('flow').getAttribute('data-edges'));
 
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Clocks and resets' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
       await waitFor(() =>
         expect(Number(screen.getByTestId('flow').getAttribute('data-edges'))).toBeGreaterThan(
           hidden
@@ -1498,7 +1500,9 @@ describe('SystemDiagramApp', () => {
     const DSP = '/dsp_pipeline';
     const clockGraph = loadClockFixtureGraph();
     const bottom = () => within(screen.getByRole('region', { name: 'Bottom panel' }));
-    const toggle = () => screen.getByRole('button', { name: /^Clock domains/ });
+    const toggle = () => screen.getByRole('button', { name: 'Clocks and resets' });
+    const chip = () => screen.getByRole('button', { name: /^Open the Clocks tab: / });
+    const reviewToggle = () => screen.getByRole('button', { name: /^Unconnected pins/ });
     const nodeBox = (id: string, selector: string) =>
       screen.getByTestId(`node:${id}`).parentElement!.querySelector(selector) as HTMLElement;
     // A domain or reset row, by its first cell.
@@ -1507,22 +1511,77 @@ describe('SystemDiagramApp', () => {
         .getAllByRole('row')
         .find((row) => within(row).queryAllByRole('cell')[0]?.textContent?.trim() === text)!;
     const openResets = () => fireEvent.click(screen.getByRole('tab', { name: /^Resets/ }));
+    // The toggle no longer opens the Clocks tab: the chip does, as a user would.
     async function domains() {
       await renderWithGraph({ design: clockGraph });
       fireEvent.click(toggle());
+      fireEvent.click(chip());
     }
 
-    it('turns on from the toolbar, opens the Clocks tab, and counts the crossings', async () => {
+    it('has one Clocks and resets toggle: no checkbox and no Clock domains button', async () => {
       await renderWithGraph({ design: clockGraph });
       expect(toggle()).toHaveAttribute('aria-pressed', 'false');
-      expect(toggle()).toHaveTextContent('2 CDC · 2 RDC');
+      expect(screen.queryByRole('checkbox', { name: 'Clocks and resets' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Clock domains/ })).not.toBeInTheDocument();
       fireEvent.click(toggle());
       expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(toggle());
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('shows the count chip, as its own button, whether the toggle is on or off', async () => {
+      await renderWithGraph({ design: clockGraph });
+      expect(chip()).toHaveTextContent('2 CDC · 2 RDC');
+      expect(chip()).toHaveAccessibleName('Open the Clocks tab: 2 CDC, 2 RDC');
+      // A button inside a button is invalid; the chip sits next to the toggle.
+      expect(toggle()).not.toContainElement(chip());
+      fireEvent.click(toggle());
+      expect(chip()).toHaveTextContent('2 CDC · 2 RDC');
+    });
+
+    it('draws the domain decorations when turned on, and leaves the open tab alone', async () => {
+      await renderWithGraph({ design: clockGraph });
+      expect(nodeBox('/axi_dma_0', '.sd-node-strip')).toBeNull();
+      fireEvent.click(toggle());
+      expect(nodeBox('/axi_dma_0', '.sd-node-strip')).not.toBeNull();
+      expect(screen.getByRole('tab', { name: /^Address map/ })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByRole('tab', { name: /^Clocks/ })).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
+    });
+
+    it('does not expand a collapsed bottom panel when turned on', async () => {
+      await renderWithGraph({ design: clockGraph, panelsOpen: false });
+      fireEvent.click(toggle());
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
+    });
+
+    it('opens the Clocks tab from the chip without flipping the toggle', async () => {
+      await renderWithGraph({ design: clockGraph });
+      fireEvent.click(chip());
       expect(screen.getByRole('tab', { name: /^Clocks 3$/ })).toHaveAttribute(
         'aria-selected',
         'true'
       );
+      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+
       fireEvent.click(toggle());
+      fireEvent.click(screen.getByRole('tab', { name: /^Address map/ }));
+      fireEvent.click(chip());
+      expect(screen.getByRole('tab', { name: /^Clocks/ })).toHaveAttribute('aria-selected', 'true');
+      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('expands a collapsed bottom panel from the chip', async () => {
+      await renderWithGraph({ design: clockGraph, panelsOpen: false });
+      expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
+      fireEvent.click(chip());
+      expect(screen.getByRole('tab', { name: /^Clocks/ })).toHaveAttribute('aria-selected', 'true');
       expect(toggle()).toHaveAttribute('aria-pressed', 'false');
     });
 
@@ -1549,38 +1608,79 @@ describe('SystemDiagramApp', () => {
       expect(details().getByText('None found.')).toBeVisible();
     });
 
-    it('counts the domains when no crossing is flagged', async () => {
+    it('counts the domains in the chip when no crossing is flagged', async () => {
       await renderWithGraph();
-      expect(toggle()).toHaveTextContent(/Clock domains\s*1$/);
+      expect(chip()).toHaveTextContent(/^1$/);
+      expect(chip()).toHaveAccessibleName('Open the Clocks tab: 1 clock domain');
     });
 
-    it('is exclusive with the unconnected pin review', async () => {
-      await domains();
-      const review = () => screen.getByRole('button', { name: /^Unconnected pins/ });
-      fireEvent.click(review());
-      expect(review()).toHaveAttribute('aria-pressed', 'true');
-      expect(toggle()).toHaveAttribute('aria-pressed', 'false');
-      expect(screen.getByRole('tab', { name: /^Unconnected/ })).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
-      fireEvent.click(toggle());
-      expect(toggle()).toHaveAttribute('aria-pressed', 'true');
-      expect(review()).toHaveAttribute('aria-pressed', 'false');
-      expect(screen.getByRole('tab', { name: /^Clocks/ })).toHaveAttribute('aria-selected', 'true');
+    describe('with the unconnected pin review', () => {
+      const outlineDots = () => outline().queryAllByTitle(/^FCLK_CLK0 100 MHz/);
+      const strips = () => document.querySelectorAll('.sd-node-strip');
+      const freqs = () => document.querySelectorAll('.sd-pin-freq');
+
+      it('keeps both buttons pressed, and neither turns the other off', async () => {
+        await renderWithGraph({ design: clockGraph });
+        fireEvent.click(toggle());
+        fireEvent.click(reviewToggle());
+        expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+        expect(reviewToggle()).toHaveAttribute('aria-pressed', 'true');
+        // The review opens its own tab; the clock toggle opens none.
+        expect(screen.getByRole('tab', { name: /^Unconnected/ })).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+
+        fireEvent.click(reviewToggle());
+        expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+        expect(reviewToggle()).toHaveAttribute('aria-pressed', 'false');
+
+        fireEvent.click(reviewToggle());
+        fireEvent.click(toggle());
+        expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+        expect(reviewToggle()).toHaveAttribute('aria-pressed', 'true');
+      });
+
+      it('keeps the clock and reset wires, pauses the decorations, and restores them', async () => {
+        await renderWithGraph({ design: clockGraph });
+        const plain = edgeCount();
+        fireEvent.click(toggle());
+        await waitFor(() => expect(edgeCount()).toBeGreaterThan(plain));
+        const drawn = edgeCount();
+        expect(strips().length).toBeGreaterThan(0);
+        expect(freqs().length).toBeGreaterThan(0);
+        expect(outlineDots().length).toBeGreaterThan(0);
+
+        fireEvent.click(reviewToggle());
+        expect(edgeCount()).toBe(drawn);
+        expect(strips()).toHaveLength(0);
+        expect(freqs()).toHaveLength(0);
+        expect(outlineDots()).toHaveLength(0);
+        expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-has-unc');
+
+        fireEvent.click(reviewToggle());
+        expect(edgeCount()).toBe(drawn);
+        expect(strips().length).toBeGreaterThan(0);
+        expect(freqs().length).toBeGreaterThan(0);
+        expect(outlineDots().length).toBeGreaterThan(0);
+      });
+
+      it('draws the decorations once the toggle is turned on during the review', async () => {
+        await renderWithGraph({ design: clockGraph });
+        fireEvent.click(reviewToggle());
+        fireEvent.click(toggle());
+        expect(strips()).toHaveLength(0);
+        fireEvent.click(reviewToggle());
+        expect(strips().length).toBeGreaterThan(0);
+      });
     });
 
-    it('draws clocks and resets while on and disables the checkbox', async () => {
+    it('draws clocks and resets while on, and not when off', async () => {
       await renderWithGraph({ design: clockGraph });
-      const checkbox = screen.getByRole('checkbox', { name: 'Clocks and resets' });
       const before = edgeCount();
-      expect(checkbox).toBeEnabled();
       fireEvent.click(toggle());
-      expect(checkbox).toBeDisabled();
-      expect(checkbox).toHaveAttribute('title', 'Clock domains mode draws clocks and resets');
       await waitFor(() => expect(edgeCount()).toBeGreaterThan(before));
       fireEvent.click(toggle());
-      expect(checkbox).toBeEnabled();
       await waitFor(() => expect(edgeCount()).toBe(before));
     });
 
@@ -1670,6 +1770,7 @@ describe('SystemDiagramApp', () => {
       pin(`${DSP}/ovf_monitor_0`, 'clk').frequency = '100MHz';
       await renderWithGraph({ design: edited });
       fireEvent.click(toggle());
+      fireEvent.click(chip());
       fireEvent.click(rowOf('FCLK_CLK1'));
       expect(details().getByText('✓ .ip.yml expects 200MHz')).toBeVisible();
       expect(details().getByText('✗ .ip.yml expects 100MHz')).toBeVisible();
@@ -1862,10 +1963,10 @@ describe('SystemDiagramApp', () => {
 
       it('leaves the toolbar count design-wide', async () => {
         await domains();
-        expect(toggle()).toHaveTextContent('2 CDC · 2 RDC');
+        expect(chip()).toHaveTextContent('2 CDC · 2 RDC');
         fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
         await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
-        expect(toggle()).toHaveTextContent('2 CDC · 2 RDC');
+        expect(chip()).toHaveTextContent('2 CDC · 2 RDC');
       });
     });
 
@@ -2115,7 +2216,8 @@ describe('SystemDiagramApp', () => {
   describe('clock domains of a design that sets no frequency (Versal platform)', () => {
     const versal = loadVersalClockGraph();
     const bottom = () => within(screen.getByRole('region', { name: 'Bottom panel' }));
-    const toggle = () => screen.getByRole('button', { name: /^Clock domains/ });
+    const toggle = () => screen.getByRole('button', { name: 'Clocks and resets' });
+    const chip = () => screen.getByRole('button', { name: /^Open the Clocks tab: / });
     const nodeBox = (id: string, selector: string) =>
       screen.getByTestId(`node:${id}`).parentElement!.querySelector(selector) as HTMLElement;
     const rowOf = (text: string) =>
@@ -2126,11 +2228,13 @@ describe('SystemDiagramApp', () => {
     async function domains(design: typeof versal = versal) {
       await renderWithGraph({ design, ready: '/stream_src' });
       fireEvent.click(toggle());
+      fireEvent.click(chip());
     }
 
     it('counts the domains in the toolbar: related clocks are no crossing', async () => {
       await renderWithGraph({ design: versal, ready: '/stream_src' });
-      expect(toggle()).toHaveTextContent(/Clock domains\s*3$/);
+      expect(chip()).toHaveTextContent(/^3$/);
+      expect(chip()).toHaveAccessibleName('Open the Clocks tab: 3 clock domains');
     });
 
     it('shows no word "unknown" and no frequency anywhere in the domain mode', async () => {
@@ -2394,7 +2498,8 @@ describe('SystemDiagramApp', () => {
       });
     });
 
-    it('pauses canvas highlights while Clock domains or Unconnected pins mode is active', async () => {
+    it('pauses canvas highlights only during the Unconnected pins review', async () => {
+      const clockNet = '/::processing_system7_0_FCLK_CLK0';
       render(<SystemDiagramApp />);
       send({
         type: 'graph',
@@ -2402,35 +2507,63 @@ describe('SystemDiagramApp', () => {
         highlights: {
           'instance:/axi_dma_0': 'red',
           'net:/::axi_dma_0_M_AXIS_MM2S': 'red',
+          [`net:${clockNet}`]: 'red',
         },
       });
       await screen.findByTestId('node:/axi_dma_0');
       openPanels();
       await settle();
 
-      expect(screen.getByText('Highlighted · 2')).toBeVisible();
+      expect(screen.getByText('Highlighted · 3')).toBeVisible();
       expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
 
-      // Clock domains mode pauses custom canvas highlights.
-      fireEvent.click(screen.getByRole('button', { name: /^Clock domains/ }));
-      expect(screen.getByText('Highlighted · 2')).toBeVisible();
-      expect(nodeBox('/axi_dma_0', '.sd-node')).not.toHaveAttribute('data-highlighted');
+      // Clocks and resets leaves the highlights alone, on the clock wire too: it keeps its
+      // highlight color next to the domain color that ElkEdge ranks below it.
+      fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
+      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
+      expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
+      expect(edgeForNet(clockNet)).toHaveAttribute('data-highlighted', 'true');
+      expect(edgeForNet(clockNet)).toHaveAttribute('data-domain-color');
 
-      // Unconnected pins mode also pauses custom canvas highlights.
+      // The review pauses them.
       fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(screen.getByText('Highlighted · 3')).toBeVisible();
       expect(nodeBox('/axi_dma_0', '.sd-node')).not.toHaveAttribute('data-highlighted');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).not.toHaveAttribute('data-highlighted');
+      expect(edgeForNet(clockNet)).not.toHaveAttribute('data-highlighted');
 
-      // Turning diagnostic modes off restores custom canvas highlights.
+      // They come back when the review is turned off, with Clocks and resets still on.
       fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(screen.getByRole('button', { name: 'Clocks and resets' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
       expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
+      expect(edgeForNet(clockNet)).toHaveAttribute('data-highlighted', 'true');
 
       // Clear all highlights from the pane context menu.
       fireEvent.contextMenu(screen.getByTestId('pane'));
       fireEvent.click(screen.getByRole('menuitem', { name: 'Clear All Highlights' }));
       expect(screen.queryByText(/^Highlighted · /)).toBeNull();
+    });
+
+    it('keeps a highlighted crossing wire a crossing while Clocks and resets is on', async () => {
+      const crossingNet = '/::dsp_pipeline_M_AXIS';
+      render(<SystemDiagramApp />);
+      send({
+        type: 'graph',
+        graph: loadClockFixtureGraph(),
+        highlights: { [`net:${crossingNet}`]: 'red' },
+      });
+      await screen.findByTestId('node:/axi_dma_0');
+      await settle();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
+      // The wire carries both marks; ElkEdge draws a crossing in the warning color over a highlight.
+      expect(edgeForNet(crossingNet)).toHaveAttribute('data-crossing', 'true');
+      expect(edgeForNet(crossingNet)).toHaveAttribute('data-highlighted', 'true');
     });
   });
 });

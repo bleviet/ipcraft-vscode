@@ -7,7 +7,7 @@ import { isClockOrReset } from '../../../../webview/systemDiagram/model';
 import type { SystemDiagramToWebviewMessage } from '../../../../shared/messages/systemDiagram';
 import { loadFixtureGraph } from './fixtureGraph';
 
-// Issue #255: the Clocks and resets, Clock domains and Unconnected pins toggles change
+// Issues #255 and #258: the Clocks and resets and Unconnected pins toggles change
 // what is drawn, never where the blocks sit. React Flow is mocked to hand the test the
 // `nodes` and `edges` the canvas passes it; ELK runs for real.
 const mockFitBounds = jest.fn<void, unknown[]>();
@@ -40,7 +40,7 @@ interface FlowNode {
 }
 interface FlowEdge {
   id: string;
-  data: { category: string };
+  data: { category: string; domainColor?: string; dotted?: true };
 }
 interface FlowProps {
   nodes: FlowNode[];
@@ -97,8 +97,8 @@ jest.mock('@xyflow/react', () => {
 });
 
 const graph = loadFixtureGraph();
-const clocksAndResets = () => screen.getByRole('checkbox', { name: 'Clocks and resets' });
-const clockDomains = () => screen.getByRole('button', { name: /^Clock domains/ });
+const clocksAndResets = () => screen.getByRole('button', { name: 'Clocks and resets' });
+const clocksChip = () => screen.getByRole('button', { name: /^Open the Clocks tab: / });
 const unconnectedPins = () => screen.getByRole('button', { name: /^Unconnected pins/ });
 
 function clearViewportCalls(): void {
@@ -133,6 +133,8 @@ const placement = () =>
     .nodes.map(({ id, position, width, height }) => ({ id, position, width, height }))
     .sort((a, b) => a.id.localeCompare(b.id));
 const wireCategories = () => new Set(flow().edges.map((edge) => edge.data.category));
+const wiresOf = (category: string, mark: 'domainColor' | 'dotted') =>
+  flow().edges.filter((edge) => edge.data.category === category && edge.data[mark] !== undefined);
 const badges = () => screen.queryAllByTitle(/Turn on Clocks and resets to draw it/);
 
 beforeEach(() => {
@@ -159,21 +161,6 @@ describe('the placement of the blocks across the view toggles', () => {
     expect(mockLayoutRuns).toHaveLength(runs);
   }, 20000);
 
-  it('stays when Clock domains is toggled', async () => {
-    await renderApp();
-    const before = placement();
-    const runs = mockLayoutRuns.length;
-
-    fireEvent.click(clockDomains());
-    await settle();
-    expect(placement()).toEqual(before);
-
-    fireEvent.click(clockDomains());
-    await settle();
-    expect(placement()).toEqual(before);
-    expect(mockLayoutRuns).toHaveLength(runs);
-  }, 20000);
-
   it('stays when Unconnected pins is toggled', async () => {
     await renderApp();
     const before = placement();
@@ -189,39 +176,48 @@ describe('the placement of the blocks across the view toggles', () => {
     expect(mockLayoutRuns).toHaveLength(runs);
   }, 20000);
 
-  it('stays when Unconnected pins turns Clock domains off, and back again', async () => {
+  it('stays when Unconnected pins pauses the decorations of Clocks and resets, and restores them', async () => {
     await renderApp();
     const before = placement();
     const runs = mockLayoutRuns.length;
 
-    fireEvent.click(clockDomains());
+    fireEvent.click(clocksAndResets());
     await settle();
-    fireEvent.click(unconnectedPins());
-    await settle();
-    expect(clockDomains()).toHaveAttribute('aria-pressed', 'false');
     expect(placement()).toEqual(before);
 
-    fireEvent.click(clockDomains());
+    fireEvent.click(unconnectedPins());
     await settle();
+    expect(clocksAndResets()).toHaveAttribute('aria-pressed', 'true');
+    expect(unconnectedPins()).toHaveAttribute('aria-pressed', 'true');
+    expect(placement()).toEqual(before);
+
+    fireEvent.click(unconnectedPins());
+    await settle();
+    expect(clocksAndResets()).toHaveAttribute('aria-pressed', 'true');
     expect(unconnectedPins()).toHaveAttribute('aria-pressed', 'false');
+    expect(placement()).toEqual(before);
+
+    fireEvent.click(clocksAndResets());
+    await settle();
     expect(placement()).toEqual(before);
     expect(mockLayoutRuns).toHaveLength(runs);
   }, 20000);
 
   it('lays out once per view and leaves the viewport alone', async () => {
     await renderApp();
-    // Showing the bottom panel refits the view; the Clock domains and Unconnected pins
-    // toggles open it, so open it first to see what the toggles themselves do.
+    // Showing the bottom panel refits the view; the Unconnected pins toggle and the count
+    // chip open it, so open it first to see what the toggles themselves do.
     fireEvent.click(screen.getByRole('button', { name: 'Toggle Bottom Panel' }));
     await settle();
     clearViewportCalls();
     const runs = mockLayoutRuns.length;
 
     fireEvent.click(clocksAndResets());
-    fireEvent.click(clockDomains());
     fireEvent.click(unconnectedPins());
+    fireEvent.click(clocksChip());
     fireEvent.click(clocksAndResets());
     fireEvent.click(unconnectedPins());
+    fireEvent.click(clocksAndResets());
     await settle();
 
     expect(mockLayoutRuns).toHaveLength(runs);
@@ -259,9 +255,11 @@ describe('the placement of the blocks across the view toggles', () => {
     expect(placement()).toEqual(before);
     expect(drawnClockEdgeIds()).toEqual([...clockEdgeIds].sort());
 
-    fireEvent.click(clockDomains());
+    // The review pauses the domain colors, not the clock and reset wires.
+    fireEvent.click(unconnectedPins());
     await settle();
     expect(placement()).toEqual(before);
+    expect(drawnClockEdgeIds()).toEqual([...clockEdgeIds].sort());
     expect(mockLayoutRuns).toHaveLength(runs);
   }, 20000);
 
@@ -277,8 +275,12 @@ describe('the placement of the blocks across the view toggles', () => {
     await settle();
     expect(placement()).toEqual(before);
 
+    fireEvent.click(unconnectedPins());
+    await settle();
+    expect(placement()).toEqual(before);
+
+    fireEvent.click(unconnectedPins());
     fireEvent.click(clocksAndResets());
-    fireEvent.click(clockDomains());
     await settle();
     expect(placement()).toEqual(before);
     expect(mockLayoutRuns).toHaveLength(runs);
@@ -302,18 +304,34 @@ describe('what the toggles draw', () => {
     expect(badges()).toHaveLength(0);
   }, 20000);
 
-  it('draws the clock and reset wires, not their badges, in the Clock domains mode', async () => {
+  it('colors the clock wires by domain and dots the reset wires while Clocks and resets is on', async () => {
     await renderApp();
-    fireEvent.click(clockDomains());
+    expect(wiresOf('clock', 'domainColor')).toHaveLength(0);
+    fireEvent.click(clocksAndResets());
+    await settle();
+    expect(wiresOf('clock', 'domainColor').length).toBeGreaterThan(0);
+    expect(wiresOf('reset', 'dotted').length).toBeGreaterThan(0);
+  }, 20000);
+
+  it('keeps the wires in their category colors while the Unconnected pins review pauses the domains', async () => {
+    await renderApp();
+    fireEvent.click(clocksAndResets());
+    fireEvent.click(unconnectedPins());
     await settle();
     expect(wireCategories()).toContain('clock');
     expect(wireCategories()).toContain('reset');
     expect(badges()).toHaveLength(0);
+    expect(wiresOf('clock', 'domainColor')).toHaveLength(0);
+    expect(wiresOf('reset', 'dotted')).toHaveLength(0);
+
+    fireEvent.click(unconnectedPins());
+    await settle();
+    expect(wiresOf('clock', 'domainColor').length).toBeGreaterThan(0);
+    expect(wiresOf('reset', 'dotted').length).toBeGreaterThan(0);
   }, 20000);
 
-  it('goes back to the badges when the Unconnected pins review ends the Clock domains mode', async () => {
+  it('draws the badges of the clock and reset nets again when only the review is on', async () => {
     await renderApp();
-    fireEvent.click(clockDomains());
     fireEvent.click(unconnectedPins());
     await settle();
     expect(wireCategories()).not.toContain('clock');

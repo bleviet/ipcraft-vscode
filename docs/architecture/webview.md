@@ -160,8 +160,9 @@ are tested without React.
 A view's ELK layout depends on its level, its expanded blocks, and its
 isolation, and on no toggle. It holds every net of the level as an edge, clock
 and reset nets included, and reserves a badge label on the pins of those nets.
-`WorkbenchLayout.tsx` derives one flag from the Clocks and resets checkbox and
-the Clock domains mode and passes it to `DiagramCanvas` as `drawClockReset`;
+`WorkbenchLayout.tsx` passes the Clocks and resets toggle to `DiagramCanvas` as
+`drawClockReset` (the unconnected-pin review pauses only the domain decorations
+of the clock context, not these wires);
 `drawnLayout.ts` then keeps either the clock and reset wires or their badges,
 and the legend, pin highlights, and clock decoration read that result. Toggling
 therefore never runs ELK again, never moves a block, and never changes the

@@ -51,11 +51,8 @@ export function WorkbenchLayout({
       }
     }, [levelPath, navigate])
   );
-  const [showClockReset, setShowClockReset] = useState(false);
-  const [domainMode, setDomainMode] = useState(false);
-  // The domain mode draws clocks and resets whatever the checkbox says. It is drawn, not laid out:
-  // no toggle moves a block.
-  const drawClockReset = showClockReset || domainMode;
+  // Clocks and resets is drawn, not laid out: no toggle moves a block.
+  const [clocksOn, setClocksOn] = useState(false);
   const [query, setQuery] = useState('');
   const view = useIsolation(graph, nav);
   const { isolation } = view;
@@ -65,10 +62,12 @@ export function WorkbenchLayout({
   const [focusedPin, setFocusedPin] = useState<FocusedPin | null>(null);
   const findings = useMemo(() => unconnectedPins(graph), [graph]);
   const clocks = useMemo(() => analyzeClocks(graph), [graph]);
-  const domainSummary = useMemo(() => toolbarSummary(clocks), [clocks]);
+  const clockSummary = useMemo(() => toolbarSummary(clocks), [clocks]);
+  // The review pauses the domain decorations, not the clock and reset wires.
+  const domainsShown = clocksOn && !reviewUnconnected;
   const clockContext = useMemo(
-    () => ({ graph, analysis: clocks, levelPath: nav.levelPath, domainMode }),
-    [graph, clocks, nav.levelPath, domainMode]
+    () => ({ graph, analysis: clocks, levelPath: nav.levelPath, domainMode: domainsShown }),
+    [graph, clocks, nav.levelPath, domainsShown]
   );
   const reviewContext = useMemo(
     () => (reviewUnconnected ? { graph, findings } : null),
@@ -137,9 +136,8 @@ export function WorkbenchLayout({
         levelPath={nav.levelPath}
         query={query}
         searchCounter={search.counter}
-        showClockReset={showClockReset}
-        domainMode={domainMode}
-        domainSummary={domainSummary}
+        clocksOn={clocksOn}
+        clockSummary={clockSummary}
         reviewUnconnected={reviewUnconnected}
         unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
@@ -149,18 +147,11 @@ export function WorkbenchLayout({
         onNavigate={nav.navigate}
         onQueryChange={setQuery}
         onSearchStep={search.step}
-        onShowClockResetChange={setShowClockReset}
-        onDomainModeChange={(on) => {
-          setDomainMode(on);
-          if (on) {
-            setReviewUnconnected(false);
-            openBottomTab('clocks');
-          }
-        }}
+        onClocksChange={setClocksOn}
+        onOpenClocksTab={() => openBottomTab('clocks')}
         onReviewUnconnectedChange={(on) => {
           setReviewUnconnected(on);
           if (on) {
-            setDomainMode(false);
             openBottomTab('unconnected');
           }
         }}
@@ -181,7 +172,7 @@ export function WorkbenchLayout({
                   levelPath={nav.levelPath}
                   selection={nav.selection}
                   review={reviewUnconnected ? findings : null}
-                  clocks={domainMode ? clocks : null}
+                  clocks={domainsShown ? clocks : null}
                   onSelect={view.selectAndReveal}
                 />
               </div>
@@ -200,7 +191,7 @@ export function WorkbenchLayout({
               isolated={isolation !== null}
               review={reviewContext}
               clocks={clockContext}
-              drawClockReset={drawClockReset}
+              drawClockReset={clocksOn}
               focusedPin={focusedPin}
               query={query}
               flash={search.flash}
