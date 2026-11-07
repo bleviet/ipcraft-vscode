@@ -13,7 +13,7 @@ All notable changes to this project are documented in this file.
 
 - **Unconnected pins are easier to find on a large design.** Clicking a row of the Unconnected tab in the system viewer now also zooms in to the block when it is too small to read, like a search step. It never zooms out.
 - **Stronger block outlines in the system viewer.** Blocks, external ports and expanded hierarchy frames are outlined in a darker shade of the theme foreground, so they stand out on light and dark themes. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))
-- **Plainer problems button in the system viewer.** The toolbar note "Offline view, partial · N warnings" is now "N problems", the same count as the Problems tab, and is hidden when there are none. What the offline view cannot know is still listed in Details under "What this view knows". ([#246](https://github.com/bleviet/ipcraft-vscode/pull/246))
+- **No Problems tab in the system viewer.** The Problems tab, its "N problems" toolbar button and the Unconnected tab's "See Problems" link are removed: they listed what the offline reader could not resolve, which read like faults in the design. What the offline view cannot know is still summarized in Details under "What this view knows".
 
 ## [1.4.0] - 2026-11-06
 
