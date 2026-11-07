@@ -1,11 +1,12 @@
 import React from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
-import type { ClockDomain, ResetSource } from './clocks/clockTypes';
+import type { ClockDomain } from './clocks/clockTypes';
+import { dataCrossingsHeadline } from './clocks/crossingRows';
 import { formatHz } from './clocks/frequency';
 import type { ClocksInView } from './clocks/viewScope';
 import { CrossingsTable } from './CrossingsTable';
-import { DomainLabel, DomainName } from './DomainLabel';
+import { DomainName } from './DomainLabel';
 import { LineLink } from './LineLink';
 import type { Selection } from './model';
 import { levelSource } from './sourceFile';
@@ -14,7 +15,7 @@ import type { FocusedPin } from './unconnectedPins';
 interface ClocksTableProps {
   graph: SystemGraph;
   clocks: ClockAnalysis;
-  /** What is on screen: the rows of all three tables. */
+  /** What is on screen: the rows of both tables. */
   view: ClocksInView;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
@@ -27,17 +28,7 @@ function Chip({ children }: { children: React.ReactNode }) {
   return <span className="sd-chip-tag">{children}</span>;
 }
 
-function ReleasedOn({ reset }: { reset: ResetSource }) {
-  if (reset.async) {
-    return <>asynchronous</>;
-  }
-  if (reset.constant) {
-    return <>tied to a constant</>;
-  }
-  return reset.domain ? <DomainLabel domain={reset.domain} /> : <>unknown</>;
-}
-
-/** Bottom-panel tab: the clock domains with their frequencies, the reset sources, and the crossings of the view on screen. */
+/** Bottom-panel tab: the clock domains with their frequencies, and the data crossings between them, of the view on screen. */
 export function ClocksTable({
   graph,
   clocks,
@@ -49,7 +40,6 @@ export function ClocksTable({
 }: ClocksTableProps) {
   const selectedNet = selection?.kind === 'net' ? selection.id : undefined;
   const selectedDomain = selectedNet === undefined ? undefined : clocks.domainOfNet(selectedNet);
-  const selectedReset = selectedNet === undefined ? undefined : clocks.resetOfNet(selectedNet);
 
   const domainRow = (domain: ClockDomain) => {
     const origin = domain.frequencyFrom;
@@ -88,26 +78,6 @@ export function ClocksTable({
     );
   };
 
-  const resetRow = (reset: ResetSource) => (
-    <tr
-      key={reset.id}
-      className={`sd-clickable cursor-pointer${selectedReset === reset ? ' sd-row-selected' : ''}`}
-      onClick={() => onSelectNet(reset.netId)}
-    >
-      <td className="sd-num">{reset.label}</td>
-      <td>
-        <ReleasedOn reset={reset} />
-      </td>
-      <td>
-        {reset.source ? <Chip>{reset.from ?? 'no rule'}</Chip> : <Chip>source not known</Chip>}
-      </td>
-      <td className="sd-num">{reset.sinks.length}</td>
-      <td onClick={(event) => event.stopPropagation()}>
-        <LineLink source={levelSource(graph, reset.level)} line={reset.line} onReveal={onReveal} />
-      </td>
-    </tr>
-  );
-
   return (
     <div>
       <h3 className="sd-psec">Clock domains</h3>
@@ -129,27 +99,12 @@ export function ClocksTable({
           <tbody>{view.domains.map(domainRow)}</tbody>
         </table>
       )}
-      <h3 className="sd-psec">Resets</h3>
-      {view.resets.length === 0 ? (
-        <p className="p-3 opacity-70">No reset sources on this level.</p>
-      ) : (
-        <table className="sd-table">
-          <thead>
-            <tr>
-              <th>Reset source</th>
-              <th>Released on</th>
-              <th>Known from</th>
-              <th>Sinks</th>
-              <th>Source</th>
-            </tr>
-          </thead>
-          <tbody>{view.resets.map(resetRow)}</tbody>
-        </table>
-      )}
       <h3 className="sd-psec">Clock domain crossings</h3>
       <CrossingsTable
         graph={graph}
-        crossings={view.crossings}
+        crossings={view.dataCrossings}
+        headline={dataCrossingsHeadline}
+        showKind
         selection={selection}
         focusedPin={focusedPin}
         onSelectNet={onSelectNet}

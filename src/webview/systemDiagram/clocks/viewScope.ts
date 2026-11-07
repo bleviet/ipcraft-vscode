@@ -1,6 +1,6 @@
 /**
- * What the Clocks tab shows: only the clock and reset facts of the view on
- * screen. `shown` holds the levels in view, the current level plus the
+ * What the Clocks and Resets tabs show: only the clock and reset facts of the
+ * view on screen. `shown` holds the levels in view, the current level plus the
  * hierarchy blocks expanded in place on it (see `shownLevels` in expansion.ts).
  */
 
@@ -39,11 +39,12 @@ export function resetsInView(
   );
 }
 
-/** The rows of the Clocks tab for the levels in `shown`. */
+/** The rows of the Clocks tab (domains, data crossings) and the Resets tab (sources, reset crossings) for the levels in `shown`. */
 export interface ClocksInView {
   domains: ClockDomain[];
+  dataCrossings: PinCrossing[];
   resets: ResetSource[];
-  crossings: PinCrossing[];
+  resetCrossings: PinCrossing[];
 }
 
 export function clocksInView(
@@ -51,9 +52,11 @@ export function clocksInView(
   analysis: ClockAnalysis,
   shown: ReadonlySet<string>
 ): ClocksInView {
+  const crossings = crossingsInView(analysis.crossings, shown);
   return {
     domains: domainsInView(graph, analysis.domains, shown),
+    dataCrossings: crossings.filter((crossing) => crossing.kind === 'data'),
     resets: resetsInView(analysis.resets, shown),
-    crossings: crossingsInView(analysis.crossings, shown),
+    resetCrossings: crossings.filter((crossing) => crossing.kind === 'reset'),
   };
 }

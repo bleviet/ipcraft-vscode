@@ -6,16 +6,17 @@ import { clocksInView } from './clocks/viewScope';
 import { ClocksTable } from './ClocksTable';
 import { shownLevels } from './expansion';
 import { ProblemsList } from './ProblemsList';
+import { ResetsTable } from './ResetsTable';
 import type { Selection } from './model';
 import { UnconnectedPinsTable } from './UnconnectedPinsTable';
 import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
-export type BottomTab = 'address' | 'clocks' | 'unconnected' | 'problems';
+export type BottomTab = 'address' | 'clocks' | 'resets' | 'unconnected' | 'problems';
 
 interface BottomPanelProps {
   graph: SystemGraph;
   clocks: ClockAnalysis;
-  /** The level on screen, and the hierarchy blocks expanded in place on it: the Clocks tab lists what they show. */
+  /** The level on screen, and the hierarchy blocks expanded in place on it: the Clocks and Resets tabs list what they show. */
   levelPath: string;
   expanded: ReadonlySet<string>;
   tab: BottomTab;
@@ -25,7 +26,7 @@ interface BottomPanelProps {
   focusedPin: FocusedPin | null;
   onSelectInstance: (instancePath: string) => void;
   onSelectPin: (finding: UnconnectedPin) => void;
-  /** Opens a net of the Clocks tab; a crossing row also haloes its sink pin. */
+  /** Opens a net of the Clocks or Resets tab; a crossing row also haloes its sink pin. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
   onReveal: (line: number, uri?: string) => void;
 }
@@ -52,6 +53,7 @@ export function BottomPanel({
   const tabs: { id: BottomTab; label: string; count: number }[] = [
     { id: 'address', label: 'Address map', count: graph.addressSegments.length },
     { id: 'clocks', label: 'Clocks', count: view.domains.length },
+    { id: 'resets', label: 'Resets', count: view.resets.length },
     { id: 'unconnected', label: 'Unconnected', count: findings.length },
     { id: 'problems', label: 'Problems', count: graph.diagnostics.length },
   ];
@@ -80,6 +82,16 @@ export function BottomPanel({
           <AddressMapTable graph={graph} onSelectInstance={onSelectInstance} onReveal={onReveal} />
         ) : tab === 'clocks' ? (
           <ClocksTable
+            graph={graph}
+            clocks={clocks}
+            view={view}
+            selection={selection}
+            focusedPin={focusedPin}
+            onSelectNet={onSelectNet}
+            onReveal={onReveal}
+          />
+        ) : tab === 'resets' ? (
+          <ResetsTable
             graph={graph}
             clocks={clocks}
             view={view}

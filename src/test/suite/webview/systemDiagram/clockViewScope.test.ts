@@ -15,14 +15,36 @@ const analysis = analyzeClocks(graph);
 
 const view = (levelPath: string, expanded: string[] = []) =>
   clocksInView(graph, analysis, shownLevels(graph, levelPath, new Set(expanded)));
+// Data crossings, then reset crossings: the order of the two tabs.
+const crossingsOf = (levelPath: string, expanded: string[] = []) => {
+  const { dataCrossings, resetCrossings } = view(levelPath, expanded);
+  return [...dataCrossings, ...resetCrossings];
+};
 const flagged = (levelPath: string, expanded: string[] = []) =>
-  view(levelPath, expanded)
-    .crossings.filter((crossing) => crossing.status === 'cross')
+  crossingsOf(levelPath, expanded)
+    .filter((crossing) => crossing.status === 'cross')
     .map((crossing) => `${crossing.from.label} > ${crossing.to.label}`);
 const unchecked = (levelPath: string, expanded: string[] = []) =>
-  view(levelPath, expanded).crossings.filter((crossing) => crossing.status === 'unchecked');
+  crossingsOf(levelPath, expanded).filter((crossing) => crossing.status === 'unchecked');
 
-describe('what the Clocks tab shows for the view on screen', () => {
+describe('what the Clocks and Resets tabs show for the view on screen', () => {
+  it('keeps the data crossings for the Clocks tab and the reset crossings for the Resets tab', () => {
+    for (const [levelPath, expanded] of [
+      ['/', []],
+      [DSP, []],
+      ['/', [DSP]],
+    ] as const) {
+      const { dataCrossings, resetCrossings } = view(levelPath, [...expanded]);
+      expect(dataCrossings.every((crossing) => crossing.kind === 'data')).toBe(true);
+      expect(resetCrossings.every((crossing) => crossing.kind === 'reset')).toBe(true);
+    }
+    const root = view('/');
+    const statuses = (crossings: readonly PinCrossing[]) =>
+      crossings.map((crossing) => crossing.status).filter((status) => status !== 'ok');
+    expect(statuses(root.dataCrossings)).toEqual(['cross', 'unchecked']);
+    expect(statuses(root.resetCrossings)).toEqual(['cross', 'cross', 'unchecked']);
+  });
+
   describe('at the root, with dsp_pipeline collapsed', () => {
     it('lists the crossings with an end on the root, and none inside the block', () => {
       expect(flagged('/')).toEqual([

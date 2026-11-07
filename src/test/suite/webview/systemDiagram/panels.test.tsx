@@ -5,7 +5,7 @@ import { BottomPanel } from '../../../../webview/systemDiagram/BottomPanel';
 import { OutlineTree } from '../../../../webview/systemDiagram/OutlineTree';
 import { InstanceDetails } from '../../../../webview/systemDiagram/InstanceDetails';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import { loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
+import { loadClockFixtureGraph, loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
 
 const qsys = loadQsysFixtureGraph();
 
@@ -135,5 +135,36 @@ describe('outline and tab text', () => {
     );
     expect(screen.getByRole('tab', { name: /^Address map \d+$/ })).toBeVisible();
     expect(screen.getByRole('tab', { name: /^Problems \d+$/ })).toBeVisible();
+  });
+
+  it('puts the Resets tab right after the Clocks tab, each counting what is in view', () => {
+    const graph = loadClockFixtureGraph();
+    const props = {
+      graph,
+      clocks: analyzeClocks(graph),
+      expanded: new Set<string>(),
+      tab: 'resets' as const,
+      onTabChange: jest.fn(),
+      findings: [],
+      selection: null,
+      focusedPin: null,
+      onSelectInstance: jest.fn(),
+      onSelectPin: jest.fn(),
+      onSelectNet: jest.fn(),
+      onReveal: jest.fn(),
+    };
+    const { rerender } = render(<BottomPanel {...props} levelPath="/" />);
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'Address map 0',
+      'Clocks 3',
+      'Resets 3',
+      'Unconnected 0',
+      'Problems 2',
+    ]);
+    expect(screen.getByRole('tab', { name: /^Resets/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Reset sources' })).toBeVisible();
+    rerender(<BottomPanel {...props} levelPath="/dsp_pipeline" />);
+    expect(screen.getByRole('tab', { name: 'Clocks 2' })).toBeVisible();
+    expect(screen.getByRole('tab', { name: 'Resets 1' })).toBeVisible();
   });
 });

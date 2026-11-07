@@ -5,7 +5,6 @@ import {
   crossingKind,
   crossingProblem,
   crossingProvenance,
-  crossingsHeadline,
   crossingSource,
   listedCrossings,
 } from './clocks/crossingRows';
@@ -16,8 +15,12 @@ import { focusedPinOf, type FocusedPin } from './unconnectedPins';
 
 interface CrossingsTableProps {
   graph: SystemGraph;
-  /** The crossings in view (see `crossingsInView`). */
+  /** The crossings in view to list: all data crossings, or all reset crossings. */
   crossings: readonly PinCrossing[];
+  /** The line above the table, from the number of crossings without a synchronizer. */
+  headline: (flagged: number) => string;
+  /** Whether to show the Kind column; every row of a reset table is a reset. */
+  showKind: boolean;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   /** Opens a crossing's net and haloes its sink pin. */
@@ -38,10 +41,12 @@ function Mark({ unchecked }: { unchecked: boolean }) {
   );
 }
 
-/** Crossings in view that need action: data (CDC) and reset (RDC) crossings without a synchronizer. */
+/** Crossings in view that need action: data (CDC) or reset (RDC) crossings without a synchronizer. */
 export function CrossingsTable({
   graph,
   crossings,
+  headline,
+  showKind,
   selection,
   focusedPin,
   onSelectNet,
@@ -68,7 +73,7 @@ export function CrossingsTable({
         <td>
           <Mark unchecked={crossing.status === 'unchecked'} />
         </td>
-        <td>{crossingKind(crossing)}</td>
+        {showKind && <td>{crossingKind(crossing)}</td>}
         <td>{crossing.from.label}</td>
         <td>{crossing.to.label}</td>
         <td>{crossingProblem(crossing)}</td>
@@ -82,7 +87,7 @@ export function CrossingsTable({
   return (
     <div>
       <div className="sd-ubar">
-        <span className="min-w-0 flex-1">{crossingsHeadline(counts.cross)}</span>
+        <span className="min-w-0 flex-1">{headline(counts.cross)}</span>
         {counts.unchecked > 0 && (
           <label className="flex cursor-pointer select-none items-center gap-1 whitespace-nowrap">
             <input
@@ -101,7 +106,7 @@ export function CrossingsTable({
               <th>
                 <span className="sr-only">Status</span>
               </th>
-              <th>Kind</th>
+              {showKind && <th>Kind</th>}
               <th>From</th>
               <th>To</th>
               <th>Problem</th>

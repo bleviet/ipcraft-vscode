@@ -6,9 +6,10 @@ import {
   crossingKind,
   crossingProblem,
   crossingProvenance,
-  crossingsHeadline,
   crossingSource,
+  dataCrossingsHeadline,
   listedCrossings,
+  resetCrossingsHeadline,
 } from '../../../../webview/systemDiagram/clocks/crossingRows';
 import {
   crossingCountText,
@@ -299,9 +300,15 @@ describe('crossing rows', () => {
   });
 
   it('counts the crossings in one line: none, one, or many', () => {
-    expect(crossingsHeadline(0)).toBe('No clock domain crossings on this level.');
-    expect(crossingsHeadline(1)).toBe('1 crossing without a synchronizer.');
-    expect(crossingsHeadline(4)).toBe('4 crossings without a synchronizer.');
+    expect(dataCrossingsHeadline(0)).toBe('No clock domain crossings on this level.');
+    expect(dataCrossingsHeadline(1)).toBe('1 crossing without a synchronizer.');
+    expect(dataCrossingsHeadline(4)).toBe('4 crossings without a synchronizer.');
+  });
+
+  it('counts the reset crossings in one line: none, one, or many', () => {
+    expect(resetCrossingsHeadline(0)).toBe('No reset domain crossings on this level.');
+    expect(resetCrossingsHeadline(1)).toBe('1 reset crossing without a synchronizer.');
+    expect(resetCrossingsHeadline(2)).toBe('2 reset crossings without a synchronizer.');
   });
 
   it('names the kind: the interface type, or reset', () => {

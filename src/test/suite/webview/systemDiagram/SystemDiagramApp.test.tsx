@@ -1470,6 +1470,7 @@ describe('SystemDiagramApp', () => {
       bottom()
         .getAllByRole('row')
         .find((row) => within(row).queryAllByRole('cell')[0]?.textContent?.trim() === text)!;
+    const openResets = () => fireEvent.click(screen.getByRole('tab', { name: /^Resets/ }));
     async function domains() {
       await renderWithGraph({ design: clockGraph });
       fireEvent.click(toggle());
@@ -1492,6 +1493,7 @@ describe('SystemDiagramApp', () => {
     it('lists a reset tied to a constant as such, with its one sink checked ok', async () => {
       await renderWithGraph();
       fireEvent.click(toggle());
+      openResets();
       // The reset lives in dsp_pipeline/coeff_bank: the tab lists it once that level is on screen.
       expect(bottom().queryByText('tie_valid/dout')).not.toBeInTheDocument();
       fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
@@ -1547,7 +1549,7 @@ describe('SystemDiagramApp', () => {
       await waitFor(() => expect(edgeCount()).toBe(before));
     });
 
-    it('lists the domains and resets in the Clocks tab', async () => {
+    it('lists the domains in the Clocks tab', async () => {
       await domains();
       const fclk0 = rowOf('FCLK_CLK0');
       const cells = within(fclk0).getAllByRole('cell');
@@ -1558,6 +1560,18 @@ describe('SystemDiagramApp', () => {
       expect(cells[4]).toHaveTextContent('8');
       expect(cells[5]).toHaveTextContent('2');
       expect(within(rowOf('ext_clk')).getAllByRole('cell')[3]).toHaveTextContent('declared');
+      expect(bottom().queryByText('processing_system7_0/FCLK_RESET0_N')).not.toBeInTheDocument();
+    });
+
+    it('lists the reset sources in the Resets tab', async () => {
+      await domains();
+      openResets();
+      expect(screen.getByRole('tab', { name: 'Resets 3' })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(bottom().getByRole('heading', { name: 'Reset sources' })).toBeVisible();
+      expect(bottom().queryByText('FCLK_CLK0')).not.toBeInTheDocument();
       const asynchronous = rowOf('processing_system7_0/FCLK_RESET0_N');
       expect(within(asynchronous).getAllByRole('cell')[1]).toHaveTextContent('asynchronous');
       const released = rowOf('rst_ps7_0_100M/peripheral_aresetn');
@@ -1597,6 +1611,7 @@ describe('SystemDiagramApp', () => {
 
     it('opens the reset tree with a check per sink and the fix hint', async () => {
       await domains();
+      openResets();
       fireEvent.click(rowOf('rst_ps7_0_100M/peripheral_aresetn'));
       expect(details().getByText(/^Reset net · released on/)).toHaveTextContent('FCLK_CLK0');
       expect(details().getByText('Reset tree · 6 sinks')).toBeVisible();
@@ -1624,6 +1639,7 @@ describe('SystemDiagramApp', () => {
 
     it('opens an asynchronous reset with its provenance', async () => {
       await domains();
+      openResets();
       fireEvent.click(rowOf('processing_system7_0/FCLK_RESET0_N'));
       expect(details().getByText(/^Reset net · asynchronous/)).toBeVisible();
       expect(
@@ -1633,19 +1649,20 @@ describe('SystemDiagramApp', () => {
       expect(details().getByText('None found.')).toBeVisible();
     });
 
-    // The rows of the crossings table, header row excluded.
+    // The rows of the crossings table of the open tab, header row excluded.
     const crossingRows = () =>
       within(bottom().getByRole('columnheader', { name: 'Problem' }).closest('table')!)
         .getAllByRole('row')
         .slice(1);
-    const showUnchecked = () =>
-      bottom().getByRole('checkbox', { name: 'Show 2 that could not be checked' });
+    const showUnchecked = (count: number) =>
+      bottom().getByRole('checkbox', { name: `Show ${count} that could not be checked` });
 
-    it('lists only the crossings without a synchronizer, with one line and no status chips', async () => {
+    it('lists only the data crossings without a synchronizer in the Clocks tab, with one line and no status chips', async () => {
       await domains();
       expect(bottom().getByRole('heading', { name: 'Clock domain crossings' })).toBeVisible();
-      expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
-      expect(crossingRows()).toHaveLength(3);
+      expect(bottom().getByText('1 crossing without a synchronizer.')).toBeVisible();
+      expect(crossingRows()).toHaveLength(1);
+      expect(bottom().queryByText('fir_compiler_0/aresetn')).not.toBeInTheDocument();
       expect(bottom().queryByText(/has clocks on 2 domains/)).not.toBeInTheDocument();
       expect(bottom().queryByText('Both ends on FCLK_CLK0')).not.toBeInTheDocument();
       expect(bottom().queryByText('axis_data_fifo_0 (dsp_pipeline)')).not.toBeInTheDocument();
@@ -1655,13 +1672,27 @@ describe('SystemDiagramApp', () => {
       }
     });
 
-    it('shows the crossings that could not be checked on request, and hides them again', async () => {
+    it('lists only the reset crossings in the Resets tab, with their own line and no Kind column', async () => {
       await domains();
-      expect(showUnchecked()).not.toBeChecked();
-      fireEvent.click(showUnchecked());
-      expect(showUnchecked()).toBeChecked();
-      expect(crossingRows()).toHaveLength(5);
-      expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
+      openResets();
+      expect(bottom().getByRole('heading', { name: 'Reset domain crossings' })).toBeVisible();
+      expect(bottom().getByText('2 reset crossings without a synchronizer.')).toBeVisible();
+      expect(crossingRows()).toHaveLength(2);
+      expect(bottom().queryByText('fir_compiler_0/M_AXIS_DATA')).not.toBeInTheDocument();
+      expect(
+        within(bottom().getByRole('columnheader', { name: 'Problem' }).closest('tr')!)
+          .getAllByRole('columnheader')
+          .map((header) => header.textContent)
+      ).toEqual(['Status', 'From', 'To', 'Problem', 'Source']);
+    });
+
+    it('shows the data crossings that could not be checked on request, and hides them again', async () => {
+      await domains();
+      expect(showUnchecked(1)).not.toBeChecked();
+      fireEvent.click(showUnchecked(1));
+      expect(showUnchecked(1)).toBeChecked();
+      expect(crossingRows()).toHaveLength(2);
+      expect(bottom().getByText('1 crossing without a synchronizer.')).toBeVisible();
       const unchecked = bottom()
         .getAllByText(/has clocks on 2 domains/)[0]
         .closest('tr')!;
@@ -1670,12 +1701,24 @@ describe('SystemDiagramApp', () => {
           name: 'Could not be checked',
         })
       ).toHaveTextContent('?');
-      fireEvent.click(showUnchecked());
-      expect(crossingRows()).toHaveLength(3);
+      fireEvent.click(showUnchecked(1));
+      expect(crossingRows()).toHaveLength(1);
       expect(bottom().queryByText(/has clocks on 2 domains/)).not.toBeInTheDocument();
     });
 
-    it('describes each crossing: kind, both ends, the problem, and how the clocks were determined', async () => {
+    it('shows the reset crossings that could not be checked on their own checkbox', async () => {
+      await domains();
+      openResets();
+      expect(showUnchecked(1)).not.toBeChecked();
+      fireEvent.click(showUnchecked(1));
+      expect(crossingRows()).toHaveLength(3);
+      expect(bottom().getByText('2 reset crossings without a synchronizer.')).toBeVisible();
+      expect(bottom().getByText(/axis_data_fifo_0 has clocks on 2 domains/)).toBeVisible();
+      fireEvent.click(showUnchecked(1));
+      expect(crossingRows()).toHaveLength(2);
+    });
+
+    it('describes a data crossing: kind, both ends, the problem, and how the clocks were determined', async () => {
       await domains();
       const row = bottom().getByText('fir_compiler_0/M_AXIS_DATA').closest('tr')!;
       const cells = within(row).getAllByRole('cell');
@@ -1689,14 +1732,6 @@ describe('SystemDiagramApp', () => {
         'fir_compiler_0/M_AXIS_DATA: FCLK_CLK1 · 200 MHz, known from single clock\n' +
           'axi_dma_0/S_AXIS_S2MM: FCLK_CLK0 · 100 MHz, known from all clocks one domain'
       );
-      const reset = bottom().getByText('fir_compiler_0/aresetn').closest('tr')!;
-      expect(within(reset).getAllByRole('cell')[1]).toHaveTextContent('Reset');
-      expect(within(reset).getAllByRole('cell')[4]).toHaveTextContent(
-        'released by FCLK_CLK0 · 100 MHz, clocked by FCLK_CLK1 · 200 MHz'
-      );
-      expect(reset.getAttribute('title')).toContain(
-        'rst_ps7_0_100M/peripheral_aresetn: FCLK_CLK0 · 100 MHz, known from proc_sys_reset slowest_sync_clk'
-      );
       expect(
         within(bottom().getByRole('columnheader', { name: 'Problem' }).closest('tr')!)
           .getAllByRole('columnheader')
@@ -1704,38 +1739,70 @@ describe('SystemDiagramApp', () => {
       ).toEqual(['Status', 'Kind', 'From', 'To', 'Problem', 'Source']);
     });
 
+    it('describes a reset crossing: both ends, the problem, and how the clocks were determined', async () => {
+      await domains();
+      openResets();
+      const reset = bottom().getByText('fir_compiler_0/aresetn').closest('tr')!;
+      const cells = within(reset).getAllByRole('cell');
+      expect(within(cells[0]).getByRole('img', { name: 'Crossing' })).toHaveTextContent('!');
+      expect(cells[1]).toHaveTextContent('rst_ps7_0_100M/peripheral_aresetn');
+      expect(cells[2]).toHaveTextContent('fir_compiler_0/aresetn');
+      expect(cells[3]).toHaveTextContent(
+        'released by FCLK_CLK0 · 100 MHz, clocked by FCLK_CLK1 · 200 MHz'
+      );
+      expect(reset.getAttribute('title')).toContain(
+        'rst_ps7_0_100M/peripheral_aresetn: FCLK_CLK0 · 100 MHz, known from proc_sys_reset slowest_sync_clk'
+      );
+    });
+
     describe('lists what the level on screen shows', () => {
-      const clocksTab = (count: number) => screen.getByRole('tab', { name: `Clocks ${count}` });
+      const tabCount = (name: string, count: number) =>
+        screen.getByRole('tab', { name: `${name} ${count}` });
       const has = (text: string) => bottom().queryByText(text) !== null;
       const crumbs = () => within(screen.getByRole('navigation', { name: 'Hierarchy' }));
 
-      it('changes when entering dsp_pipeline and back', async () => {
+      it('changes the Clocks tab when entering dsp_pipeline and back', async () => {
         await domains();
-        expect(clocksTab(3)).toHaveAttribute('aria-selected', 'true');
-        expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
+        expect(tabCount('Clocks', 3)).toHaveAttribute('aria-selected', 'true');
+        expect(bottom().getByText('1 crossing without a synchronizer.')).toBeVisible();
         expect(rowOf('ext_clk')).toBeDefined();
-        expect(rowOf('processing_system7_0/FCLK_RESET0_N')).toBeDefined();
         expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(false);
         expect(has('fir_compiler_0/M_AXIS_DATA')).toBe(true);
 
         fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
         await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
-        expect(clocksTab(2)).toHaveAttribute('aria-selected', 'true');
-        expect(bottom().getByText('4 crossings without a synchronizer.')).toBeVisible();
+        expect(tabCount('Clocks', 2)).toHaveAttribute('aria-selected', 'true');
+        expect(bottom().getByText('2 crossings without a synchronizer.')).toBeVisible();
         expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(true);
         expect(rowOf('ext_clk')).toBeUndefined();
         expect(rowOf('FCLK_CLK0')).toBeDefined();
-        expect(rowOf('processing_system7_0/FCLK_RESET0_N')).toBeUndefined();
-        expect(rowOf('rst_ps7_0_100M/peripheral_aresetn')).toBeDefined();
-        expect(
-          bottom().getByRole('checkbox', { name: 'Show 3 that could not be checked' })
-        ).toBeVisible();
+        expect(showUnchecked(2)).toBeVisible();
 
         fireEvent.click(crumbs().getByRole('button', { name: 'zynq_clock_domains' }));
         await screen.findByTestId('node:/axi_dma_0');
-        expect(clocksTab(3)).toBeVisible();
-        expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
+        expect(tabCount('Clocks', 3)).toBeVisible();
+        expect(bottom().getByText('1 crossing without a synchronizer.')).toBeVisible();
         expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(false);
+      });
+
+      it('changes the Resets tab when entering dsp_pipeline and back', async () => {
+        await domains();
+        openResets();
+        expect(tabCount('Resets', 3)).toHaveAttribute('aria-selected', 'true');
+        expect(rowOf('processing_system7_0/FCLK_RESET0_N')).toBeDefined();
+        expect(bottom().getByText('2 reset crossings without a synchronizer.')).toBeVisible();
+
+        fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+        await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+        expect(tabCount('Resets', 1)).toHaveAttribute('aria-selected', 'true');
+        expect(rowOf('processing_system7_0/FCLK_RESET0_N')).toBeUndefined();
+        expect(rowOf('rst_ps7_0_100M/peripheral_aresetn')).toBeDefined();
+        expect(bottom().getByText('2 reset crossings without a synchronizer.')).toBeVisible();
+
+        fireEvent.click(crumbs().getByRole('button', { name: 'zynq_clock_domains' }));
+        await screen.findByTestId('node:/axi_dma_0');
+        expect(tabCount('Resets', 3)).toBeVisible();
+        expect(rowOf('processing_system7_0/FCLK_RESET0_N')).toBeDefined();
       });
 
       it('adds the rows of a block expanded in place, and drops them on collapse', async () => {
@@ -1743,18 +1810,16 @@ describe('SystemDiagramApp', () => {
         expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(false);
         fireEvent.click(screen.getByRole('button', { name: 'Expand dsp_pipeline in place' }));
         await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
-        expect(bottom().getByText('4 crossings without a synchronizer.')).toBeVisible();
+        expect(bottom().getByText('2 crossings without a synchronizer.')).toBeVisible();
         expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(true);
-        expect(
-          bottom().getByRole('checkbox', { name: 'Show 3 that could not be checked' })
-        ).toBeVisible();
+        expect(showUnchecked(2)).toBeVisible();
         // The root still shows its own domains, and the block adds none.
-        expect(clocksTab(3)).toBeVisible();
+        expect(tabCount('Clocks', 3)).toBeVisible();
         expect(rowOf('ext_clk')).toBeDefined();
 
         fireEvent.click(screen.getByRole('button', { name: 'Collapse dsp_pipeline' }));
         await waitFor(() => expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(false));
-        expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
+        expect(bottom().getByText('1 crossing without a synchronizer.')).toBeVisible();
       });
 
       it('leaves the toolbar count design-wide', async () => {
@@ -1766,8 +1831,20 @@ describe('SystemDiagramApp', () => {
       });
     });
 
-    it('selects the net of a clicked crossing and haloes its sink pin', async () => {
+    it('selects the net of a clicked data crossing and haloes its sink pin', async () => {
       await domains();
+      const row = () => bottom().getByText('fir_compiler_0/M_AXIS_DATA').closest('tr')!;
+      fireEvent.click(row());
+      await waitFor(() => expect(row()).toHaveClass('sd-row-selected'));
+      expect(details().getByRole('heading', { name: 'dsp_pipeline_M_AXIS' })).toBeVisible();
+      expect(
+        screen.getByTestId('node:/axi_dma_0').parentElement!.querySelectorAll('.sd-pin-halo')
+      ).toHaveLength(1);
+    });
+
+    it('selects the net of a clicked reset crossing and haloes its sink pin', async () => {
+      await domains();
+      openResets();
       const halos = (id: string) =>
         screen.getByTestId(`node:${id}`).parentElement!.querySelectorAll('.sd-pin-halo');
       fireEvent.click(bottom().getByText('fir_compiler_0/aresetn').closest('tr')!);
@@ -1800,6 +1877,7 @@ describe('SystemDiagramApp', () => {
 
       it('for a crossing, centring its sink block', async () => {
         await domains();
+        openResets();
         const zoom = await clickAt(0.3, 'fir_compiler_0/aresetn', `${DSP}/fir_compiler_0`);
         expect(zoom).toBeGreaterThan(0.3);
         expect(zoom).toBeLessThanOrEqual(0.8);
@@ -1978,6 +2056,7 @@ describe('SystemDiagramApp', () => {
       bottom()
         .getAllByRole('row')
         .find((row) => within(row).queryAllByRole('cell')[0]?.textContent?.trim() === text)!;
+    const openResets = () => fireEvent.click(screen.getByRole('tab', { name: /^Resets/ }));
     async function domains(design: typeof versal = versal) {
       await renderWithGraph({ design, ready: '/stream_src' });
       fireEvent.click(toggle());
@@ -2013,6 +2092,10 @@ describe('SystemDiagramApp', () => {
       expect(bottom().queryByText('stream_src/M_AXIS')).not.toBeInTheDocument();
       expect(bottom().queryByText(/Both clocks come from/)).not.toBeInTheDocument();
       expect(bottom().queryByRole('checkbox')).not.toBeInTheDocument();
+      openResets();
+      expect(bottom().getByText('No reset domain crossings on this level.')).toBeVisible();
+      expect(bottom().queryByText('stream_src/aresetn')).not.toBeInTheDocument();
+      expect(bottom().queryByRole('checkbox')).not.toBeInTheDocument();
     });
 
     it('marks no block as a crossing and badges no node', async () => {
@@ -2037,6 +2120,7 @@ describe('SystemDiagramApp', () => {
 
     it('checks a reset sink on a related clock as related, not as a crossing', async () => {
       await domains();
+      openResets();
       fireEvent.click(rowOf('rst_clk_out2/peripheral_aresetn'));
       expect(details().getByText(/^Reset net · released on/)).toHaveTextContent('clk_out2');
       expect(details().getByText('≈ related clocks')).toBeVisible();
@@ -2065,6 +2149,7 @@ describe('SystemDiagramApp', () => {
       const unknown = loadVersalClockGraph();
       unknown.instances['/ps_cips'].vlnv = 'acme.com:ip:other_ps:1.0';
       await domains(unknown);
+      openResets();
       const row = rowOf('ps_cips_pl0_resetn');
       expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('unknown');
       expect(within(row).getAllByRole('cell')[2]).toHaveTextContent('source not known');
@@ -2083,7 +2168,7 @@ describe('SystemDiagramApp', () => {
       const reason =
         'The source of ps_cips_pl0_resetn is not known, so the clock that releases it is not known';
       expect(bottom().queryByText(reason)).not.toBeInTheDocument();
-      fireEvent.click(bottom().getByRole('checkbox', { name: 'Show 2 that could not be checked' }));
+      fireEvent.click(bottom().getByRole('checkbox', { name: 'Show 1 that could not be checked' }));
       expect(bottom().getByText(reason)).toBeVisible();
     });
   });

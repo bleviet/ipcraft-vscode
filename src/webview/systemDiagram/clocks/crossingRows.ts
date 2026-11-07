@@ -1,4 +1,4 @@
-/** Texts and links of the crossing rows in the Clocks tab. */
+/** Texts and links of the crossing rows in the Clocks and Resets tabs. */
 
 import type { SystemGraph } from '../../../domain/systemGraph';
 import { categoryLabel } from '../legend';
@@ -7,7 +7,7 @@ import type { Crossing, CrossingEnd, PinCrossing } from './clockTypes';
 import { plural } from './crossingSummary';
 import { formatHz, nameWithFrequency } from './frequency';
 
-/** The rows of the Clocks tab: crossings without a synchronizer, and the ones not checked when asked for. */
+/** The rows of a crossings table: crossings without a synchronizer, and the ones not checked when asked for. */
 export function listedCrossings(
   crossings: readonly Crossing[],
   showUnchecked: boolean
@@ -19,11 +19,18 @@ export function listedCrossings(
   );
 }
 
-/** The one line above the table: how many crossings in view need a synchronizer. */
-export function crossingsHeadline(flagged: number): string {
+/** The line above the data crossings: how many in view need a synchronizer. */
+export function dataCrossingsHeadline(flagged: number): string {
   return flagged === 0
     ? 'No clock domain crossings on this level.'
     : `${plural(flagged, 'crossing', 'crossings')} without a synchronizer.`;
+}
+
+/** The line above the reset crossings: how many in view are released on another clock domain or asynchronously. */
+export function resetCrossingsHeadline(flagged: number): string {
+  return flagged === 0
+    ? 'No reset domain crossings on this level.'
+    : `${plural(flagged, 'reset crossing', 'reset crossings')} without a synchronizer.`;
 }
 
 /** Interface type of a data crossing, or `Reset`. */
