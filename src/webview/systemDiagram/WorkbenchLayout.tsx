@@ -16,6 +16,7 @@ import { usePathTrace } from './hooks/usePathTrace';
 import { useMouseBackButton } from './hooks/useMouseBackButton';
 import { useBusBundling } from './hooks/useBusBundling';
 import { usePinFolding } from './hooks/usePinFolding';
+import { useViewOptions } from './hooks/useViewOptions';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
@@ -80,6 +81,8 @@ export function WorkbenchLayout({
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
   // Compact pins is a layout input: folding a pin array re-runs the layout.
   const pins = usePinFolding();
+  // Auto detail, the minimap and the legend filters are drawn, not laid out.
+  const viewOptions = useViewOptions();
   // Bundle buses is a layout input too: fewer wires, so a different routing.
   const buses = useBusBundling();
   const { layout, error } = useElkLayout(
@@ -164,7 +167,8 @@ export function WorkbenchLayout({
         clocksOn={clocksOn}
         clockSummary={clockSummary}
         reviewUnconnected={reviewUnconnected}
-        compactPins={pins.compact}
+        pinMode={pins.mode}
+        autoDetail={viewOptions.autoDetail}
         bundleBuses={buses.on}
         unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation}
@@ -178,7 +182,8 @@ export function WorkbenchLayout({
         onQueryChange={setQuery}
         onSearchStep={search.step}
         onClocksChange={setClocksOn}
-        onCompactPinsChange={pins.setCompact}
+        onPinModeChange={pins.setMode}
+        onAutoDetailChange={viewOptions.setAutoDetail}
         onBundleBusesChange={buses.setOn}
         onOpenClocksTab={() => openBottomTab('clocks')}
         onReviewUnconnectedChange={(on) => {
@@ -239,6 +244,7 @@ export function WorkbenchLayout({
               drawClockReset={clocksOn}
               focusedPin={focusedPin}
               query={query}
+              view={viewOptions}
               flash={search.flash}
               onFlashEnd={search.clearFlash}
               onSelect={nav.select}

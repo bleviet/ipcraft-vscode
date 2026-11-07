@@ -28,7 +28,7 @@ import { levelEdges, portId } from './levelEdges';
 import { clockResetNetsByEndpoint } from './netBadges';
 import type { PinFolding } from './pinGrouping';
 import { PORT_SIZE } from './pinRows';
-import { boundaryId } from '../model';
+import { boundaryId, netsByEndpoint } from '../model';
 
 /** A boundary node has one port, so its position never decides a bundle. */
 const BOUNDARY_PORT: PortSpot = { y: 0, side: 'east' };
@@ -151,11 +151,14 @@ export function laidOutBundleEdges(
   options: LaidOutOptions
 ): Map<string, (section: ElkEdgeSection) => DiagramFlowEdge> {
   const clockReset = clockResetNetsByEndpoint(graph, levelPath);
+  const arch = options.pinFolding?.arch
+    ? { graph, nets: netsByEndpoint(graph, levelPath) }
+    : undefined;
   const rows = new Map<string, InstanceRows>();
   for (const child of layoutResult.children ?? []) {
     const instance = graph.instances[child.id];
     if (instance && !child.children) {
-      rows.set(child.id, instanceRows(instance, clockReset, options.pinFolding));
+      rows.set(child.id, instanceRows(instance, clockReset, options.pinFolding, arch));
     }
   }
   const edges = levelEdges(graph, levelPath).filter(

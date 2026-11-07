@@ -51,3 +51,37 @@ describe('DiagramLegend badges', () => {
     expect(screen.queryByLabelText('Legend')).toBeNull();
   });
 });
+
+describe('DiagramLegend filters', () => {
+  const wire = { data: { category: 'axis' } } as never;
+
+  it('makes a category with wires a button and a badge-only category a plain entry', () => {
+    render(
+      <ReactFlowProvider>
+        <DiagramLegend
+          edges={[wire]}
+          nodes={[
+            {
+              id: '/frame',
+              type: 'frame',
+              position: { x: 0, y: 0 },
+              width: 400,
+              height: 300,
+              draggable: false,
+              data: { instance: {} as never, cellCount: 3, west: [row as never], east: [] },
+            },
+          ]}
+          review={false}
+          hidden={new Set(['axis'])}
+          onToggleLayer={jest.fn()}
+        />
+      </ReactFlowProvider>
+    );
+    expect(screen.getByRole('button', { name: 'AXI4-Stream' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
+    expect(screen.queryByRole('button', { name: 'Clock' })).toBeNull();
+    expect(screen.getByLabelText('Legend')).toHaveTextContent('Clock');
+  });
+});

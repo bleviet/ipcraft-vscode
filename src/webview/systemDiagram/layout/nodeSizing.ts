@@ -5,7 +5,7 @@
 
 import type { SystemInstance, SystemPin } from '../../../domain/systemGraph';
 
-export type TextWeight = 'normal' | 'semibold' | 'subtitle';
+export type TextWeight = 'normal' | 'semibold' | 'subtitle' | 'pill';
 /** Pixel width of `text` at the node font size. */
 export type TextMeasure = (text: string, weight: TextWeight) => number;
 

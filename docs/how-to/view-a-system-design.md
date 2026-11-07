@@ -46,15 +46,33 @@ The diagram shows one hierarchy level at a time.
   block like a double-click. Hierarchy blocks inside a frame can be expanded
   too, and expanded blocks stay expanded when you go to another level and back.
   Isolate works on the blocks of the level on show, not on those inside a frame.
-- **Compact pins.** Large IPs such as an AXI SmartConnect have dozens of numbered
-  pins (`M00_AXI` to `M27_AXI`, `In0` to `In15`). With **Compact pins** on, the
+- **Pin detail.** Choose how blocks show their pins with **Arch | Compact | Full
+  pins** in the toolbar. Large IPs such as an AXI SmartConnect have dozens of
+  numbered pins (`M00_AXI` to `M27_AXI`, `In0` to `In15`). In **Compact**, the
   default, four or more numbered pins of the same kind on one side of a block
   fold into one row such as `M00..M27_AXI [28]`, with a chevron. Click the row
   to show its pins in place, and click the header row above them to fold them
   again. Wires to a folded row end on that row. Pins on clock and reset nets stay
-  on their own rows. Turn **Compact pins** off in the toolbar to give every pin
-  its own row. Folding changes the layout, so the blocks may move, but the zoom
-  and pan stay.
+  on their own rows. **Full pins** gives every pin its own row. **Arch** draws
+  each block as a compact card without pin rows: a row of pills counts the
+  connected pins by kind (`28× AXI`, `8× AXIS`, at most three pills and `+N`),
+  a hierarchy block adds a line with the first blocks inside it in signal order
+  (`a → b → c +2`), and every wire to a side of the card ends on one point of
+  that side. Cards raise the zoom that fits a large design. Expanded blocks keep
+  their pins on the frame. Changing the mode changes the layout, so the blocks may
+  move, but the zoom and pan stay.
+- **Auto.** With **Auto** on, the default, zooming out below about 42% hides pin
+  names, block subtitles and badge text and enlarges the block names so that they
+  stay readable. It only changes what is drawn: blocks never move, and turning
+  it off shows everything at every zoom.
+- **Minimap.** A small map of the whole level in the bottom right corner shows
+  the viewport, the selected blocks, the search matches and the hierarchy
+  blocks. Click or drag on it to pan, and scroll to zoom. The button under it
+  hides or shows it; it shows by default when the level shows more than 15
+  nodes (blocks and external ports).
+- **Legend filters.** Click a wire category in the legend to hide its wires
+  (the entry dims) and click again to show them. Alt+Click shows only that
+  category; Alt+Click again shows all. Filtering never moves a block.
 - **Bundle buses.** Parallel connections between the same two blocks, such as
   eight AXI4-Stream links or twelve AXI masters, would draw a wall of wires. With
   **Bundle buses** on, the default, connections of the same kind between the same
@@ -70,7 +88,10 @@ The diagram shows one hierarchy level at a time.
   **Bundle buses** off in the toolbar to draw every connection on its own.
   Bundling changes the layout, so the blocks may move, but the zoom and pan stay.
 - **Outline.** Lists the instances of the current design and its external
-  ports. Select an item to select it in the diagram and center it.
+  ports. Select an item to select it in the diagram and center it. The pills
+  above it, **All | Subsystems | IP / RTL | Ports**, keep only the hierarchy
+  blocks, only the other blocks, or only the external ports; a filtered outline
+  keeps the hierarchy rows above every match.
 - **Search.** Type in **Search instances** to dim the blocks whose name or
   type does not match. Press Enter or Shift+Enter to go to the next or
   previous match on any level; a counter shows the position, and Escape

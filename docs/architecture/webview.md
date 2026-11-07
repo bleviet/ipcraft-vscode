@@ -147,10 +147,10 @@ host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
 | Layer | Owner |
 |---|---|
 | Composition root | `SystemDiagramApp.tsx`, `DiagramWorkbench.tsx`, `WorkbenchLayout.tsx` wire the toolbar, outline, canvas, details, and bottom panels |
-| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place, `pinGrouping.ts` for folding numbered pin arrays into rows, `instanceElk.ts` for the rows, size, ELK node and drawn pin rows of an instance block, `foldedEdges.ts` for the level edges attached to the ports ELK sees, `edgeBundling.ts` for the pure bus bundling rules and comb branches, `levelBundles.ts` for planning bundles on the ELK input and on the laid-out level), `drawnLayout.ts` (which of the clock and reset wires or badges of a layout the canvas draws), `edgeNets.ts` (the nets of a drawn wire, one or every member of a bundle, and the bundle a selection matches) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
+| Pure layout and geometry | `layout/` (elkjs graph construction, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place, `pinGrouping.ts` for folding numbered pin arrays into rows, `instanceElk.ts` for the rows, size, ELK node and drawn pin rows of an instance block, `archCard.ts` for Arch cards (pills, hierarchy preview, the one port per side and the pin to port map), `levelOrder.ts` for the topological order of a level's instances, `boundaryElk.ts` for the ELK node of a boundary pin, `foldedEdges.ts` for the level edges attached to the ports ELK sees, `edgeBundling.ts` for the pure bus bundling rules and comb branches, `levelBundles.ts` for planning bundles on the ELK input and on the laid-out level), `drawnLayout.ts` (which of the clock and reset wires or badges of a layout the canvas draws, and which categories the legend filters hide), `layerFilter.ts` (the pure legend filter states), `minimap.ts` (when the minimap shows and the color of each block), `outlineFilter.ts` (the rows an outline kind keeps), `canvasEdges.ts` (the wires of the canvas with selection and decoration), `edgeNets.ts` (the nets of a drawn wire, one or every member of a bundle, and the bundle a selection matches) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
 | Clock and reset analysis | `clocks/`, pure and computed once per graph by `analyzeClocks`: `clockTypes.ts` (the result types), `frequency.ts` (parse and format), `unionFind.ts` and `levelPaths.ts` (small shared helpers), `physicalNets.ts` (nets joined across hierarchy pins, and the driver of each), `clockRules.ts` (declarative clock output, frequency, forwarding, generator, and reset rules; which Vivado IP pins are outputs is the shared `src/domain/knownIpPins.ts`, which the Vivado reader also uses to give those pins the direction `out` with source `rule`), `clockDomains.ts`, `relatedClocks.ts` (clocks of one generator), `pinClocks.ts`, `resetSources.ts`, `crossings.ts`, and the helpers each surface reads: `crossingSummary.ts` (counts and toolbar text), `crossingEdges.ts`, `domainView.ts`, `treeSelection.ts`, `edgeView.ts`, `nodeView.ts` (wire styles, pin marks, node strips), `netTree.ts` and `treeChecks.ts` (the tree rows and checks of Details), `instanceClocks.ts`, `crossingRows.ts` (the texts of its crossing rows), `viewScope.ts` (which domains, resets and crossings the Clocks and Resets tabs list for the level and expanded blocks on screen). `clockDecor.ts` merges them into one description of what the canvas adds to a layout |
-| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize, `usePinFolding.ts` for Compact pins and the open pin arrays, `useBusBundling.ts` for Bundle buses and the unbundled keys) |
-| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `PinGroupRow.tsx` draws a folded or open pin array row of an instance block; `ElkEdge.tsx` also draws a bundle's comb branches and count badge and `BundleDetails.tsx` is the Details view of a selected bundle; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, and `InstanceClockDetails.tsx` the clocks of a block or port |
+| Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize, `usePinFolding.ts` for the pin mode (Arch, Compact, Full pins) and the open pin arrays, `useViewOptions.ts` for the draw-only options (Auto, the minimap, the hidden legend categories), `useBusBundling.ts` for Bundle buses and the unbundled keys) |
+| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `ArchCardBody.tsx` draws the body of an Arch card; `AutoDetail.tsx` and `DiagramMinimap.tsx` are children of the React Flow canvas; `PinGroupRow.tsx` draws a folded or open pin array row of an instance block; `ElkEdge.tsx` also draws a bundle's comb branches and count badge and `BundleDetails.tsx` is the Details view of a selected bundle; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, and `InstanceClockDetails.tsx` the clocks of a block or port |
 
 `messageState.ts` keeps the last valid graph when a later message reports an
 error or says the file is no longer recognized, so the workbench and the
@@ -158,8 +158,8 @@ user's view stay mounted. Layout and viewport decisions are pure functions that
 are tested without React.
 
 A view's ELK layout depends on its level, its expanded blocks, its
-isolation, and its pin folding (Compact pins and the open pin arrays; absent,
-every pin has its own row), and on no other toggle. It holds every net of the level as an edge, clock
+isolation, and its pin mode (Arch, Compact with the open pin arrays, or Full pins;
+absent, every pin has its own row), and on no other toggle. It holds every net of the level as an edge, clock
 and reset nets included, and reserves a badge label on the pins of those nets.
 `WorkbenchLayout.tsx` passes the Clocks and resets toggle to `DiagramCanvas` as
 `drawClockReset` (the unconnected-pin review pauses only the domain decorations
@@ -194,6 +194,26 @@ direction, and kind, none of them on a clock or reset net) and `instanceElk.ts`
 turns them into one port per folded group; `elkLayout.ts` points the edge ends
 of the members at that port, while `levelEdges.ts` keeps one edge per pin. Frame
 border pins and boundary pins are not folded.
+
+Arch is a pin mode: `PinFolding.arch` makes `instanceRows` return a card, not rows
+(`InstanceRows.arch`, empty `west` and `east`). The card has one port per side
+with pins (`ARCH_WEST`, `ARCH_EAST`, which no pin name can equal), and
+`foldedPorts` maps every pin to the port of its side, so `foldedEdges` and the
+bundling read cards through the same pin-port to drawn-port map as folded
+groups; bundles between two cards therefore have no comb branches. Heights are
+fixed (header 42, pills 22, preview 18 for a hierarchy block with instances,
+padding 8). The cards apply to the collapsed blocks of the level and of expanded
+frames; the frames and boundary nodes are unchanged.
+
+Auto detail, the minimap and the legend filters are not layout inputs.
+`AutoDetail.tsx` (inside `<ReactFlow>`) sets `data-far` on the canvas container
+from a boolean store selector (it re-renders only when `k` crosses 0.42, see
+`layout/zoomDetail.ts`) and `--sd-name-scale` from an imperative store
+subscription; `systemDiagram.css` hides pin text and scales block names under
+`[data-far='true']`. `drawnLayout.ts` `withoutHiddenLayers` drops the wires of the
+hidden legend categories after the clock and reset choice, while the legend lists
+the categories from the layout before that filter so a hidden chip stays
+clickable. The outline kind filter is local to `OutlineTree.tsx`.
 
 Bus bundling is a layout input too (Bundle buses and the keys the user
 unbundled; absent, every edge is drawn on its own). On the current level only,

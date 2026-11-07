@@ -46,6 +46,7 @@ interface FlowProps {
   nodes: FlowNode[];
   edges: FlowEdge[];
   nodeTypes: Record<string, React.ComponentType<{ data: unknown }>>;
+  children?: React.ReactNode;
   onNodeContextMenu: (event: unknown, node: FlowNode) => void;
 }
 let mockFlow: FlowProps | null = null;
@@ -64,7 +65,10 @@ jest.mock('@xyflow/react', () => {
     BackgroundVariant: { Dots: 'dots' },
     BaseEdge: () => null,
     Handle: () => null,
-    Panel: () => null,
+    Panel: ({ children }: { children?: React.ReactNode }) =>
+      React.createElement('div', null, children),
+    MiniMap: () => React.createElement('div', { 'aria-label': 'Minimap' }),
+    useStore: (selector: (state: unknown) => unknown) => selector({ transform: [0, 0, 1] }),
     Position: { Left: 'left', Right: 'right' },
     ReactFlow: (props: FlowProps) => {
       mockFlow = props;
@@ -84,12 +88,20 @@ jest.mock('@xyflow/react', () => {
             }),
             React.createElement(props.nodeTypes[node.type], { data: node.data })
           )
-        )
+        ),
+        props.children
       );
     },
     getViewportForBounds: actualFlow.getViewportForBounds,
     useStoreApi: () => ({
-      getState: () => ({ width: 1000, height: 800, minZoom: 0.05, maxZoom: 2 }),
+      getState: () => ({
+        width: 1000,
+        height: 800,
+        minZoom: 0.05,
+        maxZoom: 2,
+        transform: [0, 0, 1],
+      }),
+      subscribe: () => () => undefined,
     }),
     ReactFlowProvider: ({ children }: { children: React.ReactNode }) => children,
     useReactFlow: () => api,
@@ -224,6 +236,73 @@ describe('the placement of the blocks across the view toggles', () => {
     expect(mockFitBounds).not.toHaveBeenCalled();
     expect(mockSetCenter).not.toHaveBeenCalled();
     expect(mockSetViewport).not.toHaveBeenCalled();
+  }, 20000);
+
+  it('stays when Auto detail is toggled', async () => {
+    await renderApp();
+    const before = placement();
+    const runs = mockLayoutRuns.length;
+    const auto = screen.getByRole('button', { name: 'Auto' });
+    expect(auto).toHaveAttribute('aria-pressed', 'true');
+
+    fireEvent.click(auto);
+    await settle();
+    expect(auto).toHaveAttribute('aria-pressed', 'false');
+    expect(placement()).toEqual(before);
+
+    fireEvent.click(auto);
+    await settle();
+    expect(placement()).toEqual(before);
+    expect(mockLayoutRuns).toHaveLength(runs);
+  }, 20000);
+
+  it('stays when a legend filter is clicked, Alt+Clicked and cleared', async () => {
+    await renderApp();
+    const before = placement();
+    const runs = mockLayoutRuns.length;
+    const wires = flow().edges.length;
+    const chip = () => screen.getByRole('button', { name: 'AXI memory-mapped' });
+
+    fireEvent.click(chip());
+    await settle();
+    expect(chip()).toHaveAttribute('aria-pressed', 'false');
+    expect(wireCategories()).not.toContain('aximm');
+    expect(placement()).toEqual(before);
+
+    fireEvent.click(chip());
+    fireEvent.click(chip(), { altKey: true });
+    await settle();
+    expect([...wireCategories()]).toEqual(['aximm']);
+    expect(placement()).toEqual(before);
+
+    fireEvent.click(chip(), { altKey: true });
+    await settle();
+    expect(flow().edges).toHaveLength(wires);
+    expect(placement()).toEqual(before);
+    expect(mockLayoutRuns).toHaveLength(runs);
+  }, 20000);
+
+  it('stays when the minimap is shown and hidden', async () => {
+    await renderApp();
+    const before = placement();
+    const runs = mockLayoutRuns.length;
+    const shown = () => screen.queryByLabelText('Minimap') !== null;
+    const initial = shown();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: initial ? 'Hide minimap' : 'Show minimap' })
+    );
+    await settle();
+    expect(shown()).toBe(!initial);
+    expect(placement()).toEqual(before);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: initial ? 'Show minimap' : 'Hide minimap' })
+    );
+    await settle();
+    expect(shown()).toBe(initial);
+    expect(placement()).toEqual(before);
+    expect(mockLayoutRuns).toHaveLength(runs);
   }, 20000);
 
   it('stays in an isolated view, which keeps the same blocks either way', async () => {

@@ -6,6 +6,7 @@
  * highlights and the clock decoration all agree.
  */
 
+import type { HiddenLayers } from './layerFilter';
 import type { DiagramFlowEdge, DiagramFlowNode, PinRow } from './layout/diagramTypes';
 import { isClockOrReset } from './model';
 
@@ -47,4 +48,21 @@ export function drawnLayout(layout: LaidOutElements, drawClockReset: boolean): L
   return drawClockReset
     ? { nodes: layout.nodes.map(withoutNodeBadges), edges: layout.edges }
     : { nodes: layout.nodes, edges: layout.edges.filter((edge) => !isClockOrReset(edge.data)) };
+}
+
+/**
+ * `layout` without the wires of the hidden legend categories (a bundle by its
+ * category). Nodes are untouched, so no block moves; the same object when
+ * nothing is hidden.
+ */
+export function withoutHiddenLayers(
+  layout: LaidOutElements,
+  hidden: HiddenLayers
+): LaidOutElements {
+  return hidden.size === 0
+    ? layout
+    : {
+        nodes: layout.nodes,
+        edges: layout.edges.filter((edge) => !hidden.has(edge.data.category)),
+      };
 }

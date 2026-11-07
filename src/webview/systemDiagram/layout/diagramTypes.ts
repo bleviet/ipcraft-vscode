@@ -87,6 +87,23 @@ export interface InstanceUiData {
   onTogglePinGroup?: (instancePath: string, groupId: string) => void;
 }
 
+export interface ArchPill {
+  category: NetCategory;
+  count: number;
+  /** `28× AXI` */
+  label: string;
+}
+
+/** What a card shows besides its header. */
+export interface ArchSummary {
+  /** At most three, most connected pins first. */
+  pills: ArchPill[];
+  /** Categories beyond the shown pills (`+N`). */
+  more: number;
+  /** `a → b → c +2`; absent for a block without inner instances. */
+  preview?: string;
+}
+
 export interface InstanceNodeData extends Record<string, unknown>, InstanceUiData {
   instance: SystemInstance;
   cellCount: number;
@@ -95,6 +112,8 @@ export interface InstanceNodeData extends Record<string, unknown>, InstanceUiDat
   eastWidth: number;
   west: PinRow[];
   east: PinRow[];
+  /** Present on an Arch card: it has no pin rows (`west` and `east` are empty). */
+  arch?: ArchSummary;
 }
 
 /** Pin row of an expanded block; `y` is the pin centre below the frame top. */

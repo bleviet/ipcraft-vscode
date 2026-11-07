@@ -3,6 +3,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { PIN_ROW_HEIGHT, type InstanceNodeData, type PinRow } from './layout/elkLayout';
 import type { PinMark } from './clocks/nodeView';
 import type { PinHoverTarget } from './model';
+import { ArchCardBody } from './ArchCardBody';
 import { HopBadge } from './HopBadge';
 import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
@@ -154,14 +155,18 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
             />
           )
       )}
-      <div className="flex" style={{ paddingBottom: 10 }}>
-        <div className="min-w-0 shrink-0" style={{ width: data.westWidth }}>
-          {data.west.map(pinRowView)}
+      {data.arch ? (
+        <ArchCardBody summary={data.arch} />
+      ) : (
+        <div className="flex" style={{ paddingBottom: 10 }}>
+          <div className="min-w-0 shrink-0" style={{ width: data.westWidth }}>
+            {data.west.map(pinRowView)}
+          </div>
+          <div className="min-w-0 shrink-0" style={{ width: data.eastWidth }}>
+            {data.east.map(pinRowView)}
+          </div>
         </div>
-        <div className="min-w-0 shrink-0" style={{ width: data.eastWidth }}>
-          {data.east.map(pinRowView)}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

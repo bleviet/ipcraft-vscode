@@ -39,7 +39,7 @@ export function NetBadgeView({ badge, selectedNetIds, onSelectNet }: NetBadgeVie
       }}
     >
       <span aria-hidden="true" className="sd-badge-stub" style={{ background: color }} />
-      <span className="truncate">{badge.text}</span>
+      <span className="sd-badge-text truncate">{badge.text}</span>
     </button>
   );
 }

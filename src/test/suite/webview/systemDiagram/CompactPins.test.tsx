@@ -4,7 +4,7 @@ import { SystemDiagramApp } from '../../../../webview/systemDiagram/SystemDiagra
 import type { SystemDiagramToWebviewMessage } from '../../../../shared/messages/systemDiagram';
 import { foldingGraph } from './foldingGraph';
 
-// Compact pins is a layout input: toggling it, or a group, re-runs ELK. The Clocks and
+// The pin mode is a layout input: changing it, or opening a group, re-runs ELK. The Clocks and
 // resets and Unconnected pins toggles do not. ELK runs for real; React Flow is mocked.
 let mockLayoutRuns: Promise<unknown>[] = [];
 
@@ -77,7 +77,8 @@ jest.mock('@xyflow/react', () => {
   };
 });
 
-const compactPins = () => screen.getByRole('button', { name: 'Compact pins' });
+const compactPins = () => screen.getByRole('button', { name: 'Compact' });
+const fullPins = () => screen.getByRole('button', { name: 'Full pins' });
 const groupRow = () => screen.queryByRole('button', { name: /M00\.\.M27_AXI \[28\]/ });
 const hubHeight = () => mockFlow!.nodes.find((node) => node.id === '/hub')!.height;
 
@@ -101,7 +102,7 @@ beforeEach(async () => {
   mockFitBounds.mockClear();
 });
 
-describe('the Compact pins toggle', () => {
+describe('the Compact pin mode', () => {
   it('is on by default and folds the array into one row', () => {
     expect(compactPins()).toHaveAttribute('aria-pressed', 'true');
     expect(groupRow()).not.toBeNull();
@@ -111,9 +112,10 @@ describe('the Compact pins toggle', () => {
   it('lays out again with every pin on its own row when switched off, and folds back on', async () => {
     const folded = hubHeight();
     const runs = mockLayoutRuns.length;
-    fireEvent.click(compactPins());
+    fireEvent.click(fullPins());
     await settle();
     expect(mockLayoutRuns.length).toBeGreaterThan(runs);
+    expect(fullPins()).toHaveAttribute('aria-pressed', 'true');
     expect(compactPins()).toHaveAttribute('aria-pressed', 'false');
     expect(groupRow()).toBeNull();
     expect(screen.getByText('M05_AXI')).toBeInTheDocument();
