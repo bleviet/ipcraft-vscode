@@ -1067,3 +1067,111 @@ input:focus-visible {
   background: var(--vscode-badge-background);
   border-radius: 8px;
 }
+
+/* Pin detail: Arch | Compact | Full pins, one choice shown as joined buttons. */
+.sd-segmented {
+  display: inline-flex;
+}
+
+.sd-segmented > .sd-tool {
+  border-radius: 0;
+}
+
+.sd-segmented > .sd-tool:first-child {
+  border-radius: 3px 0 0 3px;
+}
+
+.sd-segmented > .sd-tool:last-child {
+  border-radius: 0 3px 3px 0;
+}
+
+.sd-segmented > .sd-tool:not(:first-child) {
+  margin-left: -1px;
+}
+
+/* Arch card: interface count pills and a one-line preview below the header. */
+.sd-arch-pills {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  overflow: hidden;
+}
+
+.sd-arch-pill {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  font-size: 10px;
+  line-height: 14px;
+  white-space: nowrap;
+  color: var(--vscode-badge-foreground);
+  background: var(--vscode-badge-background);
+  border-radius: 8px;
+}
+
+.sd-arch-pill > i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.sd-arch-preview {
+  box-sizing: border-box;
+  padding: 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10.5px;
+  line-height: 18px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* A legend category chip is a filter: click hides its wires, a hidden chip is dimmed. */
+.sd-legend-chip {
+  padding: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.sd-legend-chip:hover {
+  color: var(--vscode-foreground);
+}
+
+.sd-legend-chip[aria-pressed='false'] {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+/* Auto detail: far out, pin text goes and block names grow. Drawing only, no layout. The card
+   body is empty without pin labels, so a name wraps over it instead of being cut short. */
+[data-far='true'] .sd-pin-label,
+[data-far='true'] .sd-node-subtitle,
+[data-far='true'] .sd-badge-text {
+  visibility: hidden;
+}
+
+[data-far='true'] .sd-node-subtitle,
+[data-far='true'] .sd-bundle-badge {
+  display: none;
+}
+
+[data-far='true'] .sd-node-title {
+  align-items: flex-start;
+}
+
+[data-far='true'] .sd-node-name {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font-size: calc(12px * var(--sd-name-scale, 1));
+  line-height: 1.1;
+}

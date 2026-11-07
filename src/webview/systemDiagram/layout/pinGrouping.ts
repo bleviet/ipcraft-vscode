@@ -12,6 +12,8 @@ export const MIN_GROUP_SIZE = 4;
 /** Which groups are open; a group is addressed by `portId(instancePath, groupId)`. */
 export interface PinFolding {
   open: ReadonlySet<string>;
+  /** Draw instance blocks as Arch cards (one port per side) instead of pin rows; see `archCard.ts`. */
+  arch?: true;
 }
 
 export interface PinStem {

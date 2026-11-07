@@ -5,6 +5,9 @@ const FONT_SIZE = 11;
 /** Block names are drawn at 12 px semibold, subtitles at 10.5 px in the editor font. */
 const NAME_FONT_SIZE = 12;
 const SUBTITLE_FONT_SIZE = 10.5;
+/** Arch card pills are drawn at 10 px. */
+const PILL_FONT_SIZE = 10;
+const PILL_CHAR_WIDTH = 5.9;
 const SEMIBOLD_CHAR_WIDTH = 7.6;
 const SUBTITLE_CHAR_WIDTH = 6.4;
 
@@ -12,6 +15,7 @@ const CHAR_WIDTH: Record<TextWeight, number> = {
   normal: BADGE_CHAR_WIDTH,
   semibold: SEMIBOLD_CHAR_WIDTH,
   subtitle: SUBTITLE_CHAR_WIDTH,
+  pill: PILL_CHAR_WIDTH,
 };
 
 function canvasFont(weight: TextWeight, fontFamily: string, monoFamily: string): string {
@@ -20,6 +24,8 @@ function canvasFont(weight: TextWeight, fontFamily: string, monoFamily: string):
       return `600 ${NAME_FONT_SIZE}px ${fontFamily}`;
     case 'subtitle':
       return `${SUBTITLE_FONT_SIZE}px ${monoFamily}`;
+    case 'pill':
+      return `${PILL_FONT_SIZE}px ${fontFamily}`;
     default:
       return `${FONT_SIZE}px ${fontFamily}`;
   }

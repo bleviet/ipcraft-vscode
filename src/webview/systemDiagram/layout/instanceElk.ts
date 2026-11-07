@@ -7,11 +7,21 @@
 import type { ElkNode, ElkPort } from 'elkjs/lib/elk-api';
 import type { SystemGraph, SystemInstance } from '../../../domain/systemGraph';
 import { cellCount, endpointKey, instanceSubtitle, type netsByEndpoint } from '../model';
+import {
+  archLayout,
+  archPinPorts,
+  archPortCentres,
+  archPorts,
+  archPillsWidth,
+  type ArchLayout,
+} from './archCard';
 import type { InstanceNodeData, PinRow, PinSide } from './diagramTypes';
 import { portId } from './levelEdges';
 import { badgeLabels, badgeOfPort, type clockResetNetsByEndpoint } from './netBadges';
 import {
   CHEVRON_WIDTH,
+  INSTANCE_MAX_WIDTH,
+  INSTANCE_MIN_WIDTH,
   instanceLayout,
   type InstanceLayout,
   type SizedRow,
@@ -24,7 +34,14 @@ import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, groupRow, pinRow, splitSides 
 type ClockResetNets = ReturnType<typeof clockResetNetsByEndpoint>;
 type NetLookup = ReturnType<typeof netsByEndpoint>;
 
-export type InstanceRows = Record<PinSide, SideRow[]>;
+/** The rows of each side; an Arch card has none and holds its `arch` layout instead. */
+export type InstanceRows = Record<PinSide, SideRow[]> & { arch?: ArchLayout };
+
+/** What an Arch card is built from: the graph (for the hierarchy preview) and the nets of the instance's level. */
+export interface ArchContext {
+  graph: SystemGraph;
+  nets: NetLookup;
+}
 
 /** Port top below its row top: 1 px border + 9 px row middle - half the 8 px port. */
 const PIN_TOP_OFFSET = 6;
@@ -37,12 +54,17 @@ export const PORT_LABEL_OPTIONS = { 'org.eclipse.elk.portLabels.placement': 'OUT
 /**
  * The rows of each side. Without `folding` every pin is a row. Pins of clock and
  * reset nets never fold: their badges are reserved as labels of their own ports.
+ * With `folding.arch` (and its `arch` context) the block is a card, not rows.
  */
 export function instanceRows(
   instance: SystemInstance,
   clockReset: ClockResetNets,
-  folding?: PinFolding
+  folding?: PinFolding,
+  arch?: ArchContext
 ): InstanceRows {
+  if (folding?.arch && arch) {
+    return { west: [], east: [], arch: archLayout(arch.graph, instance, arch.nets) };
+  }
   const sides = splitSides(instance.pins);
   const fold = (side: PinSide): SideRow[] =>
     folding
@@ -55,8 +77,11 @@ export function instanceRows(
   return { west: fold('west'), east: fold('east') };
 }
 
-/** Port id of every pin inside a folded group, mapped to the group's port id. */
+/** Port id of every pin inside a folded group (or an Arch card), mapped to the port that draws it. */
 export function foldedPorts(instance: SystemInstance, rows: InstanceRows): Map<string, string> {
+  if (rows.arch) {
+    return archPinPorts(instance.path, rows.arch);
+  }
   const ports = new Map<string, string>();
   for (const row of [...rows.west, ...rows.east]) {
     if (row.kind === 'folded') {
@@ -70,6 +95,9 @@ export function foldedPorts(instance: SystemInstance, rows: InstanceRows): Map<s
 
 /** Centre y and side of each port of a block within it, by port name. */
 export function portCentres(rows: InstanceRows): Map<string, PortSpot> {
+  if (rows.arch) {
+    return archPortCentres(rows.arch);
+  }
   const centres = new Map<string, PortSpot>();
   for (const side of ['west', 'east'] as const) {
     rows[side].forEach((row, index) => {
@@ -82,11 +110,11 @@ export function portCentres(rows: InstanceRows): Map<string, PortSpot> {
 }
 
 export function instanceHeight(rows: InstanceRows): number {
-  return (
-    HEADER_HEIGHT +
-    Math.max(rows.west.length, rows.east.length) * PIN_ROW_HEIGHT +
-    PIN_BOTTOM_PADDING
-  );
+  return rows.arch
+    ? rows.arch.height
+    : HEADER_HEIGHT +
+        Math.max(rows.west.length, rows.east.length) * PIN_ROW_HEIGHT +
+        PIN_BOTTOM_PADDING;
 }
 
 function sizedRows(rows: readonly SideRow[]): SizedRow[] {
@@ -103,15 +131,26 @@ export function sizeOfInstance(
   rows: InstanceRows,
   measure: TextMeasure
 ): InstanceLayout {
-  return instanceLayout(
+  const layout = instanceLayout(
     instance,
     { west: sizedRows(rows.west), east: sizedRows(rows.east) },
     instanceSubtitle(instance, cellCount(graph, instance.path)),
     measure
   );
+  if (!rows.arch) {
+    return layout;
+  }
+  // A card also makes room for its pills, within the usual bounds.
+  const width = Math.ceil(
+    Math.min(
+      INSTANCE_MAX_WIDTH,
+      Math.max(INSTANCE_MIN_WIDTH, layout.width, archPillsWidth(rows.arch.summary, measure))
+    )
+  );
+  return { ...layout, width };
 }
 
-/** ELK node of an instance block: a port per pin row and per folded group row. */
+/** ELK node of an instance block: a port per pin row and per folded group row, or per side of a card. */
 export function instanceNode(
   graph: SystemGraph,
   instance: SystemInstance,
@@ -119,25 +158,30 @@ export function instanceNode(
   width: number,
   clockReset: ClockResetNets
 ): ElkNode {
-  const ports: ElkPort[] = (['west', 'east'] as const).flatMap((side) =>
-    rows[side].flatMap((row, index) =>
-      row.kind === 'header'
-        ? []
-        : [
-            {
-              id: portId(instance.path, rowName(row)),
-              x: side === 'west' ? -PORT_SIZE / 2 : width - PORT_SIZE / 2,
-              y: portTop(index),
-              width: PORT_SIZE,
-              height: PORT_SIZE,
-              labels:
-                row.kind === 'pin'
-                  ? badgeLabels(graph, clockReset, { instance: instance.path, pin: row.pin.name })
-                  : undefined,
-            },
-          ]
-    )
-  );
+  const ports: ElkPort[] = rows.arch
+    ? archPorts(instance.path, rows.arch, width)
+    : (['west', 'east'] as const).flatMap((side) =>
+        rows[side].flatMap((row, index) =>
+          row.kind === 'header'
+            ? []
+            : [
+                {
+                  id: portId(instance.path, rowName(row)),
+                  x: side === 'west' ? -PORT_SIZE / 2 : width - PORT_SIZE / 2,
+                  y: portTop(index),
+                  width: PORT_SIZE,
+                  height: PORT_SIZE,
+                  labels:
+                    row.kind === 'pin'
+                      ? badgeLabels(graph, clockReset, {
+                          instance: instance.path,
+                          pin: row.pin.name,
+                        })
+                      : undefined,
+                },
+              ]
+        )
+      );
   return {
     id: instance.path,
     width,

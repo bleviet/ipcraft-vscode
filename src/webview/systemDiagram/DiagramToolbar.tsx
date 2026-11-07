@@ -4,6 +4,7 @@ import type { SystemGraph } from '../../domain/systemGraph';
 import type { ToolbarSummary } from './clocks/crossingSummary';
 import type { IsolatedView } from './hooks/useIsolation';
 import type { IsolationHops } from './isolation';
+import type { PinMode } from './hooks/usePinFolding';
 import { IsolationChip } from './IsolationChip';
 import { breadcrumbs } from './model';
 
@@ -17,8 +18,10 @@ interface DiagramToolbarProps {
   /** The count chip next to the Clocks and resets toggle: the crossings, else the number of domains. */
   clockSummary: ToolbarSummary;
   reviewUnconnected: boolean;
-  /** Compact pins is on: numbered pin arrays are folded into one row. */
-  compactPins: boolean;
+  /** How instance blocks show their pins: cards, numbered arrays folded into one row, or every pin. */
+  pinMode: PinMode;
+  /** Auto is on: far out, pin text goes and block names grow (drawing only). */
+  autoDetail: boolean;
   /** Bundle buses is on: parallel connections between the same two blocks are one wire with a count. */
   bundleBuses: boolean;
   /** Number of unconnected pins in the design, and whether any is undriven. */
@@ -36,7 +39,8 @@ interface DiagramToolbarProps {
   onQueryChange: (query: string) => void;
   onSearchStep: (direction: 1 | -1) => void;
   onClocksChange: (on: boolean) => void;
-  onCompactPinsChange: (on: boolean) => void;
+  onPinModeChange: (mode: PinMode) => void;
+  onAutoDetailChange: (on: boolean) => void;
   onBundleBusesChange: (on: boolean) => void;
   onOpenClocksTab: () => void;
   onReviewUnconnectedChange: (on: boolean) => void;
@@ -46,6 +50,21 @@ interface DiagramToolbarProps {
 }
 
 export type PanelName = 'outline' | 'bottom' | 'details';
+
+const PIN_MODES: { mode: PinMode; label: string; title: string }[] = [
+  {
+    mode: 'arch',
+    label: 'Arch',
+    title: 'Draw blocks as compact cards with interface counts, without pin rows',
+  },
+  {
+    mode: 'compact',
+    label: 'Compact',
+    title:
+      'Fold numbered pin arrays such as M00_AXI..M27_AXI into one row; click a folded row to expand it',
+  },
+  { mode: 'full', label: 'Full pins', title: 'Draw every pin on its own row' },
+];
 
 const PANEL_TOGGLES: { panel: PanelName; title: string; icon: string }[] = [
   { panel: 'outline', title: 'Toggle Outline', icon: 'layout-sidebar-left' },
@@ -61,7 +80,8 @@ export function DiagramToolbar({
   clocksOn,
   clockSummary,
   reviewUnconnected,
-  compactPins,
+  pinMode,
+  autoDetail,
   bundleBuses,
   unconnected,
   isolated,
@@ -75,7 +95,8 @@ export function DiagramToolbar({
   onQueryChange,
   onSearchStep,
   onClocksChange,
-  onCompactPinsChange,
+  onPinModeChange,
+  onAutoDetailChange,
   onBundleBusesChange,
   onOpenClocksTab,
   onReviewUnconnectedChange,
@@ -177,14 +198,28 @@ export function DiagramToolbar({
           {unconnected.count}
         </span>
       </button>
+      <div role="group" aria-label="Pin detail" className="sd-segmented">
+        {PIN_MODES.map(({ mode, label, title }) => (
+          <button
+            key={mode}
+            type="button"
+            className="sd-tool"
+            aria-pressed={pinMode === mode}
+            title={title}
+            onClick={() => onPinModeChange(mode)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <button
         type="button"
         className="sd-tool"
-        aria-pressed={compactPins}
-        title="Fold numbered pin arrays such as M00_AXI..M27_AXI into one row; click a folded row to expand it"
-        onClick={() => onCompactPinsChange(!compactPins)}
+        aria-pressed={autoDetail}
+        title="Far out, hide pin labels and enlarge block names. Drawing only; blocks never move"
+        onClick={() => onAutoDetailChange(!autoDetail)}
       >
-        Compact pins
+        Auto
       </button>
       <button
         type="button"

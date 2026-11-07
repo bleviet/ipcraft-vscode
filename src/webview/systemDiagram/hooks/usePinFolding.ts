@@ -2,20 +2,28 @@ import { useCallback, useMemo, useState } from 'react';
 import { portId } from '../layout/levelEdges';
 import type { PinFolding } from '../layout/pinGrouping';
 
+/** How instance blocks show their pins: as cards (`arch`), folded (`compact`) or one row per pin (`full`). */
+export type PinMode = 'arch' | 'compact' | 'full';
+
 /**
- * Compact pins (on by default) and the open pin arrays. `folding` is the layout
- * input for `useElkLayout`: undefined shows every pin; its identity changes only
- * with the mode or the open arrays.
+ * The pin mode (Compact by default) and the open pin arrays. `folding` is the
+ * layout input for `useElkLayout`: undefined shows every pin; its identity
+ * changes only with the mode or the open arrays.
  */
 export function usePinFolding(): {
   folding: PinFolding | undefined;
-  compact: boolean;
-  setCompact: (compact: boolean) => void;
+  mode: PinMode;
+  setMode: (mode: PinMode) => void;
   togglePinGroup: (instancePath: string, groupId: string) => void;
 } {
-  const [compact, setCompact] = useState(true);
+  const [mode, setMode] = useState<PinMode>('compact');
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
-  const folding = useMemo(() => (compact ? { open } : undefined), [compact, open]);
+  const folding = useMemo<PinFolding | undefined>(() => {
+    if (mode === 'full') {
+      return undefined;
+    }
+    return mode === 'arch' ? { open, arch: true } : { open };
+  }, [mode, open]);
   const togglePinGroup = useCallback((instancePath: string, groupId: string) => {
     const key = portId(instancePath, groupId);
     setOpen((current) => {
@@ -26,5 +34,5 @@ export function usePinFolding(): {
       return next;
     });
   }, []);
-  return { folding, compact, setCompact, togglePinGroup };
+  return { folding, mode, setMode, togglePinGroup };
 }

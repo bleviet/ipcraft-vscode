@@ -9,28 +9,29 @@ import {
 } from '@xyflow/react';
 import { BoundaryNode } from './BoundaryNode';
 import { DiagramContextMenu, type ContextMenuItem } from './DiagramContextMenu';
+import { AutoDetail } from './AutoDetail';
 import { DiagramLegend } from './DiagramLegend';
+import { DiagramMinimap } from './DiagramMinimap';
 import { ElkEdge } from './ElkEdge';
 import { FrameNode } from './FrameNode';
 import { InstanceNode } from './InstanceNode';
 import { isPaneDoubleClick } from './canvasTargets';
 import { PinHoverCard } from './PinHoverCard';
 import { usePinHover } from './hooks/usePinHover';
+import type { ViewOptions } from './hooks/useViewOptions';
+import { NO_HIDDEN_LAYERS } from './layerFilter';
+import { minimapShown } from './minimap';
 import type { DiagramLayout } from './hooks/useElkLayout';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
 import { clockDecor, type ClockContext } from './clockDecor';
-import { drawnLayout } from './drawnLayout';
+import { drawnLayout, withoutHiddenLayers } from './drawnLayout';
+import { decoratedEdges } from './canvasEdges';
 import { edgeNetIds } from './edgeNets';
 import { bundleMenuItems, highlightMenuItems, traceMenuItems } from './canvasMenuItems';
-import {
-  highlightCount,
-  highlightedNetIds,
-  netHighlightColor,
-  nodeHighlightColor,
-} from './highlights';
+import { highlightCount, highlightedNetIds, nodeHighlightColor } from './highlights';
 import { highlightedPinsByNode } from './pinHighlight';
 import {
   boundaryMatchesQuery,
@@ -66,6 +67,8 @@ interface DiagramCanvasProps {
   drawClockReset: boolean;
   focusedPin: FocusedPin | null;
   query: string;
+  /** Draw-only options (Auto detail, minimap, legend filters); absent, none applies. */
+  view?: ViewOptions;
   flash?: SearchFlash | null;
   onFlashEnd?: (token: number) => void;
   onSelect: (selection: Selection | null) => void;
@@ -116,6 +119,7 @@ export function DiagramCanvas({
   drawClockReset,
   focusedPin,
   query,
+  view,
   flash,
   onFlashEnd,
   onSelect,
@@ -184,9 +188,15 @@ export function DiagramCanvas({
   );
   const showHighlights = review === null;
 
-  const drawn = useMemo(
+  // The legend lists the categories before the hidden ones go, so a hidden chip stays clickable.
+  const shown = useMemo(
     () => (layout ? drawnLayout(layout, drawClockReset) : null),
     [layout, drawClockReset]
+  );
+  const hiddenLayers = view?.hiddenLayers ?? NO_HIDDEN_LAYERS;
+  const drawn = useMemo(
+    () => (shown ? withoutHiddenLayers(shown, hiddenLayers) : null),
+    [shown, hiddenLayers]
   );
   const decor = useMemo(() => clockDecor(drawn, clocks, selection), [drawn, clocks, selection]);
   const { tree } = decor;
@@ -263,33 +273,14 @@ export function DiagramCanvas({
 
   const edges = useMemo(
     () =>
-      (drawn?.edges ?? []).map((edge) => {
-        const marks = decor.edges.get(edge.id);
-        const netIds = edgeNetIds(edge);
-        const highlightColor =
-          showHighlights && highlights
-            ? netIds
-                .map((netId) => netHighlightColor(highlights, netId))
-                .find((color) => color !== undefined)
-            : undefined;
-        return {
-          ...edge,
-          selected: netIds.some(
-            (netId) =>
-              activeSelectedNetIds.has(netId) ||
-              (selection?.kind === 'net' &&
-                (tree ? tree.netIds.has(netId) : selection.id === netId))
-          ),
-          ...((marks !== undefined || highlightColor !== undefined) && {
-            data: {
-              ...edge.data,
-              ...marks,
-              ...(highlightColor !== undefined && { highlightColor }),
-            },
-          }),
-        };
+      decoratedEdges(drawn?.edges ?? [], {
+        decor,
+        selection,
+        selectedNetIds: activeSelectedNetIds,
+        showHighlights,
+        highlights,
       }),
-    [drawn, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
+    [drawn, selection, activeSelectedNetIds, decor, showHighlights, highlights]
   );
 
   // React Flow stays mounted on error: unmounting resets its store to the
@@ -439,11 +430,26 @@ export function DiagramCanvas({
       >
         <Background variant={BackgroundVariant.Dots} />
         <DiagramLegend
-          edges={drawn?.edges ?? []}
-          nodes={drawn?.nodes ?? []}
+          edges={shown?.edges ?? []}
+          nodes={shown?.nodes ?? []}
           review={review !== null}
           domains={decor.legend}
+          hidden={hiddenLayers}
+          onToggleLayer={view?.toggleLayer}
+          onSoloLayer={view?.soloLayer}
         />
+        {view && (
+          <>
+            <AutoDetail target={containerRef} enabled={view.autoDetail} />
+            <DiagramMinimap
+              shown={minimapShown(view.minimapChoice, layout?.nodes.length ?? 0)}
+              query={query}
+              onToggle={() =>
+                view.setMinimapChoice(!minimapShown(view.minimapChoice, layout?.nodes.length ?? 0))
+              }
+            />
+          </>
+        )}
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}
       {menu && (

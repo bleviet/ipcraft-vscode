@@ -10,16 +10,18 @@
  */
 
 import type { ElkExtendedEdge, ElkNode, ElkPort } from 'elkjs/lib/elk-api';
-import type { SystemGraph, SystemInstance, SystemPin } from '../../../domain/systemGraph';
-import type { DiagramFlowEdge, DiagramFlowNode, IsolationSubset, PinSide } from './diagramTypes';
+import type { SystemGraph, SystemInstance } from '../../../domain/systemGraph';
+import type { DiagramFlowEdge, DiagramFlowNode, IsolationSubset } from './diagramTypes';
 import { boundaryLayout, type TextMeasure } from './nodeSizing';
+import { boundaryNode, boundarySide } from './boundaryElk';
+import { PORT_SIZE } from './pinRows';
 import { extendRouteEnds } from './edgePoints';
 import type { BusBundling } from './edgeBundling';
 import { foldedEdges, toElkEdge } from './foldedEdges';
 import { compoundNode, frameData } from './expandedLayout';
 import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
 import { bundleElkEdge, laidOutBundleEdges, planInputBundles } from './levelBundles';
-import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
+import { badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
 import {
   PORT_LABEL_OPTIONS,
   type InstanceRows,
@@ -31,11 +33,10 @@ import {
 } from './instanceElk';
 import type { PinFolding } from './pinGrouping';
 import { PARTITIONING_ON, withHopIndexes, withPartitions } from './tracePartition';
-import { PORT_SIZE } from './pinRows';
-import { boundaryId, cellCount, endpointKey, netsByEndpoint, pinRole } from '../model';
+import { boundaryId, cellCount, endpointKey, netsByEndpoint } from '../model';
 
 export { HEADER_HEIGHT, PIN_ROW_HEIGHT } from './pinRows';
-export const BOUNDARY_HEIGHT = 26;
+export { BOUNDARY_HEIGHT } from './boundaryElk';
 
 export type {
   BoundaryNodeData,
@@ -74,49 +75,6 @@ const LAYOUT_OPTIONS = {
 
 type ClockResetNets = ReturnType<typeof clockResetNetsByEndpoint>;
 
-function boundarySide(pin: SystemPin): PinSide {
-  return pinRole(pin, true) === 'source' ? 'east' : 'west';
-}
-
-function boundaryNode(
-  graph: SystemGraph,
-  levelPath: string,
-  pin: SystemPin,
-  width: number,
-  clockReset: ClockResetNets,
-  traced: boolean
-): ElkNode {
-  const id = boundaryId(levelPath, pin.name);
-  const side = boundarySide(pin);
-  const role = pinRole(pin, true);
-  const layoutOptions: Record<string, string> = {
-    'org.eclipse.elk.portConstraints': 'FIXED_POS',
-    ...PORT_LABEL_OPTIONS,
-  };
-  // A traced path is ordered by partitions; ELK rejects a layer constraint beside them.
-  if (!traced && role === 'source') {
-    layoutOptions['elk.layered.layering.layerConstraint'] = 'FIRST';
-  } else if (!traced && role === 'sink') {
-    layoutOptions['elk.layered.layering.layerConstraint'] = 'LAST';
-  }
-  return {
-    id,
-    width,
-    height: BOUNDARY_HEIGHT,
-    layoutOptions,
-    ports: [
-      {
-        id: portId(id, pin.name),
-        x: side === 'west' ? -PORT_SIZE / 2 : width - PORT_SIZE / 2,
-        y: (BOUNDARY_HEIGHT - PORT_SIZE) / 2,
-        width: PORT_SIZE,
-        height: PORT_SIZE,
-        labels: badgeLabels(graph, clockReset, { instance: null, pin: pin.name }),
-      },
-    ],
-  };
-}
-
 interface BuildContext {
   graph: SystemGraph;
   /** The level the graph is built for; its boundary pins are nodes and isolation applies to it. */
@@ -140,10 +98,14 @@ function levelRows(
   clockReset: ClockResetNets
 ): Map<string, InstanceRows> {
   const rows = new Map<string, InstanceRows>();
-  for (const path of context.graph.levels[levelPath]?.instances ?? []) {
-    const instance = context.graph.instances[path];
+  const { graph, options } = context;
+  const arch = options.pinFolding?.arch
+    ? { graph, nets: netsByEndpoint(graph, levelPath) }
+    : undefined;
+  for (const path of graph.levels[levelPath]?.instances ?? []) {
+    const instance = graph.instances[path];
     if (instance && !isCompound(context, instance)) {
-      rows.set(path, instanceRows(instance, clockReset, context.options.pinFolding));
+      rows.set(path, instanceRows(instance, clockReset, options.pinFolding, arch));
     }
   }
   return rows;
@@ -313,7 +275,12 @@ function addLevelNodes(
       continue;
     }
     if (instance) {
-      const rows = instanceRows(instance, clockReset, pinFolding);
+      const rows = instanceRows(
+        instance,
+        clockReset,
+        pinFolding,
+        pinFolding?.arch ? { graph, nets: netLookup } : undefined
+      );
       const sizing = sizeOfInstance(graph, instance, rows, measure);
       nodes.push({
         ...base,
@@ -326,6 +293,7 @@ function addLevelNodes(
           westWidth: sizing.westWidth,
           eastWidth: sizing.eastWidth,
           ...flowPinRows(instance, rows, netLookup, portsOf(child), clockReset, sizing.labels),
+          ...(rows.arch && { arch: rows.arch.summary }),
         },
       });
       continue;

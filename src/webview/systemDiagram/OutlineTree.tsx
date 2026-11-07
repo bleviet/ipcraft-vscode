@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { outlineDomains, type OutlineDomains } from './clocks/domainView';
+import { OutlineKindFilter } from './OutlineKindFilter';
+import { outlineVisibility, type OutlineKind } from './outlineFilter';
 import { boundaryId, cellCount, instanceTypeLabel, type Selection } from './model';
 import { nodeUnconnectedCount, type UnconnectedPin } from './unconnectedPins';
 
@@ -135,6 +137,12 @@ export function OutlineTree({
   const unconnectedOf = (nodeId: string) =>
     review ? nodeUnconnectedCount(review, nodeId, graph) : undefined;
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set(['/', 'ports']));
+  const [kind, setKind] = useState<OutlineKind>('all');
+  const visible = useMemo(() => outlineVisibility(graph, kind), [graph, kind]);
+  // A filtered outline opens every row it keeps: the matches are the point.
+  const filtering = kind !== 'all';
+  const isOpen = (key: string) => filtering || expanded.has(key);
+  const toggleOf = (key: string) => (filtering ? undefined : () => toggle(key));
   const toggle = (key: string) =>
     setExpanded((previous) => {
       const next = new Set(previous);
@@ -147,7 +155,7 @@ export function OutlineTree({
   const renderLevel = (path: string, depth: number): React.ReactNode =>
     (graph.levels[path]?.instances ?? []).map((instancePath) => {
       const instance = graph.instances[instancePath];
-      if (!instance) {
+      if (!instance || (visible.instances && !visible.instances.has(instancePath))) {
         return null;
       }
       const isHier = instance.kind === 'hier';
@@ -162,11 +170,11 @@ export function OutlineTree({
             unconnected={unconnectedOf(instancePath)}
             domains={clocks ? outlineDomains(clocks, graph, instancePath) : undefined}
             current={selection?.kind === 'instance' && selection.id === instancePath}
-            expanded={isHier ? expanded.has(instancePath) : undefined}
-            onToggle={isHier ? () => toggle(instancePath) : undefined}
+            expanded={isHier ? isOpen(instancePath) : undefined}
+            onToggle={isHier ? toggleOf(instancePath) : undefined}
             onSelect={() => onSelect({ kind: 'instance', id: instancePath }, path)}
           />
-          {isHier && expanded.has(instancePath) && renderLevel(instancePath, depth + 1)}
+          {isHier && isOpen(instancePath) && renderLevel(instancePath, depth + 1)}
         </React.Fragment>
       );
     });
@@ -174,6 +182,7 @@ export function OutlineTree({
   return (
     <nav aria-label="Design outline" className="min-h-0 flex-1 overflow-auto pb-3">
       <h3 className="sd-section">Outline</h3>
+      <OutlineKindFilter kind={kind} onChange={setKind} />
       <OutlineRow
         depth={0}
         label={graph.name}
@@ -187,23 +196,26 @@ export function OutlineTree({
             : undefined
         }
         current={levelPath === '/' && selection === null}
-        expanded={expanded.has('/')}
-        onToggle={() => toggle('/')}
+        expanded={isOpen('/')}
+        onToggle={toggleOf('/')}
         onSelect={() => onSelect(null, '/')}
       />
-      {expanded.has('/') && (
+      {isOpen('/') && (
         <>
           {renderLevel('/', 1)}
-          <OutlineRow
-            depth={1}
-            label="External ports"
-            detail={String(graph.levels['/']?.boundaryPins.length ?? 0)}
-            current={false}
-            expanded={expanded.has('ports')}
-            onToggle={() => toggle('ports')}
-            onSelect={() => toggle('ports')}
-          />
-          {expanded.has('ports') &&
+          {visible.ports && (
+            <OutlineRow
+              depth={1}
+              label="External ports"
+              detail={String(graph.levels['/']?.boundaryPins.length ?? 0)}
+              current={false}
+              expanded={isOpen('ports')}
+              onToggle={toggleOf('ports')}
+              onSelect={() => toggle('ports')}
+            />
+          )}
+          {visible.ports &&
+            isOpen('ports') &&
             (graph.levels['/']?.boundaryPins ?? []).map((pin) => (
               <OutlineRow
                 key={pin.name}
