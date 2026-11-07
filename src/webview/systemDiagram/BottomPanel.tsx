@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { AddressMapTable } from './AddressMapTable';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
+import { clocksInView } from './clocks/viewScope';
 import { ClocksTable } from './ClocksTable';
+import { shownLevels } from './expansion';
 import { ProblemsList } from './ProblemsList';
 import type { Selection } from './model';
 import { UnconnectedPinsTable } from './UnconnectedPinsTable';
@@ -13,6 +15,9 @@ export type BottomTab = 'address' | 'clocks' | 'unconnected' | 'problems';
 interface BottomPanelProps {
   graph: SystemGraph;
   clocks: ClockAnalysis;
+  /** The level on screen, and the hierarchy blocks expanded in place on it: the Clocks tab lists what they show. */
+  levelPath: string;
+  expanded: ReadonlySet<string>;
   tab: BottomTab;
   onTabChange: (tab: BottomTab) => void;
   findings: readonly UnconnectedPin[];
@@ -28,6 +33,8 @@ interface BottomPanelProps {
 export function BottomPanel({
   graph,
   clocks,
+  levelPath,
+  expanded,
   tab,
   onTabChange,
   findings,
@@ -38,9 +45,13 @@ export function BottomPanel({
   onSelectNet,
   onReveal,
 }: BottomPanelProps) {
+  const view = useMemo(
+    () => clocksInView(graph, clocks, shownLevels(graph, levelPath, expanded)),
+    [graph, clocks, levelPath, expanded]
+  );
   const tabs: { id: BottomTab; label: string; count: number }[] = [
     { id: 'address', label: 'Address map', count: graph.addressSegments.length },
-    { id: 'clocks', label: 'Clocks', count: clocks.domains.length },
+    { id: 'clocks', label: 'Clocks', count: view.domains.length },
     { id: 'unconnected', label: 'Unconnected', count: findings.length },
     { id: 'problems', label: 'Problems', count: graph.diagnostics.length },
   ];
@@ -71,6 +82,7 @@ export function BottomPanel({
           <ClocksTable
             graph={graph}
             clocks={clocks}
+            view={view}
             selection={selection}
             focusedPin={focusedPin}
             onSelectNet={onSelectNet}

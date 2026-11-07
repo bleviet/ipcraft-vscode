@@ -37,7 +37,6 @@ describe('clockDecor', () => {
     expect(decor.tree).toBeUndefined();
     expect(decor.edges.size + decor.pinMarks.size + decor.domains.size).toBe(0);
     expect(decor.legend).toBeNull();
-    expect(decor.banner).toBeNull();
   });
 
   it('styles the wires, marks the pins and strips the blocks in the domain mode', async () => {
@@ -63,15 +62,11 @@ describe('clockDecor', () => {
     expect(decor.domains.get(DSP)).toMatchObject({ cdc: 2, rdc: 2 });
     expect(decor.domains.has('/::ext_clk')).toBe(false);
     expect(decor.legend?.map((entry) => entry.label)).toContain('FCLK_CLK1 · 200 MHz');
-    expect(decor.banner).toMatch(
-      /^This level: ext_clk 125 MHz, FCLK_CLK0 100 MHz, FCLK_CLK1 200 MHz\./
-    );
   });
 
-  it('describes the level on show in the banner and the legend', async () => {
+  it('lists the domains of the level on show in the legend', async () => {
     const layout = await layoutOf(DSP);
     const decor = clockDecor(layout, context(DSP, true), null);
-    expect(decor.banner).toMatch(/2 resets released by another clock domain/);
     expect(decor.legend?.map((entry) => entry.label).slice(0, 2)).toEqual([
       'FCLK_CLK0 · 100 MHz',
       'FCLK_CLK1 · 200 MHz',

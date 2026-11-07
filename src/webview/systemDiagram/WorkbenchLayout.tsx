@@ -224,6 +224,8 @@ export function WorkbenchLayout({
               <BottomPanel
                 graph={graph}
                 clocks={clocks}
+                levelPath={nav.levelPath}
+                expanded={nav.expanded}
                 tab={tab}
                 onTabChange={setTab}
                 findings={findings}

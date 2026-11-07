@@ -3,6 +3,7 @@ import type { SystemGraph } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import type { ClockDomain, ResetSource } from './clocks/clockTypes';
 import { formatHz } from './clocks/frequency';
+import type { ClocksInView } from './clocks/viewScope';
 import { CrossingsTable } from './CrossingsTable';
 import { DomainLabel, DomainName } from './DomainLabel';
 import { LineLink } from './LineLink';
@@ -13,6 +14,8 @@ import type { FocusedPin } from './unconnectedPins';
 interface ClocksTableProps {
   graph: SystemGraph;
   clocks: ClockAnalysis;
+  /** What is on screen: the rows of all three tables. */
+  view: ClocksInView;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   /** Opens a net; a crossing row also haloes its sink pin. */
@@ -34,10 +37,11 @@ function ReleasedOn({ reset }: { reset: ResetSource }) {
   return reset.domain ? <DomainLabel domain={reset.domain} /> : <>unknown</>;
 }
 
-/** Bottom-panel tab: the clock domains with their frequencies, the reset sources, and the crossings. */
+/** Bottom-panel tab: the clock domains with their frequencies, the reset sources, and the crossings of the view on screen. */
 export function ClocksTable({
   graph,
   clocks,
+  view,
   selection,
   focusedPin,
   onSelectNet,
@@ -107,8 +111,8 @@ export function ClocksTable({
   return (
     <div>
       <h3 className="sd-psec">Clock domains</h3>
-      {clocks.domains.length === 0 ? (
-        <p className="p-3 opacity-70">No clock domains found.</p>
+      {view.domains.length === 0 ? (
+        <p className="p-3 opacity-70">No clock domains on this level.</p>
       ) : (
         <table className="sd-table">
           <thead>
@@ -122,12 +126,12 @@ export function ClocksTable({
               <th>Source</th>
             </tr>
           </thead>
-          <tbody>{clocks.domains.map(domainRow)}</tbody>
+          <tbody>{view.domains.map(domainRow)}</tbody>
         </table>
       )}
       <h3 className="sd-psec">Resets</h3>
-      {clocks.resets.length === 0 ? (
-        <p className="p-3 opacity-70">No reset sources found.</p>
+      {view.resets.length === 0 ? (
+        <p className="p-3 opacity-70">No reset sources on this level.</p>
       ) : (
         <table className="sd-table">
           <thead>
@@ -139,13 +143,13 @@ export function ClocksTable({
               <th>Source</th>
             </tr>
           </thead>
-          <tbody>{clocks.resets.map(resetRow)}</tbody>
+          <tbody>{view.resets.map(resetRow)}</tbody>
         </table>
       )}
       <h3 className="sd-psec">Clock domain crossings</h3>
       <CrossingsTable
         graph={graph}
-        clocks={clocks}
+        crossings={view.crossings}
         selection={selection}
         focusedPin={focusedPin}
         onSelectNet={onSelectNet}

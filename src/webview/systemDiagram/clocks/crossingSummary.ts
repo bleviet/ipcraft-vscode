@@ -1,6 +1,6 @@
 /**
  * Counts and texts derived from the crossing records, shared by every surface:
- * the toolbar, the level banner, node badges and outline rows.
+ * the toolbar, node badges and outline rows.
  */
 
 import type { SystemGraph } from '../../../domain/systemGraph';
@@ -12,7 +12,6 @@ import type {
   CrossingKind,
   CrossingStatus,
 } from './clockTypes';
-import { nameWithFrequency } from './frequency';
 import { isWithinLevel } from './levelPaths';
 import { endKey } from './physicalNets';
 
@@ -127,58 +126,4 @@ export function levelDomains(
     }
   }
   return [...found].sort((a, b) => a.index - b.index);
-}
-
-/** Banner text for the level on show. */
-export function levelClockSummary(
-  analysis: ClockAnalysis,
-  graph: SystemGraph,
-  levelPath: string
-): string {
-  const domains = levelDomains(analysis, graph, levelPath);
-  const own = analysis.crossings.filter((crossing) => crossing.level === levelPath);
-  const flagged = (kind: CrossingKind) =>
-    own.filter((crossing) => crossing.kind === kind && crossing.status === 'cross').length;
-  const related = own.filter((crossing) => crossing.status === 'related').length;
-  const nested = analysis.crossings.filter(
-    (crossing) =>
-      crossing.status === 'cross' &&
-      crossing.level !== levelPath &&
-      isWithinLevel(crossing.level, levelPath)
-  ).length;
-  const spanning = own.flatMap((crossing) =>
-    crossing.kind === 'block' ? [graph.instances[crossing.instance]?.name ?? crossing.instance] : []
-  );
-  const unchecked = own.filter((crossing) => crossing.status === 'unchecked').length;
-
-  const parts = [
-    domains.length > 0
-      ? `This level: ${domains.map((domain) => nameWithFrequency(domain, ' ')).join(', ')}.`
-      : 'This level: no clock domains.',
-  ];
-  const data = flagged('data');
-  if (data > 0) {
-    parts.push(
-      `${plural(data, 'clock domain crossing', 'clock domain crossings')} without a synchronizer.`
-    );
-  }
-  const resets = flagged('reset');
-  if (resets > 0) {
-    parts.push(`${plural(resets, 'reset', 'resets')} released by another clock domain.`);
-  }
-  if (nested > 0) {
-    parts.push(`${nested} more inside nested hierarchies.`);
-  }
-  if (related > 0) {
-    parts.push(`${related} between related clocks.`);
-  }
-  if (spanning.length > 0) {
-    parts.push(
-      `${spanning.join(', ')} ${spanning.length === 1 ? 'spans' : 'span'} more than one domain.`
-    );
-  }
-  if (unchecked > 0) {
-    parts.push(`${unchecked} not checked; see the Clocks tab.`);
-  }
-  return parts.join(' ');
 }

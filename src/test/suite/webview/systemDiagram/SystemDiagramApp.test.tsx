@@ -1492,6 +1492,12 @@ describe('SystemDiagramApp', () => {
     it('lists a reset tied to a constant as such, with its one sink checked ok', async () => {
       await renderWithGraph();
       fireEvent.click(toggle());
+      // The reset lives in dsp_pipeline/coeff_bank: the tab lists it once that level is on screen.
+      expect(bottom().queryByText('tie_valid/dout')).not.toBeInTheDocument();
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/coeff_bank');
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline/coeff_bank'));
+      await screen.findByTestId('node:/dsp_pipeline/coeff_bank/tie_valid');
       const row = rowOf('tie_valid/dout');
       const cells = within(row).getAllByRole('cell');
       expect(cells[1]).toHaveTextContent('tied to a constant');
@@ -1633,13 +1639,13 @@ describe('SystemDiagramApp', () => {
         .getAllByRole('row')
         .slice(1);
     const showUnchecked = () =>
-      bottom().getByRole('checkbox', { name: 'Show 3 that could not be checked' });
+      bottom().getByRole('checkbox', { name: 'Show 2 that could not be checked' });
 
     it('lists only the crossings without a synchronizer, with one line and no status chips', async () => {
       await domains();
       expect(bottom().getByRole('heading', { name: 'Clock domain crossings' })).toBeVisible();
-      expect(bottom().getByText('4 crossings without a synchronizer.')).toBeVisible();
-      expect(crossingRows()).toHaveLength(4);
+      expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
+      expect(crossingRows()).toHaveLength(3);
       expect(bottom().queryByText(/has clocks on 2 domains/)).not.toBeInTheDocument();
       expect(bottom().queryByText('Both ends on FCLK_CLK0')).not.toBeInTheDocument();
       expect(bottom().queryByText('axis_data_fifo_0 (dsp_pipeline)')).not.toBeInTheDocument();
@@ -1654,8 +1660,8 @@ describe('SystemDiagramApp', () => {
       expect(showUnchecked()).not.toBeChecked();
       fireEvent.click(showUnchecked());
       expect(showUnchecked()).toBeChecked();
-      expect(crossingRows()).toHaveLength(7);
-      expect(bottom().getByText('4 crossings without a synchronizer.')).toBeVisible();
+      expect(crossingRows()).toHaveLength(5);
+      expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
       const unchecked = bottom()
         .getAllByText(/has clocks on 2 domains/)[0]
         .closest('tr')!;
@@ -1665,7 +1671,7 @@ describe('SystemDiagramApp', () => {
         })
       ).toHaveTextContent('?');
       fireEvent.click(showUnchecked());
-      expect(crossingRows()).toHaveLength(4);
+      expect(crossingRows()).toHaveLength(3);
       expect(bottom().queryByText(/has clocks on 2 domains/)).not.toBeInTheDocument();
     });
 
@@ -1696,6 +1702,68 @@ describe('SystemDiagramApp', () => {
           .getAllByRole('columnheader')
           .map((header) => header.textContent)
       ).toEqual(['Status', 'Kind', 'From', 'To', 'Problem', 'Source']);
+    });
+
+    describe('lists what the level on screen shows', () => {
+      const clocksTab = (count: number) => screen.getByRole('tab', { name: `Clocks ${count}` });
+      const has = (text: string) => bottom().queryByText(text) !== null;
+      const crumbs = () => within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+
+      it('changes when entering dsp_pipeline and back', async () => {
+        await domains();
+        expect(clocksTab(3)).toHaveAttribute('aria-selected', 'true');
+        expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
+        expect(rowOf('ext_clk')).toBeDefined();
+        expect(rowOf('processing_system7_0/FCLK_RESET0_N')).toBeDefined();
+        expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(false);
+        expect(has('fir_compiler_0/M_AXIS_DATA')).toBe(true);
+
+        fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+        await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+        expect(clocksTab(2)).toHaveAttribute('aria-selected', 'true');
+        expect(bottom().getByText('4 crossings without a synchronizer.')).toBeVisible();
+        expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(true);
+        expect(rowOf('ext_clk')).toBeUndefined();
+        expect(rowOf('FCLK_CLK0')).toBeDefined();
+        expect(rowOf('processing_system7_0/FCLK_RESET0_N')).toBeUndefined();
+        expect(rowOf('rst_ps7_0_100M/peripheral_aresetn')).toBeDefined();
+        expect(
+          bottom().getByRole('checkbox', { name: 'Show 3 that could not be checked' })
+        ).toBeVisible();
+
+        fireEvent.click(crumbs().getByRole('button', { name: 'zynq_clock_domains' }));
+        await screen.findByTestId('node:/axi_dma_0');
+        expect(clocksTab(3)).toBeVisible();
+        expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
+        expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(false);
+      });
+
+      it('adds the rows of a block expanded in place, and drops them on collapse', async () => {
+        await domains();
+        expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(false);
+        fireEvent.click(screen.getByRole('button', { name: 'Expand dsp_pipeline in place' }));
+        await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+        expect(bottom().getByText('4 crossings without a synchronizer.')).toBeVisible();
+        expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(true);
+        expect(
+          bottom().getByRole('checkbox', { name: 'Show 3 that could not be checked' })
+        ).toBeVisible();
+        // The root still shows its own domains, and the block adds none.
+        expect(clocksTab(3)).toBeVisible();
+        expect(rowOf('ext_clk')).toBeDefined();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Collapse dsp_pipeline' }));
+        await waitFor(() => expect(has('fir_ctrl_0/M_AXIS_CONFIG')).toBe(false));
+        expect(bottom().getByText('3 crossings without a synchronizer.')).toBeVisible();
+      });
+
+      it('leaves the toolbar count design-wide', async () => {
+        await domains();
+        expect(toggle()).toHaveTextContent('2 CDC · 2 RDC');
+        fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+        await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+        expect(toggle()).toHaveTextContent('2 CDC · 2 RDC');
+      });
     });
 
     it('selects the net of a clicked crossing and haloes its sink pin', async () => {
@@ -1940,7 +2008,7 @@ describe('SystemDiagramApp', () => {
 
     it('lists no row for related clocks, and says no crossing was found', async () => {
       await domains();
-      expect(bottom().getByText('No clock domain crossings found.')).toBeVisible();
+      expect(bottom().getByText('No clock domain crossings on this level.')).toBeVisible();
       expect(bottom().queryByRole('columnheader', { name: 'Problem' })).not.toBeInTheDocument();
       expect(bottom().queryByText('stream_src/M_AXIS')).not.toBeInTheDocument();
       expect(bottom().queryByText(/Both clocks come from/)).not.toBeInTheDocument();

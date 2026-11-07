@@ -1,13 +1,13 @@
 /**
  * What the clock and reset analysis adds to the drawn level (issue #243): wire
- * styles, pin marks, node domain strips, the legend entries and the banner text.
+ * styles, pin marks, node domain strips and the legend entries.
  * Pure; the canvas merges the result into its React Flow nodes and edges.
  */
 
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { crossingEdgeIds } from './clocks/crossingEdges';
-import { crossingEndKeys, levelClockSummary, levelDomains } from './clocks/crossingSummary';
+import { crossingEndKeys, levelDomains } from './clocks/crossingSummary';
 import { nodeDomains, type NodeDomains } from './clocks/domainView';
 import { edgeMarks, type EdgeMarks } from './clocks/edgeView';
 import { nodePinMarks, type PinMarks } from './clocks/nodeView';
@@ -36,8 +36,6 @@ export interface ClockDecor {
   domains: ReadonlyMap<string, NodeDomains>;
   /** Legend entries to append; null outside the domain mode. */
   legend: readonly DomainLegendEntry[] | null;
-  /** Banner text; null outside the domain mode. */
-  banner: string | null;
 }
 
 export function clockDecor(
@@ -54,7 +52,6 @@ export function clockDecor(
       pinMarks: new Map(),
       domains: new Map(),
       legend: null,
-      banner: null,
     };
   }
   const nodes = layout?.nodes ?? [];
@@ -98,6 +95,5 @@ export function clockDecor(
     pinMarks,
     domains,
     legend: domainMode ? domainLegend(levelDomains(analysis, graph, levelPath)) : null,
-    banner: domainMode ? levelClockSummary(analysis, graph, levelPath) : null,
   };
 }

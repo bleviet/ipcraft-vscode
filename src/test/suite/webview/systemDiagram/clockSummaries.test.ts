@@ -299,7 +299,7 @@ describe('crossing rows', () => {
   });
 
   it('counts the crossings in one line: none, one, or many', () => {
-    expect(crossingsHeadline(0)).toBe('No clock domain crossings found.');
+    expect(crossingsHeadline(0)).toBe('No clock domain crossings on this level.');
     expect(crossingsHeadline(1)).toBe('1 crossing without a synchronizer.');
     expect(crossingsHeadline(4)).toBe('4 crossings without a synchronizer.');
   });

@@ -19,10 +19,10 @@ export function listedCrossings(
   );
 }
 
-/** The one line above the table: how many crossings need a synchronizer. */
+/** The one line above the table: how many crossings in view need a synchronizer. */
 export function crossingsHeadline(flagged: number): string {
   return flagged === 0
-    ? 'No clock domain crossings found.'
+    ? 'No clock domain crossings on this level.'
     : `${plural(flagged, 'crossing', 'crossings')} without a synchronizer.`;
 }
 

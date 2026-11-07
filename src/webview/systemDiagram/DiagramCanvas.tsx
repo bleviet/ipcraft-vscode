@@ -281,11 +281,6 @@ export function DiagramCanvas({
             {levelReviewSummary(review.findings, review.graph, review.levelPath)}
           </Panel>
         )}
-        {decor.banner !== null && (
-          <Panel position="top-right" className="sd-domain-banner" aria-label="Clock domains">
-            {decor.banner}
-          </Panel>
-        )}
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}
       {menu && (

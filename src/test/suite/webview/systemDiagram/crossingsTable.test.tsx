@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import type { Crossing, PinCrossing } from '../../../../webview/systemDiagram/clocks/clockTypes';
+import type { PinCrossing } from '../../../../webview/systemDiagram/clocks/clockTypes';
 import { CrossingsTable } from '../../../../webview/systemDiagram/CrossingsTable';
 import type { FocusedPin } from '../../../../webview/systemDiagram/unconnectedPins';
 import { loadClockFixtureGraph } from './fixtureGraph';
@@ -13,7 +13,7 @@ const pinCrossings = analysis.crossings.filter(
 );
 
 function renderTable(
-  crossings: readonly Crossing[],
+  crossings: readonly PinCrossing[],
   props: { focusedPin?: FocusedPin; selection?: { kind: 'net'; id: string } } = {}
 ) {
   const onSelectNet = jest.fn();
@@ -21,7 +21,7 @@ function renderTable(
   render(
     <CrossingsTable
       graph={graph}
-      clocks={{ ...analysis, crossings }}
+      crossings={crossings}
       selection={props.selection ?? null}
       focusedPin={props.focusedPin ?? null}
       onSelectNet={onSelectNet}
@@ -38,7 +38,7 @@ const withStatus = (...statuses: string[]) =>
 describe('CrossingsTable', () => {
   describe('summary line', () => {
     it('counts the crossings without a synchronizer, in the plural', () => {
-      renderTable(analysis.crossings);
+      renderTable(pinCrossings);
       expect(screen.getByText('4 crossings without a synchronizer.')).toBeVisible();
     });
 
@@ -50,21 +50,21 @@ describe('CrossingsTable', () => {
 
     it('says none were found, without a table, when nothing is flagged', () => {
       renderTable(withStatus('ok'));
-      expect(screen.getByText('No clock domain crossings found.')).toBeVisible();
+      expect(screen.getByText('No clock domain crossings on this level.')).toBeVisible();
       expect(screen.queryByRole('table')).not.toBeInTheDocument();
       expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     });
 
     it('says none were found for a design without data connections or resets', () => {
       renderTable([]);
-      expect(screen.getByText('No clock domain crossings found.')).toBeVisible();
+      expect(screen.getByText('No clock domain crossings on this level.')).toBeVisible();
       expect(screen.queryByRole('table')).not.toBeInTheDocument();
     });
   });
 
   describe('rows', () => {
     it('lists only the crossings by default, never ok, related or block rows', () => {
-      renderTable(analysis.crossings);
+      renderTable(pinCrossings);
       expect(dataRows()).toHaveLength(4);
       expect(screen.getAllByRole('img', { name: 'Crossing' })).toHaveLength(4);
       expect(screen.queryByRole('img', { name: 'Could not be checked' })).not.toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('CrossingsTable', () => {
     });
 
     it('reveals the crossings that could not be checked with the checkbox, off at first', () => {
-      renderTable(analysis.crossings);
+      renderTable(pinCrossings);
       const checkbox = screen.getByRole('checkbox', { name: 'Show 3 that could not be checked' });
       expect(checkbox).not.toBeChecked();
       fireEvent.click(checkbox);
@@ -86,7 +86,7 @@ describe('CrossingsTable', () => {
 
     it('offers the checkbox for one crossing that could not be checked, and for none flagged', () => {
       renderTable(withStatus('unchecked').slice(0, 1));
-      expect(screen.getByText('No clock domain crossings found.')).toBeVisible();
+      expect(screen.getByText('No clock domain crossings on this level.')).toBeVisible();
       fireEvent.click(screen.getByRole('checkbox', { name: 'Show 1 that could not be checked' }));
       expect(dataRows()).toHaveLength(1);
     });
@@ -109,7 +109,7 @@ describe('CrossingsTable', () => {
 
   describe('row click', () => {
     it('selects the net and names the sink pin to focus', () => {
-      const { onSelectNet } = renderTable(analysis.crossings);
+      const { onSelectNet } = renderTable(pinCrossings);
       const row = screen.getByText('fir_compiler_0/aresetn').closest('tr')!;
       fireEvent.click(row);
       const crossing = pinCrossings.find(
@@ -123,7 +123,7 @@ describe('CrossingsTable', () => {
     });
 
     it('opens the script from the source link without selecting the net', () => {
-      const { onSelectNet, onReveal } = renderTable(analysis.crossings);
+      const { onSelectNet, onReveal } = renderTable(pinCrossings);
       const row = screen.getByText('fir_compiler_0/aresetn').closest('tr')!;
       fireEvent.click(within(row).getByRole('button', { name: /zynq_clock_domains\.tcl:\d+/ }));
       expect(onReveal).toHaveBeenCalledTimes(1);
@@ -134,7 +134,7 @@ describe('CrossingsTable', () => {
       const crossing = pinCrossings.find(
         (candidate) => candidate.to.label === 'fir_compiler_0/aresetn'
       )!;
-      renderTable(analysis.crossings, {
+      renderTable(pinCrossings, {
         selection: { kind: 'net', id: crossing.netId },
         focusedPin: { nodeId: crossing.to.nodeId, pin: crossing.to.pin, netId: crossing.netId },
       });

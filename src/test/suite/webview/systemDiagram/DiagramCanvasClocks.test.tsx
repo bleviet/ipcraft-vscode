@@ -12,8 +12,8 @@ import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLay
 import { clockContextOf } from './clockContext';
 import { fakeMeasure, loadClockFixtureGraph, loadVersalClockGraph } from './fixtureGraph';
 
-// Uses the real @xyflow/react, whose panels the app tests mock away: the banner and the
-// legend of the domain mode, and how a wire and a pin frequency are drawn.
+// Uses the real @xyflow/react, whose panels the app tests mock away: the legend of
+// the domain mode, and how a wire and a pin frequency are drawn.
 const graph = loadClockFixtureGraph();
 
 async function layoutOf(levelPath: string, design = graph) {
@@ -56,25 +56,15 @@ function canvas(layout: Awaited<ReturnType<typeof layoutOf>>, domainMode: boolea
 
 describe('the canvas in the domain mode', () => {
   let root: Awaited<ReturnType<typeof layoutOf>>;
-  let dsp: Awaited<ReturnType<typeof layoutOf>>;
   beforeAll(async () => {
     root = await layoutOf('/');
-    dsp = await layoutOf('/dsp_pipeline');
   }, 20000);
 
-  it('explains the level in a banner', async () => {
+  it('draws no level banner: the Clocks tab says what is on the level', async () => {
     render(canvas(root, true));
-    const banner = await screen.findByLabelText('Clock domains');
-    expect(banner).toHaveTextContent(
-      'This level: ext_clk 125 MHz, FCLK_CLK0 100 MHz, FCLK_CLK1 200 MHz. 1 clock domain crossing without a synchronizer. 3 more inside nested hierarchies.'
-    );
-  });
-
-  it('counts the crossings of the level shown', async () => {
-    render(canvas(dsp, true));
-    expect(await screen.findByLabelText('Clock domains')).toHaveTextContent(
-      '1 clock domain crossing without a synchronizer. 2 resets released by another clock domain. axis_data_fifo_0 spans more than one domain.'
-    );
+    await screen.findByLabelText('Legend');
+    expect(screen.queryByLabelText('Clock domains')).not.toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/This level:/);
   });
 
   it('lists a domain per entry, then the reset and crossing marks, in the legend', async () => {
@@ -95,10 +85,9 @@ describe('the canvas in the domain mode', () => {
     expect(dashed.style.borderTopColor).toBe('var(--vscode-editorWarning-foreground)');
   });
 
-  it('draws neither the banner nor the domain entries while off', async () => {
+  it('draws no domain entries while off', async () => {
     render(canvas(root, false));
     await screen.findByText('axi_dma_0');
-    expect(screen.queryByLabelText('Clock domains')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Legend')).not.toHaveTextContent('FCLK_CLK0');
   });
 
@@ -118,13 +107,6 @@ describe('the canvas in the domain mode, on a design that sets no frequency', ()
   beforeAll(async () => {
     root = await layoutOf('/', versal);
   }, 20000);
-
-  it('names the domains of the level alone and mentions the related clocks apart', async () => {
-    render(canvas(root, true, versal));
-    expect(await screen.findByLabelText('Clock domains')).toHaveTextContent(
-      'This level: clk_out1, clk_out2, pl0_ref_clk. 2 between related clocks.'
-    );
-  });
 
   it('lists the domains in the legend by name, with no frequency', async () => {
     render(canvas(root, true, versal));

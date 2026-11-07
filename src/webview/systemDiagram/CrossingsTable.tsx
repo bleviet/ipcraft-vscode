@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { ClockAnalysis } from './clocks/analyzeClocks';
 import type { PinCrossing } from './clocks/clockTypes';
 import {
   crossingKind,
@@ -17,7 +16,8 @@ import { focusedPinOf, type FocusedPin } from './unconnectedPins';
 
 interface CrossingsTableProps {
   graph: SystemGraph;
-  clocks: ClockAnalysis;
+  /** The crossings in view (see `crossingsInView`). */
+  crossings: readonly PinCrossing[];
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   /** Opens a crossing's net and haloes its sink pin. */
@@ -38,18 +38,18 @@ function Mark({ unchecked }: { unchecked: boolean }) {
   );
 }
 
-/** Crossings of the Clocks tab that need action: data (CDC) and reset (RDC) crossings without a synchronizer. */
+/** Crossings in view that need action: data (CDC) and reset (RDC) crossings without a synchronizer. */
 export function CrossingsTable({
   graph,
-  clocks,
+  crossings,
   selection,
   focusedPin,
   onSelectNet,
   onReveal,
 }: CrossingsTableProps) {
   const [showUnchecked, setShowUnchecked] = useState(false);
-  const counts = crossingCounts(clocks.crossings);
-  const rows = listedCrossings(clocks.crossings, showUnchecked);
+  const counts = crossingCounts(crossings);
+  const rows = listedCrossings(crossings, showUnchecked);
 
   const renderRow = (crossing: PinCrossing) => {
     const source = crossingSource(graph, crossing);

@@ -7,7 +7,6 @@ import {
   crossingCounts,
   crossingEndKeys,
   crossingsWithin,
-  levelClockSummary,
   toolbarSummary,
 } from '../../../../webview/systemDiagram/clocks/crossingSummary';
 import { outlineDomains } from '../../../../webview/systemDiagram/clocks/domainView';
@@ -312,10 +311,5 @@ describe('related crossings are no CDC or RDC', () => {
     expect(outlineDomains(analysis, graph, '/stream_src').crossings).toBe(0);
     const edges = graph.nets.map((net) => ({ id: `${net.id}#0`, data: { netId: net.id } }));
     expect(crossingEdgeIds(graph, edges, analysis.crossings).size).toBe(0);
-  });
-
-  it('mentions them apart in the banner, with no warning', () => {
-    const text = levelClockSummary(analysis, graph, '/');
-    expect(text).toBe('This level: clk_out1, clk_out2, pl0_ref_clk. 2 between related clocks.');
   });
 });

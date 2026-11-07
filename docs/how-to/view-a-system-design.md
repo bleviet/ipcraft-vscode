@@ -177,11 +177,9 @@ then checks it against the domain it sits on.
 - A block header has a thin strip with one segment per clock domain of the block
   and a badge: `N CDC · M RDC` when crossings are on its pins (inside a hierarchy
   block, anywhere inside it), or `N DOMAINS` when it spans several domains.
-- A banner summarizes the level on show, the legend lists the domains of the
-  level, and the outline shows a dot per domain on each block and the number of
-  crossings inside each hierarchy block. Connections between related clocks
-  are mentioned in the banner ("N between related clocks") and are not counted
-  or drawn as crossings.
+- The legend lists the domains of the level, and the outline shows a dot per
+  domain on each block and the number of crossings inside each hierarchy block.
+  Connections between related clocks are not counted or drawn as crossings.
 
 ### Select a clock or reset net
 
@@ -245,19 +243,28 @@ as for any other system.
 
 ### The Clocks tab
 
-The **Clocks** tab has three sections.
+The **Clocks** tab lists what the level on screen shows: the current level plus
+the hierarchy blocks expanded in place on it. Entering a block, going back, or
+expanding or collapsing a block changes its rows and the count on the tab. The
+**Clock domains** button in the toolbar keeps counting the whole design. The tab
+has three sections.
 
-- **Clock domains:** the frequency (empty when the design does not set it), the
+- **Clock domains:** the domains with a pin, the source or a load, on a level in
+  view, with the frequency (empty when the design does not set it), the
   source pin ("not known" when no rule or direction names it), the parameter the
   frequency was read from (`script` for an IP parameter, `declared` for a port or
   hierarchy pin), the number of loads and levels, and a link to the source
   line. Click a row to select the clock net of the domain.
-- **Resets:** each reset source, the domain that releases it (or
+- **Resets:** each reset source with its source or a sink on a level in view, the
+  domain that releases it (or
   `asynchronous`), what says so, and the number of sinks. Click a row to select
   the reset net.
-- **Clock domain crossings:** one line says how many crossings have no
-  synchronizer ("No clock domain crossings found." when there are none). The
-  table lists those data and reset crossings, each with a `!` icon, the kind (the
+- **Clock domain crossings:** one line says how many crossings in view have no
+  synchronizer ("No clock domain crossings on this level." when there are none).
+  A crossing is in view when either end is on a level in view: a crossing from
+  inside a collapsed block to a block on the level is listed, one entirely
+  inside a collapsed block is not (the header badge of that block counts it).
+  The table lists those data and reset crossings, each with a `!` icon, the kind (the
   interface type or `Reset`), the pin at each end, the problem in plain words
   ("200 MHz to 100 MHz, no synchronizer", "released by clk_a, clocked by clk_b",
   or "asynchronous reset, clocked by clk_b"; domain names stand in for

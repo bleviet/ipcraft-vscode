@@ -120,6 +120,8 @@ describe('outline and tab text', () => {
       <BottomPanel
         graph={graph}
         clocks={analyzeClocks(graph)}
+        levelPath="/"
+        expanded={new Set()}
         tab="address"
         onTabChange={jest.fn()}
         findings={[]}

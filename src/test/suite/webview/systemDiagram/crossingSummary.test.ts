@@ -1,21 +1,13 @@
-import type { SystemGraph } from '../../../../domain/systemGraph';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
 import {
   crossingCounts,
   crossingEndKeys,
   crossingsOfNet,
   crossingsWithin,
-  levelClockSummary,
   nodeCrossings,
 } from '../../../../webview/systemDiagram/clocks/crossingSummary';
 import { endKey } from '../../../../webview/systemDiagram/clocks/physicalNets';
-import { loadTwoClockGraph } from './clockTestGraphs';
-import {
-  loadClockFixtureGraph,
-  loadFixtureGraph,
-  loadPortClocksGraph,
-  loadQsysFixtureGraph,
-} from './fixtureGraph';
+import { loadClockFixtureGraph } from './fixtureGraph';
 
 const DSP = '/dsp_pipeline';
 
@@ -106,81 +98,5 @@ describe('crossings per level and per node', () => {
     expect(keys.has(key('/', '/rst_ps7_0_100M', 'peripheral_aresetn'))).toBe(false);
     expect(keys.has(key(DSP, `${DSP}/axis_data_fifo_0`, 'S_AXIS'))).toBe(false);
     expect(keys.size).toBe(6);
-  });
-});
-
-describe('levelClockSummary', () => {
-  it('words the domains, crossings, spanning blocks and unchecked pins of a level', () => {
-    const graph = loadClockFixtureGraph();
-    const analysis = analyzeClocks(graph);
-    expect(levelClockSummary(analysis, graph, DSP)).toBe(
-      'This level: FCLK_CLK0 100 MHz, FCLK_CLK1 200 MHz. ' +
-        '1 clock domain crossing without a synchronizer. ' +
-        '2 resets released by another clock domain. ' +
-        'axis_data_fifo_0 spans more than one domain. ' +
-        '2 not checked; see the Clocks tab.'
-    );
-  });
-
-  it('counts the crossings inside nested hierarchies on the level above', () => {
-    const graph = loadClockFixtureGraph();
-    expect(levelClockSummary(analyzeClocks(graph), graph, '/')).toBe(
-      'This level: ext_clk 125 MHz, FCLK_CLK0 100 MHz, FCLK_CLK1 200 MHz. ' +
-        '1 clock domain crossing without a synchronizer. ' +
-        '3 more inside nested hierarchies. ' +
-        '1 not checked; see the Clocks tab.'
-    );
-  });
-
-  it('uses the singular and lists several spanning blocks', () => {
-    const graph = loadClockFixtureGraph();
-    graph.instances[`${DSP}/fir_ctrl_0`].pins.push({
-      name: 'fast_clk',
-      isInterface: false,
-      direction: 'in',
-      directionSource: 'declared',
-      signalType: 'clk',
-      parameters: {},
-    });
-    graph.nets
-      .find((net) => net.id === `${DSP}::dsp_clk_1`)!
-      .endpoints.push({ instance: `${DSP}/fir_ctrl_0`, pin: 'fast_clk' });
-    const text = levelClockSummary(analyzeClocks(graph), graph, DSP);
-    expect(text).toContain('axis_data_fifo_0, fir_ctrl_0 span more than one domain.');
-
-    const two = loadTwoClockGraph();
-    expect(levelClockSummary(analyzeClocks(two), two, '/')).toBe(
-      'This level: ca/clk_out1 100 MHz, cb/clk_out1 50 MHz. ' +
-        '1 clock domain crossing without a synchronizer. ' +
-        '1 reset released by another clock domain.'
-    );
-  });
-
-  it('says so when a level has no clock domain, and stays short when all is well', () => {
-    const none: SystemGraph = { ...loadFixtureGraph(), nets: [] };
-    expect(levelClockSummary(analyzeClocks(none), none, '/')).toBe('This level: no clock domains.');
-    const nios = loadQsysFixtureGraph();
-    expect(levelClockSummary(analyzeClocks(nios), nios, '/')).toBe('This level: clk 50 MHz.');
-    const zynq = loadFixtureGraph();
-    expect(levelClockSummary(analyzeClocks(zynq), zynq, '/')).toBe(
-      'This level: FCLK_CLK0 100 MHz.'
-    );
-  });
-
-  it('names a domain without a frequency alone and ignores an unknown level', () => {
-    const graph = loadClockFixtureGraph();
-    delete graph.instances['/processing_system7_0'].parameters[
-      'CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ'
-    ];
-    const analysis = analyzeClocks(graph);
-    expect(levelClockSummary(analysis, graph, DSP)).toContain('FCLK_CLK0, FCLK_CLK1 200 MHz');
-    expect(levelClockSummary(analysis, graph, '/nope')).toBe('This level: no clock domains.');
-  });
-
-  it('sends a connection that is not checked for a port or unknown source to the Clocks tab', () => {
-    const ports = loadPortClocksGraph();
-    expect(levelClockSummary(analyzeClocks(ports), ports, '/')).toBe(
-      'This level: m_axis_clk, s_axi_aclk 100 MHz. 1 not checked; see the Clocks tab.'
-    );
   });
 });
