@@ -1,28 +1,25 @@
 /** Boundary pins (external ports of the level on show) as ELK nodes. */
 
 import type { ElkNode } from 'elkjs/lib/elk-api';
-import type { SystemGraph, SystemPin } from '../../../domain/systemGraph';
+import type { SystemPin } from '../../../domain/systemGraph';
 import type { PinSide } from './diagramTypes';
 import { portId } from './levelEdges';
-import { badgeLabels, type clockResetNetsByEndpoint } from './netBadges';
+import type { BadgeLabels } from './netBadges';
 import { PORT_LABEL_OPTIONS } from './instanceElk';
 import { PORT_SIZE } from './pinRows';
 import { boundaryId, pinRole } from '../model';
 
 export const BOUNDARY_HEIGHT = 26;
 
-type ClockResetNets = ReturnType<typeof clockResetNetsByEndpoint>;
-
 export function boundarySide(pin: SystemPin): PinSide {
   return pinRole(pin, true) === 'source' ? 'east' : 'west';
 }
 
 export function boundaryNode(
-  graph: SystemGraph,
   levelPath: string,
   pin: SystemPin,
   width: number,
-  clockReset: ClockResetNets,
+  badges: BadgeLabels,
   traced: boolean
 ): ElkNode {
   const id = boundaryId(levelPath, pin.name);
@@ -50,7 +47,7 @@ export function boundaryNode(
         y: (BOUNDARY_HEIGHT - PORT_SIZE) / 2,
         width: PORT_SIZE,
         height: PORT_SIZE,
-        labels: badgeLabels(graph, clockReset, { instance: null, pin: pin.name }),
+        labels: badges({ instance: null, pin: pin.name }),
       },
     ],
   };

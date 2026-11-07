@@ -84,26 +84,43 @@ export function clockResetNetsByEndpoint(
   return lookup;
 }
 
-/** One badge per pin: the first net's name, plus ` +N` for the others. */
-export function badgeLabel(graph: SystemGraph, nets: readonly SystemNet[], ref: PinRef): ElkLabel {
-  const driver = sourceInstance(graph, nets[0]);
-  const name = shortNetName(nets[0].name, driver ? graph.instances[driver]?.name : undefined);
-  const text = badgeText(name, nets.length - 1);
-  return {
-    id: `${BADGE_ID_PREFIX}${endpointKey(ref)}`,
-    text,
-    width: Math.ceil(text.length * BADGE_CHAR_WIDTH + BADGE_PADDING),
-    height: BADGE_HEIGHT,
-  };
-}
+/** The badge labels of a pin of one level: one label, or none off clock and reset nets. */
+export type BadgeLabels = (ref: PinRef) => ElkLabel[] | undefined;
 
-export function badgeLabels(
+/**
+ * Badge labels of the pins of one level. One badge per pin: the first net's
+ * name, plus ` +N` for the others. Finding a net's driver reads every endpoint
+ * of the net, so each net's name is worked out once, not once per pin.
+ */
+export function levelBadgeLabels(
   graph: SystemGraph,
-  clockReset: ReadonlyMap<string, readonly SystemNet[]>,
-  ref: PinRef
-): ElkLabel[] | undefined {
-  const nets = clockReset.get(endpointKey(ref));
-  return nets ? [badgeLabel(graph, nets, ref)] : undefined;
+  clockReset: ReadonlyMap<string, readonly SystemNet[]>
+): BadgeLabels {
+  const names = new Map<SystemNet, string>();
+  const nameOf = (net: SystemNet): string => {
+    let name = names.get(net);
+    if (name === undefined) {
+      const driver = sourceInstance(graph, net);
+      name = shortNetName(net.name, driver ? graph.instances[driver]?.name : undefined);
+      names.set(net, name);
+    }
+    return name;
+  };
+  return (ref) => {
+    const nets = clockReset.get(endpointKey(ref));
+    if (!nets) {
+      return undefined;
+    }
+    const text = badgeText(nameOf(nets[0]), nets.length - 1);
+    return [
+      {
+        id: `${BADGE_ID_PREFIX}${endpointKey(ref)}`,
+        text,
+        width: Math.ceil(text.length * BADGE_CHAR_WIDTH + BADGE_PADDING),
+        height: BADGE_HEIGHT,
+      },
+    ];
+  };
 }
 
 /**
