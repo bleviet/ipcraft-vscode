@@ -93,12 +93,11 @@ export function WorkbenchLayout({
       panels.bottom.toggle();
     }
   };
-  // Zoom in to a readable size: on a large design the pin is unreadable at the fitted zoom.
   const selectFinding = (finding: UnconnectedPin) => {
-    view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
+    view.selectAndReveal(nodeSelection(finding.nodeId), finding.level);
     setFocusedPin({ nodeId: finding.nodeId, pin: finding.pin.name });
   };
-  // A crossing row (with a sink pin) also zooms in to the sink's block, like a finding.
+  // A crossing row (with a sink pin) centres the sink's block, zooming in when it is unreadable.
   const selectNet = (netId: string, focus?: { nodeId: string; pin: string }) => {
     if (focus) {
       view.selectAndReveal({ kind: 'net', id: netId }, undefined, true, focus.nodeId);
