@@ -256,7 +256,8 @@ table of crossings.
   pin ("not known" when no rule or direction names it), the parameter the
   frequency was read from (`script` for an IP parameter, `declared` for a port or
   hierarchy pin), the number of loads and levels, and a link to the source line.
-  Click a row to select the clock net of the domain.
+  Click a row to select the clock net of the domain, centre the block of its
+  source pin (zooming in when it is too small to read), and mark that pin.
 - **Clock domain crossings:** one line says how many data crossings in view have
   no synchronizer ("No clock domain crossings on this level." when there are
   none). A crossing is in view when either end is on a level in view: a crossing
@@ -275,7 +276,8 @@ table of crossings.
 
 - **Reset sources:** each reset source with its source or a sink on a level in
   view, the domain that releases it (or `asynchronous`), what says so, and the
-  number of sinks. Click a row to select the reset net.
+  number of sinks. Click a row to select the reset net, centre the block of its
+  source pin (zooming in when it is too small to read), and mark that pin.
 - **Reset domain crossings:** one line says how many resets in view are released
   on another clock domain or asynchronously ("2 reset crossings without a
   synchronizer.", or "No reset domain crossings on this level."), scoped as

@@ -2,7 +2,7 @@ import React from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import type { ResetSource } from './clocks/clockTypes';
-import { resetCrossingsHeadline } from './clocks/crossingRows';
+import { resetCrossingsHeadline, sourceFocus } from './clocks/crossingRows';
 import type { ClocksInView } from './clocks/viewScope';
 import { CrossingsTable } from './CrossingsTable';
 import { DomainLabel } from './DomainLabel';
@@ -18,7 +18,7 @@ interface ResetsTableProps {
   view: ClocksInView;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
-  /** Opens a net; a crossing row also haloes its sink pin. */
+  /** Opens a net and reveals the given pin: a reset row its source, a crossing row its sink. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
   onReveal: (line: number, uri?: string) => void;
 }
@@ -50,7 +50,9 @@ export function ResetsTable({
     <tr
       key={reset.id}
       className={`sd-clickable cursor-pointer${selectedReset === reset ? ' sd-row-selected' : ''}`}
-      onClick={() => onSelectNet(reset.netId)}
+      onClick={() =>
+        onSelectNet(reset.netId, reset.source && sourceFocus(reset.source.level, reset.source))
+      }
     >
       <td className="sd-num">{reset.label}</td>
       <td>
