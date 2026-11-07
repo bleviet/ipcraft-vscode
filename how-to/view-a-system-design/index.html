@@ -1,0 +1,3013 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/how-to/view-a-system-design/">
+      
+      
+        <link rel="prev" href="../use-data-inspector/">
+      
+      
+        <link rel="next" href="../using-arithmetic-functions-in-port-widths/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Viewing a System Design - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#viewing-a-system-design" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Viewing a System Design
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/development/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../create-your-first-ip-core/" class="md-tabs__link">
+          
+  
+  
+  How-to Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../concepts/yaml-data-flow/" class="md-tabs__link">
+          
+  
+  
+  Concepts
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/overview/" class="md-tabs__link">
+          
+  
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../contributing/guidelines/" class="md-tabs__link">
+          
+  
+  
+  Contributing
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and Verify a Scaffold Pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-Mapped Registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/de10-nano-case-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DE10-Nano Case Study
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How-to Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    How-to Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../create-your-first-ip-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating Your First IP Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../defining-a-custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Defining a Custom Interface
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../importing-an-existing-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Importing an Existing Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../customizing-generated-files-with-scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customizing Generated Files with Scaffold Packs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a Project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../check-consistency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking Consistency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX Package
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../use-data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Viewing a System Design
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Viewing a System Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#supported-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-the-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open the diagram
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#navigate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#isolate-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Isolate blocks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#find-unconnected-pins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Find unconnected pins
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Panels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clocks-and-resets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clocks and resets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clock-and-reset-domains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clock and reset domains
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Clock and reset domains">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-source-of-a-clock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The source of a clock
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frequencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on-the-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        On the diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-a-clock-or-reset-net" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Select a clock or reset net
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crossings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crossings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-clocks-and-resets-tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Clocks and Resets tabs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zoom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zoom
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#names-and-hover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Names and hover
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ip-definitions-from-your-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IP definitions from your workspace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#platform-designer-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform Designer scripts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-offline-view-cannot-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the offline view cannot show
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using-arithmetic-functions-in-port-widths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using Arithmetic Functions in Port Widths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../run-cocotb-simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a Cocotb Simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../run-eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Concepts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Concepts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/yaml-data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    YAML Data Flow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive Design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/vivado-interface-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vivado Interface Catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Template Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDA Integration Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/generator-feature-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator Feature Coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension Host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webview (React)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/bit-field-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/vsix-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSIX Packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands & Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard Shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification Schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit Field Developer Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/docs-screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Automated Docs Screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../images/codicons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codicon Attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#supported-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported files
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#open-the-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Open the diagram
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#navigate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#isolate-blocks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Isolate blocks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#find-unconnected-pins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Find unconnected pins
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#panels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Panels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clocks-and-resets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clocks and resets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clock-and-reset-domains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Clock and reset domains
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Clock and reset domains">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-source-of-a-clock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The source of a clock
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frequencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frequencies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#on-the-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        On the diagram
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#select-a-clock-or-reset-net" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Select a clock or reset net
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crossings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Crossings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-clocks-and-resets-tabs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Clocks and Resets tabs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#zoom" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Zoom
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#names-and-hover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Names and hover
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ip-definitions-from-your-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IP definitions from your workspace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#platform-designer-scripts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Platform Designer scripts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-the-offline-view-cannot-show" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the offline view cannot show
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/how-to/view-a-system-design.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="viewing-a-system-design">Viewing a System Design<a class="headerlink" href="#viewing-a-system-design" title="Permanent link">&para;</a></h1>
+<p>IPCraft can show a Vivado block design or a Platform Designer system as a
+diagram. The view is read-only and works offline. It needs no vendor tool and
+no license, and it never runs your script.</p>
+<p><img alt="System diagram with the outline and details panels open" src="../../images/system-diagram-overview-light.png" /></p>
+<h2 id="supported-files">Supported files<a class="headerlink" href="#supported-files" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.tcl</code></td>
+<td>Vivado block design script written by <code>write_bd_tcl</code></td>
+</tr>
+<tr>
+<td><code>.qsys</code></td>
+<td>Platform Designer system (Standard)</td>
+</tr>
+<tr>
+<td><code>.tcl</code></td>
+<td>Platform Designer system script for <code>qsys-script</code></td>
+</tr>
+</tbody>
+</table>
+<p>IPCraft recognizes a <code>.tcl</code> file by its commands. A <code>_hw.tcl</code> file is a
+component description, not a system. It keeps its own preview.</p>
+<p>Files are read as text. The Tcl is never executed, so values that a script
+computes are not available. See <a href="#what-the-offline-view-cannot-show">What the offline view cannot
+show</a>.</p>
+<h2 id="open-the-diagram">Open the diagram<a class="headerlink" href="#open-the-diagram" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Open the <code>.tcl</code> or <code>.qsys</code> file in the text editor.</li>
+<li>Press <code>Ctrl+Shift+V</code> (<code>Cmd+Shift+V</code> on macOS), or run <strong>IPCraft: Open as
+   System Diagram</strong>.</li>
+<li>Press the same keys again to return to the text editor.</li>
+</ol>
+<p>The diagram updates as you edit the file. If an edit breaks the file, the
+diagram keeps the last valid design and shows a banner with the reason.</p>
+<h2 id="navigate">Navigate<a class="headerlink" href="#navigate" title="Permanent link">&para;</a></h2>
+<p>The diagram shows one hierarchy level at a time.</p>
+<ul>
+<li><strong>Levels.</strong> Double-click a hierarchy block to enter it. Use the breadcrumb at
+  the top left, or the mouse back button, to go up one level.</li>
+<li><strong>Expand in place.</strong> Click the <strong>+</strong> button in the header of a hierarchy block,
+  or right-click it and choose <strong>Expand In-Place</strong>, to see inside without leaving
+  the level. The block becomes a frame with its pins on the border: wires from
+  outside meet the pins from outside, and the wires inside meet them from
+  inside. Click <strong>-</strong> in the frame header, or right-click and choose
+  <strong>Collapse</strong>, to fold it again. <strong>Open Subsystem</strong> in the same menu enters the
+  block like a double-click. Hierarchy blocks inside a frame can be expanded
+  too, and expanded blocks stay expanded when you go to another level and back.
+  Isolate works on the blocks of the level on show, not on those inside a frame.</li>
+<li><strong>Outline.</strong> Lists the instances of the current design and its external
+  ports. Select an item to select it in the diagram and center it.</li>
+<li><strong>Search.</strong> Type in <strong>Search instances</strong> to dim the blocks whose name or
+  type does not match. Press Enter or Shift+Enter to go to the next or
+  previous match on any level; a counter shows the position, and Escape
+  clears the search.</li>
+<li><strong>Details.</strong> Shows the selected block, net, or port: type, where it is
+  defined in the file, the parameters set in the file, and its pins with their
+  nets. Select a line link to open the file at that line.</li>
+<li><strong>Address map.</strong> Lists the address segments found in the design. Select a
+  row to select its instance.</li>
+<li><strong>Clocks.</strong> Lists the clock domains with their frequencies and the clock
+  domain crossings. See <a href="#clock-and-reset-domains">Clock and reset domains</a>.</li>
+<li><strong>Resets.</strong> Lists the reset sources and the reset domain crossings.</li>
+</ul>
+<p><img alt="A hierarchy level with clocks and resets drawn" src="../../images/system-diagram-hierarchy-light.png" /></p>
+<h2 id="isolate-blocks">Isolate blocks<a class="headerlink" href="#isolate-blocks" title="Permanent link">&para;</a></h2>
+<p>To focus on a few blocks of a busy level, select them and isolate them.</p>
+<ol>
+<li>Click a block or port, then Cmd+Click (macOS) or Ctrl+Click (Windows and Linux) to add more, or to remove one that is already selected. Details shows "N selected" with a list of the names; clicking a name selects that block alone.</li>
+<li>Right-click one of the selected blocks and choose <strong>Isolate N Selected</strong> (N is the number of selected blocks). Right-clicking a block that is not selected selects it alone, and the item reads <strong>Isolate Selection</strong>.</li>
+</ol>
+<p>The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden. Clock and reset wires count only while Clocks and resets is on. A toolbar chip reads "Isolated · N selected · M shown", where M counts every block and port on screen.</p>
+<p>Choose <strong>Show All</strong> from the right-click menu (on a block or on the empty canvas) or the toolbar to return to the full level, with the zoom and pan it had before. Isolation also ends when you go to another level (breadcrumb, opening a hierarchy block, the mouse back button, or an outline or search jump) or when a search step or outline row selects a block that the isolated view hides.</p>
+<h2 id="find-unconnected-pins">Find unconnected pins<a class="headerlink" href="#find-unconnected-pins" title="Permanent link">&para;</a></h2>
+<p>To review the pins that nothing connects to, turn on <strong>Unconnected pins</strong> in the toolbar. The button shows the number of unconnected pins in the whole design, in the warning color when any is undriven. Turning it on also opens the <strong>Unconnected</strong> tab of the bottom panel; turning it off leaves the tab as it is.</p>
+<p>A pin is unconnected when no net touches it on its level. There are two kinds:</p>
+<ul>
+<li><strong>Undriven</strong>: an input (or a slave interface) that nothing drives. The vendor tool ties such an input to a constant, usually its default value, so an active-low reset tied to 0 holds the block in reset. Undriven pins are drawn in the warning color.</li>
+<li><strong>Unused</strong>: an output, master interface, or bidirectional pin that nothing uses. This is often intentional, so unused pins are drawn muted.</li>
+</ul>
+<p>While the review is on, the diagram dims wires and blocks without findings. Each unconnected pin gets a short dashed stub ending in a hollow circle, a block header shows a warning icon (a disconnect icon when nothing is undriven) with the count, and hovering it gives the undriven and unused split (hierarchy blocks count the pins inside them too). The outline shows a count on each block and external port.</p>
+<p>Only blocks whose full pin list is known can be checked: blocks with an <code>.ip.yml</code> or HDL definition, hierarchy blocks and their pins, and external ports. For the other blocks (drawn with a dashed border), the viewer knows only the pins that appear in connections, so it cannot tell which pins are open. They are listed as not checked.</p>
+<p>The <strong>Unconnected</strong> tab lists every finding with its pin, block, level, direction, type, where the pin is known from, and a link to the line that created it. The <strong>Undriven</strong> and <strong>Unused</strong> chips filter the rows. Click a row to go to its level, select the block, centre it (zooming in if it is too small to read), and mark the pin on the diagram and in Details. A hierarchy pin that is open on both sides is listed twice: once on the hierarchy block in the parent level and once as the port inside. Details shows <code>undriven</code> or <code>unused</code> in the Net column of every unconnected pin, with or without the review on.</p>
+<h2 id="panels">Panels<a class="headerlink" href="#panels" title="Permanent link">&para;</a></h2>
+<p>The outline, details, and bottom panels start hidden so the diagram has the
+full width. Use the three buttons at the top right to show or hide them. Drag
+the edge of a panel to resize it. For the arrow-key resize and the double-click
+that collapses a panel, see <a href="../../reference/keyboard-shortcuts/#system-diagram">Keyboard Shortcuts</a>.</p>
+<h2 id="clocks-and-resets">Clocks and resets<a class="headerlink" href="#clocks-and-resets" title="Permanent link">&para;</a></h2>
+<p>Clock and reset nets are hidden by default. Each pin that is on one shows a
+small badge with the net name, or the first name and <code>+N</code> when the pin is on
+several nets. This keeps data paths readable.</p>
+<p>Turn on <strong>Clocks and resets</strong> in the toolbar to draw those nets.</p>
+<h2 id="clock-and-reset-domains">Clock and reset domains<a class="headerlink" href="#clock-and-reset-domains" title="Permanent link">&para;</a></h2>
+<p>To see which clock each part of the design runs on, and where a signal passes
+from one clock to another, turn on <strong>Clock domains</strong> in the toolbar. The button
+shows the number of flagged crossings (<code>2 CDC · 2 RDC</code>, in the warning color), or
+the number of clock domains when none is flagged. Turning it on opens the
+<strong>Clocks</strong> tab and draws clocks and resets, so the <strong>Clocks and resets</strong>
+checkbox is disabled while it is on. It also turns the <strong>Unconnected pins</strong>
+review off, and turning that review on turns this mode off.</p>
+<p>A clock domain is a clock source and every pin its nets reach, followed through
+hierarchy pins and, in Platform Designer, through clock source blocks. What
+matters is which pins share one clock; the frequency is extra information.</p>
+<h3 id="the-source-of-a-clock">The source of a clock<a class="headerlink" href="#the-source-of-a-clock" title="Permanent link">&para;</a></h3>
+<p>Vivado's exported script does not list the driver of a net first, so IPCraft
+does not take the first pin of a net as its source. The source is the one pin
+that a rule names as a clock output (for example <code>FCLK_CLK&lt;n&gt;</code> of a Zynq PS,
+<code>clk_out&lt;n&gt;</code> of a clocking wizard, <code>pl&lt;n&gt;_ref_clk</code> of Versal CIPS) or whose
+direction the design or an <code>.ip.yml</code> states, such as an input port of the
+design. When there is none or more than one, the source is not known: the
+domain is still there, named after the first net of the clock, and Details says
+"Source not known". A reset source is found the same way, from the rules for
+reset outputs. The output of an <code>xlconstant</code> is a constant that never toggles,
+so the sinks of a reset tied to it are <strong>OK</strong> ("Tied to a constant"). The
+outputs of <code>util_vector_logic</code>, <code>util_reduced_logic</code> and <code>axi_gpio</code>
+(<code>gpio_io_o</code>, <code>gpio2_io_o</code>) are known to drive a reset, but no rule says which
+clock releases it, so its sinks are <strong>Not checked</strong>. A reset net without a known
+source is still a reset source, named after its first net, with every pin on it
+as a sink; an asynchronous input still passes, and every other sink is <strong>Not
+checked</strong>.</p>
+<p>Status outputs of clocking blocks, such as <code>locked</code> of a clocking wizard or
+<code>dcm_locked</code> of a <code>proc_sys_reset</code>, are not clocks even when their net is named
+like one. They belong to no domain and are drawn as ordinary nets.</p>
+<h3 id="frequencies">Frequencies<a class="headerlink" href="#frequencies" title="Permanent link">&para;</a></h3>
+<p>A frequency is shown only when the design file sets it, never from a vendor
+default, and the word "unknown" is never printed for it: a domain without a
+frequency shows its name alone, and Details says "Frequency not set in the
+script." It is the requested value: Vivado can round the output of a processing
+system or a clocking wizard during validation, and the achieved frequency is not
+available offline.</p>
+<table>
+<thead>
+<tr>
+<th>Clock source</th>
+<th>Value read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Zynq-7000 <code>processing_system7</code>, pin <code>FCLK_CLK&lt;n&gt;</code></td>
+<td><code>CONFIG.PCW_FPGA&lt;n&gt;_PERIPHERAL_FREQMHZ</code></td>
+</tr>
+<tr>
+<td>Zynq UltraScale+ <code>zynq_ultra_ps_e</code>, pin <code>pl_clk&lt;n&gt;</code></td>
+<td><code>CONFIG.PSU__CRL_APB__PL&lt;n&gt;_REF_CTRL__FREQMHZ</code></td>
+</tr>
+<tr>
+<td>Clocking Wizard <code>clk_wiz</code>, pin <code>clk_out&lt;n&gt;</code></td>
+<td><code>CONFIG.CLKOUT&lt;n&gt;_REQUESTED_OUT_FREQ</code></td>
+</tr>
+<tr>
+<td>Platform Designer <code>clock_source</code></td>
+<td><code>clockFrequency</code></td>
+</tr>
+<tr>
+<td>External port or hierarchy pin</td>
+<td><code>CONFIG.FREQ_HZ</code>, or the <code>-freq_hz</code> flag of <code>create_bd_port</code> / <code>create_bd_pin</code> that Vivado writes in exported scripts</td>
+</tr>
+</tbody>
+</table>
+<p>When the parameter is not set, or the source has no rule, no frequency is shown.
+An <code>.ip.yml</code> clock can declare the frequency it expects (<code>frequency</code>); Details
+then checks it against the domain it sits on.</p>
+<h3 id="on-the-diagram">On the diagram<a class="headerlink" href="#on-the-diagram" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Clock wires and the markers of clock pins take the color of their domain, and
+  each clock pin of a domain with a frequency shows it next to the wire.</li>
+<li>Reset wires are dotted and take the color of the domain that releases them;
+  an asynchronous reset, or one whose release clock is unknown, is muted.</li>
+<li>Other wires are dimmed.</li>
+<li>A crossing is drawn dashed in the warning color, and the names of the pins at
+  its ends turn to the warning color: both ends of a clock domain crossing, only
+  the sink pin of a reset domain crossing.</li>
+<li>A block header has a thin strip with one segment per clock domain of the block
+  and a badge: <code>N CDC · M RDC</code> when crossings are on its pins (inside a hierarchy
+  block, anywhere inside it), or <code>N DOMAINS</code> when it spans several domains.</li>
+<li>The legend lists the domains of the level, and the outline shows a dot per
+  domain on each block and the number of crossings inside each hierarchy block.
+  Connections between related clocks are not counted or drawn as crossings.</li>
+</ul>
+<h3 id="select-a-clock-or-reset-net">Select a clock or reset net<a class="headerlink" href="#select-a-clock-or-reset-net" title="Permanent link">&para;</a></h3>
+<p>Selecting a clock or reset net, with the mode on or off, selects its whole tree
+on every level: the wires and pins of the tree are highlighted, the blocks and
+ports it does not touch are dimmed, and the clock pins of a clock tree show the
+frequency. Details shows the tree:</p>
+<ul>
+<li>a <strong>clock tree</strong> with the frequency and the parameter it was requested by and
+  where (or "Frequency not set in the script."), the tree from the source
+  through every level with a check against the
+  <code>.ip.yml</code> expectation where there is one, the resets released on that domain,
+  the crossings with other domains, and the blocks that have clocks on another
+  domain too;</li>
+<li>a <strong>reset tree</strong> with who releases the reset, a check per sink (<code>✓</code> released
+  on its own clock, <code>✗</code> clocked by another domain, <code>?</code> clock unknown, <code>✓</code>
+  asynchronous input), and the reset domain crossings.</li>
+</ul>
+<p>Selecting a block shows its clock pins with their domains, and for a block with a
+known pin list the clock of each interface and the release of each reset. A
+clock or reset port shows its domain.</p>
+<h3 id="crossings">Crossings<a class="headerlink" href="#crossings" title="Permanent link">&para;</a></h3>
+<p>IPCraft checks memory-mapped and streaming connections (AXI, Avalon) and resets,
+followed through hierarchies.</p>
+<ul>
+<li>A <strong>clock domain crossing (CDC)</strong> is a connection whose two ends are clocked by
+  different domains. No synchronizer is known between them: IPCraft does not look
+  inside blocks.</li>
+<li>A <strong>reset domain crossing (RDC)</strong> is a reset sink that is clocked by a domain
+  other than the one that releases the reset, or a reset that is asynchronous
+  (the Zynq PS resets) feeding a sink that does not accept an asynchronous reset.
+  A <code>proc_sys_reset</code> accepts one on <code>ext_reset_in</code> and <code>aux_reset_in</code>.</li>
+<li>A connection between <strong>related clocks</strong> is neither flagged nor unchecked. The
+  outputs of one clocking wizard (<code>clk_wiz</code>, <code>clk_wizard</code>) are related, and so
+  is the clock that feeds its input (<code>clk_in1</code>, <code>clk_in2</code>, ...): Vivado times
+  the paths between them. Neither the Clocks nor the Resets tab lists it; Details of its net
+  says <strong>Related clocks</strong>, with the generator in its reason. Processor system
+  clocks are never treated as related.</li>
+<li>A <strong>block that spans domains</strong> (for example an asynchronous FIFO) is not
+  flagged. Its header badge reads <code>N DOMAINS</code>, and its Details say "This block
+  uses N clock domains" with their names.</li>
+<li>A crossing is <strong>not checked</strong> when the clock of one end is unknown, when both
+  clocks enter the design through ports, or when the source of one clock is not
+  known. Two clocks that enter through ports may be one clock: the top level
+  that uses the design decides. A port clock against a clock made inside the
+  design (a PS clock, a clocking wizard output) is still a crossing.</li>
+</ul>
+<p>The clock of an interface or reset pin is never guessed from its name. It comes
+from the <code>associatedClock</code> of its <code>.ip.yml</code>, from the only clock of its block,
+or from all clocks of its block being on one domain. For an external port it
+comes from the <code>CONFIG.ASSOCIATED_BUSIF</code> and <code>CONFIG.ASSOCIATED_RESET</code>
+parameters of a clock port. Otherwise the pin is not checked; the <strong>Clocks</strong> tab
+and Details say why.</p>
+<p>Platform Designer inserts clock-crossing adapters and reset synchronizers when it
+generates the system, so its crossings are <strong>OK</strong>, "Handled by Platform
+Designer", and neither tab lists any. The domains and frequencies are shown
+as for any other system.</p>
+<h3 id="the-clocks-and-resets-tabs">The Clocks and Resets tabs<a class="headerlink" href="#the-clocks-and-resets-tabs" title="Permanent link">&para;</a></h3>
+<p>The <strong>Clocks</strong> and <strong>Resets</strong> tabs list what the level on screen shows: the
+current level plus the hierarchy blocks expanded in place on it. Entering a
+block, going back, or expanding or collapsing a block changes their rows and the
+counts on the tabs (the clock domains and the reset sources in view). The
+<strong>Clock domains</strong> button in the toolbar keeps counting the whole design, and
+turning it on opens the <strong>Clocks</strong> tab. Each tab has a table of sources and a
+table of crossings.</p>
+<p><strong>Clocks</strong></p>
+<ul>
+<li><strong>Clock domains:</strong> the domains with a pin, the source or a load, on a level in
+  view, with the frequency (empty when the design does not set it), the source
+  pin ("not known" when no rule or direction names it), the parameter the
+  frequency was read from (<code>script</code> for an IP parameter, <code>declared</code> for a port or
+  hierarchy pin), the number of loads and levels, and a link to the source line.
+  Click a row to select the clock net of the domain, centre the block of its
+  source pin (zooming in when it is too small to read), and mark that pin.</li>
+<li><strong>Clock domain crossings:</strong> one line says how many data crossings in view have
+  no synchronizer ("No clock domain crossings on this level." when there are
+  none). A crossing is in view when either end is on a level in view: a crossing
+  from inside a collapsed block to a block on the level is listed, one entirely
+  inside a collapsed block is not (the header badge of that block counts it).
+  The table lists those crossings, each with a <code>!</code> icon, the kind (the interface
+  type), the pin at each end, the problem in plain words ("200 MHz to 100 MHz, no
+  synchronizer"; domain names stand in for frequencies the script does not set or
+  sets alike), and a link to the source line. Hover a row to see how the clock of
+  each end was determined. Tick <strong>Show N that could not be checked</strong> to add the
+  connections whose clocks are not known (<code>?</code>), with the reason as the problem.
+  Click a row to select its net, centre the sink's block and mark the sink pin;
+  it zooms in when the block is too small to read.</li>
+</ul>
+<p><strong>Resets</strong></p>
+<ul>
+<li><strong>Reset sources:</strong> each reset source with its source or a sink on a level in
+  view, and the number of sinks. Click a row to select the reset net, centre the
+  block of its source pin (zooming in when it is too small to read), and mark
+  that pin. Details shows which clock releases the reset, when that is known.</li>
+<li><strong>Reset domain crossings:</strong> one line says how many resets in view are released
+  on another clock domain or asynchronously ("2 reset crossings without a
+  synchronizer.", or "No reset domain crossings on this level."), scoped as
+  above. The table has no Kind
+  column, since every row is a reset: the icon, the reset source and the sink
+  pin, the problem ("released by clk_a, clocked by clk_b", or "asynchronous
+  reset, clocked by clk_b"), and a link to the source line. It has its own
+  <strong>Show N that could not be checked</strong> checkbox, its rows show how each clock was
+  determined on hover, and a click selects the net as in the Clocks tab.</li>
+</ul>
+<p>Related clocks, blocks that span domains and connections that are fine are not
+listed in either tab.</p>
+<h2 id="zoom">Zoom<a class="headerlink" href="#zoom" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Scroll or use <strong>+</strong> and <strong>-</strong> to zoom, and drag the canvas to pan.</li>
+<li><strong>Fit</strong> fits the whole level.</li>
+<li>Double-click a block (other than a hierarchy block) or a port to zoom to it.</li>
+<li>Double-click empty canvas to fit the level.</li>
+<li>Each level remembers its own zoom and position while the diagram is open.</li>
+</ul>
+<h2 id="names-and-hover">Names and hover<a class="headerlink" href="#names-and-hover" title="Permanent link">&para;</a></h2>
+<p>Blocks are sized to their names and pins. A pin or port name that is still too
+long is shortened with an ellipsis in the middle.</p>
+<p>Hover a pin to see its full name, its direction, its interface or signal type
+when known, the nets it is on, and whether it comes from an <code>.ip.yml</code> or HDL
+definition.</p>
+<p><img alt="Hover card over a pin" src="../../images/system-diagram-hover-light.png" /></p>
+<h2 id="ip-definitions-from-your-workspace">IP definitions from your workspace<a class="headerlink" href="#ip-definitions-from-your-workspace" title="Permanent link">&para;</a></h2>
+<p>A design file lists the IP it uses, but often not every pin. IPCraft looks for
+matching definitions in your workspace and adds what it finds:</p>
+<ul>
+<li>an <code>.ip.yml</code> file, matched by its VLNV (Vivado) or by its Platform Designer
+  component name;</li>
+<li>a VHDL or Verilog file, matched by entity or module name, for Vivado module
+  references.</li>
+</ul>
+<p>A match adds pins that the design leaves unconnected, pin directions, and
+interface types. The details panel then shows a <strong>Defined by</strong> link that opens
+the definition. When several files match, a Platform Designer component first
+prefers the file with the same version; otherwise the file nearest to the design
+file wins. Large HDL files and generated or dependency folders are skipped.
+A match that cannot be decided is not used.</p>
+<p>In an untrusted workspace, IPCraft reads no definitions. Trust the workspace to
+turn them on.</p>
+<p>Vivado scripts do not record pin directions, so IPCraft knows the outputs of
+common AMD IPs and draws them on the right of the block: the clocking wizards
+(<code>clk_wiz</code>, <code>clk_wizard</code>), <code>proc_sys_reset</code>, the PS clocks and resets of
+Zynq-7000, Zynq UltraScale+ and Versal, <code>xlconstant</code>, <code>util_vector_logic</code>,
+<code>util_reduced_logic</code> and <code>axi_gpio</code>. An IP definition, when present, decides
+instead.</p>
+<h2 id="platform-designer-scripts">Platform Designer scripts<a class="headerlink" href="#platform-designer-scripts" title="Permanent link">&para;</a></h2>
+<p>A system script does not always say what a connection carries. IPCraft infers
+the kind from an explicit statement, from parameters, by propagating the kind
+along connections, and as a last step from names. Connections whose kind came
+from names are a best guess; Details shows how the kind of a net was found. A
+script that uses Tcl that cannot be evaluated marks the view partial.</p>
+<p>A module whose kind is the base name of another <code>.qsys</code> file in the workspace
+(for example <code>kind="sub_system"</code> and <code>sub_system.qsys</code>) is a Platform Designer
+subsystem. IPCraft reads that file and shows the module as a hierarchy level:
+double-click the block to enter it, or expand it in place with its <strong>+</strong> button. Go to source from inside the subsystem opens
+the subsystem file. Subsystems that instantiate each other, or a file that cannot
+be read, stay opaque blocks.</p>
+<p><img alt="A Platform Designer system with the address map open" src="../../images/system-diagram-platform-designer-light.png" /></p>
+<h2 id="what-the-offline-view-cannot-show">What the offline view cannot show<a class="headerlink" href="#what-the-offline-view-cannot-show" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Default and propagated parameters. Only values set in the file appear.</li>
+<li>The frequency a clock achieves after validation, and clocks a block derives
+  itself. Only the requested frequency of the sources listed under
+  <a href="#frequencies">Frequencies</a> is known.</li>
+<li>Unconnected pins of an instance that has no definition in the workspace.</li>
+<li>Address ranges in Platform Designer systems, both <code>.qsys</code> files and system
+  scripts. Base addresses are shown, and ranges that come from the IP
+  definitions are not filled in yet.</li>
+<li>Anything that needs Tcl to be evaluated, such as loops and computed names.
+  The view is marked partial in Details, under <strong>What this view knows</strong>.</li>
+</ul>
+<p>For the design behind this feature, see <a href="../../concepts/brainstorm/offline-system-viewer/">Offline System
+Viewer</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
