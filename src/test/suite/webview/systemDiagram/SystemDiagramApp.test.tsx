@@ -48,15 +48,23 @@ interface MockFlowNode {
   data: unknown;
   selected?: boolean;
 }
+interface MockFlowEdge {
+  id: string;
+  type: string;
+  data?: { netId?: string; highlightColor?: string };
+  selected?: boolean;
+}
 interface MockFlowProps {
   nodes: MockFlowNode[];
-  edges: unknown[];
+  edges: MockFlowEdge[];
   nodesDraggable: boolean;
   nodesConnectable: boolean;
   nodeTypes: Record<string, React.ComponentType<{ data: unknown; selected?: boolean }>>;
   onNodeClick: (event: unknown, node: MockFlowNode) => void;
   onNodeDoubleClick: (event: unknown, node: MockFlowNode) => void;
   onNodeContextMenu: (event: unknown, node: MockFlowNode) => void;
+  onEdgeClick?: (event: unknown, edge: MockFlowEdge) => void;
+  onEdgeContextMenu?: (event: unknown, edge: MockFlowEdge) => void;
   onPaneContextMenu: (event: unknown) => void;
 }
 
@@ -133,6 +141,22 @@ jest.mock('@xyflow/react', () => {
                 selected: node.selected,
               })
             )
+          ),
+          props.edges.map((edge) =>
+            React.createElement('div', {
+              key: edge.id,
+              className: 'react-flow__edge',
+              'data-testid': `edge:${edge.id}`,
+              'data-net-id': edge.data?.netId,
+              'data-selected': edge.selected ? 'true' : undefined,
+              'data-highlighted': edge.data?.highlightColor !== undefined ? 'true' : undefined,
+              'data-highlight-color': edge.data?.highlightColor,
+              onClick: (event: unknown) => props.onEdgeClick?.(event, edge),
+              onContextMenu: (event: { stopPropagation: () => void }) => {
+                event.stopPropagation();
+                props.onEdgeContextMenu?.(event, edge);
+              },
+            })
           )
         )
       );
@@ -2274,5 +2298,137 @@ describe('SystemDiagramApp', () => {
     render(<SystemDiagramApp />);
     send({ type: 'error', message: 'boom' });
     expect(screen.getByText(/boom/)).toBeVisible();
+  });
+
+  describe('multi-selection and custom color highlights', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const node = (id: string) => screen.getByTestId(`node:${id}`);
+    const nodeBox = (id: string, selector: string) =>
+      screen.getByTestId(`node:${id}`).parentElement!.querySelector(selector) as HTMLElement;
+    const edgeForNet = (netId: string) =>
+      document.querySelector(`[data-net-id="${netId}"]`) as HTMLElement;
+
+    it('multi-selects instances, boundary ports, wires, and badges with Ctrl/Cmd+Click', async () => {
+      await renderWithGraph();
+      await settle();
+
+      fireEvent.click(node('/axi_dma_0'));
+      fireEvent.click(node('/::DDR'), { ctrlKey: true });
+      fireEvent.click(edgeForNet('/::axi_dma_0_M_AXIS_MM2S'), { metaKey: true });
+      const badge = screen.getAllByTitle(/Clock net processing_system7_0_FCLK_CLK0/)[0];
+      fireEvent.click(badge, { ctrlKey: true });
+
+      expect(details().getByRole('heading', { name: '4 selected' })).toBeVisible();
+      expect(details().getByRole('button', { name: 'axi_dma_0' })).toBeVisible();
+      expect(details().getByRole('button', { name: 'DDR' })).toBeVisible();
+      expect(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' })).toBeVisible();
+      expect(
+        details().getByRole('button', { name: 'processing_system7_0_FCLK_CLK0' })
+      ).toBeVisible();
+      expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-selected', 'true');
+      expect(badge).toHaveAttribute('data-selected', 'true');
+      // Both the previously selected data net's pin and the clock badge's pin keep bold labels.
+      expect(within(nodeBox('/axi_dma_0', '.sd-node')).getByText('M_AXIS_MM2S')).toHaveAttribute(
+        'data-highlight',
+        'true'
+      );
+      const rstBadge = screen.getAllByTitle(
+        /Reset net rst_ps7_0_100M_peripheral_aresetn\. Turn on Clocks and resets to draw it\./
+      )[0];
+      fireEvent.click(rstBadge, { ctrlKey: true });
+      expect(badge).toHaveAttribute('data-selected', 'true');
+      expect(rstBadge).toHaveAttribute('data-selected', 'true');
+
+      fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
+      expect(details().getByRole('heading', { name: 'axi_dma_0_M_AXIS_MM2S' })).toBeVisible();
+    });
+
+    it('highlights selected items with a color swatch, shows the toolbar chip, and posts setHighlights', async () => {
+      await renderWithGraph();
+      await settle();
+      mockPostMessage.mockClear();
+
+      fireEvent.click(node('/axi_dma_0'));
+      fireEvent.click(node('/::DDR'), { ctrlKey: true });
+      fireEvent.click(edgeForNet('/::axi_dma_0_M_AXIS_MM2S'), { ctrlKey: true });
+
+      fireEvent.contextMenu(node('/axi_dma_0'));
+      fireEvent.click(screen.getByRole('button', { name: 'Highlight Cyan' }));
+
+      expect(screen.getByText('Highlighted · 3')).toBeVisible();
+      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
+      expect(nodeBox('/axi_dma_0', '.sd-node').style.getPropertyValue('--sd-highlight')).toBe(
+        'var(--vscode-terminal-ansiCyan)'
+      );
+      expect(nodeBox('/::DDR', '.sd-port')).toHaveAttribute('data-highlighted', 'true');
+      expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
+      expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute(
+        'data-highlight-color',
+        'var(--vscode-terminal-ansiCyan)'
+      );
+      expect(mockPostMessage).toHaveBeenLastCalledWith({
+        type: 'setHighlights',
+        highlights: {
+          'instance:/axi_dma_0': 'cyan',
+          'boundary:/::DDR': 'cyan',
+          'net:/::axi_dma_0_M_AXIS_MM2S': 'cyan',
+        },
+      });
+
+      // Clear a single highlight from the edge context menu.
+      fireEvent.click(edgeForNet('/::axi_dma_0_M_AXIS_MM2S'));
+      fireEvent.contextMenu(edgeForNet('/::axi_dma_0_M_AXIS_MM2S'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Clear Highlight' }));
+      expect(screen.getByText('Highlighted · 2')).toBeVisible();
+      expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).not.toHaveAttribute('data-highlighted');
+
+      // Clear all highlights from the toolbar chip.
+      fireEvent.click(screen.getByRole('button', { name: 'Clear All' }));
+      expect(screen.queryByText(/^Highlighted · /)).toBeNull();
+      expect(nodeBox('/axi_dma_0', '.sd-node')).not.toHaveAttribute('data-highlighted');
+      expect(mockPostMessage).toHaveBeenLastCalledWith({
+        type: 'setHighlights',
+        highlights: {},
+      });
+    });
+
+    it('pauses canvas highlights while Clock domains or Unconnected pins mode is active', async () => {
+      render(<SystemDiagramApp />);
+      send({
+        type: 'graph',
+        graph,
+        highlights: {
+          'instance:/axi_dma_0': 'red',
+          'net:/::axi_dma_0_M_AXIS_MM2S': 'red',
+        },
+      });
+      await screen.findByTestId('node:/axi_dma_0');
+      openPanels();
+      await settle();
+
+      expect(screen.getByText('Highlighted · 2')).toBeVisible();
+      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
+      expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
+
+      // Clock domains mode pauses custom canvas highlights.
+      fireEvent.click(screen.getByRole('button', { name: /^Clock domains/ }));
+      expect(screen.getByText('Highlighted · 2')).toBeVisible();
+      expect(nodeBox('/axi_dma_0', '.sd-node')).not.toHaveAttribute('data-highlighted');
+
+      // Unconnected pins mode also pauses custom canvas highlights.
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(nodeBox('/axi_dma_0', '.sd-node')).not.toHaveAttribute('data-highlighted');
+      expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).not.toHaveAttribute('data-highlighted');
+
+      // Turning diagnostic modes off restores custom canvas highlights.
+      fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
+      expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
+
+      // Clear all highlights from the pane context menu.
+      fireEvent.contextMenu(screen.getByTestId('pane'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Clear All Highlights' }));
+      expect(screen.queryByText(/^Highlighted · /)).toBeNull();
+    });
   });
 });

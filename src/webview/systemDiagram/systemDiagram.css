@@ -116,6 +116,11 @@ input:focus-visible {
   stroke-width: 1;
 }
 
+.sd-port[data-highlighted='true'] .sd-port-shape {
+  stroke: var(--sd-highlight);
+  stroke-width: 2;
+}
+
 .sd-port[data-selected='true'] .sd-port-shape {
   stroke: var(--vscode-focusBorder);
   stroke-width: 2;
@@ -222,9 +227,21 @@ input:focus-visible {
   border-radius: 4px 4px 0 0;
 }
 
+.sd-frame[data-highlighted='true'] {
+  border-color: var(--sd-highlight);
+  box-shadow: 0 0 0 1.5px var(--sd-highlight);
+}
+
 .sd-frame[data-selected='true'] {
   border-color: var(--vscode-focusBorder);
   box-shadow: 0 0 0 0.5px var(--vscode-focusBorder);
+}
+
+.sd-frame[data-highlighted='true'][data-selected='true'] {
+  border-color: var(--sd-highlight);
+  box-shadow:
+    0 0 0 1.5px var(--sd-highlight),
+    0 0 0 3px var(--vscode-focusBorder);
 }
 
 .sd-frame[data-dimmed='true'] {
@@ -317,9 +334,21 @@ input:focus-visible {
   height: 1.5px;
 }
 
+.sd-node[data-highlighted='true'] {
+  border-color: var(--sd-highlight);
+  box-shadow: 0 0 0 1.5px var(--sd-highlight);
+}
+
 .sd-node[data-selected='true'] {
   border-color: var(--vscode-focusBorder);
   box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+}
+
+.sd-node[data-highlighted='true'][data-selected='true'] {
+  border-color: var(--sd-highlight);
+  box-shadow:
+    0 0 0 1.5px var(--sd-highlight),
+    0 0 0 3px var(--vscode-focusBorder);
 }
 
 .sd-flash {
@@ -633,6 +662,32 @@ input:focus-visible {
 
 .sd-menu-item[aria-disabled='true'] {
   opacity: 0.5;
+}
+
+.sd-menu-item-swatches {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.sd-menu-swatches {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sd-swatch {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--vscode-foreground) 45%, transparent);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.sd-swatch:hover {
+  transform: scale(1.15);
 }
 
 /* Unconnected-pin review (issue #245). */

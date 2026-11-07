@@ -97,6 +97,7 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
       className="sd-node"
       data-kind={instance.kind}
       data-selected={selected}
+      data-highlighted={data.highlightColor !== undefined || undefined}
       data-dimmed={data.dimmed === true}
       {...(review && {
         'data-has-unc': review.all > 0,
@@ -106,7 +107,10 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
       {...(data.domains && {
         'data-crossing-end': Object.values(data.pinMarks ?? {}).some((mark) => mark.crossing),
       })}
-      style={{ width: data.width }}
+      style={{
+        width: data.width,
+        ...(data.highlightColor && { '--sd-highlight': data.highlightColor }),
+      }}
     >
       {data.flashToken !== undefined && (
         <span

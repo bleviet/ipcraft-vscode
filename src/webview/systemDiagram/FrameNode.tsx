@@ -100,12 +100,17 @@ export function FrameNode({ data, selected, width, height }: NodeProps<FrameFlow
     <div
       className="sd-frame"
       data-selected={selected}
+      data-highlighted={data.highlightColor !== undefined || undefined}
       data-dimmed={data.dimmed === true}
       {...(review && {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
       })}
-      style={{ width, height }}
+      style={{
+        width,
+        height,
+        ...(data.highlightColor && { '--sd-highlight': data.highlightColor }),
+      }}
     >
       {data.flashToken !== undefined && (
         <span

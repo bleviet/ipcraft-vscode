@@ -11,7 +11,7 @@ function EmptyState({ message }: { message: string }) {
 }
 
 export function SystemDiagramApp() {
-  const { state, revealSource, openDefinition } = useSystemDiagramMessages();
+  const { state, revealSource, openDefinition, setHighlights } = useSystemDiagramMessages();
   switch (state.status) {
     case 'loading':
       return <EmptyState message="Reading the design..." />;
@@ -25,9 +25,11 @@ export function SystemDiagramApp() {
       return (
         <DiagramWorkbench
           graph={state.graph}
+          highlights={state.highlights}
           problem={state.problem}
           revealSource={revealSource}
           openDefinition={openDefinition}
+          onChangeHighlights={setHighlights}
         />
       );
   }

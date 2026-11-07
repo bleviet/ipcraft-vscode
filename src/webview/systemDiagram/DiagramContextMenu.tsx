@@ -1,9 +1,16 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { clampMenuPosition } from './layout/menuPosition';
 
+export interface ContextMenuSwatch {
+  label: string;
+  color: string;
+  onSelect: () => void;
+}
+
 export interface ContextMenuItem {
   label: string;
   disabled?: boolean;
+  swatches?: readonly ContextMenuSwatch[];
   onSelect: () => void;
 }
 
@@ -135,11 +142,30 @@ export function DiagramContextMenu({
           id={itemId(index)}
           role="menuitem"
           aria-disabled={item.disabled ? true : undefined}
-          className={`sd-menu-item${index === active ? ' sd-menu-item-active' : ''}`}
+          className={`sd-menu-item${item.swatches ? ' sd-menu-item-swatches' : ''}${index === active ? ' sd-menu-item-active' : ''}`}
           onMouseEnter={() => !item.disabled && setActive(index)}
           onClick={() => activate(item)}
         >
           {item.label}
+          {item.swatches && (
+            <span className="sd-menu-swatches">
+              {item.swatches.map((swatch) => (
+                <button
+                  key={swatch.label}
+                  type="button"
+                  className="sd-swatch"
+                  aria-label={`Highlight ${swatch.label}`}
+                  title={swatch.label}
+                  style={{ background: swatch.color }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onClose();
+                    swatch.onSelect();
+                  }}
+                />
+              ))}
+            </span>
+          )}
         </div>
       ))}
     </div>

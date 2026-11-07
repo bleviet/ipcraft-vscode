@@ -6,7 +6,7 @@ interface NetBadgeViewProps {
   badge: NetBadge;
   /** Nets of the selected clock or reset tree; the badge is drawn selected when it holds one. */
   selectedNetIds?: ReadonlySet<string>;
-  onSelectNet?: (netId: string) => void;
+  onSelectNet?: (netId: string, additive?: boolean) => void;
 }
 
 /** Quiet label drawn where ELK reserved space for a hidden clock or reset net. */
@@ -31,7 +31,11 @@ export function NetBadgeView({ badge, selectedNetIds, onSelectNet }: NetBadgeVie
       title={`${kind} net${badge.nets.length > 1 ? 's' : ''} ${names}. Turn on Clocks and resets to draw it.`}
       onClick={(event) => {
         event.stopPropagation();
-        onSelectNet?.(badge.netId);
+        if (event.metaKey || event.ctrlKey) {
+          onSelectNet?.(badge.netId, true);
+        } else {
+          onSelectNet?.(badge.netId);
+        }
       }}
     >
       <span aria-hidden="true" className="sd-badge-stub" style={{ background: color }} />

@@ -65,6 +65,18 @@ export function viewLevel(
     : selectionLevel(graph, selection);
 }
 
+/** Whether `selection` (an instance, boundary pin, or net) is drawn on `levelPath` with `expanded`. */
+export function isShownSelection(
+  graph: SystemGraph,
+  levelPath: string,
+  expanded: ReadonlySet<string>,
+  selection: Selection
+): boolean {
+  return selection.kind === 'net'
+    ? viewLevel(graph, levelPath, expanded, selection) === levelPath
+    : isShownNode(graph, levelPath, expanded, selection.id);
+}
+
 /**
  * Level a selection gesture shows; undefined keeps the current one. An
  * explicit `level` (outline row, finding) wins, except that a level drawn

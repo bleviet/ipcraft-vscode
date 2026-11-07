@@ -21,13 +21,18 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
     <div
       className="sd-port"
       data-selected={selected}
+      data-highlighted={data.highlightColor !== undefined || undefined}
       data-dimmed={data.dimmed === true}
       {...(review && {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
       })}
       {...(mark?.crossing && { 'data-crossing-end': true })}
-      style={{ width: data.width, height: BOUNDARY_HEIGHT }}
+      style={{
+        width: data.width,
+        height: BOUNDARY_HEIGHT,
+        ...(data.highlightColor && { '--sd-highlight': data.highlightColor }),
+      }}
       aria-label={data.label === pin.name ? undefined : pin.name}
       onPointerEnter={(event) =>
         data.onHoverPin?.(
