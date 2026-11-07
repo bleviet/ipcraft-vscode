@@ -8,6 +8,7 @@ import type {
   SystemDiagramToExtensionMessage,
   SystemDiagramToWebviewMessage,
 } from '../shared/messages/systemDiagram';
+import { pruneHighlights } from '../webview/systemDiagram/highlights';
 import { Logger } from '../utils/Logger';
 
 /** Read-only custom editor that draws a block design script as a system diagram. */
@@ -39,6 +40,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
 
     let sequence = 0;
     let lastGraph: SystemGraph | undefined;
+    const storageKey = `ipcraft.systemDiagram.highlights:${document.uri.toString()}`;
 
     const postGraph = async () => {
       const current = ++sequence;
@@ -57,7 +59,24 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
           });
         if (current === sequence) {
           lastGraph = graph;
-          post({ type: 'graph', graph });
+          const raw = this.context.workspaceState?.get<unknown>(storageKey);
+          const highlights = pruneHighlights(graph, raw);
+          if (
+            raw !== undefined &&
+            (typeof raw !== 'object' ||
+              raw === null ||
+              Object.keys(highlights).length !== Object.keys(raw).length)
+          ) {
+            void this.context.workspaceState?.update(
+              storageKey,
+              Object.keys(highlights).length > 0 ? highlights : undefined
+            );
+          }
+          post({
+            type: 'graph',
+            graph,
+            ...(Object.keys(highlights).length > 0 && { highlights }),
+          });
         }
       } catch (error) {
         if (current !== sequence) {
@@ -111,6 +130,14 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       } else {
         await vscode.window.showTextDocument(uri, { viewColumn: vscode.ViewColumn.Beside });
       }
+    });
+
+    router.on('setHighlights', async (message) => {
+      const highlights = pruneHighlights(lastGraph, message.highlights);
+      await this.context.workspaceState?.update(
+        storageKey,
+        Object.keys(highlights).length > 0 ? highlights : undefined
+      );
     });
 
     const documentChanges = vscode.workspace.onDidChangeTextDocument((event) => {

@@ -19,6 +19,8 @@ interface DiagramToolbarProps {
   /** Selected and shown node counts while the level is isolated, else null. */
   isolated: { selected: number; shown: number } | null;
   onShowAll: () => void;
+  highlightedCount?: number;
+  onClearHighlights?: () => void;
   onNavigate: (levelPath: string) => void;
   onQueryChange: (query: string) => void;
   onSearchStep: (direction: 1 | -1) => void;
@@ -50,6 +52,8 @@ export function DiagramToolbar({
   unconnected,
   isolated,
   onShowAll,
+  highlightedCount,
+  onClearHighlights,
   onNavigate,
   onQueryChange,
   onSearchStep,
@@ -90,6 +94,14 @@ export function DiagramToolbar({
           </span>
           <button type="button" className="sd-tool" onClick={onShowAll}>
             Show All
+          </button>
+        </span>
+      )}
+      {highlightedCount !== undefined && highlightedCount > 0 && (
+        <span className="sd-isolated">
+          <span>Highlighted · {highlightedCount}</span>
+          <button type="button" className="sd-tool" onClick={onClearHighlights}>
+            Clear All
           </button>
         </span>
       )}

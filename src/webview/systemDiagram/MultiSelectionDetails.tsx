@@ -4,29 +4,44 @@ import { nodeSelection, parseBoundaryId, type Selection } from './model';
 
 interface MultiSelectionDetailsProps {
   graph: SystemGraph;
-  nodeIds: readonly string[];
+  items?: readonly Selection[];
+  nodeIds?: readonly string[];
   onSelect: (selection: Selection) => void;
 }
 
-/** Details of a multi-selection: its size and one link per node that selects it alone. */
-export function MultiSelectionDetails({ graph, nodeIds, onSelect }: MultiSelectionDetailsProps) {
+function itemLabel(graph: SystemGraph, item: Selection): string {
+  switch (item.kind) {
+    case 'instance':
+      return graph.instances[item.id]?.name ?? item.id;
+    case 'boundary':
+      return parseBoundaryId(item.id).pin;
+    case 'net':
+      return graph.nets.find((net) => net.id === item.id)?.name ?? parseBoundaryId(item.id).pin;
+  }
+}
+
+/** Details of a multi-selection: its size and one link per item that selects it alone. */
+export function MultiSelectionDetails({
+  graph,
+  items,
+  nodeIds,
+  onSelect,
+}: MultiSelectionDetailsProps) {
+  const list = items ?? (nodeIds ?? []).map(nodeSelection);
   return (
     <div className="space-y-3">
       <header>
         <div className="sd-eyebrow">Selection</div>
-        <h2 className="sd-h2">{nodeIds.length} selected</h2>
+        <h2 className="sd-h2">{list.length} selected</h2>
       </header>
       <ul>
-        {nodeIds.map((id) => {
-          const instance = graph.instances[id];
-          return (
-            <li key={id}>
-              <button type="button" className="sd-link" onClick={() => onSelect(nodeSelection(id))}>
-                {instance ? instance.name : parseBoundaryId(id).pin}
-              </button>
-            </li>
-          );
-        })}
+        {list.map((item) => (
+          <li key={`${item.kind}:${item.id}`}>
+            <button type="button" className="sd-link" onClick={() => onSelect(item)}>
+              {itemLabel(graph, item)}
+            </button>
+          </li>
+        ))}
       </ul>
     </div>
   );

@@ -80,9 +80,23 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
     }),
   } as unknown as vscode.WebviewPanel;
 
+  const workspaceStateStore = new Map<string, unknown>();
+  const workspaceState = {
+    get: jest.fn((key: string) => workspaceStateStore.get(key)),
+    update: jest.fn((key: string, value: unknown) => {
+      if (value === undefined) {
+        workspaceStateStore.delete(key);
+      } else {
+        workspaceStateStore.set(key, value);
+      }
+      return Promise.resolve();
+    }),
+  };
+
   new SystemDiagramProvider({
     extensionUri: { fsPath: '/ext' },
     subscriptions,
+    workspaceState,
   } as unknown as vscode.ExtensionContext).resolveCustomTextEditor(
     document,
     webviewPanel,
@@ -92,6 +106,8 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
   return {
     posted,
     subscriptions,
+    workspaceState,
+    workspaceStateStore,
     document: documentState,
     trustSubscription,
     grantTrust: () => trustHandler!(),
@@ -395,5 +411,54 @@ describe('SystemDiagramProvider', () => {
     const { changeSubscription, dispose } = setup(fixtureText);
     dispose();
     expect(changeSubscription.dispose).toHaveBeenCalled();
+  });
+
+  describe('highlight persistence in workspaceState', () => {
+    const storageKey = 'ipcraft.systemDiagram.highlights:file:///ws/zynq.tcl';
+
+    it('restores valid highlights on ready and prunes vanished entries from workspaceState', async () => {
+      const { posted, send, workspaceState, workspaceStateStore } = setup(fixtureText);
+      workspaceStateStore.set(storageKey, {
+        'instance:/axi_dma_0': 'red',
+        'net:/::axi_dma_0_M_AXIS_MM2S': 'cyan',
+        'instance:/vanished_ip': 'yellow',
+      });
+
+      await send({ type: 'ready' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      expect(posted[0]).toMatchObject({
+        type: 'graph',
+        highlights: {
+          'instance:/axi_dma_0': 'red',
+          'net:/::axi_dma_0_M_AXIS_MM2S': 'cyan',
+        },
+      });
+      expect(workspaceState.update).toHaveBeenCalledWith(storageKey, {
+        'instance:/axi_dma_0': 'red',
+        'net:/::axi_dma_0_M_AXIS_MM2S': 'cyan',
+      });
+    });
+
+    it('saves pruned highlights on setHighlights and removes the key when cleared', async () => {
+      const { send, workspaceState, workspaceStateStore } = setup(fixtureText);
+      await send({ type: 'ready' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      await send({
+        type: 'setHighlights',
+        highlights: {
+          'instance:/axi_dma_0': 'green',
+          'instance:/ghost': 'red',
+        },
+      });
+      expect(workspaceStateStore.get(storageKey)).toEqual({
+        'instance:/axi_dma_0': 'green',
+      });
+
+      await send({ type: 'setHighlights', highlights: {} });
+      expect(workspaceState.update).toHaveBeenLastCalledWith(storageKey, undefined);
+      expect(workspaceStateStore.has(storageKey)).toBe(false);
+    });
   });
 });

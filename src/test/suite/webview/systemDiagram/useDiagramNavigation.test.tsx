@@ -179,10 +179,56 @@ describe('useIsolation with an expanded block', () => {
   it('ends an isolation that hides the block of the revealed inner instance', () => {
     const { result } = setupBoth();
     act(() => result.current.nav.toggleExpanded(DSP));
+    act(() => result.current.nav.select({ kind: 'instance', id: '/axi_gpio_0' }));
     act(() => result.current.view.isolate(['/axi_gpio_0']));
     expect(result.current.view.isolation?.nodeIds.has(DSP)).toBe(false);
     act(() => result.current.view.revealMatch(FIR));
     expect(result.current.view.isolation).toBeNull();
     expect(result.current.nav.levelPath).toBe('/');
+  });
+});
+
+describe('useDiagramNavigation multi-selection with nets and nodes', () => {
+  const dma = { kind: 'instance', id: '/axi_dma_0' } as const;
+  const port = { kind: 'boundary', id: boundaryId('/', 'DDR') } as const;
+  const net = { kind: 'net', id: '/::axi_dma_0_M_AXIS_MM2S' } as const;
+  const innerNet = { kind: 'net', id: `${DSP}::Conn1` } as const;
+
+  it('toggles instances, boundary ports, and nets together in selectedItems', () => {
+    const { result } = setup();
+    act(() => result.current.select(dma));
+    act(() => result.current.toggleSelection(port));
+    act(() => result.current.toggleSelection(net));
+
+    expect(result.current.selection).toEqual(net);
+    expect(result.current.selectedItems).toEqual([dma, port, net]);
+    expect(result.current.selectedNodeIds).toEqual(['/axi_dma_0', boundaryId('/', 'DDR')]);
+    expect([...result.current.selectedNetIds]).toEqual(['/::axi_dma_0_M_AXIS_MM2S']);
+
+    act(() => result.current.toggleSelection(port));
+    expect(result.current.selectedItems).toEqual([dma, net]);
+    expect(result.current.selection).toEqual(net);
+
+    act(() => result.current.toggleSelection(net));
+    expect(result.current.selectedItems).toEqual([dma]);
+    expect(result.current.selection).toEqual(dma);
+    expect([...result.current.selectedNetIds]).toEqual([]);
+  });
+
+  it('keeps nets inside an expanded hierarchy block in selectedItems', () => {
+    const { result } = setup();
+    act(() => result.current.toggleExpanded(DSP));
+    act(() => result.current.select(dma));
+    act(() => result.current.toggleSelection(innerNet));
+
+    expect(result.current.selectedItems).toEqual([dma, innerNet]);
+    expect([...result.current.selectedNetIds]).toEqual([innerNet.id]);
+
+    // Collapsing the block hides innerNet, so only shown items remain when dma is selected.
+    act(() => result.current.select(dma));
+    act(() => result.current.toggleSelection(innerNet));
+    act(() => result.current.toggleSelection(port));
+    act(() => result.current.toggleExpanded(DSP));
+    expect(result.current.selectedItems).toEqual([dma, port]);
   });
 });

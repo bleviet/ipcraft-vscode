@@ -55,7 +55,9 @@ export interface InstanceUiData {
   /** Set on the node being pulsed after a search step; a new value restarts the pulse. */
   flashToken?: number;
   onFlashEnd?: (token: number) => void;
-  onSelectNet?: (netId: string) => void;
+  /** User-assigned highlight color CSS value, when highlights are active on the canvas. */
+  highlightColor?: string;
+  onSelectNet?: (netId: string, additive?: boolean) => void;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
   /** Expands or collapses the hierarchy block `instancePath` in place. */
   onToggleExpand?: (instancePath: string) => void;
@@ -100,7 +102,9 @@ export interface BoundaryNodeData extends Record<string, unknown> {
   selectedNetIds?: ReadonlySet<string>;
   /** Name of the pin when its marker gets the focus halo. */
   focusedPin?: string;
-  onSelectNet?: (netId: string) => void;
+  /** User-assigned highlight color CSS value, when highlights are active on the canvas. */
+  highlightColor?: string;
+  onSelectNet?: (netId: string, additive?: boolean) => void;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
 }
 
@@ -124,6 +128,8 @@ export interface ElkEdgeData extends Record<string, unknown>, EdgeMarks {
   netId: string;
   category: NetCategory;
   isInterface: boolean;
+  /** User-assigned highlight color CSS value, when highlights are active on the canvas. */
+  highlightColor?: string;
 }
 
 export interface DiagramFlowEdge {

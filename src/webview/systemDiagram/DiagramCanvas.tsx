@@ -18,11 +18,26 @@ import { PinHoverCard } from './PinHoverCard';
 import { usePinHover } from './hooks/usePinHover';
 import type { DiagramLayout } from './hooks/useElkLayout';
 import type { SystemGraph } from '../../domain/systemGraph';
+import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
 import { clockDecor, type ClockContext } from './clockDecor';
+import {
+  HIGHLIGHT_COLORS,
+  hasAnyHighlight,
+  highlightCount,
+  highlightedNetIds,
+  netHighlightColor,
+  nodeHighlightColor,
+} from './highlights';
 import { highlightedPinsByNode } from './pinHighlight';
-import { boundaryMatchesQuery, matchesQuery, nodeSelection, type Selection } from './model';
+import {
+  boundaryMatchesQuery,
+  matchesQuery,
+  nodeSelection,
+  sameSelection,
+  type Selection,
+} from './model';
 import { focusedPinOf, nodeReview, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
 
 /** Everything the canvas needs to draw the unconnected-pin review; null while the review is off. */
@@ -40,6 +55,9 @@ interface DiagramCanvasProps {
   selection: Selection | null;
   /** Every selected node (the primary selection included). */
   selectedNodeIds: readonly string[];
+  selectedItems?: readonly Selection[];
+  selectedNetIds?: ReadonlySet<string>;
+  highlights?: HighlightMap;
   isolated: boolean;
   review: ReviewContext | null;
   clocks: ClockContext;
@@ -51,6 +69,8 @@ interface DiagramCanvasProps {
   onToggleNode: (selection: Selection) => void;
   onIsolate: (nodeIds: string[]) => void;
   onShowAll: () => void;
+  onHighlight?: (targets: readonly Selection[], color: HighlightColor | null) => void;
+  onClearHighlights?: () => void;
   onEnterHierarchy: (instancePath: string) => void;
   /** Expands a hierarchy block in place, or collapses it. */
   onToggleExpand: (instancePath: string) => void;
@@ -73,6 +93,9 @@ export function DiagramCanvas({
   error,
   selection,
   selectedNodeIds,
+  selectedItems,
+  selectedNetIds,
+  highlights,
   isolated,
   review,
   clocks,
@@ -84,6 +107,8 @@ export function DiagramCanvas({
   onToggleNode,
   onIsolate,
   onShowAll,
+  onHighlight,
+  onClearHighlights,
   onEnterHierarchy,
   onToggleExpand,
   isolatable,
@@ -91,8 +116,15 @@ export function DiagramCanvas({
   onFit,
 }: DiagramCanvasProps) {
   const onSelectNet = useCallback(
-    (netId: string) => onSelect({ kind: 'net', id: netId }),
-    [onSelect]
+    (netId: string, additive?: boolean) => {
+      const next: Selection = { kind: 'net', id: netId };
+      if (additive) {
+        onToggleNode(next);
+      } else {
+        onSelect(next);
+      }
+    },
+    [onSelect, onToggleNode]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -108,19 +140,63 @@ export function DiagramCanvas({
     disabled: !isolated,
     onSelect: onShowAll,
   };
+  const highlightItems = (targets: readonly Selection[]): ContextMenuItem[] =>
+    onHighlight
+      ? [
+          {
+            label: 'Highlight',
+            swatches: HIGHLIGHT_COLORS.map((swatch) => ({
+              label: swatch.label,
+              color: swatch.css,
+              onSelect: () => onHighlight(targets, swatch.id),
+            })),
+            onSelect: () => onHighlight(targets, HIGHLIGHT_COLORS[0].id),
+          },
+          {
+            label: 'Clear Highlight',
+            disabled: !hasAnyHighlight(highlights ?? {}, targets),
+            onSelect: () => onHighlight(targets, null),
+          },
+          ...(onClearHighlights
+            ? [
+                {
+                  label: 'Clear All Highlights',
+                  disabled: highlightCount(highlights ?? {}) === 0,
+                  onSelect: onClearHighlights,
+                },
+              ]
+            : []),
+        ]
+      : [];
 
   const { hover, onHoverPin } = usePinHover(layout);
 
   const selectedIds = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
+  const activeSelectedNetIds = useMemo(
+    () =>
+      selectedNetIds ?? (selection?.kind === 'net' ? new Set([selection.id]) : new Set<string>()),
+    [selectedNetIds, selection]
+  );
+  const showHighlights = !clocks.domainMode && review === null;
 
   const decor = useMemo(() => clockDecor(layout, clocks, selection), [layout, clocks, selection]);
   const { tree } = decor;
 
   const nodes = useMemo(() => {
+    const selectedAndTreeNetIds = tree
+      ? new Set([...activeSelectedNetIds, ...tree.netIds])
+      : activeSelectedNetIds;
+    const activeNetIds = new Set(selectedAndTreeNetIds);
+    if (showHighlights && highlights) {
+      for (const netId of highlightedNetIds(highlights)) {
+        activeNetIds.add(netId);
+      }
+    }
     const highlighted =
-      selection?.kind === 'net' && layout
-        ? highlightedPinsByNode(tree?.netIds ?? selection.id, layout.edges, layout.nodes)
+      activeNetIds.size > 0 && layout
+        ? highlightedPinsByNode(activeNetIds, layout.edges, layout.nodes)
         : undefined;
+    const badgeNetIds = selectedAndTreeNetIds.size > 0 ? selectedAndTreeNetIds : undefined;
     const searching = query.trim() !== '';
     return (layout?.nodes ?? []).map((node) => {
       const dimmed =
@@ -133,6 +209,8 @@ export function DiagramCanvas({
       const pinMarks = decor.pinMarks.get(node.id);
       const domains = decor.domains.get(node.id);
       const focused = focusedPinOf(focusedPin, selection, node.id);
+      const highlightColor =
+        showHighlights && highlights ? nodeHighlightColor(highlights, node.id) : undefined;
       return {
         ...node,
         selected: selectedIds.has(node.id),
@@ -142,7 +220,8 @@ export function DiagramCanvas({
           ...(review && { review: nodeReview(review.findings, node.id, review.graph) }),
           ...(domains && { domains }),
           ...(pinMarks && { pinMarks }),
-          ...(tree && { selectedNetIds: tree.netIds }),
+          ...(badgeNetIds && { selectedNetIds: badgeNetIds }),
+          ...(highlightColor !== undefined && { highlightColor }),
           ...(focused !== undefined && { focusedPin: focused }),
           ...(highlighted?.has(node.id) && { highlightedPins: highlighted.get(node.id) }),
           onSelectNet,
@@ -159,6 +238,9 @@ export function DiagramCanvas({
     onFlashEnd,
     selection,
     selectedIds,
+    activeSelectedNetIds,
+    showHighlights,
+    highlights,
     review,
     decor,
     tree,
@@ -172,15 +254,24 @@ export function DiagramCanvas({
     () =>
       (layout?.edges ?? []).map((edge) => {
         const marks = decor.edges.get(edge.id);
+        const highlightColor =
+          showHighlights && highlights ? netHighlightColor(highlights, edge.data.netId) : undefined;
         return {
           ...edge,
           selected:
-            selection?.kind === 'net' &&
-            (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId),
-          ...(marks && { data: { ...edge.data, ...marks } }),
+            activeSelectedNetIds.has(edge.data.netId) ||
+            (selection?.kind === 'net' &&
+              (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId)),
+          ...((marks !== undefined || highlightColor !== undefined) && {
+            data: {
+              ...edge.data,
+              ...marks,
+              ...(highlightColor !== undefined && { highlightColor }),
+            },
+          }),
         };
       }),
-    [layout, selection, decor, tree]
+    [layout, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
   );
 
   // React Flow stays mounted on error: unmounting resets its store to the
@@ -223,9 +314,18 @@ export function DiagramCanvas({
           }
         }}
         onNodeContextMenu={(event, node) => {
-          const ids = selectedIds.has(node.id) ? [...selectedNodeIds] : [node.id];
-          if (!selectedIds.has(node.id)) {
-            onSelect(nodeSelection(node.id));
+          const nodeSel = nodeSelection(node.id);
+          const currentItems = selectedItems ?? selectedNodeIds.map(nodeSelection);
+          const inSelection =
+            selectedIds.has(node.id) || currentItems.some((item) => sameSelection(item, nodeSel));
+          const targets = inSelection
+            ? currentItems.length > 0
+              ? [...currentItems]
+              : selectedNodeIds.map(nodeSelection)
+            : [nodeSel];
+          const isolateIds = targets.filter((item) => item.kind !== 'net').map((item) => item.id);
+          if (!inSelection) {
+            onSelect(nodeSel);
           }
           openMenu(event, [
             ...(isHierarchy(node)
@@ -238,14 +338,44 @@ export function DiagramCanvas({
                 ]
               : []),
             {
-              label: ids.length > 1 ? `Isolate ${ids.length} Selected` : 'Isolate Selection',
-              disabled: !isolatable(ids),
-              onSelect: () => onIsolate(ids),
+              label:
+                isolateIds.length > 1
+                  ? `Isolate ${isolateIds.length} Selected`
+                  : 'Isolate Selection',
+              disabled: isolateIds.length === 0 || !isolatable(isolateIds),
+              onSelect: () => onIsolate(isolateIds),
             },
             showAllItem,
+            ...highlightItems(targets),
           ]);
         }}
-        onPaneContextMenu={(event) => openMenu(event, [showAllItem])}
+        onEdgeContextMenu={(event, edge) => {
+          if (!edge.data?.netId) {
+            return;
+          }
+          const netSel: Selection = { kind: 'net', id: edge.data.netId };
+          const currentItems = selectedItems ?? selectedNodeIds.map(nodeSelection);
+          const inSelection = currentItems.some((item) => sameSelection(item, netSel));
+          const targets = inSelection ? [...currentItems] : [netSel];
+          if (!inSelection) {
+            onSelect(netSel);
+          }
+          openMenu(event, [...highlightItems(targets), showAllItem]);
+        }}
+        onPaneContextMenu={(event) =>
+          openMenu(event, [
+            showAllItem,
+            ...(onClearHighlights
+              ? [
+                  {
+                    label: 'Clear All Highlights',
+                    disabled: highlightCount(highlights ?? {}) === 0,
+                    onSelect: onClearHighlights,
+                  },
+                ]
+              : []),
+          ])
+        }
         onMoveStart={closeMenu}
         onPaneClick={() => {
           closeMenu();
@@ -258,7 +388,17 @@ export function DiagramCanvas({
             onFocusNode(node.id);
           }
         }}
-        onEdgeClick={(_event, edge) => onSelect({ kind: 'net', id: edge.data?.netId })}
+        onEdgeClick={(event, edge) => {
+          if (!edge.data?.netId) {
+            return;
+          }
+          const next: Selection = { kind: 'net', id: edge.data.netId };
+          if (event.metaKey || event.ctrlKey) {
+            onToggleNode(next);
+          } else {
+            onSelect(next);
+          }
+        }}
         proOptions={{ hideAttribution: true }}
       >
         <Background variant={BackgroundVariant.Dots} />

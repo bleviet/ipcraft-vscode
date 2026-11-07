@@ -63,6 +63,10 @@ export function nodeSelection(nodeId: string): Selection {
   return { kind: nodeId.includes('::') ? 'boundary' : 'instance', id: nodeId };
 }
 
+export function sameSelection(a: Selection, b: Selection): boolean {
+  return a.kind === b.kind && a.id === b.id;
+}
+
 /** Whether `nodeId` is an instance or boundary pin node of `levelPath`. */
 export function isLevelNode(graph: SystemGraph, levelPath: string, nodeId: string): boolean {
   const level = graph.levels[levelPath];
@@ -226,7 +230,7 @@ export function reconcileNavigation(
   };
 }
 
-function selectionExists(graph: SystemGraph, selection: Selection): boolean {
+export function selectionExists(graph: SystemGraph, selection: Selection): boolean {
   switch (selection.kind) {
     case 'instance':
       return graph.instances[selection.id] !== undefined;

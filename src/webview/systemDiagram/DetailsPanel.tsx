@@ -11,7 +11,14 @@ import { PortClockDetails } from './InstanceClockDetails';
 import { MultiSelectionDetails } from './MultiSelectionDetails';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
-import { boundaryId, endpointKey, netsByEndpoint, parseBoundaryId, type Selection } from './model';
+import {
+  boundaryId,
+  endpointKey,
+  netsByEndpoint,
+  nodeSelection,
+  parseBoundaryId,
+  type Selection,
+} from './model';
 import { focusedPinOf, unconnectedClass, type FocusedPin } from './unconnectedPins';
 
 interface DetailsPanelProps {
@@ -19,6 +26,7 @@ interface DetailsPanelProps {
   clocks: ClockAnalysis;
   selection: Selection | null;
   selectedNodeIds: readonly string[];
+  selectedItems?: readonly Selection[];
   focusedPin: FocusedPin | null;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
@@ -180,15 +188,17 @@ export function DetailsPanel({
   clocks,
   selection,
   selectedNodeIds,
+  selectedItems,
   focusedPin,
   onSelect,
   onEnterHierarchy,
   onReveal,
   onOpenDefinition,
 }: DetailsPanelProps) {
+  const items = selectedItems ?? selectedNodeIds.map(nodeSelection);
   let content: React.ReactNode = <DesignSummary graph={graph} />;
-  if (selectedNodeIds.length > 1) {
-    content = <MultiSelectionDetails graph={graph} nodeIds={selectedNodeIds} onSelect={onSelect} />;
+  if (items.length > 1) {
+    content = <MultiSelectionDetails graph={graph} items={items} onSelect={onSelect} />;
   } else if (selection?.kind === 'instance' && graph.instances[selection.id]) {
     content = (
       <InstanceDetails

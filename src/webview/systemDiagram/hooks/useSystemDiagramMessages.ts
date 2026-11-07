@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type {
+  HighlightMap,
   SystemDiagramToExtensionMessage,
   SystemDiagramToWebviewMessage,
 } from '../../../shared/messages/systemDiagram';
@@ -14,6 +15,7 @@ export function useSystemDiagramMessages(): {
   state: SystemDiagramState;
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
+  setHighlights: (highlights: HighlightMap) => void;
 } {
   const [state, setState] = useState<SystemDiagramState>({ status: 'loading' });
 
@@ -37,5 +39,9 @@ export function useSystemDiagramMessages(): {
     (instance: string) => post({ type: 'openDefinition', instance }),
     []
   );
-  return { state, revealSource, openDefinition };
+  const setHighlights = useCallback((highlights: HighlightMap) => {
+    setState((state) => (state.status === 'graph' ? { ...state, highlights } : state));
+    post({ type: 'setHighlights', highlights });
+  }, []);
+  return { state, revealSource, openDefinition, setHighlights };
 }

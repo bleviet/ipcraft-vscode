@@ -1,12 +1,16 @@
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { SystemDiagramToWebviewMessage } from '../../shared/messages/systemDiagram';
+import type {
+  HighlightMap,
+  SystemDiagramToWebviewMessage,
+} from '../../shared/messages/systemDiagram';
+import { pruneHighlights } from './highlights';
 
 /** Why the latest document text could not be shown, while the last good graph stays up. */
 export type DiagramProblem = { kind: 'error'; message: string } | { kind: 'notRecognized' };
 
 export type SystemDiagramState =
   | { status: 'loading' }
-  | { status: 'graph'; graph: SystemGraph; problem?: DiagramProblem }
+  | { status: 'graph'; graph: SystemGraph; highlights?: HighlightMap; problem?: DiagramProblem }
   | { status: 'notRecognized'; fileName: string }
   | { status: 'error'; message: string };
 
@@ -20,8 +24,19 @@ export function reduceDiagramMessage(
   message: SystemDiagramToWebviewMessage
 ): SystemDiagramState {
   switch (message.type) {
-    case 'graph':
-      return { status: 'graph', graph: message.graph };
+    case 'graph': {
+      const highlights =
+        message.highlights !== undefined
+          ? pruneHighlights(message.graph, message.highlights)
+          : state.status === 'graph'
+            ? pruneHighlights(message.graph, state.highlights)
+            : {};
+      return {
+        status: 'graph',
+        graph: message.graph,
+        ...(Object.keys(highlights).length > 0 && { highlights }),
+      };
+    }
     case 'notRecognized':
       return state.status === 'graph'
         ? { ...state, problem: { kind: 'notRecognized' } }

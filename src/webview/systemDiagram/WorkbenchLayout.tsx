@@ -1,11 +1,13 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
+import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
 import { BottomPanel, type BottomTab } from './BottomPanel';
 import { analyzeClocks } from './clocks/analyzeClocks';
 import { toolbarSummary } from './clocks/crossingSummary';
 import { DetailsPanel } from './DetailsPanel';
 import { DiagramCanvas } from './DiagramCanvas';
 import { DiagramToolbar, type PanelName } from './DiagramToolbar';
+import { applyHighlight, highlightCount } from './highlights';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
@@ -14,7 +16,7 @@ import { useMouseBackButton } from './hooks/useMouseBackButton';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
-import { levelOf, nodeSelection } from './model';
+import { levelOf, nodeSelection, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
@@ -22,17 +24,23 @@ import { unconnectedPins, type FocusedPin, type UnconnectedPin } from './unconne
 
 interface WorkbenchLayoutProps {
   graph: SystemGraph;
+  highlights?: HighlightMap;
   problem?: DiagramProblem;
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
+  onChangeHighlights?: (highlights: HighlightMap) => void;
 }
+
+const EMPTY_HIGHLIGHTS: HighlightMap = {};
 
 /** Toolbar, resizable outline / canvas / details row, and bottom panel. Needs a React Flow provider. */
 export function WorkbenchLayout({
   graph,
+  highlights = EMPTY_HIGHLIGHTS,
   problem,
   revealSource,
   openDefinition,
+  onChangeHighlights,
 }: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
   const { levelPath, navigate } = nav;
@@ -115,6 +123,17 @@ export function WorkbenchLayout({
     nav.revealRequest
   );
 
+  const highlightedCount = useMemo(() => highlightCount(highlights), [highlights]);
+  const handleHighlight = useCallback(
+    (targets: readonly Selection[], color: HighlightColor | null) => {
+      onChangeHighlights?.(applyHighlight(highlights, targets, color));
+    },
+    [highlights, onChangeHighlights]
+  );
+  const handleClearHighlights = useCallback(() => {
+    onChangeHighlights?.({});
+  }, [onChangeHighlights]);
+
   return (
     <div className="flex h-full flex-col">
       {problem && <ProblemBanner problem={problem} />}
@@ -130,6 +149,8 @@ export function WorkbenchLayout({
         unconnected={{ count: findings.length, anyUndriven }}
         isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
         onShowAll={view.showAll}
+        highlightedCount={highlightedCount}
+        onClearHighlights={handleClearHighlights}
         onNavigate={nav.navigate}
         onQueryChange={setQuery}
         onSearchStep={search.step}
@@ -178,6 +199,9 @@ export function WorkbenchLayout({
               error={error}
               selection={nav.selection}
               selectedNodeIds={nav.selectedNodeIds}
+              selectedItems={nav.selectedItems}
+              selectedNetIds={nav.selectedNetIds}
+              highlights={highlights}
               isolated={isolation !== null}
               review={reviewContext}
               clocks={clockContext}
@@ -189,6 +213,8 @@ export function WorkbenchLayout({
               onToggleNode={nav.toggleNode}
               onIsolate={view.isolate}
               onShowAll={view.showAll}
+              onHighlight={handleHighlight}
+              onClearHighlights={handleClearHighlights}
               onEnterHierarchy={nav.enterHierarchy}
               onToggleExpand={nav.toggleExpanded}
               isolatable={view.canIsolate}
@@ -208,6 +234,7 @@ export function WorkbenchLayout({
                   clocks={clocks}
                   selection={nav.selection}
                   selectedNodeIds={nav.selectedNodeIds}
+                  selectedItems={nav.selectedItems}
                   focusedPin={focusedPin}
                   onSelect={view.selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
