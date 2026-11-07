@@ -259,7 +259,6 @@ describe('frame in review mode', () => {
     const layout = await layoutOf([DSP], design);
     setup(layout, [], {
       graph: design,
-      levelPath: '/',
       findings: unconnectedPins(design),
     });
     const frame = document.querySelector<HTMLElement>('.sd-frame')!;

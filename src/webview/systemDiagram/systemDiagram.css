@@ -698,16 +698,6 @@ input:focus-visible {
   color: var(--vscode-editorWarning-foreground);
 }
 
-.sd-review-banner {
-  max-width: 420px;
-  padding: 6px 10px;
-  font-size: 11.5px;
-  background: var(--vscode-editorWidget-background);
-  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
-  border-left: 3px solid var(--vscode-editorWarning-foreground);
-  border-radius: 4px;
-}
-
 .sd-legend-bar-dashed {
   height: 0;
   background: none !important;

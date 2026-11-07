@@ -62,8 +62,8 @@ export function WorkbenchLayout({
     [graph, clocks, nav.levelPath, domainMode]
   );
   const reviewContext = useMemo(
-    () => (reviewUnconnected ? { graph, levelPath: nav.levelPath, findings } : null),
-    [reviewUnconnected, graph, nav.levelPath, findings]
+    () => (reviewUnconnected ? { graph, findings } : null),
+    [reviewUnconnected, graph, findings]
   );
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
   const { layout, error } = useElkLayout(

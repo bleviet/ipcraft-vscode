@@ -1,8 +1,6 @@
-import type { SystemGraph } from '../../../../domain/systemGraph';
 import {
   focusedPinOf,
   isPinListKnown,
-  levelReviewSummary,
   nodeUnconnectedCount,
   uncheckedInstanceCount,
   unconnectedClass,
@@ -117,45 +115,6 @@ describe('nodeUnconnectedCount', () => {
     expect(nodeUnconnectedCount(findings, '/dsp_pipeline', graph)).toEqual({ all: 2, undriven: 1 });
     expect(nodeUnconnectedCount(findings, BANK, graph)).toEqual({ all: 2, undriven: 1 });
     expect(nodeUnconnectedCount(findings, '/::ext_out', graph)).toEqual({ all: 1, undriven: 1 });
-  });
-});
-
-describe('levelReviewSummary', () => {
-  it('words the level counts, nested findings, and unchecked blocks', () => {
-    const graph = loadReviewFixtureGraph();
-    const findings = unconnectedPins(graph);
-    expect(levelReviewSummary(findings, graph, '/')).toBe(
-      'This level: 2 undriven, 2 unused; 2 more inside nested hierarchies. 7 blocks (dashed) have no pin definition and were not checked.'
-    );
-  });
-
-  it('omits the nested clause and uses the singular', () => {
-    const graph = loadReviewFixtureGraph();
-    const findings = unconnectedPins(graph);
-    expect(levelReviewSummary(findings, graph, BANK)).toBe(
-      'This level: 0 undriven, 1 unused. 2 blocks (dashed) have no pin definition and were not checked.'
-    );
-    const one: SystemGraph = {
-      ...graph,
-      levels: {
-        ...graph.levels,
-        [BANK]: { ...graph.levels[BANK], instances: [`${BANK}/config_fifo`] },
-      },
-    };
-    expect(levelReviewSummary(findings, one, BANK)).toBe(
-      'This level: 0 undriven, 1 unused. 1 block (dashed) has no pin definition and was not checked.'
-    );
-  });
-
-  it('omits the not-checked sentence when every block was checked', () => {
-    const graph = loadReviewFixtureGraph();
-    const none: SystemGraph = {
-      ...graph,
-      levels: { ...graph.levels, [BANK]: { ...graph.levels[BANK], instances: [] } },
-    };
-    expect(levelReviewSummary(unconnectedPins(graph), none, BANK)).toBe(
-      'This level: 0 undriven, 1 unused.'
-    );
   });
 });
 

@@ -149,30 +149,6 @@ export function nodeReview(
   };
 }
 
-/** Banner text for the level on show. */
-export function levelReviewSummary(
-  findings: readonly UnconnectedPin[],
-  graph: SystemGraph,
-  levelPath: string
-): string {
-  const own = findings.filter((finding) => finding.level === levelPath);
-  const undriven = own.filter((finding) => finding.cls === 'undriven').length;
-  const prefix = levelPath === '/' ? '/' : `${levelPath}/`;
-  const inner = findings.filter(
-    (finding) => finding.level !== levelPath && finding.level.startsWith(prefix)
-  ).length;
-  const unchecked = uncheckedInstanceCount(graph, levelPath);
-  let text = `This level: ${undriven} undriven, ${own.length - undriven} unused`;
-  if (inner > 0) {
-    text += `; ${inner} more inside nested hierarchies`;
-  }
-  text += '.';
-  if (unchecked > 0) {
-    text += ` ${unchecked} ${unchecked === 1 ? 'block (dashed) has' : 'blocks (dashed) have'} no pin definition and ${unchecked === 1 ? 'was' : 'were'} not checked.`;
-  }
-  return text;
-}
-
 /** Table cells of one finding. */
 export interface FindingRow {
   block: string;
