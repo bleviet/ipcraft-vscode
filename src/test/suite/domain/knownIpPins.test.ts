@@ -16,16 +16,48 @@ function instance(overrides: Partial<SystemInstance>): SystemInstance {
 
 const ip = (name: string): SystemInstance => instance({ vlnv: `xilinx.com:ip:${name}:1.0` });
 
+/** Whether a pattern source has a `|` outside any group or character class, as `^a|b$` has. */
+function hasTopLevelAlternation(source: string): boolean {
+  let depth = 0;
+  let inClass = false;
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+    if (char === '\\') {
+      i++;
+    } else if (inClass) {
+      inClass = char !== ']';
+    } else if (char === '[') {
+      inClass = true;
+    } else if (char === '(') {
+      depth++;
+    } else if (char === ')') {
+      depth--;
+    } else if (char === '|' && depth === 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 describe('ipName', () => {
-  it('takes the VLNV name, else the Platform Designer kind, else the module reference', () => {
+  it('takes the VLNV name of an AMD IP, else the Platform Designer module kind', () => {
     expect(ipName(instance({ vlnv: 'xilinx.com:ip:clk_wiz:6.0' }))).toBe('clk_wiz');
     expect(ipName(instance({ component: 'clock_source', version: '18.1' }))).toBe('clock_source');
-    expect(ipName(instance({ kind: 'module', moduleRef: 'pulse_gen' }))).toBe('pulse_gen');
-    expect(ipName(instance({ kind: 'hier' }))).toBeUndefined();
   });
 
   it('falls back to the component for a VLNV without a name part', () => {
     expect(ipName(instance({ vlnv: 'weird', component: 'kind' }))).toBe('kind');
+  });
+
+  it('has no name for a module reference or a hierarchy: no rule applies to them', () => {
+    expect(ipName(instance({ kind: 'module', moduleRef: 'pulse_gen' }))).toBeUndefined();
+    expect(ipName(instance({ kind: 'module', moduleRef: 'clk_wiz' }))).toBeUndefined();
+    expect(ipName(instance({ kind: 'hier' }))).toBeUndefined();
+  });
+
+  it('has no name for an IP of another vendor', () => {
+    expect(ipName(instance({ vlnv: 'acme.com:user:proc_sys_reset:1.0' }))).toBeUndefined();
+    expect(ipName(instance({ vlnv: 'xilinx.com.evil:ip:proc_sys_reset:1.0' }))).toBeUndefined();
   });
 });
 
@@ -98,16 +130,27 @@ describe('knownOutput', () => {
     expect(knownOutput(instance({ kind: 'hier' }), 'clk_out1')).toBe(false);
   });
 
+  it('matches AMD IP instances only, never a module reference or another vendor', () => {
+    expect(knownOutput(instance({ kind: 'module', moduleRef: 'clk_wiz' }), 'clk_out1')).toBe(false);
+    expect(
+      knownOutput(instance({ vlnv: 'acme.com:user:proc_sys_reset:1.0' }), 'peripheral_aresetn')
+    ).toBe(false);
+  });
+
   it('lists no Platform Designer pin: a .qsys declares every direction', () => {
     expect(knownOutput(instance({ component: 'clock_source' }), 'clk')).toBe(false);
     expect(knownOutput(instance({ component: 'clock_source' }), 'clk_reset')).toBe(false);
     expect(knownOutput(instance({ component: 'altera_clock_bridge' }), 'out_clk')).toBe(false);
   });
 
-  it('keeps every rule anchored, so a pin name is never matched by a part of it', () => {
+  it('keeps every rule anchored as a whole, so a pin name is never matched by a part of it', () => {
+    expect(hasTopLevelAlternation('^a|b$')).toBe(true);
+    expect(hasTopLevelAlternation('^(?:a|b)$')).toBe(false);
+    expect(hasTopLevelAlternation('^[|]a\\|$')).toBe(false);
     for (const rule of KNOWN_OUTPUT_PINS) {
       expect(rule.pin.source.startsWith('^')).toBe(true);
       expect(rule.pin.source.endsWith('$')).toBe(true);
+      expect(hasTopLevelAlternation(rule.pin.source)).toBe(false);
     }
   });
 });

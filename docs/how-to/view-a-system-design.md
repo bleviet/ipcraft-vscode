@@ -328,7 +328,12 @@ A match that cannot be decided is not used.
 In an untrusted workspace, IPCraft reads no definitions. Trust the workspace to
 turn them on.
 
-Vivado scripts do not record pin directions, but IPCraft knows the outputs of common AMD IPs (clocking wizards, processor system reset, PS clocks and resets) and draws them on the right of the block, with or without a definition.
+Vivado scripts do not record pin directions, so IPCraft knows the outputs of
+common AMD IPs and draws them on the right of the block: the clocking wizards
+(`clk_wiz`, `clk_wizard`), `proc_sys_reset`, the PS clocks and resets of
+Zynq-7000, Zynq UltraScale+ and Versal, `xlconstant`, `util_vector_logic`,
+`util_reduced_logic` and `axi_gpio`. An IP definition, when present, decides
+instead.
 
 ## Platform Designer scripts
 

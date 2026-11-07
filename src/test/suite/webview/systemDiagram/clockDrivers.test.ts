@@ -129,18 +129,35 @@ describe('driver by a known direction', () => {
     });
   });
 
-  it('takes the output that a rule marked, as a known direction', () => {
+  it('does not take the rule direction of an output as a driver, only the rules of the net category', () => {
+    // An xlconstant ties clk_out1_ce of a clocking wizard; the net name makes it a clock net.
+    const graph = readBdTcl(
+      [
+        'set clk_wizard_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wizard:1.0 clk_wizard_0 ]',
+        'set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]',
+        'connect_bd_net -net clk_en [get_bd_pins xlconstant_0/dout] [get_bd_pins clk_wizard_0/clk_out1_ce]',
+      ].join('\n'),
+      'd.tcl'
+    );
+    const net = graph.nets.find((candidate) => candidate.id === '/::clk_en')!;
+    expect(net.category).toBe('clock');
+    expect(pinOf(graph, '/xlconstant_0', 'dout')).toMatchObject({
+      direction: 'out',
+      directionSource: 'rule',
+    });
+    expect(buildPhysicalNets(graph).ofNet(net.id)?.driver).toBeUndefined();
+    const domain = analyzeClocks(graph).domainOfNet(net.id)!;
+    expect(domain.name).toBe('clk_en');
+    expect(domain.sourceRef).toBeUndefined();
+  });
+
+  it('keeps a status output without a driver: `locked` is no clock output', () => {
     const graph = loadVersalClockGraph();
     expect(pinOf(graph, WIZARD, 'locked')).toMatchObject({
       direction: 'out',
       directionSource: 'rule',
     });
-    // `locked` is no clock output, but its net is named like a clock: the rule direction still names the driver.
-    expect(buildPhysicalNets(graph).ofNet('/::clk_wizard_0_locked')?.driver).toEqual({
-      level: '/',
-      instance: WIZARD,
-      pin: 'locked',
-    });
+    expect(buildPhysicalNets(graph).ofNet('/::clk_wizard_0_locked')?.driver).toBeUndefined();
   });
 
   it('does not take a guess from a name as a known direction', () => {

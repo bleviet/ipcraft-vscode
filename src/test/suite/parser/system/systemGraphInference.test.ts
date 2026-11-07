@@ -228,6 +228,27 @@ describe('inferPinDirections', () => {
       expect(other.direction).toBe('unknown');
     });
 
+    it('does not touch the pins of a module reference named like a known IP', () => {
+      const out = mkPin('clk_out1');
+      const neighbour = mkPin('clk');
+      const g = mkGraph(
+        { a: [out], b: [neighbour] },
+        [],
+        [{ name: 'n', endpoints: [ref('a', 'clk_out1'), ref('b', 'clk')] }]
+      );
+      g.instances['/a'].kind = 'module';
+      g.instances['/a'].moduleRef = 'clk_wiz';
+      inferPinDirections(g);
+      expect(out).toMatchObject({ direction: 'unknown', directionSource: 'unknown' });
+      expect(neighbour).toMatchObject({ direction: 'unknown', directionSource: 'unknown' });
+    });
+
+    it('does not touch the pins of an IP of another vendor', () => {
+      const out = mkPin('peripheral_aresetn');
+      inferPinDirections(ipGraph([out], 'acme.com:user:proc_sys_reset:1.0'));
+      expect(out).toMatchObject({ direction: 'unknown', directionSource: 'unknown' });
+    });
+
     it('does not touch a Platform Designer pin', () => {
       const clk = mkPin('clk');
       const g = mkGraph({ a: [clk] }, [], []);

@@ -665,6 +665,19 @@ describe('readBdTcl: known IP output pins', () => {
     });
   });
 
+  it('does not give an output to a module reference named like a known IP', () => {
+    const module = read(
+      [
+        'set clk_wiz_0 [ create_bd_cell -type module -reference clk_wiz clk_wiz_0 ]',
+        'set blk_0 [ create_bd_cell -type ip -vlnv acme.com:ip:blk:1.0 blk_0 ]',
+        'connect_bd_net -net clk1 [get_bd_pins blk_0/clk_a] [get_bd_pins clk_wiz_0/clk_out1]',
+      ].join('\n')
+    );
+    expect(module.instances['/clk_wiz_0']).toMatchObject({ kind: 'module', moduleRef: 'clk_wiz' });
+    expect(pin(module, '/clk_wiz_0', 'clk_out1').direction).toBe('unknown');
+    expect(pin(module, '/blk_0', 'clk_a').direction).toBe('unknown');
+  });
+
   it('reads the pins of versal_clocks.tcl the same way', () => {
     const versal = read(
       fs.readFileSync(

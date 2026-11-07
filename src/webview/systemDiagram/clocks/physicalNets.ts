@@ -77,12 +77,16 @@ function isEnd(graph: SystemGraph, level: string, ref: PinRef): boolean {
   return kind === 'ip' || kind === 'module';
 }
 
-/** Direction sources that are facts of the script, the definition or a known IP, not guesses. */
+/**
+ * Direction sources that are facts of the script or the definition, not guesses. `rule`
+ * is not one: it says a pin is an output, not that it drives a clock or reset net. The
+ * rules of the net's category (`isClockOutput`, `resetRelease`) decide that, so an
+ * `xlconstant` on a net that is only named like a clock is no clock source.
+ */
 const KNOWN_DIRECTION: ReadonlySet<PinDirectionSource> = new Set([
   'declared',
   'definition',
   'connection',
-  'rule',
 ]);
 
 /** Whether a rule or a known direction makes `end` an output: a source pin, or a root input port. */

@@ -10,6 +10,8 @@
 
 import {
   CLOCK_OUTPUT_PINS,
+  LOGIC_OUTPUTS,
+  RESET_OUTPUTS,
   STATUS_OUTPUT_PINS,
   ipName,
   matchesPinRule,
@@ -182,17 +184,20 @@ export interface ResetSourceRule {
   from: string;
 }
 
-/** Which clock releases a reset output, and the outputs of constants and logic that drive resets. */
+/**
+ * Which clock releases a reset output, and the outputs of constants and logic that drive
+ * resets. The pins of the IPs in `RESET_OUTPUTS` and `LOGIC_OUTPUTS` are those of the
+ * known-output table; the Platform Designer `clock_source` reset is not in it.
+ */
 export const RESET_SOURCE_RULES: readonly ResetSourceRule[] = [
   {
-    ip: 'proc_sys_reset',
-    pin: /^(?:peripheral_aresetn|interconnect_aresetn|peripheral_reset|bus_struct_reset|mb_reset)$/,
+    ...RESET_OUTPUTS.procSysReset,
     clockPin: 'slowest_sync_clk',
     from: 'proc_sys_reset slowest_sync_clk',
   },
-  { ip: 'processing_system7', pin: /^FCLK_RESET\d+_N$/, from: 'PS reset, asynchronous' },
-  { ip: 'zynq_ultra_ps_e', pin: /^pl_resetn\d+$/, from: 'PS reset, asynchronous' },
-  { ip: 'versal_cips', pin: /^pl\d+_resetn$/, from: 'PS reset, asynchronous' },
+  { ...RESET_OUTPUTS.processingSystem7, from: 'PS reset, asynchronous' },
+  { ...RESET_OUTPUTS.zynqUltraPs, from: 'PS reset, asynchronous' },
+  { ...RESET_OUTPUTS.versalCips, from: 'PS reset, asynchronous' },
   {
     ip: 'clock_source',
     pin: /^clk_reset$/,
@@ -200,20 +205,22 @@ export const RESET_SOURCE_RULES: readonly ResetSourceRule[] = [
     synchronousWhen: { parameter: 'resetSynchronousEdges', values: ['DEASSERT', 'BOTH'] },
     from: 'clock_source resetSynchronousEdges',
   },
-  { ip: 'xlconstant', pin: /^dout$/, driver: 'constant', from: 'xlconstant, tied to a constant' },
   {
-    ip: 'util_vector_logic',
-    pin: /^Res$/,
+    ...LOGIC_OUTPUTS.xlconstant,
+    driver: 'constant',
+    from: 'xlconstant, tied to a constant',
+  },
+  {
+    ...LOGIC_OUTPUTS.utilVectorLogic,
     driver: 'logic',
     from: 'util_vector_logic, logic output',
   },
   {
-    ip: 'util_reduced_logic',
-    pin: /^Res$/,
+    ...LOGIC_OUTPUTS.utilReducedLogic,
     driver: 'logic',
     from: 'util_reduced_logic, logic output',
   },
-  { ip: 'axi_gpio', pin: /^gpio2?_io_o$/, driver: 'logic', from: 'axi_gpio, GPIO output' },
+  { ...LOGIC_OUTPUTS.axiGpio, driver: 'logic', from: 'axi_gpio, GPIO output' },
 ];
 
 /** How a reset output is released. */

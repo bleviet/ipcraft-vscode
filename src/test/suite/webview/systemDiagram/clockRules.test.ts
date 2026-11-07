@@ -1,5 +1,5 @@
 import type { SystemInstance, SystemPin } from '../../../../domain/systemGraph';
-import { KNOWN_OUTPUT_PINS } from '../../../../domain/knownIpPins';
+import { LOGIC_OUTPUTS, RESET_OUTPUTS } from '../../../../domain/knownIpPins';
 import {
   boundaryFrequency,
   CLOCK_SOURCE_RULES,
@@ -64,7 +64,11 @@ describe('isClockOutput', () => {
     };
     for (const rule of CLOCK_SOURCE_RULES) {
       expect(rule.pin.test(examples[rule.ip])).toBe(true);
-      expect(isClockOutput(instance({ component: rule.ip }), examples[rule.ip])).toBe(true);
+      const subject =
+        rule.ip === 'clock_source'
+          ? instance({ component: rule.ip })
+          : instance({ vlnv: `xilinx.com:ip:${rule.ip}:1.0` });
+      expect(isClockOutput(subject, examples[rule.ip])).toBe(true);
     }
   });
 
@@ -202,13 +206,14 @@ describe('passThroughOf', () => {
 });
 
 describe('RESET_SOURCE_RULES', () => {
-  it('names only pins that the known-output table lists, except the Platform Designer reset', () => {
-    for (const rule of RESET_SOURCE_RULES.filter((candidate) => candidate.ip !== 'clock_source')) {
-      expect(
-        KNOWN_OUTPUT_PINS.some(
-          (known) => known.ip === rule.ip && known.pin.source === rule.pin.source
-        )
-      ).toBe(true);
+  it('builds on the reset and logic outputs of the known-output table, once each', () => {
+    const outputs = [...Object.values(RESET_OUTPUTS), ...Object.values(LOGIC_OUTPUTS)];
+    // The Platform Designer reset is the one rule that the table does not list.
+    const fromTable = RESET_SOURCE_RULES.filter((rule) => rule.ip !== 'clock_source');
+    expect(fromTable).toHaveLength(outputs.length);
+    for (const output of outputs) {
+      // The same pattern object: no pin regex is written twice.
+      expect(fromTable.some((rule) => rule.ip === output.ip && rule.pin === output.pin)).toBe(true);
     }
   });
 });
