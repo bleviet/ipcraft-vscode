@@ -77,11 +77,12 @@ function isEnd(graph: SystemGraph, level: string, ref: PinRef): boolean {
   return kind === 'ip' || kind === 'module';
 }
 
-/** Direction sources that are facts of the script or the definition, not guesses. */
+/** Direction sources that are facts of the script, the definition or a known IP, not guesses. */
 const KNOWN_DIRECTION: ReadonlySet<PinDirectionSource> = new Set([
   'declared',
   'definition',
   'connection',
+  'rule',
 ]);
 
 /** Whether a rule or a known direction makes `end` an output: a source pin, or a root input port. */

@@ -7,7 +7,14 @@
  */
 
 export type PinDirection = 'in' | 'out' | 'inout' | 'master' | 'slave' | 'unknown';
-export type PinDirectionSource = 'declared' | 'connection' | 'name' | 'definition' | 'unknown';
+/** `rule`: a known output of a common IP (`knownIpPins`), which a Vivado script does not record. */
+export type PinDirectionSource =
+  | 'declared'
+  | 'connection'
+  | 'name'
+  | 'definition'
+  | 'rule'
+  | 'unknown';
 /** `create_bd_(port|pin) -type` */
 export type SignalType = 'clk' | 'rst' | 'intr' | 'data' | 'ce' | 'undef';
 export type NetCategory =

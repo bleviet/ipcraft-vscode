@@ -1,14 +1,14 @@
 import type { SystemInstance, SystemPin } from '../../../../domain/systemGraph';
+import { KNOWN_OUTPUT_PINS } from '../../../../domain/knownIpPins';
 import {
   boundaryFrequency,
-  CLOCK_OUTPUT_RULES,
   CLOCK_SOURCE_RULES,
   generatorOf,
-  ipName,
   isAsyncResetSink,
   isClockOutput,
   isNotClockPin,
   passThroughOf,
+  RESET_SOURCE_RULES,
   resetRelease,
   sourceFrequency,
 } from '../../../../webview/systemDiagram/clocks/clockRules';
@@ -25,19 +25,6 @@ function instance(overrides: Partial<SystemInstance>): SystemInstance {
     ...overrides,
   };
 }
-
-describe('ipName', () => {
-  it('takes the VLNV name, else the Platform Designer kind, else the module reference', () => {
-    expect(ipName(instance({ vlnv: 'xilinx.com:ip:clk_wiz:6.0' }))).toBe('clk_wiz');
-    expect(ipName(instance({ component: 'clock_source', version: '18.1' }))).toBe('clock_source');
-    expect(ipName(instance({ kind: 'module', moduleRef: 'pulse_gen' }))).toBe('pulse_gen');
-    expect(ipName(instance({ kind: 'hier' }))).toBeUndefined();
-  });
-
-  it('falls back to the component for a VLNV without a name part', () => {
-    expect(ipName(instance({ vlnv: 'weird', component: 'kind' }))).toBe('kind');
-  });
-});
 
 describe('isClockOutput', () => {
   it.each([
@@ -77,12 +64,15 @@ describe('isClockOutput', () => {
     };
     for (const rule of CLOCK_SOURCE_RULES) {
       expect(rule.pin.test(examples[rule.ip])).toBe(true);
-      expect(
-        CLOCK_OUTPUT_RULES.some(
-          (output) => output.ip === rule.ip && output.pin.test(examples[rule.ip])
-        )
-      ).toBe(true);
+      expect(isClockOutput(instance({ component: rule.ip }), examples[rule.ip])).toBe(true);
     }
+  });
+
+  it('takes no reset or status output of the known-output table as a clock', () => {
+    expect(
+      isClockOutput(instance({ vlnv: 'xilinx.com:ip:proc_sys_reset:5.0' }), 'peripheral_aresetn')
+    ).toBe(false);
+    expect(isClockOutput(instance({ vlnv: 'xilinx.com:ip:xlconstant:1.1' }), 'dout')).toBe(false);
   });
 });
 
@@ -208,6 +198,18 @@ describe('passThroughOf', () => {
       output: 'clk',
     });
     expect(passThroughOf(instance({ component: 'altera_clock_bridge' }))).toBeUndefined();
+  });
+});
+
+describe('RESET_SOURCE_RULES', () => {
+  it('names only pins that the known-output table lists, except the Platform Designer reset', () => {
+    for (const rule of RESET_SOURCE_RULES.filter((candidate) => candidate.ip !== 'clock_source')) {
+      expect(
+        KNOWN_OUTPUT_PINS.some(
+          (known) => known.ip === rule.ip && known.pin.source === rule.pin.source
+        )
+      ).toBe(true);
+    }
   });
 });
 

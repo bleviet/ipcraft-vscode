@@ -328,6 +328,8 @@ A match that cannot be decided is not used.
 In an untrusted workspace, IPCraft reads no definitions. Trust the workspace to
 turn them on.
 
+Vivado scripts do not record pin directions, but IPCraft knows the outputs of common AMD IPs (clocking wizards, processor system reset, PS clocks and resets) and draws them on the right of the block, with or without a definition.
+
 ## Platform Designer scripts
 
 A system script does not always say what a connection carries. IPCraft infers

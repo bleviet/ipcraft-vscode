@@ -180,6 +180,63 @@ describe('inferPinDirections', () => {
     expect(bq.direction).toBe('out');
   });
 
+  describe('known IP outputs', () => {
+    const ipGraph = (pins: SystemPin[], vlnv: string) => {
+      const g = mkGraph({ a: pins }, [], []);
+      g.instances['/a'].vlnv = vlnv;
+      return g;
+    };
+
+    it('marks an unknown output pin of a known IP before the connections run', () => {
+      // Two unknown ends and no source: only the rule can resolve this net.
+      const out = mkPin('clk_out1');
+      const load = mkPin('clk');
+      const g = mkGraph(
+        { a: [out], b: [load] },
+        [],
+        [{ name: 'n', endpoints: [ref('a', 'clk_out1'), ref('b', 'clk')] }]
+      );
+      g.instances['/a'].vlnv = 'xilinx.com:ip:clk_wiz:6.0';
+      inferPinDirections(g);
+      expect(out).toMatchObject({ direction: 'out', directionSource: 'rule' });
+      expect(load).toMatchObject({ direction: 'in', directionSource: 'connection' });
+    });
+
+    it('marks the pin even when no net touches it', () => {
+      const out = mkPin('locked');
+      inferPinDirections(ipGraph([out], 'xilinx.com:ip:clk_wizard:1.0'));
+      expect(out).toMatchObject({ direction: 'out', directionSource: 'rule' });
+    });
+
+    it('does not touch a pin whose direction is already known', () => {
+      const declared = mkPin('clk_out1', { direction: 'in', directionSource: 'declared' });
+      const defined = mkPin('clk_out2', { direction: 'in', directionSource: 'definition' });
+      inferPinDirections(ipGraph([declared, defined], 'xilinx.com:ip:clk_wiz:6.0'));
+      expect(declared).toMatchObject({ direction: 'in', directionSource: 'declared' });
+      expect(defined).toMatchObject({ direction: 'in', directionSource: 'definition' });
+    });
+
+    it('does not touch an interface pin, an input pin, or a pin of another IP', () => {
+      const intf = mkPin('clk_out1', { isInterface: true });
+      const input = mkPin('clk_in1');
+      inferPinDirections(ipGraph([intf, input], 'xilinx.com:ip:clk_wiz:6.0'));
+      expect(intf.directionSource).not.toBe('rule');
+      expect(input).toMatchObject({ direction: 'unknown', directionSource: 'unknown' });
+
+      const other = mkPin('clk_out1');
+      inferPinDirections(ipGraph([other], 'acme.com:ip:other:1.0'));
+      expect(other.direction).toBe('unknown');
+    });
+
+    it('does not touch a Platform Designer pin', () => {
+      const clk = mkPin('clk');
+      const g = mkGraph({ a: [clk] }, [], []);
+      g.instances['/a'].component = 'clock_source';
+      inferPinDirections(g);
+      expect(clk.direction).toBe('unknown');
+    });
+  });
+
   it('uses names for interface pins, then connections again', () => {
     const m = mkPin('M00_AXI', { isInterface: true });
     const s = mkPin('S_AXI', { isInterface: true });

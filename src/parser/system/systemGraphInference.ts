@@ -11,6 +11,7 @@ import type {
   SystemNet,
   SystemPin,
 } from '../../domain/systemGraph';
+import { knownOutput } from '../../domain/knownIpPins';
 import { directionForRole, endpointRole } from '../../domain/systemGraphRoles';
 
 interface Endpoint {
@@ -82,8 +83,21 @@ function namePass(graph: SystemGraph): void {
   }
 }
 
-/** Fills unknown pin directions: connections, then names, then connections again. */
+/** Marks the unknown scalar instance pins that an IP rule knows as outputs. */
+function rulePass(graph: SystemGraph): void {
+  for (const instance of Object.values(graph.instances)) {
+    for (const pin of instance.pins) {
+      if (!pin.isInterface && pin.direction === 'unknown' && knownOutput(instance, pin.name)) {
+        pin.direction = 'out';
+        pin.directionSource = 'rule';
+      }
+    }
+  }
+}
+
+/** Fills unknown pin directions: IP rules, then connections, then names, then connections again. */
 export function inferPinDirections(graph: SystemGraph): SystemGraph {
+  rulePass(graph);
   while (connectionPass(graph)) {
     // repeat until no change
   }

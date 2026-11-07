@@ -13,6 +13,7 @@ import {
   loadFixtureGraph,
   loadReviewFixtureGraph,
   loadVersalClockGraph,
+  loadVersalGraphWithUnknownIp,
 } from './fixtureGraph';
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
@@ -2138,9 +2139,7 @@ describe('SystemDiagramApp', () => {
     });
 
     it('says the source is not known when no rule or direction names it', async () => {
-      const unknown = loadVersalClockGraph();
-      unknown.instances['/clk_wizard_0'].vlnv = 'acme.com:ip:other_wizard:1.0';
-      await domains(unknown);
+      await domains(loadVersalGraphWithUnknownIp('clk_wizard'));
       const first = rowOf('clk_wizard_0_clk_out1');
       expect(within(first).getAllByRole('cell')[2]).toHaveTextContent('not known');
       fireEvent.click(first);
@@ -2155,9 +2154,7 @@ describe('SystemDiagramApp', () => {
     });
 
     it('lists a reset whose source is not known, and checks none of its non-asynchronous sinks', async () => {
-      const unknown = loadVersalClockGraph();
-      unknown.instances['/ps_cips'].vlnv = 'acme.com:ip:other_ps:1.0';
-      await domains(unknown);
+      await domains(loadVersalGraphWithUnknownIp('versal_cips'));
       openResets();
       const row = rowOf('ps_cips_pl0_resetn');
       expect(within(row).getAllByRole('cell')[1]).toHaveTextContent('unknown');

@@ -598,3 +598,98 @@ describe('readBdTcl: -freq_hz', () => {
     expect(boundary(g, 's_axi_aclk').parameters['CONFIG.FREQ_HZ']).toBe('200000000');
   });
 });
+
+describe('readBdTcl: known IP output pins', () => {
+  const read = (script: string) => readBdTcl(script, '/x/design.tcl');
+  const SCRIPT = [
+    'set clk_wizard_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:clk_wizard:1.0 clk_wizard_0 ]',
+    'set rst_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_0 ]',
+    'set one_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 one_0 ]',
+    'set blk_0 [ create_bd_cell -type ip -vlnv acme.com:ip:blk:1.0 blk_0 ]',
+    'connect_bd_net -net clk1 [get_bd_pins blk_0/clk_a] [get_bd_pins clk_wizard_0/clk_out1_o1] [get_bd_pins rst_0/slowest_sync_clk]',
+    'connect_bd_net -net clk2 [get_bd_pins blk_0/clk_b] [get_bd_pins clk_wizard_0/clk_out2]',
+    'connect_bd_net -net locked [get_bd_pins clk_wizard_0/locked] [get_bd_pins rst_0/dcm_locked]',
+    'connect_bd_net -net rstn [get_bd_pins blk_0/aresetn] [get_bd_pins rst_0/peripheral_aresetn]',
+    'connect_bd_net -net one [get_bd_pins clk_wizard_0/clk_out1_ce] [get_bd_pins clk_wizard_0/clk_out1_clr_n] [get_bd_pins one_0/dout]',
+    'connect_bd_net -net spare [get_bd_pins blk_0/spare_a] [get_bd_pins blk_0/spare_b]',
+  ].join('\n');
+  const graph = read(SCRIPT);
+
+  it('gives the outputs of the clocking wizard, the reset block and the constant the rule direction', () => {
+    for (const [instance, name] of [
+      ['/clk_wizard_0', 'clk_out1_o1'],
+      ['/clk_wizard_0', 'clk_out2'],
+      ['/clk_wizard_0', 'locked'],
+      ['/rst_0', 'peripheral_aresetn'],
+      ['/one_0', 'dout'],
+    ]) {
+      expect(pin(graph, instance, name)).toMatchObject({
+        direction: 'out',
+        directionSource: 'rule',
+      });
+    }
+  });
+
+  it('turns the other ends of those nets into inputs by connection', () => {
+    for (const [instance, name] of [
+      ['/blk_0', 'clk_a'],
+      ['/blk_0', 'clk_b'],
+      ['/blk_0', 'aresetn'],
+      ['/rst_0', 'slowest_sync_clk'],
+      ['/rst_0', 'dcm_locked'],
+      ['/clk_wizard_0', 'clk_out1_ce'],
+      ['/clk_wizard_0', 'clk_out1_clr_n'],
+    ]) {
+      expect(pin(graph, instance, name)).toMatchObject({
+        direction: 'in',
+        directionSource: 'connection',
+      });
+    }
+  });
+
+  it('leaves the pins of an unknown IP unknown when nothing on the net is a source', () => {
+    expect(pin(graph, '/blk_0', 'spare_a')).toMatchObject({
+      direction: 'unknown',
+      directionSource: 'unknown',
+    });
+    expect(pin(graph, '/blk_0', 'spare_b').direction).toBe('unknown');
+  });
+
+  it('does not give an output to a pin of an IP that the table does not know', () => {
+    const unknown = read(SCRIPT.replace('xilinx.com:ip:clk_wizard:', 'acme.com:ip:other_wizard:'));
+    expect(pin(unknown, '/clk_wizard_0', 'clk_out2').directionSource).not.toBe('rule');
+    expect(pin(unknown, '/clk_wizard_0', 'clk_out2').direction).toBe('unknown');
+    expect(pin(unknown, '/rst_0', 'peripheral_aresetn')).toMatchObject({
+      direction: 'out',
+      directionSource: 'rule',
+    });
+  });
+
+  it('reads the pins of versal_clocks.tcl the same way', () => {
+    const versal = read(
+      fs.readFileSync(
+        path.join(__dirname, '../../../fixtures/system-design/versal_clocks.tcl'),
+        'utf8'
+      )
+    );
+    for (const [instance, name] of [
+      ['/ps_cips', 'pl0_ref_clk'],
+      ['/ps_cips', 'pl0_resetn'],
+      ['/clk_wizard_0', 'clk_out1'],
+      ['/clk_wizard_0', 'clk_out2'],
+      ['/clk_wizard_0', 'locked'],
+      ['/rst_clk_out1', 'peripheral_aresetn'],
+      ['/rst_clk_out2', 'peripheral_aresetn'],
+    ]) {
+      expect(pin(versal, instance, name)).toMatchObject({
+        direction: 'out',
+        directionSource: 'rule',
+      });
+    }
+    expect(pin(versal, '/clk_wizard_0', 'clk_in1')).toMatchObject({
+      direction: 'in',
+      directionSource: 'connection',
+    });
+    expect(pin(versal, '/stream_src', 'M_AXIS')).toMatchObject({ directionSource: 'name' });
+  });
+});

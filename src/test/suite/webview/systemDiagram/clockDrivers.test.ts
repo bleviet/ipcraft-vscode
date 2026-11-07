@@ -7,7 +7,7 @@ import { buildPhysicalNets } from '../../../../webview/systemDiagram/clocks/phys
 import { resetCheck } from '../../../../webview/systemDiagram/clocks/treeChecks';
 import { edgeMarks } from '../../../../webview/systemDiagram/clocks/edgeView';
 import { nodePinMarks } from '../../../../webview/systemDiagram/clocks/nodeView';
-import { loadVersalClockGraph } from './fixtureGraph';
+import { loadVersalClockGraph, loadVersalGraphWithUnknownIp } from './fixtureGraph';
 
 const WIZARD = '/clk_wizard_0';
 const OUT1 = '/::clk_wizard_0_clk_out1';
@@ -15,9 +15,7 @@ const OUT2 = '/::clk_wizard_0_clk_out2';
 
 /** The Versal fixture with the clocking wizard turned into an IP no rule knows. */
 function unknownWizardGraph(): SystemGraph {
-  const graph = loadVersalClockGraph();
-  graph.instances[WIZARD].vlnv = 'acme.com:ip:other_wizard:1.0';
-  return graph;
+  return loadVersalGraphWithUnknownIp('clk_wizard');
 }
 
 function pinOf(graph: SystemGraph, instance: string, name: string): SystemPin {
@@ -105,24 +103,43 @@ describe('driver by a known direction', () => {
   });
 
   it('takes a declared root input port', () => {
-    const graph = loadVersalClockGraph();
-    graph.levels['/'].boundaryPins.push({
-      name: 'sys_clk',
-      isInterface: false,
-      direction: 'in',
-      directionSource: 'declared',
-      signalType: 'clk',
-      parameters: {},
-    });
-    const net = graph.nets.find((candidate) => candidate.id === '/::ps_cips_pl0_ref_clk')!;
-    net.endpoints.unshift({ instance: null, pin: 'sys_clk' });
+    const withPort = (graph: SystemGraph): string => {
+      graph.levels['/'].boundaryPins.push({
+        name: 'sys_clk',
+        isInterface: false,
+        direction: 'in',
+        directionSource: 'declared',
+        signalType: 'clk',
+        parameters: {},
+      });
+      const net = graph.nets.find((candidate) => candidate.id === '/::ps_cips_pl0_ref_clk')!;
+      net.endpoints.unshift({ instance: null, pin: 'sys_clk' });
+      return net.id;
+    };
+    const driverOf = (graph: SystemGraph) => {
+      const netId = withPort(graph);
+      return buildPhysicalNets(graph).ofNet(netId)?.driver;
+    };
     // The port and the CIPS clock output both drive the net: two outputs, so no driver.
-    expect(buildPhysicalNets(graph).ofNet(net.id)?.driver).toBeUndefined();
-    graph.instances['/ps_cips'].vlnv = 'acme.com:ip:other_ps:1.0';
-    expect(buildPhysicalNets(graph).ofNet(net.id)?.driver).toEqual({
+    expect(driverOf(loadVersalClockGraph())).toBeUndefined();
+    expect(driverOf(loadVersalGraphWithUnknownIp('versal_cips'))).toEqual({
       level: '/',
       instance: null,
       pin: 'sys_clk',
+    });
+  });
+
+  it('takes the output that a rule marked, as a known direction', () => {
+    const graph = loadVersalClockGraph();
+    expect(pinOf(graph, WIZARD, 'locked')).toMatchObject({
+      direction: 'out',
+      directionSource: 'rule',
+    });
+    // `locked` is no clock output, but its net is named like a clock: the rule direction still names the driver.
+    expect(buildPhysicalNets(graph).ofNet('/::clk_wizard_0_locked')?.driver).toEqual({
+      level: '/',
+      instance: WIZARD,
+      pin: 'locked',
     });
   });
 
@@ -204,8 +221,7 @@ describe('a clock net whose driver is not known', () => {
 });
 
 describe('a reset net whose driver is not known', () => {
-  const edited = loadVersalClockGraph();
-  edited.instances['/ps_cips'].vlnv = 'acme.com:ip:other_ps:1.0';
+  const edited = loadVersalGraphWithUnknownIp('versal_cips');
   const analysis = analyzeClocks(edited);
   const RESET = '/::ps_cips_pl0_resetn';
   const sinkVerdicts = () =>

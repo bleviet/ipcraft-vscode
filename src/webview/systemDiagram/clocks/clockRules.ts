@@ -2,11 +2,19 @@
  * Declarative rules of the clock and reset analysis (issue #243): which IP pin
  * drives a clock, which drives which frequency, which blocks forward or generate
  * a clock, which pins are no clocks, which clock releases a reset, and which
- * reset inputs are asynchronous. Rules read only values the script sets; a
+ * reset inputs are asynchronous. Which IP pins are outputs at all is the shared
+ * table in `domain/knownIpPins`. Rules read only values the script sets; a
  * missing value means "not set", never a vendor default. Every rule carries the
  * short provenance text the UI shows.
  */
 
+import {
+  CLOCK_OUTPUT_PINS,
+  STATUS_OUTPUT_PINS,
+  ipName,
+  matchesPinRule,
+  type PinRule,
+} from '../../../domain/knownIpPins';
 import type { SystemInstance, SystemPin } from '../../../domain/systemGraph';
 import { parseFrequency } from './frequency';
 
@@ -15,53 +23,34 @@ export const PORT_FREQUENCY_PARAMETER = 'CONFIG.FREQ_HZ';
 export const PORT_INTERFACES_PARAMETER = 'CONFIG.ASSOCIATED_BUSIF';
 export const PORT_RESETS_PARAMETER = 'CONFIG.ASSOCIATED_RESET';
 
-/** IP name of an instance: the VLNV name part, else the Platform Designer module kind, else the module reference. */
-export function ipName(instance: SystemInstance): string | undefined {
-  return instance.vlnv?.split(':')[2] ?? instance.component ?? instance.moduleRef;
-}
-
-/** A pin of an IP, named by the IP's name and a pin-name pattern. */
-export interface PinRule {
-  ip: string;
-  pin: RegExp;
-}
-
-function matchesPinRule(
-  rules: readonly PinRule[],
-  instance: SystemInstance,
-  pinName: string
-): boolean {
-  const name = ipName(instance);
-  return rules.some((rule) => rule.ip === name && rule.pin.test(pinName));
-}
-
 /**
- * Clock output pins of IPs: the end of a clock net that drives it. The script
- * does not list the driver first, so these rules (and declared directions)
- * decide it. A superset of the pins in {@link CLOCK_SOURCE_RULES}.
+ * Platform Designer clock outputs. Their directions are always declared, so they are
+ * not in the known-output table of `knownIpPins`; the clock analysis still reads
+ * them as clock outputs.
  */
-export const CLOCK_OUTPUT_RULES: readonly PinRule[] = [
-  { ip: 'processing_system7', pin: /^FCLK_CLK\d+$/ },
-  { ip: 'zynq_ultra_ps_e', pin: /^pl_clk\d+$/ },
-  { ip: 'versal_cips', pin: /^pl\d+_ref_clk$/ },
-  { ip: 'clk_wiz', pin: /^clk_out\d+$/ },
-  { ip: 'clk_wizard', pin: /^clk_out\d+(?:_o\d+)?$/ },
+const PLATFORM_DESIGNER_CLOCK_OUTPUTS: readonly PinRule[] = [
   { ip: 'clock_source', pin: /^clk$/ },
   { ip: 'altera_clock_bridge', pin: /^out_clk$/ },
 ];
 
-/** Whether `pinName` of `instance` is a clock output pin. */
+/**
+ * Whether `pinName` of `instance` is a clock output pin: the end of a clock net that
+ * drives it. The script does not list the driver first, so these rules (and declared
+ * directions) decide it. The Vivado outputs come from the known-output table.
+ */
 export function isClockOutput(instance: SystemInstance, pinName: string): boolean {
-  return matchesPinRule(CLOCK_OUTPUT_RULES, instance, pinName);
+  return (
+    matchesPinRule(CLOCK_OUTPUT_PINS, instance, pinName) ||
+    matchesPinRule(PLATFORM_DESIGNER_CLOCK_OUTPUTS, instance, pinName)
+  );
 }
 
 /**
- * Status outputs of clock IPs. A net on them may be named like a clock but is
- * not one, so it is no clock domain.
+ * Status pins of clock IPs: the status outputs, and `dcm_locked` that takes one. A
+ * net on them may be named like a clock but is not one, so it is no clock domain.
  */
 export const NOT_CLOCK_PINS: readonly PinRule[] = [
-  { ip: 'clk_wiz', pin: /^locked$/ },
-  { ip: 'clk_wizard', pin: /^locked$/ },
+  ...STATUS_OUTPUT_PINS,
   { ip: 'proc_sys_reset', pin: /^dcm_locked$/ },
 ];
 
@@ -72,7 +61,7 @@ export function isNotClockPin(instance: SystemInstance, pinName: string): boolea
 
 export interface ClockGenerator {
   ip: string;
-  /** Input pins that take the clock the generator derives its outputs from; its outputs are in {@link CLOCK_OUTPUT_RULES}. */
+  /** Input pins that take the clock the generator derives its outputs from; its outputs are in `CLOCK_OUTPUT_PINS`. */
   input: RegExp;
 }
 
