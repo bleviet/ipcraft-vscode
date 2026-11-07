@@ -7,6 +7,7 @@ import {
 } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { isolationSubset } from '../../../../webview/systemDiagram/isolation';
+import { levelEdges } from '../../../../webview/systemDiagram/layout/levelEdges';
 import { boundaryId } from '../../../../webview/systemDiagram/model';
 import {
   loadFixtureGraph,
@@ -63,7 +64,7 @@ function expectBadgesClearOfNodes(nodes: DiagramFlowNode[]): void {
 }
 
 describe('buildElkInput', () => {
-  const input = buildElkInput(graph, '/', { showClockReset: true, measure: fakeMeasure });
+  const input = buildElkInput(graph, '/', { measure: fakeMeasure });
 
   it('creates one flat node per instance and per boundary pin', () => {
     const level = graph.levels['/'];
@@ -122,19 +123,18 @@ describe('buildElkInput', () => {
     }
   });
 
-  it('omits clock and reset nets unless requested', () => {
-    const hidden = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
-    const clockEdges = (id: string, node: ElkNode) =>
-      (node.edges ?? []).filter((edge) => edge.id.startsWith(`${id}#`));
-    expect(clockEdges('/::processing_system7_0_FCLK_CLK0', input).length).toBeGreaterThan(0);
-    expect(clockEdges('/::processing_system7_0_FCLK_CLK0', hidden)).toHaveLength(0);
-    expect(hidden.edges!.length).toBeLessThan(input.edges!.length);
+  it('draws clock and reset nets as edges like any other net, whatever the view shows', () => {
+    const edgesOf = (netId: string) =>
+      (input.edges ?? []).filter((edge) => edge.id.startsWith(`${netId}#`));
+    expect(edgesOf('/::processing_system7_0_FCLK_CLK0').length).toBeGreaterThan(0);
+    expect(edgesOf('/::rst_ps7_0_100M_peripheral_aresetn').length).toBeGreaterThan(0);
+    expect(input.edges).toHaveLength(levelEdges(graph, '/').length);
   });
 });
 
 describe('real ELK layout of the fixture root level', () => {
   it('positions every node and routes every edge', async () => {
-    const input = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
+    const input = buildElkInput(graph, '/', { measure: fakeMeasure });
     const result = await runElkLayout(input);
     const { nodes, edges } = toFlowElements(result, graph, '/', fakeMeasure);
 
@@ -160,8 +160,8 @@ describe('real ELK layout of the fixture root level', () => {
 describe('real ELK layout of the qsys fixture root level', () => {
   const qsys = loadQsysFixtureGraph();
 
-  it('routes every visible net and keeps badges clear of other nodes', async () => {
-    const input = buildElkInput(qsys, '/', { showClockReset: false, measure: fakeMeasure });
+  it('routes every net and keeps badges clear of other nodes', async () => {
+    const input = buildElkInput(qsys, '/', { measure: fakeMeasure });
     const result = await runElkLayout(input);
     const { nodes, edges } = toFlowElements(result, qsys, '/', fakeMeasure);
     expect(edges).toHaveLength(input.edges!.length);
@@ -182,8 +182,8 @@ describe('real ELK layout of the qsys fixture root level', () => {
 describe('real ELK layout of the qsys-script fixture root level', () => {
   const qsysTcl = loadQsysTclFixtureGraph();
 
-  it('routes every visible net and keeps badges clear of other nodes', async () => {
-    const input = buildElkInput(qsysTcl, '/', { showClockReset: false, measure: fakeMeasure });
+  it('routes every net and keeps badges clear of other nodes', async () => {
+    const input = buildElkInput(qsysTcl, '/', { measure: fakeMeasure });
     const result = await runElkLayout(input);
     const { nodes, edges } = toFlowElements(result, qsysTcl, '/', fakeMeasure);
     expect(edges).toHaveLength(input.edges!.length);
@@ -199,7 +199,7 @@ describe('pin hover data of pins on several nets', () => {
   it('carries every net name next to the first', () => {
     const qsys = loadQsysFixtureGraph();
     const { nodes } = toFlowElements(
-      buildElkInput(qsys, '/', { showClockReset: true, measure: fakeMeasure }),
+      buildElkInput(qsys, '/', { measure: fakeMeasure }),
       qsys,
       '/',
       fakeMeasure
@@ -217,7 +217,7 @@ describe('pin hover data of pins on several nets', () => {
     const defined = JSON.parse(JSON.stringify(graph)) as typeof graph;
     defined.instances['/axi_dma_0'].pins[0].definedBy = 'ip.yml';
     const { nodes } = toFlowElements(
-      buildElkInput(defined, '/', { showClockReset: true, measure: fakeMeasure }),
+      buildElkInput(defined, '/', { measure: fakeMeasure }),
       defined,
       '/',
       fakeMeasure
@@ -233,7 +233,7 @@ describe('pin hover data of pins on several nets', () => {
 
 describe('content-sized nodes', () => {
   it('varies widths per node and places east ports on the computed width', () => {
-    const input = buildElkInput(graph, '/', { showClockReset: true, measure: fakeMeasure });
+    const input = buildElkInput(graph, '/', { measure: fakeMeasure });
     const widths = new Set((input.children ?? []).map((node) => node.width));
     expect(widths.size).toBeGreaterThan(2);
     for (const node of input.children ?? []) {
@@ -251,9 +251,7 @@ describe('content-sized nodes', () => {
   ];
   for (const [name, fixture, level] of fixtures) {
     it(`keeps node boxes apart on the ${name} fixture`, async () => {
-      const result = await runElkLayout(
-        buildElkInput(fixture, level, { showClockReset: false, measure: fakeMeasure })
-      );
+      const result = await runElkLayout(buildElkInput(fixture, level, { measure: fakeMeasure }));
       const { nodes } = toFlowElements(result, fixture, level, fakeMeasure);
       for (const a of nodes) {
         for (const b of nodes) {
@@ -271,32 +269,29 @@ describe('content-sized nodes', () => {
   }
 });
 
-describe('hidden clock and reset net badges', () => {
+describe('clock and reset net badges', () => {
   const labelledPorts = (input: ElkNode) =>
     (input.children ?? []).flatMap((node) =>
       (node.ports ?? []).filter((port) => (port.labels?.length ?? 0) > 0)
     );
 
-  it('reserves port labels only for pins of hidden nets', () => {
-    const hidden = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
-    const shown = buildElkInput(graph, '/', { showClockReset: true, measure: fakeMeasure });
-    expect(labelledPorts(shown)).toHaveLength(0);
-
+  it('reserves port labels only for pins of clock and reset nets, whatever the view shows', () => {
+    const input = buildElkInput(graph, '/', { measure: fakeMeasure });
     const fclk = graph.nets.find((net) => net.id === '/::processing_system7_0_FCLK_CLK0')!;
     const expected = fclk.endpoints.map((ref) =>
       ref.instance === null ? `${'/'}::${ref.pin}::${ref.pin}` : `${ref.instance}::${ref.pin}`
     );
-    const labelled = labelledPorts(hidden);
+    const labelled = labelledPorts(input);
     for (const id of expected) {
       const port = labelled.find((candidate) => candidate.id === id);
       expect(port?.labels?.[0].text).toBe('FCLK_CLK0');
     }
-    const dmaMaster = (hidden.children ?? [])
+    const dmaMaster = (input.children ?? [])
       .find((node) => node.id === '/axi_dma_0')
       ?.ports?.find((port) => port.id === '/axi_dma_0::M_AXIS_MM2S');
     expect(dmaMaster?.labels).toBeUndefined();
     expect(
-      hidden.children?.every(
+      input.children?.every(
         (node) => node.layoutOptions?.['org.eclipse.elk.portLabels.placement'] === 'OUTSIDE'
       )
     ).toBe(true);
@@ -308,16 +303,14 @@ describe('hidden clock and reset net badges', () => {
       (candidate) => candidate.id === '/::processing_system7_0_FCLK_CLK0'
     )!;
     net.name = 'a_very_long_clock_net_name_exceeding_the_limit';
-    const input = buildElkInput(long, '/', { showClockReset: false, measure: fakeMeasure });
+    const input = buildElkInput(long, '/', { measure: fakeMeasure });
     const text = labelledPorts(input)[0].labels![0].text!;
     expect(text).toBe(`${net.name.slice(0, 24)}…`);
   });
 
   for (const level of ['/', '/dsp_pipeline']) {
     it(`keeps every badge clear of other nodes on ${level} (real ELK)`, async () => {
-      const result = await runElkLayout(
-        buildElkInput(graph, level, { showClockReset: false, measure: fakeMeasure })
-      );
+      const result = await runElkLayout(buildElkInput(graph, level, { measure: fakeMeasure }));
       const { nodes } = toFlowElements(result, graph, level, fakeMeasure);
       expectBadgesClearOfNodes(nodes);
     }, 20000);
@@ -326,14 +319,14 @@ describe('hidden clock and reset net badges', () => {
 
 describe('unconnected pin rows', () => {
   it('flags pins without nets, counting hidden clock and reset nets as connected', () => {
-    const input = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
+    const input = buildElkInput(graph, '/', { measure: fakeMeasure });
     const { nodes } = toFlowElements(input, graph, '/', fakeMeasure);
     const dma = nodes.find((node) => node.id === '/axi_dma_0');
     const rows = dma?.type === 'instance' ? [...dma.data.west, ...dma.data.east] : [];
     expect(rows.find((row) => row.name === 's_axi_lite_aclk')?.unconnected).toBe(false);
 
     const bare = { ...graph, nets: [] };
-    const bareInput = buildElkInput(bare, '/', { showClockReset: false, measure: fakeMeasure });
+    const bareInput = buildElkInput(bare, '/', { measure: fakeMeasure });
     const bareDma = toFlowElements(bareInput, bare, '/', fakeMeasure).nodes.find(
       (node) => node.id === '/axi_dma_0'
     );
@@ -345,12 +338,11 @@ describe('unconnected pin rows', () => {
 });
 
 describe('buildElkInput isolate', () => {
-  const full = buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure });
+  const full = buildElkInput(graph, '/', { measure: fakeMeasure });
 
   it('emits only the subset and keeps the shared edge ids', () => {
-    const subset = isolationSubset(graph, '/', ['/axi_dma_0'], false);
+    const subset = isolationSubset(graph, '/', ['/axi_dma_0']);
     const input = buildElkInput(graph, '/', {
-      showClockReset: false,
       measure: fakeMeasure,
       isolate: subset,
     });
@@ -362,9 +354,8 @@ describe('buildElkInput isolate', () => {
   });
 
   it('keeps every pin of an isolated block and the graph-based unconnected flags', () => {
-    const subset = isolationSubset(graph, '/', ['/axi_dma_0'], false);
+    const subset = isolationSubset(graph, '/', ['/axi_dma_0']);
     const input = buildElkInput(graph, '/', {
-      showClockReset: false,
       measure: fakeMeasure,
       isolate: subset,
     });
@@ -379,7 +370,7 @@ describe('buildElkInput isolate', () => {
 describe('buildElkInput with expanded blocks', () => {
   const DSP = '/dsp_pipeline';
   const BANK = '/dsp_pipeline/coeff_bank';
-  const options = { showClockReset: true, measure: fakeMeasure };
+  const options = { measure: fakeMeasure };
   const expandedInput = buildElkInput(graph, '/', { ...options, expanded: new Set([DSP]) });
 
   it('equals the collapsed input when nothing is expanded, or the expanded block is not shown', () => {
@@ -478,7 +469,7 @@ describe('buildElkInput with expanded blocks', () => {
   });
 
   it('keeps the inner content of an isolated expanded block and drops the hidden ones', () => {
-    const withBlock = isolationSubset(graph, '/', [DSP], true);
+    const withBlock = isolationSubset(graph, '/', [DSP]);
     const kept = buildElkInput(graph, '/', {
       ...options,
       expanded: new Set([DSP]),
@@ -487,7 +478,7 @@ describe('buildElkInput with expanded blocks', () => {
     expect(child(kept, DSP).children).toHaveLength(graph.levels[DSP].instances.length);
     expect(kept.edges?.some((edge) => edge.id.startsWith(`${DSP}::`))).toBe(true);
 
-    const without = isolationSubset(graph, '/', ['/axi_dma_0'], true);
+    const without = isolationSubset(graph, '/', ['/axi_dma_0']);
     const dropped = buildElkInput(graph, '/', {
       ...options,
       expanded: new Set([DSP]),
@@ -516,9 +507,8 @@ describe('real ELK layout of expanded blocks', () => {
   const DSP = '/dsp_pipeline';
   const BANK = '/dsp_pipeline/coeff_bank';
 
-  async function layoutOf(expanded: string[], showClockReset = true, design = graph) {
+  async function layoutOf(expanded: string[], design = graph) {
     const input = buildElkInput(design, '/', {
-      showClockReset,
       measure: fakeMeasure,
       expanded: new Set(expanded),
     });
@@ -610,7 +600,7 @@ describe('real ELK layout of expanded blocks', () => {
   }, 20000);
 
   it('gives a frame pin the nets of both sides, outer first, and the badge of the outer clock only', async () => {
-    const { nodes } = await layoutOf([DSP], false);
+    const { nodes } = await layoutOf([DSP]);
     const frame = nodeOf(nodes, DSP);
     if (frame.type !== 'frame') {
       throw new Error('expected a frame');
@@ -635,7 +625,7 @@ describe('real ELK layout of expanded blocks', () => {
 
   it('flags a frame pin that no net touches on either side', async () => {
     const review = loadReviewFixtureGraph();
-    const { nodes } = await layoutOf([BANK, DSP], true, review);
+    const { nodes } = await layoutOf([BANK, DSP], review);
     const bank = nodeOf(nodes, BANK);
     if (bank.type !== 'frame') {
       throw new Error('expected a frame');
@@ -669,7 +659,7 @@ describe('real ELK layout of expanded blocks', () => {
     const empty = JSON.parse(JSON.stringify(graph)) as typeof graph;
     empty.levels[BANK].instances = [];
     empty.nets = empty.nets.filter((net) => net.level !== BANK);
-    const { nodes } = await layoutOf([DSP, BANK], true, empty);
+    const { nodes } = await layoutOf([DSP, BANK], empty);
     const bank = nodeOf(nodes, BANK);
     expect(bank.type).toBe('frame');
     expect(bank.width).toBeGreaterThanOrEqual(180);
@@ -694,7 +684,7 @@ describe('known IP output pins in the pin rows', () => {
     'connect_bd_net -net one [get_bd_pins clk_wizard_0/clk_out1_ce] [get_bd_pins clk_wizard_0/clk_out1_clr_n] [get_bd_pins one_0/dout]',
   ].join('\n');
   const design = readBdTcl(script, 'known.tcl');
-  const input = buildElkInput(design, '/', { showClockReset: true, measure: fakeMeasure });
+  const input = buildElkInput(design, '/', { measure: fakeMeasure });
   const { nodes } = toFlowElements(input, design, '/', fakeMeasure);
   const sidesOf = (id: string, side: 'west' | 'east') => {
     const node = nodes.find((candidate) => candidate.id === id);

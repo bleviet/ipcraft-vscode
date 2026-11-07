@@ -13,7 +13,7 @@ const DSP = '/dsp_pipeline';
 /** Every drawn edge of every level, as the canvas hands them over (clock and reset wires shown). */
 function drawnEdges(graph: SystemGraph): CrossingEdge[] {
   return Object.keys(graph.levels).flatMap((level) =>
-    levelEdges(graph, level, true).map((edge) => ({
+    levelEdges(graph, level).map((edge) => ({
       id: edge.id,
       data: { netId: edge.id.slice(0, edge.id.lastIndexOf('#')) },
     }))

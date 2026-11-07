@@ -22,6 +22,7 @@ import type { HighlightColor, HighlightMap } from '../../shared/messages/systemD
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
 import { clockDecor, type ClockContext } from './clockDecor';
+import { drawnLayout } from './drawnLayout';
 import {
   HIGHLIGHT_COLORS,
   hasAnyHighlight,
@@ -61,6 +62,8 @@ interface DiagramCanvasProps {
   isolated: boolean;
   review: ReviewContext | null;
   clocks: ClockContext;
+  /** Draw the clock and reset wires (and no badges); otherwise their badges (and no wires). */
+  drawClockReset: boolean;
   focusedPin: FocusedPin | null;
   query: string;
   flash?: SearchFlash | null;
@@ -99,6 +102,7 @@ export function DiagramCanvas({
   isolated,
   review,
   clocks,
+  drawClockReset,
   focusedPin,
   query,
   flash,
@@ -179,7 +183,11 @@ export function DiagramCanvas({
   );
   const showHighlights = !clocks.domainMode && review === null;
 
-  const decor = useMemo(() => clockDecor(layout, clocks, selection), [layout, clocks, selection]);
+  const drawn = useMemo(
+    () => (layout ? drawnLayout(layout, drawClockReset) : null),
+    [layout, drawClockReset]
+  );
+  const decor = useMemo(() => clockDecor(drawn, clocks, selection), [drawn, clocks, selection]);
   const { tree } = decor;
 
   const nodes = useMemo(() => {
@@ -193,12 +201,12 @@ export function DiagramCanvas({
       }
     }
     const highlighted =
-      activeNetIds.size > 0 && layout
-        ? highlightedPinsByNode(activeNetIds, layout.edges, layout.nodes)
+      activeNetIds.size > 0 && drawn
+        ? highlightedPinsByNode(activeNetIds, drawn.edges, drawn.nodes)
         : undefined;
     const badgeNetIds = selectedAndTreeNetIds.size > 0 ? selectedAndTreeNetIds : undefined;
     const searching = query.trim() !== '';
-    return (layout?.nodes ?? []).map((node) => {
+    return (drawn?.nodes ?? []).map((node) => {
       const dimmed =
         (searching &&
           (node.type === 'boundary'
@@ -232,7 +240,7 @@ export function DiagramCanvas({
       };
     });
   }, [
-    layout,
+    drawn,
     query,
     flash,
     onFlashEnd,
@@ -252,7 +260,7 @@ export function DiagramCanvas({
 
   const edges = useMemo(
     () =>
-      (layout?.edges ?? []).map((edge) => {
+      (drawn?.edges ?? []).map((edge) => {
         const marks = decor.edges.get(edge.id);
         const highlightColor =
           showHighlights && highlights ? netHighlightColor(highlights, edge.data.netId) : undefined;
@@ -271,7 +279,7 @@ export function DiagramCanvas({
           }),
         };
       }),
-    [layout, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
+    [drawn, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
   );
 
   // React Flow stays mounted on error: unmounting resets its store to the
@@ -403,8 +411,8 @@ export function DiagramCanvas({
       >
         <Background variant={BackgroundVariant.Dots} />
         <DiagramLegend
-          edges={layout?.edges ?? []}
-          nodes={layout?.nodes ?? []}
+          edges={drawn?.edges ?? []}
+          nodes={drawn?.nodes ?? []}
           review={review !== null}
           domains={decor.legend}
         />

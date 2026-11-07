@@ -22,12 +22,13 @@ export interface DiagramLayout {
 
 /**
  * Lays out one level, with the hierarchy blocks in `expanded` drawn as frames
- * around their inner level; results of superseded requests are ignored.
+ * around their inner level; results of superseded requests are ignored. No
+ * view toggle (clock and reset wires, domains, review) is an input: they change
+ * what the canvas draws of the layout, never where the blocks sit.
  */
 export function useElkLayout(
   graph: SystemGraph,
   levelPath: string,
-  showClockReset: boolean,
   isolation: IsolatedView | null = null,
   expanded?: ReadonlySet<string>
 ): { layout: DiagramLayout | null; error: string | null } {
@@ -52,7 +53,6 @@ export function useElkLayout(
     const viewKey = isolation ? isolatedViewKey(levelPath, isolation.token) : levelPath;
     runElkLayout(
       buildElkInput(graph, levelPath, {
-        showClockReset,
         measure,
         ...(isolation && { isolate: isolation }),
         ...(expanded && { expanded }),
@@ -78,7 +78,7 @@ export function useElkLayout(
     return () => {
       stale = true;
     };
-  }, [graph, levelPath, showClockReset, isolation, expanded, measure]);
+  }, [graph, levelPath, isolation, expanded, measure]);
 
   return result;
 }

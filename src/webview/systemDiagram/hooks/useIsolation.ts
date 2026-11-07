@@ -39,11 +39,7 @@ interface IsolationNavigation {
  * (the reveal then proceeds on the full level). The reveal gestures returned
  * wrap those of the navigation for that last rule.
  */
-export function useIsolation(
-  graph: SystemGraph,
-  nav: IsolationNavigation,
-  showClockReset: boolean
-) {
+export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
   const { levelPath, expanded } = nav;
   const [state, setState] = useState<IsolationState | null>(null);
   const lastToken = useRef(0);
@@ -63,9 +59,9 @@ export function useIsolation(
         : {
             token,
             selectedCount: ids.length,
-            ...isolationSubset(graph, levelPath, ids, showClockReset),
+            ...isolationSubset(graph, levelPath, ids),
           },
-    [graph, levelPath, ids, token, showClockReset]
+    [graph, levelPath, ids, token]
   );
   useEffect(() => {
     if (state && !isolation) {

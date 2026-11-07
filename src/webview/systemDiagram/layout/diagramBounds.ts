@@ -37,8 +37,10 @@ export function nodeBounds(node: DiagramFlowNode): DiagramBounds {
 }
 
 /**
- * Bounding box of everything drawn for a level: node boxes, net badges (which
- * sit outside their node), and edge points. Null when the level is empty.
+ * Bounding box of everything the layout holds for a level, the clock and reset
+ * wires and badges included, drawn or not, so a view has one fit whatever is
+ * drawn: node boxes, net badges (which sit outside their node), and edge
+ * points. Null when the level is empty.
  */
 export function diagramBounds(layout: {
   nodes: readonly DiagramFlowNode[];

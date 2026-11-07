@@ -30,9 +30,7 @@ function Harness(props: React.ComponentProps<typeof DiagramCanvas>) {
 
 it('keeps the viewport when the layout fails and shows the error over the canvas', async () => {
   const graph = loadFixtureGraph();
-  const laidOut = await runElkLayout(
-    buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
-  );
+  const laidOut = await runElkLayout(buildElkInput(graph, '/', { measure: fakeMeasure }));
   const layout = {
     levelPath: '/',
     viewKey: '/',
@@ -44,6 +42,7 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
     isolated: false,
     review: null,
     clocks: clockContextOf(graph),
+    drawClockReset: false,
     focusedPin: null,
     query: '',
     onSelect: jest.fn(),
@@ -69,9 +68,7 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
 
 it('fits on a double-click of the real pane but not of a real node', async () => {
   const graph = loadFixtureGraph();
-  const laidOut = await runElkLayout(
-    buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
-  );
+  const laidOut = await runElkLayout(buildElkInput(graph, '/', { measure: fakeMeasure }));
   const layout = {
     levelPath: '/',
     viewKey: '/',
@@ -86,6 +83,7 @@ it('fits on a double-click of the real pane but not of a real node', async () =>
       isolated={false}
       review={null}
       clocks={clockContextOf(graph)}
+      drawClockReset={false}
       focusedPin={null}
       query=""
       onSelect={jest.fn()}

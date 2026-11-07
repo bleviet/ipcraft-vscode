@@ -7,6 +7,7 @@ import {
   levelOf,
   matchesQuery,
   netsByEndpoint,
+  netsOfLevel,
   netDriver,
   parseBoundaryId,
   pinHoverLines,
@@ -17,7 +18,6 @@ import {
   segmentRangeText,
   selectionLevel,
   shortVlnv,
-  visibleNets,
 } from '../../../../webview/systemDiagram/model';
 import { loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
 
@@ -76,11 +76,11 @@ describe('system diagram model', () => {
   it('filters clock and reset nets', () => {
     const clock = graph.nets.find((net) => net.name === 'processing_system7_0_FCLK_CLK0');
     expect(isClockOrReset(clock!)).toBe(true);
-    const all = visibleNets(graph, '/', true);
-    const hidden = visibleNets(graph, '/', false);
+    const all = netsOfLevel(graph, '/');
+    const data = all.filter((net) => !isClockOrReset(net));
     expect(all).toHaveLength(20);
-    expect(hidden.length).toBeLessThan(all.length);
-    expect(hidden.some(isClockOrReset)).toBe(false);
+    expect(data.length).toBeLessThan(all.length);
+    expect(data.some(isClockOrReset)).toBe(false);
   });
 
   it('maps endpoints to nets and selections to levels', () => {

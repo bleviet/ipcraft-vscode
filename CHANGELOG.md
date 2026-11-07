@@ -16,6 +16,10 @@ All notable changes to this project are documented in this file.
 - **Stronger block outlines in the system viewer.** Blocks, external ports and expanded hierarchy frames are outlined in a darker shade of the theme foreground, so they stand out on light and dark themes. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))
 - **No Problems tab in the system viewer.** The Problems tab, its "N problems" toolbar button and the Unconnected tab's "See Problems" link are removed: they listed what the offline reader could not resolve, which read like faults in the design. What the offline view cannot know is still summarized in Details under "What this view knows". ([#250](https://github.com/bleviet/ipcraft-vscode/pull/250))
 
+### Fixed
+
+- **Blocks no longer move when you turn Clocks and resets, Clock domains or Unconnected pins on or off in the system viewer.** Each view now has one placement, laid out with the clock and reset wires included (inputs on the left, outputs on the right, clock and reset generators placed by the data flow), with room kept for the clock and reset badges. The toggles only change what is drawn on it, wires or badges, so the blocks, the zoom and the pan stay where they are. In an isolated view, clock and reset wires bring in no extra block; the ones between the blocks on screen are drawn while Clocks and resets or Clock domains is on. ([#255](https://github.com/bleviet/ipcraft-vscode/issues/255))
+
 ## [1.4.0] - 2026-11-06
 
 ### Added

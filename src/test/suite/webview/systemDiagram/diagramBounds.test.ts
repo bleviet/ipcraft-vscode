@@ -88,9 +88,7 @@ describe('diagramBounds', () => {
 
   it('contains every badge of the real fixture layout', async () => {
     const graph = loadFixtureGraph();
-    const result = await runElkLayout(
-      buildElkInput(graph, '/', { showClockReset: false, measure: fakeMeasure })
-    );
+    const result = await runElkLayout(buildElkInput(graph, '/', { measure: fakeMeasure }));
     const layout = toFlowElements(result, graph, '/', fakeMeasure);
     const bounds = diagramBounds(layout)!;
     let leftmostNode = Infinity;

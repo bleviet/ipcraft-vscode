@@ -70,7 +70,7 @@ To focus on a few blocks of a busy level, select them and isolate them.
 1. Click a block or port, then Cmd+Click (macOS) or Ctrl+Click (Windows and Linux) to add more, or to remove one that is already selected. Details shows "N selected" with a list of the names; clicking a name selects that block alone.
 2. Right-click one of the selected blocks and choose **Isolate N Selected** (N is the number of selected blocks). Right-clicking a block that is not selected selects it alone, and the item reads **Isolate Selection**.
 
-The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden. Clock and reset wires count only while Clocks and resets is on. A toolbar chip reads "Isolated · N selected · M shown", where M counts every block and port on screen.
+The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden. Clock and reset wires bring in no block of their own; the ones between the blocks on screen are drawn while Clocks and resets or Clock domains is on. A toolbar chip reads "Isolated · N selected · M shown", where M counts every block and port on screen.
 
 Choose **Show All** from the right-click menu (on a block or on the empty canvas) or the toolbar to return to the full level, with the zoom and pan it had before. Isolation also ends when you go to another level (breadcrumb, opening a hierarchy block, the mouse back button, or an outline or search jump) or when a search step or outline row selects a block that the isolated view hides.
 
@@ -78,7 +78,7 @@ Choose **Show All** from the right-click menu (on a block or on the empty canvas
 
 To review the pins that nothing connects to, turn on **Unconnected pins** in the toolbar. The button shows the number of unconnected pins in the whole design, in the warning color when any is undriven. Turning it on also opens the **Unconnected** tab of the bottom panel; turning it off leaves the tab as it is.
 
-A pin is unconnected when no net touches it on its level. There are two kinds:
+Turning the review on or off does not move any block. A pin is unconnected when no net touches it on its level. There are two kinds:
 
 - **Undriven**: an input (or a slave interface) that nothing drives. The vendor tool ties such an input to a constant, usually its default value, so an active-low reset tied to 0 holds the block in reset. Undriven pins are drawn in the warning color.
 - **Unused**: an output, master interface, or bidirectional pin that nothing uses. This is often intentional, so unused pins are drawn muted.
@@ -102,7 +102,10 @@ Clock and reset nets are hidden by default. Each pin that is on one shows a
 small badge with the net name, or the first name and `+N` when the pin is on
 several nets. This keeps data paths readable.
 
-Turn on **Clocks and resets** in the toolbar to draw those nets.
+Turn on **Clocks and resets** in the toolbar to draw those nets. The blocks stay
+in place when you turn it on or off: a level has one placement, made with the
+clock and reset wires and the room for their badges included, and the toggle
+only swaps the badges for the wires.
 
 ## Clock and reset domains
 
@@ -112,7 +115,8 @@ shows the number of flagged crossings (`2 CDC · 2 RDC`, in the warning color), 
 the number of clock domains when none is flagged. Turning it on opens the
 **Clocks** tab and draws clocks and resets, so the **Clocks and resets**
 checkbox is disabled while it is on. It also turns the **Unconnected pins**
-review off, and turning that review on turns this mode off.
+review off, and turning that review on turns this mode off. Neither the mode
+nor the review moves a block.
 
 A clock domain is a clock source and every pin its nets reach, followed through
 hierarchy pins and, in Platform Designer, through clock source blocks. What
