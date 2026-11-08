@@ -10,6 +10,7 @@ import {
   rectIntersectsMarquee,
   dropHalfSide,
   isCanvasBackground,
+  visibleLayoutRect,
 } from '../../../webview/ipcore/components/canvas/canvasGeometry';
 
 describe('nextZoomForWheel', () => {
@@ -138,5 +139,43 @@ describe('isCanvasBackground', () => {
   it('is false for an unrelated element', () => {
     const el = document.createElement('div');
     expect(isCanvasBackground(el)).toBe(false);
+  });
+});
+
+describe('visibleLayoutRect', () => {
+  const viewBox = { width: 840, height: 280 };
+
+  it('shows the whole layout when the container has its aspect ratio', () => {
+    expect(visibleLayoutRect(viewBox, { width: 840, height: 280 }, { x: 0, y: 0 }, 1)).toEqual({
+      x: 0,
+      y: 0,
+      width: 840,
+      height: 280,
+    });
+  });
+
+  it('shows more than the layout in a taller container (meet) and less when zoomed in', () => {
+    // 420 x 420 container: scale 0.5, so 840 x 840 layout units are visible, centred on the layout.
+    expect(visibleLayoutRect(viewBox, { width: 420, height: 420 }, { x: 0, y: 0 }, 1)).toEqual({
+      x: 0,
+      y: -280,
+      width: 840,
+      height: 840,
+    });
+    expect(visibleLayoutRect(viewBox, { width: 840, height: 280 }, { x: 0, y: 0 }, 2)).toEqual({
+      x: 210,
+      y: 70,
+      width: 420,
+      height: 140,
+    });
+  });
+
+  it('moves with the pan: dragging the content right reveals what is left of it', () => {
+    expect(visibleLayoutRect(viewBox, { width: 840, height: 280 }, { x: 100, y: -50 }, 1)).toEqual({
+      x: -100,
+      y: 50,
+      width: 840,
+      height: 280,
+    });
   });
 });

@@ -79,6 +79,26 @@ Select the expand control on a bus bundle to see its individual signals.
 | Background drag | Select several items |
 | `Ctrl`/`Cmd` + `0` | Return to 100% zoom |
 
+## Export an image
+
+Click **Export image** (the camera icon in the Utilities group), or run
+**IPCraft: Export Diagram as Image**, to save the block diagram as an SVG, PNG or
+JPG file. The popover offers the format, the **Area** (**Current view** is exactly
+the part of the symbol the canvas shows at the current zoom and pan; **Whole
+diagram** is the full symbol), the **Scale** (PNG and JPG, 1 to 4), the **Theme**
+(Light by default, or Dark), the **Grid** and the **Background** (editor or
+transparent; JPG is always opaque). The image is the symbol drawn with the
+bundled IBM Plex fonts: bus interfaces are always collapsed, and selection,
+hover, validation marks and the HUD are not drawn. It is the same picture that
+`ipcraft render core.ip.yml` writes. Exporting never changes the canvas view, and
+your last options are remembered for this workspace. The save dialog suggests
+`<ip-name>.png` next to the `.ip.yml`.
+
+**Current view** needs every bus bundle collapsed on the canvas, because the image
+draws bundles collapsed and the layouts would differ. With a bundle expanded the
+export stops with a message; collapse the bundles, or export the **Whole
+diagram**.
+
 ## Inspector
 
 The Inspector changes with the selection:

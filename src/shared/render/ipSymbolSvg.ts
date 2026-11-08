@@ -35,6 +35,8 @@ export interface IpSymbolOptions {
   background: 'editor' | 'transparent';
   /** `@font-face` rules for the `<style>` element; see fontFaces.ts. */
   fontFaceCss: string;
+  /** Crop to this rectangle of layout coordinates, within the drawing; absent: the whole drawing. */
+  crop?: Box;
   /** The color of a clock domain; leave out to draw ports in their kind colors. */
   domainColor?: (clockDomainIdx: number) => string | undefined;
   /** Whether a bus bundle shows the expand toggle; leave out for none. */
@@ -320,14 +322,34 @@ function footerSvg(layout: CanvasLayout, palette: Palette): string {
   return parts.join('');
 }
 
+/** `box` limited to `crop`; throws when they do not overlap. */
+function cropped(box: Box, crop: Box): Box {
+  const left = Math.max(box.x, crop.x);
+  const top = Math.max(box.y, crop.y);
+  const right = Math.min(box.x + box.width, crop.x + crop.width);
+  const bottom = Math.min(box.y + box.height, crop.y + crop.height);
+  if (right <= left || bottom <= top) {
+    throw new Error('The symbol is not in the visible area');
+  }
+  // Rounded outwards like the whole box, so the pixel size is a whole number.
+  const x = Math.floor(left);
+  const y = Math.floor(top);
+  return { x, y, width: Math.ceil(right) - x, height: Math.ceil(bottom) - y };
+}
+
 export function renderIpSymbolSvg(layout: CanvasLayout, options: IpSymbolOptions): string {
   const { palette } = options;
   const bounds = symbolBounds(layout);
-  const x = Math.floor(bounds.left - MARGIN);
-  const y = Math.floor(bounds.top - MARGIN);
-  const width = Math.ceil(bounds.right + MARGIN - x);
-  const height = Math.ceil(bounds.bottom + MARGIN - y);
-  const box: Box = { x, y, width, height };
+  const x0 = Math.floor(bounds.left - MARGIN);
+  const y0 = Math.floor(bounds.top - MARGIN);
+  const whole: Box = {
+    x: x0,
+    y: y0,
+    width: Math.ceil(bounds.right + MARGIN - x0),
+    height: Math.ceil(bounds.bottom + MARGIN - y0),
+  };
+  const box = options.crop ? cropped(whole, options.crop) : whole;
+  const { x, y, width, height } = box;
 
   const ctx: PortDrawContext = {
     palette,

@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_EXPORT_OPTIONS } from '../../../shared/messages/imageExport';
 import { fireEvent, render, screen } from '@testing-library/react';
 import {
   IpCoreToolbar,
@@ -28,6 +29,12 @@ function props(overrides: Partial<IpCoreToolbarProps> = {}): IpCoreToolbarProps 
     issueErrorCount: 2,
     issueWarningCount: 3,
     onOpenIssues: jest.fn(),
+    imageExport: {
+      options: DEFAULT_EXPORT_OPTIONS,
+      onOptionsChange: jest.fn(),
+      onExport: jest.fn(),
+      openToken: 0,
+    },
     ...overrides,
   };
 }

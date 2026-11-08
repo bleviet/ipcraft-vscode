@@ -52,10 +52,14 @@ export type IpCoreConsistencyResultMessage = ConsistencyResultMessage & {
 
 export type IpCoreGenerateResultMessage = Extract<IpCoreHostMessage, { type: 'generateResult' }>;
 
+export type IpCoreExportOptionsMessage = Extract<IpCoreHostMessage, { type: 'exportOptions' }>;
+
 export type ExtensionToWebviewMessage =
   | IpCoreUpdateMessage
   | IpCoreConformanceResultMessage
   | IpCoreStagingStartMessage
   | IpCoreStagingFileMergedMessage
   | IpCoreConsistencyResultMessage
-  | IpCoreGenerateResultMessage;
+  | IpCoreGenerateResultMessage
+  | IpCoreExportOptionsMessage
+  | Extract<IpCoreHostMessage, { type: 'openExport' }>;

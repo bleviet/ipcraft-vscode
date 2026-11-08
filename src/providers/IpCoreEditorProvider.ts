@@ -33,6 +33,10 @@ import { ResourceRoots } from '../services/ResourceRoots';
 import { CONFIG_KEY_IPCRAFT_GENERATE, CONFIG_KEY_IPCRAFT_TOOLBAR } from '../utils/configKeys';
 import { schemaIssuesFromValidation } from '../shared/schemaIssues';
 import { parseStagingActions } from '../shared/staging';
+import type { RenderAssets } from '../services/render/renderResources';
+import type { NormalizedBusLibrary } from '../shared/busContracts';
+import type { ExportTargets } from './imageExport/ExportTargets';
+import { ImageExportHost } from './imageExport/ImageExportHost';
 
 interface IpcMessage {
   type: string;
@@ -88,12 +92,21 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly yamlValidator = new YamlValidator();
 
   private readonly resourceRoots: ResourceRoots;
+  private readonly imageExport: ImageExportHost;
 
   constructor(
     private readonly context: vscode.ExtensionContext,
-    resourceRoots: ResourceRoots
+    resourceRoots: ResourceRoots,
+    private readonly exportTargets: ExportTargets,
+    assets: RenderAssets
   ) {
     this.resourceRoots = resourceRoots;
+    this.imageExport = new ImageExportHost({
+      memento: context.workspaceState,
+      assets,
+      roots: resourceRoots,
+      logger: this.logger,
+    });
     const services = createSharedProviderServices(context);
     this.htmlGenerator = services.htmlGenerator;
     this.documentManager = services.documentManager;
@@ -193,6 +206,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       logger: this.logger,
       commandAllowlist: WEBVIEW_COMMAND_ALLOWLIST,
       onReady: async () => {
+        const remembered = this.imageExport.rememberedOptions('ipCore');
+        if (remembered) {
+          router.postNotification({ type: 'exportOptions', options: remembered });
+        }
         await updateWebview();
         scheduleAutoConsistencyCheck();
       },
@@ -256,8 +273,13 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       scheduleAutoConsistencyCheck();
     });
     const hdlSourceWatcher = this.watchHdlSources(document, scheduleAutoConsistencyCheck);
+    const exportTarget = this.exportTargets.register(webviewPanel, 'ipCore');
+    router.on('exportImage', async (message) => {
+      await this.imageExport.exportIpCore(document, () => this.exportBusLibrary(document), message);
+    });
     this.registerDisposal(webviewPanel, () => {
       isDisposed = true;
+      exportTarget.dispose();
       if (consistencyCheckTimer) {
         clearTimeout(consistencyCheckTimer);
       }
@@ -271,6 +293,20 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
     });
     this.registerWebviewMessageHandlers(document, webviewPanel, router, updateWebview);
     WebviewStagingBridge.getInstance().register(document.uri.fsPath, webviewPanel);
+  }
+
+  /** The bus library the editor shows for this document, for the exported symbol. */
+  private async exportBusLibrary(document: vscode.TextDocument): Promise<NormalizedBusLibrary> {
+    const parsed = jsyaml.load(document.getText()) as Record<string, unknown>;
+    const imports = await this.importResolver.resolveImports(
+      parsed,
+      path.dirname(document.uri.fsPath),
+      document.uri
+    );
+    if (!imports.busLibrary) {
+      throw new Error('The bus library could not be loaded.');
+    }
+    return imports.busLibrary;
   }
 
   private subscribeToDocumentChanges(

@@ -1,4 +1,11 @@
-import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import React, {
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  type MutableRefObject,
+} from 'react';
 import type { IpCore } from '../../../types/ipCore';
 import { RemoveZone } from './RemoveZone';
 import { useCanvasValidation, type CanvasAnnotations } from '../../hooks/useCanvasValidation';
@@ -8,6 +15,7 @@ import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import { useGroupPorts } from '../../hooks/useGroupPorts';
 import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
 import { useCanvasViewport } from '../../hooks/useCanvasViewport';
+import { useCanvasVisibleRect, type VisibleRectReader } from '../../hooks/useCanvasVisibleRect';
 import { useCanvasMarqueeSelection } from '../../hooks/useCanvasMarqueeSelection';
 import { usePortConnectionDrag } from '../../hooks/usePortConnectionDrag';
 import { useCanvasDropTarget } from '../../hooks/useCanvasDropTarget';
@@ -65,6 +73,8 @@ interface IpBlockCanvasProps {
   /** Consistency-check findings projected onto canvas element ids, merged with validation dots */
   issueAnnotations?: CanvasAnnotations;
   issueFocusRequest?: IssueFocusRequest | null;
+  /** Filled with a reader of the visible layout rectangle, for the Export image button. */
+  visibleRectRef?: MutableRefObject<VisibleRectReader | null>;
 }
 
 /**
@@ -97,6 +107,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   onDismissSuggestion,
   issueAnnotations,
   issueFocusRequest,
+  visibleRectRef,
 }) => {
   // Pending port-drop onto a standard (protocol-defined) bus interface
   const [pendingPortDrop, setPendingPortDrop] = useState<PendingPortDrop | null>(null);
@@ -165,6 +176,14 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     hasDraggedRef,
     resetView,
   } = useCanvasViewport(containerRef);
+  useCanvasVisibleRect(
+    visibleRectRef,
+    containerRef,
+    layout.viewBox,
+    pan,
+    zoom,
+    expandedBusIds.size > 0
+  );
 
   const { marqueeRect } = useCanvasMarqueeSelection(
     containerRef,

@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { vscode } from '../../vscode';
 import { ToolbarGroup, ToolbarSeparator } from '../../shared/components/Toolbar';
+import { ExportImageButton } from '../../shared/components/ExportImageButton';
+import type { ExportImageOptions } from '../../../shared/messages/imageExport';
 
 // ---------------------------------------------------------------------------
 // Toolbar primitives — extracted from IpCoreApp (issue #129) so IpCoreApp is
@@ -409,6 +411,13 @@ export interface IpCoreToolbarProps {
   issueErrorCount: number;
   issueWarningCount: number;
   onOpenIssues: () => void;
+  /** The Export image button: its options (remembered by the host), open request and send. */
+  imageExport: {
+    options: ExportImageOptions;
+    onOptionsChange: (options: ExportImageOptions) => void;
+    onExport: (options: ExportImageOptions) => void;
+    openToken: number;
+  };
 }
 
 /**
@@ -439,6 +448,7 @@ export const IpCoreToolbar: React.FC<IpCoreToolbarProps> = ({
   issueErrorCount,
   issueWarningCount,
   onOpenIssues,
+  imageExport,
 }) => (
   <div className="flex items-start gap-2">
     {/* Zone 1: History */}
@@ -652,6 +662,10 @@ export const IpCoreToolbar: React.FC<IpCoreToolbarProps> = ({
         title="Get Started with Scaffold Packs"
         icon="mortar-board"
         onClick={() => vscode?.postMessage({ type: 'openWalkthroughMenu' })}
+      />
+      <ExportImageButton
+        features={{ legend: false, wholeLabel: 'Whole diagram' }}
+        {...imageExport}
       />
       <ToolbarButton title="IPCraft Settings" icon="gear" command="fpga-ip-core.openSettings" />
       <ToolbarButton

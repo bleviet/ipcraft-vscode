@@ -3,6 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { HighlightMap } from '../../shared/messages/systemDiagram';
 import type { DiagramProblem } from './messageState';
+import type { ImageExportChannel } from './hooks/useDiagramExport';
 import { WorkbenchLayout } from './WorkbenchLayout';
 
 interface DiagramWorkbenchProps {
@@ -12,6 +13,7 @@ interface DiagramWorkbenchProps {
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
   onChangeHighlights?: (highlights: HighlightMap) => void;
+  imageExport?: ImageExportChannel;
 }
 
 export function DiagramWorkbench({
@@ -21,6 +23,7 @@ export function DiagramWorkbench({
   revealSource,
   openDefinition,
   onChangeHighlights,
+  imageExport,
 }: DiagramWorkbenchProps) {
   return (
     <ReactFlowProvider>
@@ -31,6 +34,7 @@ export function DiagramWorkbench({
         revealSource={revealSource}
         openDefinition={openDefinition}
         onChangeHighlights={onChangeHighlights}
+        imageExport={imageExport}
       />
     </ReactFlowProvider>
   );

@@ -1,20 +1,14 @@
 /** Resolves the `--select`, `--hops` and `--highlight` names of `ipcraft render` to diagram nodes. */
 
 import type { SystemGraph } from '../domain/systemGraph';
+import { isolateNodes, type SystemLevelRequest } from '../services/render/systemLevelImage';
 import { levelNodeOf, shownLevels } from '../webview/systemDiagram/expansion';
-import { hopDistances, isolationSubset, maxRadius } from '../webview/systemDiagram/isolation';
-import type { IsolationSubset } from '../webview/systemDiagram/layout/elkLayout';
 import { boundaryId } from '../webview/systemDiagram/model';
-import { closestNames } from './closestNames';
+import { closestNames } from '../services/render/closestNames';
 
 const PORT_PREFIX = 'port:';
 
-export interface ResolvedSelection {
-  /** The isolated view of `--select`, laid out as the viewer lays out an isolation; undefined without `--select`. */
-  isolation?: IsolationSubset;
-  /** Nodes drawn with the selection outline: the `--select` and `--highlight` nodes. */
-  selectedNodeIds: Set<string>;
-}
+export type ResolvedSelection = Pick<SystemLevelRequest, 'isolate' | 'selectedNodeIds'>;
 
 /**
  * The diagram node for each of `names`: an instance path, an instance name, or `port:<name>` for an
@@ -74,16 +68,16 @@ export function resolveSelection(
   const levelInstances = graph.levels[level].instances;
   const selectedIds = resolveNodes(graph, level, options.select, '--select', levelInstances);
   const selectedNodeIds = new Set(selectedIds);
-  let isolation: IsolationSubset | undefined;
-  if (selectedIds.length > 0) {
-    const distances = hopDistances(graph, level, selectedIds);
-    const hops = Math.min(options.hops ?? 1, maxRadius(distances));
-    isolation = isolationSubset(graph, level, selectedIds, hops, distances);
-  }
+  const hops = options.hops ?? 1;
   const shownInstances = [...shownLevels(graph, level, expanded)].flatMap(
     (shown) => graph.levels[shown].instances
   );
   const highlighted = resolveNodes(graph, level, options.highlight, '--highlight', shownInstances);
+  // The isolated view is computed only to check the highlights against it.
+  const isolation =
+    selectedIds.length > 0 && highlighted.length > 0
+      ? isolateNodes(graph, level, selectedIds, hops)
+      : undefined;
   highlighted.forEach((id, index) => {
     if (isolation && !isolation.nodeIds.has(id.includes('::') ? id : levelNodeOf(level, id))) {
       throw new Error(
@@ -92,5 +86,8 @@ export function resolveSelection(
     }
     selectedNodeIds.add(id);
   });
-  return { isolation, selectedNodeIds };
+  return {
+    ...(selectedIds.length > 0 && { isolate: { nodeIds: selectedIds, hops } }),
+    selectedNodeIds: [...selectedNodeIds],
+  };
 }

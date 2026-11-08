@@ -95,3 +95,24 @@ export function isCanvasBackground(target: EventTarget | null): boolean {
     target.classList.contains('ip-canvas-background') || target.tagName.toLowerCase() === 'svg'
   );
 }
+
+/**
+ * The part of the symbol's layout the canvas shows, in layout coordinates. The SVG fills the
+ * container and fits its viewBox (`xMidYMid meet`, factor `s`); the pan and zoom transform then
+ * scales about the container centre, so the layout centre sits at `centre + pan` and one layout
+ * unit is `s * zoom` pixels. It does not depend on font metrics.
+ */
+export function visibleLayoutRect(
+  viewBox: { width: number; height: number },
+  container: { width: number; height: number },
+  pan: Point,
+  zoom: number
+): { x: number; y: number; width: number; height: number } {
+  const unit = Math.min(container.width / viewBox.width, container.height / viewBox.height) * zoom;
+  return {
+    x: viewBox.width / 2 - (container.width / 2 + pan.x) / unit,
+    y: viewBox.height / 2 - (container.height / 2 + pan.y) / unit,
+    width: container.width / unit,
+    height: container.height / unit,
+  };
+}

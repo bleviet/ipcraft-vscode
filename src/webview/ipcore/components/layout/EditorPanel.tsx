@@ -7,6 +7,7 @@ import type { SuggestionChip } from '../../hooks/useProtocolSuggestions';
 import type { CanvasAnnotations } from '../../hooks/useCanvasValidation';
 import type { NormalizedBusLibrary } from '../../../../shared/busContracts';
 import type { IssueFocusRequest } from '../../types/issues';
+import type { VisibleRectReader } from '../../hooks/useCanvasVisibleRect';
 
 interface EditorPanelProps {
   ipCore: IpCore | null;
@@ -30,6 +31,7 @@ interface EditorPanelProps {
   onDismissSuggestion?: (chipId: string) => void;
   issueAnnotations?: CanvasAnnotations;
   issueFocusRequest?: IssueFocusRequest | null;
+  visibleRectRef?: React.MutableRefObject<VisibleRectReader | null>;
 }
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -54,6 +56,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   onDismissSuggestion,
   issueAnnotations,
   issueFocusRequest,
+  visibleRectRef,
 }) => {
   if (!ipCore) {
     return (
@@ -95,6 +98,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         onDismissSuggestion={onDismissSuggestion}
         issueAnnotations={issueAnnotations}
         issueFocusRequest={issueFocusRequest}
+        visibleRectRef={visibleRectRef}
       />
     </div>
   );

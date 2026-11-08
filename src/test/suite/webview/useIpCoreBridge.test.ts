@@ -194,4 +194,19 @@ describe('useIpCoreBridge', () => {
       expect.objectContaining({ type: 'update', text: 'a: 1\n' })
     );
   });
+
+  it('routes the remembered export options and the open request', () => {
+    const onExportOptions = jest.fn();
+    const onOpenExport = jest.fn();
+    renderHook(() =>
+      useIpCoreBridge({ rawYaml: '', ...makeCallbacks(), onExportOptions, onOpenExport })
+    );
+    const options = { format: 'svg' };
+
+    act(() => dispatchMessage({ type: 'exportOptions', options }));
+    act(() => dispatchMessage({ type: 'openExport' }));
+
+    expect(onExportOptions).toHaveBeenCalledWith(options);
+    expect(onOpenExport).toHaveBeenCalledTimes(1);
+  });
 });

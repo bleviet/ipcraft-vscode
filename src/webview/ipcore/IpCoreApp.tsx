@@ -11,6 +11,7 @@ import { useStagingSession } from './hooks/useStagingSession';
 import { useConsistencySession } from './hooks/useConsistencySession';
 import { useToolbarSettings } from './hooks/useToolbarSettings';
 import { useIssuesSession } from './hooks/useIssuesSession';
+import { useIpCoreExport } from './hooks/useIpCoreExport';
 import { IpCoreShell } from './components/IpCoreShell';
 import { IpCoreRightPanel } from './components/IpCoreRightPanel';
 import type { IpCoreToolbarProps } from './components/IpCoreToolbar';
@@ -80,6 +81,7 @@ const IpCoreApp: React.FC = () => {
     [updateIpCoreBatch, pushUndo]
   );
 
+  const imageExport = useIpCoreExport();
   const staging = useStagingSession();
   const toolbarSettings = useToolbarSettings();
 
@@ -191,6 +193,8 @@ const IpCoreApp: React.FC = () => {
     onConsistencyResult: consistency.handleConsistencyResultMessage,
     onGenerateResult: issues.handleGenerateResult,
     onConformanceReport: issues.setHostReport,
+    onExportOptions: imageExport.setOptions,
+    onOpenExport: imageExport.requestOpen,
   });
 
   const vlnv = typedIpCore?.vlnv && typeof typedIpCore.vlnv === 'object' ? typedIpCore.vlnv : null;
@@ -232,6 +236,12 @@ const IpCoreApp: React.FC = () => {
     issueErrorCount: issues.errorCount,
     issueWarningCount: issues.warningCount,
     onOpenIssues: () => issues.openIssues(),
+    imageExport: {
+      options: imageExport.options,
+      onOptionsChange: imageExport.setOptions,
+      onExport: imageExport.exportImage,
+      openToken: imageExport.openToken,
+    },
   };
 
   return (
@@ -264,6 +274,7 @@ const IpCoreApp: React.FC = () => {
         onDismissSuggestion: handleDismissSuggestion,
         issueAnnotations: issues.annotations,
         issueFocusRequest: issues.focusRequest,
+        visibleRectRef: imageExport.visibleRectRef,
       }}
       rightPanel={
         <IpCoreRightPanel

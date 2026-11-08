@@ -14,6 +14,7 @@ import type {
   IpCoreGenerateResultMessage,
 } from '../types/messages';
 import type { ConformanceReport } from '../../../shared/issues';
+import type { ExportImageOptions } from '../../../shared/messages/imageExport';
 
 interface UseIpCoreBridgeOptions {
   rawYaml: string;
@@ -23,6 +24,8 @@ interface UseIpCoreBridgeOptions {
   onConsistencyResult: (message: IpCoreConsistencyResultMessage) => void;
   onGenerateResult?: (message: IpCoreGenerateResultMessage) => void;
   onConformanceReport?: (report: ConformanceReport, revision: string) => void;
+  onExportOptions?: (options: ExportImageOptions) => void;
+  onOpenExport?: () => void;
 }
 
 /**
@@ -52,6 +55,8 @@ export function useIpCoreBridge({
   onConsistencyResult,
   onGenerateResult,
   onConformanceReport,
+  onExportOptions,
+  onOpenExport,
 }: UseIpCoreBridgeOptions): { sendUpdate: (yamlText: string) => void } {
   const revision = useRef(createRevisionState());
 
@@ -78,6 +83,11 @@ export function useIpCoreBridge({
   onGenerateResultRef.current = onGenerateResult;
   const onConformanceReportRef = useRef(onConformanceReport);
   onConformanceReportRef.current = onConformanceReport;
+
+  const onExportOptionsRef = useRef(onExportOptions);
+  onExportOptionsRef.current = onExportOptions;
+  const onOpenExportRef = useRef(onOpenExport);
+  onOpenExportRef.current = onOpenExport;
 
   // Notify the extension that the webview is ready to receive the initial document.
   useEffect(() => {
@@ -158,6 +168,12 @@ export function useIpCoreBridge({
           break;
         case 'conformanceResult':
           onConformanceReportRef.current?.(message.report, message.sourceRevision);
+          break;
+        case 'exportOptions':
+          onExportOptionsRef.current?.(message.options);
+          break;
+        case 'openExport':
+          onOpenExportRef.current?.();
           break;
       }
     };

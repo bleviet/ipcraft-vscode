@@ -14,6 +14,12 @@ export type SystemDiagramState =
   | { status: 'notRecognized'; fileName: string }
   | { status: 'error'; message: string };
 
+/** The messages that change what the viewer shows; export messages leave the state alone. */
+export type DiagramContentMessage = Exclude<
+  SystemDiagramToWebviewMessage,
+  { type: 'exportOptions' | 'openExport' }
+>;
+
 /**
  * Once a graph has been shown, a bad message only adds a problem to it so the
  * workbench (and everything the user set up in it) stays mounted; the next
@@ -21,7 +27,7 @@ export type SystemDiagramState =
  */
 export function reduceDiagramMessage(
   state: SystemDiagramState,
-  message: SystemDiagramToWebviewMessage
+  message: DiagramContentMessage
 ): SystemDiagramState {
   switch (message.type) {
     case 'graph': {

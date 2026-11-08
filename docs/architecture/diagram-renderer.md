@@ -1,9 +1,9 @@
 # Diagram renderer
 
 `src/shared/render/` turns a laid-out diagram into a standalone SVG without a
-browser. It backs `ipcraft render` (issue #268) and is meant to back the
-interactive image export later, so an image looks the same whichever way it was
-made. It draws whole system levels and IP core symbols.
+browser. It backs `ipcraft render` and the interactive Export image of the system
+viewer and the IP core editor (issue #268), so an image looks the same whichever
+way it was made. It draws whole system levels and IP core symbols.
 
 ## Boundaries
 
@@ -173,3 +173,31 @@ underneath, into the argv of the equivalent `ipcraft render` call and
 rules. A `RenderSession` holds what is loaded once for the batch: fonts, bus
 libraries per `useBusLibrary` folder and the workspace file lists; the wasm
 rasterizer is already once per process.
+
+## Shared render service
+
+`src/services/render/` is the Node-side service both callers use, so neither
+duplicates the layout, drawing or encoding steps:
+
+| Module | Responsibility |
+|---|---|
+| `systemLevelImage.ts` | `renderSystemLevelImage(graph, request, look, encoding, assets, roots)`: lays a level out (expansion, `isolateNodes`, Clocks and resets) and draws it; `request` carries resolved ids and paths only |
+| `ipSymbolImage.ts` | `parseIpCoreDocument`, `renderIpSymbolImage(data, library, request, ...)`: the symbol of an `.ip.yml` with the caller's bus library |
+| `imageEncoding.ts` | `RenderLook`, `ImageEncoding`, `encodeImage`: SVG text or PNG/JPG bytes |
+| `renderResources.ts` | `RenderAssets`: fonts and bus libraries loaded once |
+
+The callers adapt it. The CLI (`src/cli/render.ts`) resolves names (`--select`,
+`--expand`) to ids, loads the built-in bus library and writes a file. The
+extension (`src/providers/imageExport/ImageExportHost.ts`) passes the graph the
+system viewer already shows (enriched by `SystemDesignEnricher`, unsaved edits
+included) and the IP core document text with the library the editor resolved,
+then asks where to save. The extension bundle loads ELK from `dist/elk.bundled.js`
+and the rasterizer from `dist/resources/resvg.wasm`, like the CLI.
+
+Current view crops differ per editor. The system viewer sends the ids of the
+nodes inside its viewport (`visibleNodeIds`, from node positions and the React
+Flow transform); the service lays the level out with the Plex metrics and crops
+to the union of those nodes (`cropNodeIds`), because block sizes can differ from
+the canvas, which measures with the editor font. The IP symbol layout does not
+depend on font metrics, so the canvas viewport maps exactly to a layout rectangle
+(`visibleLayoutRect`) and the service crops to it (`crop`).
