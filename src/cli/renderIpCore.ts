@@ -67,6 +67,9 @@ function parseIpCore(text: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
+/** Bus libraries already loaded, by IP-local folder (a batch of renders loads each once). */
+export type BusLibraryCache = Map<string, Promise<NormalizedBusLibrary>>;
+
 export interface IpCoreRenderOptions {
   palette: Palette;
   grid: boolean;
@@ -79,7 +82,8 @@ export async function renderIpCoreFile(
   inputPath: string,
   text: string,
   roots: Pick<ResourceRoots, 'busDefinitionsDir' | 'busDefinitionSchemaPath'>,
-  options: IpCoreRenderOptions
+  options: IpCoreRenderOptions,
+  libraries: BusLibraryCache = new Map()
 ): Promise<string> {
   const data = parseIpCore(text);
   const version = readIpCoreFormatVersion(data);
@@ -90,7 +94,16 @@ export async function renderIpCoreFile(
   if (!vlnv || typeof vlnv !== 'object' || !vlnv.name) {
     throw new Error(`'${inputPath}' is not an IP core: it has no vlnv.name`);
   }
-  const library = await loadBusLibrary(roots, path.dirname(inputPath), data.useBusLibrary);
+  const folder =
+    typeof data.useBusLibrary === 'string' && data.useBusLibrary !== ''
+      ? path.resolve(path.dirname(inputPath), data.useBusLibrary)
+      : '';
+  let loading = libraries.get(folder);
+  if (!loading) {
+    loading = loadBusLibrary(roots, path.dirname(inputPath), data.useBusLibrary);
+    libraries.set(folder, loading);
+  }
+  const library = await loading;
   const ipCore = canonicalizeParsedIpCore(data, library).ipCore as unknown as IpCore;
   const inputs = symbolLayoutInputs(ipCore, library);
   const layout = computeSymbolLayout(ipCore, inputs);

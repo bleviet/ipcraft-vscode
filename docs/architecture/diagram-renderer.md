@@ -146,3 +146,30 @@ browser:
 - It does not apply `font-kerning` or `text-rendering` hints, and its glyph
   rasterization (anti-aliasing, hinting) differs slightly from Chrome's, so
   pixels are not identical to a screenshot of the webview.
+
+## Workspace definitions and manifests
+
+`ipcraft render` of a system design runs the same enrichment as the viewer, so
+an image shows the pins the viewer shows. The pipeline is one function,
+`enrichSystemGraph` (`src/services/systemDiagram/enrichment/`): subsystem
+grafting (`expandSubsystems`), `matchDefinitions`, `definitionFromIpCore` and
+`definitionFromHdl`, `applyDefinitions`. It does no I/O of its own: the caller
+passes an `EnrichmentIo` (the three file lists and `readText`) and an optional
+logger. There are two adapters:
+
+| Adapter | Files | Extras |
+|---|---|---|
+| `SystemDesignEnricher`, `SubsystemExpander` | `WorkspaceFileIndex` over `vscode.workspace.findFiles`, watchers | trust check |
+| `src/cli/workspaceIo.ts` | sorted `fs` walk of `--workspace` | lists cached per directory for the process |
+
+Both build index entries with the pure `fileEntries.ts`, so matching, the HDL
+size cap and the entity/module scan cannot differ. `enrichSystemGraph` stays
+below the CLI and the extension in the dependency order.
+
+`--manifest` (`cli/renderManifest.ts`) renders a list of images in one process.
+`renderManifestSpec.ts` converts an entry, with the manifest `defaults`
+underneath, into the argv of the equivalent `ipcraft render` call and
+`parseRenderArgs` validates it, so flags and manifest keys share one set of
+rules. A `RenderSession` holds what is loaded once for the batch: fonts, bus
+libraries per `useBusLibrary` folder and the workspace file lists; the wasm
+rasterizer is already once per process.

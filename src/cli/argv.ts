@@ -25,6 +25,7 @@ Usage:
                                           .tcl, Platform Designer .qsys or qsys-script .tcl), or
                                           the symbol of an IP core (.ip.yml), as an SVG, PNG or
                                           JPG image (the --out extension picks the format)
+  ipcraft render --manifest <file.yml>    Render every image listed in a manifest file
 
 Options:
   --target <quartus|vivado>[,<...>]  Vendor target(s) to scaffold a project for
@@ -69,6 +70,13 @@ Options:
   --scale <1-4>                      [render, PNG and JPG only] Pixels per SVG unit, an integer
                                       (default: 2)
   --quality <1-100>                  [render, JPG only] JPEG quality (default: 90)
+  --workspace <dir>                  [render, system designs only] Folder searched for the
+                                      .ip.yml, HDL and .qsys files that define the instances
+                                      (default: the design's folder)
+  --no-workspace                     [render, system designs only] Draw the design as read,
+                                      without those definitions
+  --manifest <file.yml>              [render only] Render the images listed in the manifest;
+                                      takes no input file and no other option
   -h, --help                          Show this help
 
 Examples:
@@ -82,6 +90,8 @@ Examples:
   ipcraft render path/to.ip.yml --out docs/img/core.svg --no-grid
   ipcraft render bd/system.tcl --out docs/img/system.png --scale 3
   ipcraft render path/to.ip.yml --out docs/img/core.jpg --quality 80
+  ipcraft render bd/system.tcl --out docs/img/system.svg --workspace .
+  ipcraft render --manifest docs/images.yml
 `;
 }
 
@@ -92,7 +102,8 @@ export type ParsedArgv =
   | { kind: 'verify'; args: CliVerifyArgs }
   | { kind: 'migrate'; args: CliMigrateArgs }
   | { kind: 'package'; args: CliPackageArgs }
-  | { kind: 'render'; args: CliRenderArgs };
+  | { kind: 'render'; args: CliRenderArgs }
+  | { kind: 'renderManifest'; manifestPath: string };
 
 interface CommonOptions {
   targets: string[];
