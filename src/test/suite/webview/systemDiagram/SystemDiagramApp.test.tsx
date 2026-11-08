@@ -1478,6 +1478,14 @@ describe('SystemDiagramApp', () => {
       await waitFor(() => expect(nodeIds()).toEqual(ISOLATED));
     }
 
+    async function selectTwoAgain() {
+      fireEvent.click(node('/axi_gpio_0'));
+      fireEvent.click(node('/axi_dma_0'), { ctrlKey: true });
+      fireEvent.contextMenu(node('/axi_dma_0'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate 2 Selected' }));
+      await waitFor(() => expect(nodeIds()).toEqual(ISOLATED));
+    }
+
     it('adds a node to the selection with Ctrl+Click and lists it in Details', async () => {
       await selectTwo();
       expect(details().getByRole('heading', { name: '2 selected' })).toBeVisible();
@@ -1492,10 +1500,84 @@ describe('SystemDiagramApp', () => {
 
     it('isolates the selection with its connections and the chip, then shows all', async () => {
       await isolateTwo();
-      expect(chip()).toHaveTextContent('Isolated · 2 selected · 7 shown');
+      expect(chip()).toHaveTextContent(
+        `Isolated · 2 selected · 7 of ${graph.levels['/'].instances.length + graph.levels['/'].boundaryPins.length} shown`
+      );
       fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
       await waitFor(() => expect(nodeIds().length).toBeGreaterThan(ISOLATED.length));
       expect(chip()).toBeNull();
+    });
+
+    it('grows and shrinks the isolated view by hops, and a new isolation starts at one', async () => {
+      await isolateTwo();
+      const root = graph.levels['/'];
+      const total = root.instances.length + root.boundaryPins.length;
+      const more = () => screen.getByRole('button', { name: 'More hops' });
+      const fewer = () => screen.getByRole('button', { name: 'Fewer hops' });
+      const shown = () => Number(/(\d+) of \d+ shown/.exec(chip()!.textContent)![1]);
+      expect(screen.getByText(/^1-hop/)).toBeVisible();
+      expect(fewer()).toBeDisabled();
+      expect(more()).toBeEnabled();
+
+      mockFitBounds.mockClear();
+      fireEvent.click(more());
+      await settle();
+      expect(mockFitBounds).toHaveBeenCalled();
+      expect(screen.getByText(/^2-hop/)).toBeVisible();
+      expect(shown()).toBeGreaterThan(ISOLATED.length);
+      expect(fewer()).toBeEnabled();
+
+      fireEvent.click(fewer());
+      await waitFor(() => expect(nodeIds()).toEqual(ISOLATED));
+      expect(screen.getByText(/^1-hop/)).toBeVisible();
+
+      for (let guard = 0; guard < 20 && !more().hasAttribute('disabled'); guard += 1) {
+        fireEvent.click(more());
+        await settle();
+      }
+      expect(more()).toBeDisabled();
+      expect(screen.getByText(/-hop · all connected$/)).toBeVisible();
+      expect(chip()).toHaveTextContent(`of ${total} shown`);
+      expect(shown()).toBeLessThanOrEqual(total);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+      await waitFor(() => expect(chip()).toBeNull());
+      await selectTwoAgain();
+      expect(screen.getByText(/^1-hop/)).toBeVisible();
+    });
+
+    it('steps the radius with + and - on the canvas, not when idle or typing', async () => {
+      await isolateTwo();
+      const pane = () => screen.getByTestId('pane');
+      expect(screen.getByText(/^1-hop/)).toBeVisible();
+      expect(fireEvent.keyDown(pane(), { key: '+' })).toBe(false);
+      await waitFor(() => expect(screen.getByText(/^2-hop/)).toBeVisible());
+      fireEvent.keyDown(pane(), { key: '+', ctrlKey: true });
+      expect(screen.getByText(/^2-hop/)).toBeVisible();
+      fireEvent.keyDown(screen.getByRole('searchbox', { name: 'Search instances' }), {
+        key: '-',
+      });
+      expect(screen.getByText(/^2-hop/)).toBeVisible();
+      fireEvent.keyDown(pane(), { key: '-' });
+      await waitFor(() => expect(screen.getByText(/^1-hop/)).toBeVisible());
+      fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+      await waitFor(() => expect(chip()).toBeNull());
+      expect(fireEvent.keyDown(pane(), { key: '+' })).toBe(true);
+      expect(chip()).toBeNull();
+    });
+
+    it('starts at one hop again when re-isolating from inside an isolated view', async () => {
+      await isolateTwo();
+      fireEvent.click(screen.getByRole('button', { name: 'More hops' }));
+      await settle();
+      expect(screen.getByText(/^2-hop/)).toBeVisible();
+      // Selecting without isolating keeps the view and its radius.
+      fireEvent.click(node('/axi_dma_0'));
+      expect(screen.getByText(/^2-hop/)).toBeVisible();
+      fireEvent.contextMenu(node('/axi_dma_0'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+      await waitFor(() => expect(screen.getByText(/^1-hop/)).toBeVisible());
+      expect(chip()).toHaveTextContent('Isolated · 1 selected');
     });
 
     it('isolates a right-clicked node outside the selection alone', async () => {

@@ -10,6 +10,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ### New
 
+- **Grow an isolated view one step at a time.** In an isolated view, + and - in the toolbar show the blocks one more or one fewer connection away, until everything connected is on screen. The + and - keys do the same while the canvas has focus.
 - **Minimap.** Turn on **Minimap** in the system viewer toolbar to see the whole level in a corner while you work zoomed in, and click or drag on it to move around.
 - **Readable when zoomed out.** Far out, the system viewer hides pin and port names and other small text, and enlarges block names so you can still tell the blocks apart. Turn off **Simplify zoomed out** in the toolbar to show everything at every zoom.
 - **Expand a hierarchy block in place in the system viewer.** Click + in the block header, or right-click and choose Expand In-Place, to show its contents inside a frame on the current level. Click - or choose Collapse to fold it again. Double-clicking still opens the block.

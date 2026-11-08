@@ -15,6 +15,7 @@ normal typing shortcuts unless a table cell is explicitly in navigation mode.
 |-----|--------|
 | `Left` / `Right` | With a panel separator focused, resize the outline or details panel by 16 px |
 | `Up` / `Down` | With the bottom panel separator focused, resize it by 16 px |
+| `+` / `-` | With the canvas focused in an isolated view, show the blocks one connection further (`+` or `=`) or remove the outermost ring (`-`); ignored while typing and with Ctrl, Cmd or Alt held |
 
 Panels start hidden; open them with the toolbar toggles. Double-click a separator to collapse its panel again.
 

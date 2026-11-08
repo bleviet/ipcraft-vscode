@@ -15,6 +15,7 @@ import { DiagramMinimap } from './DiagramMinimap';
 import { ElkEdge } from './ElkEdge';
 import { FrameNode } from './FrameNode';
 import { InstanceNode } from './InstanceNode';
+import { hopStepOfKey } from './hopKeys';
 import { isPaneDoubleClick } from './canvasTargets';
 import { PinHoverCard } from './PinHoverCard';
 import { usePinHover } from './hooks/usePinHover';
@@ -48,6 +49,8 @@ interface DiagramCanvasProps {
   selectedNetIds?: ReadonlySet<string>;
   highlights?: HighlightMap;
   isolated: boolean;
+  /** Steps the isolated view's hop radius; set only while one is shown. */
+  onHopStep?: (delta: 1 | -1) => void;
   review: ReviewContext | null;
   clocks: ClockContext;
   focusedPin: FocusedPin | null;
@@ -90,6 +93,7 @@ export function DiagramCanvas({
   selectedNetIds,
   highlights,
   isolated,
+  onHopStep,
   review,
   clocks,
   focusedPin,
@@ -192,8 +196,19 @@ export function DiagramCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative h-full w-full"
+      className="sd-canvas relative h-full w-full"
+      role="group"
+      aria-label="Diagram canvas"
+      aria-keyshortcuts={onHopStep ? '+ -' : undefined}
+      tabIndex={0}
       data-review={review !== null}
+      onKeyDown={(event) => {
+        const delta = hopStepOfKey(event.key, event);
+        if (delta && onHopStep && !(event.target as Element).closest('[role=menu]')) {
+          event.preventDefault();
+          onHopStep(delta);
+        }
+      }}
       onDoubleClick={(event) => {
         if (event.target instanceof Element && isPaneDoubleClick(event.target)) {
           onFit();

@@ -633,6 +633,31 @@ input:focus-visible {
   background: var(--vscode-toolbar-hoverBackground);
 }
 
+.sd-canvas:focus {
+  outline: none;
+}
+
+.sd-canvas:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
+}
+
+.sd-hop-step {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  color: inherit;
+}
+
+.sd-hop-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sd-hop-step:disabled:hover {
+  background: transparent;
+}
+
 .sd-isolated {
   display: inline-flex;
   align-items: center;
