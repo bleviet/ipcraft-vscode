@@ -7,6 +7,8 @@ export interface ResourceRoots {
   readonly templatesDir: string;
   readonly busDefinitionsDir: string;
   readonly busDefinitionSchemaPath: string;
+  /** The bundled IBM Plex woff2 files the diagram renderer embeds; see FONT_FILES in shared/render/fontFaces. */
+  readonly fontsDir: string;
 }
 
 export function resolveResourceRoots(extensionPath: string): ResourceRoots {
@@ -22,6 +24,7 @@ export function resolveResourceRoots(extensionPath: string): ResourceRoots {
       'schemas',
       'bus_definition.schema.json'
     ),
+    fontsDir: path.join(extensionPath, 'dist', 'resources', 'fonts'),
   };
 
   // Verify that all directories exist to fail fast at activation
@@ -54,6 +57,8 @@ export function devResourceRoots(repoRoot: string): ResourceRoots {
       'schemas',
       'bus_definition.schema.json'
     ),
+    // Copied there by `npm run compile`; not verified here as only `ipcraft render` reads it.
+    fontsDir: path.join(repoRoot, 'dist', 'resources', 'fonts'),
   };
 
   // Verify that all directories exist to fail fast in tests

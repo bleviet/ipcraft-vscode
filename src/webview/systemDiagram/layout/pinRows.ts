@@ -10,6 +10,9 @@ import type { NetBadge } from './netBadges';
 export const HEADER_HEIGHT = 42;
 export const PIN_ROW_HEIGHT = 18;
 export const PORT_SIZE = 8;
+/** Pin marker sizes: a square for interface pins, a circle for signals. */
+export const SQUARE_MARKER = 8;
+export const CIRCLE_MARKER = 6;
 
 export function sideOfInstancePin(direction: PinDirection): PinSide {
   return direction === 'out' || direction === 'master' || direction === 'inout' ? 'east' : 'west';

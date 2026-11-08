@@ -22,10 +22,14 @@ if (typeof (global as any).ResizeObserver === 'undefined') {
   };
 }
 
+// (Both DOM stubs below are skipped in a `@jest-environment node` suite.)
 // jsdom does not implement Element.scrollIntoView, but the rail/tables scroll
 // the selected row into view. Provide a no-op stub so selection-driven effects
 // do not throw.
-if (typeof (Element.prototype as any).scrollIntoView !== 'function') {
+if (
+  typeof Element !== 'undefined' &&
+  typeof (Element.prototype as any).scrollIntoView !== 'function'
+) {
   (Element.prototype as any).scrollIntoView = function noopScrollIntoView() {};
 }
 
@@ -46,7 +50,7 @@ try {
 // MouseEvent so components using onPointerDown/onPointerMove (e.g. the register
 // rail's drag-to-reorder) can be exercised with fireEvent.pointerDown, including
 // modifier keys (ctrlKey) and button.
-if (typeof (global as any).PointerEvent === 'undefined') {
+if (typeof window !== 'undefined' && typeof (global as any).PointerEvent === 'undefined') {
   class PointerEventPolyfill extends window.MouseEvent {
     pointerId: number;
     pointerType: string;

@@ -19,6 +19,7 @@ describe('registerGeneratorCommands registration surface', () => {
       templatesDir: '/templates',
       busDefinitionsDir: '/bus_definitions',
       busDefinitionSchemaPath: '/schemas/bus_definition.schema.json',
+      fontsDir: '/fonts',
     };
 
     registerGeneratorCommands(context, resourceRoots);

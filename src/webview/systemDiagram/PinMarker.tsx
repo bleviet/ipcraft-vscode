@@ -1,9 +1,7 @@
 import React from 'react';
 import { categoryColor } from './colors';
 import type { NetCategory } from '../../domain/systemGraph';
-
-export const SQUARE_MARKER = 8;
-export const CIRCLE_MARKER = 6;
+import { CIRCLE_MARKER, SQUARE_MARKER } from './layout/pinRows';
 
 interface PinMarkerProps {
   isInterface: boolean;

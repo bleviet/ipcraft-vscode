@@ -5,10 +5,16 @@
  * that match its current pins (see the measured note in docs/architecture/webview.md).
  */
 
-import { Position, type NodeHandle } from '@xyflow/react';
+import type { NodeHandle, Position } from '@xyflow/react';
 import type { ElkPort } from 'elkjs/lib/elk-api';
 import { PORT_SIZE } from './pinRows';
 import type { PinSide } from './diagramTypes';
+
+/**
+ * React Flow's `Position` values, kept local so the layout (also run by the CLI renderer)
+ * does not load React at runtime.
+ */
+const POSITION = { left: 'left' as Position, right: 'right' as Position };
 
 export function pinHandles(
   nodeId: string,
@@ -21,7 +27,7 @@ export function pinHandles(
     return (['source', 'target'] as const).map((type) => ({
       id: name,
       type,
-      position: side === 'east' ? Position.Right : Position.Left,
+      position: side === 'east' ? POSITION.right : POSITION.left,
       x: port?.x ?? 0,
       y: port?.y ?? 0,
       width: PORT_SIZE,
