@@ -10,6 +10,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ### New
 
+- **Minimap.** Turn on **Minimap** in the system viewer toolbar to see the whole level in a corner while you work zoomed in, and click or drag on it to move around.
 - **Readable when zoomed out.** Far out, the system viewer hides pin and port names and other small text, and enlarges block names so you can still tell the blocks apart. Turn off **Simplify zoomed out** in the toolbar to show everything at every zoom.
 - **Expand a hierarchy block in place in the system viewer.** Click + in the block header, or right-click and choose Expand In-Place, to show its contents inside a frame on the current level. Click - or choose Collapse to fold it again. Double-clicking still opens the block.
 - **Highlight parts of a design.** Ctrl+Click (Cmd+Click on macOS) selects several blocks, ports and wires; right-click and choose Highlight to mark them in one of six colors. Highlights are remembered per design file, and a toolbar chip counts them and clears them all.

@@ -19,6 +19,8 @@ interface DiagramToolbarProps {
   reviewUnconnected: boolean;
   /** Simplify zoomed out is on: far out, pin text goes and block names grow (drawing only). */
   autoDetail: boolean;
+  /** The minimap is shown in a corner of the canvas (drawing only). */
+  minimapOn: boolean;
   /** Number of unconnected pins in the design, and whether any is undriven. */
   unconnected: { count: number; anyUndriven: boolean };
   /** Selected and shown node counts while the level is isolated, else null. */
@@ -37,6 +39,7 @@ interface DiagramToolbarProps {
   onOpenClocksTab: () => void;
   onReviewUnconnectedChange: (on: boolean) => void;
   onAutoDetailChange: (on: boolean) => void;
+  onMinimapChange: (on: boolean) => void;
   onFit: () => void;
   panelsVisible: Record<PanelName, boolean>;
   onTogglePanel: (panel: PanelName) => void;
@@ -60,6 +63,7 @@ export function DiagramToolbar({
   clockSummary,
   reviewUnconnected,
   autoDetail,
+  minimapOn,
   unconnected,
   isolated,
   onShowAll,
@@ -74,6 +78,7 @@ export function DiagramToolbar({
   onOpenClocksTab,
   onReviewUnconnectedChange,
   onAutoDetailChange,
+  onMinimapChange,
   onFit,
   panelsVisible,
   onTogglePanel,
@@ -219,6 +224,16 @@ export function DiagramToolbar({
           onClick={() => onAutoDetailChange(!autoDetail)}
         >
           <span aria-hidden="true" className="codicon codicon-text-size" />
+        </button>
+        <button
+          type="button"
+          className={`canvas-view-toggle${minimapOn ? ' canvas-view-toggle--active' : ''}`}
+          aria-pressed={minimapOn}
+          aria-label="Minimap"
+          title="Minimap: show an overview of the level; click or drag on it to pan"
+          onClick={() => onMinimapChange(!minimapOn)}
+        >
+          <span aria-hidden="true" className="codicon codicon-map" />
         </button>
         <button
           type="button"

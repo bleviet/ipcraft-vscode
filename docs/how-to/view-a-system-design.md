@@ -35,7 +35,7 @@ diagram keeps the last valid design and shows a banner with the reason.
 
 The diagram shows one hierarchy level at a time.
 
-The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Unconnected pins), **View** (Simplify zoomed out, zoom out, Fit, zoom in) and **Panels**. Hover a button to see its name.
+The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Unconnected pins), **View** (Simplify zoomed out, Minimap, zoom out, Fit, zoom in) and **Panels**. Hover a button to see its name.
 
 - **Levels.** Double-click a hierarchy block to enter it. Use the breadcrumb at
   the top left, or the mouse back button, to go up one level. The mouse forward
@@ -325,6 +325,7 @@ listed in either tab.
 - The **Fit** button (the full-screen icon) fits the whole level.
 - Double-click a block (other than a hierarchy block) or a port to zoom to it.
 - Double-click empty canvas to fit the level.
+- **Minimap** (off by default) shows the whole level in the bottom right corner with the current view as a rectangle; selected blocks, search matches and hierarchy blocks stand out. Click or drag on it to pan, and use the wheel over it to zoom. It only changes what is drawn: blocks never move.
 - Each level remembers its own zoom and position while the diagram is open.
 - **Simplify zoomed out**, on by default, hides pin and port names, block subtitles, clock frequencies and badge text when you zoom out below about 42%, and enlarges the block names so that they stay readable. It only changes what is drawn: blocks never move. Turn it off to show everything at every zoom.
 

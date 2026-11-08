@@ -16,6 +16,7 @@ entry to the release notes.
 
 ### Added
 
+- **Minimap in the system viewer.** A Minimap toggle in the toolbar's View group (`codicon-map`, off by default, session state) draws the React Flow `MiniMap` bottom right, pannable and zoomable, with selected blocks, search matches and hierarchy blocks colored (`minimap.ts`, `DiagramMinimap.tsx`). It is drawn only, never a layout input. ([#265](https://github.com/bleviet/ipcraft-vscode/issues/265))
 - **Auto detail in the system viewer.** With the Simplify zoomed out toolbar toggle on (the default), zooming out below 0.42 hides pin labels, port labels, clock frequencies, block subtitles and badge text and enlarges block names by the inverse zoom, at most three times. It only changes what is drawn, so blocks never move. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
 - **Find keys in the system viewer.** As in the VS Code text editor, Ctrl+F (Cmd+F on macOS) goes to Search instances with its text selected, filled in with the name of the selected block, and F3 or Shift+F3 goes to the next or previous match.
 - **Search history in the system viewer.** Up and Down in Search instances browse the remembered queries, as in the VS Code find box (placeholder `Search instances (⇅ for history)`): a query is remembered when stepping (Enter, Shift+Enter, F3, Shift+F3) or on blur, deduplicated, at most 50, for the session. Pure rules in `searchHistory.ts`, state in `hooks/useSearchHistory.ts`. ([#264](https://github.com/bleviet/ipcraft-vscode/pull/264))

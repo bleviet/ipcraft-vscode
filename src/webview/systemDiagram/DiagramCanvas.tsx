@@ -11,6 +11,7 @@ import { AutoDetail } from './AutoDetail';
 import { BoundaryNode } from './BoundaryNode';
 import { DiagramContextMenu, type ContextMenuItem } from './DiagramContextMenu';
 import { DiagramLegend } from './DiagramLegend';
+import { DiagramMinimap } from './DiagramMinimap';
 import { ElkEdge } from './ElkEdge';
 import { FrameNode } from './FrameNode';
 import { InstanceNode } from './InstanceNode';
@@ -66,6 +67,8 @@ interface DiagramCanvasProps {
   query: string;
   /** Auto detail is on: far out, pin text goes and block names grow. Absent, it is off. */
   autoDetail?: boolean;
+  /** The minimap is shown. Absent, it is not. */
+  minimap?: boolean;
   flash?: SearchFlash | null;
   onFlashEnd?: (token: number) => void;
   onSelect: (selection: Selection | null) => void;
@@ -105,6 +108,7 @@ export function DiagramCanvas({
   focusedPin,
   query,
   autoDetail,
+  minimap,
   flash,
   onFlashEnd,
   onSelect,
@@ -413,6 +417,7 @@ export function DiagramCanvas({
           domains={decor.legend}
         />
         <AutoDetail target={containerRef} enabled={autoDetail ?? false} />
+        {minimap && <DiagramMinimap query={query} />}
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}
       {menu && (
