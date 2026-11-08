@@ -326,7 +326,7 @@ listed in either tab.
 - Double-click a block (other than a hierarchy block) or a port to zoom to it.
 - Double-click empty canvas to fit the level.
 - Each level remembers its own zoom and position while the diagram is open.
-- **Simplify zoomed out**, on by default, hides pin names, block subtitles and badge text when you zoom out below about 42%, and enlarges the block names so that they stay readable. It only changes what is drawn: blocks never move. Turn it off to show everything at every zoom.
+- **Simplify zoomed out**, on by default, hides pin and port names, block subtitles, clock frequencies and badge text when you zoom out below about 42%, and enlarges the block names so that they stay readable. It only changes what is drawn: blocks never move. Turn it off to show everything at every zoom.
 
 ## Names and hover
 

@@ -1018,6 +1018,8 @@ input:focus-visible {
 /* Auto detail: far out, pin text goes and block names grow. Drawing only, no layout.
    The block body is empty without pin labels, so a name wraps over it instead of being cut short. */
 [data-far='true'] .sd-pin-label,
+[data-far='true'] .sd-pin-freq,
+[data-far='true'] .sd-port-label,
 [data-far='true'] .sd-node-subtitle,
 [data-far='true'] .sd-badge-text {
   visibility: hidden;
@@ -1035,7 +1037,7 @@ input:focus-visible {
   overflow: visible;
   text-overflow: clip;
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   font-size: calc(12px * var(--sd-name-scale, 1));
   line-height: 1.1;
 }

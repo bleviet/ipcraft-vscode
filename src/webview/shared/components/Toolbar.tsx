@@ -15,6 +15,7 @@ export const ToolbarGroup: React.FC<ToolbarGroupProps> = ({ label, children }) =
       {children}
     </div>
     <span
+      aria-hidden="true"
       style={{
         fontSize: '9px',
         opacity: 0.45,

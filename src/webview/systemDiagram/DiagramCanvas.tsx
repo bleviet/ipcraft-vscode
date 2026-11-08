@@ -7,10 +7,10 @@ import {
   type Node,
   type NodeTypes,
 } from '@xyflow/react';
+import { AutoDetail } from './AutoDetail';
 import { BoundaryNode } from './BoundaryNode';
 import { DiagramContextMenu, type ContextMenuItem } from './DiagramContextMenu';
 import { DiagramLegend } from './DiagramLegend';
-import { AutoDetail } from './AutoDetail';
 import { ElkEdge } from './ElkEdge';
 import { FrameNode } from './FrameNode';
 import { InstanceNode } from './InstanceNode';

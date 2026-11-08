@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { browseHistory, rememberQuery, type HistoryCursor } from '../searchHistory';
 
 /**
@@ -14,6 +14,14 @@ export function useSearchHistory(
   const [history, setHistory] = useState<readonly string[]>([]);
   const cursor = useRef<HistoryCursor | null>(null);
   const lastSet = useRef<string | null>(null);
+
+  // Any change not made by browsing (typing, Ctrl+F, Escape) ends browsing.
+  useEffect(() => {
+    if (query !== lastSet.current) {
+      cursor.current = null;
+      lastSet.current = null;
+    }
+  }, [query]);
 
   const remember = useCallback(() => {
     setHistory((previous) => rememberQuery(previous, query));

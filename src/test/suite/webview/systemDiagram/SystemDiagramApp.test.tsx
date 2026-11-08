@@ -519,7 +519,7 @@ describe('SystemDiagramApp', () => {
     expect(toggle).not.toHaveClass('canvas-view-toggle--active');
   });
 
-  it('groups the toolbar buttons into Design and View', async () => {
+  it('groups the toolbar buttons into Design, View and Panels', async () => {
     await renderWithGraph();
     const view = within(screen.getByRole('group', { name: 'View' }));
     for (const name of ['Simplify zoomed out', 'Zoom out', 'Fit', 'Zoom in']) {
@@ -529,6 +529,10 @@ describe('SystemDiagramApp', () => {
     expect(design.getByRole('button', { name: 'Clocks and resets' })).toBeInTheDocument();
     expect(design.getByRole('button', { name: /^Unconnected pins/ })).toBeInTheDocument();
     expect(design.getByRole('button', { name: /^Open the Clocks tab: / })).toBeInTheDocument();
+    const panels = within(screen.getByRole('group', { name: 'Panels' }));
+    for (const name of ['Toggle Outline', 'Toggle Bottom Panel', 'Toggle Details']) {
+      expect(panels.getByRole('button', { name })).toBeInTheDocument();
+    }
   });
 
   it('posts revealSource from a line link', async () => {
@@ -793,6 +797,67 @@ describe('SystemDiagramApp', () => {
       searchBox().focus();
       press('ArrowUp');
       expect(searchBox().value).toBe('axi');
+    });
+
+    it('ends browsing when the query is typed away and back to the browsed text', async () => {
+      await renderWithGraph();
+      await settle();
+      type('axi');
+      press('Enter');
+      type('fifo');
+      press('Enter');
+      type('');
+      press('ArrowUp');
+      press('ArrowUp');
+      expect(searchBox().value).toBe('axi');
+      type('axix');
+      type('axi');
+      press('ArrowUp');
+      expect(searchBox().value).toBe('fifo');
+    });
+
+    it('remembers a query when stepping with F3', async () => {
+      await renderWithGraph();
+      await settle();
+      type('axi');
+      fireEvent.keyDown(window, { key: 'F3' });
+      type('');
+      searchBox().focus();
+      press('ArrowUp');
+      expect(searchBox().value).toBe('axi');
+    });
+
+    it('remembers the query that Escape clears', async () => {
+      await renderWithGraph();
+      await settle();
+      searchBox().focus();
+      type('axi');
+      press('Escape');
+      expect(searchBox().value).toBe('');
+      searchBox().focus();
+      press('ArrowUp');
+      expect(searchBox().value).toBe('axi');
+    });
+
+    it('does not browse on ArrowUp with a modifier', async () => {
+      await renderWithGraph();
+      await settle();
+      type('axi');
+      press('Enter');
+      type('');
+      fireEvent.keyDown(searchBox(), { key: 'ArrowUp', altKey: true });
+      expect(searchBox().value).toBe('');
+    });
+
+    it('prevents a browsing ArrowUp but not one at the oldest entry', async () => {
+      await renderWithGraph();
+      await settle();
+      type('axi');
+      press('Enter');
+      type('');
+      expect(fireEvent.keyDown(searchBox(), { key: 'ArrowUp' })).toBe(false);
+      expect(searchBox().value).toBe('axi');
+      expect(fireEvent.keyDown(searchBox(), { key: 'ArrowUp' })).toBe(true);
     });
 
     it('keeps the accessible name and shows the history placeholder', async () => {

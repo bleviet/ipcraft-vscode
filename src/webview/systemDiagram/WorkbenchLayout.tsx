@@ -57,11 +57,14 @@ export function WorkbenchLayout({
   const view = useIsolation(graph, nav);
   const { isolation } = view;
   const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
-  const history = useSearchHistory(query, setQuery);
-  const stepSearch = (direction: 1 | -1) => {
-    history.remember();
-    search.step(direction);
-  };
+  const { remember, browse } = useSearchHistory(query, setQuery);
+  const stepSearch = useCallback(
+    (direction: 1 | -1) => {
+      remember();
+      search.step(direction);
+    },
+    [remember, search.step]
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
   useFindShortcuts({
     inputRef: searchInputRef,
@@ -163,8 +166,8 @@ export function WorkbenchLayout({
         onNavigate={nav.navigate}
         onQueryChange={setQuery}
         onSearchStep={stepSearch}
-        onSearchHistory={history.browse}
-        onSearchBlur={history.remember}
+        onSearchHistory={browse}
+        onSearchBlur={remember}
         onClocksChange={setClocksOn}
         onOpenClocksTab={() => openBottomTab('clocks')}
         onReviewUnconnectedChange={(on) => {
