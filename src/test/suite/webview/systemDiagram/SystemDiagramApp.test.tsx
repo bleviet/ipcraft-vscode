@@ -314,6 +314,86 @@ describe('SystemDiagramApp', () => {
     });
   });
 
+  describe('find keys', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const searchBox = () =>
+      screen.getByRole<HTMLInputElement>('searchbox', { name: 'Search instances' });
+    const ctrlF = (init: Partial<KeyboardEventInit> = { ctrlKey: true }) =>
+      fireEvent.keyDown(document.activeElement ?? window, { key: 'f', ...init });
+    const expectAllSelected = () => {
+      expect(searchBox()).toHaveFocus();
+      expect(searchBox().selectionStart).toBe(0);
+      expect(searchBox().selectionEnd).toBe(searchBox().value.length);
+    };
+
+    async function rendered() {
+      await renderWithGraph();
+      await settle();
+    }
+
+    it('focuses the search box with its text selected on Ctrl+F or Cmd+F', async () => {
+      await rendered();
+      fireEvent.change(searchBox(), { target: { value: 'fifo' } });
+      ctrlF();
+      expectAllSelected();
+      expect(searchBox()).toHaveValue('fifo');
+
+      searchBox().setSelectionRange(4, 4);
+      ctrlF({ metaKey: true });
+      expectAllSelected();
+    });
+
+    it('seeds the name of the selected block, selected', async () => {
+      await rendered();
+      fireEvent.change(searchBox(), { target: { value: 'fifo' } });
+      fireEvent.click(screen.getByTestId('node:/axi_dma_0'));
+      ctrlF();
+      await waitFor(() => expect(searchBox()).toHaveValue('axi_dma_0'));
+      expectAllSelected();
+    });
+
+    it('keeps a query that matches the selected block', async () => {
+      await rendered();
+      fireEvent.change(searchBox(), { target: { value: 'dma' } });
+      fireEvent.keyDown(searchBox(), { key: 'Enter' });
+      await screen.findByText('1 of 1');
+      searchBox().blur();
+      ctrlF();
+      expect(searchBox()).toHaveValue('dma');
+      expectAllSelected();
+    });
+
+    it('works while another field has the focus', async () => {
+      await rendered();
+      const other = document.createElement('input');
+      document.body.appendChild(other);
+      other.focus();
+      ctrlF();
+      expect(searchBox()).toHaveFocus();
+      other.remove();
+    });
+
+    it('ignores Ctrl+Shift+F and Ctrl+Alt+F', async () => {
+      await rendered();
+      ctrlF({ ctrlKey: true, shiftKey: true });
+      ctrlF({ ctrlKey: true, altKey: true });
+      expect(searchBox()).not.toHaveFocus();
+    });
+
+    it('steps to the next and previous match on F3 and Shift+F3 anywhere', async () => {
+      await rendered();
+      const matches = searchMatches(graph, 'axi');
+      fireEvent.change(searchBox(), { target: { value: 'axi' } });
+      searchBox().blur();
+      fireEvent.keyDown(window, { key: 'F3' });
+      expect(await screen.findByText(`1 of ${matches.length}`)).toBeVisible();
+      fireEvent.keyDown(window, { key: 'F3' });
+      expect(await screen.findByText(`2 of ${matches.length}`)).toBeVisible();
+      fireEvent.keyDown(window, { key: 'F3', shiftKey: true });
+      expect(await screen.findByText(`1 of ${matches.length}`)).toBeVisible();
+    });
+  });
+
   describe('mouse back button', () => {
     const crumbs = () => within(screen.getByRole('navigation', { name: 'Hierarchy' }));
 
@@ -340,13 +420,68 @@ describe('SystemDiagramApp', () => {
       expect(screen.getByTestId('node:/dsp_pipeline')).toBeInTheDocument();
     });
 
-    it.each([0, 4])('ignores button %i', async (button) => {
+    it.each([0, 1, 2])('ignores button %i', async (button) => {
       await renderWithGraph();
       fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
       await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
       fireEvent.mouseUp(window, { button });
       expect(screen.getByTestId('node:/dsp_pipeline/fir_compiler_0')).toBeInTheDocument();
       expect(crumbs().getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
+    });
+  });
+
+  describe('mouse forward button', () => {
+    const crumbs = () => within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+    const current = (name: string) =>
+      expect(crumbs().getByText(name)).toHaveAttribute('aria-current', 'page');
+
+    async function enterCoeffBank() {
+      await renderWithGraph();
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/coeff_bank');
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline/coeff_bank'));
+      await screen.findByText('coeff_bank', { selector: '[aria-current="page"]' });
+    }
+
+    it('returns to the levels the back button left, one at a time', async () => {
+      await enterCoeffBank();
+      fireEvent.mouseUp(window, { button: 3 });
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      fireEvent.mouseUp(window, { button: 3 });
+      await screen.findByTestId('node:/axi_dma_0');
+
+      fireEvent.mouseUp(window, { button: 4 });
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      current('dsp_pipeline');
+
+      fireEvent.mouseUp(window, { button: 4 });
+      await screen.findByText('coeff_bank', { selector: '[aria-current="page"]' });
+
+      fireEvent.mouseUp(window, { button: 4 });
+      current('coeff_bank');
+    });
+
+    it('does nothing before the back button was used', async () => {
+      await renderWithGraph();
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      fireEvent.mouseUp(window, { button: 4 });
+      current('dsp_pipeline');
+    });
+
+    it('forgets the levels after another navigation', async () => {
+      await enterCoeffBank();
+      fireEvent.mouseUp(window, { button: 3 });
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+
+      fireEvent.click(crumbs().getByRole('button', { name: 'zynq_dma_system' }));
+      await screen.findByTestId('node:/axi_dma_0');
+      fireEvent.doubleClick(screen.getByTestId('node:/dsp_pipeline'));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+
+      fireEvent.mouseUp(window, { button: 4 });
+      current('dsp_pipeline');
+      expect(screen.getByTestId('node:/dsp_pipeline/fir_compiler_0')).toBeInTheDocument();
     });
   });
 

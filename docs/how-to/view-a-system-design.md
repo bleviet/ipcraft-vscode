@@ -36,7 +36,9 @@ diagram keeps the last valid design and shows a banner with the reason.
 The diagram shows one hierarchy level at a time.
 
 - **Levels.** Double-click a hierarchy block to enter it. Use the breadcrumb at
-  the top left, or the mouse back button, to go up one level.
+  the top left, or the mouse back button, to go up one level. The mouse forward
+  button returns to the levels you left with the back button, one at a time,
+  until you go to another level some other way.
 - **Expand in place.** Click the **+** button in the header of a hierarchy block,
   or right-click it and choose **Expand In-Place**, to see inside without leaving
   the level. The block becomes a frame with its pins on the border: wires from
@@ -51,7 +53,10 @@ The diagram shows one hierarchy level at a time.
 - **Search.** Type in **Search instances** to dim the blocks whose name or
   type does not match. Press Enter or Shift+Enter to go to the next or
   previous match on any level; a counter shows the position, and Escape
-  clears the search.
+  clears the search. As in the VS Code text editor, Ctrl+F (Cmd+F on macOS)
+  moves to the search box from anywhere in the viewer with its text selected,
+  filled in with the name of the selected block unless the search already
+  matches it, and F3 or Shift+F3 goes to the next or previous match.
 - **Details.** Shows the selected block, net, or port: type, where it is
   defined in the file, the parameters set in the file, and its pins with their
   nets. Select a line link to open the file at that line.

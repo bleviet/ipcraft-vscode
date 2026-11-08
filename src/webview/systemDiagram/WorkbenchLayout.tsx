@@ -11,15 +11,18 @@ import { applyHighlight, highlightCount } from './highlights';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
+import { useFindShortcuts } from './hooks/useFindShortcuts';
 import { useIsolation } from './hooks/useIsolation';
-import { useMouseBackButton } from './hooks/useMouseBackButton';
+import { useLevelHistory } from './hooks/useLevelHistory';
+import { useMouseNavigationButtons } from './hooks/useMouseNavigationButtons';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
-import { levelOf, nodeSelection, type Selection } from './model';
+import { nodeSelection, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
+import { findSeed } from './search';
 import { unconnectedPins, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
 
 interface WorkbenchLayoutProps {
@@ -43,20 +46,22 @@ export function WorkbenchLayout({
   onChangeHighlights,
 }: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
-  const { levelPath, navigate } = nav;
-  useMouseBackButton(
-    useCallback(() => {
-      if (levelPath !== '/') {
-        navigate(levelOf(levelPath));
-      }
-    }, [levelPath, navigate])
-  );
+  const levelHistory = useLevelHistory(graph, nav.levelPath, nav.navigate);
+  useMouseNavigationButtons(levelHistory.up, levelHistory.forward);
   // Clocks and resets only decorates the layout: no toggle moves a block.
   const [clocksOn, setClocksOn] = useState(false);
   const [query, setQuery] = useState('');
   const view = useIsolation(graph, nav);
   const { isolation } = view;
   const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useFindShortcuts({
+    inputRef: searchInputRef,
+    query,
+    seed: findSeed(graph, query, nav.selection),
+    onQueryChange: setQuery,
+    onStep: search.step,
+  });
   const [tab, setTab] = useState<BottomTab>('address');
   const [reviewUnconnected, setReviewUnconnected] = useState(false);
   const [focusedPin, setFocusedPin] = useState<FocusedPin | null>(null);
@@ -135,6 +140,7 @@ export function WorkbenchLayout({
         graph={graph}
         levelPath={nav.levelPath}
         query={query}
+        searchInputRef={searchInputRef}
         searchCounter={search.counter}
         clocksOn={clocksOn}
         clockSummary={clockSummary}

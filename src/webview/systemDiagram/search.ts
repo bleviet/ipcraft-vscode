@@ -1,7 +1,7 @@
 /** Pure search stepping over a {@link SystemGraph}: match order, wrap-around, counter text. */
 
 import type { SystemGraph } from '../../domain/systemGraph';
-import { matchesQuery } from './model';
+import { matchesQuery, type Selection } from './model';
 
 /** Instance paths matching `query` on every level, in outline order (a hierarchy before its children). */
 export function searchMatches(graph: SystemGraph, query: string): string[] {
@@ -53,4 +53,22 @@ export function matchCounter(matches: readonly string[], currentId: string | und
     return `${index + 1} of ${matches.length}`;
   }
   return matches.length === 1 ? '1 match' : `${matches.length} matches`;
+}
+
+/**
+ * Text Ctrl+F puts in the search box, as VS Code seeds its find widget from the
+ * selection: the name of the selected instance, unless the query already
+ * matches it (it was reached by stepping through the matches). Undefined
+ * keeps the query.
+ */
+export function findSeed(
+  graph: SystemGraph,
+  query: string,
+  selection: Selection | null
+): string | undefined {
+  const instance = selection?.kind === 'instance' ? graph.instances[selection.id] : undefined;
+  if (!instance || (query.trim() !== '' && matchesQuery(instance, query))) {
+    return undefined;
+  }
+  return instance.name;
 }

@@ -8,6 +8,8 @@ interface DiagramToolbarProps {
   graph: SystemGraph;
   levelPath: string;
   query: string;
+  /** The Search instances box, which Ctrl/Cmd+F focuses. */
+  searchInputRef: React.Ref<HTMLInputElement>;
   searchCounter: string;
   /** Clocks and resets is on: the clock and reset pins are colored by domain, with the domain decorations. */
   clocksOn: boolean;
@@ -44,6 +46,7 @@ export function DiagramToolbar({
   graph,
   levelPath,
   query,
+  searchInputRef,
   searchCounter,
   clocksOn,
   clockSummary,
@@ -106,6 +109,7 @@ export function DiagramToolbar({
       )}
       <div className="flex-1" />
       <input
+        ref={searchInputRef}
         type="search"
         className="sd-input w-[220px] min-w-0"
         placeholder="Search instances"
