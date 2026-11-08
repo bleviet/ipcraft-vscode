@@ -76,25 +76,26 @@ regeneration are started by the user; nothing runs in the background.
 
 ## Library Sources
 
-Sources are ranked. Ranks 1 and 2 state a VHDL library. Ranks 3 and 4 only
-declare that a file belongs to a core; their files go into the default library,
-but their rank still counts when duplicates are resolved, so a file a core
-declares beats a stray copy that nothing declares.
+Sources are ranked. Rank 1 always states a VHDL library, rank 2 and rank 4
+state one when the entry carries a logical name, and rank 3 never does. A
+source that states no library still declares that a file belongs to a core:
+its rank counts when duplicates are resolved, so a file a core declares beats a
+stray copy that nothing declares.
 
 | Rank | Source | What it gives |
 |---|---|---|
-| 1 | Vivado project `.xpr` | `File` entries of the source and simulation file sets, with the `Library` attribute; paths relative to `$PPRDIR`. Entries without the attribute use the default library |
-| 1 | Quartus `.qsf` and `.qip` | `set_global_assignment -name VHDL_FILE <path> -library <lib>`, in any flag order. `QIP_FILE` assignments in a `.qsf` are followed. The common `[file join $::quartus(qip_path) "<file>"]` form is recognized; other Tcl expressions are skipped and counted |
-| 2 | `component.xml` | `spirit:file` entries with `spirit:logicalName`, for packaged IP |
-| 3 | Platform Designer `_hw.tcl` | `add_fileset_file` entries of the synthesis and simulation file sets, read with the existing `HwTclParser`; paths relative to the `_hw.tcl` file. Default library |
-| 4 | IPCraft `.ip.yml` | VHDL files of the `fileSets`, read with the existing IP core loader; paths relative to the `.ip.yml` file. Default library |
+| 1 | Vivado project `.xpr` | `File` entries of all file sets, with the `Library` attribute; paths with `$PPRDIR` (the project directory) or `$PSRCDIR` (`<project>.srcs`), or relative to the `.xpr`; other variables are skipped and counted. An entry without the attribute states Vivado's default library |
+| 1 | Quartus `.qsf` and `.qip` | `set_global_assignment -name VHDL_FILE <path> -library <lib>`, in any flag order; paths relative to the file. Every `.qip` under the root is read, so `QIP_FILE` references need not be followed. The common `[file join $::quartus(qip_path) "<file>"]` form is recognized; other Tcl expressions are skipped and counted. An assignment without `-library` states Quartus' default library |
+| 2 | `component.xml` | `spirit:file` entries, with the library from `spirit:logicalName` when present, for packaged IP |
+| 3 | Platform Designer `_hw.tcl` | `add_fileset_file` entries, including those in procs and in `source`d scripts, read with the Tcl helpers of `HwTclParser`; paths relative to the `_hw.tcl` file. No library |
+| 4 | IPCraft `.ip.yml` | VHDL files of the `fileSets`, with the library from the file's `logicalName` when present; paths relative to the `.ip.yml` file |
 | 5 | Unlisted | Every other VHDL file under the root. Default library |
 
 Rules:
 
 - **The highest library-stating rank decides the library.** A file named by a
-  rank 1 and a rank 2 source gets the rank 1 library. A file named only by
-  ranks 3 to 5 gets the default library.
+  rank 1 and a rank 2 source gets the rank 1 library. A file whose sources
+  state no library gets the default library.
 - **The highest rank overall decides duplicates** and the provenance comment
   (see [Scanning](#scanning)).
 - **Same-rank disagreement keeps both.** When two sources of the same rank name
@@ -108,8 +109,13 @@ Rules:
 ### Default Library
 
 The default library is named `defaultlib`. Every file without a stated library
-goes there, including `.xpr` entries without a `Library` attribute and `.qsf`
-assignments without `-library`.
+goes there. The vendor default names are mapped to it as well: a stated
+`xil_defaultlib` (Vivado's default, which IPCraft's own generated
+`component.xml` writes for every file) or `work` (Quartus' default) becomes
+`defaultlib`, from any source. Otherwise a core packaged for Vivado would land
+in `xil_defaultlib` while the other cores land in `defaultlib`, and
+`use work.<unit>` between them would no longer resolve. The cost is that code
+writing `use xil_defaultlib.<unit>` does not resolve.
 
 The name cannot be `work`: rust_hdl rejects it, and the whole configuration
 fails to load ("The 'work' library is not a valid library", with the hint to
@@ -152,8 +158,8 @@ strips comments and string literals and records:
 - `use <lib>.<unit>` clauses, with line numbers.
 
 Files over 1 MiB are mapped but not scanned, and are counted in the summary.
-The workspace is listed in one pass (one `findFiles` call in VS Code, one
-directory walk in the CLI) and files are read with a small concurrent pool. No
+The workspace is listed in one directory walk, the same in VS Code and the
+CLI, and files are read with a small concurrent pool. No
 cache is kept; the command is explicit, so a run of a few seconds on a large
 repository is acceptable. If real repositories are slower, a cache is the first
 follow-up.
@@ -195,13 +201,15 @@ libraries.dsp_lib.files = [
 # ==== User section: IPCraft only appends proposals here ====
 # Missing library osvvm, used by cores/uart/tb/uart_tb.vhd:5 and 3 other files.
 # Packages it should provide were found in: ext/OsvvmLibraries/osvvm/
-# libraries.osvvm.files = ['ext/OsvvmLibraries/osvvm/*.vhd']
-# libraries.osvvm.is_third_party = true
+# [libraries.osvvm]
+# files = ['ext/OsvvmLibraries/osvvm/*.vhd']
+# is_third_party = true
 
 # Missing library unisim, used by cores/fir/rtl/fir.vhd:3.
 # Path from ipcraft.vivado.installDirs (2024.2):
-# libraries.unisim.files = ['/tools/Xilinx/Vivado/2024.2/data/vhdl/src/unisims/unisim_VCOMP.vhd']
-# libraries.unisim.is_third_party = true
+# [libraries.unisim]
+# files = ['/tools/Xilinx/Vivado/2024.2/data/vhdl/src/unisims/unisim_VCOMP.vhd']
+# is_third_party = true
 ```
 
 Layout decisions:
@@ -274,6 +282,11 @@ Rules:
 
 - **Proposals stay commented,** even when a path is known. An installation
   path is machine-specific, and a workspace path may be wrong; the user decides.
+- **Table form.** A proposal uses a `[libraries.<name>]` table header, not
+  dotted keys. The user section may already contain a table such as `[lint]`,
+  and a dotted `libraries.<name>.files` line after it would belong to that
+  table and break the configuration; a table header is valid anywhere at the
+  end of the file.
 - **Append once.** A proposal is appended only when the library is missing and
   the user section has no `# Missing library <name>` line yet. Uncommenting the
   proposal in place defines the library, so it is no longer missing. A proposal
@@ -369,16 +382,16 @@ functions over typed inputs.
 
 | Module | Responsibility |
 |---|---|
-| `src/parser/XprReader.ts` | `.xpr` file entries and libraries (new; `@xmldom/xmldom` is already a dependency) |
-| `src/parser/QuartusAssignmentReader.ts` | `.qsf` and `.qip` VHDL file assignments, and `QIP_FILE` references (new) |
-| `src/parser/ComponentXmlParser.ts` | Extended, or a sibling reader, for `spirit:file` / `spirit:logicalName` |
-| `src/parser/HwTclParser.ts` | Reused for `add_fileset_file` entries (already parsed) |
-| IP core loader | Reused for `.ip.yml` `fileSets` |
+| `src/services/vhdlLsConfig/workspaceWalk.ts` | One directory walk with the generated-directory exclusions |
+| `src/services/vhdlLsConfig/sourceReaders.ts` | Readers for `.xpr`, `.qsf` / `.qip`, `component.xml`, `_hw.tcl` and `.ip.yml` file entries (`@xmldom/xmldom` and `js-yaml` are already dependencies) |
+| `src/parser/tclPathWord.ts` | Tcl path word (`[file join ...]`, `$::quartus(qip_path)`), extracted from `HwTclParser` and shared with it |
+| `src/services/vhdlLsConfig/userSection.ts` | Parse the user section; match its `files` and `exclude` patterns |
+| `src/services/vhdlLsConfig/vendorLibraries.ts` | Vendor library file table and the configured installation |
 | `src/services/vhdlLsConfig/vhdlUnitScanner.ts` | Light scanner: units, `library` and `use` clauses |
 | `src/services/vhdlLsConfig/buildLibraryMap.ts` | Pure: sources plus scan results plus user section to libraries, duplicates, missing libraries |
 | `src/services/vhdlLsConfig/renderVhdlLsToml.ts` | Pure: library map to file text, header hash, proposals |
 | `src/services/vhdlLsConfig/ownership.ts` | Pure: classify an existing file; split it into the generated and user sections |
-| `src/services/vhdlLsConfig/generateVhdlLsConfig.ts` | Orchestration over an injected file lister, reader, and writer; backup and write |
+| `src/services/vhdlLsConfig/generateVhdlLsConfig.ts` | Orchestration: walk, read, build, render, backup and write |
 | `src/commands/VhdlLsConfigCommands.ts` | VS Code command: folder choice, trust, modal, summary |
 | `src/cli/vhdlLs.ts` | CLI entry and argument handling |
 
@@ -391,7 +404,7 @@ The generated-directory list is shared with system viewer enrichment
 |---|---|
 | Unit | Each reader on small inputs; the scanner (comments, strings, case); ranking, same-rank disagreement, duplicates (a declared file beats an unlisted copy), and user-section precedence in `buildLibraryMap`; the ownership table; proposals (append once, vendor files only when they exist, fallback order); rendering determinism and TOML validity of the output |
 | Snapshot | Rendered `vhdl_ls.toml` for four fixtures: a single core; several cores with cross-library `use`; a `.qsf` that names only a `.qsys`, with generated Platform Designer output present; an existing user-written `vhdl_ls.toml` |
-| Integration | On the multi-core fixture, the real rust_hdl server (driven over stdio LSP) resolves go to definition across cores. Skipped when `vhdl_ls` is not installed, like the other tool-gated integration tests |
+| Integration | On the multi-core fixtures, `vhdl_lang -c vhdl_ls.toml` (the rust_hdl command-line frontend, which reads the same configuration as the language server) reports no diagnostics, so every cross-core name resolves; removing one generated library makes it fail. Tier 2: skipped when `vhdl_lang` is not installed, unless `REQUIRE_VHDL_LANG=1` |
 
 Done when the snapshot and integration tests pass, a second run is
 byte-identical, and the user section survives regeneration.

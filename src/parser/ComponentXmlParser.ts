@@ -13,7 +13,7 @@ import { BUS_VLNV } from '../shared/busVlnv';
 import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 
 // IP-XACT 1685-2009 namespace
-const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
+export const SPIRIT_NS = 'http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009';
 const IPCRAFT_CONTRACT_NS = 'urn:ipcraft:interface-contract:1';
 
 // Canonical IPCraft VLNV bus type identifiers — match what the canvas drag-and-drop writes.
@@ -317,7 +317,7 @@ export async function parseComponentXmlFile(
  *   - if real content (e.g. a comment) precedes it, drop the declaration —
  *     a document that opens with a comment before its root element is valid.
  */
-function normalizeXmlProlog(xmlText: string): string {
+export function normalizeXmlProlog(xmlText: string): string {
   const text = xmlText.charCodeAt(0) === 0xfeff ? xmlText.slice(1) : xmlText;
   const decl = text.match(/<\?xml\b[^>]*\?>/i);
   // No declaration, or it is already at offset 0: nothing to normalize.

@@ -6,6 +6,7 @@ import { runCliMigrate } from './migrate';
 import { runCliPackage } from './package';
 import { runCliRender } from './render';
 import { runCliVerify } from './verify';
+import { runCliVhdlLs } from './vhdlLs';
 import { parseArgs, usageText } from './argv';
 
 export async function main(argv: string[] = process.argv.slice(2)): Promise<number> {
@@ -30,6 +31,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     printWarnings(result.warnings);
     console.log(`Packaged ${result.fileCount} file(s) into ${result.outputPath}`);
     return 0;
+  }
+
+  if (parsed.kind === 'vhdl-ls') {
+    return runCliVhdlLs(parsed.args);
   }
 
   let resourceRoots;

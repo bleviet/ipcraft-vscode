@@ -271,6 +271,12 @@
         "category": "IPCraft"
       },
       {
+        "command": "fpga-ip-core.generateVhdlLsConfig",
+        "title": "Generate vhdl_ls.toml",
+        "category": "IPCraft",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
         "command": "fpga-ip-core.checkHdlConsistency",
         "title": "Check HDL Consistency (managed:false)",
         "category": "IPCraft",
@@ -1857,6 +1863,7 @@
     "nunjucks": "^3.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "toml": "^5.0.1",
     "yaml": "^2.8.2"
   },
   "lint-staged": {
