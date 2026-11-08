@@ -19,6 +19,8 @@ interface Row {
   layoutMs: number;
   longTasks: number;
   longestMs: number;
+  /** Most `.react-flow__node` elements mounted at any moment during the action. */
+  maxMounted: number;
 }
 
 test.setTimeout(180000);
@@ -29,6 +31,16 @@ for (const fileName of FIXTURES) {
     await page.addInitScript(() => {
       const w = window as unknown as { __long: number[] };
       w.__long = [];
+      const mounted = () => document.querySelectorAll('.react-flow__node').length;
+      (w as unknown as { __max: number }).__max = 0;
+      (w as unknown as { __mounted: () => number }).__mounted = mounted;
+      // The mounted-count observer adds a little script time to every row.
+      new MutationObserver(() => {
+        (w as unknown as { __max: number }).__max = Math.max(
+          (w as unknown as { __max: number }).__max,
+          mounted()
+        );
+      }).observe(document, { childList: true, subtree: true });
       new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           w.__long.push(entry.duration);
@@ -60,13 +72,20 @@ for (const fileName of FIXTURES) {
       );
 
     const measure = async (action: string, run: () => Promise<void>): Promise<void> => {
-      await page.evaluate(() => ((window as unknown as { __long: number[] }).__long = []));
+      await page.evaluate(() => {
+        const w = window as unknown as { __long: number[]; __max: number; __mounted: () => number };
+        w.__long = [];
+        w.__max = w.__mounted();
+      });
       const before = await metrics();
       await run();
       await page.waitForTimeout(300);
       const after = await metrics();
       const delta = (key: string): number => Math.round((after[key] - before[key]) * 1000);
-      const long = await page.evaluate(() => (window as unknown as { __long: number[] }).__long);
+      const { long, maxMounted } = await page.evaluate(() => {
+        const w = window as unknown as { __long: number[]; __max: number };
+        return { long: w.__long, maxMounted: w.__max };
+      });
       rows.push({
         action,
         scriptMs: delta('ScriptDuration'),
@@ -74,6 +93,7 @@ for (const fileName of FIXTURES) {
         layoutMs: delta('LayoutDuration'),
         longTasks: long.length,
         longestMs: Math.round(Math.max(0, ...long)),
+        maxMounted,
       });
     };
 
@@ -99,17 +119,32 @@ for (const fileName of FIXTURES) {
     });
 
     const select = async (): Promise<void> => {
+      // The first block fully in view, else the one with the most area in view.
       const id = await page.evaluate(() => {
+        let best: { id: string | null; area: number } = { id: null, area: 0 };
         for (const node of Array.from(document.querySelectorAll('.react-flow__node'))) {
           const r = node.getBoundingClientRect();
           if (r.left > 50 && r.top > 80 && r.right < 1500 && r.bottom < 850) {
             return node.getAttribute('data-id');
           }
+          const w = Math.min(r.right, 1500) - Math.max(r.left, 50);
+          const h = Math.min(r.bottom, 850) - Math.max(r.top, 80);
+          if (w > 0 && h > 0 && w * h > best.area) {
+            best = { id: node.getAttribute('data-id'), area: w * h };
+          }
         }
-        return null;
+        return best.id;
       });
-      const rect = (await page.locator(`.react-flow__node[data-id="${id}"]`).boundingBox())!;
-      await page.mouse.click(rect.x + rect.width / 2, rect.y + 8);
+      const rect = id
+        ? await page.locator(`.react-flow__node[data-id="${id}"]`).boundingBox()
+        : null;
+      if (!rect) {
+        console.log('select a block: no block in view, row skipped');
+        return;
+      }
+      const x = Math.min(Math.max(rect.x + rect.width / 2, 60), 1490);
+      const y = Math.min(Math.max(rect.y + 8, 90), 840);
+      await page.mouse.click(x, y);
     };
     await measure('select a block', select);
 
@@ -144,13 +179,53 @@ for (const fileName of FIXTURES) {
       await page.waitForTimeout(400);
     });
 
+    // Zoomed in on a few blocks: what a keystroke or a click costs must not depend on the
+    // blocks that are off screen.
+    await page.mouse.move(cx, cy);
+    for (let i = 0; i < 60; i++) {
+      const mountedNow = await page.evaluate(
+        () => document.querySelectorAll('.react-flow__node').length
+      );
+      if (mountedNow <= 25) {
+        break;
+      }
+      await page.mouse.wheel(0, -120);
+      await page.waitForTimeout(30);
+    }
+    await page.waitForTimeout(300);
+    const zoomedNodes = await page.evaluate(
+      () => document.querySelectorAll('.react-flow__node').length
+    );
+    // A small design fits with few nodes mounted; its "zoomed in" rows then repeat the fit view.
+    const zoomedNote =
+      counts.nodes <= 25 ? ': at most 25 nodes in all, so these rows are the fit view' : '';
+    await box.focus();
+    for (const ch of ['c', 'h']) {
+      await measure(`zoomed in: search keystroke "${ch}"`, async () => {
+        await page.keyboard.type(ch);
+        await frames();
+      });
+    }
+    await measure('zoomed in: search Escape (clear)', async () => {
+      await box.press('Escape');
+    });
+    await measure('zoomed in: select a block', select);
+    await measure('zoomed in: drag pan (5 moves)', async () => {
+      await page.mouse.move(cx, cy);
+      await page.mouse.down();
+      for (let i = 0; i < 5; i++) {
+        await page.mouse.move(cx - i * 20, cy);
+      }
+      await page.mouse.up();
+    });
+
     const pad = (text: string, n: number): string => text.padEnd(n);
     const lines = [
-      `${fileName}: ${counts.nodes} nodes, ${counts.edges} edges, ${counts.dom} DOM elements`,
-      `${pad('action', 40)} script  style  layout  longtasks  longest`,
+      `${fileName}: ${counts.nodes} nodes, ${counts.edges} edges, ${counts.dom} DOM elements (${zoomedNodes} mounted when zoomed in${zoomedNote})`,
+      `${pad('action', 40)} script  style  layout  longtasks  longest  mounted`,
       ...rows.map(
         (r) =>
-          `${pad(r.action, 40)} ${String(r.scriptMs).padStart(5)}  ${String(r.styleMs).padStart(5)}  ${String(r.layoutMs).padStart(6)}  ${String(r.longTasks).padStart(9)}  ${String(r.longestMs).padStart(7)}`
+          `${pad(r.action, 40)} ${String(r.scriptMs).padStart(5)}  ${String(r.styleMs).padStart(5)}  ${String(r.layoutMs).padStart(6)}  ${String(r.longTasks).padStart(9)}  ${String(r.longestMs).padStart(7)}  ${String(r.maxMounted).padStart(7)}`
       ),
     ];
 
@@ -158,7 +233,7 @@ for (const fileName of FIXTURES) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
     fs.writeFileSync(
       path.join(OUTPUT_DIR, `${fileName.replace(/\.tcl$/, '')}.json`),
-      JSON.stringify({ fileName, counts, rows }, null, 2)
+      JSON.stringify({ fileName, counts, zoomedNodes, rows }, null, 2)
     );
   });
 }

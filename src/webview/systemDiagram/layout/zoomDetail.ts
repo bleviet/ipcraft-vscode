@@ -14,6 +14,4 @@ export const nameScale = (zoom: number): number => Math.min(1 / zoom, MAX_NAME_S
 
 /** The name scale to draw at `zoom`, in `NAME_SCALE_STEP`s; undefined while the zoom is not far. */
 export const farNameScale = (zoom: number): number | undefined =>
-  isFar(zoom)
-    ? Math.min(Math.round(nameScale(zoom) / NAME_SCALE_STEP) * NAME_SCALE_STEP, MAX_NAME_SCALE)
-    : undefined;
+  isFar(zoom) ? Math.round(nameScale(zoom) / NAME_SCALE_STEP) * NAME_SCALE_STEP : undefined;

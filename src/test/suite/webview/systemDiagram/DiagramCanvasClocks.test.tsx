@@ -12,6 +12,9 @@ import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLay
 import { unconnectedPins } from '../../../../webview/systemDiagram/unconnectedPins';
 import { clockContextOf } from './clockContext';
 import { fakeMeasure, loadClockFixtureGraph, loadVersalClockGraph } from './fixtureGraph';
+import { stubCanvasSize } from './canvasSize';
+
+stubCanvasSize();
 
 // Uses the real @xyflow/react, whose panels the app tests mock away: the legend of
 // the domain mode, and how a wire and a pin frequency are drawn.

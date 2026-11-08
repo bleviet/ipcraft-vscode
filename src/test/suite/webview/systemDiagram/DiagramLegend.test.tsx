@@ -24,6 +24,8 @@ describe('DiagramLegend badges', () => {
         position: { x: 0, y: 0 },
         width: 400,
         height: 300,
+        measured: { width: 0, height: 0 },
+        handles: [],
         draggable: false,
         data: { instance: {} as never, cellCount: 3, west: [row as never], east: [] },
       },
@@ -39,6 +41,8 @@ describe('DiagramLegend badges', () => {
         position: { x: 0, y: 0 },
         width: 400,
         height: 300,
+        measured: { width: 0, height: 0 },
+        handles: [],
         draggable: false,
         data: {
           instance: {} as never,

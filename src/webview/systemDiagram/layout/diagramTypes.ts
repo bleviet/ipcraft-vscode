@@ -1,5 +1,6 @@
 /** Node and edge shapes handed from the ELK layout to the React Flow components. */
 
+import type { NodeHandle } from '@xyflow/react';
 import type {
   NetCategory,
   PinDirection,
@@ -111,6 +112,10 @@ interface FlowNodeBase {
   position: { x: number; y: number };
   width: number;
   height: number;
+  /** The laid-out size again: React Flow keeps the handles of a node that has it. */
+  measured: { width: number; height: number };
+  /** The handles the node component renders, from the layout. */
+  handles: NodeHandle[];
   draggable: false;
   /** Stacking order; a frame sits below the nodes and wires it contains. */
   zIndex?: number;

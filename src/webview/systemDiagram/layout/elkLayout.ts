@@ -26,6 +26,7 @@ import {
 } from './nodeSizing';
 import { extendRouteEnds } from './edgePoints';
 import { compoundNode, frameData } from './expandedLayout';
+import { pinHandles } from './nodeHandles';
 import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
 import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
 import { placementEdges } from './placementEdges';
@@ -306,28 +307,42 @@ function addLevelNodes(
   const boundaryPins = graph.levels[levelPath]?.boundaryPins ?? [];
 
   for (const child of parent.children ?? []) {
+    const width = child.width ?? 0;
+    const height = child.height ?? 0;
     const base = {
       position: { x: origin.x + (child.x ?? 0), y: origin.y + (child.y ?? 0) },
-      width: child.width ?? 0,
-      height: child.height ?? 0,
+      width,
+      height,
+      // With `handles` it stops React Flow from measuring the DOM for them: it would drop the
+      // handles of a changed node and, with onlyRenderVisibleElements, mount it again off screen.
+      measured: { width, height },
       draggable: false as const,
     };
     const instance = graph.instances[child.id];
+    const ports = portsOf(child);
     if (instance && child.children) {
+      const data = frameData(graph, instance, ports, { nets: netLookup, clockReset });
       nodes.push({
         ...base,
+        handles: pinHandles(child.id, [...data.west, ...data.east], ports, (name) =>
+          portId(instance.path, name)
+        ),
         id: child.id,
         type: 'frame',
         zIndex: -1,
-        data: frameData(graph, instance, portsOf(child), { nets: netLookup, clockReset }),
+        data,
       });
       addLevelNodes(child, instance.path, base.position, { graph, measure }, nodes);
       continue;
     }
     if (instance) {
       const sizing = sizeOfInstance(graph, instance, measure);
+      const rows = pinRows(instance, netLookup, ports, clockReset, sizing.labels);
       nodes.push({
         ...base,
+        handles: pinHandles(child.id, [...rows.west, ...rows.east], ports, (name) =>
+          portId(instance.path, name)
+        ),
         id: child.id,
         type: 'instance',
         data: {
@@ -336,7 +351,7 @@ function addLevelNodes(
           width: sizing.width,
           westWidth: sizing.westWidth,
           eastWidth: sizing.eastWidth,
-          ...pinRows(instance, netLookup, portsOf(child), clockReset, sizing.labels),
+          ...rows,
         },
       });
       continue;
@@ -350,6 +365,12 @@ function addLevelNodes(
       const net = nets[0];
       nodes.push({
         ...base,
+        handles: pinHandles(
+          child.id,
+          [{ name: pin.name, side: boundarySide(pin) }],
+          ports,
+          (name) => portId(child.id, name)
+        ),
         id: child.id,
         type: 'boundary',
         data: {
@@ -360,7 +381,7 @@ function addLevelNodes(
           netName: net?.name,
           netNames: nets.map((candidate) => candidate.name),
           badge: badgeOfPort(
-            portsOf(child).get(portId(child.id, pin.name)),
+            ports.get(portId(child.id, pin.name)),
             clockReset.get(endpointKey(ref))
           ),
         },

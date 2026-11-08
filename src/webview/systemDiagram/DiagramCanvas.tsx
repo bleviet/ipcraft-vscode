@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Background,
   BackgroundVariant,
@@ -109,7 +109,9 @@ export function DiagramCanvas({
   // onSelectNet goes into every node's data, so it must not change when the selection
   // handlers do (they change with each selection); it reads the latest ones instead.
   const handlers = useRef({ onSelect, onToggleNode });
-  handlers.current = { onSelect, onToggleNode };
+  useLayoutEffect(() => {
+    handlers.current = { onSelect, onToggleNode };
+  });
   const onSelectNet = useCallback((netId: string, additive?: boolean) => {
     const next: Selection = { kind: 'net', id: netId };
     if (additive) {
