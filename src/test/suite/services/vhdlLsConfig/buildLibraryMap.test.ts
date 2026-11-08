@@ -147,6 +147,24 @@ describe('buildLibraryMap', () => {
     ]);
   });
 
+  it('finds candidate directories from both use clauses and direct instantiations', () => {
+    const map = build({
+      'rtl/core/pkg.vhd': 'package pkg is\nend;',
+      'sim/other.vhd': 'entity other is\nend;',
+      'rtl/a.vhd': 'library lib;\nuse lib.pkg.all;\nentity a is\nend;',
+      'rtl/b.vhd':
+        'library lib;\nentity b is\nend;\narchitecture r of b is\nbegin\n  u: entity lib.other port map (x => y);\nend;',
+    });
+    expect(map.missing).toEqual([
+      {
+        name: 'lib',
+        firstUse: { file: 'rtl/a.vhd', line: 2 },
+        otherFiles: 1,
+        candidates: ['rtl/core/*.vhd', 'sim/*.vhd'],
+      },
+    ]);
+  });
+
   it('does not report generated, user or built-in libraries as missing', () => {
     const map = build(
       {

@@ -1,7 +1,8 @@
 /**
- * Light VHDL scanner: finds primary units, `library` clauses and `use` references without a
- * full parse. Comments, string literals and character literals are blanked first so keywords
- * inside them are not matched. Pure.
+ * Light VHDL scanner: finds primary units, `library` clauses and library references (`use`,
+ * `context` and direct `entity`/`configuration` instantiation) without a full parse. Comments,
+ * string literals and character literals are blanked first so keywords inside them are not
+ * matched. Pure.
  */
 
 export type VhdlUnitKind = 'entity' | 'package' | 'configuration' | 'context';
@@ -127,6 +128,10 @@ export function scanVhdl(text: string): VhdlScan {
     }
   }
   for (const m of code.matchAll(/\bcontext\s+([a-z]\w*)\s*\.\s*([a-z]\w*)\s*;/g)) {
+    uses.push({ library: m[1], unit: m[2], line: lineAt(m.index) });
+  }
+  // Direct instantiation: `label: entity lib.unit(arch)` / `configuration lib.cfg`.
+  for (const m of code.matchAll(/\b(?:entity|configuration)\s+([a-z]\w*)\s*\.\s*([a-z]\w*)/g)) {
     uses.push({ library: m[1], unit: m[2], line: lineAt(m.index) });
   }
 

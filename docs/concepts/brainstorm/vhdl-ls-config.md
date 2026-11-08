@@ -155,7 +155,9 @@ strips comments and string literals and records:
 
 - primary units: `entity`, `package`, `configuration`, `context`;
 - `library <name>;` clauses, with line numbers;
-- `use <lib>.<unit>` clauses, with line numbers.
+- `use <lib>.<unit>` clauses, with line numbers;
+- direct `entity <lib>.<unit>` and `configuration <lib>.<unit>` instantiations
+  and binding indications, with line numbers.
 
 Files over 1 MiB are mapped but not scanned, and are counted in the summary.
 The workspace is listed in one directory walk, the same in VS Code and the
@@ -258,9 +260,10 @@ Each proposal is a commented block appended to the user section:
 
 - a first line `# Missing library <name>, used by <file>:<line>`, plus a count
   of the other files;
-- if the scan found files declaring the packages used from that library (for
+- if the scan found files declaring the units referenced from that library (for
   example `use osvvm.OsvvmGlobalPkg.all` and a file declaring
-  `package OsvvmGlobalPkg`), the directories of those files;
+  `package OsvvmGlobalPkg`, or `entity neorv32.psram_model` and a file
+  declaring `entity psram_model`), the directories of those files;
 - a `files` line, with the path chosen in the order below, and
   `is_third_party = true` for known vendor and verification libraries.
 

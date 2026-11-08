@@ -67,4 +67,37 @@ describe('scanVhdl', () => {
     expect(scan.uses).toEqual([{ library: 'uvvm_util', unit: 'uvvm_util_context', line: 2 }]);
     expect(scan.units).toEqual([]);
   });
+
+  it('records direct entity and configuration instantiations as uses', () => {
+    const scan = scanVhdl(
+      [
+        'u0: entity mylib.foo port map (a => b);',
+        'u1: entity mylib.bar(rtl) port map (a => b);',
+        'u2: configuration mylib.cfg_x;',
+        'u3: ENTITY  MyLib . Foo',
+        '  port map (a => b);',
+        'for all : comp use entity mylib.ent(rtl);',
+      ].join('\n')
+    );
+    expect(scan.uses).toEqual([
+      { library: 'mylib', unit: 'foo', line: 1 },
+      { library: 'mylib', unit: 'bar', line: 2 },
+      { library: 'mylib', unit: 'cfg_x', line: 3 },
+      { library: 'mylib', unit: 'foo', line: 4 },
+      { library: 'mylib', unit: 'ent', line: 6 },
+    ]);
+  });
+
+  it('does not record entity declarations, end statements, comments or strings as uses', () => {
+    const scan = scanVhdl(
+      [
+        'entity foo is',
+        'end entity foo;',
+        '-- u0: entity mylib.foo',
+        '/* entity mylib.foo */',
+        'constant s : string := "entity mylib.foo";',
+      ].join('\n')
+    );
+    expect(scan.uses).toEqual([]);
+  });
 });

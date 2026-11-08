@@ -188,7 +188,7 @@ function findMissing(
       byString(a.file, b.file) || a.line - b.line;
     const clauses = references.get(name) ?? [];
     const uses = useSites.get(name) ?? [];
-    // Point at the first `use` of a package when there is one, else at the `library` clause.
+    // Point at the first reference (use clause or instantiation), else at the `library` clause.
     const firstUse = [...(uses.length > 0 ? uses : clauses)].sort(bySite)[0];
     const wanted = usedUnits.get(name) ?? new Set<string>();
     const candidates = new Set<string>();
