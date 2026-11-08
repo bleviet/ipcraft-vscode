@@ -9,7 +9,7 @@ interface NetBadgeViewProps {
   onSelectNet?: (netId: string, additive?: boolean) => void;
 }
 
-/** Quiet label drawn where ELK reserved space for a hidden clock or reset net. */
+/** Quiet label drawn where ELK reserved space for a clock or reset net, which has no wire. */
 export function NetBadgeView({ badge, selectedNetIds, onSelectNet }: NetBadgeViewProps) {
   const categories = new Set(badge.nets.map((net) => net.category));
   const kind =
@@ -28,7 +28,7 @@ export function NetBadgeView({ badge, selectedNetIds, onSelectNet }: NetBadgeVie
         width: badge.width,
         height: badge.height,
       }}
-      title={`${kind} net${badge.nets.length > 1 ? 's' : ''} ${names}. Turn on Clocks and resets to draw it.`}
+      title={`${kind} net${badge.nets.length > 1 ? 's' : ''} ${names}`}
       onClick={(event) => {
         event.stopPropagation();
         if (event.metaKey || event.ctrlKey) {

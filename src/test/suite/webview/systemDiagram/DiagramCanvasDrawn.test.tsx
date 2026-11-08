@@ -1,17 +1,17 @@
 import React from 'react';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { ReactFlowProvider } from '@xyflow/react';
 import { DiagramCanvas } from '../../../../webview/systemDiagram/DiagramCanvas';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
-import type { Selection } from '../../../../webview/systemDiagram/model';
+import { isClockOrReset, type Selection } from '../../../../webview/systemDiagram/model';
 import { clockContextOf } from './clockContext';
 import { fakeMeasure, loadFixtureGraph } from './fixtureGraph';
 
-// Uses the real @xyflow/react: what the canvas draws of one layout, which holds the clock and
-// reset wires and badges alike, for each value of `drawClockReset`.
+// Uses the real @xyflow/react: what the canvas draws of one layout, whose clock and reset
+// nets are badges and no wire, with the domain decorations of Clocks and resets on or off.
 const graph = loadFixtureGraph();
-const BADGES = /Turn on Clocks and resets to draw it/;
+const badges = () => [...document.querySelectorAll('.sd-badge')];
 
 async function layoutOf() {
   const laidOut = await runElkLayout(buildElkInput(graph, '/', { measure: fakeMeasure }));
@@ -20,7 +20,7 @@ async function layoutOf() {
 
 function canvas(
   layout: Awaited<ReturnType<typeof layoutOf>>,
-  drawClockReset: boolean,
+  domainMode: boolean,
   selection: Selection | null = null
 ) {
   return (
@@ -32,8 +32,7 @@ function canvas(
         selectedNodeIds={[]}
         isolated={false}
         review={null}
-        clocks={clockContextOf(graph)}
-        drawClockReset={drawClockReset}
+        clocks={clockContextOf(graph, domainMode)}
         focusedPin={null}
         query=""
         onSelect={jest.fn()}
@@ -63,22 +62,21 @@ const highlightedPins = () =>
     )
     .sort();
 
-describe('the canvas for one layout of clock and reset wires and badges', () => {
+describe('the canvas for one layout of clock and reset badges', () => {
   let layout: Awaited<ReturnType<typeof layoutOf>>;
   beforeAll(async () => {
     layout = await layoutOf();
   }, 20000);
 
-  it('draws the badges of the clock and reset nets while their wires are off', async () => {
-    render(canvas(layout, false));
+  it('draws the badges of the clock and reset nets, and none of their wires, either way', async () => {
+    const { rerender } = render(canvas(layout, false));
     await screen.findByText('axi_dma_0');
-    expect(screen.getAllByTitle(BADGES).length).toBeGreaterThan(0);
-  });
+    const shown = badges().length;
+    expect(shown).toBeGreaterThan(0);
+    expect(layout.edges.some((edge) => isClockOrReset(edge.data))).toBe(false);
 
-  it('draws no badge while the clock and reset wires are drawn', async () => {
-    render(canvas(layout, true));
-    await screen.findByText('axi_dma_0');
-    expect(screen.queryAllByTitle(BADGES)).toHaveLength(0);
+    rerender(canvas(layout, true));
+    expect(badges()).toHaveLength(shown);
   });
 
   it('names the clock and reset categories in the legend either way', async () => {
@@ -87,11 +85,12 @@ describe('the canvas for one layout of clock and reset wires and badges', () => 
     const off = legendLabels();
     expect(off).toEqual(expect.arrayContaining(['Clock', 'Reset', 'AXI4-Stream']));
 
+    // The domain decorations append their entries after the categories.
     rerender(canvas(layout, true));
-    expect(legendLabels()).toEqual(off);
+    expect(legendLabels().slice(0, off.length)).toEqual(off);
   });
 
-  it('bolds the pins of a selected clock net, by badge or by wire', async () => {
+  it('bolds the pins of a selected clock net by their badges, either way', async () => {
     const selection: Selection = { kind: 'net', id: '/::processing_system7_0_FCLK_CLK0' };
     const { rerender } = render(canvas(layout, false, selection));
     await screen.findByText('axi_dma_0');
@@ -100,6 +99,5 @@ describe('the canvas for one layout of clock and reset wires and badges', () => 
 
     rerender(canvas(layout, true, selection));
     expect(highlightedPins()).toEqual(byBadge);
-    expect(within(document.body).queryAllByTitle(BADGES)).toHaveLength(0);
   });
 });

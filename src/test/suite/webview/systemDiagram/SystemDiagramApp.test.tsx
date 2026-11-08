@@ -365,11 +365,13 @@ describe('SystemDiagramApp', () => {
     expect(details().getByRole('heading', { name: 'fir_compiler_0' })).toBeVisible();
   });
 
-  it('adds clock and reset edges when the toggle is on', async () => {
+  it('draws no clock or reset edge with the toggle on or off', async () => {
     await renderWithGraph();
-    const hidden = edgeCount();
-    fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
-    await waitFor(() => expect(edgeCount()).toBeGreaterThan(hidden));
+    const wires = edgeCount();
+    const toggle = screen.getByRole('button', { name: 'Clocks and resets' });
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(edgeCount()).toBe(wires);
   });
 
   it('posts revealSource from a line link', async () => {
@@ -435,11 +437,9 @@ describe('SystemDiagramApp', () => {
     expect(screen.queryByText(/Skipped Vivado-only commands/)).not.toBeInTheDocument();
   });
 
-  it('labels pins of hidden clock nets with a badge that selects the net', async () => {
+  it('labels pins of clock nets with a badge that selects the net', async () => {
     await renderWithGraph();
-    const badges = screen.getAllByTitle(
-      'Clock net processing_system7_0_FCLK_CLK0. Turn on Clocks and resets to draw it.'
-    );
+    const badges = screen.getAllByTitle('Clock net processing_system7_0_FCLK_CLK0');
     expect(badges[0]).toHaveTextContent('FCLK_CLK0');
 
     fireEvent.click(badges[0]);
@@ -451,9 +451,10 @@ describe('SystemDiagramApp', () => {
     expect(details().getByText(/^Clock net · domain/)).toBeVisible();
     expect(details().getByText('Requested by', { exact: false })).toBeVisible();
 
+    // The badges stay with Clocks and resets on: a clock net is never a wire.
     fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
-    await waitFor(() =>
-      expect(screen.queryAllByTitle(/Turn on Clocks and resets/)).toHaveLength(0)
+    expect(screen.getAllByTitle('Clock net processing_system7_0_FCLK_CLK0')).toHaveLength(
+      badges.length
     );
   });
 
@@ -1045,15 +1046,13 @@ describe('SystemDiagramApp', () => {
       await renderWithGraph();
       await settle();
       mockFitBounds.mockClear();
-      const hidden = Number(screen.getByTestId('flow').getAttribute('data-edges'));
 
       fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
-      await waitFor(() =>
-        expect(Number(screen.getByTestId('flow').getAttribute('data-edges'))).toBeGreaterThan(
-          hidden
-        )
-      );
       await settle();
+      expect(screen.getByRole('button', { name: 'Clocks and resets' })).toHaveAttribute(
+        'aria-pressed',
+        'true'
+      );
 
       expect(mockFitBounds).not.toHaveBeenCalled();
       expect(mockSetViewport).not.toHaveBeenCalled();
@@ -1641,13 +1640,12 @@ describe('SystemDiagramApp', () => {
         expect(reviewToggle()).toHaveAttribute('aria-pressed', 'true');
       });
 
-      it('keeps the clock and reset wires, pauses the decorations, and restores them', async () => {
+      it('keeps the wires, pauses the decorations, and restores them', async () => {
         await renderWithGraph({ design: clockGraph });
-        const plain = edgeCount();
-        fireEvent.click(toggle());
-        await waitFor(() => expect(edgeCount()).toBeGreaterThan(plain));
         const drawn = edgeCount();
-        expect(strips().length).toBeGreaterThan(0);
+        fireEvent.click(toggle());
+        await waitFor(() => expect(strips().length).toBeGreaterThan(0));
+        expect(edgeCount()).toBe(drawn);
         expect(freqs().length).toBeGreaterThan(0);
         expect(outlineDots().length).toBeGreaterThan(0);
 
@@ -1675,13 +1673,16 @@ describe('SystemDiagramApp', () => {
       });
     });
 
-    it('draws clocks and resets while on, and not when off', async () => {
+    it('draws the domain decorations while on, not when off, and no clock or reset wire either way', async () => {
       await renderWithGraph({ design: clockGraph });
+      const freqs = () => document.querySelectorAll('.sd-pin-freq');
       const before = edgeCount();
       fireEvent.click(toggle());
-      await waitFor(() => expect(edgeCount()).toBeGreaterThan(before));
+      await waitFor(() => expect(freqs().length).toBeGreaterThan(0));
+      expect(edgeCount()).toBe(before);
       fireEvent.click(toggle());
-      await waitFor(() => expect(edgeCount()).toBe(before));
+      await waitFor(() => expect(freqs()).toHaveLength(0));
+      expect(edgeCount()).toBe(before);
     });
 
     it('lists the domains in the Clocks tab', async () => {
@@ -2108,8 +2109,7 @@ describe('SystemDiagramApp', () => {
 
     it('selects the whole tree of a clock net: pins, badges, and the blocks it misses', async () => {
       await renderWithGraph({ design: clockGraph });
-      const badge = (netName: string) =>
-        screen.getAllByTitle(new RegExp(`^Clock net ${netName}\\.`));
+      const badge = (netName: string) => screen.getAllByTitle(new RegExp(`^Clock net ${netName}$`));
       expect(badge('processing_system7_0_FCLK_CLK1')[0]).not.toHaveAttribute(
         'data-selected',
         'true'
@@ -2438,9 +2438,7 @@ describe('SystemDiagramApp', () => {
         'data-highlight',
         'true'
       );
-      const rstBadge = screen.getAllByTitle(
-        /Reset net rst_ps7_0_100M_peripheral_aresetn\. Turn on Clocks and resets to draw it\./
-      )[0];
+      const rstBadge = screen.getAllByTitle('Reset net rst_ps7_0_100M_peripheral_aresetn')[0];
       fireEvent.click(rstBadge, { ctrlKey: true });
       expect(badge).toHaveAttribute('data-selected', 'true');
       expect(rstBadge).toHaveAttribute('data-selected', 'true');
@@ -2518,20 +2516,26 @@ describe('SystemDiagramApp', () => {
       expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
 
-      // Clocks and resets leaves the highlights alone, on the clock wire too: it keeps its
-      // highlight color next to the domain color that ElkEdge ranks below it.
+      // A highlighted clock net, which has no wire, bolds its pins.
+      const boldPins = (id: string) =>
+        [...nodeBox(id, '.sd-node').querySelectorAll('.sd-pin-label[data-highlight="true"]')].map(
+          (pin) => pin.textContent
+        );
+      expect(edgeForNet(clockNet)).toBeNull();
+      expect(boldPins('/processing_system7_0')).toContain('FCLK_CLK0');
+
+      // Clocks and resets leaves the highlights alone.
       fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
       expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
-      expect(edgeForNet(clockNet)).toHaveAttribute('data-highlighted', 'true');
-      expect(edgeForNet(clockNet)).toHaveAttribute('data-domain-color');
+      expect(boldPins('/processing_system7_0')).toContain('FCLK_CLK0');
 
       // The review pauses them.
       fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
       expect(screen.getByText('Highlighted · 3')).toBeVisible();
       expect(nodeBox('/axi_dma_0', '.sd-node')).not.toHaveAttribute('data-highlighted');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).not.toHaveAttribute('data-highlighted');
-      expect(edgeForNet(clockNet)).not.toHaveAttribute('data-highlighted');
+      expect(boldPins('/processing_system7_0')).not.toContain('FCLK_CLK0');
 
       // They come back when the review is turned off, with Clocks and resets still on.
       fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
@@ -2541,7 +2545,7 @@ describe('SystemDiagramApp', () => {
       );
       expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
-      expect(edgeForNet(clockNet)).toHaveAttribute('data-highlighted', 'true');
+      expect(boldPins('/processing_system7_0')).toContain('FCLK_CLK0');
 
       // Clear all highlights from the pane context menu.
       fireEvent.contextMenu(screen.getByTestId('pane'));

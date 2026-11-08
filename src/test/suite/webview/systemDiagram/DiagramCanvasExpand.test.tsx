@@ -41,7 +41,6 @@ function canvas(
         isolated={false}
         review={review}
         clocks={clockContextOf(graph)}
-        drawClockReset={false}
         focusedPin={null}
         query=""
         isolatable={(ids) => ids.every((id) => isLevelNode(graph, '/', id))}

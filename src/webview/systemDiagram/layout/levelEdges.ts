@@ -34,7 +34,7 @@ function knownPorts(graph: SystemGraph, levelPath: string): Set<string> {
   return ports;
 }
 
-/** Every edge of the level, clock and reset wires included, between nodes that exist. */
+/** Every edge of the level, clock and reset nets included, between nodes that exist. */
 export function levelEdges(graph: SystemGraph, levelPath: string): LevelEdge[] {
   const known = knownPorts(graph, levelPath);
   const edges: LevelEdge[] = [];

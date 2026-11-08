@@ -51,7 +51,7 @@ export function WorkbenchLayout({
       }
     }, [levelPath, navigate])
   );
-  // Clocks and resets is drawn, not laid out: no toggle moves a block.
+  // Clocks and resets only decorates the layout: no toggle moves a block.
   const [clocksOn, setClocksOn] = useState(false);
   const [query, setQuery] = useState('');
   const view = useIsolation(graph, nav);
@@ -63,7 +63,7 @@ export function WorkbenchLayout({
   const findings = useMemo(() => unconnectedPins(graph), [graph]);
   const clocks = useMemo(() => analyzeClocks(graph), [graph]);
   const clockSummary = useMemo(() => toolbarSummary(clocks), [clocks]);
-  // The review pauses the domain decorations, not the clock and reset wires.
+  // The review pauses the domain decorations, which Clocks and resets turns on.
   const domainsShown = clocksOn && !reviewUnconnected;
   const clockContext = useMemo(
     () => ({ graph, analysis: clocks, levelPath: nav.levelPath, domainMode: domainsShown }),
@@ -191,7 +191,6 @@ export function WorkbenchLayout({
               isolated={isolation !== null}
               review={reviewContext}
               clocks={clockContext}
-              drawClockReset={clocksOn}
               focusedPin={focusedPin}
               query={query}
               flash={search.flash}

@@ -11,7 +11,6 @@ const DSP = '/dsp_pipeline';
 const CLK0 = '/::processing_system7_0_FCLK_CLK0';
 const CLK1 = '/::processing_system7_0_FCLK_CLK1';
 const RESET_NET = '/::rst_ps7_0_100M_peripheral_aresetn';
-const PS_RESET_NET = '/::processing_system7_0_FCLK_RESET0_N';
 const DATA_NET = '/::axi_dma_0_M_AXIS_MM2S';
 
 const graph = loadClockFixtureGraph();
@@ -47,31 +46,14 @@ describe('edgeMarks', () => {
     id,
     data: { netId, category },
   });
-  const base = { analysis, tree: undefined, crossingEdgeIds: new Set<string>() };
+  const base = { tree: undefined, crossingEdgeIds: new Set<string>() };
 
   it('marks nothing outside the domain mode without a selected tree', () => {
     expect(edgeMarks({ ...base, domainMode: false }, edge(CLK0, 'clock'))).toEqual({});
     expect(edgeMarks({ ...base, domainMode: false }, edge(DATA_NET, 'axis'))).toEqual({});
   });
 
-  it('colors a clock wire with its domain in the domain mode', () => {
-    expect(edgeMarks({ ...base, domainMode: true }, edge(CLK1, 'clock'))).toEqual({
-      domainColor: DOMAIN_COLORS[2],
-    });
-  });
-
-  it('dots a reset wire in the color of the releasing domain, muted when asynchronous', () => {
-    expect(edgeMarks({ ...base, domainMode: true }, edge(RESET_NET, 'reset'))).toEqual({
-      domainColor: DOMAIN_COLORS[1],
-      dotted: true,
-    });
-    expect(edgeMarks({ ...base, domainMode: true }, edge(PS_RESET_NET, 'reset'))).toEqual({
-      domainColor: UNRELEASED_RESET_COLOR,
-      dotted: true,
-    });
-  });
-
-  it('dims every other wire in the domain mode', () => {
+  it('dims every wire that is no crossing in the domain mode', () => {
     expect(edgeMarks({ ...base, domainMode: true }, edge(DATA_NET, 'axis'))).toEqual({
       dimmed: true,
     });
@@ -111,9 +93,11 @@ describe('nodePinMarks', () => {
     expect(marks?.s_axi_lite_aclk).toEqual({ color: DOMAIN_COLORS[1], frequency: '100 MHz' });
   });
 
-  it('colors a reset pin with the releasing domain and no label', () => {
+  it('colors a reset pin with the releasing domain and no label, muted when asynchronous', () => {
     const marks = nodePinMarks({ ...context, domainMode: true }, '/axi_dma_0');
     expect(marks?.axi_resetn).toEqual({ color: DOMAIN_COLORS[1] });
+    const ps = nodePinMarks({ ...context, domainMode: true }, '/processing_system7_0');
+    expect(ps?.FCLK_RESET0_N).toEqual({ color: UNRELEASED_RESET_COLOR });
   });
 
   it('marks the ends of a crossing', () => {

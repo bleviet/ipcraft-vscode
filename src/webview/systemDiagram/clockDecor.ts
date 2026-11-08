@@ -57,7 +57,6 @@ export function clockDecor(
   const nodes = layout?.nodes ?? [];
   const edges = layout?.edges ?? [];
   const edgeContext = {
-    analysis,
     domainMode,
     tree,
     crossingEdgeIds: domainMode

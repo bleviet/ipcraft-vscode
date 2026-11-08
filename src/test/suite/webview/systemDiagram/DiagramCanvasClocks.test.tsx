@@ -42,7 +42,6 @@ function canvas(
         isolated={false}
         review={review ? { graph: design, findings: unconnectedPins(design) } : null}
         clocks={clockContextOf(design, domainMode, layout.levelPath)}
-        drawClockReset
         focusedPin={null}
         query=""
         onSelect={jest.fn()}
@@ -66,13 +65,13 @@ describe('the canvas in the domain mode', () => {
   }, 20000);
 
   it('draws no level banner and no domain decoration in the unconnected pin review either', async () => {
-    // Clocks and resets on with the review on: the wires are drawn (`drawClockReset`) and the
-    // clock context is inactive, so the review pauses the domain decorations.
+    // Clocks and resets on with the review on: the clock context is inactive, so the review
+    // pauses the domain decorations.
     render(canvas(root, false, graph, true));
     const legend = await screen.findByLabelText('Legend');
     expect(screen.getByText('Undriven pin')).toBeVisible();
     expect(legend).not.toHaveTextContent('FCLK_CLK0');
-    expect(legend).not.toHaveTextContent('Clock or reset domain crossing');
+    expect(legend).not.toHaveTextContent('Clock domain crossing');
     expect(document.querySelectorAll('.sd-node-strip')).toHaveLength(0);
     expect(document.querySelectorAll('.sd-pin-freq')).toHaveLength(0);
     expect(screen.queryByLabelText('Unconnected pins')).not.toBeInTheDocument();
@@ -93,13 +92,14 @@ describe('the canvas in the domain mode', () => {
       'FCLK_CLK0 · 100 MHz',
       'FCLK_CLK1 · 200 MHz',
       'ext_clk · 125 MHz',
-      'Reset, colored by the domain that releases it',
-      'Clock or reset domain crossing',
+      'Reset pin, colored by the domain that releases it',
+      'Clock domain crossing',
+      'Pin of a clock or reset domain crossing',
     ]) {
       expect(within(legend).getByText(text)).toBeVisible();
     }
     const dashed = within(legend)
-      .getByText('Clock or reset domain crossing')
+      .getByText('Clock domain crossing')
       .querySelector('i.sd-legend-bar-dashed') as HTMLElement;
     expect(dashed.style.borderTopColor).toBe('var(--vscode-editorWarning-foreground)');
   });
@@ -147,15 +147,15 @@ describe('the canvas in the domain mode, on a design that sets no frequency', ()
 });
 
 describe('DiagramLegend', () => {
-  it('draws a dotted bar for the reset mark and a solid one for a domain', () => {
+  it('draws a dashed bar for the crossing wire and solid ones for the pin colors', () => {
     render(
       <ReactFlowProvider>
         <DiagramLegend edges={[]} nodes={[]} review={false} domains={domainLegend([])} />
       </ReactFlowProvider>
     );
     const legend = screen.getByLabelText('Legend');
-    expect(legend.querySelector('.sd-legend-bar-dotted')).not.toBeNull();
-    expect(legend.querySelector('.sd-legend-bar-dashed')).not.toBeNull();
+    expect(legend.querySelectorAll('.sd-legend-bar-dashed')).toHaveLength(1);
+    expect(legend.querySelectorAll('.sd-legend-bar-thin')).toHaveLength(2);
   });
 
   it('draws nothing without wires, review or domain entries', () => {
@@ -199,10 +199,10 @@ describe('ElkEdge', () => {
     expect(path.style.opacity).toBe('');
   });
 
-  it('strokes in the domain color, dotted for a reset', () => {
-    const path = drawn({ domainColor: 'var(--vscode-charts-purple)', dotted: true });
+  it('strokes in the domain color', () => {
+    const path = drawn({ domainColor: 'var(--vscode-charts-purple)' });
     expect(path.style.stroke).toBe('var(--vscode-charts-purple)');
-    expect(path.style.strokeDasharray).toBe('2 3');
+    expect(path.style.strokeDasharray).toBe('');
   });
 
   it('draws a crossing dashed in the warning color, over any domain color', () => {

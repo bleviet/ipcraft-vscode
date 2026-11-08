@@ -6,7 +6,6 @@ import type { ElkEdgeData } from './layout/elkLayout';
 export type ElkFlowEdge = Edge<ElkEdgeData, 'elk'>;
 
 const CROSSING_COLOR = 'var(--vscode-editorWarning-foreground)';
-const DOTTED = '2 3';
 const DASHED = '6 4';
 const DIMMED_OPACITY = 0.2;
 
@@ -24,7 +23,7 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
   const stroke = data.crossing
     ? CROSSING_COLOR
     : (data.highlightColor ?? data.domainColor ?? categoryColor(data.category));
-  const dash = data.crossing ? DASHED : data.dotted ? DOTTED : undefined;
+  const dash = data.crossing ? DASHED : undefined;
   return (
     <BaseEdge
       id={id}

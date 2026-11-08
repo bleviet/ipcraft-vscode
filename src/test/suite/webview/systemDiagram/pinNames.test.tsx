@@ -38,7 +38,6 @@ function canvas(layout: Layout) {
         isolated={false}
         review={null}
         clocks={clocks}
-        drawClockReset={false}
         focusedPin={null}
         query=""
         onSelect={jest.fn()}

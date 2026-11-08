@@ -145,12 +145,13 @@ describe('legend', () => {
     expect(entries.map((entry) => entry.label)).toEqual([
       'FCLK_CLK0 · 100 MHz',
       'FCLK_CLK1 · 200 MHz',
-      'Reset, colored by the domain that releases it',
-      'Clock or reset domain crossing',
+      'Reset pin, colored by the domain that releases it',
+      'Clock domain crossing',
+      'Pin of a clock or reset domain crossing',
     ]);
     expect(entries[0]).toMatchObject({ color: DOMAIN_COLORS[1] });
     expect(entries[0].line).toBeUndefined();
-    expect(entries.slice(2).map((entry) => entry.line)).toEqual(['dotted', 'dashed']);
+    expect(entries.slice(2).map((entry) => entry.line)).toEqual([undefined, 'dashed', undefined]);
   });
 
   it('names a domain without a frequency alone', () => {
@@ -159,7 +160,11 @@ describe('legend', () => {
   });
 
   it('keeps the reset and crossing marks without domains', () => {
-    expect(domainLegend([]).map((entry) => entry.key)).toEqual(['reset', 'crossing']);
+    expect(domainLegend([]).map((entry) => entry.key)).toEqual([
+      'reset',
+      'crossing',
+      'crossingPin',
+    ]);
   });
 
   it('labels a net category as the legend does', () => {

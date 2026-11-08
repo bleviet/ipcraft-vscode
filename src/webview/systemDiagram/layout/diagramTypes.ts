@@ -27,7 +27,7 @@ export interface PinRow {
   /** Every net the pin sits on, in graph order. */
   netNames: string[];
   definedBy?: SystemPin['definedBy'];
-  /** Present on a pin of a clock or reset net; drawn while the wires of those nets are not. */
+  /** Present on a pin of a clock or reset net; drawn in place of the wires of those nets. */
   badge?: NetBadge;
   interfaceType?: string;
   signalType?: SystemPin['signalType'];
