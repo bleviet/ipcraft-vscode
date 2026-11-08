@@ -80,6 +80,8 @@ const extensionConfig = {
   },
   externals: {
     vscode: "commonjs vscode",
+    // The diagram export lays out in the extension host: same copy as the webview and the CLI.
+    "elkjs/lib/elk.bundled.js": "commonjs ./elk.bundled.js",
   },
   resolve: commonResolve,
   module: extensionModuleRules,

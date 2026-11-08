@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   HighlightMap,
   SystemDiagramToExtensionMessage,
   SystemDiagramToWebviewMessage,
 } from '../../../shared/messages/systemDiagram';
+import type { ExportImageOptions, SystemExportView } from '../../../shared/messages/imageExport';
 import { vscode } from '../../vscode';
 import { reduceDiagramMessage, type SystemDiagramState } from '../messageState';
+import type { ImageExportChannel } from './useDiagramExport';
 
 function post(message: SystemDiagramToExtensionMessage): void {
   vscode?.postMessage(message);
@@ -16,13 +18,21 @@ export function useSystemDiagramMessages(): {
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
   setHighlights: (highlights: HighlightMap) => void;
+  imageExport: ImageExportChannel;
 } {
   const [state, setState] = useState<SystemDiagramState>({ status: 'loading' });
+
+  const [savedExport, setSavedExport] = useState<ExportImageOptions>();
+  const [openToken, setOpenToken] = useState(0);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<SystemDiagramToWebviewMessage>) => {
       const message = event.data;
-      if (message?.type) {
+      if (message?.type === 'exportOptions') {
+        setSavedExport(message.options);
+      } else if (message?.type === 'openExport') {
+        setOpenToken((token) => token + 1);
+      } else if (message?.type) {
         setState((state) => reduceDiagramMessage(state, message));
       }
     };
@@ -43,5 +53,14 @@ export function useSystemDiagramMessages(): {
     setState((state) => (state.status === 'graph' ? { ...state, highlights } : state));
     post({ type: 'setHighlights', highlights });
   }, []);
-  return { state, revealSource, openDefinition, setHighlights };
+  const imageExport = useMemo<ImageExportChannel>(
+    () => ({
+      saved: savedExport,
+      openToken,
+      send: (options: ExportImageOptions, view: SystemExportView) =>
+        post({ type: 'exportImage', options, view }),
+    }),
+    [savedExport, openToken]
+  );
+  return { state, revealSource, openDefinition, setHighlights, imageExport };
 }

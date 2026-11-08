@@ -254,12 +254,15 @@ Available build targets:
 | `IPCraft: Open as Visual Editor` | Yes | Yes (`.ip.yml`, `.mm.yml`) |
 | `IPCraft: Preview in IPCraft (Experimental)` | Yes | |
 | `IPCraft: Open as System Diagram` (`fpga-ip-core.openSystemDiagram`) | Yes (system design files) | Yes (system design files) |
+| `IPCraft: Export Diagram as Image` (`fpga-ip-core.exportDiagramImage`) | Yes (IP core and system diagram editors) | |
 
 **Open as Text Editor** — Reopens the current `.ip.yml` or `.mm.yml` file in the default VS Code text editor.
 
 **Open as Visual Editor** — Reopens the current file in the IPCraft visual editor. Useful after opening a file with the text editor.
 
 **Preview in IPCraft** — Opens a read-only IPCraft preview panel for any YAML file. Experimental.
+
+**Export Diagram as Image** — Opens the export options of the active IP core editor or system diagram (the same popover as the camera button in the toolbar) to save the diagram as an SVG, PNG or JPG file. See [Viewing a System Design](../how-to/view-a-system-design.md#export-an-image).
 
 **Open as System Diagram** — Opens a system design file in a read-only system diagram with hierarchy, details, and address map. Supported files are Vivado `write_bd_tcl` block design scripts (`.tcl`), Platform Designer `.qsys` systems (Standard), and Platform Designer system scripts (`qsys-script` `.tcl`). The file is read statically and never executed. A `_hw.tcl` file keeps its own preview. See [Viewing a System Design](../how-to/view-a-system-design.md). Press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) again to return to the text editor.
 

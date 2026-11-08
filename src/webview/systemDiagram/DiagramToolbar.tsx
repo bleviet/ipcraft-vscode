@@ -2,6 +2,8 @@ import React from 'react';
 import { useReactFlow } from '@xyflow/react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ToolbarSummary } from './clocks/crossingSummary';
+import type { ExportImageOptions } from '../../shared/messages/imageExport';
+import { ExportImageButton } from '../shared/components/ExportImageButton';
 import { ToolbarGroup, ToolbarSeparator } from '../shared/components/Toolbar';
 import { breadcrumbs } from './model';
 
@@ -48,6 +50,13 @@ interface DiagramToolbarProps {
   onAutoDetailChange: (on: boolean) => void;
   onMinimapChange: (on: boolean) => void;
   onFit: () => void;
+  /** The Export image button: its options, the open request and the send. */
+  imageExport: {
+    options: ExportImageOptions;
+    setOptions: (options: ExportImageOptions) => void;
+    openToken: number;
+    exportImage: (options: ExportImageOptions) => void;
+  };
   panelsVisible: Record<PanelName, boolean>;
   onTogglePanel: (panel: PanelName) => void;
 }
@@ -88,6 +97,7 @@ export function DiagramToolbar({
   onAutoDetailChange,
   onMinimapChange,
   onFit,
+  imageExport,
   panelsVisible,
   onTogglePanel,
 }: DiagramToolbarProps) {
@@ -296,6 +306,13 @@ export function DiagramToolbar({
         >
           <span aria-hidden="true" className="codicon codicon-zoom-in" />
         </button>
+        <ExportImageButton
+          options={imageExport.options}
+          features={{ legend: true, wholeLabel: 'Whole level' }}
+          onOptionsChange={imageExport.setOptions}
+          onExport={imageExport.exportImage}
+          openToken={imageExport.openToken}
+        />
       </ToolbarGroup>
       <ToolbarSeparator />
       <ToolbarGroup label="Panels">

@@ -1,21 +1,10 @@
 import * as path from 'path';
-import * as yaml from 'yaml';
 import { BusLibraryService } from '../services/BusLibraryService';
 import type { ResourceRoots } from '../services/ResourceRoots';
-import { canonicalizeParsedIpCore } from '../shared/busContracts/ipCoreCanonicalize';
+import { ipLocalBusFolder } from '../services/render/ipSymbolImage';
+import type { BusLibraryCache } from '../services/render/renderResources';
 import type { NormalizedBusLibrary } from '../shared/busContracts';
-import { readIpCoreFormatVersion } from '../shared/ipCoreFormat';
-import { renderIpSymbolSvg } from '../shared/render/ipSymbolSvg';
-import type { Palette } from '../shared/render/palette';
 import { Logger } from '../utils/Logger';
-import type { IpCore } from '../webview/types/ipCore';
-import {
-  clockDomainColor,
-  computeSymbolLayout,
-  hasMultipleClockDomains,
-  isExpandableBus,
-  symbolLayoutInputs,
-} from '../webview/ipcore/components/canvas/symbolInputs';
 
 /** Logs nothing: the CLI prints only its result line on stdout. */
 class SilentLogger extends Logger {
@@ -54,64 +43,18 @@ async function loadBusLibrary(
   return service.normalizeSources(builtin);
 }
 
-function parseIpCore(text: string): Record<string, unknown> {
-  let parsed: unknown;
-  try {
-    parsed = yaml.parse(text);
-  } catch (err) {
-    throw new Error(`Invalid YAML: ${err instanceof Error ? err.message : String(err)}`);
-  }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('Invalid YAML: an .ip.yml must be a mapping');
-  }
-  return parsed as Record<string, unknown>;
-}
-
-/** Bus libraries already loaded, by IP-local folder (a batch of renders loads each once). */
-export type BusLibraryCache = Map<string, Promise<NormalizedBusLibrary>>;
-
-export interface IpCoreRenderOptions {
-  palette: Palette;
-  grid: boolean;
-  background: 'editor' | 'transparent';
-  fontFaceCss: string;
-}
-
-/** Draws the IP core symbol of an `.ip.yml` text, as the IP core editor's canvas shows it. */
-export async function renderIpCoreFile(
+/** The library for an `.ip.yml` mapping, loaded once per IP-local folder. */
+export function busLibraryFor(
+  data: Record<string, unknown>,
   inputPath: string,
-  text: string,
   roots: Pick<ResourceRoots, 'busDefinitionsDir' | 'busDefinitionSchemaPath'>,
-  options: IpCoreRenderOptions,
-  libraries: BusLibraryCache = new Map()
-): Promise<string> {
-  const data = parseIpCore(text);
-  const version = readIpCoreFormatVersion(data);
-  if (!version.ok) {
-    throw new Error(version.message);
-  }
-  const vlnv = data.vlnv as Record<string, unknown> | undefined;
-  if (!vlnv || typeof vlnv !== 'object' || !vlnv.name) {
-    throw new Error(`'${inputPath}' is not an IP core: it has no vlnv.name`);
-  }
-  const folder =
-    typeof data.useBusLibrary === 'string' && data.useBusLibrary !== ''
-      ? path.resolve(path.dirname(inputPath), data.useBusLibrary)
-      : '';
+  libraries: BusLibraryCache
+): Promise<NormalizedBusLibrary> {
+  const folder = ipLocalBusFolder(data, inputPath);
   let loading = libraries.get(folder);
   if (!loading) {
     loading = loadBusLibrary(roots, path.dirname(inputPath), data.useBusLibrary);
     libraries.set(folder, loading);
   }
-  const library = await loading;
-  const ipCore = canonicalizeParsedIpCore(data, library).ipCore as unknown as IpCore;
-  const inputs = symbolLayoutInputs(ipCore, library);
-  const layout = computeSymbolLayout(ipCore, inputs);
-  const multiDomain = hasMultipleClockDomains(ipCore);
-  return renderIpSymbolSvg(layout, {
-    ...options,
-    domainColor: (idx) => clockDomainColor(idx, multiDomain),
-    expandable: (port) =>
-      isExpandableBus(port.data as { type?: string; conduitPorts?: unknown[] }, inputs.busDefs),
-  });
+  return loading;
 }

@@ -11,7 +11,8 @@ function EmptyState({ message }: { message: string }) {
 }
 
 export function SystemDiagramApp() {
-  const { state, revealSource, openDefinition, setHighlights } = useSystemDiagramMessages();
+  const { state, revealSource, openDefinition, setHighlights, imageExport } =
+    useSystemDiagramMessages();
   switch (state.status) {
     case 'loading':
       return <EmptyState message="Reading the design..." />;
@@ -30,6 +31,7 @@ export function SystemDiagramApp() {
           revealSource={revealSource}
           openDefinition={openDefinition}
           onChangeHighlights={setHighlights}
+          imageExport={imageExport}
         />
       );
   }

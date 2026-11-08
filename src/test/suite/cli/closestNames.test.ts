@@ -1,4 +1,4 @@
-import { closestNames } from '../../../cli/closestNames';
+import { closestNames } from '../../../services/render/closestNames';
 
 describe('closestNames', () => {
   const names = ['/axi_dma_0', '/axi_gpio_0', '/dsp_pipeline', '/xlconcat_0'];

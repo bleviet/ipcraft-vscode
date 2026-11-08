@@ -9,7 +9,11 @@ import type {
   SystemDiagramToWebviewMessage,
 } from '../shared/messages/systemDiagram';
 import { pruneHighlights } from '../webview/systemDiagram/highlights';
+import type { RenderAssets } from '../services/render/renderResources';
+import type { RenderRoots } from '../services/render/imageEncoding';
 import { Logger } from '../utils/Logger';
+import { ExportTargets } from './imageExport/ExportTargets';
+import { ImageExportHost } from './imageExport/ImageExportHost';
 
 /** Read-only custom editor that draws a block design script as a system diagram. */
 export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
@@ -18,9 +22,22 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
 
   private readonly enricher = new SystemDesignEnricher();
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  private readonly imageExport: ImageExportHost;
+
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    resourceRoots: RenderRoots,
+    private readonly exportTargets: ExportTargets,
+    assets: RenderAssets
+  ) {
     this.htmlGenerator = new HtmlGenerator(context);
     context.subscriptions.push(this.enricher);
+    this.imageExport = new ImageExportHost({
+      memento: context.workspaceState,
+      assets,
+      roots: resourceRoots,
+      logger: this.logger,
+    });
   }
 
   resolveCustomTextEditor(
@@ -91,8 +108,15 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       webviewPanel,
       document,
       logger: this.logger,
-      onReady: () => void postGraph(),
+      onReady: () => {
+        const remembered = this.imageExport.rememberedOptions('systemDiagram');
+        if (remembered) {
+          post({ type: 'exportOptions', options: remembered });
+        }
+        void postGraph();
+      },
     });
+    const exportTarget = this.exportTargets.register(webviewPanel, 'systemDiagram');
 
     router.on('revealSource', async (message) => {
       const line = Math.max(message.line - 1, 0);
@@ -140,6 +164,10 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       );
     });
 
+    router.on('exportImage', async (message) => {
+      await this.imageExport.exportSystem(document, lastGraph, message);
+    });
+
     const documentChanges = vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.uri.toString() === document.uri.toString()) {
         void postGraph();
@@ -152,6 +180,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.onDidDispose(() => {
       documentChanges.dispose();
       trustGranted.dispose();
+      exportTarget.dispose();
       router.dispose();
     });
   }
