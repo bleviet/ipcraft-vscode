@@ -73,14 +73,17 @@ npm version patch --no-git-tag-version   # or minor / major
 
 This updates `package.json` and `package-lock.json`; retain the lockfile update.
 Then update `packages/ipcraft/package.json` to the same version and add the
-matching release heading to `CHANGELOG.md`. The CLI packaging and release checks
-reject mismatched versions or a missing changelog heading.
+matching release heading to `CHANGELOG.md` (the user-facing release notes) and
+to `docs/contributing/changelog.md` (the developer changelog). The CLI packaging
+and release checks reject mismatched versions or a missing `CHANGELOG.md`
+heading.
 
-Only after all four release files are ready, commit the complete release change
+Only after all five release files are ready, commit the complete release change
 and create its immutable tag:
 
 ```bash
-git add package.json package-lock.json packages/ipcraft/package.json CHANGELOG.md
+git add package.json package-lock.json packages/ipcraft/package.json CHANGELOG.md \
+  docs/contributing/changelog.md
 git commit -m "chore(release): vX.Y.Z"
 git tag vX.Y.Z
 git push origin HEAD
