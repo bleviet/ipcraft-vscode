@@ -6,6 +6,7 @@ import type { NetBadge } from '../../webview/systemDiagram/layout/netBadges';
 import { BOUNDARY_HEIGHT } from '../../webview/systemDiagram/layout/elkLayout';
 import { CIRCLE_MARKER, SQUARE_MARKER } from '../../webview/systemDiagram/layout/pinRows';
 import { portShapePath } from '../../webview/systemDiagram/layout/portShape';
+import { frequencySvg, markColor } from './decorSvg';
 import type { Palette } from './palette';
 import { element } from './svg';
 import { drawText } from './textSvg';
@@ -17,12 +18,14 @@ export interface MarkerSpec {
   category?: NetCategory;
   /** A pin with no nets: node-colored fill, colored outline. */
   hollow?: boolean;
+  /** Overrides the category color: the clock domain of a clock pin in the domain mode. */
+  color?: string;
 }
 
 /** A pin marker centred on `(cx, cy)`: an 8 px square for an interface, a 6 px circle for a signal. */
 export function markerSvg(cx: number, cy: number, spec: MarkerSpec, palette: Palette): string {
   const size = spec.isInterface ? SQUARE_MARKER : CIRCLE_MARKER;
-  const color = palette.category[spec.category ?? 'signal'];
+  const color = spec.color ?? palette.category[spec.category ?? 'signal'];
   // A CSS border sits inside the box, so the hollow outline is inset by half its width.
   const inset = spec.hollow ? HOLLOW_STROKE / 2 : 0;
   const paint = spec.hollow
@@ -71,27 +74,48 @@ export function badgeSvg(badge: NetBadge, palette: Palette): string {
 }
 
 /** An external port: a pointed tag with its marker centred on the border it connects from. */
-export function boundarySvg(data: BoundaryNodeData, palette: Palette): string {
+export function boundarySvg(data: BoundaryNodeData, palette: Palette, selected = false): string {
   const east = data.side === 'east';
   const cy = BOUNDARY_HEIGHT / 2;
+  const mark = data.pinMarks?.[data.pin.name];
+  const outline = selected
+    ? { color: palette.focusBorder, opacity: 1, width: 2 }
+    : mark?.crossing
+      ? { color: palette.warning, opacity: 1, width: 1 }
+      : { ...palette.nodeLine, width: 1 };
   return [
     element('path', {
       d: portShapePath(data.width, BOUNDARY_HEIGHT, data.pin.direction === 'inout'),
       fill: palette.nodeHeadFill,
-      stroke: palette.nodeLine.color,
-      'stroke-opacity': palette.nodeLine.opacity,
-      'stroke-width': 1,
+      stroke: outline.color,
+      'stroke-opacity': outline.opacity,
+      'stroke-width': outline.width,
     }),
     markerSvg(
       east ? data.width : 0,
       cy,
-      { isInterface: data.pin.isInterface, category: data.category },
+      {
+        isInterface: data.pin.isInterface,
+        category: data.category,
+        color: markColor(mark, palette),
+      },
+      palette
+    ),
+    frequencySvg(
+      mark,
+      {
+        side: data.side,
+        edgeX: east ? data.width : 0,
+        border: 0,
+        centerY: cy,
+        hasBadge: data.badge !== undefined,
+      },
       palette
     ),
     drawText(12, cy, data.label, {
       face: 'sans600',
       sizePx: 11.5,
-      fill: palette.foreground,
+      fill: mark?.crossing ? palette.warning : palette.foreground,
     }),
     data.badge ? badgeSvg(data.badge, palette) : '',
   ].join('');

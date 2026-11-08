@@ -11,12 +11,15 @@ import { renderSystemLevelSvg } from '../shared/render/systemLevelSvg';
 import { isSystemDesignScript } from '../services/systemDiagram/systemDesignDetection';
 import { readSystemDesign } from '../services/systemDiagram/readSystemDesign';
 import type { ResourceRoots } from '../services/ResourceRoots';
+import { analyzeClocks } from '../webview/systemDiagram/clocks/analyzeClocks';
+import { applyClockDecor, clockDecor } from '../webview/systemDiagram/clockDecor';
 import { shownLevels } from '../webview/systemDiagram/expansion';
 import { buildElkInput, toFlowElements } from '../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../webview/systemDiagram/layout/runElkLayout';
-import { isIpCoreFile, renderOutputFormat } from './argv';
+import { isIpCoreFile, renderOutputFormat } from './renderArgv';
 import { closestNames } from './closestNames';
 import { renderIpCoreFile } from './renderIpCore';
+import { resolveSelection } from './renderSystemOptions';
 
 export interface CliRenderArgs {
   inputPath: string;
@@ -25,6 +28,14 @@ export interface CliRenderArgs {
   level: string;
   /** Hierarchy blocks to draw expanded (of `level`, or of an expanded block), by instance path or name. */
   expand: string[];
+  /** Blocks (instance name or path) and `port:<name>` ports to isolate with their neighbours; empty: the whole level. */
+  select: string[];
+  /** Isolation radius around `select` (default 1, clamped to the selection's reach). */
+  hops?: number;
+  /** Blocks and ports drawn selected without isolating. */
+  highlight: string[];
+  /** Draw the Clocks and resets domain decorations. */
+  clocks: boolean;
   theme: RenderTheme;
   grid: boolean;
   legend: boolean;
@@ -146,10 +157,25 @@ async function renderSystemDesign(
     throw new Error(`Unknown level '${args.level}'. Closest: ${close.join(', ')}`);
   }
   const expanded = new Set(resolveExpanded(graph, args.level, args.expand));
-  const input = buildElkInput(graph, args.level, { measure: plexTextMeasure, expanded });
+  const { isolation, selectedNodeIds } = resolveSelection(graph, args.level, args, expanded);
+  const input = buildElkInput(graph, args.level, {
+    measure: plexTextMeasure,
+    expanded,
+    ...(isolation && { isolate: isolation }),
+  });
   const laidOut = await runElkLayout(input);
-  const layout = toFlowElements(laidOut, graph, args.level, plexTextMeasure);
+  const flow = toFlowElements(laidOut, graph, args.level, plexTextMeasure);
+  const decor = args.clocks
+    ? clockDecor(
+        flow,
+        { graph, analysis: analyzeClocks(graph), levelPath: args.level, domainMode: true },
+        null
+      )
+    : undefined;
+  const layout = decor ? applyClockDecor(flow, decor) : flow;
   return renderSystemLevelSvg(layout, {
+    selectedNodeIds,
+    domainLegend: decor?.legend,
     palette: paletteFor(args.theme),
     grid: args.grid,
     legend: args.legend,

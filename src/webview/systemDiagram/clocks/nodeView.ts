@@ -19,6 +19,20 @@ export interface PinMark {
 /** Marks by pin name; pins without a mark are absent. */
 export type PinMarks = Readonly<Record<string, PinMark>>;
 
+/** Whether any pin of a node ends a flagged crossing: the node is drawn with the warning border. */
+export function hasCrossingEnd(pinMarks: PinMarks | undefined): boolean {
+  return Object.values(pinMarks ?? {}).some((mark) => mark.crossing);
+}
+
+/**
+ * Whether the frequency of a clock pin sits below its wire: on the west side, or where a net
+ * badge takes the place above. Otherwise it sits above, so the labels at the two ends of a short
+ * wire never overlap.
+ */
+export function frequencyBelowWire(side: 'west' | 'east', hasBadge: boolean): boolean {
+  return side === 'west' || hasBadge;
+}
+
 export interface PinMarkContext {
   graph: SystemGraph;
   analysis: ClockAnalysis;

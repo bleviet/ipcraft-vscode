@@ -3,26 +3,11 @@ import { DEFAULT_QUARTUS_DEVICE, DEFAULT_VIVADO_PART } from './generate';
 import type { CliMigrateArgs } from './migrate';
 import type { CliPackageArgs } from './package';
 import type { CliRenderArgs } from './render';
+import { parseRenderArgs } from './renderArgv';
 import type { CliVerifyArgs } from './verify';
 import type { HdlLanguage } from '../generator/types';
 import type { IndentStyle } from '../generator/reindent';
 import { DEFAULT_INDENT_SIZE, DEFAULT_INDENT_STYLE } from '../generator/reindent';
-
-/** Whether `file` names an IP core (`.ip.yml` or `.ip.yaml`). */
-export function isIpCoreFile(file: string): boolean {
-  return /\.ip\.ya?ml$/i.test(file);
-}
-
-/** The image format the `--out` file extension asks for, or undefined for an unsupported one. */
-export function renderOutputFormat(out: string): 'svg' | 'png' | 'jpg' | undefined {
-  if (/\.svg$/i.test(out)) {
-    return 'svg';
-  }
-  if (/\.png$/i.test(out)) {
-    return 'png';
-  }
-  return /\.jpe?g$/i.test(out) ? 'jpg' : undefined;
-}
 
 export function usageText(): string {
   return `ipcraft — headless IPCraft HDL / vendor-project generator
@@ -64,6 +49,18 @@ Options:
   --expand <path>[,<...>]            [render, system designs only] Hierarchy blocks to draw
                                       expanded in place: blocks of the level, or of an expanded
                                       block (repeatable or comma-separated)
+  --select <name>[,<...>]            [render, system designs only] Draw only these blocks (an
+                                      instance name or path on the level) or external ports
+                                      (port:<name>) and their neighbours (repeatable or
+                                      comma-separated)
+  --hops <n>                         [render, with --select] Connections from the selection to
+                                      draw, an integer of at least 1 (default: 1), up to
+                                      everything connected
+  --highlight <name>[,<...>]         [render, system designs only] Draw these blocks or ports
+                                      (port:<name>) as selected, without isolating them
+  --clocks                           [render, system designs only] Draw the Clocks and resets
+                                      view: pins colored by clock domain, domain strips,
+                                      frequencies and clock domain crossings
   --theme <light|dark>               [render only] Image palette (default: light)
   --no-grid                          [render only] Omit the background grid
   --no-legend                        [render, system designs only] Omit the legend
@@ -80,6 +77,8 @@ Examples:
   ipcraft migrate path/to.ip.yml --check
   ipcraft package path/to.ip.yml --out dist/my_ip --zip
   ipcraft render bd/system.tcl --out docs/img/system.svg --expand /dsp_pipeline --theme dark
+  ipcraft render bd/system.tcl --out docs/img/dma.png --select axi_dma_0 --hops 2
+  ipcraft render bd/system.tcl --out docs/img/clocks.svg --clocks
   ipcraft render path/to.ip.yml --out docs/img/core.svg --no-grid
   ipcraft render bd/system.tcl --out docs/img/system.png --scale 3
   ipcraft render path/to.ip.yml --out docs/img/core.jpg --quality 80
@@ -246,167 +245,6 @@ function parsePackageArgs(rest: string[]): ParsedArgv {
     out += '.zip';
   }
   return { kind: 'package', args: { ipYamlPath: positional[0], out, zip } };
-}
-
-const VALUE_OPTIONS: ReadonlySet<string> = new Set([
-  '--out',
-  '--level',
-  '--expand',
-  '--theme',
-  '--background',
-  '--scale',
-  '--quality',
-]);
-
-/** The integer `text` names within `[min, max]`, or undefined. */
-function parseIntegerInRange(text: string, min: number, max: number): number | undefined {
-  const value = /^\d+$/.test(text) ? Number(text) : NaN;
-  return value >= min && value <= max ? value : undefined;
-}
-
-/** Parses `render` argv: `<design> --out <file.svg|png|jpg> [--level] [--expand] [--theme] [--no-grid] [--no-legend] [--background] [--scale] [--quality]`. */
-function parseRenderArgs(rest: string[]): ParsedArgv {
-  const positional: string[] = [];
-  const args: Omit<CliRenderArgs, 'inputPath' | 'out'> = {
-    level: '/',
-    expand: [],
-    theme: 'light',
-    grid: true,
-    legend: true,
-    background: 'editor',
-    scale: 2,
-    quality: 90,
-  };
-  let scaleGiven = false;
-  let qualityGiven = false;
-  let out: string | undefined;
-  const systemOnly: string[] = [];
-  for (let i = 0; i < rest.length; i++) {
-    const arg = rest[i];
-    const value = (): string => rest[++i];
-    if (VALUE_OPTIONS.has(arg) && (rest[i + 1] === undefined || rest[i + 1].startsWith('--'))) {
-      return { kind: 'error', message: `Missing value for ${arg}` };
-    }
-    switch (arg) {
-      case '--out':
-        out = value();
-        break;
-      case '--level':
-        systemOnly.push(arg);
-        args.level = value();
-        break;
-      case '--expand':
-        systemOnly.push(arg);
-        args.expand.push(
-          ...value()
-            .split(',')
-            .map((s) => s.trim())
-            .filter(Boolean)
-        );
-        break;
-      case '--theme': {
-        const theme = value();
-        if (theme !== 'light' && theme !== 'dark') {
-          return {
-            kind: 'error',
-            message: `Invalid --theme '${theme}': expected 'light' or 'dark'`,
-          };
-        }
-        args.theme = theme;
-        break;
-      }
-      case '--background': {
-        const background = value();
-        if (background !== 'editor' && background !== 'transparent') {
-          return {
-            kind: 'error',
-            message: `Invalid --background '${background}': expected 'editor' or 'transparent'`,
-          };
-        }
-        args.background = background;
-        break;
-      }
-      case '--scale': {
-        const text = value();
-        const scale = parseIntegerInRange(text, 1, 4);
-        if (scale === undefined) {
-          return {
-            kind: 'error',
-            message: `Invalid --scale '${text}': expected an integer from 1 to 4`,
-          };
-        }
-        scaleGiven = true;
-        args.scale = scale;
-        break;
-      }
-      case '--quality': {
-        const text = value();
-        const quality = parseIntegerInRange(text, 1, 100);
-        if (quality === undefined) {
-          return {
-            kind: 'error',
-            message: `Invalid --quality '${text}': expected an integer from 1 to 100`,
-          };
-        }
-        qualityGiven = true;
-        args.quality = quality;
-        break;
-      }
-      case '--no-grid':
-        args.grid = false;
-        break;
-      case '--no-legend':
-        systemOnly.push(arg);
-        args.legend = false;
-        break;
-      default:
-        if (arg.startsWith('--')) {
-          return { kind: 'error', message: `Unknown option '${arg}' for 'render'` };
-        }
-        positional.push(arg);
-    }
-  }
-  if (positional.length === 0) {
-    return { kind: 'error', message: 'Missing required argument: <design.tcl|design.qsys|ip.yml>' };
-  }
-  if (positional.length > 1) {
-    return { kind: 'error', message: `Unexpected argument '${positional[1]}'` };
-  }
-  if (!out) {
-    return { kind: 'error', message: "Missing required option: '--out <file.svg|png|jpg>'" };
-  }
-  if (isIpCoreFile(positional[0]) && systemOnly.length > 0) {
-    return {
-      kind: 'error',
-      message: `Option '${systemOnly[0]}' is only for system designs, not for an .ip.yml`,
-    };
-  }
-  const format = renderOutputFormat(out);
-  if (!format) {
-    return {
-      kind: 'error',
-      message: `Unsupported output file '${out}': the extension must be .svg, .png, .jpg or .jpeg`,
-    };
-  }
-  if (format === 'svg' && scaleGiven) {
-    return { kind: 'error', message: '--scale applies to PNG and JPG, not to an .svg output' };
-  }
-  if (format !== 'jpg' && qualityGiven) {
-    return { kind: 'error', message: '--quality applies to JPG output only' };
-  }
-  if (format === 'jpg' && args.background === 'transparent') {
-    return {
-      kind: 'error',
-      message: 'JPG cannot be transparent; use .png or --background editor',
-    };
-  }
-  if (!args.level.startsWith('/')) {
-    return {
-      kind: 'error',
-      message: `Invalid --level '${args.level}': expected a path such as '/' or '/dsp_pipeline'`,
-    };
-  }
-  return { kind: 'render', args: { inputPath: positional[0], out, ...args } };
 }
 
 /** Parses ipcraft CLI argv (excluding the node/script prefix). Pure — no I/O, no process.exit. */

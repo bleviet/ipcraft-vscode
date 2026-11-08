@@ -22,7 +22,12 @@ export interface TextStyle {
   /** Extra space after each character, in px. */
   letterSpacing?: number;
   opacity?: number;
+  /** Outline color painted behind the glyphs (a halo that keeps the text legible over wires). */
+  halo?: string;
 }
+
+/** Width of the halo outline; the canvas blurs a 3 px text-shadow twice. */
+const HALO_WIDTH = 3;
 
 export function drawText(x: number, centerY: number, content: string, style: TextStyle): string {
   return drawTextOnBaseline(x, baselineY(centerY, style.face, style.sizePx), content, style);
@@ -47,6 +52,10 @@ export function drawTextOnBaseline(
       fill: style.fill,
       'letter-spacing': style.letterSpacing,
       opacity: style.opacity,
+      stroke: style.halo,
+      'stroke-width': style.halo === undefined ? undefined : HALO_WIDTH,
+      'stroke-linejoin': style.halo === undefined ? undefined : 'round',
+      'paint-order': style.halo === undefined ? undefined : 'stroke',
     },
     content
   );

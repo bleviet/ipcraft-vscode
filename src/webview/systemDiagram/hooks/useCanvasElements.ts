@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import type { HighlightMap } from '../../../shared/messages/systemDiagram';
 import { selectedTree } from '../clocks/treeSelection';
-import { clockDecor, type ClockContext } from '../clockDecor';
+import { clockDecor, clockNodeData, type ClockContext } from '../clockDecor';
 import { highlightedNetIds, netHighlightColor, nodeHighlightColor } from '../highlights';
 import type { DiagramLayout } from './useElkLayout';
 import type { SearchFlash } from './useSearchStepper';
@@ -115,8 +115,6 @@ export function useCanvasElements({
             : !matchesQuery(node.data.instance, query))) ||
         // A selected clock or reset tree dims the blocks and ports it does not touch.
         (tree !== undefined && node.type !== 'frame' && !highlighted?.has(node.id));
-      const pinMarks = decor.pinMarks.get(node.id);
-      const domains = decor.domains.get(node.id);
       const focused = focusedPinOf(focusedPin, selection, node.id);
       const highlightColor =
         showHighlights && highlights ? nodeHighlightColor(highlights, node.id) : undefined;
@@ -128,8 +126,7 @@ export function useCanvasElements({
         data: {
           ...node.data,
           ...(reviews && { review: reviews.get(node.id) }),
-          ...(domains && { domains }),
-          ...(pinMarks && { pinMarks }),
+          ...clockNodeData(decor, node.id),
           ...(badgedNodes?.has(node.id) && { selectedNetIds: selectedAndTreeNetIds }),
           ...(highlightColor !== undefined && { highlightColor }),
           ...(focused !== undefined && { focusedPin: focused }),

@@ -292,6 +292,8 @@ ipcraft render path/to/uart.ip.yml --out docs/img/uart.svg --theme dark
 ipcraft render bd/system.tcl --out docs/img/dsp.svg --level /dsp_pipeline --theme dark
 ipcraft render bd/system.tcl --out docs/img/system.svg --expand /dsp_pipeline --no-grid
 ipcraft render bd/system.tcl --out docs/img/system.png --scale 3
+ipcraft render bd/system.tcl --out docs/img/dma.png --select axi_dma_0 --hops 2
+ipcraft render bd/system.tcl --out docs/img/clocks.svg --clocks
 ipcraft render path/to/uart.ip.yml --out docs/img/uart.jpg --quality 80
 ```
 
@@ -300,6 +302,10 @@ ipcraft render path/to/uart.ip.yml --out docs/img/uart.jpg --quality 80
 | `--out <file>` | Output file (required); the extension picks the format: `.svg`, `.png`, `.jpg` or `.jpeg`. The folder is created if needed |
 | `--level <path>` | System designs only. Hierarchy level to draw (default `/`, the top level) |
 | `--expand <path>[,...]` | System designs only. Hierarchy blocks drawn expanded in place, by instance path or name; repeat or comma-separate. A block of the level, or of a block that is itself expanded (`--expand /dsp_pipeline,/dsp_pipeline/coeff_bank`) |
+| `--select <name>[,...]` | System designs only. Draw only these blocks (instance name or path on the level) or external ports (`port:<name>`) and the blocks around them, laid out compactly as the viewer's isolated view; repeat or comma-separate. The selected blocks get the viewer's selection outline. Names inside an expanded block cannot be selected |
+| `--hops <n>` | System designs only, with `--select`. How many connections away from the selection to draw: an integer of at least 1 (default 1). A larger value is cut to the furthest block connected to the selection. Clock and reset nets do not count as connections |
+| `--highlight <name>[,...]` | System designs only. Draw these blocks or ports (`port:<name>`) with the selection outline without hiding anything; with `--select` they must be in the isolated view, and they may be blocks inside an expanded block |
+| `--clocks` | System designs only. Draw the viewer's Clocks and resets view: pins colored by clock domain, a domain strip and crossing count in block headers, clock frequencies, clock domain crossings as dashed wires in the warning color with other data wires faded, and the domains in the legend |
 | `--theme <light\|dark>` | Image palette (default `light`; the VS Code theme does not matter) |
 | `--no-grid` | Omit the background grid dots |
 | `--no-legend` | System designs only. Omit the wire-category legend below the drawing |
@@ -324,15 +330,14 @@ interrupts, data ports and collapsed bus interfaces with their protocol, mode an
 memory map badges) and description. Bus interface names and protocols come from
 the built-in bus library plus the file's own `useBusLibrary` folder; bus
 libraries configured in VS Code settings or found in the workspace are not read.
-The options `--level`, `--expand` and `--no-legend` are errors for an `.ip.yml`,
+The options `--level`, `--expand`, `--select`, `--hops`, `--highlight`, `--clocks` and `--no-legend` are errors for an `.ip.yml`,
 and so is a file that declares a newer `apiVersion` than this IPCraft supports.
 
-An unknown `--level` or `--expand` name exits with code 1 and lists the closest
+An unknown `--level`, `--expand`, `--select` or `--highlight` name exits with code 1 and lists the closest
 names. The image shows what the design file declares: blocks whose pins the file
 does not list (they are normally read from an `.ip.yml` or HDL in the workspace)
-are drawn with only the pins the connections mention. Isolated views,
-highlights, the Clocks and resets decoration and expanded bus interfaces in the
-IP symbol are not part of `render` yet.
+are drawn with only the pins the connections mention. Expanded bus interfaces
+in the IP symbol are not part of `render` yet.
 
 ### Upgrading `.ip.yml` to the latest format version
 
