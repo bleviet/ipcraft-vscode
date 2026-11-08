@@ -26,6 +26,7 @@ const missing = (over: Partial<MissingLibrary> & { name: string }): MissingLibra
   firstUse: { file: 'a/top.vhd', line: 3 },
   otherFiles: 0,
   candidates: [],
+  exclude: [],
   ...over,
 });
 
@@ -137,6 +138,41 @@ describe('appendProposals', () => {
     expect(text).not.toContain('is_third_party');
   });
 
+  it('renders an exclude hint only when there is something to exclude', () => {
+    const withExclude = appendProposals(
+      '',
+      [
+        missing({
+          name: 'dsp_lib',
+          candidates: ['libs/*.vhd'],
+          exclude: ["libs/o'k.vhd", 'libs/a.vhd'],
+        }),
+      ],
+      new Set(),
+      new Map()
+    );
+    expect(withExclude).toContain(
+      "# files = ['libs/*.vhd']\n# exclude = [\"libs/o'k.vhd\", 'libs/a.vhd']"
+    );
+    const without = appendProposals(
+      '',
+      [missing({ name: 'dsp_lib', candidates: ['libs/*.vhd'] })],
+      new Set(),
+      new Map()
+    );
+    expect(without).not.toContain('# exclude');
+  });
+
+  it('never adds an exclude hint to a vendor-install proposal', () => {
+    const text = appendProposals(
+      '',
+      [missing({ name: 'unisim', exclude: ['x.vhd'] })],
+      new Set(),
+      UNISIM_FILES
+    );
+    expect(text).not.toContain('# exclude');
+  });
+
   it('prefers vendor install files and names their setting', () => {
     const text = appendProposals('', [missing({ name: 'unisim' })], new Set(), UNISIM_FILES);
     expect(text).toContain('# Path from ipcraft.vivado.installDirs (2024.2):');
@@ -169,5 +205,25 @@ describe('appendProposals', () => {
       new Map()
     );
     expect(again).toBe(first);
+  });
+
+  describe('library without kept files', () => {
+    it('renders an empty array with the excluded comment as valid TOML', () => {
+      const text = renderVhdlLsToml(
+        [
+          {
+            name: 'defaultlib',
+            files: [],
+            excluded: [{ path: 'wb/m.vhd', reason: 'excluded by libraries.wb' }],
+          },
+        ],
+        ''
+      );
+      expect(text).toContain(
+        'libraries.defaultlib.files = [\n  # excluded: wb/m.vhd, excluded by libraries.wb\n]'
+      );
+      const parsed = toml.parse(text) as { libraries: { defaultlib: { files: string[] } } };
+      expect(parsed.libraries.defaultlib.files).toEqual([]);
+    });
   });
 });

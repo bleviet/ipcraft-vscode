@@ -56,7 +56,13 @@ is left out, so its copies do not collide with your sources.
 
 When two files declare the same entity or package in one library, IPCraft
 keeps one: the one a project file or core names, otherwise the one with the
-shorter path. The others appear as `# excluded:` comments in the file.
+shorter path. Between otherwise equal copies, one that needs a library
+IPCraft does not know (for example a `nvc` variant) loses. Template files that
+contain `${...}` placeholders are never kept. The others appear as
+`# excluded:` comments in the file. An unlisted file whose units are all
+provided by a library in your user section (for example OSVVM `deprecated/`
+copies) is excluded the same way, and your library wins, unless another file
+in the default library uses that copy.
 
 Test environments often reuse names, for example one `TestCtrl` entity in each
 testbench folder, with test-case files that each bind to their own folder's
@@ -79,7 +85,9 @@ to the nearer folder.
 When a file uses `work.<unit>` and only a file in another library declares that
 unit, the declaring file is also listed in the library of the file that uses
 it, marked `# shared from <library>`. The separate package body or architecture
-files of that unit come along. This covers `defaultlib` and the per-folder
+files of that unit come along, and so do the units it needs from the same
+library. A file is skipped when those would clash with a same-named unit the
+library already has from elsewhere. This covers `defaultlib` and the per-folder
 libraries, and also takes files from libraries you define in the user section,
 which IPCraft itself never changes.
 
@@ -97,11 +105,16 @@ When your code uses a library that IPCraft cannot find, such as `osvvm`,
 # Packages it should provide were found in: ext/OsvvmLibraries/osvvm/
 # [libraries.osvvm]
 # files = ['ext/OsvvmLibraries/osvvm/*.vhd']
+# exclude = ['ext/OsvvmLibraries/osvvm/OsvvmSettingsPkg_template.vhd']
 # is_third_party = true
 ```
 
-Check the path, remove the `# ` from the `[libraries...]`, `files` and (if
-present) `is_third_party` lines, and run the command again. In VS Code, if the
+The `exclude` line lists files inside those folders that would break the
+library: files that add no unit beyond what another file already declares, template files,
+files another library of your user section already covers, and files a user `exclude` removed.
+
+Check the path, remove the `# ` from the `[libraries...]`, `files`, `exclude` and
+`is_third_party` lines (the ones present), and run the command again. In VS Code, if the
 Vivado or Quartus installation is set in the IPCraft settings, proposals for
 vendor libraries such as `unisim` or `altera_mf` name the files in that
 installation; the CLI proposes a directory found in the workspace or a

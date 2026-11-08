@@ -5,7 +5,8 @@
  * matched. It also records local references (the entity an architecture or configuration binds
  * to, the package a body belongs to, and component instantiations), each with its kind, so callers
  * can tell which units a file depends on within its own library; `workReferences` is the one
- * definition of that set. Pure.
+ * definition of that set. `hasPlaceholders` flags template files: `${` in code (outside comments
+ * and strings) is never valid VHDL, so such a file holds placeholders to substitute. Pure.
  */
 
 export type VhdlUnitKind = 'entity' | 'package' | 'configuration' | 'context';
@@ -41,7 +42,11 @@ export interface VhdlScan {
   libraries: VhdlLibraryClause[];
   uses: VhdlUse[];
   localRefs: VhdlLocalRef[];
+  /** True when the code (comments and strings blanked) contains `${`, i.e. a template file. */
+  hasPlaceholders: boolean;
 }
+
+const extended = /\\(?:[^\\\n]|\\\\)+\\/y;
 
 /** Replaces comments, strings and character literals with spaces (newlines kept), then lower-cases. */
 function blankNonCode(text: string): string {
@@ -77,6 +82,11 @@ function blankNonCode(text: string): string {
         j++;
       }
       const end = Math.min(j + 1, text.length);
+      blank(i, end);
+      i = end;
+    } else if (ch === '\\' && (extended.lastIndex = i) >= 0 && extended.test(text)) {
+      // Extended identifier `\any text\`; a doubled backslash is a literal one.
+      const end = extended.lastIndex;
       blank(i, end);
       i = end;
     } else if (ch === "'" && i + 2 < text.length && text[i + 2] === "'" && text[i + 1] !== '\n') {
@@ -162,7 +172,7 @@ export function scanVhdl(text: string): VhdlScan {
   }
   localRefs.sort((a, b) => a.line - b.line || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
-  return { units, libraries, uses, localRefs };
+  return { units, libraries, uses, localRefs, hasPlaceholders: code.includes('${') };
 }
 
 /** Names of units a file needs in its own library: local references of `kinds` plus `work` uses. */

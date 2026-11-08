@@ -67,10 +67,68 @@ export function shareUnits(input: ShareInput): Map<string, SharedFile[]> {
   const firstLib = (file: string, exclude: string): string | undefined =>
     [...(libsByPath.get(file) ?? [])].filter((l) => l !== exclude).sort(byString)[0];
 
+  const filesByLib = new Map<string, string[]>(
+    input.sources.map((l) => [l.name, [...l.files].sort(byString)])
+  );
+  /** Files of `lib` holding only architectures or bodies of the units `file` declares. */
+  const secondariesOf = (lib: string, file: string): string[] => {
+    const units = new Set(declaredBy(file));
+    return (filesByLib.get(lib) ?? []).filter((f) => f !== file && bindsTo(f, units));
+  };
+
+  // Units a file needs from its own source library: its work references and those of its bodies
+  // and architectures, followed transitively through the files of that library that declare them.
+  // Units no file of the library declares are left out.
+  const declarers = new Map<string, Map<string, string[]>>();
+  const declarersIn = (lib: string): Map<string, string[]> => {
+    let byUnit = declarers.get(lib);
+    if (!byUnit) {
+      byUnit = new Map();
+      for (const file of filesByLib.get(lib) ?? []) {
+        for (const unit of declaredBy(file)) {
+          byUnit.set(unit, [...(byUnit.get(unit) ?? []), file]);
+        }
+      }
+      declarers.set(lib, byUnit);
+    }
+    return byUnit;
+  };
+  const closures = new Map<string, Set<string>>();
+  const closureIn = (lib: string, file: string): Set<string> => {
+    const key = `${lib}\0${file}`;
+    let closure = closures.get(key);
+    if (!closure) {
+      closure = new Set();
+      const own = new Set(declaredBy(file));
+      const byUnit = declarersIn(lib);
+      const refsWithBindings = (f: string): string[] =>
+        [f, ...secondariesOf(lib, f)].flatMap(refsOf);
+      const queue = refsWithBindings(file);
+      for (let i = 0; i < queue.length; i++) {
+        const unit = queue[i];
+        if (closure.has(unit) || own.has(unit) || !byUnit.has(unit)) {
+          continue;
+        }
+        closure.add(unit);
+        (byUnit.get(unit) as string[]).forEach((f) => queue.push(...refsWithBindings(f)));
+      }
+      closures.set(key, closure);
+    }
+    return closure;
+  };
+
   const result = new Map<string, SharedFile[]>();
   for (const target of [...input.targets].sort((a, b) => byString(a.name, b.name))) {
     const own = new Set(target.files);
     const declared = new Set(target.files.flatMap(declaredBy));
+    // Path of the file that gives the target each declared unit.
+    const declaringPath = new Map<string, string>();
+    for (const file of target.files) {
+      declaredBy(file).forEach((u) => declaringPath.set(u, declaringPath.get(u) ?? file));
+    }
+    // A unit conflicts with `lib` unless the file giving it to the target is also listed in `lib`.
+    const clashes = (u: string, lib: string): boolean =>
+      declared.has(u) && !libsByPath.get(declaringPath.get(u) as string)?.has(lib);
 
     const index = new Map<string, Candidate[]>();
     for (const file of libsByPath.keys()) {
@@ -99,26 +157,45 @@ export function shareUnits(input: ShareInput): Map<string, SharedFile[]> {
       handled.add(name);
       const pick = [...(index.get(name) ?? [])]
         .sort((a, b) => a.path.length - b.path.length || byString(a.path, b.path))
-        .find((c) => !declaredBy(c.path).some((u) => declared.has(u)));
+        .find(
+          (c) =>
+            !declaredBy(c.path).some((u) => declared.has(u)) &&
+            ![...closureIn(c.lib, c.path)].some((u) => clashes(u, c.lib))
+        );
       if (!pick) {
         continue;
       }
-      const picked = [pick.path];
-      const units = new Set(declaredBy(pick.path));
-      const sourceFiles = input.sources.find((l) => l.name === pick.lib)?.files ?? [];
-      for (const file of [...sourceFiles].sort(byString)) {
-        if (!own.has(file) && !addedPaths.has(file) && file !== pick.path && bindsTo(file, units)) {
-          picked.push(file);
+      // The file, then what binds to it, then its closure in the same library, so that the next
+      // candidate sees every name this file settled.
+      const take = (primary: string): void => {
+        const secondary = secondariesOf(pick.lib, primary).filter(
+          (f) => !own.has(f) && !addedPaths.has(f)
+        );
+        for (const file of [primary, ...secondary]) {
+          if (file !== primary && declaredBy(file).some((u) => declared.has(u))) {
+            continue;
+          }
+          added.push({ path: file, from: pick.lib });
+          addedPaths.add(file);
+          declaredBy(file).forEach((u) => {
+            declared.add(u);
+            declaringPath.set(u, file);
+          });
+          pending.push(...refsOf(file).filter((n) => !declared.has(n)));
         }
-      }
-      for (const file of picked) {
-        if (file !== pick.path && declaredBy(file).some((u) => declared.has(u))) {
-          continue;
+      };
+      take(pick.path);
+      const byUnit = declarersIn(pick.lib);
+      for (const unit of [...closureIn(pick.lib, pick.path)].sort(byString)) {
+        for (const file of byUnit.get(unit) as string[]) {
+          if (
+            !own.has(file) &&
+            !addedPaths.has(file) &&
+            !declaredBy(file).some((u) => declared.has(u))
+          ) {
+            take(file);
+          }
         }
-        added.push({ path: file, from: pick.lib });
-        addedPaths.add(file);
-        declaredBy(file).forEach((u) => declared.add(u));
-        pending.push(...refsOf(file).filter((n) => !declared.has(n)));
       }
     }
     if (added.length > 0) {

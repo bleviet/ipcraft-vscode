@@ -60,7 +60,7 @@ regeneration are started by the user; nothing runs in the background.
 2. IPCraft reads the repository, builds the library mapping, and writes
    `vhdl_ls.toml` at the root. When an existing file was not written by IPCraft,
    it backs that file up and asks first (see [Ownership](#ownership)).
-3. A summary names the number of libraries and files, the excluded duplicates,
+3. A summary names the number of libraries and files, the excluded files,
    and the missing libraries. **Open** shows the file.
 4. For each missing library, the user section of the file contains a commented
    proposal. The user fills in the path, uncomments it, and runs the command
@@ -160,7 +160,10 @@ strips comments and string literals and records:
   and binding indications, with line numbers;
 - local references, with line numbers: the entity of an `architecture` or
   `configuration ... of`, the package of a `package body`, and component
-  instantiations (`label : [component] name generic map | port map`).
+  instantiations (`label : [component] name generic map | port map`);
+- whether the code contains `${`, which is never valid VHDL outside comments
+  and strings: the file is a template with placeholders (OSVVM ships
+  `OsvvmSettingsPkg_template.vhd`) and cannot be parsed.
 
 Files over 1 MiB are mapped but not scanned, and are counted in the summary.
 The workspace is listed in one directory walk, the same in VS Code and the
@@ -177,6 +180,47 @@ with the shorter path, then the first in path order. The others are written as
 comments in that library (`# excluded: duplicate of entity fifo in
 cores/common/fifo.vhd`) and listed in the summary. Excluded files are not
 navigable; this is the cost of a working namespace.
+
+A file stays when it declares at least one unit that no better copy took, and
+then takes all its units; it is excluded only when every unit it declares is
+already taken. A file that still contributes a unit therefore stays even if
+another of its units duplicates one: the language server then reports that
+duplicate, which is better than unresolved units.
+
+Between copies of equal source rank, the copy with fewer `library` clauses
+naming an unavailable library wins before path length is compared. A library
+is available when it is generated, in the user section, `ieee`, `std` or
+`work`, or when some scanned, non-template workspace file that no user-section library claims declares a unit used
+from it (so `osvvm_common` counts before the user accepts its proposal, while
+`nvc` or `unisim` do not). A copy that needs a vendor library such as `nvc`
+loses to a plain one. Generated libraries and proposals share this rule
+(`duplicateRule.ts`) and the same set of available libraries.
+
+An unlisted file (no manifest names it) whose declared units are all declared by
+files that a user-section library includes is not mapped either: it appears in
+`defaultlib` as `# excluded: <path>, duplicate of <kind> <unit> in <file>
+(libraries.<name>)`, naming the first unit and the first such library by name.
+A copy that a `defaultlib` file declaring a unit uses through `work`, a binding or a
+missing library stays (a component instance does not count: it binds through its
+package's library), as does a copy used by such a
+copy; copies that only refer to each other, or are referred to by companion
+files that declare no unit (architectures, package bodies), stay excluded. A
+copy whose unit another unlisted folder also declares is left to the per-folder
+split. This runs before that split, so OSVVM `deprecated/` copies cause no
+collisions. Files with a manifest claim, files declaring no unit and template
+files (the template reason applies) are unaffected.
+
+A file that a user-section library matches with `files` but removes with
+`exclude`, and that no manifest names, is not mapped anywhere (otherwise it
+would leak into `defaultlib`). It appears in `defaultlib` as
+`# excluded: <path>, excluded by libraries.<name>`; `defaultlib` is written
+with an empty `files` array when only such entries remain. When the user
+section defines `defaultlib` itself, the entries are dropped. A manifest-named
+file keeps its placement.
+
+Template files are excluded before the duplicate check with the reason
+`template: contains ${...} placeholders`, so they do not take unit names from
+real files.
 
 **Per-folder libraries for colliding unlisted units.** Test environments such as
 OSVVM declare the same entity (`TestCtrl`) in many folders, and the test-case
@@ -217,7 +261,15 @@ library that hold the package body or architectures of the units it declares
 come along, because a package without its body leaves deferred constants
 undefined. Such a file is only brought along when all its architectures and
 bodies belong to the shared unit(s). A file that declares a unit the library already has is never taken,
-so sharing adds no duplicate unit. With several candidates the shorter path
+so sharing adds no duplicate unit. A file is also not taken when its own closure inside its source
+library needs a unit that the target already gets from a file not listed in
+that library, whether a target file or a file shared from another library
+(the closure is the units it references, then the units those files and their
+package bodies and architectures reference, among the units that library
+declares). Many libraries declare packages of the same name (a verification
+library's `vvc_methods_pkg`), and the copy would bind to whichever one arrived
+first. The closure files of a taken file are taken with it, so the next
+candidate already sees their names. With several candidates the shorter path
 wins, then the string order of the path. The file is copied into the referring
 library with the provenance `shared from <library>`; VHDL-LS accepts one file in
 several libraries. A user-section library is never written by the generated
@@ -256,6 +308,7 @@ libraries.dsp_lib.files = [
 # Packages it should provide were found in: ext/OsvvmLibraries/osvvm/
 # [libraries.osvvm]
 # files = ['ext/OsvvmLibraries/osvvm/*.vhd']
+# exclude = ['ext/OsvvmLibraries/osvvm/OsvvmSettingsPkg_template.vhd']
 # is_third_party = true
 
 # Missing library unisim, used by cores/fir/rtl/fir.vhd:3.
@@ -316,14 +369,41 @@ Each proposal is a commented block appended to the user section:
   `package OsvvmGlobalPkg`, or `entity neorv32.psram_model` and a file
   declaring `entity psram_model`), the directories of those files;
 - a `files` line, with the path chosen in the order below, and
-  `is_third_party = true` for known vendor and verification libraries.
+  `is_third_party = true` for known vendor and verification libraries;
+- an `exclude` line when the chosen folders hold files that would break the
+  library (see below).
 
 The path of the `files` line is, in order:
 
 1. for a vendor library, the files in the configured Vivado or Quartus
    installation (see [Vendor Libraries](#vendor-libraries));
-2. the directory found in the workspace;
+2. the directories found in the workspace;
 3. a placeholder path.
+
+The workspace directories come from `proposeLibraryFiles`, per missing library:
+
+1. The candidates are all scanned files that are not matched by a user-section
+   library and have no placeholders. The wanted units are the ones used from
+   the library (`use lib.unit`, `entity lib.unit`).
+2. Set cover: repeatedly pick the directory declaring the most uncovered
+   wanted units. Ties go to name affinity (the number of `_`-separated words of
+   the library name that appear as words in the directory path, so
+   `bitvis_vip_axi` prefers `bitvis_vip_axi/src` over `bitvis_vip_axilite/src`),
+   then the shorter directory, then string order. This keeps UVVM proposals to
+   the one VIP folder instead of every folder declaring `vvc_methods_pkg`.
+3. Closure: the duplicate rule is applied to the files of the picked
+   directories; units that the needed surviving files (those declaring a
+   wanted unit, or pulled in by this step) reference through `work.`
+   (architecture, package body, configuration, `use work.x`) and no survivor
+   declares add the best directory declaring the first such unit, by the same
+   tie-break, and the step repeats. Losing copies and unrelated siblings in a
+   picked directory therefore never pull directories, and component
+   instantiations do not either. Units declared only
+   in template or unscanned files are ignored.
+4. Exclude hints: the losers of the final selection, template files, files that
+   a user-section library already covers and files that a user `exclude`
+   removed (the glob would cover them) in the picked directories, limited to the extensions of the emitted globs. They are
+   written as a commented `# exclude = [...]` line.
 
 | Library family | Names | `is_third_party` |
 |---|---|---|
@@ -345,9 +425,13 @@ Rules:
   the user section has no `# Missing library <name>` line yet. Uncommenting the
   proposal in place defines the library, so it is no longer missing. A proposal
   that is no longer needed stays until the user deletes it.
-- **No guessed excludes.** Libraries such as VUnit ship files for several VHDL
-  standards; the proposal says so in a comment, without guessing the `exclude`
-  pattern.
+- **Excludes are facts, not guesses.** Libraries such as VUnit ship files for
+  several VHDL standards; the proposal says so in a comment, and IPCraft does
+  not guess which standard to drop. Only exact duplicates and template files
+  are listed in `exclude`. Vendor-install proposals never get an `exclude` line.
+- **User-section libraries are not candidates.** Files matched by a library
+  defined in the user section already belong to it and are never proposed for a
+  missing library.
 
 ### Vendor Libraries
 
@@ -444,6 +528,9 @@ functions over typed inputs.
 | `src/services/vhdlLsConfig/vhdlUnitScanner.ts` | Light scanner: units, `library` and `use` clauses |
 | `src/services/vhdlLsConfig/scopeLibraries.ts` | Pure: split colliding unlisted units of `defaultlib` into per-folder libraries |
 | `src/services/vhdlLsConfig/shareUnits.ts` | Pure: copy files that declare `work.<unit>` references into the libraries that need them, across library boundaries |
+| `src/services/vhdlLsConfig/proposeLibraryFiles.ts` | Pure: set cover, name affinity, `work.` closure and exclude hints for one missing library |
+| `src/services/vhdlLsConfig/duplicateRule.ts` | Pure: duplicate comparator and selection shared by generated libraries and proposals |
+| `src/services/vhdlLsConfig/userLibraryFiles.ts` | Pure: classify files against the user section (included, removed by an exclude), unlisted duplicates of user-library units, available libraries |
 | `src/services/vhdlLsConfig/buildLibraryMap.ts` | Pure: sources plus scan results plus user section to libraries, duplicates, missing libraries |
 | `src/services/vhdlLsConfig/renderVhdlLsToml.ts` | Pure: library map to file text, header hash, proposals |
 | `src/services/vhdlLsConfig/ownership.ts` | Pure: classify an existing file; split it into the generated and user sections |
@@ -458,7 +545,7 @@ The generated-directory list is shared with system viewer enrichment
 
 | Level | Coverage |
 |---|---|
-| Unit | Each reader on small inputs; the scanner (comments, strings, case, local references); per-folder library splitting (nearest binding, naming); shared units across libraries (`shareUnits`: transitive closure, duplicate avoidance, tie-break); ranking, same-rank disagreement, duplicates (a declared file beats an unlisted copy), and user-section precedence in `buildLibraryMap`; the ownership table; proposals (append once, vendor files only when they exist, fallback order); rendering determinism and TOML validity of the output |
+| Unit | Each reader on small inputs; the scanner (comments, strings, case, local references, placeholders); proposals (`proposeLibraryFiles`: set cover, affinity tie-break, closure, excludes, determinism); template exclusion and the unknown-library duplicate tie-break in `buildLibraryMap`; per-folder library splitting (nearest binding, naming); shared units across libraries (`shareUnits`: transitive closure, duplicate avoidance, tie-break); ranking, same-rank disagreement, duplicates (a declared file beats an unlisted copy), and user-section precedence in `buildLibraryMap`; the ownership table; proposals (append once, vendor files only when they exist, fallback order); rendering determinism and TOML validity of the output |
 | Snapshot | Rendered `vhdl_ls.toml` for four fixtures: a single core; several cores with cross-library `use`; a `.qsf` that names only a `.qsys`, with generated Platform Designer output present; an existing user-written `vhdl_ls.toml` |
 | Integration | On the multi-core fixtures, `vhdl_lang -c vhdl_ls.toml` (the rust_hdl command-line frontend, which reads the same configuration as the language server) reports no diagnostics, so every cross-core name resolves; removing one generated library makes it fail. Tier 2: skipped when `vhdl_lang` is not installed, unless `REQUIRE_VHDL_LANG=1` |
 

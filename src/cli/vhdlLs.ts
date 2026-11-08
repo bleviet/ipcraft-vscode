@@ -14,9 +14,9 @@ export interface CliVhdlLsArgs {
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`;
 
 function printDetails(summary: VhdlLsConfigSummary, log: (message: string) => void): void {
-  if (summary.excludedDuplicates > 0) {
+  if (summary.excludedFiles > 0) {
     log(
-      `Excluded ${plural(summary.excludedDuplicates, 'duplicate file', 'duplicate files')}; see the "# excluded:" comments.`
+      `Excluded ${plural(summary.excludedFiles, 'file', 'files')}; see the "# excluded:" comments.`
     );
   }
   if (summary.missingLibraries.length > 0) {

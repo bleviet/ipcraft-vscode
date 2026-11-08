@@ -107,7 +107,7 @@ function renderProposal(
   missing: MissingLibrary,
   vendorFiles: ReadonlyMap<string, VendorFiles>
 ): string {
-  const { name, firstUse, otherFiles, candidates } = missing;
+  const { name, firstUse, otherFiles, candidates, exclude } = missing;
   const key = quoteKey(name);
   const others =
     otherFiles > 0 ? ` and ${otherFiles} other file${otherFiles === 1 ? '' : 's'}` : '';
@@ -134,6 +134,9 @@ function renderProposal(
     );
   }
   lines.push(`# [libraries.${key}]`, `# files = [${files.map(quotePath).join(', ')}]`);
+  if (!vendor && exclude.length > 0) {
+    lines.push(`# exclude = [${exclude.map(quotePath).join(', ')}]`);
+  }
   if (THIRD_PARTY.has(name)) {
     lines.push('# is_third_party = true');
   }

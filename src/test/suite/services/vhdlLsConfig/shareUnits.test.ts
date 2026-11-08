@@ -169,6 +169,104 @@ describe('shareUnits', () => {
     expect(result.get('defaultlib')).toEqual([{ path: 'lib/x.vhd', from: 'ext' }]);
   });
 
+  describe('closure inside the source library', () => {
+    const uvvm = (
+      extra: Record<string, string> = {},
+      tb = 'entity work.a_vvc'
+    ): Record<string, string> => ({
+      'tb.vhd': `architecture t of tb is\nbegin\n u : ${tb} port map (x);\n v : entity work.b_vvc port map (x);\nend;`,
+      'a_vvc.vhd': 'use work.methods_pkg.all;\nentity a_vvc is\nend;',
+      'a/methods_pkg.vhd': 'package methods_pkg is\nend;',
+      'b_vvc.vhd': 'use work.methods_pkg.all;\nentity b_vvc is\nend;',
+      'b/methods_pkg.vhd': 'package methods_pkg is\nend;',
+      ...extra,
+    });
+    const libs = (): LibraryFiles[] => [
+      { name: 'defaultlib', files: ['tb.vhd'] },
+      { name: 'lib_a', files: ['a_vvc.vhd', 'a/methods_pkg.vhd'] },
+      { name: 'lib_b', files: ['b_vvc.vhd', 'b/methods_pkg.vhd'] },
+    ];
+
+    it('does not share a file whose closure needs a name another library already supplied', () => {
+      const result = share(uvvm(), ['defaultlib'], libs());
+      expect(result.get('defaultlib')).toEqual([
+        { path: 'a/methods_pkg.vhd', from: 'lib_a' },
+        { path: 'a_vvc.vhd', from: 'lib_a' },
+      ]);
+    });
+
+    it('does not share a file whose closure needs a unit the target itself declares', () => {
+      const texts = uvvm({ 'own.vhd': 'package methods_pkg is\nend;' });
+      const l = libs();
+      l[0].files.push('own.vhd');
+      expect(share(texts, ['defaultlib'], l).size).toBe(0);
+    });
+
+    it('accepts a closure unit already shared from the same source library', () => {
+      const texts = uvvm({ 'a_two.vhd': 'use work.methods_pkg.all;\nentity a_two is\nend;' });
+      texts['tb.vhd'] += '\nuse work.a_two.all;';
+      const l = libs();
+      l[1].files.push('a_two.vhd');
+      const paths = share(texts, ['defaultlib'], l)
+        .get('defaultlib')
+        ?.map((f) => f.path);
+      expect(paths).toEqual(['a/methods_pkg.vhd', 'a_two.vhd', 'a_vvc.vhd']);
+    });
+
+    it('ignores a closure unit that nothing in the source library declares', () => {
+      const texts = uvvm({
+        'a_vvc.vhd': 'use work.elsewhere.all;\nentity a_vvc is\nend;',
+        'own.vhd': 'package elsewhere is\nend;',
+      });
+      const l = libs();
+      l[0].files.push('own.vhd');
+      expect(
+        share(texts, ['defaultlib'], l)
+          .get('defaultlib')
+          ?.map((f) => f.path)
+      ).toContain('a_vvc.vhd');
+    });
+  });
+
+  it('shares into a target whose own file is also listed in the source library', () => {
+    const result = share(
+      {
+        'tb.vhd': 'use work.p.all;\nentity tb is\nend;',
+        'c/q.vhd': 'package q is\nend;',
+        's/p.vhd': 'use work.q.all;\npackage p is\nend;',
+      },
+      ['defaultlib'],
+      [
+        { name: 'defaultlib', files: ['tb.vhd', 'c/q.vhd'] },
+        { name: 'slib', files: ['s/p.vhd', 'c/q.vhd'] },
+      ]
+    );
+    expect(result.get('defaultlib')).toEqual([{ path: 's/p.vhd', from: 'slib' }]);
+  });
+
+  it('resolves the references of a shared body inside the source library', () => {
+    const result = share(
+      {
+        'tb.vhd': 'use work.p.all;\nentity tb is\nend;',
+        's/p.vhd': 'package p is\nend;',
+        's/p_body.vhd': 'use work.q.all;\npackage body p is\nend;',
+        's/sq/q.vhd': 'package q is\nend;',
+        'o/q.vhd': 'package q is\nend;',
+      },
+      ['defaultlib'],
+      [
+        { name: 'aaa', files: ['o/q.vhd'] },
+        { name: 'defaultlib', files: ['tb.vhd'] },
+        { name: 'slib', files: ['s/p.vhd', 's/p_body.vhd', 's/sq/q.vhd'] },
+      ]
+    );
+    expect(result.get('defaultlib')).toEqual([
+      { path: 's/p.vhd', from: 'slib' },
+      { path: 's/p_body.vhd', from: 'slib' },
+      { path: 's/sq/q.vhd', from: 'slib' },
+    ]);
+  });
+
   it('skips a candidate that declares a unit the target already has', () => {
     const result = share(
       {

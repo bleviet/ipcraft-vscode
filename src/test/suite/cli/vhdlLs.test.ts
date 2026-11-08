@@ -33,6 +33,13 @@ describe('ipcraft vhdl-ls', () => {
     expect(log).toHaveBeenCalledWith(`Up to date: ${path.join(root, 'vhdl_ls.toml')}`);
   });
 
+  it('reports excluded files', async () => {
+    fs.writeFileSync(path.join(root, 'a2.vhd'), 'entity a is\nend entity;\n');
+    fs.writeFileSync(path.join(root, 'a3.vhd'), 'entity a is\nend entity;\n');
+    expect(await main(['vhdl-ls', '--root', root])).toBe(0);
+    expect(log).toHaveBeenCalledWith('Excluded 2 files; see the "# excluded:" comments.');
+  });
+
   it('prints the file text on --dry-run and writes nothing', async () => {
     expect(await main(['vhdl-ls', '--root', root, '--dry-run'])).toBe(0);
     expect(fs.existsSync(path.join(root, 'vhdl_ls.toml'))).toBe(false);

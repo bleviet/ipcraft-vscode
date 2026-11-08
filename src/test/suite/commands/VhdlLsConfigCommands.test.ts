@@ -16,7 +16,7 @@ const folder = (fsPath: string) => ({ uri: { fsPath }, name: fsPath, index: 0 })
 const summary = {
   libraries: 2,
   files: 5,
-  excludedDuplicates: 0,
+  excludedFiles: 0,
   missingLibraries: [],
   skippedEntries: 0,
   unscannedFiles: 0,
@@ -104,6 +104,21 @@ describe('generateVhdlLsConfig command', () => {
     await runCommand();
     expect(generate).toHaveBeenCalledTimes(1);
     expect(win.showInformationMessage).not.toHaveBeenCalled();
+  });
+
+  it('words the excluded count in the singular and plural', async () => {
+    generate.mockResolvedValue({ ...written, summary: { ...summary, excludedFiles: 1 } });
+    await runCommand();
+    expect(win.showInformationMessage).toHaveBeenLastCalledWith(
+      expect.stringContaining('1 file excluded'),
+      'Open'
+    );
+    generate.mockResolvedValue({ ...written, summary: { ...summary, excludedFiles: 2 } });
+    await runCommand();
+    expect(win.showInformationMessage).toHaveBeenLastCalledWith(
+      expect.stringContaining('2 files excluded'),
+      'Open'
+    );
   });
 
   it('opens the file when the user picks Open', async () => {

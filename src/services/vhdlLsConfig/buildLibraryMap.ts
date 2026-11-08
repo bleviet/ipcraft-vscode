@@ -4,11 +4,13 @@
  * reference but nothing defines. Deterministic output (sorted by library name and file path).
  */
 
-import * as path from 'path';
 import type { VhdlScan } from './vhdlUnitScanner';
+import { selectCopies } from './duplicateRule';
+import { proposeLibraryFiles } from './proposeLibraryFiles';
 import { scopeLibraries } from './scopeLibraries';
 import { shareUnits } from './shareUnits';
-import { createUserLibraryMatcher, type UserLibrary } from './userSection';
+import type { UserLibrary } from './userSection';
+import { availableLibraries, createUserClassifier, findUserDuplicates } from './userLibraryFiles';
 
 export type ClaimRank = 1 | 2 | 3 | 4;
 
@@ -53,6 +55,8 @@ export interface MissingLibrary {
   otherFiles: number;
   /** Glob patterns such as `libs/dsp/*.vhd` for directories that declare the used packages. */
   candidates: string[];
+  /** Root-relative paths inside those globs to leave out (duplicate copies, template files). */
+  exclude: string[];
 }
 
 export interface LibraryMap {
@@ -119,33 +123,30 @@ function placeFile(file: string, claims: Claim[]): Placement[] {
   }));
 }
 
-function removeDuplicates(
+/** Drops template files and duplicate primary units, keeping the best copy (see duplicateRule). */
+function selectLibraryFiles(
   name: string,
   placements: Placement[],
-  scans: BuildLibraryMapInput['scans']
+  scans: BuildLibraryMapInput['scans'],
+  available: ReadonlySet<string>
 ) {
-  const ordered = [...placements].sort(
-    (a, b) =>
-      a.duplicateRank - b.duplicateRank || a.file.length - b.file.length || byString(a.file, b.file)
-  );
-  const taken = new Map<string, { kind: string; file: string }>();
   const library: GeneratedLibrary = { name, files: [], excluded: [] };
-  for (const placement of ordered) {
-    const units = scans.get(placement.file)?.units ?? [];
-    const clash = units.find((u) => taken.has(u.name));
-    if (clash) {
-      const owner = taken.get(clash.name) as { kind: string; file: string };
-      library.excluded.push({
-        path: placement.file,
-        reason: `duplicate of ${owner.kind} ${clash.name} in ${owner.file}`,
-      });
-      continue;
+  const byFile = new Map(placements.map((p) => [p.file, p]));
+  const copies = [];
+  for (const { file, duplicateRank } of placements) {
+    const scan = scans.get(file);
+    if (scan?.hasPlaceholders) {
+      library.excluded.push({ path: file, reason: 'template: contains ${...} placeholders' });
+    } else {
+      copies.push({ file, duplicateRank, scan });
     }
-    for (const unit of units) {
-      taken.set(unit.name, { kind: unit.kind, file: placement.file });
-    }
-    library.files.push({ path: placement.file, provenance: placement.provenance });
   }
+  const { kept, excluded } = selectCopies(copies, available);
+  for (const { file } of kept) {
+    const placement = byFile.get(file) as Placement;
+    library.files.push({ path: file, provenance: placement.provenance });
+  }
+  library.excluded.push(...excluded.map((e) => ({ path: e.file, reason: e.reason })));
   library.files.sort((a, b) => byString(a.path, b.path));
   library.excluded.sort((a, b) => byString(a.path, b.path));
   return library;
@@ -153,14 +154,11 @@ function removeDuplicates(
 
 function findMissing(
   libraries: GeneratedLibrary[],
-  userLibraries: UserLibrary[],
+  known: ReadonlySet<string>,
+  available: ReadonlySet<string>,
+  userMatched: ReadonlySet<string>,
   scans: BuildLibraryMapInput['scans']
 ): MissingLibrary[] {
-  const known = new Set([
-    ...BUILT_IN_LIBRARIES,
-    ...libraries.map((l) => l.name),
-    ...userLibraries.map((l) => l.name),
-  ]);
   const keptFiles = libraries.flatMap((l) => l.files.map((f) => f.path));
   const references = new Map<string, { file: string; line: number }[]>();
   const useSites = new Map<string, { file: string; line: number }[]>();
@@ -185,7 +183,9 @@ function findMissing(
     }
   }
 
-  return [...references.keys()].sort(byString).map((name) => {
+  const missingNames = [...references.keys()].sort(byString);
+  const proposable = new Map([...scans].filter(([file]) => !userMatched.has(file)));
+  return missingNames.map((name) => {
     const bySite = (a: { file: string; line: number }, b: { file: string; line: number }): number =>
       byString(a.file, b.file) || a.line - b.line;
     const clauses = references.get(name) ?? [];
@@ -193,18 +193,19 @@ function findMissing(
     // Point at the first reference (use clause or instantiation), else at the `library` clause.
     const firstUse = [...(uses.length > 0 ? uses : clauses)].sort(bySite)[0];
     const wanted = usedUnits.get(name) ?? new Set<string>();
-    const candidates = new Set<string>();
-    for (const [file, scan] of scans) {
-      if (scan?.units.some((u) => wanted.has(u.name))) {
-        const dir = path.posix.dirname(file);
-        candidates.add(`${dir === '.' ? '' : `${dir}/`}*${path.posix.extname(file)}`);
-      }
-    }
+    const proposal = proposeLibraryFiles({
+      name,
+      wanted,
+      candidates: proposable,
+      matchedByUser: userMatched,
+      known: available,
+    });
     return {
       name,
       firstUse,
       otherFiles: new Set([...clauses, ...uses].map((s) => s.file)).size - 1,
-      candidates: [...candidates].sort(byString),
+      candidates: proposal.files,
+      exclude: proposal.exclude,
     };
   });
 }
@@ -275,14 +276,26 @@ export function buildLibraryMap(input: BuildLibraryMapInput): LibraryMap {
   }
   const files = [...new Set([...input.vhdlFiles, ...claimsByFile.keys()])].sort(byString);
 
-  const userMatchers = input.userLibraries.map(createUserLibraryMatcher);
+  const classify = createUserClassifier(input.userLibraries);
   const userNames = new Set(input.userLibraries.map((l) => l.name));
   const userFiles = new Map<string, string[]>(input.userLibraries.map((l) => [l.name, []]));
+  const userMatched = new Set<string>();
   const byLibrary = new Map<string, Placement[]>();
+  const removedByUser: ExcludedFile[] = [];
   for (const file of files) {
-    const matched = input.userLibraries.filter((_, i) => userMatchers[i](file));
-    if (matched.length > 0) {
-      matched.forEach((l) => (userFiles.get(l.name) as string[]).push(file));
+    const verdict = classify(file, claimsByFile.has(file));
+    if (verdict?.included) {
+      verdict.included.forEach((name) => (userFiles.get(name) as string[]).push(file));
+      userMatched.add(file);
+      continue;
+    }
+    if (verdict?.removedBy !== undefined) {
+      // Unlisted and removed by a user library's exclude: it must not leak into defaultlib, and
+      // it is no proposal candidate. A user-defined defaultlib already explains the removal.
+      userMatched.add(file);
+      if (!userNames.has(DEFAULT_LIBRARY)) {
+        removedByUser.push({ path: file, reason: `excluded by libraries.${verdict.removedBy}` });
+      }
       continue;
     }
     for (const placement of placeFile(file, claimsByFile.get(file) ?? [])) {
@@ -292,11 +305,54 @@ export function buildLibraryMap(input: BuildLibraryMapInput): LibraryMap {
     }
   }
 
+  const duplicates = findUserDuplicates(
+    (byLibrary.get(DEFAULT_LIBRARY) ?? []).map((p) => ({
+      file: p.file,
+      unlisted: p.duplicateRank >= UNLISTED_RANK,
+    })),
+    userFiles,
+    input.scans,
+    new Set([...byLibrary.keys(), ...userNames, ...BUILT_IN_LIBRARIES])
+  );
+  if (duplicates.length > 0) {
+    const gone = new Set(duplicates.map((d) => d.path));
+    gone.forEach((file) => userMatched.add(file));
+    const rest = (byLibrary.get(DEFAULT_LIBRARY) ?? []).filter((p) => !gone.has(p.file));
+    if (rest.length > 0) {
+      byLibrary.set(DEFAULT_LIBRARY, rest);
+    } else {
+      byLibrary.delete(DEFAULT_LIBRARY);
+    }
+    if (!userNames.has(DEFAULT_LIBRARY)) {
+      removedByUser.push(...duplicates);
+    }
+  }
+
   const scopeNames = splitDefaultLibrary(byLibrary, userNames, input.scans);
 
+  const known = new Set([...byLibrary.keys(), ...userNames, ...BUILT_IN_LIBRARIES]);
+  if (removedByUser.length > 0) {
+    known.add(DEFAULT_LIBRARY);
+  }
+  const available = availableLibraries(known, userMatched, input.scans);
   const libraries = [...byLibrary.keys()]
     .sort(byString)
-    .map((name) => removeDuplicates(name, byLibrary.get(name) as Placement[], input.scans));
+    .map((name) =>
+      selectLibraryFiles(name, byLibrary.get(name) as Placement[], input.scans, available)
+    );
+  if (removedByUser.length > 0) {
+    let defaultLib = libraries.find((l) => l.name === DEFAULT_LIBRARY);
+    if (!defaultLib) {
+      defaultLib = { name: DEFAULT_LIBRARY, files: [], excluded: [] };
+      libraries.push(defaultLib);
+      libraries.sort((a, b) => byString(a.name, b.name));
+    }
+    defaultLib.excluded.push(...removedByUser);
+    defaultLib.excluded.sort((a, b) => byString(a.path, b.path));
+  }
   addSharedUnits(libraries, new Set([DEFAULT_LIBRARY, ...scopeNames]), userFiles, input.scans);
-  return { libraries, missing: findMissing(libraries, input.userLibraries, input.scans) };
+  return {
+    libraries,
+    missing: findMissing(libraries, known, available, userMatched, input.scans),
+  };
 }

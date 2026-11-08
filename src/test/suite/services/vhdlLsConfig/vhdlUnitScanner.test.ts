@@ -139,4 +139,20 @@ describe('scanVhdl', () => {
     expect([...workReferences(scanVhdl(src), noInst)].sort()).toEqual(['foo', 'skip']);
     expect(workReferences(undefined, all).size).toBe(0);
   });
+
+  it('flags ${...} placeholders in code but not in comments or strings', () => {
+    expect(scanVhdl('package p is\n  constant c : integer := ${X};\nend;').hasPlaceholders).toBe(
+      true
+    );
+    expect(scanVhdl('-- ${X}\n/* ${Y} */\npackage p is\nend;').hasPlaceholders).toBe(false);
+    expect(scanVhdl('package p is\n  constant s : string := "${X}";\nend;').hasPlaceholders).toBe(
+      false
+    );
+  });
+
+  it('blanks extended identifiers so `${` inside them is not a placeholder', () => {
+    const scan = scanVhdl('package p is\n  signal \\a${b}\\ : bit;\nend;');
+    expect(scan.hasPlaceholders).toBe(false);
+    expect(scan.units.map((u) => u.name)).toEqual(['p']);
+  });
 });

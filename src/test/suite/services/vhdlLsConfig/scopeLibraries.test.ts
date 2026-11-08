@@ -152,4 +152,13 @@ describe('scopeLibraries', () => {
     const reversed = Object.fromEntries(Object.entries(spec).reverse());
     expect(split(reversed)).toEqual(split(spec));
   });
+
+  it('ignores template files, so a template duplicating a unit causes no split', () => {
+    const result = split({
+      'a/tpl.vhd': { text: `${ent('TestCtrl')}\n-- x\n constant c : integer := \${X};` },
+      'b/real.vhd': { text: ent('TestCtrl') },
+    });
+    expect(result.scopes).toEqual([]);
+    expect(result.defaultFiles.sort()).toEqual(['a/tpl.vhd', 'b/real.vhd']);
+  });
 });

@@ -52,7 +52,7 @@ describe('generateVhdlLsConfig fixtures', () => {
     const result = written(await run(root));
     expect(result.text).toMatchSnapshot();
     expect(result.text).not.toContain('X/synthesis');
-    expect(result.summary.excludedDuplicates).toBe(0);
+    expect(result.summary.excludedFiles).toBe(0);
   });
 
   it('(d) asks before replacing a user-written file and backs it up with force', async () => {
@@ -177,5 +177,23 @@ describe('generateVhdlLsConfig behaviour', () => {
     });
     const result = written(await run(root));
     expect(result.summary.skippedEntries).toBe(2);
+  });
+
+  it('(e) drops user-excluded files silently when the user section defines defaultlib', async () => {
+    const root = repo({
+      ...SINGLE_CORE,
+      'x/a.vhd': 'entity xa is\nend entity;\n',
+      'x/b.vhd': 'entity xb is\nend entity;\n',
+    });
+    written(await run(root));
+    fs.appendFileSync(
+      path.join(root, 'vhdl_ls.toml'),
+      "[libraries.defaultlib]\nfiles = ['x/*.vhd']\nexclude = ['x/b.vhd']\n"
+    );
+    const result = written(await run(root));
+    expect(result.status).toBe('written');
+    const parsed = toml.parse(result.text) as { libraries: Record<string, unknown> };
+    expect(Object.keys(parsed.libraries)).toEqual(['defaultlib']);
+    expect(result.text).not.toContain('excluded by libraries.defaultlib');
   });
 });

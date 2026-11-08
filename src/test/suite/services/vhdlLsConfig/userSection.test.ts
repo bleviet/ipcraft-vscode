@@ -37,19 +37,19 @@ describe('createUserLibraryMatcher', () => {
   const lib = { name: 'x', files: ['src/**/*.vhd', 'top.vhd'], exclude: ['src/old/*.vhd'] };
 
   it('matches ** and * globs against root-relative paths', () => {
-    expect(createUserLibraryMatcher(lib)('src/a.vhd')).toBe(true);
-    expect(createUserLibraryMatcher(lib)('src/deep/er/a.vhd')).toBe(true);
-    expect(createUserLibraryMatcher(lib)('top.vhd')).toBe(true);
-    expect(createUserLibraryMatcher(lib)('other/a.vhd')).toBe(false);
+    expect(createUserLibraryMatcher(lib)('src/a.vhd')).toBe('included');
+    expect(createUserLibraryMatcher(lib)('src/deep/er/a.vhd')).toBe('included');
+    expect(createUserLibraryMatcher(lib)('top.vhd')).toBe('included');
+    expect(createUserLibraryMatcher(lib)('other/a.vhd')).toBe('none');
   });
 
   it('applies exclude patterns', () => {
-    expect(createUserLibraryMatcher(lib)('src/old/a.vhd')).toBe(false);
+    expect(createUserLibraryMatcher(lib)('src/old/a.vhd')).toBe('excluded');
   });
 
   it('keeps * within one path segment', () => {
     expect(
       createUserLibraryMatcher({ name: 'x', files: ['a/*.vhd'], exclude: [] })('a/b/c.vhd')
-    ).toBe(false);
+    ).toBe('none');
   });
 });

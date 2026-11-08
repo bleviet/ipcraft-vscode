@@ -42,8 +42,10 @@ function vendorInstalls(folder: vscode.WorkspaceFolder): ReturnType<typeof resol
 
 function describe(summary: VhdlLsConfigSummary): string {
   const parts = [`${summary.libraries} libraries, ${summary.files} files`];
-  if (summary.excludedDuplicates > 0) {
-    parts.push(`${summary.excludedDuplicates} duplicates excluded`);
+  if (summary.excludedFiles > 0) {
+    parts.push(
+      `${summary.excludedFiles} ${summary.excludedFiles === 1 ? 'file' : 'files'} excluded`
+    );
   }
   if (summary.missingLibraries.length > 0) {
     parts.push(`missing libraries proposed: ${summary.missingLibraries.join(', ')}`);

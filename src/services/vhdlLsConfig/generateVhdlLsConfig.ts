@@ -34,7 +34,7 @@ export interface VhdlLsConfigOptions {
 export interface VhdlLsConfigSummary {
   libraries: number;
   files: number;
-  excludedDuplicates: number;
+  excludedFiles: number;
   missingLibraries: string[];
   skippedEntries: number;
   unscannedFiles: number;
@@ -256,7 +256,7 @@ export async function generateVhdlLsConfig(
     const summary: VhdlLsConfigSummary = {
       libraries: map.libraries.length,
       files: map.libraries.reduce((n, l) => n + l.files.length, 0),
-      excludedDuplicates: map.libraries.reduce((n, l) => n + l.excluded.length, 0),
+      excludedFiles: map.libraries.reduce((n, l) => n + l.excluded.length, 0),
       missingLibraries: map.missing.map((m) => m.name),
       skippedEntries,
       unscannedFiles: unscanned,

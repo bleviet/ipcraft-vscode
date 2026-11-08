@@ -49,6 +49,16 @@ const segmentsOf = (dir: string): string[] => (dir === '' ? [] : dir.split('/'))
 
 function describe(file: ScopeInput['files'][number], scan: VhdlScan | undefined): FileInfo {
   const dir = path.posix.dirname(file.path);
+  if (scan?.hasPlaceholders) {
+    // A template declares and references nothing; the library builder excludes it.
+    return {
+      path: file.path,
+      dir: dir === '.' ? '' : dir,
+      listed: file.listed,
+      declared: new Set(),
+      refs: new Set(),
+    };
+  }
   return {
     path: file.path,
     dir: dir === '.' ? '' : dir,

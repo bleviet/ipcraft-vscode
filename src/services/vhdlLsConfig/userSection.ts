@@ -103,9 +103,17 @@ function globToRegExp(pattern: string): RegExp {
   return new RegExp(`^${source}$`);
 }
 
+/** `included` by the library, `excluded` (matches `files` but also `exclude`), or `none`. */
+export type UserMatch = 'included' | 'excluded' | 'none';
+
 /** Compiles the library's globs once; the matcher takes a root-relative POSIX path. */
-export function createUserLibraryMatcher(library: UserLibrary): (file: string) => boolean {
+export function createUserLibraryMatcher(library: UserLibrary): (file: string) => UserMatch {
   const files = library.files.map(globToRegExp);
   const exclude = library.exclude.map(globToRegExp);
-  return (file) => files.some((re) => re.test(file)) && !exclude.some((re) => re.test(file));
+  return (file) => {
+    if (!files.some((re) => re.test(file))) {
+      return 'none';
+    }
+    return exclude.some((re) => re.test(file)) ? 'excluded' : 'included';
+  };
 }
