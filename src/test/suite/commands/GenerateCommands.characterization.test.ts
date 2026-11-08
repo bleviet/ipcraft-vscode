@@ -20,6 +20,7 @@ describe('registerGeneratorCommands registration surface', () => {
       busDefinitionsDir: '/bus_definitions',
       busDefinitionSchemaPath: '/schemas/bus_definition.schema.json',
       fontsDir: '/fonts',
+      resvgWasmPath: '/resvg.wasm',
     };
 
     registerGeneratorCommands(context, resourceRoots);

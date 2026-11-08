@@ -101,16 +101,23 @@ const extensionConfig = {
           to: "packs",
         },
         {
-          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-sans", "files", "ibm-plex-sans-latin-400-normal.woff2"),
+          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-sans", "files", "ibm-plex-sans-latin-400-normal.woff"),
           to: "resources/fonts/[name][ext]",
         },
         {
-          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-sans", "files", "ibm-plex-sans-latin-600-normal.woff2"),
+          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-sans", "files", "ibm-plex-sans-latin-600-normal.woff"),
           to: "resources/fonts/[name][ext]",
         },
         {
-          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-mono", "files", "ibm-plex-mono-latin-400-normal.woff2"),
+          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-mono", "files", "ibm-plex-mono-latin-400-normal.woff"),
           to: "resources/fonts/[name][ext]",
+        },
+        // The rasterizer of `ipcraft render` (PNG and JPG), read as bytes by dist/cli.js.
+        {
+          from: path.resolve(projectRoot, "node_modules", "@resvg", "resvg-wasm", "index_bg.wasm"),
+          to: "resources/resvg.wasm",
+          // Copied as is.
+          info: { minimized: true },
         },
         // One copy of the layout engine, loaded by the system viewer page (global ELK) and
         // required by dist/cli.js; neither bundle embeds it.

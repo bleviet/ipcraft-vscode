@@ -1,7 +1,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { inflateSync } from 'zlib';
 import type { SystemGraph } from '../domain/systemGraph';
 import { FONT_FILES, fontFaceCss, type FontBytes } from '../shared/render/fontFaces';
+import { rasterize } from '../shared/render/raster';
+import { woffToSfnt } from '../shared/render/woffToSfnt';
 import { paletteFor, type RenderTheme } from '../shared/render/palette';
 import { plexTextMeasure } from '../shared/render/textMetrics';
 import { renderSystemLevelSvg } from '../shared/render/systemLevelSvg';
@@ -11,13 +14,13 @@ import type { ResourceRoots } from '../services/ResourceRoots';
 import { shownLevels } from '../webview/systemDiagram/expansion';
 import { buildElkInput, toFlowElements } from '../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../webview/systemDiagram/layout/runElkLayout';
-import { isIpCoreFile } from './argv';
+import { isIpCoreFile, renderOutputFormat } from './argv';
 import { closestNames } from './closestNames';
 import { renderIpCoreFile } from './renderIpCore';
 
 export interface CliRenderArgs {
   inputPath: string;
-  /** Output `.svg` path. */
+  /** Output path; its extension (`.svg`, `.png`, `.jpg`, `.jpeg`) picks the format. */
   out: string;
   level: string;
   /** Hierarchy blocks to draw expanded (of `level`, or of an expanded block), by instance path or name. */
@@ -26,6 +29,10 @@ export interface CliRenderArgs {
   grid: boolean;
   legend: boolean;
   background: 'editor' | 'transparent';
+  /** Pixels per SVG unit; PNG and JPG only. */
+  scale: number;
+  /** JPEG quality, 1-100; JPG only. */
+  quality: number;
 }
 
 export interface CliRenderResult {
@@ -53,6 +60,24 @@ async function loadFonts(fontsDir: string): Promise<FontBytes> {
   const sans600 = await read(FONT_FILES.sans600);
   const mono400 = await read(FONT_FILES.mono400);
   return { sans400, sans600, mono400 };
+}
+
+/** The SVG as PNG or JPG bytes; the fonts are the same WOFF files the SVG embeds, as sfnt. */
+async function rasterizeSvg(
+  svg: string,
+  format: 'png' | 'jpg',
+  args: CliRenderArgs,
+  fonts: FontBytes,
+  wasmPath: string
+): Promise<Uint8Array> {
+  return rasterize(svg, {
+    format,
+    scale: args.scale,
+    quality: args.quality,
+    background: format === 'jpg' ? paletteFor(args.theme).background : undefined,
+    fonts: Object.values(fonts).map((woff) => woffToSfnt(woff, inflateSync)),
+    loadWasm: () => readRequired(wasmPath, 'Rasterizer module'),
+  });
 }
 
 /**
@@ -133,17 +158,25 @@ async function renderSystemDesign(
   });
 }
 
-/** Core logic behind `ipcraft render`: draws a system design level or an IP core symbol as an SVG file. */
+/** Core logic behind `ipcraft render`: draws a system design level or an IP core symbol as an SVG, PNG or JPG file. */
 export async function runCliRender(
   args: CliRenderArgs,
-  resourceRoots: Pick<ResourceRoots, 'fontsDir' | 'busDefinitionsDir' | 'busDefinitionSchemaPath'>
+  resourceRoots: Pick<
+    ResourceRoots,
+    'fontsDir' | 'busDefinitionsDir' | 'busDefinitionSchemaPath' | 'resvgWasmPath'
+  >
 ): Promise<CliRenderResult> {
   const outputPath = path.resolve(args.out);
   const result: CliRenderResult = { success: false, outputPath };
   try {
     const inputPath = path.resolve(args.inputPath);
     const text = (await readRequired(inputPath, 'Input file')).toString('utf8');
-    const fonts = fontFaceCss(await loadFonts(resourceRoots.fontsDir));
+    const format = renderOutputFormat(outputPath);
+    if (!format) {
+      throw new Error(`Unsupported output file '${args.out}'`);
+    }
+    const fontBytes = await loadFonts(resourceRoots.fontsDir);
+    const fonts = fontFaceCss(fontBytes);
     const svg = isIpCoreFile(inputPath)
       ? await renderIpCoreFile(inputPath, text, resourceRoots, {
           palette: paletteFor(args.theme),
@@ -153,7 +186,12 @@ export async function runCliRender(
         })
       : await renderSystemDesign(inputPath, text, args, fonts);
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
-    await fs.writeFile(outputPath, svg, 'utf8');
+    await fs.writeFile(
+      outputPath,
+      format === 'svg'
+        ? svg
+        : await rasterizeSvg(svg, format, args, fontBytes, resourceRoots.resvgWasmPath)
+    );
     result.success = true;
   } catch (err) {
     result.error = err instanceof Error ? err.message : String(err);

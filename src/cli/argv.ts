@@ -13,6 +13,17 @@ export function isIpCoreFile(file: string): boolean {
   return /\.ip\.ya?ml$/i.test(file);
 }
 
+/** The image format the `--out` file extension asks for, or undefined for an unsupported one. */
+export function renderOutputFormat(out: string): 'svg' | 'png' | 'jpg' | undefined {
+  if (/\.svg$/i.test(out)) {
+    return 'svg';
+  }
+  if (/\.png$/i.test(out)) {
+    return 'png';
+  }
+  return /\.jpe?g$/i.test(out) ? 'jpg' : undefined;
+}
+
 export function usageText(): string {
   return `ipcraft — headless IPCraft HDL / vendor-project generator
 
@@ -24,10 +35,11 @@ Usage:
                                           self-contained folder (or .zip with --zip)
   ipcraft migrate <file>... [--check]     Upgrade .ip.yml files to the latest format version and
                                           convert legacy snake_case keys in .ip.yml / .mm.yml files
-  ipcraft render <design.tcl|design.qsys|ip.yml> --out <file.svg> [options]
+  ipcraft render <design.tcl|design.qsys|ip.yml> --out <file.svg|png|jpg> [options]
                                           Draw one level of a system design (Vivado block design
                                           .tcl, Platform Designer .qsys or qsys-script .tcl), or
-                                          the symbol of an IP core (.ip.yml), as an SVG image
+                                          the symbol of an IP core (.ip.yml), as an SVG, PNG or
+                                          JPG image (the --out extension picks the format)
 
 Options:
   --target <quartus|vivado>[,<...>]  Vendor target(s) to scaffold a project for
@@ -55,7 +67,11 @@ Options:
   --theme <light|dark>               [render only] Image palette (default: light)
   --no-grid                          [render only] Omit the background grid
   --no-legend                        [render, system designs only] Omit the legend
-  --background <editor|transparent>  [render only] Image background (default: editor)
+  --background <editor|transparent>  [render only] Image background (default: editor);
+                                      'transparent' cannot be used with a JPG
+  --scale <1-4>                      [render, PNG and JPG only] Pixels per SVG unit, an integer
+                                      (default: 2)
+  --quality <1-100>                  [render, JPG only] JPEG quality (default: 90)
   -h, --help                          Show this help
 
 Examples:
@@ -65,6 +81,8 @@ Examples:
   ipcraft package path/to.ip.yml --out dist/my_ip --zip
   ipcraft render bd/system.tcl --out docs/img/system.svg --expand /dsp_pipeline --theme dark
   ipcraft render path/to.ip.yml --out docs/img/core.svg --no-grid
+  ipcraft render bd/system.tcl --out docs/img/system.png --scale 3
+  ipcraft render path/to.ip.yml --out docs/img/core.jpg --quality 80
 `;
 }
 
@@ -236,9 +254,17 @@ const VALUE_OPTIONS: ReadonlySet<string> = new Set([
   '--expand',
   '--theme',
   '--background',
+  '--scale',
+  '--quality',
 ]);
 
-/** Parses `render` argv: `<design> --out <file.svg> [--level] [--expand] [--theme] [--no-grid] [--no-legend] [--background]`. */
+/** The integer `text` names within `[min, max]`, or undefined. */
+function parseIntegerInRange(text: string, min: number, max: number): number | undefined {
+  const value = /^\d+$/.test(text) ? Number(text) : NaN;
+  return value >= min && value <= max ? value : undefined;
+}
+
+/** Parses `render` argv: `<design> --out <file.svg|png|jpg> [--level] [--expand] [--theme] [--no-grid] [--no-legend] [--background] [--scale] [--quality]`. */
 function parseRenderArgs(rest: string[]): ParsedArgv {
   const positional: string[] = [];
   const args: Omit<CliRenderArgs, 'inputPath' | 'out'> = {
@@ -248,7 +274,11 @@ function parseRenderArgs(rest: string[]): ParsedArgv {
     grid: true,
     legend: true,
     background: 'editor',
+    scale: 2,
+    quality: 90,
   };
+  let scaleGiven = false;
+  let qualityGiven = false;
   let out: string | undefined;
   const systemOnly: string[] = [];
   for (let i = 0; i < rest.length; i++) {
@@ -296,6 +326,32 @@ function parseRenderArgs(rest: string[]): ParsedArgv {
         args.background = background;
         break;
       }
+      case '--scale': {
+        const text = value();
+        const scale = parseIntegerInRange(text, 1, 4);
+        if (scale === undefined) {
+          return {
+            kind: 'error',
+            message: `Invalid --scale '${text}': expected an integer from 1 to 4`,
+          };
+        }
+        scaleGiven = true;
+        args.scale = scale;
+        break;
+      }
+      case '--quality': {
+        const text = value();
+        const quality = parseIntegerInRange(text, 1, 100);
+        if (quality === undefined) {
+          return {
+            kind: 'error',
+            message: `Invalid --quality '${text}': expected an integer from 1 to 100`,
+          };
+        }
+        qualityGiven = true;
+        args.quality = quality;
+        break;
+      }
       case '--no-grid':
         args.grid = false;
         break;
@@ -317,7 +373,7 @@ function parseRenderArgs(rest: string[]): ParsedArgv {
     return { kind: 'error', message: `Unexpected argument '${positional[1]}'` };
   }
   if (!out) {
-    return { kind: 'error', message: "Missing required option: '--out <file.svg>'" };
+    return { kind: 'error', message: "Missing required option: '--out <file.svg|png|jpg>'" };
   }
   if (isIpCoreFile(positional[0]) && systemOnly.length > 0) {
     return {
@@ -325,16 +381,23 @@ function parseRenderArgs(rest: string[]): ParsedArgv {
       message: `Option '${systemOnly[0]}' is only for system designs, not for an .ip.yml`,
     };
   }
-  if (/\.(png|jpe?g)$/i.test(out)) {
+  const format = renderOutputFormat(out);
+  if (!format) {
     return {
       kind: 'error',
-      message: 'PNG and JPG output are not supported yet; use .svg',
+      message: `Unsupported output file '${out}': the extension must be .svg, .png, .jpg or .jpeg`,
     };
   }
-  if (!/\.svg$/i.test(out)) {
+  if (format === 'svg' && scaleGiven) {
+    return { kind: 'error', message: '--scale applies to PNG and JPG, not to an .svg output' };
+  }
+  if (format !== 'jpg' && qualityGiven) {
+    return { kind: 'error', message: '--quality applies to JPG output only' };
+  }
+  if (format === 'jpg' && args.background === 'transparent') {
     return {
       kind: 'error',
-      message: `Unsupported output file '${out}': the extension must be .svg`,
+      message: 'JPG cannot be transparent; use .png or --background editor',
     };
   }
   if (!args.level.startsWith('/')) {

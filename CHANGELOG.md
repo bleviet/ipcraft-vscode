@@ -10,6 +10,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ### New
 
+- **PNG and JPG images from the command line.** `ipcraft render design.tcl --out image.png` (or `.jpg`) now writes a raster image of a system design or an IP core symbol, with `--scale` (1 to 4, default 2) for the size and `--quality` (1 to 100, default 90) for JPG. The text uses the same IBM Plex fonts as the SVG, and the same command always gives the same file. A JPG cannot be transparent; use PNG with `--background transparent`.
 - **Draw an IP core symbol as an image from the command line.** `ipcraft render core.ip.yml --out core.svg` draws the block the IP core editor shows (ports, bus interfaces, generics, dependencies and description) as an SVG image for documentation, in a light (default) or dark palette, with or without the grid. The same command always gives the same file.
 - **Draw a system design as an image from the command line.** `ipcraft render design.tcl --out image.svg` draws a level of a Vivado block design or a Platform Designer system as an SVG image you can drop into documentation, in a light (default) or dark palette, with or without the grid and legend, and with chosen hierarchy blocks expanded. The same command always gives the same file, so committed images only change when the design does.
 - **Grow an isolated view one step at a time.** In an isolated view, + and - in the toolbar show the blocks one more or one fewer connection away, until everything connected is on screen. The + and - keys do the same while the canvas has focus.
