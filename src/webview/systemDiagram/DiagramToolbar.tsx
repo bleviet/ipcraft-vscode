@@ -8,8 +8,10 @@ interface DiagramToolbarProps {
   graph: SystemGraph;
   levelPath: string;
   query: string;
+  /** The Search instances box, which Ctrl/Cmd+F focuses. */
+  searchInputRef: React.Ref<HTMLInputElement>;
   searchCounter: string;
-  /** Clocks and resets is on: the wires are drawn, colored by domain, with the domain decorations. */
+  /** Clocks and resets is on: the clock and reset pins are colored by domain, with the domain decorations. */
   clocksOn: boolean;
   /** The count chip next to the Clocks and resets toggle: the crossings, else the number of domains. */
   clockSummary: ToolbarSummary;
@@ -44,6 +46,7 @@ export function DiagramToolbar({
   graph,
   levelPath,
   query,
+  searchInputRef,
   searchCounter,
   clocksOn,
   clockSummary,
@@ -106,6 +109,7 @@ export function DiagramToolbar({
       )}
       <div className="flex-1" />
       <input
+        ref={searchInputRef}
         type="search"
         className="sd-input w-[220px] min-w-0"
         placeholder="Search instances"
@@ -136,7 +140,7 @@ export function DiagramToolbar({
           type="button"
           className="sd-tool"
           aria-pressed={clocksOn}
-          title="Draw clock and reset wires colored by domain, with frequencies and clock domain crossings"
+          title="Color clock and reset pins by domain, with frequencies and clock domain crossings"
           onClick={() => onClocksChange(!clocksOn)}
         >
           Clocks and resets

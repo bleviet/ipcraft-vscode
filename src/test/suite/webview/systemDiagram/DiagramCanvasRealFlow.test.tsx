@@ -42,7 +42,6 @@ it('keeps the viewport when the layout fails and shows the error over the canvas
     isolated: false,
     review: null,
     clocks: clockContextOf(graph),
-    drawClockReset: false,
     focusedPin: null,
     query: '',
     onSelect: jest.fn(),
@@ -83,7 +82,6 @@ it('fits on a double-click of the real pane but not of a real node', async () =>
       isolated={false}
       review={null}
       clocks={clockContextOf(graph)}
-      drawClockReset={false}
       focusedPin={null}
       query=""
       onSelect={jest.fn()}

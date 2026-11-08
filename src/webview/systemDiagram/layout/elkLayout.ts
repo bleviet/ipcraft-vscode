@@ -2,9 +2,9 @@
  * Pure conversion between a {@link SystemGraph} level and ELK / React Flow.
  * One ELK graph per level: a node per instance and per boundary pin, a
  * fixed-position port per pin, and one edge per net sink from the net driver.
- * Clock and reset nets are edges too, and their pins reserve room for a badge:
- * the layout depends on no view toggle, the canvas draws the wires or the
- * badges (see `drawnLayout.ts`). An expanded hierarchy block is a compound node
+ * The data and interface nets place the blocks (see `placementEdges.ts`). A
+ * clock or reset net is never a wire: its pins show a net-name badge, in the
+ * room their port labels reserve. An expanded hierarchy block is a compound node
  * holding its inner level (see `expandedLayout.ts`); the flow nodes stay flat,
  * in absolute coordinates.
  */
@@ -28,12 +28,14 @@ import { extendRouteEnds } from './edgePoints';
 import { compoundNode, frameData } from './expandedLayout';
 import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
 import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
+import { placementEdges } from './placementEdges';
 import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, pinRow, splitSides } from './pinRows';
 import {
   boundaryId,
   cellCount,
   endpointKey,
   instanceSubtitle,
+  isClockOrReset,
   netsByEndpoint,
   pinRole,
 } from '../model';
@@ -142,21 +144,11 @@ function boundaryNode(
 ): ElkNode {
   const id = boundaryId(levelPath, pin.name);
   const side = boundarySide(pin);
-  const role = pinRole(pin, true);
-  const layoutOptions: Record<string, string> = {
-    'org.eclipse.elk.portConstraints': 'FIXED_POS',
-    ...PORT_LABEL_OPTIONS,
-  };
-  if (role === 'source') {
-    layoutOptions['elk.layered.layering.layerConstraint'] = 'FIRST';
-  } else if (role === 'sink') {
-    layoutOptions['elk.layered.layering.layerConstraint'] = 'LAST';
-  }
   return {
     id,
     width,
     height: BOUNDARY_HEIGHT,
-    layoutOptions,
+    layoutOptions: { 'org.eclipse.elk.portConstraints': 'FIXED_POS', ...PORT_LABEL_OPTIONS },
     ports: [
       {
         id: portId(id, pin.name),
@@ -185,7 +177,7 @@ interface BuildContext {
 function elkEdges(context: BuildContext, levelPath: string): ElkExtendedEdge[] {
   const { graph, options } = context;
   const edges = levelEdges(graph, levelPath);
-  return (
+  return placementEdges(
     levelPath === context.levelPath
       ? edges.filter((edge) => options.isolate?.edgeIds.has(edge.id) ?? true)
       : remapBoundaryEnds(edges, levelPath)
@@ -391,7 +383,8 @@ export function toFlowElements(
   for (const elkEdge of layoutResult.edges ?? []) {
     const section = elkEdge.sections?.[0];
     const net = netsById.get(elkEdge.id.slice(0, elkEdge.id.lastIndexOf('#')));
-    if (!section || !net) {
+    // A clock or reset edge only anchors a block in the layout; it is no wire.
+    if (!section || !net || isClockOrReset(net)) {
       continue;
     }
     const [source, sourceHandle] = splitPort(elkEdge.sources[0]);

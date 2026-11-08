@@ -5,7 +5,7 @@ import type {
   DiagramFlowEdge,
   DiagramFlowNode,
 } from '../../../../webview/systemDiagram/layout/elkLayout';
-import { loadFixtureGraph, fakeMeasure } from './fixtureGraph';
+import { loadVersalClockGraph, fakeMeasure } from './fixtureGraph';
 
 const badge = { netId: 'n', netName: 'n', category: 'clock' as const, text: 'n' };
 
@@ -87,7 +87,8 @@ describe('diagramBounds', () => {
   });
 
   it('contains every badge of the real fixture layout', async () => {
-    const graph = loadFixtureGraph();
+    // On the Versal root level a badge sticks out left of the leftmost block.
+    const graph = loadVersalClockGraph();
     const result = await runElkLayout(buildElkInput(graph, '/', { measure: fakeMeasure }));
     const layout = toFlowElements(result, graph, '/', fakeMeasure);
     const bounds = diagramBounds(layout)!;
