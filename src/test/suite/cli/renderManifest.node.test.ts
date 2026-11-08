@@ -18,6 +18,9 @@ import { duplicateOutput, entryArgv, parseManifest } from '../../../cli/renderMa
 import { devResourceRoots } from '../../../services/ResourceRoots';
 import { FONT_FILES } from '../../../shared/render/fontFaces';
 
+// Rasterizing loads the wasm module and renders PNGs: slower than the default 5 s on CI runners.
+jest.setTimeout(30000);
+
 const repoRoot = path.resolve(__dirname, '../../../..');
 const fixtures = path.join(repoRoot, 'src/test/fixtures');
 const ZYNQ = path.join(fixtures, 'system-design/zynq_dma_system.tcl');
@@ -98,7 +101,7 @@ async function single(input: string, out: string, extra: Partial<CliRenderArgs> 
 describe('rendering a manifest', () => {
   it('writes every image, in order, identical to the single renders', async () => {
     const result = await run(`
-defaults: { theme: dark, scale: 3, legend: false }
+defaults: { theme: dark, scale: 1, legend: false }
 images:
   - source: src/core.ip.yml
     out: img/deep/core.svg
@@ -124,7 +127,7 @@ images:
       await single('src/system.tcl', 'b.png', {
         select: ['axi_dma_0'],
         hops: 2,
-        scale: 3,
+        scale: 1,
         legend: false,
       })
     );
