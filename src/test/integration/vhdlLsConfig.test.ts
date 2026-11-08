@@ -78,13 +78,14 @@ describe('vhdl_ls.toml accepted by rust_hdl', () => {
     return root;
   }
 
-  it('resolves cross-core libraries and excludes the colliding copy', async () => {
+  it('resolves cross-core libraries and splits the colliding copy into its own library', async () => {
     if (guardTier2('vhdl_lang', available, 'set VHDL_LANG or put vhdl_lang on PATH')) {
       return;
     }
     const root = await generate(MULTI_CORE);
     const text = fs.readFileSync(path.join(root, 'vhdl_ls.toml'), 'utf8');
-    expect(text).toContain('# excluded: common/gen_copy/common_pkg.vhd');
+    expect(text).toContain('libraries.defaultlib_gen_copy.files');
+    expect(text).not.toContain('# excluded: common/gen_copy/common_pkg.vhd');
     const result = lint(root);
     expect(result.output).not.toMatch(/error/i);
     expect(result.status).toBe(0);

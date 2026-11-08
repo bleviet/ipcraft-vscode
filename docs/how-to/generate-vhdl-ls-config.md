@@ -58,6 +58,24 @@ When two files declare the same entity or package in one library, IPCraft
 keeps one: the one a project file or core names, otherwise the one with the
 shorter path. The others appear as `# excluded:` comments in the file.
 
+Test environments often reuse names, for example one `TestCtrl` entity in each
+testbench folder, with test-case files that each bind to their own folder's
+copy. When files no project names declare the same unit in different folders,
+IPCraft gives each group of related folders a library of its own, named after
+the folder, and lists the files it needs from `defaultlib` in it too:
+
+```toml
+libraries.defaultlib_uart.files = [
+  'uart/testbench/TestCtrl_e.vhd',  # unlisted
+  'uart/TestCases/Tc1.vhd',  # unlisted
+  'common/util_pkg.vhd',  # shared with defaultlib
+]
+```
+
+A group that a file left in `defaultlib` depends on stays in `defaultlib`, so
+nothing there loses a unit. A test case written for a sibling testbench binds
+to the nearer folder.
+
 ## The user section
 
 The end of `vhdl_ls.toml` is yours. IPCraft never changes what you write there,

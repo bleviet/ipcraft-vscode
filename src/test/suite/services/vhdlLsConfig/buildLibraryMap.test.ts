@@ -92,9 +92,36 @@ describe('buildLibraryMap', () => {
 
   it('breaks rank ties by path length, then path', () => {
     const src = 'package p is\nend;';
-    const map = build({ 'long/dir/p.vhd': src, 'a/p.vhd': src, 'b/p.vhd': src });
-    expect(map.libraries[0].files.map((f) => f.path)).toEqual(['a/p.vhd']);
-    expect(map.libraries[0].excluded.map((f) => f.path)).toEqual(['b/p.vhd', 'long/dir/p.vhd']);
+    const map = build({ 'd/long_name.vhd': src, 'd/a.vhd': src, 'd/b.vhd': src });
+    expect(map.libraries[0].files.map((f) => f.path)).toEqual(['d/a.vhd']);
+    expect(map.libraries[0].excluded.map((f) => f.path)).toEqual(['d/b.vhd', 'd/long_name.vhd']);
+  });
+
+  it('splits colliding unlisted units into per-folder libraries with shared files', () => {
+    const map = build({
+      'uart/tb/ctrl.vhd': 'entity testctrl is\nend;',
+      'uart/tb/top.vhd':
+        'entity tbuart is\nend;\narchitecture a of tbuart is\nbegin\nu: testctrl port map (x);\nend;',
+      'uart/tb/extra.vhd': 'entity testctrl is\nend;',
+      'uart/cases/t1.vhd': 'use work.util.all;\narchitecture t1 of testctrl is\nend;',
+      'axi/tb/ctrl.vhd': 'entity testctrl is\nend;',
+      'common/util.vhd': 'package util is\nend;',
+    });
+    expect(map.libraries.map((l) => l.name)).toEqual([
+      'defaultlib',
+      'defaultlib_axi_tb',
+      'defaultlib_uart_tb',
+    ]);
+    const [def, axi, uart] = map.libraries;
+    expect(def.files.map((f) => f.path)).toEqual(['common/util.vhd']);
+    expect(axi.files.map((f) => f.path)).toEqual(['axi/tb/ctrl.vhd']);
+    expect(uart.files.map((f) => [f.path, f.provenance])).toEqual([
+      ['common/util.vhd', 'shared with defaultlib'],
+      ['uart/cases/t1.vhd', 'unlisted'],
+      ['uart/tb/ctrl.vhd', 'unlisted'],
+      ['uart/tb/top.vhd', 'unlisted'],
+    ]);
+    expect(uart.excluded.map((f) => f.path)).toEqual(['uart/tb/extra.vhd']);
   });
 
   it('treats unit names as kind-independent and keeps unscanned files', () => {

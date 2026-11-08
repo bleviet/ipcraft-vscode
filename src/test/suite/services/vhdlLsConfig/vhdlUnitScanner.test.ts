@@ -100,4 +100,30 @@ describe('scanVhdl', () => {
     );
     expect(scan.uses).toEqual([]);
   });
+
+  it('records local references: architecture, package body, configuration, component instances', () => {
+    const scan = scanVhdl(
+      [
+        'architecture Rtl of Foo is',
+        'begin',
+        '  u1 : Bar generic map (a => 1) port map (x => y);',
+        '  u2 : component Baz port map (x => y);',
+        '  u3 : entity work.skip port map (x => y);',
+        '  -- u4 : Hidden port map (x => y);',
+        'end;',
+        'package body Pk is',
+        'end;',
+        'configuration Cfg of Top is',
+        'end;',
+      ].join('\n')
+    );
+    expect(scan.localRefs).toEqual([
+      { name: 'foo', line: 1 },
+      { name: 'bar', line: 3 },
+      { name: 'baz', line: 4 },
+      { name: 'pk', line: 8 },
+      { name: 'top', line: 10 },
+    ]);
+    expect(scan.uses).toEqual([{ library: 'work', unit: 'skip', line: 5 }]);
+  });
 });

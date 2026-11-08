@@ -6,6 +6,7 @@
 
 import * as path from 'path';
 import type { VhdlScan } from './vhdlUnitScanner';
+import { scopeLibraries } from './scopeLibraries';
 import { createUserLibraryMatcher, type UserLibrary } from './userSection';
 
 export type ClaimRank = 1 | 2 | 3 | 4;
@@ -207,6 +208,41 @@ function findMissing(
   });
 }
 
+/** Moves colliding unlisted units of `defaultlib` into per-folder libraries (see scopeLibraries). */
+function splitDefaultLibrary(
+  byLibrary: Map<string, Placement[]>,
+  userNames: ReadonlySet<string>,
+  scans: BuildLibraryMapInput['scans']
+): void {
+  const placements = byLibrary.get(DEFAULT_LIBRARY);
+  if (!placements) {
+    return;
+  }
+  const { defaultFiles, scopes } = scopeLibraries({
+    files: placements.map((p) => ({ path: p.file, listed: p.duplicateRank < UNLISTED_RANK })),
+    scans,
+    takenNames: new Set([...byLibrary.keys(), ...userNames, ...BUILT_IN_LIBRARIES]),
+  });
+  const byFile = new Map(placements.map((p) => [p.file, p]));
+  const placementsOf = (files: string[]): Placement[] =>
+    files.map((file) => byFile.get(file) as Placement);
+  if (defaultFiles.length > 0) {
+    byLibrary.set(DEFAULT_LIBRARY, placementsOf(defaultFiles));
+  } else {
+    byLibrary.delete(DEFAULT_LIBRARY);
+  }
+  for (const scope of scopes) {
+    byLibrary.set(scope.name, [
+      ...placementsOf(scope.files).map((p) => ({ ...p, library: scope.name })),
+      ...placementsOf(scope.shared).map((p) => ({
+        ...p,
+        library: scope.name,
+        provenance: 'shared with defaultlib',
+      })),
+    ]);
+  }
+}
+
 export function buildLibraryMap(input: BuildLibraryMapInput): LibraryMap {
   const claimsByFile = new Map<string, Claim[]>();
   for (const claim of input.claims) {
@@ -227,6 +263,8 @@ export function buildLibraryMap(input: BuildLibraryMapInput): LibraryMap {
       }
     }
   }
+
+  splitDefaultLibrary(byLibrary, userNames, input.scans);
 
   const libraries = [...byLibrary.keys()]
     .sort(byString)

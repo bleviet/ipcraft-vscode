@@ -157,7 +157,10 @@ strips comments and string literals and records:
 - `library <name>;` clauses, with line numbers;
 - `use <lib>.<unit>` clauses, with line numbers;
 - direct `entity <lib>.<unit>` and `configuration <lib>.<unit>` instantiations
-  and binding indications, with line numbers.
+  and binding indications, with line numbers;
+- local references, with line numbers: the entity of an `architecture` or
+  `configuration ... of`, the package of a `package body`, and component
+  instantiations (`label : [component] name generic map | port map`).
 
 Files over 1 MiB are mapped but not scanned, and are counted in the summary.
 The workspace is listed in one directory walk, the same in VS Code and the
@@ -174,6 +177,32 @@ with the shorter path, then the first in path order. The others are written as
 comments in that library (`# excluded: duplicate of entity fifo in
 cores/common/fifo.vhd`) and listed in the summary. Excluded files are not
 navigable; this is the cost of a working namespace.
+
+**Per-folder libraries for colliding unlisted units.** Test environments such as
+OSVVM declare the same entity (`TestCtrl`) in many folders, and the test-case
+files bind to the copy of their own folder by architecture or configuration.
+One shared `defaultlib` keeps a single copy and leaves the other files bound to
+it. So when unlisted files in at least two directories declare the same
+primary unit, and no file named by a manifest declares it, the folders that
+declare it become seeds. Each file is bound to the nearest seed (fewest
+directory steps, then the shorter path) for every colliding unit it
+references: through its architecture, configuration, package body, component
+instantiation or `work` use clause. Seeds that files tie together form one
+group, and a group that does not reach a manifest-named file becomes a
+library `defaultlib_<folder>`. The folder is the common ancestor of the
+group's seeds, and the name is the shortest unique run of trailing path
+segments, lower-cased with other characters replaced by `_`. A clash with
+another library gets `_2`, `_3`. Files a group needs but that stay in
+`defaultlib` (transitively, and only if they declare no colliding unit) are
+listed in the library as well, with the provenance `shared with defaultlib`;
+VHDL-LS accepts one file in several libraries. A manifest-named file that
+references a colliding unit keeps its nearest folder in `defaultlib`. Same-folder
+duplicates, and units a manifest names, still fall back to the exclusion above.
+A `defaultlib` file cannot reach a unit in a per-folder library, so after
+grouping, any group that declares a non-colliding unit referenced by a file
+left in `defaultlib` is merged into `defaultlib`, repeated until nothing
+changes (a chain of groups merges together). Limitation: a test case written
+for a sibling variant can bind to the nearer folder instead.
 
 **Missing libraries.** A library named in a `library` clause that is neither
 generated, defined in the user section, nor standard (`ieee`, `std`, `work`)
@@ -391,6 +420,7 @@ functions over typed inputs.
 | `src/services/vhdlLsConfig/userSection.ts` | Parse the user section; match its `files` and `exclude` patterns |
 | `src/services/vhdlLsConfig/vendorLibraries.ts` | Vendor library file table and the configured installation |
 | `src/services/vhdlLsConfig/vhdlUnitScanner.ts` | Light scanner: units, `library` and `use` clauses |
+| `src/services/vhdlLsConfig/scopeLibraries.ts` | Pure: split colliding unlisted units of `defaultlib` into per-folder libraries, with shared files |
 | `src/services/vhdlLsConfig/buildLibraryMap.ts` | Pure: sources plus scan results plus user section to libraries, duplicates, missing libraries |
 | `src/services/vhdlLsConfig/renderVhdlLsToml.ts` | Pure: library map to file text, header hash, proposals |
 | `src/services/vhdlLsConfig/ownership.ts` | Pure: classify an existing file; split it into the generated and user sections |
@@ -405,7 +435,7 @@ The generated-directory list is shared with system viewer enrichment
 
 | Level | Coverage |
 |---|---|
-| Unit | Each reader on small inputs; the scanner (comments, strings, case); ranking, same-rank disagreement, duplicates (a declared file beats an unlisted copy), and user-section precedence in `buildLibraryMap`; the ownership table; proposals (append once, vendor files only when they exist, fallback order); rendering determinism and TOML validity of the output |
+| Unit | Each reader on small inputs; the scanner (comments, strings, case, local references); per-folder library splitting (nearest binding, shared files, naming); ranking, same-rank disagreement, duplicates (a declared file beats an unlisted copy), and user-section precedence in `buildLibraryMap`; the ownership table; proposals (append once, vendor files only when they exist, fallback order); rendering determinism and TOML validity of the output |
 | Snapshot | Rendered `vhdl_ls.toml` for four fixtures: a single core; several cores with cross-library `use`; a `.qsf` that names only a `.qsys`, with generated Platform Designer output present; an existing user-written `vhdl_ls.toml` |
 | Integration | On the multi-core fixtures, `vhdl_lang -c vhdl_ls.toml` (the rust_hdl command-line frontend, which reads the same configuration as the language server) reports no diagnostics, so every cross-core name resolves; removing one generated library makes it fail. Tier 2: skipped when `vhdl_lang` is not installed, unless `REQUIRE_VHDL_LANG=1` |
 

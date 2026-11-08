@@ -2,7 +2,9 @@
  * Light VHDL scanner: finds primary units, `library` clauses and library references (`use`,
  * `context` and direct `entity`/`configuration` instantiation) without a full parse. Comments,
  * string literals and character literals are blanked first so keywords inside them are not
- * matched. Pure.
+ * matched. It also records local references (the entity an architecture or configuration binds
+ * to, the package a body belongs to, and component instantiations) so callers can tell which
+ * units a file depends on within its own library. Pure.
  */
 
 export type VhdlUnitKind = 'entity' | 'package' | 'configuration' | 'context';
@@ -24,10 +26,17 @@ export interface VhdlUse {
   line: number;
 }
 
+export interface VhdlLocalRef {
+  /** Lower-case name of a unit expected in the same library. */
+  name: string;
+  line: number;
+}
+
 export interface VhdlScan {
   units: VhdlUnit[];
   libraries: VhdlLibraryClause[];
   uses: VhdlUse[];
+  localRefs: VhdlLocalRef[];
 }
 
 /** Replaces comments, strings and character literals with spaces (newlines kept), then lower-cases. */
@@ -135,5 +144,19 @@ export function scanVhdl(text: string): VhdlScan {
     uses.push({ library: m[1], unit: m[2], line: lineAt(m.index) });
   }
 
-  return { units, libraries, uses };
+  const localRefs: VhdlLocalRef[] = [];
+  const localPatterns = [
+    /\barchitecture\s+[a-z]\w*\s+of\s+([a-z]\w*)\s+is\b/g,
+    /\bpackage\s+body\s+([a-z]\w*)\s+is\b/g,
+    /\bconfiguration\s+[a-z]\w*\s+of\s+([a-z]\w*)\s+is\b/g,
+    /\b[a-z]\w*\s*:\s*(?:component\s+)?([a-z]\w*)\s*(?:generic|port)\s+map\b/g,
+  ];
+  for (const pattern of localPatterns) {
+    for (const m of code.matchAll(pattern)) {
+      localRefs.push({ name: m[1], line: lineAt(m.index) });
+    }
+  }
+  localRefs.sort((a, b) => a.line - b.line || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+
+  return { units, libraries, uses, localRefs };
 }
