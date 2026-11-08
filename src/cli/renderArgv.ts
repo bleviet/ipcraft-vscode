@@ -28,6 +28,7 @@ const VALUE_OPTIONS: ReadonlySet<string> = new Set([
   '--background',
   '--scale',
   '--quality',
+  '--workspace',
 ]);
 
 /** The integer `text` names within `[min, max]`, or undefined. */
@@ -44,8 +45,29 @@ function nameList(text: string): string[] {
     .filter(Boolean);
 }
 
-/** Parses `render` argv: `<design> --out <file.svg|png|jpg> [--level] [--expand] [--select] [--hops] [--highlight] [--clocks] [--theme] [--no-grid] [--no-legend] [--background] [--scale] [--quality]`. */
+/** `--manifest <file.yml>`, which takes no input file and no other option. */
+function parseManifestArgs(rest: string[]): ParsedArgv {
+  if (rest.length === 1) {
+    return { kind: 'error', message: 'Missing value for --manifest' };
+  }
+  if (rest.length !== 2 || rest[0] !== '--manifest') {
+    return {
+      kind: 'error',
+      message:
+        '--manifest renders every image of the file; it takes no input file and no other option',
+    };
+  }
+  if (rest[1].startsWith('--')) {
+    return { kind: 'error', message: 'Missing value for --manifest' };
+  }
+  return { kind: 'renderManifest', manifestPath: rest[1] };
+}
+
+/** Parses `render` argv: `<design> --out <file.svg|png|jpg> [--level] [--expand] [--select] [--hops] [--highlight] [--clocks] [--theme] [--no-grid] [--no-legend] [--background] [--scale] [--quality] [--workspace <dir>|--no-workspace]`, or `--manifest <file.yml>`. */
 export function parseRenderArgs(rest: string[]): ParsedArgv {
+  if (rest.includes('--manifest')) {
+    return parseManifestArgs(rest);
+  }
   const positional: string[] = [];
   const args: Omit<CliRenderArgs, 'inputPath' | 'out'> = {
     level: '/',
@@ -63,6 +85,7 @@ export function parseRenderArgs(rest: string[]): ParsedArgv {
   let scaleGiven = false;
   let qualityGiven = false;
   let out: string | undefined;
+  let noWorkspace = false;
   const systemOnly: string[] = [];
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
@@ -157,6 +180,14 @@ export function parseRenderArgs(rest: string[]): ParsedArgv {
         args.quality = quality;
         break;
       }
+      case '--workspace':
+        systemOnly.push(arg);
+        args.workspace = value();
+        break;
+      case '--no-workspace':
+        systemOnly.push(arg);
+        noWorkspace = true;
+        break;
       case '--no-grid':
         args.grid = false;
         break;
@@ -185,6 +216,12 @@ export function parseRenderArgs(rest: string[]): ParsedArgv {
       kind: 'error',
       message: `Option '${systemOnly[0]}' is only for system designs, not for an .ip.yml`,
     };
+  }
+  if (noWorkspace) {
+    if (args.workspace !== undefined) {
+      return { kind: 'error', message: '--workspace and --no-workspace cannot be combined' };
+    }
+    args.workspace = false;
   }
   if (args.hops !== undefined && args.select.length === 0) {
     return { kind: 'error', message: '--hops needs --select' };
