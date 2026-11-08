@@ -35,6 +35,8 @@ diagram keeps the last valid design and shows a banner with the reason.
 
 The diagram shows one hierarchy level at a time.
 
+The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Unconnected pins), **View** (Simplify zoomed out, zoom out, Fit, zoom in) and **Panels**. Hover a button to see its name.
+
 - **Levels.** Double-click a hierarchy block to enter it. Use the breadcrumb at
   the top left, or the mouse back button, to go up one level. The mouse forward
   button returns to the levels you left with the back button, one at a time,
@@ -57,6 +59,9 @@ The diagram shows one hierarchy level at a time.
   moves to the search box from anywhere in the viewer with its text selected,
   filled in with the name of the selected block unless the search already
   matches it, and F3 or Shift+F3 goes to the next or previous match.
+  Up and Down in the search box go through your earlier searches, as in the
+  VS Code find box. A search is remembered when you step through its matches
+  or leave the box, and the history lasts while the viewer is open.
 - **Details.** Shows the selected block, net, or port: type, where it is
   defined in the file, the parameters set in the file, and its pins with their
   nets. Select a line link to open the file at that line.
@@ -316,11 +321,12 @@ listed in either tab.
 
 ## Zoom
 
-- Scroll or use **+** and **-** to zoom, and drag the canvas to pan.
-- **Fit** fits the whole level.
+- Scroll or use the zoom in and zoom out buttons to zoom, and drag the canvas to pan.
+- The **Fit** button (the full-screen icon) fits the whole level.
 - Double-click a block (other than a hierarchy block) or a port to zoom to it.
 - Double-click empty canvas to fit the level.
 - Each level remembers its own zoom and position while the diagram is open.
+- **Simplify zoomed out**, on by default, hides pin names, block subtitles and badge text when you zoom out below about 42%, and enlarges the block names so that they stay readable. It only changes what is drawn: blocks never move. Turn it off to show everything at every zoom.
 
 ## Names and hover
 

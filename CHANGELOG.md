@@ -10,15 +10,18 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ### New
 
+- **Readable when zoomed out.** Far out, the system viewer hides pin names and enlarges block names so you can still tell the blocks apart. Turn off **Simplify zoomed out** in the toolbar to show everything at every zoom.
 - **Expand a hierarchy block in place in the system viewer.** Click + in the block header, or right-click and choose Expand In-Place, to show its contents inside a frame on the current level. Click - or choose Collapse to fold it again. Double-clicking still opens the block.
 - **Highlight parts of a design.** Ctrl+Click (Cmd+Click on macOS) selects several blocks, ports and wires; right-click and choose Highlight to mark them in one of six colors. Highlights are remembered per design file, and a toolbar chip counts them and clears them all.
 - **Find unconnected pins.** Turn on Unconnected pins to mark pins that nothing connects to: inputs that nothing drives in the warning color, unused outputs muted. The Unconnected tab lists them; clicking a pin zooms in to its block. Only blocks whose pins are known (from an `.ip.yml`, an HDL file, a hierarchy or an external port) are checked.
 - **See clock and reset domains.** The Clocks and resets button colors clock and reset pins by domain, shows the clock frequencies set in the design, and marks clock and reset domain crossings (CDC and RDC). Select a clock or reset net to see its whole tree in Details. The new Clocks and Resets tabs list the domains, reset sources and crossings on screen; click a row to zoom to it, or click the count next to the button to open the Clocks tab. IPCraft never guesses a clock from a pin name: anything it cannot determine is listed as not checked.
 - **Find with the usual keys.** Ctrl+F (Cmd+F on macOS) jumps to search, filled in with the name of the selected block. F3 and Shift+F3 go to the next and previous match.
+- **Search history.** Up and Down in the system viewer search box go through your earlier searches, as in the VS Code find box.
 - **Mouse forward button.** After going up a level with the mouse back button, the forward button takes you back down, one level at a time.
 
 ### Changed
 
+- **A tidier toolbar.** The system viewer toolbar has icon buttons in labelled groups, Design, View and Panels, like the IP core editor. Hover a button to see its name.
 - **Shorter, clearer wiring.** Blocks are placed next to the blocks they exchange data with, external ports sit next to the block they connect to, and clock and reset nets are shown as name badges on their pins instead of long wires. Large designs open much faster.
 - **Blocks stand out from the canvas.** Blocks have a stronger outline, a tinted body and a light shadow in light and dark themes. Wires are lighter until you select or highlight them.
 - Known outputs of common AMD IP blocks are drawn on the right side of the block.
@@ -26,6 +29,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ### Fixed
 
+- The system viewer fills the whole editor; there were empty strips on its left and right.
 - Blocks, zoom and pan no longer jump when you turn Clocks and resets or Unconnected pins on or off.
 
 ## [1.4.0] - 2026-11-06

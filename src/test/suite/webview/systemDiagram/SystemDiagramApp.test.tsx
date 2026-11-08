@@ -509,6 +509,28 @@ describe('SystemDiagramApp', () => {
     expect(edgeCount()).toBe(wires);
   });
 
+  it('starts with Simplify zoomed out on and the toolbar toggle turns it off', async () => {
+    await renderWithGraph();
+    const toggle = screen.getByRole('button', { name: 'Simplify zoomed out' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle).toHaveClass('canvas-view-toggle--active');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle).not.toHaveClass('canvas-view-toggle--active');
+  });
+
+  it('groups the toolbar buttons into Design and View', async () => {
+    await renderWithGraph();
+    const view = within(screen.getByRole('group', { name: 'View' }));
+    for (const name of ['Simplify zoomed out', 'Zoom out', 'Fit', 'Zoom in']) {
+      expect(view.getByRole('button', { name })).toBeInTheDocument();
+    }
+    const design = within(screen.getByRole('group', { name: 'Design' }));
+    expect(design.getByRole('button', { name: 'Clocks and resets' })).toBeInTheDocument();
+    expect(design.getByRole('button', { name: /^Unconnected pins/ })).toBeInTheDocument();
+    expect(design.getByRole('button', { name: /^Open the Clocks tab: / })).toBeInTheDocument();
+  });
+
   it('posts revealSource from a line link', async () => {
     await renderWithGraph();
     fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
@@ -733,6 +755,50 @@ describe('SystemDiagramApp', () => {
       press({ key: 'Enter', shiftKey: true });
       await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
       expect(mockSetCenter.mock.calls[0][2]).toEqual({ zoom: 1.7 });
+    });
+  });
+
+  describe('search history', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const searchBox = () =>
+      screen.getByRole<HTMLInputElement>('searchbox', { name: 'Search instances' });
+    const type = (value: string) => fireEvent.change(searchBox(), { target: { value } });
+    const press = (key: string) => fireEvent.keyDown(searchBox(), { key });
+
+    it('walks the remembered searches and back to the draft with Up and Down', async () => {
+      await renderWithGraph();
+      await settle();
+      type('axi');
+      press('Enter');
+      type('fifo');
+      press('Enter');
+      type('dr');
+      press('ArrowUp');
+      expect(searchBox().value).toBe('fifo');
+      press('ArrowUp');
+      expect(searchBox().value).toBe('axi');
+      press('ArrowDown');
+      expect(searchBox().value).toBe('fifo');
+      press('ArrowDown');
+      expect(searchBox().value).toBe('dr');
+    });
+
+    it('remembers a query when the box loses focus', async () => {
+      await renderWithGraph();
+      await settle();
+      searchBox().focus();
+      type('axi');
+      act(() => searchBox().blur());
+      type('');
+      searchBox().focus();
+      press('ArrowUp');
+      expect(searchBox().value).toBe('axi');
+    });
+
+    it('keeps the accessible name and shows the history placeholder', async () => {
+      await renderWithGraph();
+      await settle();
+      expect(searchBox()).toHaveAttribute('placeholder', 'Search instances (⇅ for history)');
     });
   });
 

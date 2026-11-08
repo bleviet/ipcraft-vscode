@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { vscode } from '../../vscode';
+import { ToolbarGroup, ToolbarSeparator } from '../../shared/components/Toolbar';
 
 // ---------------------------------------------------------------------------
 // Toolbar primitives — extracted from IpCoreApp (issue #129) so IpCoreApp is
@@ -375,42 +376,6 @@ const VendorDropdown: React.FC<VendorDropdownProps> = ({ vendorId, items }) => {
     </>
   );
 };
-
-interface ToolbarGroupProps {
-  label: string;
-  children: React.ReactNode;
-}
-
-const ToolbarGroup: React.FC<ToolbarGroupProps> = ({ label, children }) => (
-  <div className="flex flex-col items-center gap-0.5">
-    {/* Fixed-height icon row so every group's label lands on the same baseline */}
-    <div className="flex items-center gap-0.5" style={{ height: 28 }}>
-      {children}
-    </div>
-    <span
-      style={{
-        fontSize: '9px',
-        opacity: 0.45,
-        letterSpacing: '0.03em',
-        lineHeight: 1,
-        userSelect: 'none',
-      }}
-    >
-      {label}
-    </span>
-  </div>
-);
-
-const ToolbarSeparator: React.FC = () => (
-  <div
-    style={{
-      width: '1px',
-      height: '28px',
-      background: 'var(--vscode-panel-border)',
-      opacity: 0.6,
-    }}
-  />
-);
 
 // ---------------------------------------------------------------------------
 // Composite toolbar
