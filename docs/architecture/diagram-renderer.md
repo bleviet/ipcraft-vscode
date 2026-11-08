@@ -69,10 +69,31 @@ copied to `dist/resources/fonts/` (`ResourceRoots.fontsDir`) and allow-listed in
 
 The canvas styling lives in `systemDiagram.css`; the renderer mirrors it in
 code. Deliberate simplifications are listed in the `systemLevelSvg.ts` header:
-no shadows, selection, highlights, dimming, review or clock-domain decoration;
+no shadows, user highlight colors, dimming, review or selected clock tree;
 the legend sits below the drawing; grid dots are slightly larger for print.
 Output is deterministic: numbers have at most two decimals and elements follow
 the layout order (frames, wires, blocks, legend).
+
+## Decorations
+
+`renderSystemLevelSvg` draws what the layout carries plus two optional inputs,
+and without them its output is byte-identical to an undecorated render.
+
+- **Selection.** `selectedNodeIds` draws the viewer's selected style (focus
+  color outline; `data-selected="true"` on the node group). The CLI passes the
+  `--select` and `--highlight` nodes (`cli/renderSystemOptions.ts`). `--select`
+  isolates with `hopDistances`, `isolationSubset` and `maxRadius` and passes the
+  subset to `buildElkInput` as `isolate`, as `useElkLayout` does.
+- **Clocks and resets.** `clockDecor` (domain mode) and `applyClockDecor` merge
+  the domain strips, pin marks and wire marks into the node and edge data, with
+  `clockNodeData`, the same function `useCanvasElements` uses. The renderer
+  reads them from the data: `decorSvg.ts` draws the strip, header count,
+  frequency labels and selection ring; `blockSvg.ts` and `pinSvg.ts` color the
+  markers and crossing pins; `systemLevelSvg.ts` dashes crossing wires in the
+  warning color and fades the other data wires; `legendSvg.ts` appends the
+  `domainLegend` entries. Domain colors are CSS variables in the webview;
+  `resolveColor` maps them through `Palette.tokens`. Frequency labels get a
+  halo in the background color, like the viewer's text shadow.
 
 ## IP core symbol
 

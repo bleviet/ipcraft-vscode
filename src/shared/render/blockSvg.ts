@@ -1,6 +1,8 @@
 /** Instance blocks and expanded hierarchy frames as native SVG, mirroring InstanceNode, FrameNode and NodeHeader. */
 
 import type { SystemInstance } from '../../domain/systemGraph';
+import type { NodeDomains } from '../../webview/systemDiagram/clocks/domainView';
+import { hasCrossingEnd, type PinMark } from '../../webview/systemDiagram/clocks/nodeView';
 import type {
   FrameNodeData,
   InstanceNodeData,
@@ -8,6 +10,16 @@ import type {
 } from '../../webview/systemDiagram/layout/diagramTypes';
 import { HEADER_HEIGHT, PIN_ROW_HEIGHT } from '../../webview/systemDiagram/layout/pinRows';
 import { instanceSubtitle } from '../../webview/systemDiagram/model';
+import {
+  BADGE_GAP,
+  blockBorder,
+  domainStripSvg,
+  frequencySvg,
+  headerBadge,
+  headerBadgeSvg,
+  markColor,
+  selectionRing,
+} from './decorSvg';
 import type { Palette } from './palette';
 import { badgeSvg, markerSvg } from './pinSvg';
 import { element } from './svg';
@@ -87,7 +99,8 @@ function headerText(
   cellCount: number,
   box: BlockBox,
   expanded: boolean,
-  palette: Palette
+  palette: Palette,
+  domains?: NodeDomains
 ): string {
   const top = box.border + HEADER_PADDING_Y;
   const left = box.border + HEADER_PADDING_X;
@@ -95,14 +108,24 @@ function headerText(
   const nameX = left + (isHier ? TOGGLE_SIZE + TOGGLE_GAP : 0);
   const textWidth = box.width - 2 * (box.border + HEADER_PADDING_X);
   const subtitle = instanceSubtitle(instance, cellCount);
+  const count = headerBadge(domains);
+  const countWidth = count ? count.width + BADGE_GAP : 0;
   return [
     isHier ? toggleSvg(left, top + TITLE_CENTER, expanded, palette) : '',
     drawText(
       nameX,
       top + TITLE_CENTER,
-      truncateEnd(instance.name, textWidth - (nameX - left), WEIGHT_FACES.semibold),
+      truncateEnd(instance.name, textWidth - (nameX - left) - countWidth, WEIGHT_FACES.semibold),
       { ...WEIGHT_FACES.semibold, fill: palette.foreground }
     ),
+    count
+      ? headerBadgeSvg(
+          count,
+          box.width - box.border - HEADER_PADDING_X,
+          top + TITLE_CENTER,
+          palette
+        )
+      : '',
     subtitle === ''
       ? ''
       : drawText(
@@ -119,21 +142,66 @@ function pinLabel(
   centerY: number,
   row: PinRow,
   east: boolean,
-  palette: Palette
+  palette: Palette,
+  mark?: PinMark
 ): string {
+  const crossing = mark?.crossing === true;
   return drawText(x, centerY, row.label, {
     ...WEIGHT_FACES.normal,
-    fill: row.unconnected ? palette.descriptionForeground : palette.foreground,
+    ...(crossing && { face: 'sans600' as const }),
+    fill: crossing
+      ? palette.warning
+      : row.unconnected
+        ? palette.descriptionForeground
+        : palette.foreground,
     italic: row.unconnected,
     anchor: east ? 'end' : 'start',
   });
 }
 
+/** Marker, frequency label, name and net badge of one pin row; `cy` is the wire height. */
+function pinParts(
+  row: PinRow,
+  place: { edgeX: number; border: number; labelX: number; cy: number; labelCy: number },
+  mark: PinMark | undefined,
+  palette: Palette
+): string[] {
+  const east = row.side === 'east';
+  return [
+    markerSvg(
+      place.edgeX,
+      place.cy,
+      { ...row, hollow: row.unconnected, color: markColor(mark, palette) },
+      palette
+    ),
+    frequencySvg(
+      mark,
+      {
+        side: row.side,
+        edgeX: place.edgeX,
+        border: place.border,
+        centerY: place.cy,
+        hasBadge: row.badge !== undefined,
+      },
+      palette
+    ),
+    pinLabel(place.labelX, place.labelCy, row, east, palette, mark),
+    row.badge ? badgeSvg(row.badge, palette) : '',
+  ];
+}
+
 /** An instance block, drawn in its own coordinates (origin at the node's top-left). */
-export function instanceSvg(data: InstanceNodeData, height: number, palette: Palette): string {
+export function instanceSvg(
+  data: InstanceNodeData,
+  height: number,
+  palette: Palette,
+  selected = false
+): string {
   const { width } = data;
   const box: BlockBox = { width, border: NODE_BORDER, headRadius: 3 };
+  const border = blockBorder(palette, selected, hasCrossingEnd(data.pinMarks));
   const parts = [
+    selected ? selectionRing({ width, height }, 1, 3.5, palette) : '',
     element('rect', {
       x: 0.5,
       y: 0.5,
@@ -141,11 +209,12 @@ export function instanceSvg(data: InstanceNodeData, height: number, palette: Pal
       height: height - 1,
       rx: 3.5,
       fill: palette.nodeFill,
-      stroke: palette.nodeLine.color,
-      'stroke-opacity': palette.nodeLine.opacity,
+      stroke: border.color,
+      'stroke-opacity': border.opacity,
     }),
     headerBand(box, palette),
-    headerText(data.instance, data.cellCount, box, false, palette),
+    data.domains ? domainStripSvg(data.domains.segments, box, palette) : '',
+    headerText(data.instance, data.cellCount, box, false, palette, data.domains),
   ];
   if (data.instance.kind === 'hier') {
     parts.push(
@@ -162,25 +231,18 @@ export function instanceSvg(data: InstanceNodeData, height: number, palette: Pal
       })
     );
   }
-  for (const [rows, east] of [
-    [data.west, false],
-    [data.east, true],
-  ] as const) {
+  for (const rows of [data.west, data.east]) {
     rows.forEach((row, index) => {
+      const east = row.side === 'east';
       const cy = NODE_BORDER + HEADER_HEIGHT + index * PIN_ROW_HEIGHT + PIN_ROW_HEIGHT / 2;
-      parts.push(
-        markerSvg(east ? width : 0, cy, { ...row, hollow: row.unconnected }, palette),
-        pinLabel(
-          east ? width - ROW_TEXT_INSET - NODE_BORDER : NODE_BORDER + ROW_TEXT_INSET,
-          cy,
-          row,
-          east,
-          palette
-        )
-      );
-      if (row.badge) {
-        parts.push(badgeSvg(row.badge, palette));
-      }
+      const place = {
+        edgeX: east ? width : 0,
+        border: NODE_BORDER,
+        labelX: east ? width - ROW_TEXT_INSET - NODE_BORDER : NODE_BORDER + ROW_TEXT_INSET,
+        cy,
+        labelCy: cy,
+      };
+      parts.push(...pinParts(row, place, data.pinMarks?.[row.name], palette));
     });
   }
   return parts.join('');
@@ -190,11 +252,14 @@ export function instanceSvg(data: InstanceNodeData, height: number, palette: Pal
 export function frameSvg(
   data: FrameNodeData,
   size: { width: number; height: number },
-  palette: Palette
+  palette: Palette,
+  selected = false
 ): string {
   const { width, height } = size;
   const box: BlockBox = { width, border: FRAME_BORDER, headRadius: 4 };
+  const border = blockBorder(palette, selected, false);
   const parts = [
+    selected ? selectionRing(size, 0.5, 6, palette) : '',
     element('rect', {
       x: 1,
       y: 1,
@@ -203,31 +268,25 @@ export function frameSvg(
       rx: 5,
       fill: palette.frameFill.color,
       'fill-opacity': palette.frameFill.opacity,
-      stroke: palette.nodeLine.color,
-      'stroke-opacity': palette.nodeLine.opacity,
+      stroke: border.color,
+      'stroke-opacity': border.opacity,
       'stroke-width': FRAME_BORDER,
     }),
     headerBand(box, palette),
-    headerText(data.instance, data.cellCount, box, true, palette),
+    data.domains ? domainStripSvg(data.domains.segments, box, palette) : '',
+    headerText(data.instance, data.cellCount, box, true, palette, data.domains),
   ];
-  for (const [rows, east] of [
-    [data.west, false],
-    [data.east, true],
-  ] as const) {
+  for (const rows of [data.west, data.east]) {
     for (const row of rows) {
-      parts.push(
-        markerSvg(east ? width : 0, row.y, { ...row, hollow: row.unconnected }, palette),
-        pinLabel(
-          east ? width - FRAME_LABEL_INSET : FRAME_LABEL_INSET,
-          row.y - FRAME_LABEL_CENTER_ABOVE_PIN,
-          row,
-          east,
-          palette
-        )
-      );
-      if (row.badge) {
-        parts.push(badgeSvg(row.badge, palette));
-      }
+      const east = row.side === 'east';
+      const place = {
+        edgeX: east ? width : 0,
+        border: FRAME_BORDER,
+        labelX: east ? width - FRAME_LABEL_INSET : FRAME_LABEL_INSET,
+        cy: row.y,
+        labelCy: row.y - FRAME_LABEL_CENTER_ABOVE_PIN,
+      };
+      parts.push(...pinParts(row, place, data.pinMarks?.[row.name], palette));
     }
   }
   return parts.join('');

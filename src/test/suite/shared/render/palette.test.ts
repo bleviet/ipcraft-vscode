@@ -1,4 +1,23 @@
-import { mixSrgb, paletteFor, type RenderTheme } from '../../../../shared/render/palette';
+import {
+  mixSrgb,
+  paletteFor,
+  resolveColor,
+  type RenderTheme,
+} from '../../../../shared/render/palette';
+import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
+import { UNRELEASED_RESET_COLOR } from '../../../../webview/systemDiagram/clocks/domainView';
+
+describe('resolveColor', () => {
+  it.each(['light', 'dark'] as const)('fixes every clock domain color in %s', (theme) => {
+    for (const css of [...DOMAIN_COLORS, UNRELEASED_RESET_COLOR]) {
+      expect(resolveColor(paletteFor(theme), css)).toMatch(/^#[0-9a-f]{6}$/);
+    }
+  });
+
+  it('throws on a token it does not know', () => {
+    expect(() => resolveColor(paletteFor('light'), 'var(--vscode-nope)')).toThrow('No fixed color');
+  });
+});
 
 describe('mixSrgb', () => {
   it('returns the first color at 100% and the second at 0%', () => {

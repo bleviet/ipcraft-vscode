@@ -1,4 +1,5 @@
 import React from 'react';
+import { frequencyBelowWire } from './clocks/nodeView';
 import type { UnconnectedClass } from './unconnectedPins';
 
 const STUB_LENGTH = 16;
@@ -91,7 +92,7 @@ export function PinFrequency({
   top?: number | string;
 }) {
   const wire = typeof top === 'number' ? `${top}px` : top;
-  const below = side === 'west' || hasBadge;
+  const below = frequencyBelowWire(side, hasBadge);
   return (
     <span
       className="sd-pin-freq"
