@@ -1,4 +1,5 @@
 import React from 'react';
+import { DEFAULT_EXPORT_OPTIONS } from '../../../shared/messages/imageExport';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { IpCoreShell } from '../../../webview/ipcore/components/IpCoreShell';
 import type { IpCoreToolbarProps } from '../../../webview/ipcore/components/IpCoreToolbar';
@@ -25,6 +26,12 @@ const toolbarProps: IpCoreToolbarProps = {
   issueErrorCount: 1,
   issueWarningCount: 0,
   onOpenIssues: jest.fn(),
+  imageExport: {
+    options: DEFAULT_EXPORT_OPTIONS,
+    onOptionsChange: jest.fn(),
+    onExport: jest.fn(),
+    openToken: 0,
+  },
 };
 
 describe('IpCoreShell preview conformance', () => {

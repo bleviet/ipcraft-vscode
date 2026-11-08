@@ -8,6 +8,7 @@ import { DetailsPanel } from './DetailsPanel';
 import { DiagramCanvas } from './DiagramCanvas';
 import { DiagramToolbar, type PanelName } from './DiagramToolbar';
 import { applyHighlight, highlightCount } from './highlights';
+import { useDiagramExport, type ImageExportChannel } from './hooks/useDiagramExport';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
@@ -33,6 +34,7 @@ interface WorkbenchLayoutProps {
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
   onChangeHighlights?: (highlights: HighlightMap) => void;
+  imageExport?: ImageExportChannel;
 }
 
 const EMPTY_HIGHLIGHTS: HighlightMap = {};
@@ -45,6 +47,7 @@ export function WorkbenchLayout({
   revealSource,
   openDefinition,
   onChangeHighlights,
+  imageExport,
 }: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
   const levelHistory = useLevelHistory(graph, nav.levelPath, nav.navigate);
@@ -93,6 +96,14 @@ export function WorkbenchLayout({
   );
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
   const { layout, error } = useElkLayout(graph, nav.levelPath, isolation, nav.expanded);
+
+  const exporter = useDiagramExport(imageExport, layout, {
+    levelPath: nav.levelPath,
+    expanded: nav.expanded,
+    isolation,
+    clocksOn,
+    selectedNodeIds: nav.selectedNodeIds,
+  });
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -190,6 +201,7 @@ export function WorkbenchLayout({
           }
         }}
         onFit={fit}
+        imageExport={exporter}
         panelsVisible={panelsVisible}
         onTogglePanel={(panel) => panels[panel].toggle()}
       />

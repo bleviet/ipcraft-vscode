@@ -11,6 +11,8 @@ export interface IsolatedView {
   edgeIds: ReadonlySet<string>;
   /** Nodes isolated on purpose, as opposed to the neighbours kept for their connections. */
   selectedCount: number;
+  /** The ids of those nodes. */
+  seedIds: readonly string[];
   /** Hops from the selection that are shown. */
   hops: number;
   /** Largest radius worth showing: the furthest hop reachable, at least 1. */
@@ -74,6 +76,7 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
     return {
       token,
       selectedCount: ids.length,
+      seedIds: ids,
       hops,
       maxRadius: radius,
       levelNodeCount: (level?.instances.length ?? 0) + (level?.boundaryPins.length ?? 0),

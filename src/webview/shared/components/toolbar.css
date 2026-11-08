@@ -27,3 +27,71 @@
 .canvas-view-toggle--active:hover {
   background: var(--vscode-button-hoverBackground);
 }
+
+/* --- Export image popover --- */
+
+.export-image {
+  position: relative;
+  display: inline-flex;
+}
+
+.export-image-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 240px;
+  padding: 10px 12px;
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+  font-size: 12px;
+}
+
+.export-image-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.export-image-row select {
+  min-width: 112px;
+  padding: 2px 4px;
+  border: 1px solid var(--vscode-dropdown-border, transparent);
+  border-radius: 2px;
+  background: var(--vscode-dropdown-background);
+  color: var(--vscode-dropdown-foreground);
+  font: inherit;
+}
+
+.export-image-row select:disabled {
+  opacity: 0.5;
+}
+
+.export-image-row select:focus-visible,
+.export-image-row input:focus-visible,
+.export-image-popover button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+
+.export-image-submit {
+  align-self: flex-end;
+  padding: 3px 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  cursor: pointer;
+  font: inherit;
+}
+
+.export-image-submit:hover {
+  background: var(--vscode-button-hoverBackground);
+}

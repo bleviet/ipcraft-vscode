@@ -367,6 +367,12 @@
         "icon": "$(type-hierarchy)"
       },
       {
+        "command": "fpga-ip-core.exportDiagramImage",
+        "title": "Export Diagram as Image",
+        "category": "IPCraft",
+        "icon": "$(device-camera)"
+      },
+      {
         "command": "fpga-ip-core.copyComponentInstance",
         "title": "Copy Component Instance",
         "category": "IPCraft",
@@ -750,6 +756,10 @@
         {
           "command": "fpga-ip-core.copyComponentInstanceDone",
           "when": "false"
+        },
+        {
+          "command": "fpga-ip-core.exportDiagramImage",
+          "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'ipcraft.systemDiagram'"
         },
         {
           "command": "fpga-ip-core.vivadoNotConfigured",

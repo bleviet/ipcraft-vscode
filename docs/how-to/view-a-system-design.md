@@ -329,6 +329,39 @@ listed in either tab.
 - Each level remembers its own zoom and position while the diagram is open.
 - **Simplify zoomed out**, on by default, hides pin and port names, block subtitles, clock frequencies and badge text when you zoom out below about 42%, and enlarges the block names so that they stay readable. It only changes what is drawn: blocks never move. Turn it off to show everything at every zoom.
 
+## Export an image
+
+Click **Export image** (the camera icon in the View group), or run
+**IPCraft: Export Diagram as Image**, to save the level you are looking at as an
+SVG, PNG or JPG file for documentation. The popover offers:
+
+- **Format**: SVG, PNG or JPG.
+- **Area**: **Current view** saves the blocks that are on screen (the image is
+  cropped to them, with a margin); **Whole level** saves the full level, or the
+  isolated view when the level is isolated.
+- **Scale** (PNG and JPG): 1 to 4 pixels per drawing unit; the default 2 gives
+  sharp text.
+- **Theme**: Light (default, because documentation gets printed) or Dark. The VS
+  Code theme does not change the image.
+- **Grid**, **Legend** and **Background**: the editor background, or
+  transparent (not for JPG, which is always opaque).
+
+The image shows what the viewer shows: the level you are on, the blocks you
+expanded in place, the isolated view and its number of hops, Clocks and resets
+when it is on, and your selection outlined. Highlight colors, search dimming, the
+toolbar, panels, the minimap and hover cards are not drawn. Exporting never moves
+or zooms the diagram. Your last options are remembered for this workspace.
+
+A save dialog opens with a default name such as `soc-dsp_fir.png` (the level path
+with `/` as `_`; the top level is just `soc.png`). Afterwards you can **Open** the
+file or **Reveal in Explorer**.
+
+The image equals what `ipcraft render` writes for the same design and options
+(see [Rendering documentation images](render-documentation-images.md)), apart from
+the Current view crop, which the command line does not have. The text is laid out
+with the bundled IBM Plex fonts, so block sizes can differ slightly from the
+canvas, which uses your editor font.
+
 ## Names and hover
 
 Blocks are sized to their names and pins. A pin or port name that is still too

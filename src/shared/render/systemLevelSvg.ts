@@ -19,7 +19,7 @@ import type {
   DiagramFlowEdge,
   DiagramFlowNode,
 } from '../../webview/systemDiagram/layout/elkLayout';
-import { diagramBounds } from '../../webview/systemDiagram/layout/diagramBounds';
+import { diagramBounds, nodeBounds } from '../../webview/systemDiagram/layout/diagramBounds';
 import { frameSvg, instanceSvg } from './blockSvg';
 import { layoutLegend, legendSvg } from './legendSvg';
 import type { Palette } from './palette';
@@ -35,6 +35,8 @@ export interface SystemLevelOptions {
   fontFaceCss: string;
   /** Blocks and ports drawn with the selection outline (the viewer's selected style). */
   selectedNodeIds?: ReadonlySet<string>;
+  /** Crop to these nodes (their boxes and badges) plus the margin; absent or matching none: the whole drawing. */
+  cropNodeIds?: ReadonlySet<string>;
   /** Domain entries appended to the legend (see `clockDecor`); null or absent outside the domain mode. */
   domainLegend?: readonly DomainLegendEntry[] | null;
 }
@@ -107,12 +109,30 @@ function gridSvg(box: { x: number; y: number; width: number; height: number }, p
   ].join('');
 }
 
+/** The union of the boxes of the nodes named in `ids`, or null when none is in the layout. */
+function cropBounds(layout: SystemLevelLayout, ids: ReadonlySet<string>) {
+  const nodes = layout.nodes.filter((node) => ids.has(node.id));
+  if (nodes.length === 0) {
+    return null;
+  }
+  const boxes = nodes.map(nodeBounds);
+  const x = Math.min(...boxes.map((box) => box.x));
+  const y = Math.min(...boxes.map((box) => box.y));
+  return {
+    x,
+    y,
+    width: Math.max(...boxes.map((box) => box.x + box.width)) - x,
+    height: Math.max(...boxes.map((box) => box.y + box.height)) - y,
+  };
+}
+
 export function renderSystemLevelSvg(
   layout: SystemLevelLayout,
   options: SystemLevelOptions
 ): string {
   const { palette } = options;
-  const content = diagramBounds(layout) ?? { x: 0, y: 0, ...EMPTY_SIZE };
+  const content = (options.cropNodeIds && cropBounds(layout, options.cropNodeIds)) ??
+    diagramBounds(layout) ?? { x: 0, y: 0, ...EMPTY_SIZE };
   const legend = options.legend
     ? layoutLegend(layout, Math.max(content.width, MIN_LEGEND_WIDTH), options.domainLegend ?? [])
     : null;

@@ -64,6 +64,9 @@ import { handleErrorWithUserNotification } from './utils/ErrorHandler';
 import { DataInspectorPanel } from './providers/DataInspectorPanel';
 import { DataInspectorRecipeEditorProvider } from './providers/DataInspectorRecipeEditorProvider';
 import { SystemDiagramProvider } from './providers/SystemDiagramProvider';
+import { RenderAssets } from './services/render/renderResources';
+import { ExportTargets } from './providers/imageExport/ExportTargets';
+import { exportDiagramImageCommand } from './commands/exportDiagramImage';
 import { registerSystemDesignContextKey } from './services/systemDiagram/systemDesignContextKey';
 import { selectRegisterLayout } from './commands/DataInspectorCommands';
 
@@ -115,6 +118,8 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   registerRuntimeBusLibraryInvalidation(context);
+  const exportTargets = new ExportTargets();
+  const renderAssets = new RenderAssets();
 
   registerCustomProvider(
     context,
@@ -136,7 +141,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     logger,
     EDITOR_VIEW_TYPE_IP_CORE,
-    new IpCoreEditorProvider(context, resourceRoots),
+    new IpCoreEditorProvider(context, resourceRoots, exportTargets, renderAssets),
     'IP Core'
   );
 
@@ -152,7 +157,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     logger,
     EDITOR_VIEW_TYPE_SYSTEM_DIAGRAM,
-    new SystemDiagramProvider(context),
+    new SystemDiagramProvider(context, resourceRoots, exportTargets, renderAssets),
     'System Diagram'
   );
   registerSystemDesignContextKey(context);
@@ -239,6 +244,11 @@ export function activate(context: vscode.ExtensionContext): void {
       EDITOR_VIEW_TYPE_SYSTEM_DIAGRAM
     );
   });
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.exportDiagramImage',
+    exportDiagramImageCommand(exportTargets)
+  );
   safeRegisterCommand(context, 'fpga-ip-core.copyComponentInstance', copyComponentInstanceCommand);
   safeRegisterCommand(
     context,

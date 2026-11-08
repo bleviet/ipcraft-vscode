@@ -1,5 +1,10 @@
 import * as vscode from 'vscode';
+import { DEFAULT_EXPORT_OPTIONS } from '../../../shared/messages/imageExport';
+import { RenderAssets } from '../../../services/render/renderResources';
+import { ExportTargets } from '../../../providers/imageExport/ExportTargets';
 import { SystemDiagramProvider } from '../../../providers/SystemDiagramProvider';
+import { renderSystemLevelImage } from '../../../services/render/systemLevelImage';
+import type { RenderRoots } from '../../../services/render/imageEncoding';
 import { fixtureText, qsysFixtureText } from '../webview/systemDiagram/fixtureGraph';
 
 jest.mock('../../../services/HtmlGenerator', () => ({
@@ -8,6 +13,10 @@ jest.mock('../../../services/HtmlGenerator', () => ({
       return '<html>system diagram</html>';
     }
   },
+}));
+
+jest.mock('../../../services/render/systemLevelImage', () => ({
+  renderSystemLevelImage: jest.fn().mockResolvedValue(new Uint8Array([1])),
 }));
 
 const mockEnrich = jest.fn();
@@ -93,15 +102,16 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
     }),
   };
 
-  new SystemDiagramProvider({
-    extensionUri: { fsPath: '/ext' },
-    subscriptions,
-    workspaceState,
-  } as unknown as vscode.ExtensionContext).resolveCustomTextEditor(
-    document,
-    webviewPanel,
-    {} as vscode.CancellationToken
-  );
+  new SystemDiagramProvider(
+    {
+      extensionUri: { fsPath: '/ext' },
+      subscriptions,
+      workspaceState,
+    } as unknown as vscode.ExtensionContext,
+    {} as RenderRoots,
+    new ExportTargets(),
+    new RenderAssets()
+  ).resolveCustomTextEditor(document, webviewPanel, {} as vscode.CancellationToken);
 
   return {
     posted,
@@ -460,5 +470,40 @@ describe('SystemDiagramProvider', () => {
       expect(workspaceState.update).toHaveBeenLastCalledWith(storageKey, undefined);
       expect(workspaceStateStore.has(storageKey)).toBe(false);
     });
+  });
+});
+
+describe('SystemDiagramProvider export image', () => {
+  const stored = { ...DEFAULT_EXPORT_OPTIONS, format: 'svg', theme: 'dark' };
+
+  it('sends the options of the last export before the graph', async () => {
+    const { posted, send, workspaceStateStore } = setup(fixtureText);
+    workspaceStateStore.set('ipcraft.exportImage.systemDiagram', stored);
+    await send({ type: 'ready' });
+    expect(posted.map((message) => (message as { type: string }).type)).toEqual([
+      'exportOptions',
+      'graph',
+    ]);
+    expect(posted[0]).toEqual({ type: 'exportOptions', options: stored });
+  });
+
+  it('renders the graph the viewer has for an exportImage message', async () => {
+    const { send } = setup(fixtureText);
+    (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue(undefined);
+    await send({ type: 'ready' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await send({
+      type: 'exportImage',
+      options: { ...stored, area: 'whole' },
+      view: { levelPath: '/', expanded: [], clocks: false, selectedNodeIds: [] },
+    });
+    expect(renderSystemLevelImage).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'zynq_dma_system' }),
+      expect.objectContaining({ level: '/' }),
+      expect.objectContaining({ theme: 'dark' }),
+      expect.objectContaining({ format: 'svg' }),
+      expect.anything(),
+      expect.anything()
+    );
   });
 });

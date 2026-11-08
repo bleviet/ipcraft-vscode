@@ -1,4 +1,5 @@
 import type { StagingAction } from '../staging';
+import type { ExportImageOptions, IpExportView } from './imageExport';
 
 export interface GenerateOptionsMessage {
   vendorFiles?: 'none' | 'altera' | 'xilinx' | 'both';
@@ -38,7 +39,8 @@ export type IpCoreWebviewMessage =
   | { type: 'stagingResult'; confirmed: boolean; actions?: Record<string, StagingAction> }
   | { type: 'stagingAction'; action: 'viewDiff' | 'viewPreview' | 'merge'; relativePath: string }
   | { type: 'saveAsIpYml' }
-  | { type: 'checkConsistency' };
+  | { type: 'checkConsistency' }
+  | { type: 'exportImage'; options: ExportImageOptions; view: IpExportView };
 
 export type IpCoreHostMessage =
   | {
@@ -67,4 +69,8 @@ export type IpCoreHostMessage =
       type: 'conformanceResult';
       sourceRevision: string;
       report: import('../issues').ConformanceReport;
-    };
+    }
+  /** The options of the last export in this workspace. */
+  | { type: 'exportOptions'; options: ExportImageOptions }
+  /** The Export Diagram as Image command: open the export popover. */
+  | { type: 'openExport' };
