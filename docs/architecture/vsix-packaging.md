@@ -19,8 +19,12 @@ The shipped content is limited to:
   external `ELK`) and `dist/cli.js` requires it (webpack external
   `commonjs ./elk.bundled.js`), so neither bundle embeds it and the VSIX does not
   pay for it twice (the file is copied unminified so its licence header stays);
-- the three IBM Plex woff2 files (about 62 KB) under `dist/resources/fonts/`,
-  which `ipcraft render` embeds in the SVG images it writes;
+- the three IBM Plex WOFF (1.0) files (about 66 KB) under `dist/resources/fonts/`,
+  which `ipcraft render` embeds in the SVG images it writes and, converted to
+  TrueType in memory, hands to the rasterizer;
+- `dist/resources/resvg.wasm`, the unmodified resvg WebAssembly module that
+  `ipcraft render` uses for PNG and JPG output (its JavaScript glue and
+  `jpeg-js` are bundled into `dist/cli.js`);
 - the three runtime JSON schemas and every built-in bus definition copied from
   `ipcraft-spec/`;
 - the extension icon, concept resource, and walkthrough Markdown used by VS
@@ -31,10 +35,14 @@ The shipped content is limited to:
 configuration, and unreviewed new top-level content. It also requires every
 runtime source asset to be represented in the archive.
 
-The size budget is 2.5 MiB compressed and 25 MiB unpacked. The budget was
+The size budget is 3.5 MiB compressed and 25 MiB unpacked. The budget was
 raised from 2 MiB and 5 MiB for elkjs, the layout engine used by the
 system diagram webview (issue #239; now the shared `dist/elk.bundled.js`), which brought the unpacked size to about
 7 MB. The unpacked budget leaves headroom for further webview features. The
+compressed budget was raised again from 2.5 MiB to 3.5 MiB when the PNG and
+JPG rasterizer (resvg WebAssembly, about 2.4 MB, and jpeg-js) was shipped in the
+VSIX by decision, so `ipcraft render --out x.png` works everywhere (issue #268;
+VSIX 2168010 -> 3141774 bytes compressed, 7503857 -> 10033994 unpacked). The
 compressed budget still catches source maps or another development tree
 returning unnoticed. Any budget increase requires updating both this document
 and the constants in `scripts/check-vsix.js` with a reviewed reason.

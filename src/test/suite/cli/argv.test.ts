@@ -205,10 +205,15 @@ describe('ipcraft CLI argv parsing', () => {
           out: 'img/system.svg',
           level: '/',
           expand: [],
+          select: [],
+          highlight: [],
+          clocks: false,
           theme: 'light',
           grid: true,
           legend: true,
           background: 'editor',
+          scale: 2,
+          quality: 90,
         },
       });
     });
@@ -261,11 +266,27 @@ describe('ipcraft CLI argv parsing', () => {
           out: 'a.svg',
           level: '/dsp',
           expand: ['/dsp/a', '/dsp/b', '/dsp/c'],
+          select: [],
+          highlight: [],
+          clocks: false,
           theme: 'dark',
           grid: false,
           legend: false,
           background: 'transparent',
+          scale: 2,
+          quality: 90,
         },
+      });
+    });
+
+    it('picks PNG and JPG by extension and parses --scale and --quality', () => {
+      expect(parseArgs(['render', 'a.tcl', '--out', 'a.PNG', '--scale', '3'])).toEqual({
+        kind: 'render',
+        args: expect.objectContaining({ out: 'a.PNG', scale: 3 }),
+      });
+      expect(parseArgs(['render', 'a.tcl', '--out', 'a.jpeg', '--quality', '75'])).toEqual({
+        kind: 'render',
+        args: expect.objectContaining({ out: 'a.jpeg', quality: 75 }),
       });
     });
 
@@ -273,7 +294,18 @@ describe('ipcraft CLI argv parsing', () => {
       [['render', '--out', 'a.svg'], 'Missing required argument'],
       [['render', 'a.tcl'], "Missing required option: '--out"],
       [['render', 'a.tcl', 'b.tcl', '--out', 'a.svg'], 'Unexpected argument'],
-      [['render', 'a.tcl', '--out', 'a.svg', '--scale', '2'], "Unknown option '--scale'"],
+      [['render', 'a.tcl', '--out', 'a.svg', '--scale', '2'], '--scale applies to PNG and JPG'],
+      [['render', 'a.tcl', '--out', 'a.png', '--scale', '0'], 'Invalid --scale'],
+      [['render', 'a.tcl', '--out', 'a.png', '--scale', '5'], 'Invalid --scale'],
+      [['render', 'a.tcl', '--out', 'a.png', '--scale', '1.5'], 'Invalid --scale'],
+      [['render', 'a.tcl', '--out', 'a.png', '--quality', '80'], '--quality applies to JPG'],
+      [['render', 'a.tcl', '--out', 'a.svg', '--quality', '80'], '--quality applies to JPG'],
+      [['render', 'a.tcl', '--out', 'a.jpg', '--quality', '101'], 'Invalid --quality'],
+      [['render', 'a.tcl', '--out', 'a.jpg', '--quality'], 'Missing value for --quality'],
+      [
+        ['render', 'a.tcl', '--out', 'a.jpg', '--background', 'transparent'],
+        'JPG cannot be transparent; use .png or --background editor',
+      ],
       [['render', 'a.tcl', '--out', 'a.svg', '--theme', 'blue'], 'Invalid --theme'],
       [['render', 'a.tcl', '--out', 'a.svg', '--theme'], 'Missing value for --theme'],
       [
@@ -284,9 +316,7 @@ describe('ipcraft CLI argv parsing', () => {
       [['render', 'a.tcl', '--out'], 'Missing value for --out'],
       [['render', 'a.tcl', '--out', 'a.svg', '--background', 'red'], 'Invalid --background'],
       [['render', 'a.tcl', '--out', 'a.svg', '--level', 'dsp'], 'Invalid --level'],
-      [['render', 'a.tcl', '--out', 'a.txt'], 'the extension must be .svg'],
-      [['render', 'a.tcl', '--out', 'a.png'], 'PNG and JPG output are not supported yet; use .svg'],
-      [['render', 'a.tcl', '--out', 'a.JPG'], 'PNG and JPG output are not supported yet; use .svg'],
+      [['render', 'a.tcl', '--out', 'a.txt'], 'the extension must be .svg, .png, .jpg or .jpeg'],
     ])('rejects %j', (argv, message) => {
       const result = parseArgs(argv);
       expect(result.kind).toBe('error');

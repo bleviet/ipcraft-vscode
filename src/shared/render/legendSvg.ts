@@ -5,9 +5,9 @@ import type {
   DiagramFlowNode,
 } from '../../webview/systemDiagram/layout/elkLayout';
 import { nodeBadges } from '../../webview/systemDiagram/layout/diagramBounds';
-import { legendEntries } from '../../webview/systemDiagram/legend';
+import { legendEntries, type DomainLegendEntry } from '../../webview/systemDiagram/legend';
 import type { NetCategory } from '../../domain/systemGraph';
-import type { Palette } from './palette';
+import { resolveColor, type Palette } from './palette';
 import { element, num } from './svg';
 import { measureText } from './textMetrics';
 import { drawText } from './textSvg';
@@ -30,19 +30,31 @@ export interface LegendLayout {
     y: number;
     label: string;
     thick: boolean;
-    category: NetCategory;
+    /** The bar color: a wire category, or a domain entry's own color (a CSS token, see `resolveColor`). */
+    category?: NetCategory;
+    color?: string;
+    dashed?: boolean;
   }[];
 }
 
 /** Lays the legend entries of the drawn level out in rows that wrap at `maxWidth`; null when there are none. */
 export function layoutLegend(
   layout: { nodes: readonly DiagramFlowNode[]; edges: readonly DiagramFlowEdge[] },
-  maxWidth: number
+  maxWidth: number,
+  domains: readonly DomainLegendEntry[] = []
 ): LegendLayout | null {
-  const entries = legendEntries(
-    layout.edges.map((edge) => edge.data),
-    layout.nodes.flatMap((node) => nodeBadges(node).flatMap((badge) => badge.nets))
-  );
+  const entries: Omit<LegendLayout['items'][number], 'x' | 'y'>[] = [
+    ...legendEntries(
+      layout.edges.map((edge) => edge.data),
+      layout.nodes.flatMap((node) => nodeBadges(node).flatMap((badge) => badge.nets))
+    ),
+    ...domains.map((entry) => ({
+      label: entry.label,
+      thick: false,
+      color: entry.color,
+      dashed: entry.line === 'dashed',
+    })),
+  ];
   if (entries.length === 0) {
     return null;
   }
@@ -63,6 +75,8 @@ export function layoutLegend(
       label: entry.label,
       thick: entry.thick,
       category: entry.category,
+      color: entry.color,
+      dashed: entry.dashed,
     });
     widest = Math.max(widest, x + width);
     x += width + ITEM_GAP_X;
@@ -89,15 +103,29 @@ export function legendSvg(legend: LegendLayout, x: number, y: number, palette: P
   ];
   for (const item of legend.items) {
     const barHeight = item.thick ? 3 : 1.5;
+    const color =
+      item.color === undefined
+        ? palette.category[item.category ?? 'signal']
+        : resolveColor(palette, item.color);
     parts.push(
-      element('rect', {
-        x: item.x,
-        y: item.y + ITEM_HEIGHT / 2 - barHeight / 2,
-        width: BAR_WIDTH,
-        height: barHeight,
-        rx: barHeight / 2,
-        fill: palette.category[item.category],
-      }),
+      item.dashed
+        ? element('line', {
+            x1: item.x,
+            y1: item.y + ITEM_HEIGHT / 2,
+            x2: item.x + BAR_WIDTH,
+            y2: item.y + ITEM_HEIGHT / 2,
+            stroke: color,
+            'stroke-width': 2,
+            'stroke-dasharray': '6 4',
+          })
+        : element('rect', {
+            x: item.x,
+            y: item.y + ITEM_HEIGHT / 2 - barHeight / 2,
+            width: BAR_WIDTH,
+            height: barHeight,
+            rx: barHeight / 2,
+            fill: color,
+          }),
       drawText(item.x + BAR_WIDTH + BAR_GAP, item.y + ITEM_HEIGHT / 2, item.label, {
         face: 'sans400',
         sizePx: FONT_SIZE,

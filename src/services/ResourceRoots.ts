@@ -7,8 +7,10 @@ export interface ResourceRoots {
   readonly templatesDir: string;
   readonly busDefinitionsDir: string;
   readonly busDefinitionSchemaPath: string;
-  /** The bundled IBM Plex woff2 files the diagram renderer embeds; see FONT_FILES in shared/render/fontFaces. */
+  /** The bundled IBM Plex WOFF files the diagram renderer embeds; see FONT_FILES in shared/render/fontFaces. */
   readonly fontsDir: string;
+  /** The resvg WebAssembly module `ipcraft render` rasterizes PNG and JPG with. */
+  readonly resvgWasmPath: string;
 }
 
 export function resolveResourceRoots(extensionPath: string): ResourceRoots {
@@ -25,6 +27,7 @@ export function resolveResourceRoots(extensionPath: string): ResourceRoots {
       'bus_definition.schema.json'
     ),
     fontsDir: path.join(extensionPath, 'dist', 'resources', 'fonts'),
+    resvgWasmPath: path.join(extensionPath, 'dist', 'resources', 'resvg.wasm'),
   };
 
   // Verify that all directories exist to fail fast at activation
@@ -59,6 +62,7 @@ export function devResourceRoots(repoRoot: string): ResourceRoots {
     ),
     // Copied there by `npm run compile`; not verified here as only `ipcraft render` reads it.
     fontsDir: path.join(repoRoot, 'dist', 'resources', 'fonts'),
+    resvgWasmPath: path.join(repoRoot, 'node_modules', '@resvg', 'resvg-wasm', 'index_bg.wasm'),
   };
 
   // Verify that all directories exist to fail fast in tests

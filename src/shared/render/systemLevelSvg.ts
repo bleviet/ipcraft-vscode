@@ -5,13 +5,16 @@
  *
  * Mirrors the webview's InstanceNode, FrameNode, BoundaryNode, ElkEdge and DiagramLegend (their
  * styles live in systemDiagram.css; the colors in palette.ts). Deliberate simplifications:
- * - no node shadow, selection, highlight, search dimming, review or clock-domain decoration;
+ * - no node shadow, user highlight colors, search dimming, review or selected clock tree;
+ *   the selection outline (`selectedNodeIds`) and the Clocks and resets domain decorations
+ *   (already merged into the layout by `applyClockDecor`, plus `domainLegend`) are drawn;
  * - the legend sits below the drawing instead of floating over the canvas corner;
  * - grid dots are 1.5 px across (the canvas draws 1 px) so they survive printing;
  * - an unconnected pin label is italic through the browser's synthesized slant (no italic face);
  * - frame pin markers sit on the ELK port height, so they meet the wire ends exactly.
  */
 
+import type { DomainLegendEntry } from '../../webview/systemDiagram/legend';
 import type {
   DiagramFlowEdge,
   DiagramFlowNode,
@@ -30,6 +33,10 @@ export interface SystemLevelOptions {
   background: 'editor' | 'transparent';
   /** `@font-face` rules for the `<style>` element; see fontFaces.ts. */
   fontFaceCss: string;
+  /** Blocks and ports drawn with the selection outline (the viewer's selected style). */
+  selectedNodeIds?: ReadonlySet<string>;
+  /** Domain entries appended to the legend (see `clockDecor`); null or absent outside the domain mode. */
+  domainLegend?: readonly DomainLegendEntry[] | null;
 }
 
 export interface SystemLevelLayout {
@@ -45,29 +52,40 @@ const MIN_LEGEND_WIDTH = 360;
 const EMPTY_SIZE = { width: 200, height: 100 };
 const INTERFACE_WIDTH = 1.75;
 const SIGNAL_WIDTH = 1;
+/** ElkEdge: a crossing is dashed `6 4`; a dimmed wire keeps the full color at this opacity. */
+const CROSSING_DASH = '6 4';
+const DIMMED_OPACITY = 0.2;
 
 function edgeSvg(edge: DiagramFlowEdge, palette: Palette): string {
   const d = edge.data.points
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${num(point.x)} ${num(point.y)}`)
     .join(' ');
+  const { crossing, dimmed, category } = edge.data;
   return element('path', {
     d,
     fill: 'none',
-    stroke: palette.wire[edge.data.category],
+    stroke: crossing
+      ? palette.warning
+      : dimmed
+        ? palette.category[category]
+        : palette.wire[category],
     'stroke-width': edge.data.isInterface ? INTERFACE_WIDTH : SIGNAL_WIDTH,
+    'stroke-dasharray': crossing ? CROSSING_DASH : undefined,
+    opacity: dimmed && !crossing ? DIMMED_OPACITY : undefined,
   });
 }
 
-function nodeSvg(node: DiagramFlowNode, palette: Palette): string {
+function nodeSvg(node: DiagramFlowNode, palette: Palette, selected: boolean): string {
   const inner =
     node.type === 'instance'
-      ? instanceSvg(node.data, node.height, palette)
+      ? instanceSvg(node.data, node.height, palette, selected)
       : node.type === 'frame'
-        ? frameSvg(node.data, node, palette)
-        : boundarySvg(node.data, palette);
+        ? frameSvg(node.data, node, palette, selected)
+        : boundarySvg(node.data, palette, selected);
   const attrs = attributes({
     'data-node': node.id,
     'data-kind': node.type,
+    'data-selected': selected ? 'true' : undefined,
     transform: `translate(${num(node.position.x)} ${num(node.position.y)})`,
   });
   return `<g ${attrs}>${inner}</g>`;
@@ -96,8 +114,10 @@ export function renderSystemLevelSvg(
   const { palette } = options;
   const content = diagramBounds(layout) ?? { x: 0, y: 0, ...EMPTY_SIZE };
   const legend = options.legend
-    ? layoutLegend(layout, Math.max(content.width, MIN_LEGEND_WIDTH))
+    ? layoutLegend(layout, Math.max(content.width, MIN_LEGEND_WIDTH), options.domainLegend ?? [])
     : null;
+  const drawNode = (node: DiagramFlowNode) =>
+    nodeSvg(node, palette, options.selectedNodeIds?.has(node.id) ?? false);
   const width = Math.ceil(Math.max(content.width, legend?.width ?? 0) + 2 * MARGIN);
   const legendHeight = legend ? legend.height + LEGEND_GAP : 0;
   const height = Math.ceil(content.height + legendHeight + 2 * MARGIN);
@@ -114,9 +134,9 @@ export function renderSystemLevelSvg(
   const body = [
     options.background === 'editor' ? element('rect', { ...box, fill: palette.background }) : '',
     options.grid ? gridSvg(box, palette) : '',
-    ...frames.map((node) => nodeSvg(node, palette)),
+    ...frames.map(drawNode),
     ...layout.edges.map((edge) => edgeSvg(edge, palette)),
-    ...blocks.map((node) => nodeSvg(node, palette)),
+    ...blocks.map(drawNode),
     legend ? legendSvg(legend, content.x, content.y + content.height + LEGEND_GAP, palette) : '',
   ];
   const root = attributes({

@@ -281,8 +281,8 @@ deduplicated. In VS Code the same service is available as
 
 ### Rendering a system design or an IP core as an image
 
-`render` draws one level of a system design, or the symbol of an IP core, as a
-standalone SVG for documentation. It reads a Vivado block design `.tcl`, a
+`render` draws one level of a system design, or the symbol of an IP core, as an
+SVG, PNG or JPG image for documentation. It reads a Vivado block design `.tcl`, a
 Platform Designer `.qsys`, a `qsys-script` `.tcl` or an `.ip.yml`, and needs no
 VS Code window:
 
@@ -291,22 +291,43 @@ ipcraft render bd/system.tcl --out docs/img/system.svg
 ipcraft render path/to/uart.ip.yml --out docs/img/uart.svg --theme dark
 ipcraft render bd/system.tcl --out docs/img/dsp.svg --level /dsp_pipeline --theme dark
 ipcraft render bd/system.tcl --out docs/img/system.svg --expand /dsp_pipeline --no-grid
+ipcraft render bd/system.tcl --out docs/img/system.png --scale 3
+ipcraft render bd/system.tcl --out docs/img/dma.png --select axi_dma_0 --hops 2
+ipcraft render bd/system.tcl --out docs/img/clocks.svg --clocks
+ipcraft render path/to/uart.ip.yml --out docs/img/uart.jpg --quality 80
+ipcraft render bd/system.tcl --out docs/img/system.svg --workspace .
+ipcraft render --manifest docs/images.yml
 ```
 
 | Option | Meaning |
 |---|---|
-| `--out <file.svg>` | Output file (required); the folder is created if needed. `.png` and `.jpg` are not supported yet |
+| `--out <file>` | Output file (required); the extension picks the format: `.svg`, `.png`, `.jpg` or `.jpeg`. The folder is created if needed |
 | `--level <path>` | System designs only. Hierarchy level to draw (default `/`, the top level) |
 | `--expand <path>[,...]` | System designs only. Hierarchy blocks drawn expanded in place, by instance path or name; repeat or comma-separate. A block of the level, or of a block that is itself expanded (`--expand /dsp_pipeline,/dsp_pipeline/coeff_bank`) |
+| `--select <name>[,...]` | System designs only. Draw only these blocks (instance name or path on the level) or external ports (`port:<name>`) and the blocks around them, laid out compactly as the viewer's isolated view; repeat or comma-separate. The selected blocks get the viewer's selection outline. Names inside an expanded block cannot be selected |
+| `--hops <n>` | System designs only, with `--select`. How many connections away from the selection to draw: an integer of at least 1 (default 1). A larger value is cut to the furthest block connected to the selection. Clock and reset nets do not count as connections |
+| `--highlight <name>[,...]` | System designs only. Draw these blocks or ports (`port:<name>`) with the selection outline without hiding anything; with `--select` they must be in the isolated view, and they may be blocks inside an expanded block |
+| `--clocks` | System designs only. Draw the viewer's Clocks and resets view: pins colored by clock domain, a domain strip and crossing count in block headers, clock frequencies, clock domain crossings as dashed wires in the warning color with other data wires faded, and the domains in the legend |
 | `--theme <light\|dark>` | Image palette (default `light`; the VS Code theme does not matter) |
 | `--no-grid` | Omit the background grid dots |
 | `--no-legend` | System designs only. Omit the wire-category legend below the drawing |
-| `--background <editor\|transparent>` | Fill with the palette background (default) or leave transparent |
+| `--background <editor\|transparent>` | Fill with the palette background (default) or leave transparent. A JPG cannot be transparent |
+| `--scale <1-4>` | PNG and JPG only. Pixels per SVG unit, an integer (default 2) |
+| `--quality <1-100>` | JPG only. JPEG quality (default 90) |
+| `--workspace <dir>` | System designs only. Folder searched for the `.ip.yml`, HDL and `.qsys` files that define the design's instances (default: the design file's folder) |
+| `--no-workspace` | System designs only. Draw the design exactly as the file declares it, without those definitions |
+| `--manifest <file.yml>` | Render every image listed in a [manifest](#rendering-many-images-from-one-manifest). Takes no input file and no other option |
 
 The SVG uses plain shapes and text only (no `foreignObject`, scripts or CSS
 variables), so it opens in Inkscape, LibreOffice and Word. The IBM Plex fonts
 used for text are embedded in the file. The same input and options always
 produce the same bytes, so a committed image only changes when the design does.
+
+PNG and JPG are drawn from that SVG by a bundled WebAssembly rasterizer (resvg),
+so they need no browser or system fonts, and the text uses the same IBM Plex
+faces. Bold monospace text is drawn with the regular face, as the renderer ships
+only IBM Plex Mono 400. A JPG has no alpha channel, so it is filled with the
+palette background; use a PNG for a transparent image.
 
 An `.ip.yml` is drawn as the IP core editor's canvas shows it: the block with
 its name, vendor and library, dependencies, generics, ports (clocks, resets,
@@ -314,15 +335,82 @@ interrupts, data ports and collapsed bus interfaces with their protocol, mode an
 memory map badges) and description. Bus interface names and protocols come from
 the built-in bus library plus the file's own `useBusLibrary` folder; bus
 libraries configured in VS Code settings or found in the workspace are not read.
-The options `--level`, `--expand` and `--no-legend` are errors for an `.ip.yml`,
+The options `--level`, `--expand`, `--select`, `--hops`, `--highlight`, `--clocks`, `--no-legend`, `--workspace` and `--no-workspace` are errors for an `.ip.yml`,
 and so is a file that declares a newer `apiVersion` than this IPCraft supports.
 
-An unknown `--level` or `--expand` name exits with code 1 and lists the closest
-names. The image shows what the design file declares: blocks whose pins the file
-does not list (they are normally read from an `.ip.yml` or HDL in the workspace)
-are drawn with only the pins the connections mention. Isolated views,
-highlights, the Clocks and resets decoration, expanded bus interfaces in the
-IP symbol and PNG or JPG output are not part of `render` yet.
+An unknown `--level`, `--expand`, `--select` or `--highlight` name exits with code 1 and lists the closest
+names. Expanded bus interfaces in the IP symbol are not part of `render` yet.
+
+#### Workspace definitions
+
+A design file often does not list the pins of its blocks. `render` finds them
+the way the system viewer does: it searches the `--workspace` folder (default:
+the design file's folder) and everything below it for
+
+- an `.ip.yml` whose VLNV matches a Vivado block (case-insensitively), or whose
+  name matches a Platform Designer component, and adds the definition's pins;
+- an HDL file (`.vhd`, `.vhdl`, `.v`, `.sv`) declaring the entity or module that
+  a Vivado module reference names, and adds its ports;
+- a `.qsys` file named like the `kind` of a Platform Designer module, which is
+  drawn as a hierarchy block holding that system (use `--level` or `--expand` to
+  open it).
+
+When several files match, the one nearest the design file wins; a tie is left
+undefined. The search follows symbolic links (not into a loop), skips
+`node_modules`, `.git`, `.Xil` and Vivado-generated folders (`*.gen`, `*.cache`,
+`*.ip_user_files`, `*.runs`, `*.sim`) anywhere in a path relative to the
+workspace folder (the viewer applies the same filter to the whole path), reads at
+most 2000 `.ip.yml`, 5000 HDL and 2000 `.qsys` files, the first by sorted
+relative path, and ignores HDL files over 1 MiB. VS Code's `files.exclude`
+setting is not applied. Without a match the block is drawn as the design
+declares it, so a design with no definitions nearby gives the same image with or
+without `--workspace`. Use `--no-workspace` for that image on purpose. A folder
+or an invalid `.ip.yml` that is skipped is reported as a warning on stderr.
+
+The command reads those files without asking for trust, like `generate`; point
+`--workspace` only at folders you trust. Display names are relative to the
+workspace folder, and the result does not depend on file system order.
+
+#### Rendering many images from one manifest
+
+`ipcraft render --manifest docs/images.yml` renders every entry of a YAML file.
+Paths are relative to the manifest file.
+
+```yaml
+defaults: { theme: light, scale: 2, legend: true }
+images:
+  - source: ip/axi_dma.ip.yml
+    out: docs/img/axi_dma.svg
+  - source: bd/system.tcl
+    out: docs/img/dma-context.png
+    select: [axi_dma_0]
+    hops: 2
+    workspace: ip
+```
+
+Each entry takes `source` and `out` (required) and the options `level`,
+`expand`, `select`, `hops`, `highlight`, `clocks`, `theme`, `scale`, `quality`,
+`grid`, `legend`, `background` and `workspace` (a folder, or `false` for none).
+`expand`, `select` and `highlight` are lists or comma-separated strings;
+`clocks`, `grid` and `legend` are `true` or `false`. `defaults` takes the same
+keys except `source` and `out`, which every image sets itself, and applies under
+every entry. A default that an entry cannot use is skipped: `scale` for an SVG,
+`quality` for a non-JPG, `background: transparent` for a JPG, `hops` without
+`select`, and the system design options (`level`, `expand`, `select`, `hops`,
+`highlight`, `clocks`, `legend`, `workspace`) for an `.ip.yml`. A key set on the
+entry itself is checked like the matching flag, with the same message. An
+unknown key is an error, as are an empty `images` list and two images with the
+same `out`. `workspace: false` (or `null`) draws that design without workspace
+definitions, like `--no-workspace`.
+
+The images are rendered one after another in file order, sharing the fonts, the
+rasterizer, the bus library and the workspace file lists. Each success prints
+`Rendered <path>`. An entry that fails prints `images[<index>] (<source>):
+<message>` on stderr and the others still render; the exit code is 1 if any
+failed, 0 otherwise. A problem with the manifest as a whole (unreadable file,
+invalid YAML, unknown top-level key) renders nothing and exits with 1. Output
+folders are created. An image from a manifest is byte for byte the image the
+same options give on the command line.
 
 ### Upgrading `.ip.yml` to the latest format version
 

@@ -3,8 +3,10 @@ const path = require('path');
 const { readVsixArchive } = require('./vsix-archive');
 
 // Budgets include the elkjs layout engine, shipped once as dist/elk.bundled.js for the
-// system diagram webview and the CLI (issues #239, #268); see docs/architecture/vsix-packaging.md.
-const COMPRESSED_BUDGET_BYTES = 2.5 * 1024 * 1024;
+// system diagram webview and the CLI (issues #239, #268), and the resvg WebAssembly
+// rasterizer for PNG and JPG output of `ipcraft render` (issue #268); see
+// docs/architecture/vsix-packaging.md.
+const COMPRESSED_BUDGET_BYTES = 3.5 * 1024 * 1024;
 const UNPACKED_BUDGET_BYTES = 25 * 1024 * 1024;
 const repoRoot = path.resolve(__dirname, '..');
 const vsixPath = path.resolve(process.argv[2] ?? 'artifacts/ipcraft-vscode.vsix');
@@ -31,7 +33,8 @@ const allowedPatterns = [
   /^extension\/dist\/[a-f0-9]+\.ttf$/,
   /^extension\/dist\/packs\/[A-Za-z0-9._/-]+\.(j2|md|yml)$/,
   /^extension\/dist\/resources\/bus_definitions\/[A-Za-z0-9._-]+\.yml$/,
-  /^extension\/dist\/resources\/fonts\/ibm-plex-(sans|mono)-latin-\d+-normal\.woff2$/,
+  /^extension\/dist\/resources\/fonts\/ibm-plex-(sans|mono)-latin-\d+-normal\.woff$/,
+  /^extension\/dist\/resources\/resvg\.wasm$/,
   /^extension\/dist\/resources\/schemas\/[A-Za-z0-9._-]+\.json$/,
   /^extension\/dist\/templates\/[A-Za-z0-9._-]+\.j2$/,
   /^extension\/media\/walkthrough\/[A-Za-z0-9._/-]+\.md$/,
@@ -50,9 +53,10 @@ const requiredFiles = new Set([
   'extension/dist/systemDiagram.js',
   'extension/dist/systemDiagram.css',
   'extension/dist/elk.bundled.js',
-  'extension/dist/resources/fonts/ibm-plex-sans-latin-400-normal.woff2',
-  'extension/dist/resources/fonts/ibm-plex-sans-latin-600-normal.woff2',
-  'extension/dist/resources/fonts/ibm-plex-mono-latin-400-normal.woff2',
+  'extension/dist/resources/resvg.wasm',
+  'extension/dist/resources/fonts/ibm-plex-sans-latin-400-normal.woff',
+  'extension/dist/resources/fonts/ibm-plex-sans-latin-600-normal.woff',
+  'extension/dist/resources/fonts/ibm-plex-mono-latin-400-normal.woff',
 ]);
 
 function addRequiredTree(sourceDir, archiveDir) {

@@ -56,10 +56,15 @@ function args(input: string, name: string, extra: Partial<CliRenderArgs> = {}): 
     out: path.join(tmp, name),
     level: '/',
     expand: [],
+    select: [],
+    highlight: [],
+    clocks: false,
     theme: 'light',
     grid: true,
     legend: true,
     background: 'editor',
+    scale: 2,
+    quality: 90,
     ...extra,
   };
 }

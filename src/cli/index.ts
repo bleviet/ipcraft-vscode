@@ -5,6 +5,7 @@ import { runCliGenerate } from './generate';
 import { runCliMigrate } from './migrate';
 import { runCliPackage } from './package';
 import { runCliRender } from './render';
+import { runCliRenderManifest } from './renderManifest';
 import { runCliVerify } from './verify';
 import { runCliVhdlLs } from './vhdlLs';
 import { parseArgs, usageText } from './argv';
@@ -54,6 +55,13 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     }
     console.log(`Rendered ${result.outputPath}`);
     return 0;
+  }
+
+  if (parsed.kind === 'renderManifest') {
+    return runCliRenderManifest(parsed.manifestPath, resourceRoots, {
+      rendered: (outputPath) => console.log(`Rendered ${outputPath}`),
+      failed: (message) => console.error(`Render failed: ${message}`),
+    });
   }
 
   if (parsed.kind === 'migrate') {

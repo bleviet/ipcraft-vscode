@@ -1,13 +1,19 @@
 /** The `@font-face` rules that embed the bundled IBM Plex faces in an SVG. Pure: callers pass the font bytes. */
 
 export const SANS_FAMILY = "'IBM Plex Sans', sans-serif";
+/**
+ * Semibold text: resvg matches the family name table of the TrueType file, which for the 600
+ * face is 'IBM Plex Sans SemiBold'; browsers skip that name and use the embedded 'IBM Plex Sans'
+ * at weight 600.
+ */
+export const SANS_SEMIBOLD_FAMILY = "'IBM Plex Sans SemiBold', 'IBM Plex Sans', sans-serif";
 export const MONO_FAMILY = "'IBM Plex Mono', monospace";
 
-/** File names of the latin woff2 subsets under `dist/resources/fonts/`. */
+/** File names of the latin WOFF (1.0) subsets under `dist/resources/fonts/`. */
 export const FONT_FILES = {
-  sans400: 'ibm-plex-sans-latin-400-normal.woff2',
-  sans600: 'ibm-plex-sans-latin-600-normal.woff2',
-  mono400: 'ibm-plex-mono-latin-400-normal.woff2',
+  sans400: 'ibm-plex-sans-latin-400-normal.woff',
+  sans600: 'ibm-plex-sans-latin-600-normal.woff',
+  mono400: 'ibm-plex-mono-latin-400-normal.woff',
 } as const;
 
 export type FontBytes = Readonly<Record<keyof typeof FONT_FILES, Uint8Array>>;
@@ -27,7 +33,7 @@ export function toBase64(bytes: Uint8Array): string {
 }
 
 function fontFace(family: string, weight: number, bytes: Uint8Array): string {
-  return `@font-face{font-family:'${family}';font-style:normal;font-weight:${weight};src:url(data:font/woff2;base64,${toBase64(bytes)}) format('woff2');}`;
+  return `@font-face{font-family:'${family}';font-style:normal;font-weight:${weight};src:url(data:font/woff;base64,${toBase64(bytes)}) format('woff');}`;
 }
 
 /** CSS with one `@font-face` rule per bundled face, the font data inlined as base64. */

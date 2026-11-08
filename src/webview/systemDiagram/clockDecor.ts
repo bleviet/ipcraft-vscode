@@ -94,3 +94,30 @@ export function clockDecor(
     legend: domainMode ? domainLegend(levelDomains(analysis, graph, levelPath)) : null,
   };
 }
+
+/** What the decoration adds to the data of one node: its domain strip and pin marks, when it has any. */
+export function clockNodeData(
+  decor: Pick<ClockDecor, 'domains' | 'pinMarks'>,
+  nodeId: string
+): { domains?: NodeDomains; pinMarks?: PinMarks } {
+  const domains = decor.domains.get(nodeId);
+  const pinMarks = decor.pinMarks.get(nodeId);
+  return { ...(domains && { domains }), ...(pinMarks && { pinMarks }) };
+}
+
+/** The layout with the decoration merged into the node data and the edge style marks, as the canvas draws it. */
+export function applyClockDecor(
+  layout: { nodes: readonly DiagramFlowNode[]; edges: readonly DiagramFlowEdge[] },
+  decor: ClockDecor
+): { nodes: DiagramFlowNode[]; edges: DiagramFlowEdge[] } {
+  return {
+    nodes: layout.nodes.map(
+      (node) =>
+        ({ ...node, data: { ...node.data, ...clockNodeData(decor, node.id) } }) as DiagramFlowNode
+    ),
+    edges: layout.edges.map((edge) => {
+      const marks = decor.edges.get(edge.id);
+      return marks ? { ...edge, data: { ...edge.data, ...marks } } : edge;
+    }),
+  };
+}

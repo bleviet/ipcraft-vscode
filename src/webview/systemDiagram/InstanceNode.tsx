@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { PIN_ROW_HEIGHT, type InstanceNodeData, type PinRow } from './layout/elkLayout';
-import type { PinMark } from './clocks/nodeView';
+import { hasCrossingEnd, type PinMark } from './clocks/nodeView';
 import type { PinHoverTarget } from './model';
 import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
@@ -104,7 +104,7 @@ function InstanceNodeBase({ data, selected }: NodeProps<InstanceFlowNode>) {
         'data-unchecked': !review.pinListKnown,
       })}
       {...(data.domains && {
-        'data-crossing-end': Object.values(data.pinMarks ?? {}).some((mark) => mark.crossing),
+        'data-crossing-end': hasCrossingEnd(data.pinMarks),
       })}
       style={{
         width: data.width,

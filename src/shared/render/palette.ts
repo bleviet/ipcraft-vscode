@@ -83,6 +83,15 @@ export interface Palette {
   category: Readonly<Record<NetCategory, string>>;
   /** Category colors of wires at rest: 65% of the category color over the background. */
   wire: Readonly<Record<NetCategory, string>>;
+  /** `--vscode-focusBorder`: the outline of a selected or highlighted block. */
+  focusBorder: string;
+  /** `--vscode-editorWarning-foreground`: clock domain crossings. */
+  warning: string;
+  /**
+   * The `--vscode-*` tokens the clock domain colors use (clockDomains.ts `DOMAIN_COLORS`,
+   * domainView.ts `UNRELEASED_RESET_COLOR`), by name without `var()`; see {@link resolveColor}.
+   */
+  tokens: Readonly<Record<string, string>>;
   /** IP core symbol roles. */
   ip: IpSymbolPalette;
 }
@@ -124,6 +133,9 @@ interface Tokens {
   orange: string;
   purple: string;
   red: string;
+  warning: string;
+  ansiCyan: string;
+  ansiMagenta: string;
 }
 
 // Light Modern, from scripts/docs-screenshots/theme/light.css.
@@ -141,6 +153,9 @@ const LIGHT_TOKENS: Tokens = {
   orange: '#d18616',
   purple: '#652d90',
   red: '#e51400',
+  warning: '#bf8803',
+  ansiCyan: '#0598bc',
+  ansiMagenta: '#bc05bc',
 };
 
 // Dark Modern, from scripts/docs-screenshots/theme/dark.css.
@@ -158,6 +173,9 @@ const DARK_TOKENS: Tokens = {
   orange: '#d18616',
   purple: '#b180d7',
   red: '#f14c4c',
+  warning: '#cca700',
+  ansiCyan: '#11a8cd',
+  ansiMagenta: '#bc3fbc',
 };
 
 /** The colors of colors.ts `CATEGORY_COLORS`, by token. */
@@ -216,6 +234,18 @@ function buildPalette(t: Tokens): Palette {
     gridDot: { color: t.foreground, opacity: 0.25 },
     category,
     wire,
+    focusBorder: t.focusBorder,
+    warning: t.warning,
+    tokens: {
+      '--vscode-charts-blue': t.blue,
+      '--vscode-charts-purple': t.purple,
+      '--vscode-charts-green': t.green,
+      '--vscode-charts-orange': t.orange,
+      '--vscode-terminal-ansiCyan': t.ansiCyan,
+      '--vscode-terminal-ansiMagenta': t.ansiMagenta,
+      '--vscode-descriptionForeground': t.descriptionForeground,
+      '--vscode-editorWarning-foreground': t.warning,
+    },
     ip: buildIpSymbolPalette(t),
   };
 }
@@ -227,4 +257,14 @@ const PALETTES: Record<RenderTheme, Palette> = {
 
 export function paletteFor(theme: RenderTheme): Palette {
   return PALETTES[theme];
+}
+
+/** The fixed color of a `var(--vscode-*)` token the system diagram uses for clock domains. */
+export function resolveColor(palette: Palette, cssColor: string): string {
+  const token = /^var\((--[\w-]+)\)$/.exec(cssColor)?.[1];
+  const color = token === undefined ? undefined : palette.tokens[token];
+  if (color === undefined) {
+    throw new Error(`No fixed color for '${cssColor}' in the render palette`);
+  }
+  return color;
 }
