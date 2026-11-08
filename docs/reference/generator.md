@@ -281,8 +281,8 @@ deduplicated. In VS Code the same service is available as
 
 ### Rendering a system design or an IP core as an image
 
-`render` draws one level of a system design, or the symbol of an IP core, as a
-standalone SVG for documentation. It reads a Vivado block design `.tcl`, a
+`render` draws one level of a system design, or the symbol of an IP core, as an
+SVG, PNG or JPG image for documentation. It reads a Vivado block design `.tcl`, a
 Platform Designer `.qsys`, a `qsys-script` `.tcl` or an `.ip.yml`, and needs no
 VS Code window:
 
@@ -291,22 +291,32 @@ ipcraft render bd/system.tcl --out docs/img/system.svg
 ipcraft render path/to/uart.ip.yml --out docs/img/uart.svg --theme dark
 ipcraft render bd/system.tcl --out docs/img/dsp.svg --level /dsp_pipeline --theme dark
 ipcraft render bd/system.tcl --out docs/img/system.svg --expand /dsp_pipeline --no-grid
+ipcraft render bd/system.tcl --out docs/img/system.png --scale 3
+ipcraft render path/to/uart.ip.yml --out docs/img/uart.jpg --quality 80
 ```
 
 | Option | Meaning |
 |---|---|
-| `--out <file.svg>` | Output file (required); the folder is created if needed. `.png` and `.jpg` are not supported yet |
+| `--out <file>` | Output file (required); the extension picks the format: `.svg`, `.png`, `.jpg` or `.jpeg`. The folder is created if needed |
 | `--level <path>` | System designs only. Hierarchy level to draw (default `/`, the top level) |
 | `--expand <path>[,...]` | System designs only. Hierarchy blocks drawn expanded in place, by instance path or name; repeat or comma-separate. A block of the level, or of a block that is itself expanded (`--expand /dsp_pipeline,/dsp_pipeline/coeff_bank`) |
 | `--theme <light\|dark>` | Image palette (default `light`; the VS Code theme does not matter) |
 | `--no-grid` | Omit the background grid dots |
 | `--no-legend` | System designs only. Omit the wire-category legend below the drawing |
-| `--background <editor\|transparent>` | Fill with the palette background (default) or leave transparent |
+| `--background <editor\|transparent>` | Fill with the palette background (default) or leave transparent. A JPG cannot be transparent |
+| `--scale <1-4>` | PNG and JPG only. Pixels per SVG unit, an integer (default 2) |
+| `--quality <1-100>` | JPG only. JPEG quality (default 90) |
 
 The SVG uses plain shapes and text only (no `foreignObject`, scripts or CSS
 variables), so it opens in Inkscape, LibreOffice and Word. The IBM Plex fonts
 used for text are embedded in the file. The same input and options always
 produce the same bytes, so a committed image only changes when the design does.
+
+PNG and JPG are drawn from that SVG by a bundled WebAssembly rasterizer (resvg),
+so they need no browser or system fonts, and the text uses the same IBM Plex
+faces. Bold monospace text is drawn with the regular face, as the renderer ships
+only IBM Plex Mono 400. A JPG has no alpha channel, so it is filled with the
+palette background; use a PNG for a transparent image.
 
 An `.ip.yml` is drawn as the IP core editor's canvas shows it: the block with
 its name, vendor and library, dependencies, generics, ports (clocks, resets,
@@ -321,8 +331,8 @@ An unknown `--level` or `--expand` name exits with code 1 and lists the closest
 names. The image shows what the design file declares: blocks whose pins the file
 does not list (they are normally read from an `.ip.yml` or HDL in the workspace)
 are drawn with only the pins the connections mention. Isolated views,
-highlights, the Clocks and resets decoration, expanded bus interfaces in the
-IP symbol and PNG or JPG output are not part of `render` yet.
+highlights, the Clocks and resets decoration and expanded bus interfaces in the
+IP symbol are not part of `render` yet.
 
 ### Upgrading `.ip.yml` to the latest format version
 

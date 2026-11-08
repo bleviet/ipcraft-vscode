@@ -35,7 +35,9 @@ values for that reason).
 | `ipPortSvg.ts` | IP symbol ports: stubs, dots, icons, badges, collapsed bus bundles |
 | `palette.ts` | Light and Dark colors; `mixSrgb` |
 | `textMetrics.ts`, `fontMetrics.generated.ts` | IBM Plex text measurement, baselines, truncation |
-| `fontFaces.ts` | Base64 `@font-face` rules for the three woff2 files |
+| `fontFaces.ts` | Base64 `@font-face` rules for the three WOFF files |
+| `woffToSfnt.ts` | WOFF 1.0 to TrueType unwrapping, for the rasterizer |
+| `raster.ts` | `rasterize`: SVG to PNG or JPG (resvg-wasm, jpeg-js) |
 | `svg.ts`, `textSvg.ts` | Escaping, number formatting, one-line text |
 
 ## Palette
@@ -59,7 +61,7 @@ fontkit; fontkit never runs at runtime. The SVG sets `font-kerning: none` and `t
 Linux rounds every glyph advance to a whole pixel and measured text overflows its block), so
 drawn widths equal measured widths. `plexTextMeasure` is the `TextMeasure` the
 layout uses in Node, with the webview's weights (11 px body, 12 px semibold, 10.5
-px mono). Characters outside the table are measured as `M`. The woff2 files are
+px mono). Characters outside the table are measured as `M`. The WOFF (1.0) files are
 copied to `dist/resources/fonts/` (`ResourceRoots.fontsDir`) and allow-listed in
 `scripts/check-vsix.js` and `scripts/prepare-cli-package.js`.
 
@@ -93,3 +95,33 @@ them orange and red; both are kept as the editors draw them.
 bundles always collapsed, no drop shadow, the canvas margin cropped to 24 px
 around the drawing, and small native shapes in place of the glyphs the embedded
 fonts lack.
+
+## PNG and JPG
+
+`rasterize` (`raster.ts`) draws the same SVG with `@resvg/resvg-wasm`: the wasm
+module is initialized once per process from bytes the caller reads
+(`ResourceRoots.resvgWasmPath`, `dist/resources/resvg.wasm`), so the glue never
+fetches or resolves a URL, which keeps it bundleable into `dist/cli.js`. The zoom
+is `--scale`; PNG is resvg's `asPng()`, JPG is its RGBA pixels through `jpeg-js`
+(no alpha, so the drawing, system level or IP symbol, is flattened onto the palette
+background; a transparent JPG is rejected by the parser). Output is
+deterministic.
+
+resvg ignores CSS `@font-face` and does not read WOFF or WOFF2, so the CLI passes
+the same three shipped WOFF files through `woffToSfnt` (Node's `zlib.inflateSync`
+as the inflate function) and gives resvg the TrueType bytes; system fonts are
+off. One shipped format therefore serves both outputs. Known differences from a
+browser:
+
+- Semibold sans text names the family
+  `'IBM Plex Sans SemiBold', 'IBM Plex Sans', sans-serif`
+  (`SANS_SEMIBOLD_FAMILY`), because resvg matches the family name table of the
+  TrueType file, which for the 600 face is "IBM Plex Sans SemiBold". The SVGs
+  define no `@font-face` of that name, so a browser uses the embedded
+  'IBM Plex Sans' at weight 600, or a locally installed 'IBM Plex Sans SemiBold'
+  (the same design) if there is one.
+- resvg does not synthesize bold, so any text the SVG asks for in bold uses the
+  regular face (IBM Plex Mono ships only at 400; Sans has real 400 and 600 faces).
+- It does not apply `font-kerning` or `text-rendering` hints, and its glyph
+  rasterization (anti-aliasing, hinting) differs slightly from Chrome's, so
+  pixels are not identical to a screenshot of the webview.

@@ -80,8 +80,8 @@ describe('ipcraft render output', () => {
 
   it('exits 1 on an argument error without rendering', async () => {
     (runCliRender as jest.Mock).mockClear();
-    expect(await main(['render', 'a.tcl', '--out', 'a.png'])).toBe(1);
-    expect(error).toHaveBeenCalledWith('PNG and JPG output are not supported yet; use .svg');
+    expect(await main(['render', 'a.tcl', '--out', 'a.txt'])).toBe(1);
+    expect(error).toHaveBeenCalledWith(expect.stringContaining('the extension must be .svg'));
     expect(runCliRender).not.toHaveBeenCalled();
   });
 });

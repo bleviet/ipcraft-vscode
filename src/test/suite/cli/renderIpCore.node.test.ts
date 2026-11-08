@@ -63,6 +63,8 @@ function args(input: string, name: string, extra: Partial<CliRenderArgs> = {}): 
     grid: true,
     legend: true,
     background: 'editor',
+    scale: 2,
+    quality: 90,
     ...extra,
   };
 }

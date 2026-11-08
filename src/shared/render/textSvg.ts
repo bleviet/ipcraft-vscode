@@ -1,9 +1,15 @@
 /** One line of text as a native SVG `<text>` element, vertically centred like a browser line box. */
 
-import { MONO_FAMILY, SANS_FAMILY } from './fontFaces';
+import { MONO_FAMILY, SANS_FAMILY, SANS_SEMIBOLD_FAMILY } from './fontFaces';
 import type { FaceName } from './fontMetrics.generated';
 import { baselineY } from './textMetrics';
 import { textElement } from './svg';
+
+const FAMILIES: Record<FaceName, string> = {
+  sans400: SANS_FAMILY,
+  sans600: SANS_SEMIBOLD_FAMILY,
+  mono400: MONO_FAMILY,
+};
 
 export interface TextStyle {
   face: FaceName;
@@ -33,7 +39,7 @@ export function drawTextOnBaseline(
     {
       x,
       y,
-      'font-family': style.face === 'mono400' ? MONO_FAMILY : SANS_FAMILY,
+      'font-family': FAMILIES[style.face],
       'font-size': style.sizePx,
       'font-weight': style.face === 'sans600' ? 600 : style.weight,
       'font-style': style.italic ? 'italic' : undefined,
