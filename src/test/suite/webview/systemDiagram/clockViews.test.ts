@@ -38,23 +38,16 @@ describe('selectedTree', () => {
 });
 
 describe('edgeMarks', () => {
-  const edge = (
-    netId: string,
-    category: 'clock' | 'reset' | 'aximm' | 'axis',
-    id = `${netId}#0`
-  ) => ({
-    id,
-    data: { netId, category },
-  });
+  const edge = (netId: string, id = `${netId}#0`) => ({ id, data: { netId } });
   const base = { tree: undefined, crossingEdgeIds: new Set<string>() };
 
   it('marks nothing outside the domain mode without a selected tree', () => {
-    expect(edgeMarks({ ...base, domainMode: false }, edge(CLK0, 'clock'))).toEqual({});
-    expect(edgeMarks({ ...base, domainMode: false }, edge(DATA_NET, 'axis'))).toEqual({});
+    expect(edgeMarks({ ...base, domainMode: false }, edge(CLK0))).toEqual({});
+    expect(edgeMarks({ ...base, domainMode: false }, edge(DATA_NET))).toEqual({});
   });
 
   it('dims every wire that is no crossing in the domain mode', () => {
-    expect(edgeMarks({ ...base, domainMode: true }, edge(DATA_NET, 'axis'))).toEqual({
+    expect(edgeMarks({ ...base, domainMode: true }, edge(DATA_NET))).toEqual({
       dimmed: true,
     });
   });
@@ -62,21 +55,21 @@ describe('edgeMarks', () => {
   it('draws a crossing wire as a crossing, whatever its category', () => {
     const marks = edgeMarks(
       { ...base, domainMode: true, crossingEdgeIds: new Set(['x#1']) },
-      edge(DATA_NET, 'axis', 'x#1')
+      edge(DATA_NET, 'x#1')
     );
     expect(marks).toEqual({ crossing: true });
     const outside = edgeMarks(
       { ...base, domainMode: false, crossingEdgeIds: new Set(['x#1']) },
-      edge(DATA_NET, 'axis', 'x#1')
+      edge(DATA_NET, 'x#1')
     );
     expect(outside).toEqual({});
   });
 
-  it('colors the wires of a selected clock tree even outside the domain mode', () => {
+  it('colors the wires of the nets on a selected clock tree, by net, even outside the domain mode', () => {
     const tree = selectedTree(analysis, net(CLK1));
     const context = { ...base, domainMode: false, tree };
-    expect(edgeMarks(context, edge(CLK1, 'clock'))).toEqual({ domainColor: DOMAIN_COLORS[2] });
-    expect(edgeMarks(context, edge(CLK0, 'clock'))).toEqual({});
+    expect(edgeMarks(context, edge(CLK1))).toEqual({ domainColor: DOMAIN_COLORS[2] });
+    expect(edgeMarks(context, edge(CLK0))).toEqual({});
   });
 });
 

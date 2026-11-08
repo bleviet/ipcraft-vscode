@@ -59,9 +59,7 @@ export function clockDecor(
   const edgeContext = {
     domainMode,
     tree,
-    crossingEdgeIds: domainMode
-      ? crossingEdgeIds(graph, edges, analysis.crossings)
-      : new Set<string>(),
+    crossingEdgeIds: domainMode ? crossingEdgeIds(edges, analysis.crossings) : new Set<string>(),
   };
   const pinContext = {
     graph,
