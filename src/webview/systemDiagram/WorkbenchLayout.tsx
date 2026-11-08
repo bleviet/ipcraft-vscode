@@ -53,6 +53,8 @@ export function WorkbenchLayout({
   const [clocksOn, setClocksOn] = useState(false);
   // Auto detail is drawn, not laid out: no zoom moves a block.
   const [autoDetail, setAutoDetail] = useState(true);
+  // The minimap is drawn, not laid out: no toggle moves a block.
+  const [minimapOn, setMinimapOn] = useState(false);
   const [query, setQuery] = useState('');
   const view = useIsolation(graph, nav);
   const { isolation } = view;
@@ -156,6 +158,8 @@ export function WorkbenchLayout({
         clocksOn={clocksOn}
         autoDetail={autoDetail}
         onAutoDetailChange={setAutoDetail}
+        minimapOn={minimapOn}
+        onMinimapChange={setMinimapOn}
         clockSummary={clockSummary}
         reviewUnconnected={reviewUnconnected}
         unconnected={{ count: findings.length, anyUndriven }}
@@ -215,6 +219,7 @@ export function WorkbenchLayout({
               focusedPin={focusedPin}
               query={query}
               autoDetail={autoDetail}
+              minimap={minimapOn}
               flash={search.flash}
               onFlashEnd={search.clearFlash}
               onSelect={nav.select}

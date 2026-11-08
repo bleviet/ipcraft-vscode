@@ -150,7 +150,7 @@ host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
 | Pure layout and geometry | `layout/` (elkjs graph construction, `placementEdges.ts` for which nets place the blocks, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
 | Clock and reset analysis | `clocks/`, pure and computed once per graph by `analyzeClocks`: `clockTypes.ts` (the result types), `frequency.ts` (parse and format), `unionFind.ts` and `levelPaths.ts` (small shared helpers), `physicalNets.ts` (nets joined across hierarchy pins, and the driver of each), `clockRules.ts` (declarative clock output, frequency, forwarding, generator, and reset rules; which Vivado IP pins are outputs is the shared `src/domain/knownIpPins.ts`, which the Vivado reader also uses to give those pins the direction `out` with source `rule`), `clockDomains.ts`, `relatedClocks.ts` (clocks of one generator), `pinClocks.ts`, `resetSources.ts`, `crossings.ts`, and the helpers each surface reads: `crossingSummary.ts` (counts and toolbar text), `crossingEdges.ts`, `domainView.ts`, `treeSelection.ts`, `edgeView.ts`, `nodeView.ts` (wire styles, pin marks, node strips), `netTree.ts` and `treeChecks.ts` (the tree rows and checks of Details), `instanceClocks.ts`, `crossingRows.ts` (the texts of its crossing rows), `viewScope.ts` (which domains, resets and crossings the Clocks and Resets tabs list for the level and expanded blocks on screen). `clockDecor.ts` merges them into one description of what the canvas adds to a layout |
 | Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize; `useSearchHistory.ts` for the search box history, whose pure rules are in `searchHistory.ts` beside `search.ts`) |
-| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, `InstanceClockDetails.tsx` the clocks of a block or port, `AutoDetail.tsx` a child of the React Flow canvas that sets the far-zoom detail (thresholds in `layout/zoomDetail.ts`), and `DiagramToolbar.tsx` groups its icon buttons with the shared `ToolbarGroup` and `ToolbarSeparator` (`src/webview/shared/components/Toolbar.tsx`) |
+| Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, `InstanceClockDetails.tsx` the clocks of a block or port, `AutoDetail.tsx` and `DiagramMinimap.tsx` children of the React Flow canvas (the first sets the far-zoom detail, thresholds in `layout/zoomDetail.ts`; the second is the optional minimap, colored by `minimap.ts`), and `DiagramToolbar.tsx` groups its icon buttons with the shared `ToolbarGroup` and `ToolbarSeparator` (`src/webview/shared/components/Toolbar.tsx`) |
 
 `messageState.ts` keeps the last valid graph when a later message reports an
 error or says the file is no longer recognized, so the workbench and the
@@ -181,7 +181,9 @@ keeps `--sd-name-scale` in step through an imperative store subscription;
 `systemDiagram.css` hides pin text and scales block names under
 `[data-far='true']`. The scale is written only while far and in steps of
 `NAME_SCALE_STEP` (`farNameScale`), because changing an inherited custom
-property restyles every descendant of the canvas.
+property restyles every descendant of the canvas. The minimap is not a layout
+input either: `DiagramMinimap.tsx` only draws the nodes the canvas already
+holds, so toggling it never moves a block or changes the viewport.
 
 Stable elements: `hooks/useCanvasElements.ts` (the node and edge building of
 `DiagramCanvas.tsx`) hands React Flow the previous node and edge object for
@@ -211,7 +213,8 @@ handles again, so a renamed pin would keep its old handle id and lose its
 wire. Explicit `handles` make React Flow build the handle bounds from the
 layout every time, so an unmounted or unresized node never needs DOM
 measurement and its handle ids always come from the layout (React Flow may
-still re-measure a mounted node, which is harmless because the ids match); they must equal the `<Handle>`s the node components render
+still re-measure a mounted node, which is harmless because the ids match);
+they must equal the `<Handle>`s the node components render
 (`nodeHandles.test.tsx` compares them). `npm run perf:system-viewer` measures
 these paths, including the mounted node count while zoomed in.
 

@@ -332,6 +332,17 @@ input:focus-visible {
   border-radius: 4px;
 }
 
+.react-flow__minimap {
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* Keep a wide legend clear of the minimap: 200px plus its 15px margins and a gap. */
+.react-flow:has(.react-flow__minimap) .sd-legend {
+  max-width: calc(100% - 250px);
+}
+
 .sd-legend-item {
   display: inline-flex;
   align-items: center;

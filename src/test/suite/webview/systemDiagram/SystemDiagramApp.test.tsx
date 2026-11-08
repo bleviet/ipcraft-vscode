@@ -526,10 +526,20 @@ describe('SystemDiagramApp', () => {
     expect(toggle).not.toHaveClass('canvas-view-toggle--active');
   });
 
+  it('starts with the Minimap off and the toolbar toggle turns it on', async () => {
+    await renderWithGraph();
+    const toggle = screen.getByRole('button', { name: 'Minimap' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle).not.toHaveClass('canvas-view-toggle--active');
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle).toHaveClass('canvas-view-toggle--active');
+  });
+
   it('groups the toolbar buttons into Design, View and Panels', async () => {
     await renderWithGraph();
     const view = within(screen.getByRole('group', { name: 'View' }));
-    for (const name of ['Simplify zoomed out', 'Zoom out', 'Fit', 'Zoom in']) {
+    for (const name of ['Simplify zoomed out', 'Minimap', 'Zoom out', 'Fit', 'Zoom in']) {
       expect(view.getByRole('button', { name })).toBeInTheDocument();
     }
     const design = within(screen.getByRole('group', { name: 'Design' }));
