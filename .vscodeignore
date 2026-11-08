@@ -38,6 +38,7 @@ knip.jsonc
 .superpowers/**
 build/**
 artifacts/**
+temp/**
 docker/**
 Jenkinsfile
 .gitmodules
