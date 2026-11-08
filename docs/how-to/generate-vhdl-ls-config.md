@@ -68,13 +68,20 @@ the folder, and lists the files it needs from `defaultlib` in it too:
 libraries.defaultlib_uart.files = [
   'uart/testbench/TestCtrl_e.vhd',  # unlisted
   'uart/TestCases/Tc1.vhd',  # unlisted
-  'common/util_pkg.vhd',  # shared with defaultlib
+  'common/util_pkg.vhd',  # shared from defaultlib
 ]
 ```
 
 A group that a file left in `defaultlib` depends on stays in `defaultlib`, so
 nothing there loses a unit. A test case written for a sibling testbench binds
 to the nearer folder.
+
+When a file uses `work.<unit>` and only a file in another library declares that
+unit, the declaring file is also listed in the library of the file that uses
+it, marked `# shared from <library>`. The separate package body or architecture
+files of that unit come along. This covers `defaultlib` and the per-folder
+libraries, and also takes files from libraries you define in the user section,
+which IPCraft itself never changes.
 
 ## The user section
 

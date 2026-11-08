@@ -3,8 +3,9 @@
  * `context` and direct `entity`/`configuration` instantiation) without a full parse. Comments,
  * string literals and character literals are blanked first so keywords inside them are not
  * matched. It also records local references (the entity an architecture or configuration binds
- * to, the package a body belongs to, and component instantiations) so callers can tell which
- * units a file depends on within its own library. Pure.
+ * to, the package a body belongs to, and component instantiations), each with its kind, so callers
+ * can tell which units a file depends on within its own library; `workReferences` is the one
+ * definition of that set. Pure.
  */
 
 export type VhdlUnitKind = 'entity' | 'package' | 'configuration' | 'context';
@@ -26,9 +27,12 @@ export interface VhdlUse {
   line: number;
 }
 
+export type LocalRefKind = 'architecture' | 'body' | 'configuration' | 'instantiation';
+
 export interface VhdlLocalRef {
   /** Lower-case name of a unit expected in the same library. */
   name: string;
+  kind: LocalRefKind;
   line: number;
 }
 
@@ -145,18 +149,37 @@ export function scanVhdl(text: string): VhdlScan {
   }
 
   const localRefs: VhdlLocalRef[] = [];
-  const localPatterns = [
-    /\barchitecture\s+[a-z]\w*\s+of\s+([a-z]\w*)\s+is\b/g,
-    /\bpackage\s+body\s+([a-z]\w*)\s+is\b/g,
-    /\bconfiguration\s+[a-z]\w*\s+of\s+([a-z]\w*)\s+is\b/g,
-    /\b[a-z]\w*\s*:\s*(?:component\s+)?([a-z]\w*)\s*(?:generic|port)\s+map\b/g,
+  const localPatterns: [LocalRefKind, RegExp][] = [
+    ['architecture', /\barchitecture\s+[a-z]\w*\s+of\s+([a-z]\w*)\s+is\b/g],
+    ['body', /\bpackage\s+body\s+([a-z]\w*)\s+is\b/g],
+    ['configuration', /\bconfiguration\s+[a-z]\w*\s+of\s+([a-z]\w*)\s+is\b/g],
+    ['instantiation', /\b[a-z]\w*\s*:\s*(?:component\s+)?([a-z]\w*)\s*(?:generic|port)\s+map\b/g],
   ];
-  for (const pattern of localPatterns) {
+  for (const [kind, pattern] of localPatterns) {
     for (const m of code.matchAll(pattern)) {
-      localRefs.push({ name: m[1], line: lineAt(m.index) });
+      localRefs.push({ name: m[1], kind, line: lineAt(m.index) });
     }
   }
   localRefs.sort((a, b) => a.line - b.line || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
 
   return { units, libraries, uses, localRefs };
+}
+
+/** Names of units a file needs in its own library: local references of `kinds` plus `work` uses. */
+export function workReferences(
+  scan: VhdlScan | undefined,
+  kinds: ReadonlySet<LocalRefKind>
+): Set<string> {
+  const names = new Set<string>();
+  for (const ref of scan?.localRefs ?? []) {
+    if (kinds.has(ref.kind)) {
+      names.add(ref.name);
+    }
+  }
+  for (const use of scan?.uses ?? []) {
+    if (use.library === 'work') {
+      names.add(use.unit);
+    }
+  }
+  return names;
 }

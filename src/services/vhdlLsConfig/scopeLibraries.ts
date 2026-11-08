@@ -2,12 +2,12 @@
  * Pure splitter for unlisted VHDL files whose unit names collide across folders (for example one
  * `TestCtrl` per testbench folder). Each group of folders that depend on each other moves into its
  * own generated library, so every architecture and configuration binds to the nearest declaration
- * instead of one arbitrary copy. A group that a `defaultlib` file depends on stays in `defaultlib`. Units that scope files need from `defaultlib` are reported as
- * shared so the caller can list those files in the scope library too. Deterministic.
+ * instead of one arbitrary copy. A group that a `defaultlib` file depends on stays in
+ * `defaultlib`. Deterministic.
  */
 
 import * as path from 'path';
-import type { VhdlScan } from './vhdlUnitScanner';
+import { workReferences, type LocalRefKind, type VhdlScan } from './vhdlUnitScanner';
 
 export interface ScopeInput {
   /** Files of `defaultlib`; `listed` means a manifest names the file. Root-relative POSIX paths. */
@@ -21,8 +21,6 @@ export interface ScopeLibrary {
   name: string;
   /** Unlisted files that moved out of `defaultlib`. */
   files: string[];
-  /** Files that stay in `defaultlib` but are also needed here. */
-  shared: string[];
 }
 
 export interface ScopeResult {
@@ -38,6 +36,12 @@ interface FileInfo {
   refs: Set<string>;
 }
 
+const ALL_KINDS: ReadonlySet<LocalRefKind> = new Set([
+  'architecture',
+  'body',
+  'configuration',
+  'instantiation',
+]);
 const PREFIX = 'defaultlib_';
 const DEFAULT_NODE = '\0default';
 const byString = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
@@ -45,18 +49,12 @@ const segmentsOf = (dir: string): string[] => (dir === '' ? [] : dir.split('/'))
 
 function describe(file: ScopeInput['files'][number], scan: VhdlScan | undefined): FileInfo {
   const dir = path.posix.dirname(file.path);
-  const refs = new Set<string>(scan?.localRefs.map((r) => r.name));
-  for (const use of scan?.uses ?? []) {
-    if (use.library === 'work') {
-      refs.add(use.unit);
-    }
-  }
   return {
     path: file.path,
     dir: dir === '.' ? '' : dir,
     listed: file.listed,
     declared: new Set(scan?.units.map((u) => u.name)),
-    refs,
+    refs: workReferences(scan, ALL_KINDS),
   };
 }
 
@@ -116,36 +114,6 @@ function nameComponents(repDirs: string[], taken: ReadonlySet<string>): string[]
     used.add(name);
     return name;
   });
-}
-
-function sharedFiles(scopeFiles: FileInfo[], defaults: FileInfo[], colliding: Set<string>) {
-  const declared = new Set(scopeFiles.flatMap((f) => [...f.declared]));
-  const wanted = (info: FileInfo): string[] =>
-    [...info.refs].filter((r) => !colliding.has(r) && !declared.has(r));
-  const shared = new Set<string>();
-  const seen = new Set<string>();
-  let pending = scopeFiles.flatMap(wanted);
-  while (pending.length > 0) {
-    const next: string[] = [];
-    for (const name of pending) {
-      if (seen.has(name)) {
-        continue;
-      }
-      seen.add(name);
-      for (const file of defaults) {
-        if (
-          file.declared.has(name) &&
-          ![...file.declared].some((d) => colliding.has(d)) &&
-          !shared.has(file.path)
-        ) {
-          shared.add(file.path);
-          next.push(...wanted(file));
-        }
-      }
-    }
-    pending = next;
-  }
-  return [...shared].sort(byString);
 }
 
 export function scopeLibraries(input: ScopeInput): ScopeResult {
@@ -274,7 +242,6 @@ export function scopeLibraries(input: ScopeInput): ScopeResult {
     return {
       name: names[i],
       files: files.map((f) => f.path),
-      shared: sharedFiles(files, defaults, colliding),
     };
   });
   return { defaultFiles: defaults.map((f) => f.path), scopes };

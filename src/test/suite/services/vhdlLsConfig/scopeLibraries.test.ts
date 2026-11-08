@@ -39,7 +39,6 @@ describe('scopeLibraries', () => {
       {
         name: 'defaultlib_axi',
         files: ['axi/TestCases/Tc1.vhd', 'axi/testbench/TbAxi.vhd', 'axi/testbench/TestCtrl_e.vhd'],
-        shared: [],
       },
       {
         name: 'defaultlib_uart',
@@ -48,29 +47,7 @@ describe('scopeLibraries', () => {
           'uart/testbench/TbUart.vhd',
           'uart/testbench/TestCtrl_e.vhd',
         ],
-        shared: [],
       },
-    ]);
-  });
-
-  it('shares transitive dependencies that stay in defaultlib', () => {
-    const spec: Spec = {
-      ...osvvm('uart', 'TbUart'),
-      ...osvvm('axi', 'TbAxi'),
-      'common/pkg_a.vhd': { text: pkg('pkg_a', ['pkg_b']) },
-      'common/pkg_b.vhd': { text: pkg('pkg_b') },
-      'common/other.vhd': { text: pkg('other') },
-    };
-    spec['uart/testbench/TbUart.vhd'].text += '\nuse work.pkg_a.all;';
-    const result = split(spec);
-    expect(result.defaultFiles).toEqual([
-      'common/other.vhd',
-      'common/pkg_a.vhd',
-      'common/pkg_b.vhd',
-    ]);
-    expect(result.scopes.map((s) => [s.name, s.shared])).toEqual([
-      ['defaultlib_axi', []],
-      ['defaultlib_uart', ['common/pkg_a.vhd', 'common/pkg_b.vhd']],
     ]);
   });
 
@@ -82,7 +59,7 @@ describe('scopeLibraries', () => {
     });
     expect(result.defaultFiles).toEqual(['common/common_pkg.vhd', 'ctrl/rtl/ctrl.vhd']);
     expect(result.scopes).toEqual([
-      { name: 'defaultlib_gen_copy', files: ['common/gen_copy/common_pkg.vhd'], shared: [] },
+      { name: 'defaultlib_gen_copy', files: ['common/gen_copy/common_pkg.vhd'] },
     ]);
   });
 
@@ -97,7 +74,7 @@ describe('scopeLibraries', () => {
     });
     expect(result.defaultFiles).toEqual(['common/common_pkg.vhd', 'core/core.vhd', 'top/top.vhd']);
     expect(result.scopes).toEqual([
-      { name: 'defaultlib_gen_copy', files: ['common/gen_copy/common_pkg.vhd'], shared: [] },
+      { name: 'defaultlib_gen_copy', files: ['common/gen_copy/common_pkg.vhd'] },
     ]);
   });
 

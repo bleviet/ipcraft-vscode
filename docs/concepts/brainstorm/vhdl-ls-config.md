@@ -192,17 +192,39 @@ group, and a group that does not reach a manifest-named file becomes a
 library `defaultlib_<folder>`. The folder is the common ancestor of the
 group's seeds, and the name is the shortest unique run of trailing path
 segments, lower-cased with other characters replaced by `_`. A clash with
-another library gets `_2`, `_3`. Files a group needs but that stay in
-`defaultlib` (transitively, and only if they declare no colliding unit) are
-listed in the library as well, with the provenance `shared with defaultlib`;
-VHDL-LS accepts one file in several libraries. A manifest-named file that
-references a colliding unit keeps its nearest folder in `defaultlib`. Same-folder
+another library gets `_2`, `_3`. A manifest-named file that references a
+colliding unit keeps its nearest folder in `defaultlib`. Same-folder
 duplicates, and units a manifest names, still fall back to the exclusion above.
 A `defaultlib` file cannot reach a unit in a per-folder library, so after
 grouping, any group that declares a non-colliding unit referenced by a file
 left in `defaultlib` is merged into `defaultlib`, repeated until nothing
 changes (a chain of groups merges together). Limitation: a test case written
 for a sibling variant can bind to the nearer folder instead.
+
+**Shared units.** A file resolves `work.<unit>` only if a file declaring the
+unit is listed in the same library. A file references a unit through a
+`work` use clause (including direct `entity work.X` instantiation), or an
+architecture, configuration or package body of it. A component instantiation
+does not count: it binds through the library of the package that declares the
+component, and VHDL-LS resolves it to that declaration, so sharing the entity
+would only duplicate diagnostics and would pull whole designs into `defaultlib`.
+`defaultlib` and the per-folder libraries receive shared files; manifest
+libraries and user-section libraries do not. For each unit such a library
+references but does not declare, IPCraft takes a declaring file from any other
+library, generated or user-section, and then follows that file's own
+references the same way. The separate files of the picked file's source
+library that hold the package body or architectures of the units it declares
+come along, because a package without its body leaves deferred constants
+undefined. Such a file is only brought along when all its architectures and
+bodies belong to the shared unit(s). A file that declares a unit the library already has is never taken,
+so sharing adds no duplicate unit. With several candidates the shorter path
+wins, then the string order of the path. The file is copied into the referring
+library with the provenance `shared from <library>`; VHDL-LS accepts one file in
+several libraries. A user-section library is never written by the generated
+section, so sharing only ever copies into a generated library. Only files under
+the root are sources, so a user library that points outside the root contributes none.
+A reference with no acceptable declarer is left alone. The `library` clauses of
+a shared file count like any other, so they can add missing-library proposals.
 
 **Missing libraries.** A library named in a `library` clause that is neither
 generated, defined in the user section, nor standard (`ieee`, `std`, `work`)
@@ -420,7 +442,8 @@ functions over typed inputs.
 | `src/services/vhdlLsConfig/userSection.ts` | Parse the user section; match its `files` and `exclude` patterns |
 | `src/services/vhdlLsConfig/vendorLibraries.ts` | Vendor library file table and the configured installation |
 | `src/services/vhdlLsConfig/vhdlUnitScanner.ts` | Light scanner: units, `library` and `use` clauses |
-| `src/services/vhdlLsConfig/scopeLibraries.ts` | Pure: split colliding unlisted units of `defaultlib` into per-folder libraries, with shared files |
+| `src/services/vhdlLsConfig/scopeLibraries.ts` | Pure: split colliding unlisted units of `defaultlib` into per-folder libraries |
+| `src/services/vhdlLsConfig/shareUnits.ts` | Pure: copy files that declare `work.<unit>` references into the libraries that need them, across library boundaries |
 | `src/services/vhdlLsConfig/buildLibraryMap.ts` | Pure: sources plus scan results plus user section to libraries, duplicates, missing libraries |
 | `src/services/vhdlLsConfig/renderVhdlLsToml.ts` | Pure: library map to file text, header hash, proposals |
 | `src/services/vhdlLsConfig/ownership.ts` | Pure: classify an existing file; split it into the generated and user sections |
@@ -435,7 +458,7 @@ The generated-directory list is shared with system viewer enrichment
 
 | Level | Coverage |
 |---|---|
-| Unit | Each reader on small inputs; the scanner (comments, strings, case, local references); per-folder library splitting (nearest binding, shared files, naming); ranking, same-rank disagreement, duplicates (a declared file beats an unlisted copy), and user-section precedence in `buildLibraryMap`; the ownership table; proposals (append once, vendor files only when they exist, fallback order); rendering determinism and TOML validity of the output |
+| Unit | Each reader on small inputs; the scanner (comments, strings, case, local references); per-folder library splitting (nearest binding, naming); shared units across libraries (`shareUnits`: transitive closure, duplicate avoidance, tie-break); ranking, same-rank disagreement, duplicates (a declared file beats an unlisted copy), and user-section precedence in `buildLibraryMap`; the ownership table; proposals (append once, vendor files only when they exist, fallback order); rendering determinism and TOML validity of the output |
 | Snapshot | Rendered `vhdl_ls.toml` for four fixtures: a single core; several cores with cross-library `use`; a `.qsf` that names only a `.qsys`, with generated Platform Designer output present; an existing user-written `vhdl_ls.toml` |
 | Integration | On the multi-core fixtures, `vhdl_lang -c vhdl_ls.toml` (the rust_hdl command-line frontend, which reads the same configuration as the language server) reports no diagnostics, so every cross-core name resolves; removing one generated library makes it fail. Tier 2: skipped when `vhdl_lang` is not installed, unless `REQUIRE_VHDL_LANG=1` |
 

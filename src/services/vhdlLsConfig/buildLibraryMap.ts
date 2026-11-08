@@ -7,6 +7,7 @@
 import * as path from 'path';
 import type { VhdlScan } from './vhdlUnitScanner';
 import { scopeLibraries } from './scopeLibraries';
+import { shareUnits } from './shareUnits';
 import { createUserLibraryMatcher, type UserLibrary } from './userSection';
 
 export type ClaimRank = 1 | 2 | 3 | 4;
@@ -208,15 +209,18 @@ function findMissing(
   });
 }
 
-/** Moves colliding unlisted units of `defaultlib` into per-folder libraries (see scopeLibraries). */
+/**
+ * Moves colliding unlisted units of `defaultlib` into per-folder libraries (see scopeLibraries).
+ * Returns the names of the libraries it created.
+ */
 function splitDefaultLibrary(
   byLibrary: Map<string, Placement[]>,
   userNames: ReadonlySet<string>,
   scans: BuildLibraryMapInput['scans']
-): void {
+): string[] {
   const placements = byLibrary.get(DEFAULT_LIBRARY);
   if (!placements) {
-    return;
+    return [];
   }
   const { defaultFiles, scopes } = scopeLibraries({
     files: placements.map((p) => ({ path: p.file, listed: p.duplicateRank < UNLISTED_RANK })),
@@ -232,14 +236,35 @@ function splitDefaultLibrary(
     byLibrary.delete(DEFAULT_LIBRARY);
   }
   for (const scope of scopes) {
-    byLibrary.set(scope.name, [
-      ...placementsOf(scope.files).map((p) => ({ ...p, library: scope.name })),
-      ...placementsOf(scope.shared).map((p) => ({
-        ...p,
-        library: scope.name,
-        provenance: 'shared with defaultlib',
-      })),
-    ]);
+    byLibrary.set(
+      scope.name,
+      placementsOf(scope.files).map((p) => ({ ...p, library: scope.name }))
+    );
+  }
+  return scopes.map((s) => s.name);
+}
+
+/** Lists in each target library the files that declare units its files reference (see shareUnits). */
+function addSharedUnits(
+  libraries: GeneratedLibrary[],
+  targetNames: ReadonlySet<string>,
+  userFiles: Map<string, string[]>,
+  scans: BuildLibraryMapInput['scans']
+): void {
+  const generated = libraries.map((l) => ({ name: l.name, files: l.files.map((f) => f.path) }));
+  const shared = shareUnits({
+    targets: generated.filter((l) => targetNames.has(l.name)),
+    sources: [...generated, ...[...userFiles].map(([name, files]) => ({ name, files }))],
+    scans,
+  });
+  for (const library of libraries) {
+    const added = shared.get(library.name);
+    if (added) {
+      library.files.push(
+        ...added.map((f) => ({ path: f.path, provenance: `shared from ${f.from}` }))
+      );
+      library.files.sort((a, b) => byString(a.path, b.path));
+    }
   }
 }
 
@@ -252,9 +277,12 @@ export function buildLibraryMap(input: BuildLibraryMapInput): LibraryMap {
 
   const userMatchers = input.userLibraries.map(createUserLibraryMatcher);
   const userNames = new Set(input.userLibraries.map((l) => l.name));
+  const userFiles = new Map<string, string[]>(input.userLibraries.map((l) => [l.name, []]));
   const byLibrary = new Map<string, Placement[]>();
   for (const file of files) {
-    if (userMatchers.some((matches) => matches(file))) {
+    const matched = input.userLibraries.filter((_, i) => userMatchers[i](file));
+    if (matched.length > 0) {
+      matched.forEach((l) => (userFiles.get(l.name) as string[]).push(file));
       continue;
     }
     for (const placement of placeFile(file, claimsByFile.get(file) ?? [])) {
@@ -264,10 +292,11 @@ export function buildLibraryMap(input: BuildLibraryMapInput): LibraryMap {
     }
   }
 
-  splitDefaultLibrary(byLibrary, userNames, input.scans);
+  const scopeNames = splitDefaultLibrary(byLibrary, userNames, input.scans);
 
   const libraries = [...byLibrary.keys()]
     .sort(byString)
     .map((name) => removeDuplicates(name, byLibrary.get(name) as Placement[], input.scans));
+  addSharedUnits(libraries, new Set([DEFAULT_LIBRARY, ...scopeNames]), userFiles, input.scans);
   return { libraries, missing: findMissing(libraries, input.userLibraries, input.scans) };
 }

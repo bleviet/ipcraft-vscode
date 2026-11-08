@@ -1,4 +1,4 @@
-import { scanVhdl } from '../../../../services/vhdlLsConfig/vhdlUnitScanner';
+import { scanVhdl, workReferences } from '../../../../services/vhdlLsConfig/vhdlUnitScanner';
 
 describe('scanVhdl', () => {
   it('finds primary units with kinds and 1-based lines, case-insensitively', () => {
@@ -118,12 +118,25 @@ describe('scanVhdl', () => {
       ].join('\n')
     );
     expect(scan.localRefs).toEqual([
-      { name: 'foo', line: 1 },
-      { name: 'bar', line: 3 },
-      { name: 'baz', line: 4 },
-      { name: 'pk', line: 8 },
-      { name: 'top', line: 10 },
+      { name: 'foo', kind: 'architecture', line: 1 },
+      { name: 'bar', kind: 'instantiation', line: 3 },
+      { name: 'baz', kind: 'instantiation', line: 4 },
+      { name: 'pk', kind: 'body', line: 8 },
+      { name: 'top', kind: 'configuration', line: 10 },
     ]);
     expect(scan.uses).toEqual([{ library: 'work', unit: 'skip', line: 5 }]);
+
+    const src = [
+      'architecture Rtl of Foo is',
+      'begin',
+      '  u1 : Bar port map (x => y);',
+      '  u3 : entity work.skip port map (x => y);',
+      'end;',
+    ].join('\n');
+    const all = new Set(['architecture', 'body', 'configuration', 'instantiation'] as const);
+    const noInst = new Set(['architecture', 'body', 'configuration'] as const);
+    expect([...workReferences(scanVhdl(src), all)].sort()).toEqual(['bar', 'foo', 'skip']);
+    expect([...workReferences(scanVhdl(src), noInst)].sort()).toEqual(['foo', 'skip']);
+    expect(workReferences(undefined, all).size).toBe(0);
   });
 });

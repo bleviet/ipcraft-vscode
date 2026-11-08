@@ -116,12 +116,69 @@ describe('buildLibraryMap', () => {
     expect(def.files.map((f) => f.path)).toEqual(['common/util.vhd']);
     expect(axi.files.map((f) => f.path)).toEqual(['axi/tb/ctrl.vhd']);
     expect(uart.files.map((f) => [f.path, f.provenance])).toEqual([
-      ['common/util.vhd', 'shared with defaultlib'],
+      ['common/util.vhd', 'shared from defaultlib'],
       ['uart/cases/t1.vhd', 'unlisted'],
       ['uart/tb/ctrl.vhd', 'unlisted'],
       ['uart/tb/top.vhd', 'unlisted'],
     ]);
     expect(uart.excluded.map((f) => f.path)).toEqual(['uart/tb/extra.vhd']);
+  });
+
+  it('lists a user-library file in defaultlib when a defaultlib file uses its unit', () => {
+    const map = build(
+      {
+        'tests/tb.vhd': 'use work.dict_pkg.all;\nentity tb is\nend;',
+        'lib/dict_pkg.vhd': 'package dict_pkg is\nend;',
+      },
+      [],
+      [{ name: 'vunit_lib', files: ['lib/*.vhd'], exclude: [] }]
+    );
+    expect(map.libraries.map((l) => l.name)).toEqual(['defaultlib']);
+    expect(map.libraries[0].files.map((f) => [f.path, f.provenance])).toEqual([
+      ['lib/dict_pkg.vhd', 'shared from vunit_lib'],
+      ['tests/tb.vhd', 'unlisted'],
+    ]);
+  });
+
+  it('does not take a file removed by a user library exclude as a source', () => {
+    const map = build(
+      {
+        'tests/tb.vhd': 'use work.dict_pkg.all;\nentity tb is\nend;',
+        'lib/dict_pkg.vhd': 'package dict_pkg is\nend;',
+      },
+      [],
+      [{ name: 'vunit_lib', files: ['lib/*.vhd'], exclude: ['lib/dict_pkg.vhd'] }]
+    );
+    expect(map.libraries[0].files.map((f) => [f.path, f.provenance])).toEqual([
+      ['lib/dict_pkg.vhd', 'unlisted'],
+      ['tests/tb.vhd', 'unlisted'],
+    ]);
+  });
+
+  it('reports a library named by a shared user-library file as missing', () => {
+    const map = build(
+      {
+        'tests/tb.vhd': 'use work.dict_pkg.all;\nentity tb is\nend;',
+        'lib/dict_pkg.vhd': 'library foo;\nuse foo.bar.all;\npackage dict_pkg is\nend;',
+      },
+      [],
+      [{ name: 'vunit_lib', files: ['lib/*.vhd'], exclude: [] }]
+    );
+    expect(map.missing.map((m) => [m.name, m.firstUse.file])).toEqual([
+      ['foo', 'lib/dict_pkg.vhd'],
+    ]);
+  });
+
+  it('does not share into a manifest library', () => {
+    const map = build(
+      {
+        'dsp/f.vhd': 'use work.y.all;\nentity f is\nend;',
+        'common/y.vhd': 'package y is\nend;',
+      },
+      [claim('dsp/f.vhd', 1, 'p.xpr', 'dsp_lib')]
+    );
+    const dsp = map.libraries.find((l) => l.name === 'dsp_lib');
+    expect(dsp?.files.map((f) => f.path)).toEqual(['dsp/f.vhd']);
   });
 
   it('treats unit names as kind-independent and keeps unscanned files', () => {
