@@ -192,17 +192,28 @@ describe('ElkEdge', () => {
     return container.querySelector('path.react-flow__edge-path') as SVGPathElement;
   }
 
-  it('keeps the category look without marks', () => {
+  it('keeps the category look without marks, muted toward the canvas at rest', () => {
     const path = drawn({});
-    expect(path.style.stroke).toBe('var(--vscode-charts-orange)');
+    expect(path.style.stroke).toBe(
+      'color-mix(in srgb, var(--vscode-charts-orange) 65%, var(--vscode-editor-background))'
+    );
     expect(path.style.strokeDasharray).toBe('');
     expect(path.style.opacity).toBe('');
   });
 
-  it('strokes in the domain color', () => {
+  it('strokes in the domain color, muted at rest', () => {
     const path = drawn({ domainColor: 'var(--vscode-charts-purple)' });
-    expect(path.style.stroke).toBe('var(--vscode-charts-purple)');
+    expect(path.style.stroke).toBe(
+      'color-mix(in srgb, var(--vscode-charts-purple) 65%, var(--vscode-editor-background))'
+    );
     expect(path.style.strokeDasharray).toBe('');
+  });
+
+  it('strokes a selected wire in its full color', () => {
+    expect(drawn({}, true).style.stroke).toBe('var(--vscode-charts-orange)');
+    expect(drawn({ domainColor: 'var(--vscode-charts-purple)' }, true).style.stroke).toBe(
+      'var(--vscode-charts-purple)'
+    );
   });
 
   it('draws a crossing dashed in the warning color, over any domain color', () => {

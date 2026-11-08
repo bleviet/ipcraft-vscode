@@ -1,6 +1,6 @@
 import React from 'react';
 import { BaseEdge, type Edge, type EdgeProps } from '@xyflow/react';
-import { categoryColor } from './colors';
+import { categoryColor, restingWireColor } from './colors';
 import type { ElkEdgeData } from './layout/elkLayout';
 
 export type ElkFlowEdge = Edge<ElkEdgeData, 'elk'>;
@@ -17,12 +17,13 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
     .join(' ');
   const width =
-    (data.isInterface ? 2.5 : 1.25) +
+    (data.isInterface ? 1.75 : 1) +
     (selected ? 1.5 : 0) +
     (data.highlightColor !== undefined ? 1.25 : 0);
+  const baseColor = data.domainColor ?? categoryColor(data.category);
   const stroke = data.crossing
     ? CROSSING_COLOR
-    : (data.highlightColor ?? data.domainColor ?? categoryColor(data.category));
+    : (data.highlightColor ?? (selected ? baseColor : restingWireColor(baseColor)));
   const dash = data.crossing ? DASHED : undefined;
   return (
     <BaseEdge

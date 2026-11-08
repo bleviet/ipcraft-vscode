@@ -14,6 +14,7 @@ All notable changes to this project are documented in this file.
 ### Changed
 
 - **Shorter wires in the system viewer.** Blocks are placed by their data and interface connections, external ports sit next to a block they connect to, and clock and reset nets are shown as net-name badges on their pins instead of wires; large designs lay out much faster. ([#261](https://github.com/bleviet/ipcraft-vscode/issues/261))
+- **Blocks stand out from the canvas in the system viewer.** Blocks have a darker outline, a tinted body and header, and a light shadow; wires are thinner and softer until selected or highlighted, and the grid dots are fainter. ([#261](https://github.com/bleviet/ipcraft-vscode/issues/261))
 - **Clocks and resets is a toggle button in the system viewer.** It colors the clock and reset pins by clock domain, and a count chip next to it opens the Clocks tab. ([#258](https://github.com/bleviet/ipcraft-vscode/issues/258), [#259](https://github.com/bleviet/ipcraft-vscode/pull/259))
 - **Clicking an unconnected pin zooms in to its block** in the system viewer when the block is too small to read. ([#245](https://github.com/bleviet/ipcraft-vscode/issues/245), [#249](https://github.com/bleviet/ipcraft-vscode/pull/249))
 - **Stronger block outlines in the system viewer** on light and dark themes. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))

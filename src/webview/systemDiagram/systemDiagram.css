@@ -66,19 +66,36 @@ input:focus-visible {
 }
 
 /* Theme border tokens are nearly invisible on light themes; derive the block
-   and port outline from the foreground so they stand out in every theme. */
+   and port outline, body and header from the foreground so blocks stand out
+   from the canvas, and carry more weight than the wires, in every theme. */
 .sd-node,
 .sd-port,
 .sd-frame {
-  --sd-node-line: color-mix(in srgb, var(--vscode-foreground) 75%, transparent);
+  --sd-node-line: color-mix(in srgb, var(--vscode-foreground) 90%, transparent);
+  --sd-node-fill: color-mix(in srgb, var(--vscode-foreground) 3%, var(--vscode-editor-background));
+  --sd-node-head-fill: color-mix(
+    in srgb,
+    var(--vscode-foreground) 10%,
+    var(--vscode-editor-background)
+  );
+  --sd-node-shadow: 0 1px 4px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.2));
+}
+
+/* Fainter grid dots, so the canvas stays behind the blocks. */
+.react-flow {
+  --xy-background-pattern-dots-color-default: color-mix(
+    in srgb,
+    var(--vscode-foreground) 25%,
+    transparent
+  );
 }
 
 .sd-node {
   position: relative;
-  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
-  border-color: var(--sd-node-line);
-  background: var(--vscode-editor-background);
+  border: 1px solid var(--sd-node-line);
+  background: var(--sd-node-fill);
   border-radius: 4px;
+  box-shadow: var(--sd-node-shadow);
   font-size: 11px;
 }
 
@@ -111,7 +128,7 @@ input:focus-visible {
   position: absolute;
   inset: 0;
   overflow: visible;
-  fill: var(--vscode-editorWidget-background);
+  fill: var(--sd-node-head-fill);
   stroke: var(--sd-node-line);
   stroke-width: 1;
 }
@@ -145,7 +162,7 @@ input:focus-visible {
 .sd-node-head {
   box-sizing: border-box;
   padding: 3px 8px;
-  background: var(--vscode-editorWidget-background);
+  background: var(--sd-node-head-fill);
   border-bottom: 1px solid var(--sd-node-line);
   border-radius: 3px 3px 0 0;
 }
@@ -336,19 +353,24 @@ input:focus-visible {
 
 .sd-node[data-highlighted='true'] {
   border-color: var(--sd-highlight);
-  box-shadow: 0 0 0 1.5px var(--sd-highlight);
+  box-shadow:
+    0 0 0 1.5px var(--sd-highlight),
+    var(--sd-node-shadow);
 }
 
 .sd-node[data-selected='true'] {
   border-color: var(--vscode-focusBorder);
-  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  box-shadow:
+    0 0 0 1px var(--vscode-focusBorder),
+    var(--sd-node-shadow);
 }
 
 .sd-node[data-highlighted='true'][data-selected='true'] {
   border-color: var(--sd-highlight);
   box-shadow:
     0 0 0 1.5px var(--sd-highlight),
-    0 0 0 3px var(--vscode-focusBorder);
+    0 0 0 3px var(--vscode-focusBorder),
+    var(--sd-node-shadow);
 }
 
 .sd-flash {
