@@ -14,6 +14,7 @@ import { useElkLayout } from './hooks/useElkLayout';
 import { useFindShortcuts } from './hooks/useFindShortcuts';
 import { useIsolation } from './hooks/useIsolation';
 import { useLevelHistory } from './hooks/useLevelHistory';
+import { useSearchHistory } from './hooks/useSearchHistory';
 import { useMouseNavigationButtons } from './hooks/useMouseNavigationButtons';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
@@ -50,17 +51,27 @@ export function WorkbenchLayout({
   useMouseNavigationButtons(levelHistory.up, levelHistory.forward);
   // Clocks and resets only decorates the layout: no toggle moves a block.
   const [clocksOn, setClocksOn] = useState(false);
+  // Auto detail is drawn, not laid out: no zoom moves a block.
+  const [autoDetail, setAutoDetail] = useState(true);
   const [query, setQuery] = useState('');
   const view = useIsolation(graph, nav);
   const { isolation } = view;
   const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
+  const { remember, browse } = useSearchHistory(query, setQuery);
+  const stepSearch = useCallback(
+    (direction: 1 | -1) => {
+      remember();
+      search.step(direction);
+    },
+    [remember, search.step]
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
   useFindShortcuts({
     inputRef: searchInputRef,
     query,
     seed: findSeed(graph, query, nav.selection),
     onQueryChange: setQuery,
-    onStep: search.step,
+    onStep: stepSearch,
   });
   const [tab, setTab] = useState<BottomTab>('address');
   const [reviewUnconnected, setReviewUnconnected] = useState(false);
@@ -143,6 +154,8 @@ export function WorkbenchLayout({
         searchInputRef={searchInputRef}
         searchCounter={search.counter}
         clocksOn={clocksOn}
+        autoDetail={autoDetail}
+        onAutoDetailChange={setAutoDetail}
         clockSummary={clockSummary}
         reviewUnconnected={reviewUnconnected}
         unconnected={{ count: findings.length, anyUndriven }}
@@ -152,7 +165,9 @@ export function WorkbenchLayout({
         onClearHighlights={handleClearHighlights}
         onNavigate={nav.navigate}
         onQueryChange={setQuery}
-        onSearchStep={search.step}
+        onSearchStep={stepSearch}
+        onSearchHistory={browse}
+        onSearchBlur={remember}
         onClocksChange={setClocksOn}
         onOpenClocksTab={() => openBottomTab('clocks')}
         onReviewUnconnectedChange={(on) => {
@@ -199,6 +214,7 @@ export function WorkbenchLayout({
               clocks={clockContext}
               focusedPin={focusedPin}
               query={query}
+              autoDetail={autoDetail}
               flash={search.flash}
               onFlashEnd={search.clearFlash}
               onSelect={nav.select}

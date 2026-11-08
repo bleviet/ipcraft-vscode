@@ -5,6 +5,11 @@ import { HEADER_HEIGHT } from './layout/elkLayout';
 import { instanceSubtitle } from './model';
 import type { NodeReview } from './unconnectedPins';
 
+/** A name as text parts that each end after an underscore, to put a `<wbr />` after each. */
+export function nameParts(name: string): string[] {
+  return name.split(/(?<=_)/);
+}
+
 interface ExpandToggleProps {
   instance: SystemInstance;
   expanded: boolean;
@@ -70,7 +75,12 @@ export function NodeHeader({
           <ExpandToggle instance={instance} expanded={expanded} onToggleExpand={onToggleExpand} />
         )}
         <span className="sd-node-name" title={instance.name}>
-          {instance.name}
+          {nameParts(instance.name).map((part, index) => (
+            <React.Fragment key={index}>
+              {index > 0 && <wbr />}
+              {part}
+            </React.Fragment>
+          ))}
         </span>
         {review && review.all > 0 ? (
           <span

@@ -16,7 +16,9 @@ entry to the release notes.
 
 ### Added
 
+- **Auto detail in the system viewer.** With the Simplify zoomed out toolbar toggle on (the default), zooming out below 0.42 hides pin labels, port labels, clock frequencies, block subtitles and badge text and enlarges block names by the inverse zoom, at most three times. It only changes what is drawn, so blocks never move. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
 - **Find keys in the system viewer.** As in the VS Code text editor, Ctrl+F (Cmd+F on macOS) goes to Search instances with its text selected, filled in with the name of the selected block, and F3 or Shift+F3 goes to the next or previous match.
+- **Search history in the system viewer.** Up and Down in Search instances browse the remembered queries, as in the VS Code find box (placeholder `Search instances (⇅ for history)`): a query is remembered when stepping (Enter, Shift+Enter, F3, Shift+F3) or on blur, deduplicated, at most 50, for the session. Pure rules in `searchHistory.ts`, state in `hooks/useSearchHistory.ts`. ([#264](https://github.com/bleviet/ipcraft-vscode/pull/264))
 - **Mouse forward button in the system viewer.** After going up with the mouse back button, the mouse forward button returns to the levels you left, one at a time. Going to another level any other way clears them, as in a browser.
 - **Clock and reset domains in the system viewer.** The Clocks and resets toggle colors the clock and reset pins by clock domain, shows the clock frequencies set in the design, and marks clock and reset domain crossings (CDC and RDC). Selecting a clock or reset net shows its whole tree in Details. New Clocks and Resets tabs list the domains, reset sources and crossings of the level on screen; clicking a row zooms to it. Clocks are identified from known AMD IP outputs and declared pin directions, never from pin names, and what cannot be determined is listed as not checked. Known outputs of common AMD IPs are now drawn on the right of their block. ([#243](https://github.com/bleviet/ipcraft-vscode/issues/243), [#248](https://github.com/bleviet/ipcraft-vscode/pull/248), [#252](https://github.com/bleviet/ipcraft-vscode/pull/252))
 - **Expand a hierarchy block in place in the system viewer.** The + button in the header of a hierarchy block (or right-click, Expand In-Place) shows its contents in a frame on the current level; the - button or Collapse folds it again. Double-click still opens the block. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))
@@ -25,6 +27,7 @@ entry to the release notes.
 
 ### Changed
 
+- **System viewer toolbar in the IP core editor style.** `ToolbarGroup` and `ToolbarSeparator` move from `IpCoreToolbar.tsx` to `src/webview/shared/components/Toolbar.tsx`, where a group now has `role="group"` and its label as accessible name, and the `.canvas-view-toggle` button styles move from the IP core `canvas.css` to `shared/components/toolbar.css`. The system viewer toolbar uses them for icon-only Design (Clocks and resets `pulse`, Unconnected pins `debug-disconnect`), View (Simplify zoomed out `text-size`, `zoom-out`, Fit `screen-full`, `zoom-in`) and Panels groups; accessible names are unchanged. ([#264](https://github.com/bleviet/ipcraft-vscode/pull/264))
 - **Shorter wires in the system viewer.** Blocks are placed by their data and interface connections, external ports sit next to a block they connect to, and clock and reset nets are shown as net-name badges on their pins instead of wires; large designs lay out much faster. ([#261](https://github.com/bleviet/ipcraft-vscode/issues/261))
 - **Blocks stand out from the canvas in the system viewer.** Blocks have a darker outline, a tinted body and header, and a light shadow; wires are thinner and softer until selected or highlighted, and the grid dots are fainter. ([#261](https://github.com/bleviet/ipcraft-vscode/issues/261))
 - **Clocks and resets is a toggle button in the system viewer.** It colors the clock and reset pins by clock domain, and a count chip next to it opens the Clocks tab. ([#258](https://github.com/bleviet/ipcraft-vscode/issues/258), [#259](https://github.com/bleviet/ipcraft-vscode/pull/259))
@@ -34,6 +37,7 @@ entry to the release notes.
 
 ### Fixed
 
+- **The system viewer fills the editor.** `systemDiagram.css` now resets the body padding that VS Code's default webview stylesheet adds (20px each side), as `src/webview/index.css` already does for the other editors, so the toolbar and canvas reach both edges. ([#264](https://github.com/bleviet/ipcraft-vscode/pull/264))
 - **Blocks no longer move in the system viewer** when Clocks and resets or Unconnected pins is turned on or off; the zoom and pan stay too. ([#255](https://github.com/bleviet/ipcraft-vscode/issues/255), [#257](https://github.com/bleviet/ipcraft-vscode/pull/257))
 
 ## [1.4.0] - 2026-11-06

@@ -9,7 +9,9 @@ body,
   margin: 0;
 }
 
+/* VS Code's default webview styles pad the body by 20px each side; the viewer fills the editor. */
 body {
+  padding: 0;
   overflow: hidden;
   background: var(--vscode-editor-background);
   color: var(--vscode-foreground);
@@ -440,24 +442,6 @@ input:focus-visible {
   outline-offset: -1px;
 }
 
-.sd-icon-button {
-  color: var(--vscode-icon-foreground, var(--vscode-foreground));
-  background: transparent;
-  border-radius: 3px;
-  padding: 2px 4px;
-  opacity: 0.6;
-  cursor: pointer;
-}
-
-.sd-icon-button[aria-pressed='true'] {
-  opacity: 1;
-  background: var(--vscode-toolbar-activeBackground, transparent);
-}
-
-.sd-icon-button:hover {
-  background: var(--vscode-toolbar-hoverBackground);
-}
-
 .sd-side {
   background: var(--vscode-sideBar-background);
   color: var(--vscode-sideBar-foreground, var(--vscode-foreground));
@@ -782,12 +766,6 @@ input:focus-visible {
   border-radius: 0;
 }
 
-.sd-tool[aria-pressed='true'] {
-  background: var(--vscode-list-activeSelectionBackground);
-  color: var(--vscode-list-activeSelectionForeground, var(--vscode-foreground));
-  border-color: var(--vscode-focusBorder);
-}
-
 .sd-tool-count {
   margin-left: 4px;
   padding: 0 5px;
@@ -795,6 +773,10 @@ input:focus-visible {
   border-radius: 8px;
   color: var(--vscode-descriptionForeground);
   border: 1px solid currentColor;
+}
+
+.canvas-view-toggle > .sd-tool-count {
+  margin-left: 0;
 }
 
 .sd-tool-count[data-tone='undriven'] {
@@ -1031,4 +1013,31 @@ input:focus-visible {
 
 .sd-check[data-tone='muted'] {
   color: var(--vscode-descriptionForeground);
+}
+
+/* Auto detail: far out, pin text goes and block names grow. Drawing only, no layout.
+   The block body is empty without pin labels, so a name wraps over it instead of being cut short. */
+[data-far='true'] .sd-pin-label,
+[data-far='true'] .sd-pin-freq,
+[data-far='true'] .sd-port-label,
+[data-far='true'] .sd-node-subtitle,
+[data-far='true'] .sd-badge-text {
+  visibility: hidden;
+}
+
+[data-far='true'] .sd-node-subtitle {
+  display: none;
+}
+
+[data-far='true'] .sd-node-title {
+  align-items: flex-start;
+}
+
+[data-far='true'] .sd-node-name {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: break-word;
+  font-size: calc(12px * var(--sd-name-scale, 1));
+  line-height: 1.1;
 }

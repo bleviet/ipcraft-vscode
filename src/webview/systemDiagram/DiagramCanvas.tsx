@@ -7,6 +7,7 @@ import {
   type Node,
   type NodeTypes,
 } from '@xyflow/react';
+import { AutoDetail } from './AutoDetail';
 import { BoundaryNode } from './BoundaryNode';
 import { DiagramContextMenu, type ContextMenuItem } from './DiagramContextMenu';
 import { DiagramLegend } from './DiagramLegend';
@@ -63,6 +64,8 @@ interface DiagramCanvasProps {
   clocks: ClockContext;
   focusedPin: FocusedPin | null;
   query: string;
+  /** Auto detail is on: far out, pin text goes and block names grow. Absent, it is off. */
+  autoDetail?: boolean;
   flash?: SearchFlash | null;
   onFlashEnd?: (token: number) => void;
   onSelect: (selection: Selection | null) => void;
@@ -101,6 +104,7 @@ export function DiagramCanvas({
   clocks,
   focusedPin,
   query,
+  autoDetail,
   flash,
   onFlashEnd,
   onSelect,
@@ -408,6 +412,7 @@ export function DiagramCanvas({
           review={review !== null}
           domains={decor.legend}
         />
+        <AutoDetail target={containerRef} enabled={autoDetail ?? false} />
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}
       {menu && (
