@@ -24,7 +24,14 @@ interface DiagramToolbarProps {
   /** Number of unconnected pins in the design, and whether any is undriven. */
   unconnected: { count: number; anyUndriven: boolean };
   /** Selected and shown node counts while the level is isolated, else null. */
-  isolated: { selected: number; shown: number } | null;
+  isolated: {
+    selected: number;
+    shown: number;
+    total: number;
+    hops: number;
+    maxRadius: number;
+  } | null;
+  onHopsChange: (hops: number) => void;
   onShowAll: () => void;
   highlightedCount?: number;
   onClearHighlights?: () => void;
@@ -66,6 +73,7 @@ export function DiagramToolbar({
   minimapOn,
   unconnected,
   isolated,
+  onHopsChange,
   onShowAll,
   highlightedCount,
   onClearHighlights,
@@ -114,7 +122,33 @@ export function DiagramToolbar({
         {isolated && (
           <span className="sd-isolated">
             <span>
-              Isolated · {isolated.selected} selected · {isolated.shown} shown
+              Isolated · {isolated.selected} selected · {isolated.shown} of {isolated.total} shown
+            </span>
+            <span className="inline-flex items-center gap-0.5">
+              <button
+                type="button"
+                className="sd-tool sd-hop-step"
+                aria-label="Fewer hops"
+                title="Fewer hops (-): remove the outermost ring"
+                disabled={isolated.hops <= 1}
+                onClick={() => onHopsChange(isolated.hops - 1)}
+              >
+                <span className="codicon codicon-remove" aria-hidden="true" />
+              </button>
+              <span aria-live="polite">
+                {isolated.hops}-hop
+                {isolated.hops >= isolated.maxRadius ? ' · all connected' : ''}
+              </span>
+              <button
+                type="button"
+                className="sd-tool sd-hop-step"
+                aria-label="More hops"
+                title="More hops (+): add the blocks one data wire further"
+                disabled={isolated.hops >= isolated.maxRadius}
+                onClick={() => onHopsChange(isolated.hops + 1)}
+              >
+                <span className="codicon codicon-add" aria-hidden="true" />
+              </button>
             </span>
             <button type="button" className="sd-tool" onClick={onShowAll}>
               Show All

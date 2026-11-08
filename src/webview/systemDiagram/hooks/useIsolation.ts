@@ -1,22 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import { levelNodeOf, targetLevel } from '../expansion';
-import { isolationSubset } from '../isolation';
+import { hopDistances, isolationSubset, maxRadius } from '../isolation';
 import { isLevelNode, type Selection } from '../model';
 
-/** The isolated view being shown; a new `token` marks a new isolation (it refits the view). */
+/** The isolated view being shown; a new `token` marks a new isolation or a radius change (it refits the view). */
 export interface IsolatedView {
   token: number;
   nodeIds: ReadonlySet<string>;
   edgeIds: ReadonlySet<string>;
   /** Nodes isolated on purpose, as opposed to the neighbours kept for their connections. */
   selectedCount: number;
+  /** Hops from the selection that are shown. */
+  hops: number;
+  /** Largest radius worth showing: the furthest hop reachable, at least 1. */
+  maxRadius: number;
+  /** Nodes of the level that can be isolated: its instances and boundary pins. */
+  levelNodeCount: number;
 }
 
 interface IsolationState {
   levelPath: string;
   nodeIds: string[];
   token: number;
+  hops: number;
 }
 
 interface IsolationNavigation {
@@ -52,17 +59,27 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
     [graph, levelPath, state]
   );
   const token = state?.token ?? 0;
-  const isolation = useMemo<IsolatedView | null>(
-    () =>
-      ids.length === 0
-        ? null
-        : {
-            token,
-            selectedCount: ids.length,
-            ...isolationSubset(graph, levelPath, ids),
-          },
-    [graph, levelPath, ids, token]
+  const distances = useMemo(
+    () => (ids.length === 0 ? null : hopDistances(graph, levelPath, ids)),
+    [graph, levelPath, ids]
   );
+  const isolation = useMemo<IsolatedView | null>(() => {
+    if (!distances) {
+      return null;
+    }
+    const level = graph.levels[levelPath];
+    const radius = maxRadius(distances);
+    // The graph can change under the isolation: never show a radius past what is reachable.
+    const hops = Math.min(state?.hops ?? 1, radius);
+    return {
+      token,
+      selectedCount: ids.length,
+      hops,
+      maxRadius: radius,
+      levelNodeCount: (level?.instances.length ?? 0) + (level?.boundaryPins.length ?? 0),
+      ...isolationSubset(graph, levelPath, ids, hops, distances),
+    };
+  }, [graph, levelPath, ids, token, state?.hops, distances]);
   useEffect(() => {
     if (state && !isolation) {
       setState(null);
@@ -72,11 +89,28 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
   const isolate = useCallback(
     (nodeIds: string[]) => {
       lastToken.current += 1;
-      setState({ levelPath, nodeIds, token: lastToken.current });
+      setState({ levelPath, nodeIds, token: lastToken.current, hops: 1 });
     },
     [levelPath]
   );
   const showAll = useCallback(() => setState(null), []);
+  /** Clamps to [1, maxRadius]; a new radius refits the view like a new isolation. */
+  const setHops = useCallback(
+    (next: number) => {
+      if (!isolation) {
+        return;
+      }
+      const clamped = Math.min(Math.max(1, next), isolation.maxRadius);
+      if (clamped === isolation.hops) {
+        return;
+      }
+      lastToken.current += 1;
+      setState((current) =>
+        current ? { ...current, hops: clamped, token: lastToken.current } : current
+      );
+    },
+    [isolation]
+  );
   /** Only nodes of the level on show can be isolated, not those inside an expanded frame. */
   const canIsolate = useCallback(
     (nodeIds: string[]) => nodeIds.every((id) => isLevelNode(graph, levelPath, id)),
@@ -124,6 +158,7 @@ export function useIsolation(graph: SystemGraph, nav: IsolationNavigation) {
     isolate,
     canIsolate,
     showAll,
+    setHops,
     selectAndReveal: selectAndRevealShown,
     revealMatch: revealMatchShown,
     selectInstance: selectInstanceShown,

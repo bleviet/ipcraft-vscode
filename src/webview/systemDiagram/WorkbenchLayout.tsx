@@ -163,7 +163,16 @@ export function WorkbenchLayout({
         clockSummary={clockSummary}
         reviewUnconnected={reviewUnconnected}
         unconnected={{ count: findings.length, anyUndriven }}
-        isolated={isolation && { selected: isolation.selectedCount, shown: isolation.nodeIds.size }}
+        isolated={
+          isolation && {
+            selected: isolation.selectedCount,
+            shown: isolation.nodeIds.size,
+            total: isolation.levelNodeCount,
+            hops: isolation.hops,
+            maxRadius: isolation.maxRadius,
+          }
+        }
+        onHopsChange={view.setHops}
         onShowAll={view.showAll}
         highlightedCount={highlightedCount}
         onClearHighlights={handleClearHighlights}
@@ -214,6 +223,7 @@ export function WorkbenchLayout({
               selectedNetIds={nav.selectedNetIds}
               highlights={highlights}
               isolated={isolation !== null}
+              onHopStep={isolation ? (delta) => view.setHops(isolation.hops + delta) : undefined}
               review={reviewContext}
               clocks={clockContext}
               focusedPin={focusedPin}

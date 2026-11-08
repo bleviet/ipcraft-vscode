@@ -169,10 +169,13 @@ clock or reset wire: those nets are always badges. The Clocks and resets toggle
 only turns on the domain decorations of the clock context (which the
 unconnected-pin review pauses). Toggling therefore never runs ELK again, never
 moves a block, and never changes the viewport. `isolationSubset` picks its
-blocks the same way in every mode: the selected blocks and the other end of
-each data wire, with the edges of any category between a selected block and a
-kept block (of which the layout draws the data wires and keeps the clock and
-reset edges that `placementEdges` selects).
+blocks the same way in every mode: the blocks within N data hops of the
+selected ones (`hopDistances`, a BFS over data and interface edges; N is 1 on
+every new isolation and is set from the toolbar stepper), with the edges of any
+category between two kept blocks at least one of which is closer than N, or
+all of them once N reaches the furthest hop (of which the layout draws the
+data wires and keeps the clock and reset edges that `placementEdges` selects).
+At N = 1 these are the selected blocks and the other end of each data wire.
 
 Auto detail is not a layout input. `AutoDetail.tsx` (inside `<ReactFlow>`)
 sets `data-far` on the canvas container from a boolean store selector, so it
