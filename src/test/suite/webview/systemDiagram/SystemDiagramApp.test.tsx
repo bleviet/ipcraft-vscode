@@ -47,6 +47,7 @@ interface MockFlowNode {
   type: string;
   data: unknown;
   selected?: boolean;
+  className?: string;
 }
 interface MockFlowEdge {
   id: string;
@@ -121,7 +122,10 @@ jest.mock('@xyflow/react', () => {
           props.nodes.map((node) =>
             React.createElement(
               'div',
-              { key: node.id, className: 'react-flow__node' },
+              {
+                key: node.id,
+                className: ['react-flow__node', node.className].filter(Boolean).join(' '),
+              },
               React.createElement(
                 'button',
                 {
@@ -204,6 +208,9 @@ async function renderWithGraph({
     openPanels();
   }
 }
+
+/** The React Flow node wrapper, which carries the node's className. */
+const wrapperOf = (id: string) => screen.getByTestId(`node:${id}`).parentElement!;
 
 const outline = () => within(screen.getByRole('navigation', { name: 'Design outline' }));
 const details = () => within(screen.getByRole('complementary', { name: 'Details' }));
@@ -2387,9 +2394,9 @@ describe('SystemDiagramApp', () => {
       for (const element of badge('processing_system7_0_FCLK_CLK0')) {
         expect(element).not.toHaveAttribute('data-selected', 'true');
       }
-      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-dimmed', 'true');
-      expect(nodeBox(DSP, '.sd-node')).toHaveAttribute('data-dimmed', 'false');
-      expect(nodeBox('/processing_system7_0', '.sd-node')).toHaveAttribute('data-dimmed', 'false');
+      expect(wrapperOf('/axi_dma_0')).toHaveClass('sd-dimmed');
+      expect(wrapperOf(DSP)).not.toHaveClass('sd-dimmed');
+      expect(wrapperOf('/processing_system7_0')).not.toHaveClass('sd-dimmed');
       // The frequency of the selected domain only.
       const frequencies = (id: string) =>
         [...screen.getByTestId(`node:${id}`).parentElement!.querySelectorAll('.sd-pin-freq')].map(
@@ -2398,15 +2405,15 @@ describe('SystemDiagramApp', () => {
       expect(frequencies(DSP)).toEqual(['200 MHz']);
       expect(frequencies('/axi_dma_0')).toEqual([]);
       fireEvent.click(screen.getByTestId('node:/axi_dma_0'));
-      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-dimmed', 'false');
+      expect(wrapperOf('/axi_dma_0')).not.toHaveClass('sd-dimmed');
       expect(frequencies(DSP)).toEqual([]);
     });
 
     it('does not dim anything for a data net', async () => {
       await renderWithGraph({ design: clockGraph });
       fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
-      expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-dimmed', 'false');
-      expect(nodeBox(DSP, '.sd-node')).toHaveAttribute('data-dimmed', 'false');
+      expect(wrapperOf('/axi_dma_0')).not.toHaveClass('sd-dimmed');
+      expect(wrapperOf(DSP)).not.toHaveClass('sd-dimmed');
     });
 
     it('adds the clocks of a block to its details', async () => {

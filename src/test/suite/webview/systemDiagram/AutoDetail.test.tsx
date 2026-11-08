@@ -68,6 +68,7 @@ it('re-renders only when the zoom crosses the far threshold', () => {
   zoomTo(0.6);
   zoomTo(0.43);
   expect(commits).toBe(mounted);
+  expect(canvas().style.getPropertyValue('--sd-name-scale')).toBe('');
   zoomTo(0.41);
   expect(commits).toBe(mounted + 1);
   zoomTo(0.2);
@@ -77,6 +78,22 @@ it('re-renders only when the zoom crosses the far threshold', () => {
   zoomTo(0.8);
   expect(commits).toBe(mounted + 2);
   expect(canvas().dataset.far).toBe('false');
+  expect(canvas().style.getPropertyValue('--sd-name-scale')).toBe('');
+});
+
+it('writes the name scale only when its quantized value changes', () => {
+  render(<Harness enabled />);
+  const element = canvas();
+  const setProperty = jest.spyOn(element.style, 'setProperty');
+  zoomTo(0.41);
+  expect(setProperty).toHaveBeenCalledTimes(1);
+  expect(setProperty).toHaveBeenLastCalledWith('--sd-name-scale', '2.5');
+  zoomTo(0.405);
+  zoomTo(0.4);
+  expect(setProperty).toHaveBeenCalledTimes(1);
+  zoomTo(0.36);
+  expect(setProperty).toHaveBeenCalledTimes(2);
+  expect(setProperty).toHaveBeenLastCalledWith('--sd-name-scale', '2.75');
 });
 
 it('holds one subscription: released when switched off or unmounted, not leaked on re-runs', () => {

@@ -22,24 +22,11 @@ import type { SystemGraph } from '../../domain/systemGraph';
 import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
-import { clockDecor, type ClockContext } from './clockDecor';
-import {
-  HIGHLIGHT_COLORS,
-  hasAnyHighlight,
-  highlightCount,
-  highlightedNetIds,
-  netHighlightColor,
-  nodeHighlightColor,
-} from './highlights';
-import { highlightedPinsByNode } from './pinHighlight';
-import {
-  boundaryMatchesQuery,
-  matchesQuery,
-  nodeSelection,
-  sameSelection,
-  type Selection,
-} from './model';
-import { focusedPinOf, nodeReview, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
+import type { ClockContext } from './clockDecor';
+import { useCanvasElements } from './hooks/useCanvasElements';
+import { HIGHLIGHT_COLORS, hasAnyHighlight, highlightCount } from './highlights';
+import { nodeSelection, sameSelection, type Selection } from './model';
+import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
 /** Everything the canvas needs to draw the unconnected-pin review; null while the review is off. */
 export interface ReviewContext {
@@ -119,17 +106,18 @@ export function DiagramCanvas({
   onFocusNode,
   onFit,
 }: DiagramCanvasProps) {
-  const onSelectNet = useCallback(
-    (netId: string, additive?: boolean) => {
-      const next: Selection = { kind: 'net', id: netId };
-      if (additive) {
-        onToggleNode(next);
-      } else {
-        onSelect(next);
-      }
-    },
-    [onSelect, onToggleNode]
-  );
+  // onSelectNet goes into every node's data, so it must not change when the selection
+  // handlers do (they change with each selection); it reads the latest ones instead.
+  const handlers = useRef({ onSelect, onToggleNode });
+  handlers.current = { onSelect, onToggleNode };
+  const onSelectNet = useCallback((netId: string, additive?: boolean) => {
+    const next: Selection = { kind: 'net', id: netId };
+    if (additive) {
+      handlers.current.onToggleNode(next);
+    } else {
+      handlers.current.onSelect(next);
+    }
+  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
@@ -176,107 +164,22 @@ export function DiagramCanvas({
   const { hover, onHoverPin } = usePinHover(layout);
 
   const selectedIds = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
-  const activeSelectedNetIds = useMemo(
-    () =>
-      selectedNetIds ?? (selection?.kind === 'net' ? new Set([selection.id]) : new Set<string>()),
-    [selectedNetIds, selection]
-  );
-  const showHighlights = review === null;
-
-  const decor = useMemo(() => clockDecor(layout, clocks, selection), [layout, clocks, selection]);
-  const { tree } = decor;
-
-  const nodes = useMemo(() => {
-    const selectedAndTreeNetIds = tree
-      ? new Set([...activeSelectedNetIds, ...tree.netIds])
-      : activeSelectedNetIds;
-    const activeNetIds = new Set(selectedAndTreeNetIds);
-    if (showHighlights && highlights) {
-      for (const netId of highlightedNetIds(highlights)) {
-        activeNetIds.add(netId);
-      }
-    }
-    const highlighted =
-      activeNetIds.size > 0 && layout
-        ? highlightedPinsByNode(activeNetIds, layout.edges, layout.nodes)
-        : undefined;
-    const badgeNetIds = selectedAndTreeNetIds.size > 0 ? selectedAndTreeNetIds : undefined;
-    const searching = query.trim() !== '';
-    return (layout?.nodes ?? []).map((node) => {
-      const dimmed =
-        (searching &&
-          (node.type === 'boundary'
-            ? !boundaryMatchesQuery(node.data.pin, query)
-            : !matchesQuery(node.data.instance, query))) ||
-        // A selected clock or reset tree dims the blocks and ports it does not touch.
-        (tree !== undefined && node.type !== 'frame' && !highlighted?.has(node.id));
-      const pinMarks = decor.pinMarks.get(node.id);
-      const domains = decor.domains.get(node.id);
-      const focused = focusedPinOf(focusedPin, selection, node.id);
-      const highlightColor =
-        showHighlights && highlights ? nodeHighlightColor(highlights, node.id) : undefined;
-      return {
-        ...node,
-        selected: selectedIds.has(node.id),
-        data: {
-          ...node.data,
-          dimmed,
-          ...(review && { review: nodeReview(review.findings, node.id, review.graph) }),
-          ...(domains && { domains }),
-          ...(pinMarks && { pinMarks }),
-          ...(badgeNetIds && { selectedNetIds: badgeNetIds }),
-          ...(highlightColor !== undefined && { highlightColor }),
-          ...(focused !== undefined && { focusedPin: focused }),
-          ...(highlighted?.has(node.id) && { highlightedPins: highlighted.get(node.id) }),
-          onSelectNet,
-          onHoverPin,
-          onToggleExpand,
-          ...(flash?.id === node.id && { flashToken: flash.token, onFlashEnd }),
-        },
-      };
-    });
-  }, [
+  const { nodes, edges, decor } = useCanvasElements({
     layout,
+    selection,
+    selectedIds,
+    selectedNetIds,
+    highlights,
+    review,
+    clocks,
+    focusedPin,
     query,
     flash,
     onFlashEnd,
-    selection,
-    selectedIds,
-    activeSelectedNetIds,
-    showHighlights,
-    highlights,
-    review,
-    decor,
-    tree,
-    focusedPin,
     onSelectNet,
     onHoverPin,
     onToggleExpand,
-  ]);
-
-  const edges = useMemo(
-    () =>
-      (layout?.edges ?? []).map((edge) => {
-        const marks = decor.edges.get(edge.id);
-        const highlightColor =
-          showHighlights && highlights ? netHighlightColor(highlights, edge.data.netId) : undefined;
-        return {
-          ...edge,
-          selected:
-            activeSelectedNetIds.has(edge.data.netId) ||
-            (selection?.kind === 'net' &&
-              (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId)),
-          ...((marks !== undefined || highlightColor !== undefined) && {
-            data: {
-              ...edge.data,
-              ...marks,
-              ...(highlightColor !== undefined && { highlightColor }),
-            },
-          }),
-        };
-      }),
-    [layout, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
-  );
+  });
 
   // React Flow stays mounted on error: unmounting resets its store to the
   // default viewport, losing the user's zoom and pan.
@@ -304,6 +207,7 @@ export function DiagramCanvas({
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable
+        onlyRenderVisibleElements
         // A selected frame must not rise above the blocks and wires inside it.
         elevateNodesOnSelect={false}
         selectionKeyCode={null}

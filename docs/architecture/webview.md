@@ -179,7 +179,22 @@ sets `data-far` on the canvas container from a boolean store selector, so it
 re-renders only when the zoom crosses `FAR_ZOOM` (`layout/zoomDetail.ts`), and
 keeps `--sd-name-scale` in step through an imperative store subscription;
 `systemDiagram.css` hides pin text and scales block names under
-`[data-far='true']`.
+`[data-far='true']`. The scale is written only while far and in steps of
+`NAME_SCALE_STEP` (`farNameScale`), because changing an inherited custom
+property restyles every descendant of the canvas.
+
+Stable elements: `hooks/useCanvasElements.ts` (the node and edge building of `DiagramCanvas.tsx`) hands React Flow the previous node and
+edge object for every element that draws the same thing (`reuseUnchanged` in
+`stableElements.ts`, applied by `hooks/useStableElements.ts`), because React
+Flow skips an element whose object it already holds. A search keystroke or a
+selection therefore re-renders only the elements that changed. This holds only
+while everything put into a node's or edge's `data` is referentially stable
+for the elements it does not concern: callbacks are stable (`onSelectNet`
+reads the latest handlers from a ref), and per-node values (`selectedNetIds`,
+`review`, `domains`, `pinMarks`, `highlightedPins`) are computed in their own
+memos and set only on the nodes they apply to. `<ReactFlow>` also sets
+`onlyRenderVisibleElements`, so only the blocks and wires on screen are
+mounted. Dimming is not data: a dimmed block gets the node `className` `sd-dimmed` (class of the React Flow wrapper, styled in `systemDiagram.css`), and `reuseUnchanged` keeps the previous `data` object when only the element around it changed. `InstanceNode`, `FrameNode` and `BoundaryNode` are `React.memo`, so such a block does not render its pins again. `npm run perf:system-viewer` measures these paths.
 
 ## Updates and drafts
 

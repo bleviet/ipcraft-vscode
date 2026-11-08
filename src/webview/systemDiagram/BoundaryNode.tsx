@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { NetBadgeView } from './NetBadgeView';
 import { PinMarker } from './PinMarker';
@@ -10,7 +10,7 @@ import { portShapePath } from './layout/portShape';
 export type BoundaryFlowNode = Node<BoundaryNodeData, 'boundary'>;
 
 /** External port drawn as an arrow tag, its marker centred on the border it connects from. */
-export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
+function BoundaryNodeBase({ data, selected }: NodeProps<BoundaryFlowNode>) {
   const { pin } = data;
   const east = data.side === 'east';
   const position = east ? Position.Right : Position.Left;
@@ -22,7 +22,6 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
       className="sd-port"
       data-selected={selected}
       data-highlighted={data.highlightColor !== undefined || undefined}
-      data-dimmed={data.dimmed === true}
       {...(review && {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
@@ -90,3 +89,6 @@ export function BoundaryNode({ data, selected }: NodeProps<BoundaryFlowNode>) {
     </div>
   );
 }
+
+/** Memoized: React Flow re-renders a node only when its data object changes. */
+export const BoundaryNode = memo(BoundaryNodeBase);

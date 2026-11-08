@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import type { FrameNodeData, FramePinRow } from './layout/elkLayout';
 import type { PinMark } from './clocks/nodeView';
@@ -93,7 +93,7 @@ function FramePin({ row, highlighted, review, focused, mark, onHoverPin }: Frame
 }
 
 /** An expanded hierarchy block: a frame with the header on top and its pins on the border. */
-export function FrameNode({ data, selected, width, height }: NodeProps<FrameFlowNode>) {
+function FrameNodeBase({ data, selected, width, height }: NodeProps<FrameFlowNode>) {
   const { instance, review } = data;
   const rows = [...data.west, ...data.east];
   return (
@@ -101,7 +101,6 @@ export function FrameNode({ data, selected, width, height }: NodeProps<FrameFlow
       className="sd-frame"
       data-selected={selected}
       data-highlighted={data.highlightColor !== undefined || undefined}
-      data-dimmed={data.dimmed === true}
       {...(review && {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
@@ -153,3 +152,6 @@ export function FrameNode({ data, selected, width, height }: NodeProps<FrameFlow
     </div>
   );
 }
+
+/** Memoized: React Flow re-renders a node only when its data object changes. */
+export const FrameNode = memo(FrameNodeBase);

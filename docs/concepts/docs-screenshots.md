@@ -146,3 +146,16 @@ After generating images:
 Screenshot generation is intentionally not a required CI step. Run it when a UI
 change makes an existing image inaccurate or when a new visual workflow is
 documented.
+
+## System viewer performance script
+
+A sibling developer tool measures how the system viewer responds on a large
+design. `npm run perf:system-viewer` builds the webview in production mode and
+runs `scripts/perf/system-viewer.spec.ts` (config `config/playwright.perf.ts`,
+never run by `npm run test:browser` or CI) on the harness above. It loads
+`vivado_dsp_soc_64ch.tcl` and `vivado_dsp_soc_8ch.tcl` and prints, for each
+action (search keystrokes, Enter, Escape, selecting a block, wheel zoom with
+Simplify zoomed out on and off, drag pan, Fit), the script, style and layout
+time from Chrome's `Performance.getMetrics` and the number and longest of the
+long tasks (over 50 ms). A JSON copy goes to `test-results/perf/`. Times vary
+by machine: compare runs on the same machine, before and after a change.

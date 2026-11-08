@@ -145,7 +145,7 @@ input:focus-visible {
   stroke-width: 2;
 }
 
-.sd-port[data-dimmed='true'] {
+.react-flow__node.sd-dimmed {
   opacity: 0.25;
 }
 
@@ -261,10 +261,6 @@ input:focus-visible {
   box-shadow:
     0 0 0 1.5px var(--sd-highlight),
     0 0 0 3px var(--vscode-focusBorder);
-}
-
-.sd-frame[data-dimmed='true'] {
-  opacity: 0.25;
 }
 
 /* The pin box starts 16 px above the pin height; its 14 px label ends 2 px above it. */
@@ -400,10 +396,6 @@ input:focus-visible {
   .sd-flash {
     display: none;
   }
-}
-
-.sd-node[data-dimmed='true'] {
-  opacity: 0.25;
 }
 
 .sd-handle {
@@ -728,9 +720,9 @@ input:focus-visible {
   opacity: 1;
 }
 
-[data-review='true'] .sd-node[data-has-unc='false']:not([data-dimmed='true']),
-[data-review='true'] .sd-frame[data-has-unc='false']:not([data-dimmed='true']),
-[data-review='true'] .sd-port[data-has-unc='false']:not([data-dimmed='true']) {
+[data-review='true'] .react-flow__node:not(.sd-dimmed) .sd-node[data-has-unc='false'],
+[data-review='true'] .react-flow__node:not(.sd-dimmed) .sd-frame[data-has-unc='false'],
+[data-review='true'] .react-flow__node:not(.sd-dimmed) .sd-port[data-has-unc='false'] {
   opacity: 0.45;
 }
 

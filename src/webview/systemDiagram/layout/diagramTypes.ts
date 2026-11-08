@@ -41,7 +41,6 @@ export interface PinRow {
 export interface InstanceUiData {
   /** Pins on the selected net; their labels are drawn bold. */
   highlightedPins?: ReadonlySet<string>;
-  dimmed?: boolean;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
   /** Present only while the domain decorations are on (Clocks and resets on, review off). */
@@ -93,7 +92,6 @@ export interface BoundaryNodeData extends Record<string, unknown> {
   netName?: string;
   netNames: string[];
   badge?: NetBadge;
-  dimmed?: boolean;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
   /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */
