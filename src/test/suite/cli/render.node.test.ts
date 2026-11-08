@@ -12,9 +12,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { runCliRender, type CliRenderArgs } from '../../../cli/render';
+import { devResourceRoots } from '../../../services/ResourceRoots';
 import { FONT_FILES } from '../../../shared/render/fontFaces';
 import { readSystemDesign } from '../../../services/systemDiagram/readSystemDesign';
-import { plexTextMeasure } from '../../../shared/render/textMetrics';
+import { measureText, plexTextMeasure } from '../../../shared/render/textMetrics';
 import { buildElkInput, toFlowElements } from '../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../webview/systemDiagram/layout/runElkLayout';
 
@@ -25,6 +26,7 @@ const QSYS = path.join(fixtures, 'nios_avalon_system.qsys');
 
 let tmp: string;
 let fontsDir: string;
+let roots: ReturnType<typeof devResourceRoots>;
 
 beforeAll(() => {
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-render-'));
@@ -41,6 +43,7 @@ beforeAll(() => {
   for (const file of Object.values(FONT_FILES)) {
     fs.copyFileSync(source(file), path.join(fontsDir, file));
   }
+  roots = { ...devResourceRoots(repoRoot), fontsDir };
 });
 
 afterAll(() => {
@@ -62,7 +65,7 @@ function args(input: string, name: string, extra: Partial<CliRenderArgs> = {}): 
 }
 
 async function render(input: string, name: string, extra: Partial<CliRenderArgs> = {}) {
-  const result = await runCliRender(args(input, name, extra), { fontsDir });
+  const result = await runCliRender(args(input, name, extra), roots);
   expect(result.error).toBeUndefined();
   expect(result.success).toBe(true);
   return fs.readFileSync(result.outputPath, 'utf8');
@@ -103,6 +106,26 @@ describe('runCliRender', () => {
     );
     expect(blocks).toHaveLength(await laidOutNodeCount(input));
     expect(svg).toContain("font-family:'IBM Plex Sans'");
+  });
+
+  it('draws every subtitle inside its block, ellipsized when it does not fit', async () => {
+    const doc = parse(await render(QSYS, 'subtitles.svg'));
+    for (const g of Array.from(doc.getElementsByTagName('g'))) {
+      if (g.getAttribute('data-kind') !== 'instance') {
+        continue;
+      }
+      const width = Number(g.getElementsByTagName('rect')[0].getAttribute('width')) + 1;
+      const subtitle = Array.from(g.getElementsByTagName('text')).find(
+        (t) => t.getAttribute('font-size') === '10.5'
+      );
+      const text = subtitle?.textContent ?? '';
+      // Left inset 9 px, right inset 8 px: the measured text must end inside the inner header.
+      expect(9 + measureText(text, 'mono400', 10.5)).toBeLessThanOrEqual(width - 8 + 1e-6);
+    }
+  });
+
+  it('sets unhinted text rendering, so Chrome does not round glyph advances to whole pixels', async () => {
+    expect(await render(QSYS, 'hinting.svg')).toContain('text-rendering:geometricPrecision');
   });
 
   it('renders the same bytes twice', async () => {
@@ -149,7 +172,7 @@ describe('runCliRender', () => {
   });
 
   it('fails on an unknown level with suggestions', async () => {
-    const result = await runCliRender(args(ZYNQ, 'x.svg', { level: '/dsp' }), { fontsDir });
+    const result = await runCliRender(args(ZYNQ, 'x.svg', { level: '/dsp' }), roots);
     expect(result.success).toBe(false);
     expect(result.error).toContain("Unknown level '/dsp'");
     expect(result.error).toContain('/dsp_pipeline');
@@ -158,26 +181,21 @@ describe('runCliRender', () => {
 
   it('fails on an unknown or non-hierarchy --expand with suggestions', async () => {
     const unknown = await runCliRender(args(ZYNQ, 'x.svg', { expand: ['/dsp_pipelin'] }), {
-      fontsDir,
+      ...roots,
     });
     expect(unknown.success).toBe(false);
     expect(unknown.error).toContain('Closest: /dsp_pipeline');
     const notHier = await runCliRender(args(ZYNQ, 'x.svg', { expand: ['/axi_dma_0'] }), {
-      fontsDir,
+      ...roots,
     });
     expect(notHier.success).toBe(false);
     expect(notHier.error).toContain('is not a hierarchy block');
   });
 
-  it('rejects files that are not system designs', async () => {
-    const ip = path.join(tmp, 'core.ip.yml');
-    fs.writeFileSync(ip, 'apiVersion: ipcraft/v1\n');
-    const ipResult = await runCliRender(args(ip, 'x.svg'), { fontsDir });
-    expect(ipResult.success).toBe(false);
-    expect(ipResult.error).toContain('IP core symbols are not supported yet');
+  it('rejects files that are not system designs or IP cores', async () => {
     const other = path.join(tmp, 'notes.tcl');
     fs.writeFileSync(other, 'puts hello\n');
-    const otherResult = await runCliRender(args(other, 'x.svg'), { fontsDir });
+    const otherResult = await runCliRender(args(other, 'x.svg'), roots);
     expect(otherResult.error).toContain('not a recognized system design');
   });
 
@@ -198,7 +216,7 @@ describe('runCliRender', () => {
   it('rejects a nested block whose parent is not expanded, with suggestions', async () => {
     const result = await runCliRender(
       args(ZYNQ, 'x.svg', { expand: ['/dsp_pipeline/coeff_bank'] }),
-      { fontsDir }
+      roots
     );
     expect(result.success).toBe(false);
     expect(result.error).toContain('inside an expanded block');
@@ -208,26 +226,26 @@ describe('runCliRender', () => {
   it('rejects a bare --expand name shared by several blocks, but accepts their paths', async () => {
     const soc = path.join(fixtures, 'generated', 'vivado_dsp_soc_8ch.tcl');
     const ambiguous = await runCliRender(args(soc, 'x.svg', { expand: ['/ch0', '/ch1', 'dsp'] }), {
-      fontsDir,
+      ...roots,
     });
     expect(ambiguous.success).toBe(false);
     expect(ambiguous.error).toContain("ambiguous name 'dsp', use the path: /ch0/dsp, /ch1/dsp");
     const byPath = await runCliRender(
       args(soc, 'x.svg', { expand: ['/ch0', '/ch1', '/ch0/dsp'] }),
-      { fontsDir }
+      roots
     );
     expect(byPath.error).toBeUndefined();
   });
 
   it('names a missing input file plainly', async () => {
-    const result = await runCliRender(args(path.join(tmp, 'absent.tcl'), 'x.svg'), { fontsDir });
+    const result = await runCliRender(args(path.join(tmp, 'absent.tcl'), 'x.svg'), roots);
     expect(result.success).toBe(false);
     expect(result.error).toBe(`Input file not found: ${path.join(tmp, 'absent.tcl')}`);
   });
 
   it('names a missing font file', async () => {
     const empty = fs.mkdtempSync(path.join(tmp, 'nofonts-'));
-    const result = await runCliRender(args(ZYNQ, 'x.svg'), { fontsDir: empty });
+    const result = await runCliRender(args(ZYNQ, 'x.svg'), { ...roots, fontsDir: empty });
     expect(result.success).toBe(false);
     expect(result.error).toContain('Font file not found:');
     expect(result.error).toContain(FONT_FILES.sans400);

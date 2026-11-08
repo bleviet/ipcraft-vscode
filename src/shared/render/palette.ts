@@ -3,7 +3,8 @@
  * image palette: the webview resolves `--vscode-*` tokens at run time, an exported image has no
  * theme, so the same tokens are pinned here to the VS Code Light Modern and Dark Modern values.
  *
- * Token values are copied from scripts/docs-screenshots/theme/light.css and dark.css. Roles the
+ * Token values are copied from scripts/docs-screenshots/theme/light.css and dark.css (the charts
+ * blue, orange and yellow are the VS Code color registry defaults). Roles the
  * webview derives with `color-mix(in srgb, ...)` (systemDiagram.css `--sd-node-*`, colors.ts
  * `restingWireColor`) are computed with {@link mixSrgb} using the same formulas.
  */
@@ -17,6 +18,44 @@ export interface Paint {
   /** `#rrggbb`. */
   color: string;
   opacity: number;
+}
+
+/**
+ * Roles of the IP core symbol, from canvas.css. The IP canvas colors clocks and resets differently
+ * from the system diagram (charts-green clocks and charts-orange resets here; orange and red in
+ * `Palette.category`). Both are kept as the two editors draw them.
+ */
+export interface IpSymbolPalette {
+  /** `.ip-block-body` fill (`--vscode-editor-background`) and stroke (`--vscode-panel-border`). */
+  bodyFill: string;
+  bodyStroke: string;
+  /** `.ip-block-header`: focusBorder 20% over the background. */
+  headerFill: string;
+  /** `.ip-canvas-grid-dot`: foreground at 10%. */
+  gridDot: Paint;
+  /** Generics and vendor/library rows (`--vscode-charts-yellow`); also polarity and interrupt badges. */
+  yellow: string;
+  /** Dependencies section (`--vscode-charts-blue`). */
+  dependency: string;
+  /** Port kind colors: stubs, dots and icons of clocks, resets and interrupts. */
+  clock: string;
+  reset: string;
+  interrupt: string;
+  /** Bus bundle stub, connector and badge border (`--vscode-charts-blue`). */
+  bus: string;
+  /** Bus protocol badge: bus color 20% over the background. */
+  busBadgeFill: string;
+  /** Expand toggle: bus color 15% over the background. */
+  busToggleFill: string;
+  /** Mode (S/M) badge: charts-purple, fill 30% over the background. */
+  modeStroke: string;
+  modeFill: string;
+  /** Array count badge: charts-orange, fill 20% over the background. */
+  arrayStroke: string;
+  arrayFill: string;
+  /** Memory map reference badge: charts-green, fill 18% over the background. */
+  mmapStroke: string;
+  mmapFill: string;
 }
 
 export interface Palette {
@@ -44,6 +83,8 @@ export interface Palette {
   category: Readonly<Record<NetCategory, string>>;
   /** Category colors of wires at rest: 65% of the category color over the background. */
   wire: Readonly<Record<NetCategory, string>>;
+  /** IP core symbol roles. */
+  ip: IpSymbolPalette;
 }
 
 function parseHex(hex: string): [number, number, number] {
@@ -75,6 +116,9 @@ interface Tokens {
   descriptionForeground: string;
   widgetBackground: string;
   widgetBorder: string;
+  panelBorder: string;
+  focusBorder: string;
+  yellow: string;
   blue: string;
   green: string;
   orange: string;
@@ -89,9 +133,12 @@ const LIGHT_TOKENS: Tokens = {
   descriptionForeground: '#3b3b3b',
   widgetBackground: '#f8f8f8',
   widgetBorder: '#e5e5e5',
-  blue: '#4facfe',
+  panelBorder: '#e5e5e5',
+  focusBorder: '#005fb8',
+  yellow: '#bf8803',
+  blue: '#0063d3',
   green: '#388a34',
-  orange: '#ce9178',
+  orange: '#d18616',
   purple: '#652d90',
   red: '#e51400',
 };
@@ -103,9 +150,12 @@ const DARK_TOKENS: Tokens = {
   descriptionForeground: '#9d9d9d',
   widgetBackground: '#202020',
   widgetBorder: '#2b2b2b',
-  blue: '#4facfe',
+  panelBorder: '#2b2b2b',
+  focusBorder: '#0078d4',
+  yellow: '#cca700',
+  blue: '#59a4f9',
   green: '#89d185',
-  orange: '#ce9178',
+  orange: '#d18616',
   purple: '#b180d7',
   red: '#f14c4c',
 };
@@ -122,6 +172,29 @@ function categoryColors(t: Tokens): Record<NetCategory, string> {
     reset: t.red,
     interrupt: t.purple,
     signal: t.descriptionForeground,
+  };
+}
+
+function buildIpSymbolPalette(t: Tokens): IpSymbolPalette {
+  return {
+    bodyFill: t.background,
+    bodyStroke: t.panelBorder,
+    headerFill: mixSrgb(t.focusBorder, t.background, 20),
+    gridDot: { color: t.foreground, opacity: 0.1 },
+    yellow: t.yellow,
+    dependency: t.blue,
+    clock: t.green,
+    reset: t.orange,
+    interrupt: t.yellow,
+    bus: t.blue,
+    busBadgeFill: mixSrgb(t.blue, t.background, 20),
+    busToggleFill: mixSrgb(t.blue, t.background, 15),
+    modeStroke: t.purple,
+    modeFill: mixSrgb(t.purple, t.background, 30),
+    arrayStroke: t.orange,
+    arrayFill: mixSrgb(t.orange, t.background, 20),
+    mmapStroke: t.green,
+    mmapFill: mixSrgb(t.green, t.background, 18),
   };
 }
 
@@ -143,6 +216,7 @@ function buildPalette(t: Tokens): Palette {
     gridDot: { color: t.foreground, opacity: 0.25 },
     category,
     wire,
+    ip: buildIpSymbolPalette(t),
   };
 }
 

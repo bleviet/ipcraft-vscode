@@ -1,10 +1,8 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import type { BusInterface, IpCore } from '../../../types/ipCore';
-import { computeLayout } from './canvasLayout';
+import type { IpCore } from '../../../types/ipCore';
 import { RemoveZone } from './RemoveZone';
 import { useCanvasValidation, type CanvasAnnotations } from '../../hooks/useCanvasValidation';
 import { lookupBusDef, isAssociatedPort, isConduitType } from '../../utils/busLibrary';
-import type { BusPortDef } from '../../utils/busLibrary';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
 import { useGroupPorts } from '../../hooks/useGroupPorts';
@@ -22,20 +20,18 @@ import './canvas.css';
 import {
   canonicalizeBusType,
   matchBusPortRole,
-  normalizeInterfaceMode,
-  resolveBusInterface,
   type NormalizedBusLibrary,
 } from '../../../../shared/busContracts';
-
-/** Distinct colours for clock domains when multiple clocks are defined */
-const CLOCK_DOMAIN_COLORS = [
-  '#4ec9b0', // teal
-  '#e5a96a', // amber-orange
-  '#dcdcaa', // yellow
-  '#c586c0', // purple
-  '#9cdcfe', // sky blue
-  '#f28b82', // coral
-];
+import {
+  busPortLookup,
+  busResolutionLookupFor,
+  clockDomainColor,
+  computeSymbolLayout,
+  contractConsumerLookup,
+  hasMultipleClockDomains,
+  protocolLabelLookup,
+  symbolDescription,
+} from './symbolInputs';
 
 interface IpBlockCanvasProps {
   ipCore: IpCore;
@@ -122,74 +118,35 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     }
   }, [issueFocusRequest]);
 
-  const busDefs = useMemo((): ((type: string) => BusPortDef[] | null) => {
-    if (!busLibrary) {
-      return () => null;
-    }
-    return (type: string) => lookupBusDef(type, busLibrary);
-  }, [busLibrary]);
-
-  const isContractConsumer = useMemo(() => {
-    if (!busLibrary) {
-      return undefined;
-    }
-    return (bus: BusInterface): boolean | undefined => {
-      const match = canonicalizeBusType(bus.type, busLibrary);
-      if (!match) {
-        return undefined;
-      }
-      return (
-        normalizeInterfaceMode(match.contract, bus.mode) === match.contract.modePolicy.consumer
-      );
-    };
-  }, [busLibrary]);
-
-  const protocolLabel = useMemo(() => {
-    if (!busLibrary) {
-      return undefined;
-    }
-    return (busType: string): string | undefined =>
-      canonicalizeBusType(busType, busLibrary)?.contract.displayName;
-  }, [busLibrary]);
-
-  const busResolutionLookup = useMemo(() => {
-    if (!busLibrary) {
-      return undefined;
-    }
-    return (bus: BusInterface, busIndex: number) =>
-      resolveBusInterface({
-        busInterface: bus as unknown as import('../../../../domain/ipcore.types').BusInterface,
-        busIndex,
-        parameters: (ipCore.parameters ??
-          []) as unknown as import('../../../../domain/ipcore.types').Parameter[],
-        library: busLibrary,
-      });
-  }, [busLibrary, ipCore.parameters]);
+  const busDefs = useMemo(() => busPortLookup(busLibrary), [busLibrary]);
+  const isContractConsumer = useMemo(() => contractConsumerLookup(busLibrary), [busLibrary]);
+  const protocolLabel = useMemo(() => protocolLabelLookup(busLibrary), [busLibrary]);
+  const busResolutionLookup = useMemo(
+    () => busResolutionLookupFor(ipCore.parameters, busLibrary),
+    [busLibrary, ipCore.parameters]
+  );
 
   const layout = useMemo(
     () =>
-      computeLayout(
+      computeSymbolLayout(
         ipCore,
-        expandedBusIds,
-        busDefs,
-        ipCore.description ?? undefined,
-        isContractConsumer,
-        protocolLabel,
-        busResolutionLookup
+        {
+          busDefs,
+          description: symbolDescription(ipCore),
+          isContractConsumer,
+          protocolLabel,
+          busResolutionLookup,
+        },
+        expandedBusIds
       ),
     [ipCore, expandedBusIds, busDefs, isContractConsumer, protocolLabel, busResolutionLookup]
   );
   const { ports, subPorts } = layout;
 
   // Assign distinct colours per clock domain when multiple clocks are defined
-  const multiDomain = (ipCore.clocks?.length ?? 0) > 1;
+  const multiDomain = hasMultipleClockDomains(ipCore);
   const getDomainColor = useCallback(
-    (idx: number): string | undefined => {
-      if (!multiDomain || idx < 0) {
-        return undefined;
-      }
-      return CLOCK_DOMAIN_COLORS[idx % CLOCK_DOMAIN_COLORS.length];
-    },
+    (idx: number): string | undefined => clockDomainColor(idx, multiDomain),
     [multiDomain]
   );
 

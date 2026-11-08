@@ -8,6 +8,11 @@ import type { HdlLanguage } from '../generator/types';
 import type { IndentStyle } from '../generator/reindent';
 import { DEFAULT_INDENT_SIZE, DEFAULT_INDENT_STYLE } from '../generator/reindent';
 
+/** Whether `file` names an IP core (`.ip.yml` or `.ip.yaml`). */
+export function isIpCoreFile(file: string): boolean {
+  return /\.ip\.ya?ml$/i.test(file);
+}
+
 export function usageText(): string {
   return `ipcraft — headless IPCraft HDL / vendor-project generator
 
@@ -19,10 +24,10 @@ Usage:
                                           self-contained folder (or .zip with --zip)
   ipcraft migrate <file>... [--check]     Upgrade .ip.yml files to the latest format version and
                                           convert legacy snake_case keys in .ip.yml / .mm.yml files
-  ipcraft render <design.tcl|design.qsys> --out <file.svg> [options]
+  ipcraft render <design.tcl|design.qsys|ip.yml> --out <file.svg> [options]
                                           Draw one level of a system design (Vivado block design
-                                          .tcl, Platform Designer .qsys or qsys-script .tcl) as an
-                                          SVG image
+                                          .tcl, Platform Designer .qsys or qsys-script .tcl), or
+                                          the symbol of an IP core (.ip.yml), as an SVG image
 
 Options:
   --target <quartus|vivado>[,<...>]  Vendor target(s) to scaffold a project for
@@ -42,13 +47,14 @@ Options:
   --zip                              [package only] Write a .zip file; --out is the file path
   --check                            [migrate only] Report files that need an upgrade or key
                                       conversion without writing; exit 1 if any do
-  --level <path>                     [render only] Hierarchy level to draw (default: /)
-  --expand <path>[,<...>]            [render only] Hierarchy blocks to draw expanded in place:
-                                      blocks of the level, or of an expanded block
-                                      (repeatable or comma-separated)
+  --level <path>                     [render, system designs only] Hierarchy level to draw
+                                      (default: /)
+  --expand <path>[,<...>]            [render, system designs only] Hierarchy blocks to draw
+                                      expanded in place: blocks of the level, or of an expanded
+                                      block (repeatable or comma-separated)
   --theme <light|dark>               [render only] Image palette (default: light)
   --no-grid                          [render only] Omit the background grid
-  --no-legend                        [render only] Omit the legend
+  --no-legend                        [render, system designs only] Omit the legend
   --background <editor|transparent>  [render only] Image background (default: editor)
   -h, --help                          Show this help
 
@@ -58,6 +64,7 @@ Examples:
   ipcraft migrate path/to.ip.yml --check
   ipcraft package path/to.ip.yml --out dist/my_ip --zip
   ipcraft render bd/system.tcl --out docs/img/system.svg --expand /dsp_pipeline --theme dark
+  ipcraft render path/to.ip.yml --out docs/img/core.svg --no-grid
 `;
 }
 
@@ -243,6 +250,7 @@ function parseRenderArgs(rest: string[]): ParsedArgv {
     background: 'editor',
   };
   let out: string | undefined;
+  const systemOnly: string[] = [];
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
     const value = (): string => rest[++i];
@@ -254,9 +262,11 @@ function parseRenderArgs(rest: string[]): ParsedArgv {
         out = value();
         break;
       case '--level':
+        systemOnly.push(arg);
         args.level = value();
         break;
       case '--expand':
+        systemOnly.push(arg);
         args.expand.push(
           ...value()
             .split(',')
@@ -290,6 +300,7 @@ function parseRenderArgs(rest: string[]): ParsedArgv {
         args.grid = false;
         break;
       case '--no-legend':
+        systemOnly.push(arg);
         args.legend = false;
         break;
       default:
@@ -300,13 +311,19 @@ function parseRenderArgs(rest: string[]): ParsedArgv {
     }
   }
   if (positional.length === 0) {
-    return { kind: 'error', message: 'Missing required argument: <design.tcl|design.qsys>' };
+    return { kind: 'error', message: 'Missing required argument: <design.tcl|design.qsys|ip.yml>' };
   }
   if (positional.length > 1) {
     return { kind: 'error', message: `Unexpected argument '${positional[1]}'` };
   }
   if (!out) {
     return { kind: 'error', message: "Missing required option: '--out <file.svg>'" };
+  }
+  if (isIpCoreFile(positional[0]) && systemOnly.length > 0) {
+    return {
+      kind: 'error',
+      message: `Option '${systemOnly[0]}' is only for system designs, not for an .ip.yml`,
+    };
   }
   if (/\.(png|jpe?g)$/i.test(out)) {
     return {

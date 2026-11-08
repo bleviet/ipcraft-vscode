@@ -213,6 +213,27 @@ describe('ipcraft CLI argv parsing', () => {
       });
     });
 
+    it('accepts an .ip.yml with the options that apply to it', () => {
+      expect(
+        parseArgs(['render', 'core.ip.yml', '--out', 'core.svg', '--theme', 'dark', '--no-grid'])
+      ).toEqual({
+        kind: 'render',
+        args: expect.objectContaining({ inputPath: 'core.ip.yml', theme: 'dark', grid: false }),
+      });
+    });
+
+    it.each([['--level', '/dsp'], ['--expand', '/dsp'], ['--no-legend']])(
+      'rejects %s for an .ip.yml',
+      (...option) => {
+        const parsed = parseArgs(['render', 'core.ip.yml', '--out', 'core.svg', ...option]);
+        expect(parsed.kind).toBe('error');
+        expect(parsed).toEqual({
+          kind: 'error',
+          message: `Option '${option[0]}' is only for system designs, not for an .ip.yml`,
+        });
+      }
+    );
+
     it('parses every option, with repeatable or comma-separated --expand', () => {
       expect(
         parseArgs([

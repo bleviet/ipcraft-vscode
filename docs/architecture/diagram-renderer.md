@@ -3,7 +3,7 @@
 `src/shared/render/` turns a laid-out diagram into a standalone SVG without a
 browser. It backs `ipcraft render` (issue #268) and is meant to back the
 interactive image export later, so an image looks the same whichever way it was
-made. Today it draws whole system levels.
+made. It draws whole system levels and IP core symbols.
 
 ## Boundaries
 
@@ -16,7 +16,8 @@ domain, layout (src/webview/systemDiagram/layout, legend.ts, model.ts)
   -> src/cli/render.ts (reads files, runs the layout, writes the SVG)
 ```
 
-It imports only DOM-free layout and model modules from the system diagram. Fonts
+It imports only DOM-free layout and model modules from the system diagram, and
+`canvas/canvasLayout.ts` from the IP core canvas. Fonts
 come in as bytes (`fontFaceCss`), so the renderer never reads files. The CLI
 bundle has no `.css` loader: nothing on the render path may import CSS, React or
 `@xyflow/react` at runtime (`layout/nodeHandles.ts` keeps its own `Position`
@@ -30,6 +31,8 @@ values for that reason).
 | `blockSvg.ts` | Instance blocks and expanded frames: header, subtitle, hierarchy toggle, pin rows |
 | `pinSvg.ts` | Pin markers, net badges, external port tags |
 | `legendSvg.ts` | Legend layout (wrapping rows) and drawing |
+| `ipSymbolSvg.ts` | `renderIpSymbolSvg`: IP core symbol document, block header and sections, bounds, grid |
+| `ipPortSvg.ts` | IP symbol ports: stubs, dots, icons, badges, collapsed bus bundles |
 | `palette.ts` | Light and Dark colors; `mixSrgb` |
 | `textMetrics.ts`, `fontMetrics.generated.ts` | IBM Plex text measurement, baselines, truncation |
 | `fontFaces.ts` | Base64 `@font-face` rules for the three woff2 files |
@@ -43,15 +46,17 @@ theme, so the same tokens are pinned to the Light Modern and Dark Modern values
 copied from `scripts/docs-screenshots/theme/`. Roles the webview derives with
 `color-mix` (`--sd-node-line`, `--sd-node-fill`, `--sd-node-head-fill`, resting
 wires) are computed with `mixSrgb` using the same formulas. When a color changes
-in `systemDiagram.css` or `colors.ts`, change the palette too. No palette value
-contains `var(`.
+in `systemDiagram.css` or `colors.ts`, change the palette too; `Palette.ip` mirrors
+`canvas.css` the same way. The charts blue, orange and yellow come from the VS Code color registry defaults (Light
+Modern and Dark Modern do not override them). No palette value contains `var(`.
 
 ## Text and fonts
 
 Text is drawn in IBM Plex Sans (400, 600) and IBM Plex Mono (400), measured with
 their advance widths. `fontMetrics.generated.ts` is written by
 `npm run generate:font-metrics` from the `@fontsource` devDependencies with
-fontkit; fontkit never runs at runtime. The SVG sets `font-kerning: none`, so
+fontkit; fontkit never runs at runtime. The SVG sets `font-kerning: none` and `text-rendering: geometricPrecision` (without it Chrome on
+Linux rounds every glyph advance to a whole pixel and measured text overflows its block), so
 drawn widths equal measured widths. `plexTextMeasure` is the `TextMeasure` the
 layout uses in Node, with the webview's weights (11 px body, 12 px semibold, 10.5
 px mono). Characters outside the table are measured as `M`. The woff2 files are
@@ -66,3 +71,25 @@ no shadows, selection, highlights, dimming, review or clock-domain decoration;
 the legend sits below the drawing; grid dots are slightly larger for print.
 Output is deterministic: numbers have at most two decimals and elements follow
 the layout order (frames, wires, blocks, legend).
+
+## IP core symbol
+
+`renderIpSymbolSvg(layout, options)` draws what the IP core editor's canvas shows
+in its default state from a `CanvasLayout`. The geometry is not recomputed: the
+layout comes from `computeLayout` in `canvas/canvasLayout.ts`, called through
+`computeSymbolLayout` in `canvas/symbolInputs.ts`, the pure module that also
+builds the bus-library lookups, protocol labels and clock-domain colors for
+`IpBlockCanvas.tsx`, so the canvas and the CLI cannot drift. `IpBlockDiagram.tsx`
+and the `Canvas*` components cannot be imported (they load React and the webview
+host), so `ipSymbolSvg.ts` and `ipPortSvg.ts` mirror their geometry and
+`canvas.css` styles by hand; change both together. Colors are `Palette.ip`. The
+IP canvas colors clocks green and resets orange, while the system diagram colors
+them orange and red; both are kept as the editors draw them.
+
+`src/cli/renderIpCore.ts` reads the file (`yaml` parse, format version check,
+`canonicalizeParsedIpCore`), loads the built-in bus library plus the file's
+`useBusLibrary` folder, and writes the SVG. Simplifications are listed in the
+`ipSymbolSvg.ts` header: no selection, hover, rename or validation marks, bus
+bundles always collapsed, no drop shadow, the canvas margin cropped to 24 px
+around the drawing, and small native shapes in place of the glyphs the embedded
+fonts lack.
