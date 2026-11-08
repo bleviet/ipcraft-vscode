@@ -21,9 +21,11 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
     (selected ? 1.5 : 0) +
     (data.highlightColor !== undefined ? 1.25 : 0);
   const baseColor = data.domainColor ?? categoryColor(data.category);
+  // A dimmed wire is already faded; muting it as well would hide it.
+  const fullColor = selected === true || data.dimmed === true;
   const stroke = data.crossing
     ? CROSSING_COLOR
-    : (data.highlightColor ?? (selected ? baseColor : restingWireColor(baseColor)));
+    : (data.highlightColor ?? (fullColor ? baseColor : restingWireColor(baseColor)));
   const dash = data.crossing ? DASHED : undefined;
   return (
     <BaseEdge

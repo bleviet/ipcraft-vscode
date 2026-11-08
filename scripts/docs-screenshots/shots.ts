@@ -72,12 +72,10 @@ async function setupSystemHierarchy(page: Page): Promise<void> {
   await untilViewportChanges(page, () =>
     page.locator('.react-flow__node[data-id="/dsp_pipeline"]').dblclick()
   );
-  const edges = page.locator('.react-flow__edge');
-  const before = await edges.count();
-  await page.getByText('Clocks and resets').click();
-  await expect.poll(() => edges.count()).toBeGreaterThan(before);
-  // Fit after the clock and reset nets changed the layout.
-  await untilViewportChanges(page, () => page.getByRole('button', { name: 'Fit' }).click());
+  // Clocks and resets only decorates the level: no wire is added and no block moves.
+  const clocks = page.getByRole('button', { name: 'Clocks and resets' });
+  await clocks.click();
+  await expect(clocks).toHaveAttribute('aria-pressed', 'true');
 }
 
 async function setupSystemAddressMap(page: Page): Promise<void> {

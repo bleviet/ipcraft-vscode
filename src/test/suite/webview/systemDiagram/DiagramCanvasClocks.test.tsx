@@ -240,6 +240,7 @@ describe('ElkEdge', () => {
 
   it('fades a dimmed wire unless it is selected', () => {
     expect(drawn({ dimmed: true }).style.opacity).toBe('0.2');
+    expect(drawn({ dimmed: true }).style.stroke).toBe('var(--vscode-charts-orange)');
     expect(drawn({ dimmed: true }, true).style.opacity).toBe('');
   });
 });
