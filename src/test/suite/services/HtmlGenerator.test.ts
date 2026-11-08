@@ -46,6 +46,19 @@ describe('HtmlGenerator', () => {
     expect(webview.asWebviewUri as jest.Mock).toHaveBeenCalledTimes(2);
   });
 
+  it('loads the shared ELK file before the system diagram script, and only there', () => {
+    const generator = new HtmlGenerator(createContext());
+
+    const html = generator.generateSystemDiagramHtml(createWebview());
+
+    expect(html.indexOf('wv:/ext/dist/elk.bundled.js')).toBeGreaterThan(-1);
+    expect(html.indexOf('wv:/ext/dist/elk.bundled.js')).toBeLessThan(
+      html.indexOf('wv:/ext/dist/systemDiagram.js')
+    );
+    expect(generator.generateHtml(createWebview())).not.toContain('elk.bundled.js');
+    expect(generator.generateIpCoreHtml(createWebview())).not.toContain('elk.bundled.js');
+  });
+
   it('generates IP core editor HTML with expected assets and root node', () => {
     const webview = createWebview();
     const generator = new HtmlGenerator(createContext());

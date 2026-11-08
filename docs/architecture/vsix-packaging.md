@@ -8,11 +8,19 @@ copy.
 The shipped content is limited to:
 
 - the extension manifest, VSIX metadata, README, changelog, MIT license, and
-  `THIRD_PARTY_NOTICES.md` (the elkjs notice and EPL-2.0 text);
+  `THIRD_PARTY_NOTICES.md` (the elkjs notice and EPL-2.0 text, and the IBM Plex notice
+  and OFL-1.1 text);
 - the production extension and webview JavaScript/CSS bundles, third-party
   bundle license notices, and the bundled UI font;
 - every generator template and built-in scaffold pack copied from
   `src/generator/`;
+- `dist/elk.bundled.js`, the one copy of the elkjs layout engine: the system
+  viewer page loads it with a script tag before `systemDiagram.js` (webpack
+  external `ELK`) and `dist/cli.js` requires it (webpack external
+  `commonjs ./elk.bundled.js`), so neither bundle embeds it and the VSIX does not
+  pay for it twice (the file is copied unminified so its licence header stays);
+- the three IBM Plex woff2 files (about 62 KB) under `dist/resources/fonts/`,
+  which `ipcraft render` embeds in the SVG images it writes;
 - the three runtime JSON schemas and every built-in bus definition copied from
   `ipcraft-spec/`;
 - the extension icon, concept resource, and walkthrough Markdown used by VS
@@ -24,8 +32,8 @@ configuration, and unreviewed new top-level content. It also requires every
 runtime source asset to be represented in the archive.
 
 The size budget is 2.5 MiB compressed and 25 MiB unpacked. The budget was
-raised from 2 MiB and 5 MiB for elkjs, the layout engine bundled into the
-system diagram webview (issue #239), which brought the unpacked size to about
+raised from 2 MiB and 5 MiB for elkjs, the layout engine used by the
+system diagram webview (issue #239; now the shared `dist/elk.bundled.js`), which brought the unpacked size to about
 7 MB. The unpacked budget leaves headroom for further webview features. The
 compressed budget still catches source maps or another development tree
 returning unnoticed. Any budget increase requires updating both this document

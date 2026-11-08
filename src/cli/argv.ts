@@ -2,6 +2,7 @@ import type { CliGenerateArgs } from './generate';
 import { DEFAULT_QUARTUS_DEVICE, DEFAULT_VIVADO_PART } from './generate';
 import type { CliMigrateArgs } from './migrate';
 import type { CliPackageArgs } from './package';
+import type { CliRenderArgs } from './render';
 import type { CliVerifyArgs } from './verify';
 import type { HdlLanguage } from '../generator/types';
 import type { IndentStyle } from '../generator/reindent';
@@ -18,6 +19,10 @@ Usage:
                                           self-contained folder (or .zip with --zip)
   ipcraft migrate <file>... [--check]     Upgrade .ip.yml files to the latest format version and
                                           convert legacy snake_case keys in .ip.yml / .mm.yml files
+  ipcraft render <design.tcl|design.qsys> --out <file.svg> [options]
+                                          Draw one level of a system design (Vivado block design
+                                          .tcl, Platform Designer .qsys or qsys-script .tcl) as an
+                                          SVG image
 
 Options:
   --target <quartus|vivado>[,<...>]  Vendor target(s) to scaffold a project for
@@ -37,6 +42,14 @@ Options:
   --zip                              [package only] Write a .zip file; --out is the file path
   --check                            [migrate only] Report files that need an upgrade or key
                                       conversion without writing; exit 1 if any do
+  --level <path>                     [render only] Hierarchy level to draw (default: /)
+  --expand <path>[,<...>]            [render only] Hierarchy blocks to draw expanded in place:
+                                      blocks of the level, or of an expanded block
+                                      (repeatable or comma-separated)
+  --theme <light|dark>               [render only] Image palette (default: light)
+  --no-grid                          [render only] Omit the background grid
+  --no-legend                        [render only] Omit the legend
+  --background <editor|transparent>  [render only] Image background (default: editor)
   -h, --help                          Show this help
 
 Examples:
@@ -44,6 +57,7 @@ Examples:
   ipcraft verify path/to.ip.yml gen/ --target quartus --lang systemverilog
   ipcraft migrate path/to.ip.yml --check
   ipcraft package path/to.ip.yml --out dist/my_ip --zip
+  ipcraft render bd/system.tcl --out docs/img/system.svg --expand /dsp_pipeline --theme dark
 `;
 }
 
@@ -53,7 +67,8 @@ export type ParsedArgv =
   | { kind: 'generate'; args: CliGenerateArgs }
   | { kind: 'verify'; args: CliVerifyArgs }
   | { kind: 'migrate'; args: CliMigrateArgs }
-  | { kind: 'package'; args: CliPackageArgs };
+  | { kind: 'package'; args: CliPackageArgs }
+  | { kind: 'render'; args: CliRenderArgs };
 
 interface CommonOptions {
   targets: string[];
@@ -208,6 +223,112 @@ function parsePackageArgs(rest: string[]): ParsedArgv {
   return { kind: 'package', args: { ipYamlPath: positional[0], out, zip } };
 }
 
+const VALUE_OPTIONS: ReadonlySet<string> = new Set([
+  '--out',
+  '--level',
+  '--expand',
+  '--theme',
+  '--background',
+]);
+
+/** Parses `render` argv: `<design> --out <file.svg> [--level] [--expand] [--theme] [--no-grid] [--no-legend] [--background]`. */
+function parseRenderArgs(rest: string[]): ParsedArgv {
+  const positional: string[] = [];
+  const args: Omit<CliRenderArgs, 'inputPath' | 'out'> = {
+    level: '/',
+    expand: [],
+    theme: 'light',
+    grid: true,
+    legend: true,
+    background: 'editor',
+  };
+  let out: string | undefined;
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    const value = (): string => rest[++i];
+    if (VALUE_OPTIONS.has(arg) && (rest[i + 1] === undefined || rest[i + 1].startsWith('--'))) {
+      return { kind: 'error', message: `Missing value for ${arg}` };
+    }
+    switch (arg) {
+      case '--out':
+        out = value();
+        break;
+      case '--level':
+        args.level = value();
+        break;
+      case '--expand':
+        args.expand.push(
+          ...value()
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        );
+        break;
+      case '--theme': {
+        const theme = value();
+        if (theme !== 'light' && theme !== 'dark') {
+          return {
+            kind: 'error',
+            message: `Invalid --theme '${theme}': expected 'light' or 'dark'`,
+          };
+        }
+        args.theme = theme;
+        break;
+      }
+      case '--background': {
+        const background = value();
+        if (background !== 'editor' && background !== 'transparent') {
+          return {
+            kind: 'error',
+            message: `Invalid --background '${background}': expected 'editor' or 'transparent'`,
+          };
+        }
+        args.background = background;
+        break;
+      }
+      case '--no-grid':
+        args.grid = false;
+        break;
+      case '--no-legend':
+        args.legend = false;
+        break;
+      default:
+        if (arg.startsWith('--')) {
+          return { kind: 'error', message: `Unknown option '${arg}' for 'render'` };
+        }
+        positional.push(arg);
+    }
+  }
+  if (positional.length === 0) {
+    return { kind: 'error', message: 'Missing required argument: <design.tcl|design.qsys>' };
+  }
+  if (positional.length > 1) {
+    return { kind: 'error', message: `Unexpected argument '${positional[1]}'` };
+  }
+  if (!out) {
+    return { kind: 'error', message: "Missing required option: '--out <file.svg>'" };
+  }
+  if (/\.(png|jpe?g)$/i.test(out)) {
+    return {
+      kind: 'error',
+      message: 'PNG and JPG output are not supported yet; use .svg',
+    };
+  }
+  if (!/\.svg$/i.test(out)) {
+    return {
+      kind: 'error',
+      message: `Unsupported output file '${out}': the extension must be .svg`,
+    };
+  }
+  if (!args.level.startsWith('/')) {
+    return {
+      kind: 'error',
+      message: `Invalid --level '${args.level}': expected a path such as '/' or '/dsp_pipeline'`,
+    };
+  }
+  return { kind: 'render', args: { inputPath: positional[0], out, ...args } };
+}
+
 /** Parses ipcraft CLI argv (excluding the node/script prefix). Pure — no I/O, no process.exit. */
 export function parseArgs(argv: string[]): ParsedArgv {
   if (argv.length === 0 || argv.includes('-h') || argv.includes('--help')) {
@@ -218,15 +339,19 @@ export function parseArgs(argv: string[]): ParsedArgv {
     command !== 'generate' &&
     command !== 'verify' &&
     command !== 'migrate' &&
-    command !== 'package'
+    command !== 'package' &&
+    command !== 'render'
   ) {
     return {
       kind: 'error',
-      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate' or 'package'.`,
+      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate', 'package' or 'render'.`,
     };
   }
   if (command === 'package') {
     return parsePackageArgs(rest);
+  }
+  if (command === 'render') {
+    return parseRenderArgs(rest);
   }
   if (command === 'migrate') {
     return parseMigrateArgs(rest);

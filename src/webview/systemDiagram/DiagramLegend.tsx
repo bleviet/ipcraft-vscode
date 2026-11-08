@@ -2,6 +2,7 @@ import React from 'react';
 import { Panel } from '@xyflow/react';
 import { categoryColor } from './colors';
 import { legendEntries, REVIEW_LEGEND, type DomainLegendEntry } from './legend';
+import { nodeBadges } from './layout/diagramBounds';
 import type { DiagramFlowEdge, DiagramFlowNode } from './layout/elkLayout';
 
 /** Bottom-left overlay naming the wire categories drawn on the current level. */
@@ -18,11 +19,7 @@ export function DiagramLegend({
   /** Entries to append while the domain decorations are on. */
   domains?: readonly DomainLegendEntry[] | null;
 }) {
-  const badges = nodes.flatMap((node) =>
-    node.type === 'boundary'
-      ? (node.data.badge?.nets ?? [])
-      : [...node.data.west, ...node.data.east].flatMap((row) => row.badge?.nets ?? [])
-  );
+  const badges = nodes.flatMap((node) => nodeBadges(node).flatMap((badge) => badge.nets));
   const entries = legendEntries(
     edges.map((edge) => edge.data),
     badges

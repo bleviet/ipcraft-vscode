@@ -4,6 +4,7 @@ import { resolveResourceRoots } from '../services/ResourceRoots';
 import { runCliGenerate } from './generate';
 import { runCliMigrate } from './migrate';
 import { runCliPackage } from './package';
+import { runCliRender } from './render';
 import { runCliVerify } from './verify';
 import { parseArgs, usageText } from './argv';
 
@@ -38,6 +39,16 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     return 1;
+  }
+
+  if (parsed.kind === 'render') {
+    const result = await runCliRender(parsed.args, resourceRoots);
+    if (!result.success) {
+      console.error(`Render failed: ${result.error}`);
+      return 1;
+    }
+    console.log(`Rendered ${result.outputPath}`);
+    return 0;
   }
 
   if (parsed.kind === 'migrate') {

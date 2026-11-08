@@ -8,7 +8,8 @@ export interface DiagramBounds {
   height: number;
 }
 
-function nodeBadges(node: DiagramFlowNode): NetBadge[] {
+/** The net badges of a node, in pin order. */
+export function nodeBadges(node: DiagramFlowNode): NetBadge[] {
   if (node.type === 'boundary') {
     return node.data.badge ? [node.data.badge] : [];
   }

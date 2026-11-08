@@ -17,9 +17,11 @@ if (rootManifest.version !== cliManifest.version) {
 
 const requiredPaths = [
   'cli.js',
+  'elk.bundled.js',
   'packs',
   'templates',
   path.join('resources', 'bus_definitions'),
+  path.join('resources', 'fonts'),
   path.join('resources', 'schemas'),
 ];
 
@@ -40,3 +42,8 @@ for (const relativePath of requiredPaths) {
 }
 
 fs.copyFileSync(path.join(repoRoot, 'LICENSE'), path.join(packageRoot, 'LICENSE'));
+// The bundled fonts (OFL-1.1) and elkjs (EPL-2.0) require their licence texts with each copy.
+fs.copyFileSync(
+  path.join(repoRoot, 'THIRD_PARTY_NOTICES.md'),
+  path.join(packageRoot, 'THIRD_PARTY_NOTICES.md')
+);

@@ -127,6 +127,8 @@ part of the YAML round trip: the files are read statically and never written.
 | Extension bundle | `dist/extension.js` |
 | Webview bundle | `dist/webview.js` |
 | System diagram bundle | `dist/systemDiagram.js` |
+| Shared elkjs layout engine (system diagram page and CLI) | `dist/elk.bundled.js` |
+| IBM Plex fonts for rendered images | `dist/resources/fonts/` |
 | Nunjucks templates | `dist/templates/` |
 | Compiled tests | `out/**` |
 

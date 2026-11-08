@@ -101,6 +101,26 @@ const extensionConfig = {
           to: "packs",
         },
         {
+          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-sans", "files", "ibm-plex-sans-latin-400-normal.woff2"),
+          to: "resources/fonts/[name][ext]",
+        },
+        {
+          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-sans", "files", "ibm-plex-sans-latin-600-normal.woff2"),
+          to: "resources/fonts/[name][ext]",
+        },
+        {
+          from: path.resolve(projectRoot, "node_modules", "@fontsource", "ibm-plex-mono", "files", "ibm-plex-mono-latin-400-normal.woff2"),
+          to: "resources/fonts/[name][ext]",
+        },
+        // One copy of the layout engine, loaded by the system viewer page (global ELK) and
+        // required by dist/cli.js; neither bundle embeds it.
+        {
+          from: path.resolve(projectRoot, "node_modules", "elkjs", "lib", "elk.bundled.js"),
+          to: "elk.bundled.js",
+          // Copied as is: terser would minify it and drop the elkjs licence header.
+          info: { minimized: true },
+        },
+        {
           from: path.resolve(projectRoot, "ipcraft-spec", "bus_definitions"),
           to: "resources/bus_definitions",
         },
@@ -141,6 +161,9 @@ const cliConfig = {
   },
   // The CLI runs outside any VS Code host, so `vscode` is bundled as a lightweight shim
   // (not left external like the extension bundle) — see src/cli/vscodeShim.ts.
+  externals: {
+    "elkjs/lib/elk.bundled.js": "commonjs ./elk.bundled.js",
+  },
   resolve: {
     ...commonResolve,
     alias: {
@@ -173,6 +196,10 @@ const webviewConfig = {
     path: path.resolve(projectRoot, "dist"),
     filename: "[name].js",
     // NOTE: do NOT set libraryTarget to commonjs* for the webview.
+  },
+  // The page loads dist/elk.bundled.js first; its UMD wrapper defines the global `ELK`.
+  externals: {
+    "elkjs/lib/elk.bundled.js": "ELK",
   },
   resolve: commonResolve,
   module: webviewModuleRules,

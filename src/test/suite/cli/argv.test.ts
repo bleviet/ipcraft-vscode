@@ -196,4 +196,80 @@ describe('ipcraft CLI argv parsing', () => {
       expect(parseArgs(['verify', 'a.ip.yml', 'gen', '--check']).kind).toBe('error');
     });
   });
+  describe('render', () => {
+    it('parses a minimal invocation with the defaults', () => {
+      expect(parseArgs(['render', 'bd/system.tcl', '--out', 'img/system.svg'])).toEqual({
+        kind: 'render',
+        args: {
+          inputPath: 'bd/system.tcl',
+          out: 'img/system.svg',
+          level: '/',
+          expand: [],
+          theme: 'light',
+          grid: true,
+          legend: true,
+          background: 'editor',
+        },
+      });
+    });
+
+    it('parses every option, with repeatable or comma-separated --expand', () => {
+      expect(
+        parseArgs([
+          'render',
+          'a.qsys',
+          '--out',
+          'a.svg',
+          '--level',
+          '/dsp',
+          '--expand',
+          '/dsp/a,/dsp/b',
+          '--expand',
+          '/dsp/c',
+          '--theme',
+          'dark',
+          '--no-grid',
+          '--no-legend',
+          '--background',
+          'transparent',
+        ])
+      ).toEqual({
+        kind: 'render',
+        args: {
+          inputPath: 'a.qsys',
+          out: 'a.svg',
+          level: '/dsp',
+          expand: ['/dsp/a', '/dsp/b', '/dsp/c'],
+          theme: 'dark',
+          grid: false,
+          legend: false,
+          background: 'transparent',
+        },
+      });
+    });
+
+    it.each([
+      [['render', '--out', 'a.svg'], 'Missing required argument'],
+      [['render', 'a.tcl'], "Missing required option: '--out"],
+      [['render', 'a.tcl', 'b.tcl', '--out', 'a.svg'], 'Unexpected argument'],
+      [['render', 'a.tcl', '--out', 'a.svg', '--scale', '2'], "Unknown option '--scale'"],
+      [['render', 'a.tcl', '--out', 'a.svg', '--theme', 'blue'], 'Invalid --theme'],
+      [['render', 'a.tcl', '--out', 'a.svg', '--theme'], 'Missing value for --theme'],
+      [
+        ['render', 'a.tcl', '--out', 'a.svg', '--expand', '--no-grid'],
+        'Missing value for --expand',
+      ],
+      [['render', 'a.tcl', '--level', '--out', 'a.svg'], 'Missing value for --level'],
+      [['render', 'a.tcl', '--out'], 'Missing value for --out'],
+      [['render', 'a.tcl', '--out', 'a.svg', '--background', 'red'], 'Invalid --background'],
+      [['render', 'a.tcl', '--out', 'a.svg', '--level', 'dsp'], 'Invalid --level'],
+      [['render', 'a.tcl', '--out', 'a.txt'], 'the extension must be .svg'],
+      [['render', 'a.tcl', '--out', 'a.png'], 'PNG and JPG output are not supported yet; use .svg'],
+      [['render', 'a.tcl', '--out', 'a.JPG'], 'PNG and JPG output are not supported yet; use .svg'],
+    ])('rejects %j', (argv, message) => {
+      const result = parseArgs(argv);
+      expect(result.kind).toBe('error');
+      expect((result as { message: string }).message).toContain(message);
+    });
+  });
 });

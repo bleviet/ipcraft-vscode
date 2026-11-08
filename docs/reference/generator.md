@@ -279,6 +279,40 @@ that has external references. Plain files inside a subcore folder are
 deduplicated. In VS Code the same service is available as
 **IPCraft: Package IP Core (Self-Contained)**.
 
+### Rendering a system design as an image
+
+`render` draws one level of a system design as a standalone SVG for
+documentation. It reads a Vivado block design `.tcl`, a Platform Designer
+`.qsys` or a `qsys-script` `.tcl`, and needs no VS Code window:
+
+```bash
+ipcraft render bd/system.tcl --out docs/img/system.svg
+ipcraft render bd/system.tcl --out docs/img/dsp.svg --level /dsp_pipeline --theme dark
+ipcraft render bd/system.tcl --out docs/img/system.svg --expand /dsp_pipeline --no-grid
+```
+
+| Option | Meaning |
+|---|---|
+| `--out <file.svg>` | Output file (required); the folder is created if needed. `.png` and `.jpg` are not supported yet |
+| `--level <path>` | Hierarchy level to draw (default `/`, the top level) |
+| `--expand <path>[,...]` | Hierarchy blocks drawn expanded in place, by instance path or name; repeat or comma-separate. A block of the level, or of a block that is itself expanded (`--expand /dsp_pipeline,/dsp_pipeline/coeff_bank`) |
+| `--theme <light\|dark>` | Image palette (default `light`; the VS Code theme does not matter) |
+| `--no-grid` | Omit the background grid dots |
+| `--no-legend` | Omit the wire-category legend below the drawing |
+| `--background <editor\|transparent>` | Fill with the palette background (default) or leave transparent |
+
+The SVG uses plain shapes and text only (no `foreignObject`, scripts or CSS
+variables), so it opens in Inkscape, LibreOffice and Word. The IBM Plex fonts
+used for text are embedded in the file. The same input and options always
+produce the same bytes, so a committed image only changes when the design does.
+
+An unknown `--level` or `--expand` name exits with code 1 and lists the closest
+names. The image shows what the design file declares: blocks whose pins the file
+does not list (they are normally read from an `.ip.yml` or HDL in the workspace)
+are drawn with only the pins the connections mention. Isolated views,
+highlights, the Clocks and resets decoration, `.ip.yml` symbols and PNG or JPG
+output are not part of `render` yet.
+
 ### Upgrading `.ip.yml` to the latest format version
 
 An `.ip.yml` declares its file format version in `apiVersion` (`1.0` or `1.1`);

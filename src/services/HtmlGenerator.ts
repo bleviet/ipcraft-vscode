@@ -47,6 +47,8 @@ export class HtmlGenerator {
 
   generateSystemDiagramHtml(webview: vscode.Webview): string {
     return this.generateHtmlForEditor(webview, {
+      // elk.bundled.js defines the global `ELK` the bundle takes as an external; the CLI loads the same file.
+      extraScripts: ['elk.bundled.js'],
       scriptName: 'systemDiagram.js',
       styleName: 'systemDiagram.css',
       rootId: 'system-diagram-root',
@@ -63,10 +65,18 @@ export class HtmlGenerator {
       rootId: string;
       title: string;
       logMessage: string;
+      /** Files of `dist/` loaded before the main script. */
+      extraScripts?: string[];
     }
   ): string {
     const scriptUri = this.getWebviewUri(webview, 'dist', options.scriptName);
     const stylesheetUri = this.getWebviewUri(webview, 'dist', options.styleName);
+
+    const extraScriptTags = (options.extraScripts ?? [])
+      .map(
+        (name) => `<script src="${this.getWebviewUri(webview, 'dist', name).toString()}"></script>`
+      )
+      .join('\n        ');
 
     const csp = this.getContentSecurityPolicy(webview);
 
@@ -84,6 +94,7 @@ export class HtmlGenerator {
       </head>
       <body class="bg-gray-50 text-gray-900 font-sans h-screen flex flex-col overflow-hidden">
         <div id="${options.rootId}"></div>
+        ${extraScriptTags}
         <script src="${scriptUri.toString()}"></script>
       </body>
       </html>
