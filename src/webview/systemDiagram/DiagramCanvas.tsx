@@ -19,7 +19,7 @@ import { isPaneDoubleClick } from './canvasTargets';
 import { PinHoverCard } from './PinHoverCard';
 import { usePinHover } from './hooks/usePinHover';
 import type { ViewOptions } from './hooks/useViewOptions';
-import { NO_HIDDEN_LAYERS } from './layerFilter';
+import { NO_HIDDEN_LAYERS, withoutHiddenLayers } from './layerFilter';
 import { minimapShown } from './minimap';
 import type { DiagramLayout } from './hooks/useElkLayout';
 import type { SystemGraph } from '../../domain/systemGraph';
@@ -27,7 +27,6 @@ import type { HighlightColor, HighlightMap } from '../../shared/messages/systemD
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
 import { clockDecor, type ClockContext } from './clockDecor';
-import { drawnLayout, withoutHiddenLayers } from './drawnLayout';
 import { decoratedEdges } from './canvasEdges';
 import { edgeNetIds } from './edgeNets';
 import { bundleMenuItems, highlightMenuItems, traceMenuItems } from './canvasMenuItems';
@@ -63,8 +62,6 @@ interface DiagramCanvasProps {
   isolated: boolean;
   review: ReviewContext | null;
   clocks: ClockContext;
-  /** Draw the clock and reset wires (and no badges); otherwise their badges (and no wires). */
-  drawClockReset: boolean;
   focusedPin: FocusedPin | null;
   query: string;
   /** Draw-only options (Auto detail, minimap, legend filters); absent, none applies. */
@@ -118,7 +115,6 @@ export function DiagramCanvas({
   isolated,
   review,
   clocks,
-  drawClockReset,
   focusedPin,
   query,
   view,
@@ -195,14 +191,10 @@ export function DiagramCanvas({
   const showHighlights = review === null;
 
   // The legend lists the categories before the hidden ones go, so a hidden chip stays clickable.
-  const shown = useMemo(
-    () => (layout ? drawnLayout(layout, drawClockReset) : null),
-    [layout, drawClockReset]
-  );
   const hiddenLayers = view?.hiddenLayers ?? NO_HIDDEN_LAYERS;
   const drawn = useMemo(
-    () => (shown ? withoutHiddenLayers(shown, hiddenLayers) : null),
-    [shown, hiddenLayers]
+    () => (layout ? withoutHiddenLayers(layout, hiddenLayers) : null),
+    [layout, hiddenLayers]
   );
   const decor = useMemo(() => clockDecor(drawn, clocks, selection), [drawn, clocks, selection]);
   const { tree } = decor;
@@ -436,8 +428,8 @@ export function DiagramCanvas({
       >
         <Background variant={BackgroundVariant.Dots} />
         <DiagramLegend
-          edges={shown?.edges ?? []}
-          nodes={shown?.nodes ?? []}
+          edges={layout?.edges ?? []}
+          nodes={layout?.nodes ?? []}
           review={review !== null}
           domains={decor.legend}
           hidden={hiddenLayers}

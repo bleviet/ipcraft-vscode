@@ -54,7 +54,6 @@ describe('buildElkInput with folded pin arrays', () => {
     const input = buildElkInput(graph, '/', { measure: fakeMeasure, pinFolding: closed });
     const clock = hubOf(input).ports!.find((port) => port.id === '/hub::aclk')!;
     expect(clock.labels).toHaveLength(1);
-    expect(input.edges!.some((edge) => edge.id.startsWith('/::clk#'))).toBe(true);
   });
 
   it('gives an open group its member ports and a header row without a port', () => {

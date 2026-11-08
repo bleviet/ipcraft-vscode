@@ -28,8 +28,7 @@ function longChain(count: number) {
 
 /**
  * `longChain(stages)` with one clock net and one reset net from their own
- * driver blocks to every stage, as a deep pipeline is clocked: few nodes and
- * edges, but the clock and reset edges cross many layers.
+ * driver blocks to every stage, as a deep pipeline is clocked.
  */
 function clockedPipeline(stages: number) {
   const graph = longChain(stages);
@@ -174,14 +173,12 @@ describe('buildElkInput placement strategy', () => {
     expect(isolated.layoutOptions?.[NODE_PLACEMENT]).toBe('NETWORK_SIMPLEX');
   });
 
-  it('places a deep pipeline clocked from one net by Brandes-Koepf, though it has few nodes and edges', () => {
+  it('keeps a deep pipeline clocked from one net with network simplex, its clock and reset only anchoring their drivers', () => {
     const input = buildElkInput(clockedPipeline(20), '/', { measure: fakeMeasure });
-    expect(elkGraphSize(input)).toBeLessThan(NETWORK_SIMPLEX_MAX_SIZE / 4);
-    expect(layeredGraphSize(input)).toBeGreaterThan(NETWORK_SIMPLEX_MAX_SIZE);
-    expect(input.layoutOptions?.[NODE_PLACEMENT]).toBe('BRANDES_KOEPF');
-    // The same pipeline without its clock and reset stays with network simplex.
-    expect(
-      buildElkInput(longChain(20), '/', { measure: fakeMeasure }).layoutOptions?.[NODE_PLACEMENT]
-    ).toBe('NETWORK_SIMPLEX');
+    // The chain, plus the clock and reset driver blocks with one anchor edge each.
+    const chain = buildElkInput(longChain(20), '/', { measure: fakeMeasure });
+    expect(elkGraphSize(input)).toBe(elkGraphSize(chain) + 4);
+    expect(longEdgeDummies(input)).toBe(0);
+    expect(input.layoutOptions?.[NODE_PLACEMENT]).toBe('NETWORK_SIMPLEX');
   });
 });

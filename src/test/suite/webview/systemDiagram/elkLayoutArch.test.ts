@@ -40,11 +40,9 @@ describe('buildElkInput with Arch cards', () => {
 
   it('attaches every wire to the port of the side of its pin', () => {
     const ends = input.edges!.map((edge) => `${edge.sources[0]}>${edge.targets[0]}`);
-    expect(new Set(ends)).toEqual(
-      new Set([`/src::${ARCH_EAST}>/dst::${ARCH_WEST}`, `/src::${ARCH_WEST}>/dst::${ARCH_WEST}`])
-    );
-    // 3 streams, 1 memory-mapped, 1 interrupt east to west; the clock west to west.
-    expect(ends.filter((end) => end.startsWith(`/src::${ARCH_EAST}`))).toHaveLength(5);
+    expect(new Set(ends)).toEqual(new Set([`/src::${ARCH_EAST}>/dst::${ARCH_WEST}`]));
+    // 3 streams, 1 memory-mapped, 1 interrupt east to west; the clock only a badge.
+    expect(ends).toHaveLength(5);
   });
 
   it('draws bundled wires as one edge per category between two cards', () => {
@@ -54,7 +52,7 @@ describe('buildElkInput with Arch cards', () => {
       busBundling: bundling,
     });
     expect(bundled.edges!.map((edge) => edge.id).sort()).toEqual(
-      ['/::axi#1', '/::clk#1', '/::irq#1', 'bundle:/src->/dst|axis|i'].sort()
+      ['/::axi#1', '/::irq#1', 'bundle:/src->/dst|axis|i'].sort()
     );
     const trunk = bundled.edges!.find((edge) => edge.id.startsWith('bundle:'))!;
     expect(trunk.sources).toEqual([`/src::${ARCH_EAST}`]);
@@ -102,7 +100,7 @@ describe('the flow elements of Arch cards', () => {
     expect(bundle.sourceHandle).toBe(ARCH_EAST);
     expect(bundle.targetHandle).toBe(ARCH_WEST);
     expect(edges.filter((edge) => edge.data.category === 'axis')).toHaveLength(1);
-    expect(edges).toHaveLength(4);
+    expect(edges).toHaveLength(3);
   });
 
   it('keeps the pin rows of the Compact mode', async () => {

@@ -97,16 +97,9 @@ describe('bundleMarks', () => {
     expect(bundleMarks([{ domainColor: 'red' }, {}])).toEqual({});
   });
 
-  it('keeps dimmed and dotted only when every member has them', () => {
+  it('keeps dimmed only when every member has it', () => {
     expect(bundleMarks([{ dimmed: true }, { dimmed: true }])).toEqual({ dimmed: true });
     expect(bundleMarks([{ dimmed: true }, {}])).toEqual({});
-    expect(
-      bundleMarks([
-        { dotted: true, domainColor: 'red' },
-        { dotted: true, domainColor: 'red' },
-      ])
-    ).toEqual({ dotted: true, domainColor: 'red' });
-    expect(bundleMarks([{ dotted: true }, {}])).toEqual({});
   });
 });
 

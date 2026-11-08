@@ -2,9 +2,9 @@
  * Pure conversion between a {@link SystemGraph} level and ELK / React Flow.
  * One ELK graph per level: a node per instance and per boundary pin, a
  * fixed-position port per pin, and one edge per net sink from the net driver.
- * Clock and reset nets are edges too, and their pins reserve room for a badge:
- * the layout depends on no view toggle, the canvas draws the wires or the
- * badges (see `drawnLayout.ts`). An expanded hierarchy block is a compound node
+ * The data and interface nets place the blocks (see `placementEdges.ts`). A
+ * clock or reset net is never a wire: its pins show a net-name badge, in the
+ * room their port labels reserve. An expanded hierarchy block is a compound node
  * holding its inner level (see `expandedLayout.ts`); the flow nodes stay flat,
  * in absolute coordinates.
  */
@@ -22,6 +22,7 @@ import { compoundNode, frameData } from './expandedLayout';
 import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
 import { bundleElkEdge, laidOutBundleEdges, planInputBundles } from './levelBundles';
 import { badgeOfPort, clockResetNetsByEndpoint, levelBadgeLabels } from './netBadges';
+import { placementEdges } from './placementEdges';
 import {
   PORT_LABEL_OPTIONS,
   type InstanceRows,
@@ -34,7 +35,7 @@ import {
 import { NODE_PLACEMENT, withNodePlacement } from './nodePlacement';
 import type { PinFolding } from './pinGrouping';
 import { PARTITIONING_ON, withHopIndexes, withPartitions } from './tracePartition';
-import { boundaryId, cellCount, endpointKey, netsByEndpoint } from '../model';
+import { boundaryId, cellCount, endpointKey, isClockOrReset, netsByEndpoint } from '../model';
 
 export { HEADER_HEIGHT, PIN_ROW_HEIGHT } from './pinRows';
 export { BOUNDARY_HEIGHT } from './boundaryElk';
@@ -130,9 +131,11 @@ function elkEdges(
   const isCurrent = levelPath === context.levelPath;
   const ported = foldedEdges(
     graph,
-    isCurrent
-      ? edges.filter((edge) => options.isolate?.edgeIds.has(edge.id) ?? true)
-      : remapBoundaryEnds(edges, levelPath),
+    placementEdges(
+      isCurrent
+        ? edges.filter((edge) => options.isolate?.edgeIds.has(edge.id) ?? true)
+        : remapBoundaryEnds(edges, levelPath)
+    ),
     rows
   );
   if (!isCurrent || !options.busBundling) {
@@ -192,13 +195,7 @@ function levelNodes(context: BuildContext, levelPath: string): ElkNode[] {
   for (const pin of isCurrent ? (level?.boundaryPins ?? []) : []) {
     if (shown(boundaryId(levelPath, pin.name))) {
       children.push(
-        boundaryNode(
-          levelPath,
-          pin,
-          boundaryLayout(pin, options.measure).width,
-          badges,
-          isolate?.order?.includes(boundaryId(levelPath, pin.name)) ?? false
-        )
+        boundaryNode(levelPath, pin, boundaryLayout(pin, options.measure).width, badges)
       );
     }
   }
@@ -357,7 +354,8 @@ export function toFlowElements(
       continue;
     }
     const net = netsById.get(elkEdge.id.slice(0, elkEdge.id.lastIndexOf('#')));
-    if (!section || !net) {
+    // A clock or reset edge only anchors a block in the layout; it is no wire.
+    if (!section || !net || isClockOrReset(net)) {
       continue;
     }
     const [source, sourceHandle] = splitPort(elkEdge.sources[0]);

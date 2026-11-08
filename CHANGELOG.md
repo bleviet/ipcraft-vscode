@@ -1,532 +1,403 @@
-# Changelog
+# Release Notes
 
-All notable changes to this project are documented in this file.
+What's new in each IPCraft release. Entries under **Before you upgrade** need
+attention when you update, for example because generated files change.
+
+Contributors: the technical changelog, with modules, issues and pull requests,
+is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ## [Unreleased]
 
-### Added
+### New
 
-- **A connectivity matrix and pair isolation in the system viewer.** The Matrix toolbar toggle replaces the diagram with a source by target table of the current level; each cell shows the connections as category counts (`8 AXI`, `4 AXIS`, `6 IRQ`), clock and reset wires excluded. Click a cell to isolate exactly that pair of blocks and the wires between them, or a header to select a block. Isolate pair on a bus bundle now shows the same pair view instead of both blocks with their neighbours. Opening the matrix never moves a block. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
-- **Arch cards, Auto detail, a minimap and layer filters in the system viewer.** The Compact pins toggle became a Pin detail control, Arch | Compact | Full pins. Arch draws every block as a compact card with interface count pills (`28× AXI`, `8× AXIS`) and, for a hierarchy block, a one-line preview of what is inside (`stage_0 → stage_1 → stage_2 +4`), so a whole design fits on screen. Auto (on by default) hides pin text and enlarges block names when zoomed far out; it only changes what is drawn, so blocks never move. A minimap in the bottom right corner shows the viewport, selected blocks and search matches, and click or drag pans. Click a wire category in the legend to hide its wires and Alt+Click to show only that category. The outline gets All | Subsystems | IP / RTL | Ports filters. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
-- **2-Hop isolation and a path tracer in the system viewer.** An isolated view gets a 1-Hop | 2-Hop switch in the toolbar chip, which now reads "M of T shown". Trace path (toolbar, or right-click, Trace From Here and Trace To Here) isolates the shortest signal chain between two blocks or ports of the level, laid out left to right with `#1`, `#2`, ... badges, and a Path tab in the bottom panel lists its hops and their connections. Clock and reset wires never bring in a block or carry a trace. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
-- **Bundle parallel buses in the system viewer.** With Bundle buses on (the default), connections of the same kind between the same two blocks, such as eight AXI4-Stream links or twelve AXI masters, are drawn as one wire with a count badge (`×12 AXI`) instead of a wall of parallel wires. Click the wire to select all its connections and list them in Details, where Unbundle draws that pair as separate wires and Isolate pair shows only the two blocks. Clock and reset wires are never bundled. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
-- **Fold numbered pin arrays in the system viewer.** With Compact pins on (the default), four or more numbered pins of one kind on a block, such as `M00_AXI` to `M27_AXI`, fold into one row (`M00..M27_AXI [28]`). Click the row to expand that array in place and its header to fold it again; the Compact pins toggle shows every pin on its own row. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
-- **Clock and reset domains in the system viewer.** The Clocks and resets toggle colors the clock and reset wires by clock domain, shows the clock frequencies set in the design, and marks clock and reset domain crossings (CDC and RDC). Selecting a clock or reset net shows its whole tree in Details. New Clocks and Resets tabs list the domains, reset sources and crossings of the level on screen; clicking a row zooms to it. Clocks are identified from known AMD IP outputs and declared pin directions, never from pin names, and what cannot be determined is listed as not checked. Known outputs of common AMD IPs are now drawn on the right of their block. ([#243](https://github.com/bleviet/ipcraft-vscode/issues/243), [#248](https://github.com/bleviet/ipcraft-vscode/pull/248), [#252](https://github.com/bleviet/ipcraft-vscode/pull/252))
-- **Expand a hierarchy block in place in the system viewer.** The + button in the header of a hierarchy block (or right-click, Expand In-Place) shows its contents in a frame on the current level; the - button or Collapse folds it again. Double-click still opens the block. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))
-- **Highlight and multi-select in the system viewer.** Cmd+Click (macOS) or Ctrl+Click (other systems) selects several blocks, ports and wires at once, and right-click, Highlight, marks them in one of six colors. Highlights are kept per design file, a toolbar chip counts them and clears them all, and they pause while the Unconnected pins review is on. ([#241](https://github.com/bleviet/ipcraft-vscode/issues/241), [#254](https://github.com/bleviet/ipcraft-vscode/pull/254))
-- **Review unconnected pins in the system viewer.** The Unconnected pins toggle marks pins that no net touches, undriven inputs in the warning color and unused outputs muted, and lists them in an Unconnected tab. Only blocks with a known pin list (an `.ip.yml` or HDL definition, hierarchy pins, external ports) are checked. ([#245](https://github.com/bleviet/ipcraft-vscode/issues/245), [#246](https://github.com/bleviet/ipcraft-vscode/pull/246), [#251](https://github.com/bleviet/ipcraft-vscode/pull/251))
+- **See which blocks connect to which.** The Matrix button replaces the diagram with a table of the blocks on the level, sources down the side and targets across the top; each cell counts their connections by kind (`8 AXI`, `4 AXIS`, `6 IRQ`). Click a cell to show only that pair of blocks and the wires between them, or a header to select a block.
+- **See a large design at a glance.** Pin detail sets how much of each block is drawn: Arch draws each block as a compact card with interface counts (`28× AXI`) and, for a hierarchy block, a preview of what is inside; Compact (the default) folds numbered pin arrays; Full pins shows every pin. Zoomed far out, pin text is hidden and block names get larger (Auto, on by default); blocks never move. A minimap in the corner shows where you are, and clicking or dragging it pans. Click a wire kind in the legend to hide those wires, or Alt+Click to show only that kind. The outline can list only subsystems, IP and RTL blocks, or ports.
+- **Follow a signal path.** Trace path (in the toolbar, or right-click and choose Trace From Here and Trace To Here) shows only the shortest chain of connections between two blocks or ports, left to right and numbered, and the Path tab lists each hop. An isolated view can also show the blocks two connections away (2-Hop).
+- **Parallel buses as one wire.** Connections of the same kind between the same two blocks, such as eight AXI4-Stream links, are drawn as one wire with a count (`×8 AXIS`). Click it to list its connections in Details, where Unbundle draws them separately. Turn off Bundle buses to draw every wire.
+- **Fold numbered pin arrays.** Four or more numbered pins of one kind on a block, such as `M00_AXI` to `M27_AXI`, fold into one row (`M00..M27_AXI [28]`). Click the row to expand it in place, and its header to fold it again.
+- **Expand a hierarchy block in place in the system viewer.** Click + in the block header, or right-click and choose Expand In-Place, to show its contents inside a frame on the current level. Click - or choose Collapse to fold it again. Double-clicking still opens the block.
+- **Highlight parts of a design.** Ctrl+Click (Cmd+Click on macOS) selects several blocks, ports and wires; right-click and choose Highlight to mark them in one of six colors. Highlights are remembered per design file, and a toolbar chip counts them and clears them all.
+- **Find unconnected pins.** Turn on Unconnected pins to mark pins that nothing connects to: inputs that nothing drives in the warning color, unused outputs muted. The Unconnected tab lists them; clicking a pin zooms in to its block. Only blocks whose pins are known (from an `.ip.yml`, an HDL file, a hierarchy or an external port) are checked.
+- **See clock and reset domains.** The Clocks and resets button colors clock and reset pins by domain, shows the clock frequencies set in the design, and marks clock and reset domain crossings (CDC and RDC). Select a clock or reset net to see its whole tree in Details. The new Clocks and Resets tabs list the domains, reset sources and crossings on screen; click a row to zoom to it, or click the count next to the button to open the Clocks tab. IPCraft never guesses a clock from a pin name: anything it cannot determine is listed as not checked.
+- **Find with the usual keys.** Ctrl+F (Cmd+F on macOS) jumps to search, filled in with the name of the selected block. F3 and Shift+F3 go to the next and previous match.
+- **Mouse forward button.** After going up a level with the mouse back button, the forward button takes you back down, one level at a time.
 
 ### Changed
 
-- **Blocks sit closer together in the system viewer.** Tighter spacing between columns and wires, and a placement that keeps connected blocks in line, make a level 10 to 28 percent smaller with shorter wires, so a fitted view is easier to follow. External ports stay in the first and last columns. ([#256](https://github.com/bleviet/ipcraft-vscode/issues/256))
-- **Clocks and resets is a toggle button in the system viewer.** It draws the clock and reset wires colored by clock domain, and a count chip next to it opens the Clocks tab. ([#258](https://github.com/bleviet/ipcraft-vscode/issues/258), [#259](https://github.com/bleviet/ipcraft-vscode/pull/259))
-- **Clicking an unconnected pin zooms in to its block** in the system viewer when the block is too small to read. ([#245](https://github.com/bleviet/ipcraft-vscode/issues/245), [#249](https://github.com/bleviet/ipcraft-vscode/pull/249))
-- **Stronger block outlines in the system viewer** on light and dark themes. ([#244](https://github.com/bleviet/ipcraft-vscode/issues/244), [#247](https://github.com/bleviet/ipcraft-vscode/pull/247))
-- **No Problems tab in the system viewer.** It listed what the offline reader could not resolve, which read like faults in the design. Details still summarizes what the offline view cannot know. ([#250](https://github.com/bleviet/ipcraft-vscode/pull/250))
+- **Shorter, clearer wiring.** Blocks are placed next to the blocks they exchange data with, external ports sit next to the block they connect to, and clock and reset nets are shown as name badges on their pins instead of long wires. Large designs open much faster.
+- **More of a level fits on screen.** Blocks and wires are spaced more tightly, and connected blocks are kept in line.
+- **Blocks stand out from the canvas.** Blocks have a stronger outline, a tinted body and a light shadow in light and dark themes. Wires are lighter until you select or highlight them.
+- Known outputs of common AMD IP blocks are drawn on the right side of the block.
+- The Problems tab is gone. It listed what the viewer could not work out from the files, which read like faults in your design. Details still says what the offline view cannot know.
 
 ### Fixed
 
-- **Blocks no longer move in the system viewer** when Clocks and resets or Unconnected pins is turned on or off; the zoom and pan stay too. ([#255](https://github.com/bleviet/ipcraft-vscode/issues/255), [#257](https://github.com/bleviet/ipcraft-vscode/pull/257))
+- Blocks, zoom and pan no longer jump when you turn Clocks and resets or Unconnected pins on or off.
 
 ## [1.4.0] - 2026-11-06
 
-### Added
+### New
 
-- **Isolate blocks in the system viewer.** Cmd+Click (macOS) or Ctrl+Click (other systems) adds blocks and ports to the selection, and right-click, Isolate N Selected (Isolate Selection for a single block) shows only them, the wires that touch them, and the blocks at the other end of those wires, laid out compactly. Show All, in the right-click menu or the toolbar, restores the full view and its zoom and pan.
-- **Mouse back button goes up a level.** In the system viewer, the mouse back button goes up one hierarchy level, like clicking the parent in the breadcrumb.
-- **Search steps through matches.** In the system viewer, Enter and Shift+Enter in the search box go to the next and previous match on any hierarchy level, centring it (and zooming in if it is small) with a brief pulse. A counter shows the position, and Escape clears the search.
+- **Isolate blocks in the system viewer.** Ctrl+Click (Cmd+Click on macOS) to select several blocks and ports, then right-click and choose Isolate Selected. Only those blocks, their wires and the blocks at the other end remain, laid out compactly. Show All brings back the full view where you left it.
+- **Mouse back button goes up a level**, like clicking the parent in the breadcrumb.
+- **Step through search results.** Enter and Shift+Enter in the search box go to the next and previous match on any level, centering it and zooming in if needed. A counter shows where you are, and Escape clears the search.
 
 ### Changed
 
-- **System viewer restyled.** Blocks get a header band (hierarchy blocks a dashed outline and an OPEN hint), clock and reset labels are quieter and drop the driver instance prefix from their names, a legend names the wire categories on screen, the outline and details panels follow the side bar theme, and the address map shows grouped hex addresses and humanized ranges. Pin markers sit on the block border with wires ending at them (unconnected pins are italic with a hollow marker, pins on the selected net are bold), and external ports are arrow tags.
+- **Refreshed system viewer look.** Blocks have a header band, hierarchy blocks a dashed outline, and clock and reset labels are quieter. A legend explains the wire colors, the side panels follow your VS Code theme, and addresses are easier to read. Pins sit on the block border; unconnected pins are shown hollow and pins on the selected net bold.
 
 ## [1.3.1] - 2026-11-06
 
-### Added
+### New
 
-- **Platform Designer subsystems open as hierarchy levels.** A `.qsys` module whose kind names another `.qsys` file in the workspace is read into the system viewer as a hierarchy level, so double-clicking it enters the subsystem, with the breadcrumb and outline, also for nested subsystems. Its blocks get the same `.ip.yml` and HDL pins as top-level blocks, and go-to-source opens the subsystem file at the right line. Subsystems that instantiate each other, and subsystem files that cannot be read, are listed in Problems and stay a plain block. Subsystems are not read in untrusted workspaces.
+- **Open Platform Designer subsystems.** A `.qsys` module that is itself another `.qsys` file in your workspace becomes a level you can double-click into, including nested subsystems. Its blocks show the same pins as top-level blocks, and go-to-source opens the subsystem file at the right line.
 
 ## [1.3.0] - 2026-11-05
 
-### Added
+### New
 
-- **Offline system viewer.** **IPCraft: Open as System Diagram** (`Ctrl+Shift+V` / `Cmd+Shift+V` on a recognized `.tcl` or `.qsys` file toggles it) opens a Vivado `write_bd_tcl` script, a Platform Designer `.qsys` (Standard) system, or a Platform Designer system script (`qsys-script` `.tcl`) as a read-only diagram. Files are read statically and never executed, so no vendor tool or license is needed. The diagram shows one hierarchy level at a time with an outline and search, details, an address map, and problems; clocks and resets are pin badges until **Clocks and resets** is turned on; zoom and pan are kept per level. Workspace `.ip.yml` files (by VLNV or Platform Designer component name) and HDL files (for Vivado module references) add unconnected pins, directions, interface types and a **Defined by** link, and are not read in untrusted workspaces. Address ranges from definitions are not filled in yet. Platform Designer scripts usually leave out the connection type, so it is inferred from parameters, other connections and interface names, and anything inferred by name or left unknown is listed in Problems. Blocks size to their pin names, hovering a pin shows its full name, direction and nets, double-clicking a block zooms to it and double-clicking empty canvas fits the level, the side and bottom panels start hidden, and a temporarily broken edit keeps the last valid design on screen with a banner. See [Viewing a System Design](docs/how-to/view-a-system-design.md). ([#239](https://github.com/bleviet/ipcraft-vscode/issues/239))
+- **System viewer.** Run **IPCraft: Open as System Diagram**, or press Ctrl+Shift+V (Cmd+Shift+V on macOS) on a `.tcl` or `.qsys` file, to see a Vivado block design script (`write_bd_tcl`), a Platform Designer system (`.qsys`) or a Platform Designer system script as a read-only diagram. The files are only read, never run, so you need no vendor tool or license. Browse one level at a time with an outline, search, details and an address map. `.ip.yml` and HDL files in your workspace fill in pins, directions and interface types, with a link to where each block is defined. See [Viewing a System Design](docs/how-to/view-a-system-design.md).
 
 ### Changed
 
-- **Bus port presence follows the protocol specs.** AXI4-Stream `TREADY`, Avalon-ST `valid`, and AXI4-Lite and AXI4 `AWPROT`/`ARPROT` are now optional, so they are generated only when listed in `useOptionalPorts`. New rules reject inconsistent port sets: on AXI4, `AWID` with `BID`, `ARID` with `RID`, `AWLEN` needs `WLAST` and `ARLEN` needs `RLAST`; on Avalon-MM, `read` needs `readdata`, `write` needs `writedata`, `readdatavalid` needs `read`, `writeresponsevalid` needs `response`, and `beginbursttransfer` needs `burstcount`.
-- The VSIX now bundles the elkjs layout engine (EPL-2.0, see `THIRD_PARTY_NOTICES.md`), and the VSIX size budget is raised to 25 MiB unpacked and 2.5 MiB compressed.
+- **Bus ports follow the protocol specifications.** AXI4-Stream `TREADY`, Avalon-ST `valid`, and AXI4-Lite and AXI4 `AWPROT`/`ARPROT` are now optional and generated only when listed in `useOptionalPorts`. IPCraft also rejects port sets that cannot work, such as an Avalon-MM `read` without `readdata` or an AXI4 `AWLEN` without `WLAST`.
 
-### Compatibility
+### Before you upgrade
 
-- Interfaces that relied on `TREADY`, `valid`, `AWPROT` or `ARPROT` being generated implicitly no longer get those ports, which changes the generated HDL, `component.xml` and `_hw.tcl`. Add them to the interface's `useOptionalPorts` to keep the previous ports. An Avalon-MM or AXI4 interface whose ports break one of the new presence rules now fails validation until the missing port is added.
+- If an interface relied on `TREADY`, `valid`, `AWPROT` or `ARPROT` being generated automatically, add them to its `useOptionalPorts` to keep them; otherwise the generated HDL, `component.xml` and `_hw.tcl` no longer have them. An Avalon-MM or AXI4 interface with an incomplete port set now fails validation until you add the missing port.
 
 ## [1.2.0] - 2026-10-11
 
-### Added
+### New
 
-- **Self-contained IP packages.** The new **IPCraft: Package IP Core (Self-Contained)** command and `ipcraft package <ip.yml> --out <path> [--zip]` bundle an `.ip.yml` with every file it references (memory map and file-set imports, file-set files, the `useBusLibrary` file or folder, and subcores with a path, transitively) into a folder or `.zip`. Files outside the IP directory are copied under `deps/` and their references are rewritten in place, so all other files stay byte-identical. Missing files, path conflicts and symlink loops are reported together before anything is written. ([#234](https://github.com/bleviet/ipcraft-vscode/issues/234))
-- **Bit fields can be added with the mouse.** The fields table shows a hover insert bar (+) at gaps where a free bit exists, and the field-table and visualizer context menus offer Insert Above/Below and Insert Before/After. The new field's name cell is focused. An insert that would shift an existing field is rejected with an error instead. ([#235](https://github.com/bleviet/ipcraft-vscode/issues/235))
-- **Regeneration tells hand edits from generator changes.** IPCraft records what it last generated under `<output>/.ipcraft/baseline` and classifies each modified file against it. Both staging views offer per-file **Auto-merge** (clean three-way merge), **Sync interface** (replace only the entity/module header), **Overwrite** and **Keep**. Hand-edited and locked files default to Keep or Auto-merge, never Overwrite. The merge editor uses the baseline as its base, and the baseline is updated when a merge is saved. Locked (`managed: false`) files that already exist now appear in staging when their interface is out of date; they are still never written without an explicit choice. ([#236](https://github.com/bleviet/ipcraft-vscode/issues/236))
+- **Package an IP core with everything it needs.** **IPCraft: Package IP Core (Self-Contained)**, or `ipcraft package <ip.yml> --out <path> [--zip]`, collects an `.ip.yml` and every file it uses (memory maps, source files, bus library, subcores) into one folder or `.zip`. Files from outside the IP folder are copied in and their references updated; nothing else is changed. Missing files and conflicts are reported before anything is written.
+- **Add bit fields with the mouse.** Hover between fields to get a + insert bar where a free bit exists, or use Insert Above/Below in the fields table and visualizer context menus. The new field's name is ready to type.
+- **Regenerate without losing your edits.** IPCraft remembers what it last generated and can tell your hand edits from generator changes. For each changed file you can choose **Auto-merge**, **Sync interface** (update only the entity or module header), **Overwrite** or **Keep**. Hand-edited and locked files are never overwritten by default.
 
 ### Changed
 
-- The "Generation failed" message shows the first conformance issue.
-- New registers created in the Memory Map editor no longer get an explicit `access: read-write`.
+- The "Generation failed" message shows the first problem found.
+- New registers no longer get an explicit `access: read-write`.
 
 ### Fixed
 
-- **Generated register files compile when register-level `access` disagrees with the field accesses.** For example, the editor's old default `access: read-write` over read-only fields produced VHDL and SystemVerilog that did not compile. Field accesses now decide the access of a register that has fields; register-level `access` applies only to field-less registers, in the HDL, `component.xml`, `memmap.yml` and docs. Dead W1C write branches are no longer emitted. The template context contract is now 1.5.0 and adds `write_fields`, `needs_write_branch` and `read_source` per register. ([#238](https://github.com/bleviet/ipcraft-vscode/issues/238))
-- A workspace IP-XACT bus definition without an IPCraft contract, such as the `avalon_mm.xml` that Vivado packaging exports, no longer replaces the builtin definition with the same VLNV. Before, it turned a memory-mapped slave into a conduit and blocked generation. It is now skipped with a `BUS_DEF_CONTRACTLESS_OVERRIDE_IGNORED` warning.
-- Resizing or moving a bit field masks its reset value to the new width, so a bit that no longer fits does not come back when the field grows again. Files already saved with an out-of-range reset value display consistently. ([#237](https://github.com/bleviet/ipcraft-vscode/issues/237))
-- After a Ctrl+Drag of a bit field, the fields table no longer keeps a stale drag preview that froze its Bit(s) cell and hid later Shift+Drag resizes.
+- **Register files compile when the register `access` disagrees with its fields**, for example the old default `access: read-write` over read-only fields. The field accesses now decide; register-level `access` applies only to registers without fields.
+- An IP-XACT bus definition in your workspace, such as the `avalon_mm.xml` that Vivado exports, no longer replaces IPCraft's built-in definition and turns a memory-mapped slave into a conduit. It is skipped with a warning.
+- Shrinking a bit field trims its reset value, so cut-off bits do not come back when the field grows again.
+- After Ctrl+Drag of a bit field, Shift+Drag resizing works again.
 
-### Compatibility
+### Before you upgrade
 
-- Generated HDL changes for registers whose register-level `access` disagrees with their fields. Such output did not compile before, so no working design is affected. The template context contract keys are additive, so custom packs declaring `apiVersion: "^1.x"` keep working; a pack pinned with `~1.4` or an exact `1.4.0` must widen its range.
+- Generated HDL changes for registers whose `access` disagrees with their fields. That output did not compile before, so no working design is affected.
+- Custom scaffold packs pinned to `~1.4` or exactly `1.4.0` must widen their `apiVersion` range. Packs declaring `^1.x` keep working.
 
 ## [1.1.0] - 2026-10-07
 
-### Added
+### New
 
-- Bus interfaces are now checked against one canonical contract library across the editor, importers, consistency checks, and generators. The Issues panel groups protocol errors and warnings, links them to the affected canvas signal and Inspector field, and blocks generation when a known error or unresolved generation constraint remains.
-- **Configurable port polarity.** A bus contract can declare an active-high and an active-low role for the same logical port, and an interface selects one per port through `portPolarityOverrides`. The Inspector exposes a per-port polarity selector, the canvas marks the resolved role, and vendor artifacts (`_hw.tcl`, IP-XACT) carry the polarity-specific interface role while generated HDL keeps canonical active-high internals and inverts at the boundary. Only a nondefault choice is stored; returning a port to its contract default removes the entry. Avalon-MM `byteenable`, `readdatavalid`, `waitrequest`, `read`, and `write` are polarity-configurable, replacing the separate `_n` logical ports, which are still accepted when reading existing documents.
-- **The extension now ships the `ipcraft` CLI and puts it on `PATH`.** It is available in VS Code integrated terminals automatically, and `IPCraft: Install 'ipcraft' Command in PATH` installs it for external terminals on this machine without sudo or Node.js. CI runners without VS Code are not covered. ([#206](https://github.com/bleviet/ipcraft-vscode/issues/206))
-- **Platform Designer `_hw.tcl` import understands real-world Tcl.** The importer now resolves Tcl variables, expands `for`/`foreach` loops with literal or parameter bounds (up to 256 iterations), reduces `[expr ...]` widths, binds `proc` argument defaults, treats `[log2ceil X]` as `clog2(X)`, and runs elaboration callbacks so `TERMINATION`, `WIDTH`/`WIDTH_EXPR`, `-1` placeholder widths and zero-width optional ports produce the real interface. Legacy `add_port_to_interface` ports take their direction and width from the Verilog module named by `set_module`. Names and widths that still contain Tcl syntax are dropped with a warning instead of being imported verbatim, and the import command shows a summary of the warnings. Across the 1,133 `_hw.tcl` files shipped with Quartus 25.1, none now import with Tcl syntax in a name or width (408 did before). ([#212](https://github.com/bleviet/ipcraft-vscode/issues/212), [#213](https://github.com/bleviet/ipcraft-vscode/issues/213), [#214](https://github.com/bleviet/ipcraft-vscode/issues/214))
-- **`ipcraft migrate` and the editor's Migrate command bring more documents up to date.** They rename legacy snake_case keys to camelCase in `.ip.yml` and `.mm.yml` files, keeping comments, key order and hex spellings; rewrite dotted bus-type VLNVs written for the IPCraft Python CLI (`ipcraft.busif.axi4_lite.1.0`) to the canonical colon form; and repair a dangling `memoryMapRef` when the intended map is unambiguous. `ipcraft migrate --check` reports each of these. ([#229](https://github.com/bleviet/ipcraft-vscode/pull/229), [#230](https://github.com/bleviet/ipcraft-vscode/issues/230), [#232](https://github.com/bleviet/ipcraft-vscode/issues/232))
-- The Inspector's Port Widths section shows AXI-Stream `TUSER`, so its width can be viewed and overridden. Other 1-bit signals that the bus definition fixes stay hidden. ([#208](https://github.com/bleviet/ipcraft-vscode/issues/208))
+- **Bus interfaces are checked against their protocol.** The editor, importers, consistency checks and generators all use the same protocol rules. The Issues panel groups errors and warnings, links each one to the signal on the canvas and the field in the Inspector, and blocks generation while an error remains. Messages explain the problem in plain words with the current and expected values.
+- **Choose active-low or active-high per port.** Where a bus allows both, pick the polarity of a port in the Inspector; the canvas shows it, and vendor files use the matching role. Generated HDL stays active-high inside and inverts at the boundary. This replaces the separate Avalon-MM `_n` ports, which are still read from existing files.
+- **The `ipcraft` command-line tool comes with the extension.** It works in VS Code terminals right away. **IPCraft: Install 'ipcraft' Command in PATH** makes it available in other terminals too, without sudo or Node.js.
+- **Better Platform Designer `_hw.tcl` import.** Variables, loops, `expr`, procedures and elaboration callbacks are understood, so real-world components import with their actual ports and widths. Names or widths that cannot be resolved are dropped with a warning instead of being imported as Tcl text.
+- **Migrate brings older files up to date.** It renames old snake_case keys to camelCase, rewrites bus types written for the IPCraft Python tool, and repairs a broken `memoryMapRef` when the intended map is clear, keeping your comments, key order and hex values. `ipcraft migrate --check` lists what would change.
+- The Inspector shows the AXI-Stream `TUSER` width so you can change it.
 
 ### Changed
 
-- Avalon-MM now uses its canonical logical port set and optionality in the canvas and generated artifacts. Legacy aliases are accepted only at the document boundary and resolve to the canonical IPCraft VLNV.
-- Avalon-ST uses `source` and `sink` modes and preserves `dataBitsPerSymbol`, `symbolsPerBeat`, `readyLatency`, `maxChannel`, and endianness through Platform Designer Tcl and custom IP-XACT. Big-endian generated RTL reverses Avalon-ST data in symbol-sized lanes; AXI, Avalon-MM, and standalone ports retain eight-bit lanes.
-- **A bus interface with no `physicalPrefix` now generates unprefixed port names** (`awaddr`, `address`, ...) in the Inspector, the canvas, and every generated artifact. Previously every non-conduit interface fell back to `s_axi_` regardless of its type, so an AXI-Stream master or a FIFO interface got AXI-style names that the canvas never showed. The duplicate-port check now also covers prefix-less interfaces and authored `conduitPorts`.
-- The AXI4-Lite and Avalon-MM bus wrappers name their internal signals `<logical>_int` (for example `awaddr_int`), so a prefix-less slave elaborates instead of colliding with its own ports. Port names and register-bank signals are unchanged.
-- **IPCraft reads camelCase keys only.** The editor, validator and generators no longer fall back to legacy snake_case spellings such as `bus_interfaces`, `memory_maps` or `file_sets`. Before, a file containing both spellings showed one value in the editor and generated from the other. Convert older files with **IPCraft: Migrate .ip.yml / .mm.yml to Latest Format** or `ipcraft migrate`. The bundled schema also rejects unknown keys on bus interfaces and ports.
-- The Upgrade command is now **IPCraft: Migrate .ip.yml / .mm.yml to Latest Format**. It runs the same migration as `ipcraft migrate`, is offered for `.mm.yml` files in the Explorer and the Command Palette, and works from a text editor or a visual editor tab. Its command ID is unchanged, so existing keybindings keep working.
-- Failed bus-contract rules are explained in plain language. Each message names the interface and states the current and expected values where they are known, and warnings say that they are non-blocking recommendations. Before, a message read only `<RULE_ID> is not satisfied.`
-- The bus library is loaded once and cached until a bus definition, `busLibraryPaths`, the Vivado version or the workspace scan changes, which makes repeated validation and editor refreshes much faster with large Vivado interface catalogs.
+- **Interfaces without a `physicalPrefix` get unprefixed port names** (`awaddr`, `address`, ...). Before, every interface got `s_axi_`, even AXI-Stream and FIFO interfaces, which did not match the canvas.
+- **IPCraft reads camelCase keys only.** Files that mixed old snake_case and camelCase spellings could show one value and generate another. Run **IPCraft: Migrate .ip.yml / .mm.yml to Latest Format** or `ipcraft migrate` on older files.
+- The Upgrade command is now **IPCraft: Migrate .ip.yml / .mm.yml to Latest Format**. It also works on `.mm.yml` files and from a visual editor tab. Existing keybindings keep working.
+- Avalon-MM and Avalon-ST follow their standard port sets. Avalon-ST uses `source` and `sink` modes and keeps symbol, latency, channel and endianness settings through Platform Designer and IP-XACT round trips.
+- Validation and editor refreshes are much faster with large Vivado interface catalogs.
 
 ### Fixed
 
-- **Generated AXI4-Lite slaves (VHDL and SystemVerilog) no longer lose a transaction or deadlock when the master offers several at once.** The wrapper accepted the next write's W beat while the previous write response was still pending (overwriting the latched write data) and the next AR while RVALID was still pending (that read was never answered). It now takes one write and one read at a time. Masters with transactions in flight, such as an AXI SmartConnect forwarding posted PCIe writes, hit this; on a PCIe host the hung slave caused completion timeouts. A new behavioral suite (`axil-handshake`, GHDL and Icarus Verilog) offers write and read transactions back to back.
-- **Format-preserving writes no longer reformat untouched YAML.** Before, any edit, deletion or migration re-rendered the whole document, so flow lists gained padding (`[TLAST]` became `[ TLAST ]`) and folded block scalars were joined onto one line. CRLF line endings are kept. ([#231](https://github.com/bleviet/ipcraft-vscode/issues/231))
-- **A bus interface whose `memoryMapRef` names a missing memory map now blocks generation.** Before, IPCraft accepted it and wrote a dangling reference into `component.xml`. ([#232](https://github.com/bleviet/ipcraft-vscode/issues/232))
-- **Generated Vivado `component.xml` passes `check_integrity` in more cases.** Avalon-MM port maps use the uppercase logical names Xilinx declares for `avalon_rtl`. Ports that the Xilinx abstraction does not declare become plain component ports. The generic IPCraft conduit is emitted as plain ports instead of an unresolvable bus interface. Authored `conduitPorts` on a library bus type map only the logical ports that the type declares. ([#215](https://github.com/bleviet/ipcraft-vscode/issues/215), [#225](https://github.com/bleviet/ipcraft-vscode/issues/225))
-- A conduit with a full VLNV bus type that cannot be resolved and has no `conduitPorts` now blocks generation, because its ports would otherwise be missing from `component.xml`. The generic `ipcraft:busif:conduit:1.0` placeholder and conduits with authored ports are still accepted. ([#226](https://github.com/bleviet/ipcraft-vscode/issues/226))
-- `component.xml` import reads address-block ranges written with a size suffix (`4K`) correctly, maps Xilinx Avalon interfaces back to IPCraft Avalon-MM with correct port directions and widths, and keeps the Avalon ports that `avalon_rtl` lacks across a round trip. ([#224](https://github.com/bleviet/ipcraft-vscode/issues/224))
-- `component.xml` no longer contains an empty `ipcraft:interfaceContract` element for a bus interface whose contract declares nothing to record. ([#217](https://github.com/bleviet/ipcraft-vscode/issues/217))
+- **Generated AXI4-Lite slaves no longer lose transactions or hang** when the master sends several at once, as an AXI SmartConnect forwarding PCIe writes does. On a PCIe host this caused completion timeouts.
+- **Editing no longer reformats untouched YAML.** Lists and folded text stay as you wrote them, and Windows line endings are kept.
+- A `memoryMapRef` that names a missing memory map now stops generation instead of writing a broken reference into `component.xml`.
+- **Vivado accepts more generated `component.xml` files** in `check_integrity`, including Avalon-MM and conduit interfaces. A conduit whose bus type cannot be found and that lists no ports now stops generation instead of losing its ports.
+- `component.xml` import reads sizes such as `4K`, maps Avalon interfaces back correctly, and keeps all Avalon ports across a round trip.
 
 ### Security
 
-- Updated the bundled `@xmldom/xmldom` (0.9.12), `js-yaml` (4.3.2) and `fast-uri` (3.1.8) to versions that fix published denial-of-service and injection advisories.
+- Updated bundled libraries (`@xmldom/xmldom`, `js-yaml`, `fast-uri`) to versions that fix published denial-of-service and injection advisories.
 
-### Compatibility
+### Before you upgrade
 
-- Bus-interface compatibility is forward-only for port polarity. This version reads every bus-interface document the 1.0.0 release supported, and existing active-high documents keep their behavior and generated port names. A document that selects an active-low port through `portPolarityOverrides` requires this version or later: an older IPCraft ignores the field and would generate the active-high role instead.
-- An existing IP that relied on the implicit `s_axi_` prefix now gets unprefixed port names in the generated HDL, `component.xml`, `_hw.tcl`, and the cocotb testbench, which breaks instantiations that use the old names. Set `physicalPrefix: s_axi_` on the interface to keep them.
-- Documents that still use snake_case keys, or the `bus_interfaces` root alias, must be migrated once with the Migrate command or `ipcraft migrate`. Until they are, the legacy keys are ignored and the schema reports them.
+- An IP that relied on the automatic `s_axi_` prefix now gets unprefixed port names in generated HDL, `component.xml`, `_hw.tcl` and testbenches, which breaks instantiations using the old names. Set `physicalPrefix: s_axi_` on the interface to keep them.
+- Files that still use snake_case keys must be migrated once. Until then, those keys are ignored and reported.
+- A file that selects an active-low port needs this version or later; older versions ignore the choice and generate the active-high port.
 
 ## [1.0.0] - 2026-08-09
 
-### Added
+### New
 
-- **Multi-version Vivado/Quartus toolchain support** lets you register several installed versions (and Docker images) per vendor, auto-detects which one an existing project needs from a `.ipcraft-toolchain.json` sidecar or by parsing the project file, and lets you force a specific version at any time via the new **IPCraft: Select Vivado Version** / **Select Quartus Version** commands. ([#202](https://github.com/bleviet/ipcraft-vscode/pull/202))
-- **Automated Marketplace releases.** Starting with this version, IPCraft is published through a protected GitHub Actions workflow with immutable versioned artifacts, SHA-256 verification, VS Code minimum/stable smoke tests, and passwordless Azure identity federation, replacing manual VSIX uploads. ([#201](https://github.com/bleviet/ipcraft-vscode/pull/201))
-- **SECURITY.md, CONTRIBUTING.md, SUPPORT.md, and CODE_OF_CONDUCT.md** document the vulnerability reporting process, contributor setup, and support channels. ([#200](https://github.com/bleviet/ipcraft-vscode/pull/200))
+- **Work with several Vivado and Quartus versions.** Register several installed versions (or Docker images) per vendor. IPCraft picks the version an existing project needs, and **IPCraft: Select Vivado Version** / **Select Quartus Version** let you choose one yourself.
+- Security reporting, support and contribution guides (`SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md`).
 
 ### Fixed
 
-- **IP Core toolbar buttons** ("Open in Platform Designer", "Edit in IP Packager") now refresh immediately after Generate/Export/vendor-project commands instead of staying greyed out until the editor is closed and reopened.
-- **The Vivado/Quartus version picker** no longer self-closes on the first click when triggered from a webview toolbar button.
-- **Vendor project launch workflows** no longer show a spurious, seemingly concurrent version-picker prompt when Vivado and Quartus projects are scaffolded together.
-- **Generation with an out-of-tree `fileSets` path** (e.g. `../src/pkg.vhd`, common in Qsys/Platform Designer layouts) no longer aborts the whole scaffold; only paths meant to be written are checked for output-directory containment. ([#204](https://github.com/bleviet/ipcraft-vscode/issues/204))
-- **The README demo** now embeds an animated GIF instead of an unsupported `<video>` tag, so it renders on the VS Code Marketplace and in the editor's Markdown preview, not just on GitHub.
+- The IP Core toolbar buttons "Open in Platform Designer" and "Edit in IP Packager" become available right after generating, without reopening the editor.
+- The Vivado/Quartus version picker no longer closes on the first click, and no longer pops up twice when both projects are created together.
+- Generation no longer stops when `fileSets` point outside the IP folder (for example `../src/pkg.vhd`, common in Platform Designer layouts).
+- The demo in the README now plays on the Marketplace and in VS Code.
 
 ## [0.9.9] - 2026-07-29
 
-### Added
+### New
 
-- **Product demo video** in the README provides a quick walkthrough of IPCraft's visual editing and generation workflow.
+- A demo video in the README walks through visual editing and generation.
 
 ### Changed
 
-- **Generator template context 1.3.0** adds authored parameter page/group layouts for Vivado xGUI and Quartus Platform Designer, including Tcl-safe parameter metadata for custom scaffold packs.
-- **Extension and CLI release versions** are synchronized at `0.9.9`.
+- Parameter pages and groups you define appear in the Vivado IP customization GUI and in Platform Designer, and custom scaffold packs can use them.
 
 ### Fixed
 
-- **Vertical bit-field rulers** now show an aligned index for every bit, including gaps, instead of labeling only segment endpoints. ([#192](https://github.com/bleviet/ipcraft-vscode/issues/192))
-- **Generation from edited IP cores** now uses the current unsaved editor snapshot for previews and output while leaving generated YAML metadata changes unsaved for review. ([#197](https://github.com/bleviet/ipcraft-vscode/pull/197))
-- **Quartus parameter layout round-trips** now preserve authored `uiPage` and `uiGroup` hierarchy, labels, defaults, and Tcl string values in generated and imported Platform Designer components. ([#193](https://github.com/bleviet/ipcraft-vscode/issues/193), [#194](https://github.com/bleviet/ipcraft-vscode/pull/194))
-- **Quartus generated filesets** retain their resolved RTL paths instead of adding an extra parent-directory prefix. ([#198](https://github.com/bleviet/ipcraft-vscode/pull/198))
+- Vertical bit-field rulers label every bit, including gaps.
+- Generation uses what is in the editor, even if not saved yet, and leaves the metadata it adds unsaved for you to review.
+- Parameter pages, groups, labels and defaults survive a Platform Designer round trip.
+- Quartus file lists point to the right RTL paths.
 
 ## [0.9.8] - 2026-07-28
 
 ### Changed
 
-- **Project documentation** now presents IPCraft's workflow and benefits more clearly, separates exploratory design concepts from implementation references, and describes the current LED Avalon-MM example without retaining development-history reports.
-- **Extension and CLI release versions** are synchronized at `0.9.8`.
+- The documentation explains IPCraft's workflow and benefits more clearly.
 
 ### Fixed
 
-- **Compound extensions in create dialogs** are preserved when users enter names such as `example.ip.yml`, `registers.mm.yml`, or Data Inspector recipe filenames, preventing duplicated or truncated suffixes. ([#190](https://github.com/bleviet/ipcraft-vscode/issues/190))
-- **IP Core canvas zoom indicator** remains visible throughout consecutive wheel events and hides after zooming stops instead of resetting its fade state during an active gesture. ([#186](https://github.com/bleviet/ipcraft-vscode/pull/186))
-- **Imported VHDL zero-based widths** now retain their parameter expression when a range uses forms such as `WIDTH downto 0` without a trailing `- 1`. ([#188](https://github.com/bleviet/ipcraft-vscode/issues/188))
+- Names such as `example.ip.yml` or `registers.mm.yml` typed into create dialogs no longer get a doubled or cut-off extension.
+- The IP Core canvas zoom indicator stays visible while you zoom and hides afterwards.
+- Imported VHDL ranges such as `WIDTH downto 0` keep their parameter expression.
 
 ## [0.9.7] - 2026-07-27
 
-### Added
+### New
 
-- **Semantic cocotb register verification**: generated testbenches now use a resolved verification manifest and software register model to check reset values, access modes, reserved bits, byte enables, unmapped reads, write-1-to-clear and self-clearing behavior, and deterministic randomized traffic across AXI and Avalon transports. ([#180](https://github.com/bleviet/ipcraft-vscode/issues/180))
-- **Generated interrupt associations**: interrupt ports now carry bus and clock associations through the schema, canvas Inspector, generated RTL, template context, and Platform Designer output, with validation for invalid references. ([#183](https://github.com/bleviet/ipcraft-vscode/issues/183))
-- **Unified DE10-Nano conformance flows**: the Avalon-MM and AXI4-Lite examples share manifest-driven scenarios between cocotb simulation and hardware validation; the Avalon-MM project now supports both Nios II and Nios V systems. ([#181](https://github.com/bleviet/ipcraft-vscode/issues/181))
-- **Generator design references**: added a feature-coverage matrix and an implementation-scoped architecture proposal for inferred RAM buffers. ([#179](https://github.com/bleviet/ipcraft-vscode/issues/179))
+- **Thorough register tests in generated cocotb testbenches.** They check reset values, access modes, reserved bits, byte enables, unmapped reads, write-1-to-clear and self-clearing bits, and run randomized traffic, on AXI and Avalon.
+- **Interrupts know their bus and clock.** Interrupt ports can be associated with a bus interface and clock in the Inspector, and the association reaches generated RTL and Platform Designer.
+- The DE10-Nano example projects run the same test scenarios in simulation and on hardware; the Avalon-MM example supports Nios II and Nios V.
 
 ### Changed
 
-- **Open-source integration CI** now runs all applicable suites on pull requests and uses a dedicated nightly workflow, so newly added open-source integration groups are included automatically. ([#178](https://github.com/bleviet/ipcraft-vscode/issues/178))
-- **Marketplace publishing metadata** now targets the `bahonavi` publisher and includes expanded FPGA protocol and vendor keywords.
+- IPCraft is published on the Marketplace by `bahonavi`.
 
 ### Fixed
 
-- **IP Core canvas titles** now wrap and preserve stable layout measurements instead of overflowing or clipping long names.
-- **Getting Started walkthrough accuracy**: corrected scaffold-pack defaults and file ownership, memory-map bus attachment, canvas-side semantics, report navigation, generated VHDL and cocotb examples, target selection, clock-frequency behavior, and vendor-import limitations.
+- Long IP Core titles on the canvas wrap instead of overflowing.
+- The Getting Started walkthrough matches what IPCraft actually does.
 
 ## [0.9.6] - 2026-07-25
 
-### Added
+### New
 
-- **Configurable generated-file indentation**: select the indentation used for generated HDL and tool files through IPCraft settings or the CLI; scaffold packs can declare a per-pack default. ([#162](https://github.com/bleviet/ipcraft-vscode/issues/162))
+- **Choose the indentation of generated files** in the IPCraft settings or on the command line. Scaffold packs can set their own default.
 
 ### Fixed
 
-- **Generated register access modes**: explicit access modes declared on registers are now preserved during HDL generation.
-- **Consistency Check top-level selection**: testbenches and black-box stubs no longer cause false interface-drift reports; when IPCraft cannot choose a unique implementation, it reports an informational ambiguity instead. ([#163](https://github.com/bleviet/ipcraft-vscode/issues/163))
-- **Data Inspector canvas edits**: semantically invalid edits remain visible and are retained until corrected, rather than disappearing; new sources inherit the current input width for compatible binary operations. ([#165](https://github.com/bleviet/ipcraft-vscode/issues/165))
-- **IP Core canvas drag handling**: malformed drag payloads are rejected before they can change the canvas.
-- **Memory Map mutations**: structural insert and delete operations no longer mutate their input state, preventing stale UI state from being modified. ([#170](https://github.com/bleviet/ipcraft-vscode/issues/170))
-- **Register value input**: hexadecimal values now consistently use the `0x` prefix.
-- **Bus definition scanning**: invalid cached scan results are ignored and refreshed instead of being reused.
+- Access modes set on a register are kept in generated HDL.
+- Consistency Check no longer reports false interface drift because of testbenches or black-box stubs.
+- Data Inspector keeps an invalid canvas edit visible until you correct it, and new sources take the current input width.
+- Inserting or deleting in the Memory Map editor no longer leaves stale values on screen.
+- Register values entered in hex always use the `0x` prefix.
+- A damaged bus-definition cache is rebuilt instead of reused.
 
 ## [0.9.5] - 2026-07-24
 
-### Added
+### New
 
-- **Scaffold-pack generation contracts**: packs can declare compatible HDL languages, bus types, memory-mapped-slave requirements, and required logical ports; incompatible inputs now fail before rendering in both `generate` and `verify`. Pack file rules can also request POSIX executable bits for generated helper scripts. ([#152](https://github.com/bleviet/ipcraft-vscode/issues/152), [#153](https://github.com/bleviet/ipcraft-vscode/issues/153), [#154](https://github.com/bleviet/ipcraft-vscode/issues/154))
-- **Scaffold-pack template filters**: registered identifier casing (`snakecase`, `camelcase`, `pascalcase`, `constcase`), `log2`, `ljust`, and `latexescape` filters for custom Nunjucks templates. ([#155](https://github.com/bleviet/ipcraft-vscode/issues/155))
+- **Scaffold packs can state what they support**: HDL languages, bus types, whether they need a memory-mapped slave, and required ports. Unsuitable IPs are rejected before anything is generated. Packs can also mark generated scripts as executable.
+- New template filters for scaffold packs: `snakecase`, `camelcase`, `pascalcase`, `constcase`, `log2`, `ljust` and `latexescape`.
 
 ### Changed
 
-- Avalon-ST Platform Designer symbol-order metadata is now derived from interface endianness, replacing the separate `firstSymbolInHighOrderBits` schema field and Inspector checkbox. ([#145](https://github.com/bleviet/ipcraft-vscode/issues/145))
-- **Data Inspector bit lanes** now use a compact layout and concise provenance labels when no field overlay is present.
-- **Webview architecture**: decomposed the Data Inspector application root and the IP Core canvas, inspector, toolbar, interaction, and session state into focused components and hooks with direct regression coverage. User-visible editing, selection, staging, and synchronization behavior is preserved. ([#128](https://github.com/bleviet/ipcraft-vscode/issues/128), [#129](https://github.com/bleviet/ipcraft-vscode/issues/129), [#130](https://github.com/bleviet/ipcraft-vscode/issues/130))
+- Avalon-ST symbol order in Platform Designer follows the interface endianness; the separate checkbox is gone.
+- Data Inspector bit lanes are more compact.
 
 ### Fixed
 
-- **Full-generation scaffold-pack ownership**: packs can explicitly disable IPCraft's framework testbench, and packs inferred to own their complete output tree no longer receive unrelated `tb/`, `.vscode/settings.json`, `docs/`, `altera/`, or `xilinx/` files. Staging identifies framework-owned files, ambiguous packs receive actionable warnings, and `generate` and `verify` remain aligned. ([#151](https://github.com/bleviet/ipcraft-vscode/issues/151), [#156](https://github.com/bleviet/ipcraft-vscode/issues/156))
-- **Quartus SystemVerilog endian-swap generation**: generated byte-reordering loops now use explicit `generate` blocks and separately declared `genvar` identifiers accepted by Quartus, while remaining compatible with other synthesis and simulation tools.
+- A scaffold pack that generates the whole project no longer gets unrelated extra files (testbench, docs, vendor folders). Packs can turn off IPCraft's own testbench.
+- Generated SystemVerilog byte-swapping compiles in Quartus.
 
 ## [0.9.4] - 2026-07-23
 
-### Added
+### New
 
-- **Configurable port and bus endianness**: standalone vector ports and built-in bus data paths can be marked big-endian. Generated VHDL and SystemVerilog reflow data bytes and their qualifier masks together, including parameterized widths and stream-only designs.
+- **Big-endian ports and buses.** Vector ports and built-in bus data paths can be marked big-endian; generated VHDL and SystemVerilog swap the data bytes and their byte enables together.
 
-### Changed
+### Before you upgrade
 
-- The public generator template-context contract is now version 1.1.0 with additive endian-swap metadata. Packs using a `~1.0` API range must update to `~1.1` (or a compatible caret range) after validating the new context.
+- Custom scaffold packs with an `apiVersion` range of `~1.0` must change it to `~1.1` (or a compatible `^` range).
 
 ## [0.9.3] - 2026-07-22
 
-### Added
+### New
 
-- **Reset polarity and interrupt sensitivity on the IP canvas**: reset ports now distinguish active-high and active-low signals with polarity badges and inversion bubbles, while interrupt ports show compact level/edge sensitivity markers with accessible labels and tooltips. ([#135](https://github.com/bleviet/ipcraft-vscode/issues/135))
+- The IP canvas shows reset polarity (active-high or active-low) and interrupt sensitivity (level or edge).
 
 ### Changed
 
-- Production VSIX packages now exclude nested source maps and are checked in CI against an explicit runtime-content allowlist and size budget. The checked artifact is installed for extension-host smoke testing. ([#123](https://github.com/bleviet/ipcraft-vscode/issues/123))
-- **Native, accessible webview controls**: replaced the deprecated VS Code Webview UI Toolkit with shared React controls backed by native form elements, preserving Vim table navigation and restoring inspector empty-state contrast. ([#124](https://github.com/bleviet/ipcraft-vscode/issues/124))
-- **Documentation refresh**: consolidated overlapping architecture and concept material, added task-focused guides for creating, importing, generating, and checking IP cores, and added reproducible screenshot-backed documentation with automated link validation.
+- Editor controls are native VS Code form elements and work better with screen readers; Vim-style table navigation is unchanged.
+- New how-to guides for creating, importing, generating and checking IP cores.
 
 ### Fixed
 
-- **CLI distribution contract**: removed the unavailable `npx ipcraft` claim from Marketplace-facing documentation and separated the `ipcraft` npm artifact from the VSIX. The CLI can now be packed and smoke-tested from a clean temporary installation without publishing; npm publication remains an explicit manual release after the matching extension release. ([#116](https://github.com/bleviet/ipcraft-vscode/issues/116))
-- **Legacy memory-map editing and serialization**: legacy snake-case input is now normalized only at the document boundary while the runtime model remains canonical camelCase. Structural and scalar edits resolve the original on-disk keys without creating duplicate sections, and opaque enum/custom-metadata maps survive normalization and serialization unchanged. ([#119](https://github.com/bleviet/ipcraft-vscode/issues/119))
-- **Workspace and webview security boundaries**: generation, build, vendor-tool, template, and external-process actions are disabled in untrusted workspaces; scaffold output paths are contained within their target directory; and every webview now declares the minimum local resource roots it needs. ([#121](https://github.com/bleviet/ipcraft-vscode/issues/121))
-- **IP canvas layout stability**: preserved measured node dimensions across layout updates so selections and refreshes no longer collapse nodes back to default sizes.
-- **Bus-library navigation**: section headers remain visible while scrolling through long IP Core library groups. ([#137](https://github.com/bleviet/ipcraft-vscode/issues/137))
-- **Avalon-ST signal ordering**: the IP canvas now recognizes Avalon Streaming symbol order so data, channel, error, and empty signals are presented in their defined order. ([#136](https://github.com/bleviet/ipcraft-vscode/issues/136))
-- **VS Code 1.80 compatibility**: pinned extension API types to the declared minimum engine version and added automated compatibility checks to prevent newer API usage from entering supported builds.
+- In untrusted workspaces, generation, builds, vendor tools and templates are disabled, and generated files can no longer be written outside their target folder.
+- Editing older memory maps with snake_case keys no longer creates duplicate sections or loses enum and custom metadata.
+- Nodes on the IP canvas keep their size after a refresh.
+- Bus Library section headers stay visible while scrolling.
+- Avalon-ST signals are shown in their defined order.
+- IPCraft works on VS Code 1.80 as declared.
+- The documentation no longer claims you can run `npx ipcraft`.
 
 ## [0.9.2] - 2026-07-19
 
-### Added
+### New
 
-- **Data Inspector**: a new standalone tool for decoding an arbitrary-width value — pasted from a waveform, an ILA/SignalTap capture, a register read, or typed by hand — into named bit fields, without ever touching `.mm.yml`/`.ip.yml` or HDL generation. Three new commands: `IPCraft: Open Data Inspector` (a temporary inspection panel), `IPCraft: Open Register in Data Inspector` (pre-loads a register's field layout from a workspace memory map), and `IPCraft: New Data Inspector` (creates a reusable `*.ipci.yml` recipe with its own custom editor). Values are modeled as four-state bit vectors (`0`/`1`/`X`/`Z`, not plain integers), so numeric interpretations correctly report "unknown bits" instead of silently showing a wrong number when a range contains an unresolved bit. Accepts Verilog (`32'hDEAD_BEEF`), VHDL (`x"0123_ABCD"`), and C-style (`0xDEADBEEF`) literals, decimal, and binary, all with underscore digit separators. Supports multiple named sources composed via transform steps (concat, slice, bitwise and/or/xor/not, shift left/right, zero/sign-extend, truncate, byte swap), field overlays with hex/binary/unsigned/signed/enum/float/fixed-point interpretation and an expected-value pass/fail check, VCD signal timelines and CSV/ILA sample import (configurable radix, byte order, word order), and lane-width/zoom (overview, by-field, by-bit) controls with keyboard navigation. A saved recipe holds sources, fields, transforms, and view settings, but deliberately never the pasted value or capture history. ([#107](https://github.com/bleviet/ipcraft-vscode/issues/107))
+- **Data Inspector.** Decode any value, pasted from a waveform, an ILA or SignalTap capture or a register read, into named bit fields. Use **IPCraft: Open Data Inspector**, **Open Register in Data Inspector** (uses a register's fields from your memory map) or **New Data Inspector** (saves a reusable `.ipci.yml` recipe). Unknown (`X`/`Z`) bits are shown as unknown rather than as a wrong number. Verilog, VHDL, C-style, decimal and binary values are accepted. Combine several sources (concatenate, slice, shift, mask, extend, byte-swap), show fields as hex, binary, signed, enum, float or fixed-point with a pass/fail check against an expected value, and import VCD or CSV/ILA captures. Recipes never store the values you paste.
 
 ### Changed
 
-- **Fields table access column redesign**: the Memory Map fields table's access-mode dropdown now shows short SVD-style tokens (`RO`/`WO`/`RW`/`W1C`/`RW1C`/`WSC`/`RWSC`) when closed, with full names only in the open listbox, and the popup consistently opens downward and sizes to its content instead of occasionally misdirecting near the viewport edge. The W1C Monitors sub-row (which broke row-height uniformity) is replaced by a compact icon button opening an anchored picker menu.
-- **Data Inspector internals decomposed**: the Data Inspector webview's monolithic app component was split into focused hooks (value input/literal parsing, capture import, field panel state, host sync, recipe autosave) and presentational components (value composer, capture panel, field panel), with direct unit test coverage added for each extracted hook, including the host-sync revision protocol. No user-visible behavior change. ([#112](https://github.com/bleviet/ipcraft-vscode/issues/112))
+- The access column in the fields table shows short codes (`RO`, `RW`, `W1C`, ...) and its list always opens downwards. W1C monitors are set from a small button instead of an extra row.
 
 ### Fixed
 
-- **Data Inspector debug-mode overrides and value-bar validation**: a bit field defined via the common `offset`/`width` schema form lost a committed debug-mode override wider than 53 bits on the very next render (the reapplication only ran in the fallback code path); and the value-bar's parser collapsed malformed, out-of-range, and empty drafts into a single generic "Value is required" message instead of reporting which one actually happened.
+- Data Inspector keeps overrides wider than 53 bits, and the value bar says whether a value is malformed, out of range or empty.
 
 ## [0.9.1] - 2026-07-17
 
 ### Changed
 
-- **Compact register and register-array editing**: removed the register-card rail from the block and register-array editors — selection, insert, delete, and drag-reorder already existed in the Outline panel, and the rail's fixed width squeezed the fields table on narrow screens (e.g. a 13" laptop). Keyboard insert/delete (`o`/`O`/`Shift+A`/`Shift+I`/`d`/`Delete`) and inline editing of a register's name, offset, and description moved onto the Outline and a new compact register header strip so nothing the rail did was lost; register and array rows also gained a color swatch, and array count/stride became double-click-editable directly on the row. The now-unused `RegisterMapVisualizer` was removed, the bit-field visualizer's default pane width shrank from 340px to 240px to match, its cells were flattened to match the memory map visualizer's style, and `ValueBar` was resized to fit the narrower pane. ([#99](https://github.com/bleviet/ipcraft-vscode/issues/99))
-- **Register Value/Hex input moved to the fields toolbar**: lifted from the bottom of the (now-removed) bit-field rail to sit level with the field move-up/move-down buttons at the top of the fields table, in both the side-by-side and stacked layouts. ([#105](https://github.com/bleviet/ipcraft-vscode/issues/105))
+- **More room for registers.** The register list beside the block and register-array editors is gone, giving the fields table more space on small screens. Everything it did is in the Outline and a compact register header: keyboard insert and delete, renaming, offsets, descriptions, colors, and array count and stride.
+- The register Value/Hex input sits in the fields toolbar.
 
 ### Fixed
 
-- **Outline readability and navigation**: base-address, offset, count, and stride labels in the Memory Map outline were too small to read (10px, now matching the app's standard size); the footer's item count and "Base: 0x0" no longer ignore the current selection and instead reflect whatever level is selected (blocks, registers, or fields); and an implicit horizontal scrollbar — caused by `overflow-y: auto` also enabling `overflow-x`, per the CSS spec — no longer clips row content sideways; names now truncate with an ellipsis instead. ([#101](https://github.com/bleviet/ipcraft-vscode/issues/101), [#102](https://github.com/bleviet/ipcraft-vscode/issues/102))
-- **RTL compile order still wrong in some fallback cases**: the topological-sort fix shipped in 0.9.0 (above) covered the common case, but a file whose declared `type` disagreed with its filename-inferred language, or whose `logicalName` went unresolved, could still sort incorrectly; separately, Vivado's `component.xml` generator re-resolved the fileset fallback path even when an explicit `rtlFiles` list was already supplied, silently discarding the caller's intended order. Both are now root-caused: a file's declared language/logical name is honored over path-based inference, and the fallback path only runs when `rtlFiles` is genuinely absent. ([#91](https://github.com/bleviet/ipcraft-vscode/issues/91))
+- Outline labels are readable, the footer reflects the selected level, and long names end with an ellipsis instead of scrolling sideways.
+- RTL files are compiled in the right order in more cases, including in Vivado `component.xml`.
 
 ## [0.9.0] - 2026-07-17
 
-### Added
+### New
 
-- **Consistency Check**: a new drift-detection feature that cross-references a `.ip.yml`'s declared ports, clocks, resets, parameters, bus interfaces, and registers against the top-level HDL (regardless of its `managed:` flag) and, once scaffolded, the Platform Designer (`_hw.tcl`) and Vivado (`component.xml`) vendor artifacts. Drift surfaces as color-coded canvas annotations, a review overlay with Adopt/Regenerate/Inspect/Ignore actions and a copy-to-clipboard button, and a single amber/red "Drift" status badge in the toolbar. Runs on demand from the toolbar or `IPCraft: Check Consistency`, and automatically (silently, badge-only) on webview open and whenever a watched HDL source or vendor artifact changes on disk, debounced 800ms. Bus-interface and memory-map/register comparison (Vivado only, since Platform Designer's `_hw.tcl` carries no register data) was added in a follow-up pass. ([#84](https://github.com/bleviet/ipcraft-vscode/issues/84), [#96](https://github.com/bleviet/ipcraft-vscode/issues/96), [#92](https://github.com/bleviet/ipcraft-vscode/issues/92))
+- **Consistency Check.** Compares an `.ip.yml` with its top-level HDL and, once generated, with the Platform Designer `_hw.tcl` and Vivado `component.xml`: ports, clocks, resets, parameters, bus interfaces and (for Vivado) registers. Differences show on the canvas and in a review list where you can adopt, regenerate, inspect or ignore each one, and a Drift badge in the toolbar sums them up. Run it from the toolbar or **IPCraft: Check Consistency**; it also runs quietly when the editor opens and when a watched file changes.
 
 ### Fixed
 
-- **Consistency Check false positives and gaps**: a series of correctness fixes found while auditing the new check against every bundled example — bus-interface physical ports (reconstructed from `physicalPrefix`/`portNameOverrides`) and interrupt ports were wrongly reported as undeclared new ports; the check silently passed when the top-level HDL file had no `managed: false` flag at all (the schema default is `managed: true`); quoted VHDL/Verilog string generic and parameter defaults were flagged as mismatched against the unquoted `.ip.yml` value even when identical; "Keep .ip.yml & Regenerate" skipped the staging/review step that "Scaffold Project" gives; a `fileSets` entry the scaffold pack has no rule for (e.g. an extra hand-authored file) vanished from the Scaffold/Regenerate review list instead of showing up as protected; and the audit also uncovered pre-existing bugs in `HwTclParser` (silently dropping `[expr ...]` bracket expressions it couldn't reduce), one-sided string-quote normalization, and conduit interfaces ignoring their own `physicalPrefix` when computing accounted-for port names. ([#93](https://github.com/bleviet/ipcraft-vscode/issues/93), [#94](https://github.com/bleviet/ipcraft-vscode/issues/94))
-- **Vivado `component.xml` import/export correctness**: fixed two bugs surfaced by the new bus-interface/register comparison — `portNameOverrides` (per-signal renamed suffixes) were never passed through when generating `component.xml`, so renamed ports exported with the wrong physical names, and were never reconstructed at all when _importing_ a `component.xml`; a bus interface with no common physical prefix (an empty-string prefix) lost its per-signal renames entirely on import, since the override computation only ran when a prefix was present.
-- **Unsorted RTL file order in generated `component.xml`**: the `fileSets` fallback path (used when explicit RTL file list isn't supplied, e.g. import-only flows) emitted files in raw declaration order instead of compile-dependency order, unlike the equivalent Quartus `_hw.tcl` fallback — could place a register file before its package, causing simulation errors. ([#91](https://github.com/bleviet/ipcraft-vscode/issues/91))
-- **Memory map indicator not opening for a per-interface `memoryMapRef`**: the canvas click-to-open handler for a bus interface's memory-map indicator only resolved the global `memoryMaps: { import }` form, never the array-of-named-maps form (`memoryMaps: [{ name, import }]`) written when a map is attached to a specific bus interface — clicking the indicator silently did nothing. ([#95](https://github.com/bleviet/ipcraft-vscode/issues/95))
+- Consistency Check no longer reports bus-interface ports, interrupts or quoted string defaults as differences, and checks HDL files without an explicit `managed` flag.
+- Renamed bus ports are kept when exporting to and importing from Vivado `component.xml`.
+- Generated `component.xml` lists RTL files in compile order.
+- Clicking the memory-map indicator of a bus interface opens its memory map.
 
 ## [0.8.9] - 2026-07-16
 
-### Added
+### New
 
-- **Generate Documentation**: a new standalone command and toolbar button that renders a full Markdown IP datasheet (`docs/<name>_datasheet.md`) covering overview, parameters, ports, bus interfaces, clocks/resets, and the register map. `IPCraft: Scaffold Project` now also emits the datasheet by default, gated by the new `ipcraft.generate.includeDocs` setting. ([#87](https://github.com/bleviet/ipcraft-vscode/issues/87))
-- **Optional IP author field**: a new `author` field on the IP core, shown in the canvas Inspector's Details section and as a third block-header subtitle (visible only when set); flows into generated file headers and Platform Designer's legacy `AUTHOR` property. ([#86](https://github.com/bleviet/ipcraft-vscode/issues/86))
-- **Report Issue / Send Feedback button**: a feedback button in the IP Core editor toolbar and the Memory Map editor sidebar strip opens VS Code's native issue reporter (pre-filled with extension/VS Code/OS versions), and the same action is now offered alongside "Show Logs" whenever an error notification is shown. No GitHub token or secrets are stored in the extension — submission happens through the user's browser. ([#85](https://github.com/bleviet/ipcraft-vscode/issues/85))
+- **Generate Documentation** creates a Markdown datasheet of the IP (parameters, ports, bus interfaces, clocks and resets, register map). Scaffold Project includes it by default; turn it off with `ipcraft.generate.includeDocs`.
+- An optional `author` field, shown in the Inspector and the block header and written into generated file headers.
+- **Report Issue** in the editors and next to error messages opens VS Code's issue reporter with your versions filled in.
 
 ## [0.8.8] - 2026-07-14
 
-### Added
+### New
 
-- **`ipcraft` CLI**: a new standalone `ipcraft` command-line tool (`npx ipcraft generate ...`) that runs the same generator as the extension without needing VS Code or a built extension source tree. ([#72](https://github.com/bleviet/ipcraft-vscode/issues/72))
-- **`ipcraft verify`**: regenerates a `.ip.yml` in memory and diffs it against what's actually committed in a generated directory, listing every stale or missing file and exiting non-zero on drift — a CI/pre-commit gate for "generated output matches the current spec". ([#73](https://github.com/bleviet/ipcraft-vscode/issues/73))
-- **`IPCraft: Check HDL Consistency (managed:false)`**: cross-references a `.ip.yml`'s declared ports/clocks/resets/parameters against its `managed: false` top-level HDL. ([#74](https://github.com/bleviet/ipcraft-vscode/issues/74))
-- `fileSets` entries marked `managed: false` that collide with a scaffold target are now never (re)generated, even on the very first run, instead of only once the file already exists on disk. ([#75](https://github.com/bleviet/ipcraft-vscode/issues/75))
-- `simulation.topLevel` in `.ip.yml` now overrides the generated cocotb testbench's `TOPLEVEL` (e.g. to point at a board wrapper), defaulting to the IP core's own name. ([#78](https://github.com/bleviet/ipcraft-vscode/issues/78))
+- **`ipcraft` command-line tool** runs the same generator as the extension, without VS Code.
+- **`ipcraft verify`** checks that generated files match the current `.ip.yml` and fails if they do not, for CI or pre-commit checks.
+- **IPCraft: Check HDL Consistency (managed:false)** compares an `.ip.yml` with hand-written top-level HDL.
+- Files marked `managed: false` are never generated, not even the first time.
+- `simulation.topLevel` sets the top level of the generated cocotb testbench, for example a board wrapper.
 
 ### Fixed
 
-- **Quartus HDL input-version misconfiguration**: `quartus_project.tcl` unconditionally emitted a VHDL-2008 input-version assignment even for pure-SystemVerilog designs, which Quartus 23.1std rejects for mixed/SV-only projects. Now derives VHDL/SV presence from the actual RTL file list and emits the correct assignment(s) — `VERILOG_INPUT_VERSION SYSTEMVERILOG_2005` for SV, `VHDL_INPUT_VERSION VHDL_2008` for VHDL, or both for mixed-language designs. ([#76](https://github.com/bleviet/ipcraft-vscode/issues/76))
-- **Bus-less generated output hygiene**: `_hw.tcl` no longer claims an "Avalon-MM slave interface for register access" in its header comment for components with no memory-mapped slave (e.g. clock + reset + one conduit), and the generated Quartus SDC no longer emits `derive_pll_clocks` for designs with no PLL instantiated — both were previously unconditional. ([#77](https://github.com/bleviet/ipcraft-vscode/issues/77))
-- **HDL Consistency Check and `ipcraft verify` refinements**: a file listed in more than one `fileSet` no longer produces duplicate findings; when several `managed: false` HDL files exist, only the one whose entity/module name matches the IP core's name is checked against the full port/clock/reset/parameter list (falling back to checking every file when the top-level can't be identified), so a hand-authored submodule that doesn't expose the top-level interface no longer produces false missing-port findings; `ipcraft verify` now also scans for files left behind in a directory after a `--target` is dropped (previously invisible, since the scan only walked directories the _current_ invocation's target list touches); and a schema-invalid `.ip.yml` with an undefined name can no longer spuriously "match" an unparseable HDL file as the top-level.
+- Quartus projects use the right HDL version setting for SystemVerilog-only and mixed designs.
+- Components without a memory-mapped slave no longer get misleading `_hw.tcl` comments or an unneeded `derive_pll_clocks`.
+- HDL Consistency Check no longer repeats findings or reports submodules as missing top-level ports, and `ipcraft verify` notices leftover files of removed targets.
 
 ## [0.8.7] - 2026-07-12
 
-### Added
+### New
 
-- **Hardware-validated example projects** (`examples/`): three full IPCraft-generated example projects — a minimal Avalon-MM LED peripheral, and register/field-access conformance suites over Avalon-MM and AXI4-Lite — validated end-to-end on real DE10-Nano hardware. They double as generator regression fixtures.
-
-### Fixed
-
-- **SLVERR not returned for unmapped AXI-Lite reads**: the generated AXI-Lite bus wrapper's register bank asserted `rd_valid` on every `rd_en` regardless of address validity, so the SLVERR path was dead code and reads to unmapped addresses returned `RRESP=OKAY` with zero data instead of `RRESP=SLVERR`. Fixed in both the VHDL and SystemVerilog templates to match the already-correct write-response behavior. (Fixes [#59](https://github.com/bleviet/ipcraft-vscode/issues/59))
-- **Reset-value overflow and WORD-addressed Avalon-MM slave bugs**: a 32-bit `resetValue` at or above `0x80000000` overflowed VHDL's signed 32-bit `integer`/`natural` default type and failed GHDL elaboration; fixed by emitting a fixed-width bit-string literal instead. Separately, an Avalon-MM slave whose address port is narrowed via `portWidthOverrides` (for Nios II-compatible WORDS addressing) produced an out-of-range VHDL slice; fixed by zero-padding instead of slicing, with a companion fix so the generated `_hw.tcl` correctly declares `addressUnits WORDS` to match.
-- **Stale RTL files leaking into vendor packaging on a language switch**: regenerating an IP in a different `ipcraft.generate.hdlLanguage` than its existing `fileSets` entries (e.g. re-running in SystemVerilog when `fileSets` still names `.vhd` files) pulled the stale files back in alongside the freshly generated ones, corrupting the resulting Makefile/`component.xml`/Vivado/Quartus project scripts. `fileSets`-declared paths are now deduplicated against freshly generated output by path stem, ignoring extension.
+- Three example projects, tested on DE10-Nano hardware: an Avalon-MM LED peripheral and register-access test suites for Avalon-MM and AXI4-Lite.
 
 ### Changed
 
-- Packaged `.vsix` no longer includes dev-only files (`build/`, `docker/`, `Jenkinsfile`, `AGENTS.md`, `CLAUDE.md`) or the `.test-fixtures/`/`examples/` directories, reducing package size.
+- Smaller extension download.
+
+### Fixed
+
+- Generated AXI4-Lite slaves return SLVERR for reads from unmapped addresses.
+- Reset values of `0x80000000` and above, and Avalon-MM slaves with word addressing, generate valid VHDL.
+- Switching between VHDL and SystemVerilog no longer pulls old RTL files into the vendor projects.
 
 ## [0.8.6] - 2026-07-10
 
-### Added
+### New
 
-- **Bus interface clock/reset routing matrix**: a new clickable "Ports" header on the IP Core canvas (positioned below the Generics/Dependencies sections, mirroring the existing Generics overview) opens a matrix panel listing every bus interface with inline Clock/Reset dropdowns and a hover-to-delete action, plus a separate Resets section showing each reset's own associated clock — so clock/reset routing can be audited and fixed across the whole core without clicking through each interface individually. ([#57](https://github.com/bleviet/ipcraft-vscode/issues/57))
+- **Clock and reset overview.** Click the Ports header on the IP Core canvas to see every bus interface with its clock and reset, change them in place, and check which clock each reset belongs to.
 
 ## [0.8.3] - 2026-07-07
 
 ### Fixed
 
-- **Parameterized port widths lost their function/generic on VHDL and Verilog import**: `extractWidthFromType`/`extractWidth` only recognized a predefined width function (`clog2`, `log2`, `ceil`, `floor`, `min`, `max`) when its argument was a bare parameter name. A function applied to an arithmetic expression on a generic — e.g. `clog2(DW/2)` — matched none of the import patterns: the Verilog importer dropped the width entirely (silently falling back to a fixed default, losing the generic reference altogether), and the VHDL importer fell back to re-storing the raw expanded VHDL text (`integer(ceil(log2(real(DW/2))))`) instead of the canonical `clog2(DW/2)`, which then failed to parse on the next regeneration and leaked VHDL-only syntax into SystemVerilog/Tcl output. Both importers now reverse-map the generator's own canonical VHDL/SystemVerilog expansions back to the width-expression form via the shared `widthExprAst` module, with the function argument allowed to be an arbitrary arithmetic expression. ([#37](https://github.com/bleviet/ipcraft-vscode/issues/37))
+- Importing VHDL or Verilog keeps port widths such as `clog2(DW/2)` instead of losing the parameter or storing VHDL-only text.
 
 ## [0.8.2] - 2026-07-04
 
 ### Fixed
 
-- **Vivado VHDL-93/2008 misclassification**: generated `component.xml` registered every VHDL file as plain `vhdlSource`, which Vivado treats as VHDL-93 when the IP is instantiated in a block design, rejecting VHDL-2008 constructs during synthesis. VHDL files now default to VHDL-2008 (`userFileType vhdlSource-2008`, matching Vivado's own packaging), and each file in a `fileSets` entry can set an explicit `version` (`87`/`93`/`2002`/`2008`/`2019`) via a new dropdown in the Source Files editor. ([#28](https://github.com/bleviet/ipcraft-vscode/issues/28))
+- Vivado treats generated VHDL files as VHDL-2008, so VHDL-2008 code synthesizes in block designs. Each file can be set to another VHDL version in the Source Files editor.
 
 ## [0.8.0] - 2026-06-27
 
-### Added
+### New
 
-- **Master-detail block editor**: the address-block screen now shows the register map alongside an inline register editor, so registers can be edited in place without leaving the block.
-- **Drag-to-reorder in the outline**: address blocks, top-level registers, and registers inside a register array can now be reordered by dragging their gripper handle. Moves are confined to the same sibling group and repack offsets automatically.
-- **Live reorder preview**: dragging a bit field or an outline node reflows the list into the prospective drop position in real time, with a theme-aware focus ring marking the item being moved (replaces the previous drop-line indicators).
+- Edit registers right next to the register map of their address block.
+- Drag address blocks and registers in the outline to reorder them; offsets update automatically.
+- While dragging a bit field or outline item, the list shows where it will land.
 
 ### Fixed
 
-- **Register map visualizer**: register name labels stay visible when the panel is resized narrow, the register-array badges no longer crop, and the side-by-side panes are resizable.
+- Register map labels stay readable in a narrow panel, and the panes can be resized.
 
 ## [0.3.0] - 2026-06-13
 
 ### Fixed
 
-- **Memory Map Structural Desync**: Fixed a critical bug where array-level operations (insert, delete, drag-and-drop relocate) on Address Blocks, Registers, and Bitfields would corrupt memory address offsets and bit range allocations.
-- **Memory map file corruption on rapid edits**: register insertions sent two document updates back-to-back (structural edit + layout repack); the second edit could race the first in the extension host, replacing only the older document extent and leaving a stale tail of duplicated YAML. The webview now applies the edit and the repack in a single pass (one update per gesture), and `DocumentManager` serializes document updates per URI so overlapping edits can never use a stale replace range.
-- **Spurious document changes and whole-file reformatting**: clicking around the memory map view could mark the file dirty without any real edit (editors committed unchanged values on blur), and every write reserialized the entire document with js-yaml — changing indentation and deleting all comments. All memory-map writes now go through `YamlService.applyPathEdits`, which edits the parsed document in place (yaml Document API): no-op edits produce no update at all, untouched content keeps its formatting, comments and hex spellings, and structural edits only re-render the subtree that actually changed.
-- **YAML schema pollution**: whole-map and array-level writes now pass through a `YamlSanitizer` that strips runtime-only keys (`address_offset`, `base_address`, `bit_offset`/`bit_width`/`bit_range`, `__kind`), canonicalizes aliases to the ipcraft-spec schema spelling (`baseAddress`, `resetValue`, `enumeratedValues`), and drops injected defaults (`size: 32`, `range: 4096`, `monitorChangeOf: null`). `DataNormalizer` no longer fabricates `range` and preserves `defaultRegWidth`, so those values survive round-trips through the editor.
-
-### Changed
-
-- **Stateless Layout Recomputation**: Replaced ad-hoc manual array shifting and incremental offset math in UI components with a centralized, pure functional `LayoutEngine` that strictly enforces invariants top-down.
-- **Mutation Service API**: Re-architected structural edits across the application (in `BlockEditor.tsx`, `RegisterMapVisualizer.tsx`, and `FieldOperationService.ts`) to use `MutationService` for array state manipulations, followed by a global `recomputeFullLayout` pass.
+- Inserting, deleting or moving address blocks, registers and bit fields no longer corrupts offsets and bit ranges.
+- Fast edits in the Memory Map editor can no longer corrupt the file.
+- Clicking around the Memory Map editor no longer marks the file as changed, and edits keep your formatting, comments and hex values.
+- Values the editor uses internally are no longer written into your files, a `range` you did not set is no longer added, and `defaultRegWidth` is kept.
 
 ## [0.2.0] - 2026-05-23
 
-### Added
+### New
 
-- **SystemVerilog generation**: all scaffold and generate commands now produce `.sv` source files when `ipcraft.generate.hdlLanguage` is set to `systemverilog`. The scaffold command generates the full project layout (package, top, core, bus wrapper, register file) in the configured HDL language.
-- **Headless build** (`IPCraft: Build`): compiles Vivado (OOC and full XPR) and Quartus projects in batch mode from inside VS Code, without opening the GUI. Live output streams to a dedicated _IPCraft Build_ Output Channel.
-- **Build Reports panel**: Explorer sidebar tree view showing WNS/WHS (Vivado) or Fmax (Quartus), LUT/FF/BRAM/DSP utilization, and CDC violations. Click any node to open the corresponding report file.
-- **Status bar build indicator**: shows live `$(loading~spin) Building…` while running; collapses to `$(pass) WNS +1.23ns` or `$(pass) Fmax 156 MHz` on success.
-- **`vivado_run_ooc.tcl`** and **`vivado_run_xpr.tcl`** scripts generated alongside the Vivado project files, allowing headless OOC synthesis and full implementation via `vivado -mode batch`.
-- New settings: `ipcraft.quartus.shellPath` (path to `quartus_sh`), `ipcraft.build.jobs` (parallel job count), and `ipcraft.generate.hdlLanguage` (`vhdl` or `systemverilog`).
-- Vivado project output directory changed from `<ip_name>_vivado/` to `build/ooc/` to keep source files clean.
-- **Full bus-interface detection in VHDL parser**: `detectBusInterfaces` now scores against all five supported bus definitions — AXI4-Full, AXI4-Lite, AXI-Stream, Avalon-MM, and Avalon-ST — using a prefix-based scoring algorithm with exclusive-signal disambiguation (e.g. `awlen`/`wlast` distinguish AXI4-Full from AXI4-Lite) and a pollution ratio check to reject false-positive matches.
-- **Auto clock/reset association**: when a VHDL entity has exactly one clock and one reset, the parser automatically populates `associatedReset` on clock entries, `associatedClock` on reset entries, and `associatedClock`/`associatedReset` on every detected bus interface.
-- **IPCraft application menu**: added a top-level **IPCraft** entry to the VS Code application menu bar. All file-type commands (scaffold, export, build, import) are now accessible from this menu without needing to right-click a file in the Explorer.
-- **`_hw.tcl` source directive resolution**: the Platform Designer importer now follows `source` directives recursively, so multi-file IP core packages are imported in full.
-- **Compilation-order sorting**: imported fileset files are sorted by compilation dependency order (packages before entities, entities before architectures) when scaffolding from existing source.
+- **SystemVerilog generation.** Set `ipcraft.generate.hdlLanguage` to `systemverilog` to generate the full project in SystemVerilog.
+- **IPCraft: Build** compiles Vivado and Quartus projects in the background, with live output in the IPCraft Build output channel and the result (timing or Fmax) in the status bar.
+- **Build Reports panel** shows timing, resource use and CDC violations; click an entry to open the report.
+- Vivado projects include scripts for batch out-of-context synthesis and full implementation.
+- New settings: `ipcraft.quartus.shellPath`, `ipcraft.build.jobs` and `ipcraft.generate.hdlLanguage`.
+- VHDL import detects AXI4, AXI4-Lite, AXI-Stream, Avalon-MM and Avalon-ST interfaces, and connects the clock and reset automatically when there is only one of each.
+- An **IPCraft** menu in the menu bar.
+- Platform Designer import follows `source` commands, so components split over several files are imported in full.
+- Imported source files are put in compile order.
 
 ### Changed
 
-- `IPCraft: Scaffold VHDL Project` renamed to `IPCraft: Scaffold Project` to reflect support for both VHDL and SystemVerilog.
-- `IPCraft: Generate VHDL` renamed to `IPCraft: Generate HDL` to reflect support for both HDL languages.
-- `IPCraft: Scaffold Project` now always generates Vivado and Quartus project files by default.
-- Removed the table view from the IP Core editor; the canvas is now the default (and only) view.
-- Vendor output directory for Vivado renamed from `amd/` to `xilinx/` to better reflect common usage.
-- Simulation_Resources filesets are excluded from generated Vivado/Quartus project files.
-- Removed all commands from the Explorer and editor context menus for `.ip.yml`, `.vhd`/`.vhdl`, and `component.xml` files. Commands are now accessed via the Command Palette, the **IPCraft** application menu, or the editor title bar.
-- Documentation: updated all references to `amd/` → `xilinx/`; added Commands & Settings reference page; added Building a Project how-to; updated README with complete command listing and SystemVerilog coverage.
+- **IPCraft: Scaffold VHDL Project** is now **IPCraft: Scaffold Project** and **IPCraft: Generate VHDL** is now **IPCraft: Generate HDL**.
+- Scaffold Project always creates Vivado and Quartus projects.
+- The IP Core editor opens on the canvas; the table view is gone.
+- Vivado output is in `xilinx/` (was `amd/`) and Vivado projects in `build/ooc/`.
+- Simulation-only files are left out of Vivado and Quartus projects.
+- Commands moved out of the Explorer and editor context menus into the Command Palette, the IPCraft menu and the editor title bar.
 
 ### Fixed
 
-- VHDL parser no longer produces false-positive Avalon-ST detections on register bank ports such as `rd_data`/`rd_valid` when sibling ports (`rd_en`, `rd_addr`) clearly indicate a different interface.
-- Logger unit tests: resolved split-module-instance issue where `jest.mock()` factory and `moduleNameMapper` each created their own `vscode` instance, causing mock channel assertions to fail.
-- Browser integration tests: fixed Playwright strict-mode violations caused by `getByText()` matching both HTML `<span>` elements and SVG `<text>` nodes for VLNV info strings.
-- Scaffolder now includes all HDL languages (VHDL and SystemVerilog) when sorting imported fileset files.
+- VHDL import no longer mistakes register-bank ports such as `rd_data`/`rd_valid` for Avalon-ST.
 
 ## [0.1.0] - 2026-03-29
 
-### Added
+### New
 
-- Extension icon (PNG) based on bahonavi brand guidelines.
-- Publishing metadata and optimized `.vscodeignore` for smaller package size.
-- Support for visual editing of IP Core and Memory Map specifications.
-- VHDL generation and import capabilities.
-- Integrated Bus Library viewer.
-
-## 2026-03-28
-
-### Changed
-
-- Renamed vendor options from `intel`/`xilinx` to `altera`/`amd` across the entire codebase.
-- Renamed generator templates: `intel_hw_tcl.j2` to `altera_hw_tcl.j2`, `xilinx_component_xml.j2` to `amd_component_xml.j2`, `xilinx_xgui.j2` to `amd_xgui.j2`.
-- Renamed vendor output directories from `intel/`/`xilinx/` to `altera/`/`amd/`.
-- Updated UI labels in GeneratorPanel to reflect new vendor names.
-- Updated `ipcraft-spec` submodule: renamed example vendor directories and updated bus definitions.
-
-## 2026-02-24
-
-### Changed
-
-- Restructured `docs/` from flat files into mkdocs-friendly directory layout with sections: Getting Started, Concepts, Architecture, Reference, Contributing.
-- Added `mkdocs.yml` configuration with Material theme, mermaid diagrams, and full navigation.
-- Removed temporary planning files (`plan.md`, `review.md`).
-
-## 2026-02-22
-
-### Added
-
-- Side-by-side register layout with vertical bitfield view.
-- Vertical layout mode for Register Block, Address Map, Register Array Editor, and RegisterEditor.
-
-### Changed
-
-- Shared bit-cell styling refactored across pro and vertical layouts.
-- Finalized vertical visualizer density and headerless shell updates.
-- Reduced text value field width to 120px.
-- Set default layout to side-by-side with vertical visualizer for RegisterEditor.
-- Updated responsive design docs for current vertical visualizer behavior.
-
-## 2026-02-21
-
-### Added
-
-- Added reusable inline editing component at `src/webview/ipcore/components/sections/InlineEditField.tsx`.
-
-### Changed
-
-- Began P4-1 decomposition of `BusInterfacesEditor` by replacing repeated inline edit/save/cancel UI blocks with `InlineEditField`.
-- Updated `plan.md` to record the P4-1 decomposition slice and verification results.
-
-## 2026-02-21 (decomposition slice 4)
-
-### Added
-
-- Added `useBusInterfaceEditing` at `src/webview/ipcore/hooks/useBusInterfaceEditing.ts` to encapsulate bus-interface editing state, actions, and keyboard behavior.
-
-### Changed
-
-- Rewired `BusInterfacesEditor` to consume `useBusInterfaceEditing` and delegate state/action logic to the hook.
-- Reduced `BusInterfacesEditor` to orchestrator layout/iteration responsibilities (277 lines).
-- Updated `plan.md` with slice 4 progress and verification results.
-
-### Verification
-
-- `npm run lint -- --max-warnings 0` passed.
-- `npm run compile` passed.
-- `npm test` passed (26 suites, 206 tests).
-
-## 2026-02-21 (decomposition slice 6)
-
-### Added
-
-- Added `src/webview/components/bitfield/reorderAlgorithm.ts` for Ctrl-drag reorder preview computation.
-- Added `src/webview/components/bitfield/keyboardOperations.ts` for keyboard reorder/resize helpers.
-
-### Changed
-
-- Rewired `src/webview/components/BitFieldVisualizer.tsx` to consume extracted reorder and keyboard modules.
-- Grouped `src/webview/components/bitfield/ProLayoutView.tsx` inputs into `hoverState`, `dragState`, `interactions`, and `layoutConfig` objects.
-- Extended `src/webview/components/bitfield/utils.ts` with bit-array and register-value helper functions used by the visualizer.
-- Deduplicated `ValueBar` JSX in `BitFieldVisualizer`.
-- Reduced `BitFieldVisualizer.tsx` from 603 lines to 380 lines, completing P4-2 target (<400).
-- Updated `plan.md` to record P4-2 completion and verification.
-
-### Verification
-
-- `npm run lint -- --max-warnings 0` passed.
-- `npm run compile` passed.
-- `npm test` passed (26 suites, 206 tests).
-
-## 2026-02-21 (decomposition slice 5)
-
-### Added
-
-- Added shared bitfield utility module at `src/webview/components/bitfield/utils.ts`.
-
-### Changed
-
-- Extracted 14 module-level utility helpers from `src/webview/components/BitFieldVisualizer.tsx` into the shared bitfield utility module.
-- Rewired `BitFieldVisualizer` to consume utility functions from `bitfield/utils.ts`.
-- Reduced `BitFieldVisualizer.tsx` from 862 lines to 603 lines.
-- Updated `plan.md` with P4-2 slice 1 progress and verification results.
-
-### Verification
-
-- `npm run lint -- --max-warnings 0` passed.
-- `npm run compile` passed.
-- `npm test` passed (26 suites, 206 tests).
+- First release: visual editors for IP Core and Memory Map files, VHDL generation and import, and a Bus Library viewer.

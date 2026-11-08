@@ -1,9 +1,8 @@
 /**
  * Net-name badges for pins of clock and reset nets, drawn in place of those
- * nets' wires while the wires are off. The badge text and size are always
- * reserved in the ELK graph as OUTSIDE port labels, so the layout is the same
- * whether the wires or the badges are drawn; the label position ELK returns is
- * where the badge is drawn.
+ * nets' wires. The badge text and size are reserved in the ELK graph as
+ * OUTSIDE port labels; the label position ELK returns is where the badge is
+ * drawn.
  */
 
 import type { ElkLabel, ElkPort } from 'elkjs/lib/elk-api';
@@ -69,7 +68,7 @@ export function sourceInstance(graph: SystemGraph, net: SystemNet): string | und
   return first?.instance !== null && roles[0] === 'none' ? first?.instance : undefined;
 }
 
-/** The clock and reset nets of the level, whose wires can be off, keyed by {@link endpointKey}. */
+/** The clock and reset nets of the level, drawn as badges, keyed by {@link endpointKey}. */
 export function clockResetNetsByEndpoint(
   graph: SystemGraph,
   levelPath: string

@@ -18,18 +18,15 @@ const edgeIds = (input: { edges?: { id: string }[] }) => (input.edges ?? []).map
 describe('buildElkInput with bus bundling', () => {
   it('is today input without busBundling', () => {
     const plain = buildElkInput(graph, '/', { measure: fakeMeasure });
-    expect(edgeIds(plain)).toEqual(['/::n_a#1', '/::n_b#1', '/::n_c#1', '/::clk#1']);
+    expect(edgeIds(plain)).toEqual(['/::n_a#1', '/::n_b#1', '/::n_c#1']);
     expect(buildElkInput(graph, '/', { measure: fakeMeasure, busBundling: undefined })).toEqual(
       plain
     );
   });
 
-  it('emits one edge per bundle between the median ports, the clock edge apart', () => {
+  it('emits one edge per bundle between the median ports', () => {
     const input = buildElkInput(graph, '/', { measure: fakeMeasure, busBundling: none });
-    expect(input.edges).toEqual([
-      { id: '/::clk#1', sources: ['/src::clk'], targets: ['/dst::clk'] },
-      { id: BUNDLE, sources: ['/src::m_b'], targets: ['/dst::s_b'] },
-    ]);
+    expect(input.edges).toEqual([{ id: BUNDLE, sources: ['/src::m_b'], targets: ['/dst::s_b'] }]);
   });
 
   it('keeps every edge of an unbundled key', () => {
@@ -37,7 +34,7 @@ describe('buildElkInput with bus bundling', () => {
       measure: fakeMeasure,
       busBundling: { unbundled: new Set([BUNDLE]) },
     });
-    expect(edgeIds(input).sort()).toEqual(['/::n_a#1', '/::n_b#1', '/::n_c#1', '/::clk#1'].sort());
+    expect(edgeIds(input).sort()).toEqual(['/::n_a#1', '/::n_b#1', '/::n_c#1']);
   });
 
   it('does not bundle across a row that is not a member', () => {
@@ -64,7 +61,6 @@ describe('buildElkInput with bus bundling', () => {
       busBundling: none,
     });
     expect(input.edges).toEqual([
-      { id: '/::clk#1', sources: ['/src::clk'], targets: ['/dst::clk'] },
       {
         id: BUNDLE,
         sources: ['/src::m_*|master|i'],
@@ -103,7 +99,7 @@ describe('toFlowElements with bus bundling', () => {
 
   it('draws one flow edge per bundle with its members, label and comb branches', async () => {
     const { edges, nodes } = await flowOf({});
-    expect(edges.map((edge) => edge.id).sort()).toEqual(['/::clk#1', BUNDLE]);
+    expect(edges.map((edge) => edge.id)).toEqual([BUNDLE]);
     const edge = edges.find((candidate) => candidate.id === BUNDLE)!;
     expect(edge).toMatchObject({
       type: 'elk',
@@ -138,9 +134,7 @@ describe('toFlowElements with bus bundling', () => {
 
   it('draws the three edges again once the key is unbundled', async () => {
     const { edges } = await flowOf({ unbundled: new Set([BUNDLE]) });
-    expect(edges.map((edge) => edge.id).sort()).toEqual(
-      ['/::clk#1', '/::n_a#1', '/::n_b#1', '/::n_c#1'].sort()
-    );
+    expect(edges.map((edge) => edge.id).sort()).toEqual(['/::n_a#1', '/::n_b#1', '/::n_c#1']);
     expect(edges.every((edge) => edge.data.bundle === undefined)).toBe(true);
   }, 20000);
 

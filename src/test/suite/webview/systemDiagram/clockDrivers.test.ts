@@ -280,15 +280,12 @@ describe('a reset net whose driver is not known', () => {
     ]);
   });
 
-  it('keeps the wire muted in the domain mode, like an asynchronous reset', () => {
-    const edge = { id: `${RESET}#0`, data: { netId: RESET, category: 'reset' as const } };
-    const context = {
-      analysis,
-      domainMode: true,
-      tree: undefined,
-      crossingEdgeIds: new Set<string>(),
-    };
-    expect(edgeMarks(context, edge)).toEqual({ dotted: true, domainColor: UNRELEASED_RESET_COLOR });
+  it('keeps its pins muted in the domain mode, like an asynchronous reset', () => {
+    const marks = nodePinMarks(
+      { graph: edited, analysis, domainMode: true, tree: undefined, crossingKeys: new Set() },
+      WIZARD
+    );
+    expect(marks?.resetn?.color).toBe(UNRELEASED_RESET_COLOR);
   });
 });
 
@@ -325,12 +322,7 @@ describe('nets on a status output of a clock IP', () => {
     );
     expect(marks?.dcm_locked).toBeUndefined();
     const edge = { id: `${LOCKED}#0`, data: { netId: LOCKED, category: 'clock' as const } };
-    const context = {
-      analysis,
-      domainMode: true,
-      tree: undefined,
-      crossingEdgeIds: new Set<string>(),
-    };
+    const context = { domainMode: true, tree: undefined, crossingEdgeIds: new Set<string>() };
     expect(edgeMarks(context, edge)).toEqual({ dimmed: true });
     expect(marks?.slowest_sync_clk?.color).toBe(analysis.domains[0].color);
   });

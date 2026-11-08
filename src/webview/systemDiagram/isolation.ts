@@ -12,9 +12,9 @@ export type IsolationHops = 1 | 2;
  * distance over edges of any direction); clock and reset edges pull no
  * neighbour in. The edges kept are those of any category between two visible
  * nodes at least one of which is closer than `hops`, so with one hop the
- * edges between a selected node and a visible one, and the clock and reset
- * wires between kept blocks are there to draw. A selected node without edges
- * is still shown. It depends on no view toggle.
+ * edges between a selected node and a visible one (the layout keeps only the
+ * clock and reset edges that anchor a block, see `placementEdges`). A selected
+ * node without edges is still shown. It depends on no view toggle.
  */
 export function isolationSubset(
   graph: SystemGraph,

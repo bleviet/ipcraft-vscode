@@ -10,7 +10,7 @@ const graph = loadFixtureGraph();
 const LAYER = 'elk.layered.layering.layerConstraint';
 const PARTITION = 'elk.partitioning.partition';
 
-// A tier-3 path against the signal direction, starting at a sink port (LAST without a trace).
+// A tier-3 path against the signal direction, starting at a sink port.
 const FROM = boundaryId('/', 'leds_4bits');
 const TO = '/processing_system7_0';
 const trace = computePathTrace(graph, '/', FROM, TO)!;
@@ -34,7 +34,7 @@ describe('buildElkInput of a traced path', () => {
     for (const node of input.children!) {
       expect(node.layoutOptions).not.toHaveProperty(PARTITION);
     }
-    expect(child(input, FROM).layoutOptions?.[LAYER]).toBe('LAST');
+    expect(child(input, FROM).layoutOptions).not.toHaveProperty(LAYER);
   });
 
   it('lays the path out left to right with the hop badges on the nodes', async () => {

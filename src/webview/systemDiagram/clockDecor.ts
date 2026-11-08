@@ -59,11 +59,10 @@ export function clockDecor(
   const edges = layout?.edges ?? [];
   const members = new Map(edges.map((edge) => [edge.id, memberEdges(edge)]));
   const edgeContext = {
-    analysis,
     domainMode,
     tree,
     crossingEdgeIds: domainMode
-      ? crossingEdgeIds(graph, [...members.values()].flat(), analysis.crossings)
+      ? crossingEdgeIds([...members.values()].flat(), analysis.crossings)
       : new Set<string>(),
   };
   const pinContext = {

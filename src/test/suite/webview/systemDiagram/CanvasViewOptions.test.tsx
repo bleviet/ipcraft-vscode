@@ -32,7 +32,6 @@ function Harness({ layout }: { layout: React.ComponentProps<typeof DiagramCanvas
         isolated={false}
         review={null}
         clocks={clockContextOf(graph)}
-        drawClockReset={false}
         focusedPin={null}
         query=""
         view={view}

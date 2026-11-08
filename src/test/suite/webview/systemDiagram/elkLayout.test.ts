@@ -8,12 +8,15 @@ import {
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { isolationSubset } from '../../../../webview/systemDiagram/isolation';
 import { levelEdges } from '../../../../webview/systemDiagram/layout/levelEdges';
-import { boundaryId } from '../../../../webview/systemDiagram/model';
+import { boundaryId, isClockOrReset } from '../../../../webview/systemDiagram/model';
+import type { SystemGraph } from '../../../../domain/systemGraph';
 import {
   loadFixtureGraph,
   loadQsysFixtureGraph,
   loadQsysTclFixtureGraph,
   loadReviewFixtureGraph,
+  loadVersalClockGraph,
+  loadClockFixtureGraph,
   fakeMeasure,
 } from './fixtureGraph';
 
@@ -23,6 +26,19 @@ function child(input: ElkNode, id: string): ElkNode {
   const found = input.children?.find((candidate) => candidate.id === id);
   expect(found).toBeDefined();
   return found!;
+}
+
+/** The net of an ELK or flow edge, from its id `${net.id}#${endpointIndex}`. */
+function netOfEdge(design: SystemGraph, edgeId: string) {
+  const netId = edgeId.slice(0, edgeId.lastIndexOf('#'));
+  const net = design.nets.find((candidate) => candidate.id === netId);
+  expect(net).toBeDefined();
+  return net!;
+}
+
+/** The ELK edges drawn as wires: every one but the clock and reset edges that only anchor a block. */
+function wireCount(design: SystemGraph, input: ElkNode): number {
+  return (input.edges ?? []).filter((edge) => !isClockOrReset(netOfEdge(design, edge.id))).length;
 }
 
 /** Asserts that at least one badge exists and no badge box intersects any node box. */
@@ -102,11 +118,13 @@ describe('buildElkInput', () => {
     expect(westPorts.map((port) => port.y)).toEqual(westPorts.map((_, i) => 42 + i * 18 + 6));
   });
 
-  it('pins boundary sources to the first layer and sinks to the last', () => {
+  it('sizes boundary pins and leaves them free of any layer constraint', () => {
     const source = child(input, boundaryId('/', 'ext_trigger'));
     const sink = child(input, boundaryId('/', 'trigger_pulse'));
-    expect(source.layoutOptions?.['elk.layered.layering.layerConstraint']).toBe('FIRST');
-    expect(sink.layoutOptions?.['elk.layered.layering.layerConstraint']).toBe('LAST');
+    for (const pin of graph.levels['/'].boundaryPins) {
+      const node = child(input, boundaryId('/', pin.name));
+      expect(node.layoutOptions?.['elk.layered.layering.layerConstraint']).toBeUndefined();
+    }
     expect(source.height).toBe(26);
     expect(source.width).toBe(Math.max(100, 24 + 'ext_trigger'.length * 7));
     expect(source.ports).toHaveLength(1);
@@ -123,12 +141,32 @@ describe('buildElkInput', () => {
     }
   });
 
-  it('draws clock and reset nets as edges like any other net, whatever the view shows', () => {
-    const edgesOf = (netId: string) =>
-      (input.edges ?? []).filter((edge) => edge.id.startsWith(`${netId}#`));
-    expect(edgesOf('/::processing_system7_0_FCLK_CLK0').length).toBeGreaterThan(0);
-    expect(edgesOf('/::rst_ps7_0_100M_peripheral_aresetn').length).toBeGreaterThan(0);
-    expect(input.edges).toHaveLength(levelEdges(graph, '/').length);
+  it('places the blocks by their data nets, a clock or reset net only anchoring a block without one', () => {
+    const all = levelEdges(graph, '/');
+    const dataNodes = new Set(
+      all
+        .filter((edge) => !isClockOrReset(edge))
+        .flatMap((edge) => [edge.sourceNode, edge.targetNode])
+    );
+    const clockReset = (input.edges ?? []).filter((edge) =>
+      isClockOrReset(netOfEdge(graph, edge.id))
+    );
+    for (const edge of clockReset) {
+      const target = edge.targets[0].slice(0, edge.targets[0].lastIndexOf('::'));
+      expect({ edge: edge.id, intoDataBlock: dataNodes.has(target) }).toEqual({
+        edge: edge.id,
+        intoDataBlock: false,
+      });
+    }
+    const intoReset = (edges: readonly { id: string; targetNode: string }[]) =>
+      edges.filter((edge) => edge.targetNode === '/rst_ps7_0_100M').map((edge) => edge.id);
+    expect(intoReset(all).length).toBeGreaterThan(0);
+    expect(
+      (input.edges ?? [])
+        .filter((edge) => edge.targets[0].startsWith('/rst_ps7_0_100M::'))
+        .map((edge) => edge.id)
+    ).toEqual(intoReset(all));
+    expect(input.edges!.length).toBeLessThan(all.length);
   });
 });
 
@@ -144,7 +182,10 @@ describe('real ELK layout of the fixture root level', () => {
       expect(Number.isFinite(node.position.y)).toBe(true);
       expect(node.draggable).toBe(false);
     }
-    expect(edges).toHaveLength(input.edges!.length);
+    // The clock and reset edges that anchor a block are laid out but emit no wire.
+    expect(wireCount(graph, input)).toBeLessThan(input.edges!.length);
+    expect(edges).toHaveLength(wireCount(graph, input));
+    expect(edges.some((edge) => isClockOrReset(edge.data))).toBe(false);
     for (const edge of edges) {
       expect(edge.type).toBe('elk');
       expect(edge.data.points.length).toBeGreaterThanOrEqual(2);
@@ -164,7 +205,7 @@ describe('real ELK layout of the qsys fixture root level', () => {
     const input = buildElkInput(qsys, '/', { measure: fakeMeasure });
     const result = await runElkLayout(input);
     const { nodes, edges } = toFlowElements(result, qsys, '/', fakeMeasure);
-    expect(edges).toHaveLength(input.edges!.length);
+    expect(edges).toHaveLength(wireCount(qsys, input));
     expect(edges.length).toBeGreaterThan(0);
     for (const edge of edges) {
       expect(edge.data.points.length).toBeGreaterThanOrEqual(2);
@@ -186,7 +227,7 @@ describe('real ELK layout of the qsys-script fixture root level', () => {
     const input = buildElkInput(qsysTcl, '/', { measure: fakeMeasure });
     const result = await runElkLayout(input);
     const { nodes, edges } = toFlowElements(result, qsysTcl, '/', fakeMeasure);
-    expect(edges).toHaveLength(input.edges!.length);
+    expect(edges).toHaveLength(wireCount(qsysTcl, input));
     expect(edges.length).toBeGreaterThan(0);
     for (const edge of edges) {
       expect(edge.data.points.length).toBeGreaterThanOrEqual(2);
@@ -570,7 +611,7 @@ describe('real ELK layout of expanded blocks', () => {
       expect(inner.position.y).toBeGreaterThanOrEqual(frame.position.y + 42);
       expect(inner.position.y + inner.height).toBeLessThanOrEqual(frame.position.y + frame.height);
     }
-    expect(edges).toHaveLength(input.edges?.length ?? NaN);
+    expect(edges).toHaveLength(wireCount(graph, input));
     expectEndsOnBorders(nodes, edges);
   }, 20000);
 
@@ -651,7 +692,7 @@ describe('real ELK layout of expanded blocks', () => {
       expect(inner.position.y).toBeGreaterThanOrEqual(frame.position.y);
       expect(inner.position.y + inner.height).toBeLessThanOrEqual(frame.position.y + frame.height);
     }
-    expect(edges).toHaveLength(input.edges?.length ?? NaN);
+    expect(edges).toHaveLength(wireCount(graph, input));
     expectEndsOnBorders(nodes, edges);
   }, 20000);
 
@@ -719,4 +760,27 @@ describe('known IP output pins in the pin rows', () => {
       'clk_src',
     ]);
   });
+});
+
+describe('placement of clock and reset input ports', () => {
+  it('anchors a clock or reset input port by one edge to a load that has data edges', () => {
+    const clocked = loadClockFixtureGraph();
+    const input = buildElkInput(clocked, '/', { measure: fakeMeasure });
+    for (const pin of ['ext_clk', 'ext_resetn']) {
+      const port = boundaryId('/', pin);
+      const anchors = (input.edges ?? []).filter(
+        (edge) => edge.sources[0].startsWith(`${port}::`) || edge.targets[0].startsWith(`${port}::`)
+      );
+      expect({ pin, anchors: anchors.length }).toEqual({ pin, anchors: 1 });
+    }
+  });
+});
+
+describe('placement by data flow (real ELK)', () => {
+  it('places the AXI slave of the Versal PS before its reset block', async () => {
+    const versal = loadVersalClockGraph();
+    const result = await runElkLayout(buildElkInput(versal, '/', { measure: fakeMeasure }));
+    const x = (id: string) => child(result, id).x ?? 0;
+    expect(x('/ctrl_smc')).toBeLessThan(x('/rst_clk_out1'));
+  }, 20000);
 });

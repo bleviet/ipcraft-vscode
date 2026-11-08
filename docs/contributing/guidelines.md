@@ -1,6 +1,19 @@
 # Contributing Guidelines
 
-See [CHANGELOG.md](https://github.com/bleviet/ipcraft-vscode/blob/main/CHANGELOG.md) in the repository root for a record of all notable changes.
+IPCraft keeps two change records:
+
+- [CHANGELOG.md](https://github.com/bleviet/ipcraft-vscode/blob/main/CHANGELOG.md)
+  at the repository root holds the user-facing release notes. It ships in the
+  VSIX and is shown on the Marketplace, so write its entries in user terms:
+  what users can now do or what no longer goes wrong, without module names,
+  internal refactors, CI or test changes. Put changes that need action on
+  upgrade (different generated output, schema or pack compatibility) under
+  **Before you upgrade**.
+- The [developer changelog](changelog.md) is the technical record for
+  contributors, with modules, issues and pull requests, including internal work.
+
+Record every notable change in the developer changelog; add a release-notes
+entry as well when users will notice it.
 
 ## Setup
 

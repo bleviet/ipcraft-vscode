@@ -1,10 +1,10 @@
 import type { NetCategory } from '../../../../domain/systemGraph';
-import { withoutHiddenLayers } from '../../../../webview/systemDiagram/drawnLayout';
 import {
   NO_HIDDEN_LAYERS,
   isSoloLayer,
   soloLayer,
   toggleLayer,
+  withoutHiddenLayers,
 } from '../../../../webview/systemDiagram/layerFilter';
 import type { DiagramFlowEdge } from '../../../../webview/systemDiagram/layout/diagramTypes';
 

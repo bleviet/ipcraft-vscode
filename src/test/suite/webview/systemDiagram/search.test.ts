@@ -1,4 +1,9 @@
-import { matchCounter, searchMatches, stepMatch } from '../../../../webview/systemDiagram/search';
+import {
+  findSeed,
+  matchCounter,
+  searchMatches,
+  stepMatch,
+} from '../../../../webview/systemDiagram/search';
 import { loadFixtureGraph } from './fixtureGraph';
 
 const graph = loadFixtureGraph();
@@ -56,5 +61,29 @@ describe('matchCounter', () => {
     expect(matchCounter(['a'], undefined)).toBe('1 match');
     expect(matchCounter(['a', 'b'], 'x')).toBe('2 matches');
     expect(matchCounter(['a', 'b'], 'b')).toBe('2 of 2');
+  });
+});
+
+describe('findSeed', () => {
+  const dma = { kind: 'instance', id: '/axi_dma_0' } as const;
+
+  it('seeds the name of the selected instance', () => {
+    expect(findSeed(graph, '', dma)).toBe('axi_dma_0');
+    expect(findSeed(graph, 'fifo', dma)).toBe('axi_dma_0');
+    expect(findSeed(graph, 'fifo', { kind: 'instance', id: '/dsp_pipeline/coeff_bank' })).toBe(
+      'coeff_bank'
+    );
+  });
+
+  it('keeps a query that already matches the selected instance', () => {
+    expect(findSeed(graph, 'dma', dma)).toBeUndefined();
+    expect(findSeed(graph, 'AXI_DMA', dma)).toBeUndefined();
+  });
+
+  it('keeps the query without a selected instance', () => {
+    expect(findSeed(graph, 'fifo', null)).toBeUndefined();
+    expect(findSeed(graph, 'fifo', { kind: 'net', id: '/axi_dma_0_M_AXIS_MM2S' })).toBeUndefined();
+    expect(findSeed(graph, 'fifo', { kind: 'boundary', id: '/DDR' })).toBeUndefined();
+    expect(findSeed(graph, 'fifo', { kind: 'instance', id: '/gone' })).toBeUndefined();
   });
 });

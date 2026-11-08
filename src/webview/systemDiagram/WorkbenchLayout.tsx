@@ -12,21 +12,24 @@ import { applyHighlight, highlightCount } from './highlights';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
 import { useElkLayout } from './hooks/useElkLayout';
+import { useFindShortcuts } from './hooks/useFindShortcuts';
 import { useMatrixView } from './hooks/useMatrixView';
 import { useIsolation } from './hooks/useIsolation';
+import { useLevelHistory } from './hooks/useLevelHistory';
 import { usePathTrace } from './hooks/usePathTrace';
-import { useMouseBackButton } from './hooks/useMouseBackButton';
+import { useMouseNavigationButtons } from './hooks/useMouseNavigationButtons';
 import { useBusBundling } from './hooks/useBusBundling';
 import { usePinFolding } from './hooks/usePinFolding';
 import { useViewOptions } from './hooks/useViewOptions';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
-import { levelOf, nodeSelection, type Selection } from './model';
+import { nodeSelection, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { TraceBar } from './TraceBar';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
+import { findSeed } from './search';
 import { unconnectedPins, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
 
 interface WorkbenchLayoutProps {
@@ -50,20 +53,14 @@ export function WorkbenchLayout({
   onChangeHighlights,
 }: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
-  const { levelPath, navigate } = nav;
-  useMouseBackButton(
-    useCallback(() => {
-      if (levelPath !== '/') {
-        navigate(levelOf(levelPath));
-      }
-    }, [levelPath, navigate])
-  );
-  // Clocks and resets is drawn, not laid out: no toggle moves a block.
+  const levelHistory = useLevelHistory(graph, nav.levelPath, nav.navigate);
+  useMouseNavigationButtons(levelHistory.up, levelHistory.forward);
+  // Clocks and resets only decorates the layout: no toggle moves a block.
   const [clocksOn, setClocksOn] = useState(false);
   const [query, setQuery] = useState('');
   const view = useIsolation(graph, nav);
   const { isolation } = view;
-  const matrix = useMatrixView(levelPath);
+  const matrix = useMatrixView(nav.levelPath);
   const matrixToggleRef = useRef<HTMLButtonElement>(null);
   // Closing by a gesture inside the matrix hands the focus back to its toggle.
   const closeMatrix = () => {
@@ -84,13 +81,21 @@ export function WorkbenchLayout({
     view.selectInstance(instancePath);
   };
   const search = useSearchStepper(graph, query, nav.selection, revealMatch);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  useFindShortcuts({
+    inputRef: searchInputRef,
+    query,
+    seed: findSeed(graph, query, nav.selection),
+    onQueryChange: setQuery,
+    onStep: search.step,
+  });
   const [tab, setTab] = useState<BottomTab>('address');
   const [reviewUnconnected, setReviewUnconnected] = useState(false);
   const [focusedPin, setFocusedPin] = useState<FocusedPin | null>(null);
   const findings = useMemo(() => unconnectedPins(graph), [graph]);
   const clocks = useMemo(() => analyzeClocks(graph), [graph]);
   const clockSummary = useMemo(() => toolbarSummary(clocks), [clocks]);
-  // The review pauses the domain decorations, not the clock and reset wires.
+  // The review pauses the domain decorations, which Clocks and resets turns on.
   const domainsShown = clocksOn && !reviewUnconnected;
   const clockContext = useMemo(
     () => ({ graph, analysis: clocks, levelPath: nav.levelPath, domainMode: domainsShown }),
@@ -188,6 +193,7 @@ export function WorkbenchLayout({
         graph={graph}
         levelPath={nav.levelPath}
         query={query}
+        searchInputRef={searchInputRef}
         searchCounter={search.counter}
         clocksOn={clocksOn}
         clockSummary={clockSummary}
@@ -269,7 +275,6 @@ export function WorkbenchLayout({
               isolated={isolation !== null}
               review={reviewContext}
               clocks={clockContext}
-              drawClockReset={clocksOn}
               focusedPin={focusedPin}
               query={query}
               view={viewOptions}
@@ -297,7 +302,7 @@ export function WorkbenchLayout({
             {matrix.open && (
               <ConnectivityMatrixView
                 graph={graph}
-                levelPath={levelPath}
+                levelPath={nav.levelPath}
                 onSelectNode={(nodeId) => {
                   closeMatrix();
                   view.selectAndReveal(nodeSelection(nodeId));

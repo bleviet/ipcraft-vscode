@@ -40,7 +40,7 @@ interface FlowNode {
 }
 interface FlowEdge {
   id: string;
-  data: { category: string; domainColor?: string; dotted?: true };
+  data: { category: string; dimmed?: true };
 }
 interface FlowProps {
   nodes: FlowNode[];
@@ -145,9 +145,15 @@ const placement = () =>
     .nodes.map(({ id, position, width, height }) => ({ id, position, width, height }))
     .sort((a, b) => a.id.localeCompare(b.id));
 const wireCategories = () => new Set(flow().edges.map((edge) => edge.data.category));
-const wiresOf = (category: string, mark: 'domainColor' | 'dotted') =>
-  flow().edges.filter((edge) => edge.data.category === category && edge.data[mark] !== undefined);
-const badges = () => screen.queryAllByTitle(/Turn on Clocks and resets to draw it/);
+const dimmedWires = () => flow().edges.filter((edge) => edge.data.dimmed);
+/** Pins colored by their clock domain, as `node/pin`. */
+const domainPins = () =>
+  flow().nodes.flatMap((node) =>
+    Object.entries((node.data as { pinMarks?: Record<string, { color?: string }> }).pinMarks ?? {})
+      .filter(([, mark]) => mark.color !== undefined)
+      .map(([pin]) => `${node.id}/${pin}`)
+  );
+const badges = () => [...document.querySelectorAll('.sd-badge')];
 
 beforeEach(() => {
   mockLayoutRuns = [];
@@ -163,7 +169,7 @@ describe('the placement of the blocks across the view toggles', () => {
 
     fireEvent.click(clocksAndResets());
     await settle();
-    expect(flow().edges.length).toBeGreaterThan(wires);
+    expect(flow().edges).toHaveLength(wires);
     expect(placement()).toEqual(before);
 
     fireEvent.click(clocksAndResets());
@@ -332,13 +338,12 @@ describe('the placement of the blocks across the view toggles', () => {
     await settle();
     expect(flow().nodes.map((node) => node.id)).toEqual(ids);
     expect(placement()).toEqual(before);
-    expect(drawnClockEdgeIds()).toEqual([...clockEdgeIds].sort());
+    expect(drawnClockEdgeIds()).toEqual([]);
 
-    // The review pauses the domain colors, not the clock and reset wires.
     fireEvent.click(unconnectedPins());
     await settle();
     expect(placement()).toEqual(before);
-    expect(drawnClockEdgeIds()).toEqual([...clockEdgeIds].sort());
+    expect(drawnClockEdgeIds()).toEqual([]);
     expect(mockLayoutRuns).toHaveLength(runs);
   }, 20000);
 
@@ -412,39 +417,40 @@ describe('what the toggles draw', () => {
     expect(badges().length).toBeGreaterThan(0);
   }, 20000);
 
-  it('draws the clock and reset wires, not their badges, while Clocks and resets is on', async () => {
+  it('keeps the badges and draws no clock or reset wire while Clocks and resets is on', async () => {
     await renderApp();
+    const shown = badges().length;
     fireEvent.click(clocksAndResets());
     await settle();
-    expect(wireCategories()).toContain('clock');
-    expect(wireCategories()).toContain('reset');
-    expect(badges()).toHaveLength(0);
+    expect(wireCategories()).not.toContain('clock');
+    expect(wireCategories()).not.toContain('reset');
+    expect(badges()).toHaveLength(shown);
   }, 20000);
 
-  it('colors the clock wires by domain and dots the reset wires while Clocks and resets is on', async () => {
+  it('colors the clock and reset pins by domain and dims the data wires while Clocks and resets is on', async () => {
     await renderApp();
-    expect(wiresOf('clock', 'domainColor')).toHaveLength(0);
+    expect(domainPins()).toHaveLength(0);
+    expect(dimmedWires()).toHaveLength(0);
     fireEvent.click(clocksAndResets());
     await settle();
-    expect(wiresOf('clock', 'domainColor').length).toBeGreaterThan(0);
-    expect(wiresOf('reset', 'dotted').length).toBeGreaterThan(0);
+    expect(domainPins()).toContain('/axi_dma_0/s_axi_lite_aclk');
+    expect(dimmedWires().length).toBeGreaterThan(0);
   }, 20000);
 
-  it('keeps the wires in their category colors while the Unconnected pins review pauses the domains', async () => {
+  it('pauses the domain colors while the Unconnected pins review is on, and restores them', async () => {
     await renderApp();
     fireEvent.click(clocksAndResets());
     fireEvent.click(unconnectedPins());
     await settle();
-    expect(wireCategories()).toContain('clock');
-    expect(wireCategories()).toContain('reset');
-    expect(badges()).toHaveLength(0);
-    expect(wiresOf('clock', 'domainColor')).toHaveLength(0);
-    expect(wiresOf('reset', 'dotted')).toHaveLength(0);
+    expect(wireCategories()).not.toContain('clock');
+    expect(badges().length).toBeGreaterThan(0);
+    expect(domainPins()).toHaveLength(0);
+    expect(dimmedWires()).toHaveLength(0);
 
     fireEvent.click(unconnectedPins());
     await settle();
-    expect(wiresOf('clock', 'domainColor').length).toBeGreaterThan(0);
-    expect(wiresOf('reset', 'dotted').length).toBeGreaterThan(0);
+    expect(domainPins().length).toBeGreaterThan(0);
+    expect(dimmedWires().length).toBeGreaterThan(0);
   }, 20000);
 
   it('draws the badges of the clock and reset nets again when only the review is on', async () => {

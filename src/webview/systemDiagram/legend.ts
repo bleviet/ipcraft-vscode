@@ -73,10 +73,15 @@ export interface DomainLegendEntry {
   label: string;
   color: string;
   /** Absent: a solid bar. */
-  line?: 'dotted' | 'dashed';
+  line?: 'dashed';
 }
 
-/** Entries appended to the legend in the domain mode: one per domain on the level, then the reset and crossing marks. */
+/**
+ * Entries appended to the legend in the domain mode: one per domain on the
+ * level, then the reset and crossing marks. Clock and reset nets are badges,
+ * not wires: the colors are those of their pin markers, and only the data
+ * wire of a clock domain crossing is dashed.
+ */
 export function domainLegend(domains: readonly ClockDomain[]): DomainLegendEntry[] {
   return [
     ...domains.map((domain) => ({
@@ -86,15 +91,19 @@ export function domainLegend(domains: readonly ClockDomain[]): DomainLegendEntry
     })),
     {
       key: 'reset',
-      label: 'Reset, colored by the domain that releases it',
+      label: 'Reset pin, colored by the domain that releases it',
       color: UNRELEASED_RESET_COLOR,
-      line: 'dotted' as const,
     },
     {
       key: 'crossing',
-      label: 'Clock or reset domain crossing',
+      label: 'Clock domain crossing',
       color: 'var(--vscode-editorWarning-foreground)',
       line: 'dashed' as const,
+    },
+    {
+      key: 'crossingPin',
+      label: 'Pin of a clock or reset domain crossing',
+      color: 'var(--vscode-editorWarning-foreground)',
     },
   ];
 }

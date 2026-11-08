@@ -3,10 +3,12 @@
  * Network simplex placement pulls connected blocks into line, so levels stay
  * short, but its time grows about with the square of the graph it places:
  * the nodes and edges, plus a dummy node per layer crossed by a long edge.
- * A clock or reset net drawn to every stage of a deep pipeline crosses many
- * layers, so a small level can cost more than a wide one; the size estimates
- * those dummies (see {@link layeredGraphSize}). ELK time in Node 24 (Apple
- * M1), network simplex / Brandes-Koepf, by estimated size:
+ * A net drawn to every stage of a deep pipeline crosses many layers, so a
+ * small level can cost more than a wide one; the size estimates those dummies
+ * (see {@link layeredGraphSize}). Clock and reset nets no longer reach ELK that
+ * way (see `placementEdges.ts`), but the timings below were measured with them.
+ * ELK time in Node 24 (Apple M1), network simplex / Brandes-Koepf, by
+ * estimated size:
  *
  *   shape                                nodes+edges  size  NS / BK ms
  *   pipeline of 16 stages, one clock and          65   305  201 / 51

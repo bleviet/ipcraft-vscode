@@ -26,9 +26,8 @@ export interface DiagramLayout {
  * Lays out one level, with the hierarchy blocks in `expanded` drawn as frames
  * around their inner level, with `folding` numbered pin arrays folded and with
  * `bundling` parallel buses drawn as one wire; results of superseded requests
- * are ignored. No
- * view toggle (clock and reset wires, domains, review) is an input: they change
- * what the canvas draws of the layout, never where the blocks sit.
+ * are ignored. No view toggle (Clocks and resets, review) is an input: they
+ * change what the canvas draws of the layout, never where the blocks sit.
  */
 export function useElkLayout(
   graph: SystemGraph,

@@ -314,6 +314,6 @@ describe('related crossings are no CDC or RDC', () => {
     expect(crossingsWithin(analysis.crossings, '/')).toEqual({ data: 0, reset: 0 });
     expect(outlineDomains(analysis, graph, '/stream_src').crossings).toBe(0);
     const edges = graph.nets.map((net) => ({ id: `${net.id}#0`, data: { netId: net.id } }));
-    expect(crossingEdgeIds(graph, edges, analysis.crossings).size).toBe(0);
+    expect(crossingEdgeIds(edges, analysis.crossings).size).toBe(0);
   });
 });

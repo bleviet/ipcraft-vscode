@@ -19,27 +19,15 @@ export function boundaryNode(
   levelPath: string,
   pin: SystemPin,
   width: number,
-  badges: BadgeLabels,
-  traced: boolean
+  badges: BadgeLabels
 ): ElkNode {
   const id = boundaryId(levelPath, pin.name);
   const side = boundarySide(pin);
-  const role = pinRole(pin, true);
-  const layoutOptions: Record<string, string> = {
-    'org.eclipse.elk.portConstraints': 'FIXED_POS',
-    ...PORT_LABEL_OPTIONS,
-  };
-  // A traced path is ordered by partitions; ELK rejects a layer constraint beside them.
-  if (!traced && role === 'source') {
-    layoutOptions['elk.layered.layering.layerConstraint'] = 'FIRST';
-  } else if (!traced && role === 'sink') {
-    layoutOptions['elk.layered.layering.layerConstraint'] = 'LAST';
-  }
   return {
     id,
     width,
     height: BOUNDARY_HEIGHT,
-    layoutOptions,
+    layoutOptions: { 'org.eclipse.elk.portConstraints': 'FIXED_POS', ...PORT_LABEL_OPTIONS },
     ports: [
       {
         id: portId(id, pin.name),

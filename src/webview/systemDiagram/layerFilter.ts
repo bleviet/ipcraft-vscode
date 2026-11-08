@@ -1,6 +1,7 @@
 /** Legend layer filters: which wire categories are hidden. Pure; draw-only, never a layout input. */
 
 import type { NetCategory } from '../../domain/systemGraph';
+import type { DiagramFlowEdge, DiagramFlowNode } from './layout/diagramTypes';
 
 export type HiddenLayers = ReadonlySet<NetCategory>;
 
@@ -33,4 +34,26 @@ export function soloLayer(
   return isSoloLayer(hidden, category, all)
     ? NO_HIDDEN_LAYERS
     : new Set(all.filter((other) => other !== category));
+}
+
+export interface LaidOutElements {
+  nodes: readonly DiagramFlowNode[];
+  edges: readonly DiagramFlowEdge[];
+}
+
+/**
+ * `layout` without the wires of the hidden legend categories (a bundle by its
+ * category). Nodes are untouched, so no block moves; the same object when
+ * nothing is hidden.
+ */
+export function withoutHiddenLayers(
+  layout: LaidOutElements,
+  hidden: HiddenLayers
+): LaidOutElements {
+  return hidden.size === 0
+    ? layout
+    : {
+        nodes: layout.nodes,
+        edges: layout.edges.filter((edge) => !hidden.has(edge.data.category)),
+      };
 }

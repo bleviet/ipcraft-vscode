@@ -36,7 +36,9 @@ diagram keeps the last valid design and shows a banner with the reason.
 The diagram shows one hierarchy level at a time.
 
 - **Levels.** Double-click a hierarchy block to enter it. Use the breadcrumb at
-  the top left, or the mouse back button, to go up one level.
+  the top left, or the mouse back button, to go up one level. The mouse forward
+  button returns to the levels you left with the back button, one at a time,
+  until you go to another level some other way.
 - **Expand in place.** Click the **+** button in the header of a hierarchy block,
   or right-click it and choose **Expand In-Place**, to see inside without leaving
   the level. The block becomes a frame with its pins on the border: wires from
@@ -79,7 +81,7 @@ The diagram shows one hierarchy level at a time.
   two blocks are drawn as one wire with a count badge such as `×12 AXI`; the
   other pins join it through short branches next to the block. A group is
   bundled only when its pins sit on consecutive rows at both ends, and clock and
-  reset wires are never bundled. Click the wire to select all its connections;
+  reset nets are never bundled. Click the wire to select all its connections;
   Details then shows the **Bus bundle**: the blocks at both ends, each
   connection (click one to select just that net), **Unbundle**, which draws that
   pair as separate wires, and **Isolate pair** (which shows only the two blocks
@@ -98,7 +100,10 @@ The diagram shows one hierarchy level at a time.
 - **Search.** Type in **Search instances** to dim the blocks whose name or
   type does not match. Press Enter or Shift+Enter to go to the next or
   previous match on any level; a counter shows the position, and Escape
-  clears the search.
+  clears the search. As in the VS Code text editor, Ctrl+F (Cmd+F on macOS)
+  moves to the search box from anywhere in the viewer with its text selected,
+  filled in with the name of the selected block unless the search already
+  matches it, and F3 or Shift+F3 goes to the next or previous match.
 - **Details.** Shows the selected block, net, or port: type, where it is
   defined in the file, the parameters set in the file, and its pins with their
   nets. Select a line link to open the file at that line.
@@ -117,7 +122,7 @@ To focus on a few blocks of a busy level, select them and isolate them.
 1. Click a block or port, then Cmd+Click (macOS) or Ctrl+Click (Windows and Linux) to add more, or to remove one that is already selected. Details shows "N selected" with a list of the names; clicking a name selects that block alone.
 2. Right-click one of the selected blocks and choose **Isolate N Selected** (N is the number of selected blocks). Right-clicking a block that is not selected selects it alone, and the item reads **Isolate Selection**.
 
-The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden. Clock and reset wires bring in no block of their own; the ones between the blocks on screen are drawn while Clocks and resets is on. A toolbar chip reads "Isolated · N selected · M of T shown", where M counts the blocks and ports on screen and T those of the level. The chip also holds a **1-Hop | 2-Hop** switch: **2-Hop** adds the blocks one more data wire away, and shows the wires between those blocks and the ones closer in, but not the wires between two of the outermost blocks. Clock and reset wires never bring in a block, at any hop count.
+The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden. Clock and reset nets bring in no block of their own; as everywhere, they show as badges on their pins. A toolbar chip reads "Isolated · N selected · M of T shown", where M counts the blocks and ports on screen and T those of the level. The chip also holds a **1-Hop | 2-Hop** switch: **2-Hop** adds the blocks one more data wire away, and shows the wires between those blocks and the ones closer in, but not the wires between two of the outermost blocks. Clock and reset nets never bring in a block, at any hop count.
 
 Choose **Show All** from the right-click menu (on a block or on the empty canvas) or the toolbar to return to the full level, with the zoom and pan it had before. Isolation also ends when you go to another level (breadcrumb, opening a hierarchy block, the mouse back button, or an outline or search jump) or when a search step or outline row selects a block that the isolated view hides.
 
@@ -128,7 +133,7 @@ To follow a signal chain between two blocks or ports of the level, trace it.
 1. Click **Trace path** in the toolbar, or right-click a block or port and choose **Trace From Here** or **Trace To Here**. A bar opens under the toolbar.
 2. Choose the **From** and **To** blocks or ports in the bar (instances first, then ports, each sorted by name). The swap button exchanges them. Choosing both runs the trace.
 
-The diagram then isolates the shortest chain between the two, laid out from left to right with a `#1`, `#2`, ... badge on each block, and the wires of any kind between neighbours on the chain. The tracer first follows the signal direction over interface wires (AXI, AXI4-Stream, Avalon and other interfaces), then also over interrupts and plain signals, and as a last resort ignores the direction. Clock and reset wires never carry a trace. The toolbar chip reads "Path · From -> To · N blocks".
+The diagram then isolates the shortest chain between the two, laid out from left to right with a `#1`, `#2`, ... badge on each block, and the wires of any kind between neighbours on the chain. The tracer first follows the signal direction over interface wires (AXI, AXI4-Stream, Avalon and other interfaces), then also over interrupts and plain signals, and as a last resort ignores the direction. Clock and reset nets never carry a trace. The toolbar chip reads "Path · From -> To · N blocks".
 
 A **Path** tab opens in the bottom panel while the trace is shown. A note above the table says how many hops the path has and whether it "follows signal direction" or "ignores direction". Each row is one hop with its `From` and `To` blocks and its `Connections` (such as `4 AXIS, 1 IRQ`); clicking a row selects the nets of that hop. When there is no path, the bar says "No path from X to Y" and the diagram stays as it was.
 
@@ -136,7 +141,7 @@ A **Path** tab opens in the bottom panel while the trace is shown. A note above 
 
 ## Show the connections as a matrix
 
-To see how the blocks of a level connect to each other at a glance, click **Matrix** in the toolbar. A table replaces the diagram: rows are sources, columns are targets, and each cell shows the connections from the row to the column as count pills by category (`8 AXI`, `4 AXIS`, `6 IRQ`). Rows and columns are the blocks and ports of the current level that have at least one connection, in signal-flow order (drivers before sinks, ties by name). Clock and reset wires are not counted, and neither are the connections inside an expanded block. A block wired to itself is counted on the shaded diagonal.
+To see how the blocks of a level connect to each other at a glance, click **Matrix** in the toolbar. A table replaces the diagram: rows are sources, columns are targets, and each cell shows the connections from the row to the column as count pills by category (`8 AXI`, `4 AXIS`, `6 IRQ`). Rows and columns are the blocks and ports of the current level that have at least one connection, in signal-flow order (drivers before sinks, ties by name). Clock and reset nets are not counted, and neither are the connections inside an expanded block. A block wired to itself is counted on the shaded diagonal.
 
 - Click a cell to leave the matrix and isolate exactly that pair: the two blocks and every wire between them, in either direction. The toolbar chip reads `Pair · a ↔ b` (`Pair · x (self)` for a block's own connections). The pair ends on **Show All**, on going to another level, when a search step or outline row selects a block the pair hides, and when one of its blocks disappears from the design.
 - Click a row or column header to select that block and show it on the diagram.
@@ -149,7 +154,7 @@ Press Esc inside the matrix or click **Matrix** again to close it; going to anot
 
 To review the pins that nothing connects to, turn on **Unconnected pins** in the toolbar. The button shows the number of unconnected pins in the whole design, in the warning color when any is undriven. Turning it on also opens the **Unconnected** tab of the bottom panel; turning it off leaves the tab as it is.
 
-Turning the review on or off does not move any block, and it does not change **Clocks and resets**. While both are on, the clock and reset wires stay drawn in their plain category colors, and the clock domain colors, frequencies, and markers are paused until you turn the review off. A pin is unconnected when no net touches it on its level. There are two kinds:
+Turning the review on or off does not move any block, and it does not change **Clocks and resets**. While both are on, the clock domain colors, frequencies, and markers are paused until you turn the review off. A pin is unconnected when no net touches it on its level. There are two kinds:
 
 - **Undriven**: an input (or a slave interface) that nothing drives. The vendor tool ties such an input to a constant, usually its default value, so an active-low reset tied to 0 holds the block in reset. Undriven pins are drawn in the warning color.
 - **Unused**: an output, master interface, or bidirectional pin that nothing uses. This is often intentional, so unused pins are drawn muted.
@@ -169,16 +174,19 @@ that collapses a panel, see [Keyboard Shortcuts](../reference/keyboard-shortcuts
 
 ## Clocks and resets
 
-Clock and reset nets are hidden by default. Each pin that is on one shows a
+Clock and reset nets are not drawn as wires. Each pin that is on one shows a
 small badge with the net name, or the first name and `+N` when the pin is on
-several nets. This keeps data paths readable.
+several nets. Blocks are placed by their data and interface connections, and
+each external port sits next to a block it connects to, so data paths stay
+short and readable. A block with no data connection on the level, such as a
+clocking wizard or a reset block, sits next to the block that drives its clock
+or reset, and a clock or reset input port sits next to one of its loads.
 
-Turn on **Clocks and resets** in the toolbar to draw those nets. The wires are
-colored by clock domain, with the frequencies, crossings, and other markers
-described in [Clock and reset domains](#clock-and-reset-domains). The blocks stay
-in place when you turn it on or off: a level has one placement, made with the
-clock and reset wires and the room for their badges included, and the toggle
-only swaps the badges for the wires and adds or removes the domain markers.
+Turn on **Clocks and resets** in the toolbar to color the clock and reset pins
+by clock domain, with the frequencies, crossings, and other markers described
+in [Clock and reset domains](#clock-and-reset-domains). The badges stay, and the
+blocks stay in place when you turn it on or off: the toggle only adds or
+removes the domain markers.
 
 The count chip next to the toggle is always shown. It reads the number of
 flagged crossings (`2 CDC · 2 RDC`, in the warning color), or the number of clock
@@ -194,9 +202,8 @@ from one clock to another, turn on **Clocks and resets** in the toolbar. The
 chip next to it shows the number of flagged crossings (`2 CDC · 2 RDC`, in the
 warning color), or the number of clock domains when none is flagged; click it to
 open the **Clocks** tab. The **Unconnected pins** review can be on at the same
-time: it pauses the domain colors, frequencies, and markers, but the clock and
-reset wires stay drawn, in their plain colors. Turn the review off and the
-domain decorations return. Neither toggle moves a block.
+time: it pauses the domain colors, frequencies, and markers. Turn the review off
+and the domain decorations return. Neither toggle moves a block.
 
 A clock domain is a clock source and every pin its nets reach, followed through
 hierarchy pins and, in Platform Designer, through clock source blocks. What
@@ -250,14 +257,15 @@ then checks it against the domain it sits on.
 
 While **Clocks and resets** is on and the **Unconnected pins** review is off:
 
-- Clock wires and the markers of clock pins take the color of their domain, and
-  each clock pin of a domain with a frequency shows it next to the wire.
-- Reset wires are dotted and take the color of the domain that releases them;
-  an asynchronous reset, or one whose release clock is unknown, is muted.
-- Other wires are dimmed.
-- A crossing is drawn dashed in the warning color, and the names of the pins at
-  its ends turn to the warning color: both ends of a clock domain crossing, only
-  the sink pin of a reset domain crossing.
+- The markers of clock pins take the color of their domain, and each clock pin
+  of a domain with a frequency shows it next to the pin.
+- The markers of reset pins take the color of the domain that releases the
+  reset; an asynchronous reset, or one whose release clock is unknown, is muted.
+- Wires are dimmed, except the wires of a clock domain crossing, which are drawn
+  dashed in the warning color.
+- The names of the pins at the ends of a crossing turn to the warning color:
+  both ends of a clock domain crossing, only the sink pin of a reset domain
+  crossing.
 - A block header has a thin strip with one segment per clock domain of the block
   and a badge: `N CDC · M RDC` when crossings are on its pins (inside a hierarchy
   block, anywhere inside it), or `N DOMAINS` when it spans several domains.
@@ -268,7 +276,7 @@ While **Clocks and resets** is on and the **Unconnected pins** review is off:
 ### Select a clock or reset net
 
 Selecting a clock or reset net, with **Clocks and resets** on or off, selects its whole tree
-on every level: the wires and pins of the tree are highlighted, the blocks and
+on every level: the pins and badges of the tree are highlighted, the blocks and
 ports it does not touch are dimmed, and the clock pins of a clock tree show the
 frequency. Details shows the tree:
 
