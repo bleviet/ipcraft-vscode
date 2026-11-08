@@ -21,7 +21,7 @@ import { frameSvg, instanceSvg } from './blockSvg';
 import { layoutLegend, legendSvg } from './legendSvg';
 import type { Palette } from './palette';
 import { boundarySvg } from './pinSvg';
-import { attributes, element, num } from './svg';
+import { attributes, element, num, SVG_TEXT_STYLE } from './svg';
 
 export interface SystemLevelOptions {
   palette: Palette;
@@ -124,7 +124,7 @@ export function renderSystemLevelSvg(
     width,
     height,
     viewBox: `${num(box.x)} ${num(box.y)} ${width} ${height}`,
-    style: 'font-kerning:none',
+    style: SVG_TEXT_STYLE,
   });
   return `<svg ${root}><style>${options.fontFaceCss}</style>${body.join('')}</svg>\n`;
 }

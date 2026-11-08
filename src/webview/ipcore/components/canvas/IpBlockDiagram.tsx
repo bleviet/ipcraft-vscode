@@ -4,6 +4,7 @@ import { resolveMemoryMapImportPath, WRAPPED_TITLE_ROW_HEIGHT } from './canvasLa
 import { CanvasPort } from './CanvasPort';
 import { CanvasBusBundle } from './CanvasBusBundle';
 import { CanvasBusSubPort } from './CanvasBusSubPort';
+import { isExpandableBus } from './symbolInputs';
 import type { CanvasAnnotations } from '../../hooks/useCanvasValidation';
 import type { BusPortDef } from '../../utils/busLibrary';
 import { getActiveDragPayload, type LibraryDragPayload } from './canvasDragTypes';
@@ -596,11 +597,9 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
         const isSelected = selectedId === p.id;
         const isHovered = hoveredId === p.id;
         const busExpanded = p.kind === 'bus' && expandedBusIds.has(p.id);
-        const busType = (p.data as { type?: string; conduitPorts?: unknown[] }).type ?? '';
-        const hasConduitPorts = Array.isArray(
-          (p.data as { conduitPorts?: unknown[] }).conduitPorts
-        );
-        const hasBusDef = p.kind === 'bus' && (hasConduitPorts || busDefs(busType) !== null);
+        const hasBusDef =
+          p.kind === 'bus' &&
+          isExpandableBus(p.data as { type?: string; conduitPorts?: unknown[] }, busDefs);
 
         if (p.kind === 'bus') {
           const mmClickPath = resolveMemoryMapImportPath(memoryMaps, p.memoryMapRef);

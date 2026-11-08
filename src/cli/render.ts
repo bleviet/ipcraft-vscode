@@ -11,7 +11,9 @@ import type { ResourceRoots } from '../services/ResourceRoots';
 import { shownLevels } from '../webview/systemDiagram/expansion';
 import { buildElkInput, toFlowElements } from '../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../webview/systemDiagram/layout/runElkLayout';
+import { isIpCoreFile } from './argv';
 import { closestNames } from './closestNames';
+import { renderIpCoreFile } from './renderIpCore';
 
 export interface CliRenderArgs {
   inputPath: string;
@@ -45,12 +47,11 @@ async function readRequired(file: string, what: string): Promise<Buffer> {
 }
 
 async function loadFonts(fontsDir: string): Promise<FontBytes> {
+  // One at a time, in a fixed order, so the first missing file is the one reported.
   const read = (file: string) => readRequired(path.join(fontsDir, file), 'Font file');
-  const [sans400, sans600, mono400] = await Promise.all([
-    read(FONT_FILES.sans400),
-    read(FONT_FILES.sans600),
-    read(FONT_FILES.mono400),
-  ]);
+  const sans400 = await read(FONT_FILES.sans400);
+  const sans600 = await read(FONT_FILES.sans600);
+  const mono400 = await read(FONT_FILES.mono400);
   return { sans400, sans600, mono400 };
 }
 
@@ -97,9 +98,7 @@ function resolveExpanded(graph: SystemGraph, level: string, names: readonly stri
 function readGraph(inputPath: string, text: string): SystemGraph {
   if (!isSystemDesignScript(inputPath, text)) {
     throw new Error(
-      /\.ip\.ya?ml$/i.test(inputPath)
-        ? 'IP core symbols are not supported yet; pass a Vivado .tcl, Platform Designer .qsys or qsys-script .tcl system design'
-        : `'${inputPath}' is not a recognized system design (Vivado block design .tcl, Platform Designer .qsys or qsys-script .tcl)`
+      `'${inputPath}' is not a recognized system design (Vivado block design .tcl, Platform Designer .qsys or qsys-script .tcl) or .ip.yml`
     );
   }
   const graph = readSystemDesign(inputPath, path.basename(inputPath), text);
@@ -109,34 +108,50 @@ function readGraph(inputPath: string, text: string): SystemGraph {
   return graph;
 }
 
-/** Core logic behind `ipcraft render`: draws one level of a system design as an SVG file. */
+/** Draws one level of a system design as SVG text. */
+async function renderSystemDesign(
+  inputPath: string,
+  text: string,
+  args: CliRenderArgs,
+  fonts: string
+): Promise<string> {
+  const graph = readGraph(inputPath, text);
+  if (!graph.levels[args.level]) {
+    const close = closestNames(args.level, Object.keys(graph.levels));
+    throw new Error(`Unknown level '${args.level}'. Closest: ${close.join(', ')}`);
+  }
+  const expanded = new Set(resolveExpanded(graph, args.level, args.expand));
+  const input = buildElkInput(graph, args.level, { measure: plexTextMeasure, expanded });
+  const laidOut = await runElkLayout(input);
+  const layout = toFlowElements(laidOut, graph, args.level, plexTextMeasure);
+  return renderSystemLevelSvg(layout, {
+    palette: paletteFor(args.theme),
+    grid: args.grid,
+    legend: args.legend,
+    background: args.background,
+    fontFaceCss: fonts,
+  });
+}
+
+/** Core logic behind `ipcraft render`: draws a system design level or an IP core symbol as an SVG file. */
 export async function runCliRender(
   args: CliRenderArgs,
-  resourceRoots: Pick<ResourceRoots, 'fontsDir'>
+  resourceRoots: Pick<ResourceRoots, 'fontsDir' | 'busDefinitionsDir' | 'busDefinitionSchemaPath'>
 ): Promise<CliRenderResult> {
   const outputPath = path.resolve(args.out);
   const result: CliRenderResult = { success: false, outputPath };
   try {
     const inputPath = path.resolve(args.inputPath);
-    const graph = readGraph(
-      inputPath,
-      (await readRequired(inputPath, 'Input file')).toString('utf8')
-    );
-    if (!graph.levels[args.level]) {
-      const close = closestNames(args.level, Object.keys(graph.levels));
-      throw new Error(`Unknown level '${args.level}'. Closest: ${close.join(', ')}`);
-    }
-    const expanded = new Set(resolveExpanded(graph, args.level, args.expand));
-    const input = buildElkInput(graph, args.level, { measure: plexTextMeasure, expanded });
-    const laidOut = await runElkLayout(input);
-    const layout = toFlowElements(laidOut, graph, args.level, plexTextMeasure);
-    const svg = renderSystemLevelSvg(layout, {
-      palette: paletteFor(args.theme),
-      grid: args.grid,
-      legend: args.legend,
-      background: args.background,
-      fontFaceCss: fontFaceCss(await loadFonts(resourceRoots.fontsDir)),
-    });
+    const text = (await readRequired(inputPath, 'Input file')).toString('utf8');
+    const fonts = fontFaceCss(await loadFonts(resourceRoots.fontsDir));
+    const svg = isIpCoreFile(inputPath)
+      ? await renderIpCoreFile(inputPath, text, resourceRoots, {
+          palette: paletteFor(args.theme),
+          grid: args.grid,
+          background: args.background,
+          fontFaceCss: fonts,
+        })
+      : await renderSystemDesign(inputPath, text, args, fonts);
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, svg, 'utf8');
     result.success = true;

@@ -1,7 +1,8 @@
 /**
  * Text measurement from the bundled IBM Plex advance widths, so the CLI lays text out and draws
  * it with the same metrics and no browser. Widths assume no kerning (the SVG sets
- * `font-kerning: none`), so measured and drawn widths agree.
+ * `font-kerning: none` and unhinted `text-rendering: geometricPrecision`), so measured and drawn
+ * widths agree.
  */
 
 import type { TextMeasure, TextWeight } from '../../webview/systemDiagram/layout/nodeSizing';

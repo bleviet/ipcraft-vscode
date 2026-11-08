@@ -23,6 +23,13 @@ export function num(value: number): string {
   return String(Object.is(rounded, -0) ? 0 : rounded);
 }
 
+/**
+ * Root `style` of every rendered SVG. No kerning, so drawn widths equal the measured advance sums;
+ * `geometricPrecision` turns off glyph hinting, which in Chrome on Linux rounds each advance to a
+ * whole pixel (a 6.3 px mono advance becomes 7 px) and pushes measured-to-fit text past its box.
+ */
+export const SVG_TEXT_STYLE = 'font-kerning:none;text-rendering:geometricPrecision';
+
 export type SvgAttributes = Readonly<Record<string, string | number | undefined>>;
 
 /** `name="value" ...` for the defined attributes, in the given order; numbers go through {@link num}. */

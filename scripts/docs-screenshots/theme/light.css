@@ -28,12 +28,13 @@
   --vscode-button-secondaryBackground: #E5E5E5;
   --vscode-button-secondaryForeground: #3B3B3B;
   --vscode-button-secondaryHoverBackground: #CCCCCC;
-  --vscode-charts-blue: #4facfe;
+  /* charts blue, orange and yellow: values from the VS Code color registry defaults */
+  --vscode-charts-blue: #0063d3;
   --vscode-charts-green: #388A34;
-  --vscode-charts-orange: #ce9178;
+  --vscode-charts-orange: #D18616;
   --vscode-charts-purple: #652D90;
   --vscode-charts-red: #E51400;
-  --vscode-charts-yellow: #dcdcaa;
+  --vscode-charts-yellow: #BF8803;
   --vscode-descriptionForeground: #3B3B3B;
   --vscode-diffEditor-unchangedRegionBackground: #f8f8f8;
   --vscode-disabledForeground: #61616180;  /* APPROXIMATED */
