@@ -23,6 +23,7 @@ import { collectIfChain, selectIfBranches } from './hwTclConditionals';
 import { computeProcDefaults, hasCeilLog2Proc } from './hwTclProcs';
 import { hasLegacyPortDeclarations, readLegacyPorts, type LegacyPort } from './hwTclLegacyPorts';
 import { applyPortProperty, finalizeInterfaces, type TclInterface } from './hwTclPortEffects';
+import { resolveTclPathWord } from './tclPathWord';
 import { IP_CORE_FORMAT_VERSION } from '../shared/ipCoreFormat';
 
 export interface HwTclParseOptions {
@@ -240,7 +241,7 @@ function normalizeFilesetFilePath(line: string, baseDir: string): string {
   return line.replace(m[0], `PATH ${path.resolve(baseDir, filePath)}`);
 }
 
-async function flattenTclContent(
+export async function flattenTclContent(
   content: string,
   tclPath: string,
   visited: Set<string>,
@@ -489,9 +490,8 @@ export function parseHwTclContent(
         const pathIdx = args.indexOf('PATH');
         if (pathIdx !== -1 && pathIdx + 1 < args.length) {
           const rawPath = args[pathIdx + 1];
-          const joined = /^\s*\[\s*file\s+join\s+([\s\S]*)\]\s*$/.exec(rawPath);
-          const filePath = joined ? path.join(...parseTclList(joined[1])) : rawPath;
-          if (hasTclSyntax(filePath)) {
+          const filePath = resolveTclPathWord(rawPath);
+          if (filePath === null) {
             warn(
               `File "${rawPath}" in file set "${currentFileSet.name}" was not imported: its path uses Tcl that could not be resolved.`
             );

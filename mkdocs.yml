@@ -71,6 +71,7 @@ nav:
       - Building a VSIX Package: how-to/build-vsix.md
       - Using the Data Inspector: how-to/use-data-inspector.md
       - Viewing a System Design: how-to/view-a-system-design.md
+      - Generating a vhdl_ls.toml: how-to/generate-vhdl-ls-config.md
       - Rendering Documentation Images: how-to/render-documentation-images.md
       - Using Arithmetic Functions in Port Widths: how-to/using-arithmetic-functions-in-port-widths.md
       - Running a Cocotb Simulation: how-to/run-cocotb-simulation.md

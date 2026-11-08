@@ -1,4 +1,4 @@
-import { parseArgs } from '../../../cli/argv';
+import { parseArgs, usageText } from '../../../cli/argv';
 import { DEFAULT_QUARTUS_DEVICE, DEFAULT_VIVADO_PART } from '../../../cli/generate';
 
 describe('ipcraft CLI argv parsing', () => {
@@ -321,6 +321,35 @@ describe('ipcraft CLI argv parsing', () => {
       const result = parseArgs(argv);
       expect(result.kind).toBe('error');
       expect((result as { message: string }).message).toContain(message);
+    });
+  });
+
+  describe('vhdl-ls', () => {
+    it('defaults the root to the current directory', () => {
+      expect(parseArgs(['vhdl-ls'])).toEqual({
+        kind: 'vhdl-ls',
+        args: { root: process.cwd(), dryRun: false, force: false },
+      });
+    });
+
+    it('parses --root, --dry-run and --force', () => {
+      expect(parseArgs(['vhdl-ls', '--root', 'examples', '--dry-run', '--force'])).toEqual({
+        kind: 'vhdl-ls',
+        args: { root: 'examples', dryRun: true, force: true },
+      });
+    });
+
+    it('rejects unknown options, positionals and a missing --root value', () => {
+      expect(parseArgs(['vhdl-ls', '--out', 'x']).kind).toBe('error');
+      expect(parseArgs(['vhdl-ls', 'examples']).kind).toBe('error');
+      expect(parseArgs(['vhdl-ls', '--root']).kind).toBe('error');
+      expect(parseArgs(['vhdl-ls', '--root', '--force']).kind).toBe('error');
+    });
+
+    it('is listed in the usage text and the unknown-command message', () => {
+      expect(usageText()).toContain('ipcraft vhdl-ls');
+      const result = parseArgs(['bogus']);
+      expect((result as { message: string }).message).toContain("'vhdl-ls'");
     });
   });
 });

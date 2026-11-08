@@ -4,6 +4,7 @@ import type { CliMigrateArgs } from './migrate';
 import type { CliPackageArgs } from './package';
 import type { CliRenderArgs } from './render';
 import { parseRenderArgs } from './renderArgv';
+import type { CliVhdlLsArgs } from './vhdlLs';
 import type { CliVerifyArgs } from './verify';
 import type { HdlLanguage } from '../generator/types';
 import type { IndentStyle } from '../generator/reindent';
@@ -26,6 +27,9 @@ Usage:
                                           the symbol of an IP core (.ip.yml), as an SVG, PNG or
                                           JPG image (the --out extension picks the format)
   ipcraft render --manifest <file.yml>    Render every image listed in a manifest file
+  ipcraft vhdl-ls [--root <dir>] [--dry-run] [--force]
+                                          Generate a root vhdl_ls.toml that maps every VHDL file
+                                          under <dir> (default: current directory) to a library
 
 Options:
   --target <quartus|vivado>[,<...>]  Vendor target(s) to scaffold a project for
@@ -77,6 +81,10 @@ Options:
                                       without those definitions
   --manifest <file.yml>              [render only] Render the images listed in the manifest;
                                       takes no input file and no other option
+  --root <dir>                       [vhdl-ls only] Workspace root (default: current directory)
+  --dry-run                          [vhdl-ls only] Print the vhdl_ls.toml instead of writing it
+  --force                            [vhdl-ls only] Replace a vhdl_ls.toml that IPCraft did not
+                                      write (the old file is saved to .ipcraft/backup/)
   -h, --help                          Show this help
 
 Examples:
@@ -92,6 +100,7 @@ Examples:
   ipcraft render path/to.ip.yml --out docs/img/core.jpg --quality 80
   ipcraft render bd/system.tcl --out docs/img/system.svg --workspace .
   ipcraft render --manifest docs/images.yml
+  ipcraft vhdl-ls --root . --dry-run
 `;
 }
 
@@ -103,7 +112,8 @@ export type ParsedArgv =
   | { kind: 'migrate'; args: CliMigrateArgs }
   | { kind: 'package'; args: CliPackageArgs }
   | { kind: 'render'; args: CliRenderArgs }
-  | { kind: 'renderManifest'; manifestPath: string };
+  | { kind: 'renderManifest'; manifestPath: string }
+  | { kind: 'vhdl-ls'; args: CliVhdlLsArgs };
 
 interface CommonOptions {
   targets: string[];
@@ -225,6 +235,30 @@ function parseMigrateArgs(rest: string[]): ParsedArgv {
   return { kind: 'migrate', args: { paths, check } };
 }
 
+/** Parses `vhdl-ls` argv: `[--root <dir>] [--dry-run] [--force]`. */
+function parseVhdlLsArgs(rest: string[]): ParsedArgv {
+  const args: CliVhdlLsArgs = { root: process.cwd(), dryRun: false, force: false };
+  for (let i = 0; i < rest.length; i++) {
+    const arg = rest[i];
+    if (arg === '--dry-run') {
+      args.dryRun = true;
+    } else if (arg === '--force') {
+      args.force = true;
+    } else if (arg === '--root') {
+      i += 1;
+      if (rest[i] === undefined || rest[i].startsWith('--')) {
+        return { kind: 'error', message: 'Missing value for --root' };
+      }
+      args.root = rest[i];
+    } else if (arg.startsWith('--')) {
+      return { kind: 'error', message: `Unknown option '${arg}' for 'vhdl-ls'` };
+    } else {
+      return { kind: 'error', message: `Unexpected argument '${arg}'` };
+    }
+  }
+  return { kind: 'vhdl-ls', args };
+}
+
 /** Parses `package` argv: `<ip.yml> --out <path> [--zip]`. */
 function parsePackageArgs(rest: string[]): ParsedArgv {
   const positional: string[] = [];
@@ -269,11 +303,12 @@ export function parseArgs(argv: string[]): ParsedArgv {
     command !== 'verify' &&
     command !== 'migrate' &&
     command !== 'package' &&
-    command !== 'render'
+    command !== 'render' &&
+    command !== 'vhdl-ls'
   ) {
     return {
       kind: 'error',
-      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate', 'package' or 'render'.`,
+      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate', 'package', 'render' or 'vhdl-ls'.`,
     };
   }
   if (command === 'package') {
@@ -281,6 +316,9 @@ export function parseArgs(argv: string[]): ParsedArgv {
   }
   if (command === 'render') {
     return parseRenderArgs(rest);
+  }
+  if (command === 'vhdl-ls') {
+    return parseVhdlLsArgs(rest);
   }
   if (command === 'migrate') {
     return parseMigrateArgs(rest);
