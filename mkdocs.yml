@@ -100,6 +100,7 @@ nav:
       - Bit Field Developer Reference: reference/bitfield-interaction.md
   - Contributing:
       - Guidelines: contributing/guidelines.md
+      - Developer Changelog: contributing/changelog.md
       - Testing: testing.md
       - Automated Docs Screenshots: concepts/docs-screenshots.md
       - Codicon Attribution: images/codicons/README.md
