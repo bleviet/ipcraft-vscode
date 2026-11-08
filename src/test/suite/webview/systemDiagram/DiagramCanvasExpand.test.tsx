@@ -8,6 +8,9 @@ import { isLevelNode } from '../../../../webview/systemDiagram/model';
 import { unconnectedPins } from '../../../../webview/systemDiagram/unconnectedPins';
 import { clockContextOf } from './clockContext';
 import { loadFixtureGraph, loadReviewFixtureGraph, fakeMeasure } from './fixtureGraph';
+import { stubCanvasSize } from './canvasSize';
+
+stubCanvasSize();
 
 // Uses the real @xyflow/react, like DiagramCanvasRealFlow: the expand toggle, the
 // double-click and context-menu gestures, and the stacking of a frame.

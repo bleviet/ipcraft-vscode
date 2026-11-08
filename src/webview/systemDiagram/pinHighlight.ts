@@ -40,3 +40,21 @@ export function highlightedPinsByNode(
   }
   return pins;
 }
+
+/** Ids of the nodes that draw a clock or reset badge on one of the nets `netIds`. */
+export function badgedNodeIds(
+  netIds: ReadonlySet<string>,
+  nodes: readonly DiagramFlowNode[]
+): Set<string> {
+  const ids = new Set<string>();
+  for (const node of nodes) {
+    const badges =
+      node.type === 'boundary'
+        ? [node.data.badge]
+        : [...node.data.west, ...node.data.east].map((row) => row.badge);
+    if (badges.some((badge) => badge?.nets.some((net) => netIds.has(net.id)))) {
+      ids.add(node.id);
+    }
+  }
+  return ids;
+}

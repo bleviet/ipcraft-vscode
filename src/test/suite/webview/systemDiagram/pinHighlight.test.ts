@@ -1,5 +1,8 @@
 import type { DiagramFlowEdge } from '../../../../webview/systemDiagram/layout/elkLayout';
-import { highlightedPinsByNode } from '../../../../webview/systemDiagram/pinHighlight';
+import {
+  badgedNodeIds,
+  highlightedPinsByNode,
+} from '../../../../webview/systemDiagram/pinHighlight';
 
 const edge = (netId: string, source: string, sh: string, target: string, th: string) =>
   ({
@@ -89,5 +92,33 @@ describe('highlightedPinsByNode', () => {
       ['/d', ['q']],
       ['/e', ['aclk']],
     ]);
+  });
+});
+
+describe('badgedNodeIds', () => {
+  const badge = (...ids: string[]) => ({ nets: ids.map((id) => ({ id })) });
+  const nodes = [
+    { id: '/west', type: 'instance', data: { west: [{ badge: badge('clk') }], east: [{}] } },
+    { id: '/east', type: 'instance', data: { west: [{}], east: [{ badge: badge('rst', 'clk') }] } },
+    { id: '/frame', type: 'frame', data: { west: [], east: [{ badge: badge('clk') }] } },
+    { id: '/other', type: 'instance', data: { west: [{ badge: badge('rst') }], east: [] } },
+    { id: '/none', type: 'instance', data: { west: [{}], east: [{}] } },
+    { id: '::port', type: 'boundary', data: { badge: badge('clk') } },
+    { id: '::plain', type: 'boundary', data: {} },
+  ] as never[];
+
+  it('lists the nodes with a badge on a selected net, in every kind of node', () => {
+    expect([...badgedNodeIds(new Set(['clk']), nodes)]).toEqual([
+      '/west',
+      '/east',
+      '/frame',
+      '::port',
+    ]);
+    expect([...badgedNodeIds(new Set(['rst']), nodes)]).toEqual(['/east', '/other']);
+  });
+
+  it('lists nothing for an empty selection or an unrelated net', () => {
+    expect(badgedNodeIds(new Set(), nodes).size).toBe(0);
+    expect(badgedNodeIds(new Set(['other']), nodes).size).toBe(0);
   });
 });

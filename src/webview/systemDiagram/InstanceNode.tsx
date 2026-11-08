@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { PIN_ROW_HEIGHT, type InstanceNodeData, type PinRow } from './layout/elkLayout';
 import type { PinMark } from './clocks/nodeView';
@@ -79,7 +79,7 @@ function PinRowView({ row, highlighted, review, focused, mark, onHoverPin }: Pin
   );
 }
 
-export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
+function InstanceNodeBase({ data, selected }: NodeProps<InstanceFlowNode>) {
   const { instance, review } = data;
   const pinRowView = (row: PinRow) => (
     <PinRowView
@@ -98,7 +98,6 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
       data-kind={instance.kind}
       data-selected={selected}
       data-highlighted={data.highlightColor !== undefined || undefined}
-      data-dimmed={data.dimmed === true}
       {...(review && {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
@@ -150,3 +149,6 @@ export function InstanceNode({ data, selected }: NodeProps<InstanceFlowNode>) {
     </div>
   );
 }
+
+/** Memoized: React Flow re-renders a node only when its data object changes. */
+export const InstanceNode = memo(InstanceNodeBase);

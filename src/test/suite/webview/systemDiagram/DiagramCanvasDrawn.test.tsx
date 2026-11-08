@@ -7,6 +7,9 @@ import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLay
 import { isClockOrReset, type Selection } from '../../../../webview/systemDiagram/model';
 import { clockContextOf } from './clockContext';
 import { fakeMeasure, loadFixtureGraph } from './fixtureGraph';
+import { stubCanvasSize } from './canvasSize';
+
+stubCanvasSize();
 
 // Uses the real @xyflow/react: what the canvas draws of one layout, whose clock and reset
 // nets are badges and no wire, with the domain decorations of Clocks and resets on or off.

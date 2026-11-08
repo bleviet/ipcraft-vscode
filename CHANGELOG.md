@@ -30,6 +30,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ### Fixed
 
+- Large designs in the system viewer respond faster when you search, select blocks and zoom.
 - The system viewer fills the whole editor; there were empty strips on its left and right.
 - Blocks, zoom and pan no longer jump when you turn Clocks and resets or Unconnected pins on or off.
 

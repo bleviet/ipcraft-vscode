@@ -77,10 +77,12 @@ describe('Auto detail on the real canvas', () => {
     expect(container().dataset.far).toBe('false');
     zoomTo(0.3);
     expect(container().dataset.far).toBe('true');
-    expect(Number(container().style.getPropertyValue('--sd-name-scale'))).toBeCloseTo(3);
+    expect(container().style.getPropertyValue('--sd-name-scale')).toBe('3');
+    zoomTo(0.4);
+    expect(container().style.getPropertyValue('--sd-name-scale')).toBe('2.5');
     zoomTo(0.5);
     expect(container().dataset.far).toBe('false');
-    expect(Number(container().style.getPropertyValue('--sd-name-scale'))).toBeCloseTo(2);
+    expect(container().style.getPropertyValue('--sd-name-scale')).toBe('');
     expect(placement()).toEqual(before);
   });
 

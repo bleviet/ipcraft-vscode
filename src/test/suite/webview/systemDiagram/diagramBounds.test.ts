@@ -16,6 +16,8 @@ function boundaryNode(id: string, x: number, y: number, badgeBox?: object): Diag
     position: { x, y },
     width: 150,
     height: 26,
+    measured: { width: 0, height: 0 },
+    handles: [],
     draggable: false,
     data: {
       pin: { name: id } as never,
@@ -40,6 +42,8 @@ function frameNode(x: number, y: number, badgeBox?: object): DiagramFlowNode {
     position: { x, y },
     width: 400,
     height: 300,
+    measured: { width: 0, height: 0 },
+    handles: [],
     draggable: false,
     zIndex: -1,
     data: { instance: {} as never, cellCount: 3, west: [row as never], east: [] },

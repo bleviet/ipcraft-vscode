@@ -1766,6 +1766,8 @@
     "test:browser": "playwright test --config config/playwright.config.ts",
     "predocs:screenshots": "webpack --config config/webpack.config.js --config-name webview",
     "docs:screenshots": "playwright test --config config/playwright.docs.ts",
+    "preperf:system-viewer": "webpack --mode production --config config/webpack.config.js --config-name webview",
+    "perf:system-viewer": "playwright test --config config/playwright.perf.ts",
     "docs:build": "mkdocs build --strict",
     "docs:links": "node scripts/check-markdown-links.js",
     "test:cli-package": "node scripts/test-cli-package.js",

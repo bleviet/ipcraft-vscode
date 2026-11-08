@@ -6,6 +6,9 @@ import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { clockContextOf } from './clockContext';
 import { loadFixtureGraph, fakeMeasure } from './fixtureGraph';
+import { stubCanvasSize } from './canvasSize';
+
+stubCanvasSize();
 
 const clocks = clockContextOf(loadFixtureGraph());
 const LONG = `${'long_pin_name_'.repeat(8)}end`;
