@@ -2881,12 +2881,12 @@ describe('SystemDiagramApp', () => {
       expect(nodeBox('/axi_dma_0', '.sd-node')).toHaveAttribute('data-highlighted', 'true');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).toHaveAttribute('data-highlighted', 'true');
 
-      // A highlighted clock net, which has no wire, bolds its pins.
+      // A highlighted clock net highlights its wire and bolds its pins.
       const boldPins = (id: string) =>
         [...nodeBox(id, '.sd-node').querySelectorAll('.sd-pin-label[data-highlight="true"]')].map(
           (pin) => pin.textContent
         );
-      expect(edgeForNet(clockNet)).toBeNull();
+      expect(edgeForNet(clockNet)).toHaveAttribute('data-highlighted', 'true');
       expect(boldPins('/processing_system7_0')).toContain('FCLK_CLK0');
 
       // Clocks and resets leaves the highlights alone.
@@ -2900,6 +2900,7 @@ describe('SystemDiagramApp', () => {
       expect(screen.getByText('Highlighted · 3')).toBeVisible();
       expect(nodeBox('/axi_dma_0', '.sd-node')).not.toHaveAttribute('data-highlighted');
       expect(edgeForNet('/::axi_dma_0_M_AXIS_MM2S')).not.toHaveAttribute('data-highlighted');
+      expect(edgeForNet(clockNet)).not.toHaveAttribute('data-highlighted');
       expect(boldPins('/processing_system7_0')).not.toContain('FCLK_CLK0');
 
       // They come back when the review is turned off, with Clocks and resets still on.

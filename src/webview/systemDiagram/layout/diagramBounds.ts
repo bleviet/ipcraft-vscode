@@ -1,4 +1,4 @@
-import type { DiagramFlowEdge, DiagramFlowNode } from './elkLayout';
+import type { DiagramFlowEdge, DiagramFlowNode } from './diagramTypes';
 import type { NetBadge } from './netBadges';
 
 export interface DiagramBounds {

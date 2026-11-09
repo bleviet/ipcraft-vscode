@@ -2,6 +2,7 @@ import React from 'react';
 import { BaseEdge, type Edge, type EdgeProps } from '@xyflow/react';
 import { categoryColor, restingWireColor } from './colors';
 import type { ElkEdgeData } from './layout/elkLayout';
+import { JUNCTION_RADIUS } from './layout/diagramTypes';
 
 export type ElkFlowEdge = Edge<ElkEdgeData, 'elk'>;
 
@@ -17,9 +18,11 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
   if (!data) {
     return null;
   }
-  const path = data.points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-    .join(' ');
+  const draw = (points: readonly { x: number; y: number }[]) =>
+    points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+  const path = draw(data.points);
+  // The lead is drawn with the wire: React Flow culls an edge by its own two nodes.
+  const wirePath = data.lead ? draw([...data.lead, ...data.points.slice(1)]) : path;
   const width =
     (data.isInterface ? 1.75 : 1) +
     (selected ? EMPHASIS_WIDTH : 0) +
@@ -49,7 +52,7 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
       )}
       <BaseEdge
         id={id}
-        path={path}
+        path={wirePath}
         interactionWidth={12}
         style={{
           stroke,
@@ -58,6 +61,15 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
           ...(faded && { opacity: DIMMED_OPACITY }),
         }}
       />
+      {data.junction && (
+        <circle
+          cx={data.points[0].x}
+          cy={data.points[0].y}
+          r={JUNCTION_RADIUS}
+          fill={stroke}
+          style={{ pointerEvents: 'none', ...(faded && { opacity: DIMMED_OPACITY }) }}
+        />
+      )}
     </>
   );
 }

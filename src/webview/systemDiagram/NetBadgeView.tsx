@@ -11,7 +11,7 @@ interface NetBadgeViewProps {
   onSelectNet?: (netId: string, additive?: boolean) => void;
 }
 
-/** Quiet label drawn where ELK reserved space for a clock or reset net, which has no wire. */
+/** Quiet label at the end of the wire of a clock or reset net, in the space ELK reserved for it. */
 export function NetBadgeView({
   badge,
   selectedNetIds,

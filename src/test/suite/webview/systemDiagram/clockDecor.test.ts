@@ -45,8 +45,10 @@ describe('clockDecor', () => {
       layout.edges
         .filter((edge) => edge.data.netId === netId)
         .map((edge) => decor.edges.get(edge.id));
-    // A clock or reset net has no wire: its pins carry the domain color.
-    expect(marksOf('/::processing_system7_0_FCLK_CLK1')).toEqual([]);
+    // A clock wire is never dimmed: its pins carry the domain color.
+    const clockMarks = marksOf('/::processing_system7_0_FCLK_CLK1');
+    expect(clockMarks.length).toBeGreaterThan(0);
+    expect(clockMarks.every((marks) => marks?.dimmed === undefined)).toBe(true);
     expect(decor.pinMarks.get(DSP)?.dsp_clk?.color).toBe(DOMAIN_COLORS[2]);
     expect(decor.pinMarks.get('/axi_dma_0')?.axi_resetn?.color).toBe(
       decor.pinMarks.get('/axi_dma_0')?.s_axi_lite_aclk?.color
@@ -92,7 +94,13 @@ describe('clockDecor', () => {
     });
     expect(decor.tree?.kind).toBe('clock');
     expect(decor.tree?.netIds.has(`${DSP}::dsp_clk_1`)).toBe(true);
-    expect(decor.edges.size).toBe(0);
+    // The clock wires of the selected tree take its domain color; no other wire is marked.
+    const treeWires = layout.edges.filter((edge) => decor.tree!.netIds.has(edge.data.netId));
+    expect(treeWires.length).toBeGreaterThan(0);
+    expect(decor.edges.size).toBe(treeWires.length);
+    expect(treeWires.every((edge) => decor.edges.get(edge.id)?.domainColor !== undefined)).toBe(
+      true
+    );
     const highlighted = highlightedPinsByNode(decor.tree!.netIds, layout.edges, layout.nodes);
     expect(highlighted.get('/processing_system7_0')).toEqual(new Set(['FCLK_CLK1']));
     expect(highlighted.get(DSP)).toEqual(new Set(['dsp_clk']));

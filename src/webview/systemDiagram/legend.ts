@@ -31,7 +31,8 @@ export function categoryLabel(category: NetCategory): string {
 
 /**
  * Entries for the categories among `edges`, in legend order. `hiddenNets` are
- * the clock and reset nets drawn only as badges; their categories count too.
+ * the clock and reset nets behind the badges on screen, which callers pass so
+ * the category shows even when no wire of it is in view; their categories count too.
  */
 export function legendEntries(
   edges: readonly { category: NetCategory }[],
@@ -65,9 +66,9 @@ export interface DomainLegendEntry {
 
 /**
  * Entries appended to the legend in the domain mode: one per domain on the
- * level, then the reset and crossing marks. Clock and reset nets are badges,
- * not wires: the colors are those of their pin markers, and only the data
- * wire of a clock domain crossing is dashed.
+ * level, then the reset and crossing marks. The clock and reset pin
+ * markers carry the domain colors; only the data wire of a clock domain
+ * crossing is dashed.
  */
 export function domainLegend(domains: readonly ClockDomain[]): DomainLegendEntry[] {
   return [

@@ -71,12 +71,12 @@ describe('the canvas for one layout of clock and reset badges', () => {
     layout = await layoutOf();
   }, 20000);
 
-  it('draws the badges of the clock and reset nets, and none of their wires, either way', async () => {
+  it('draws the badges of the clock and reset nets, with their wires, either way', async () => {
     const { rerender } = render(canvas(layout, false));
     await screen.findByText('axi_dma_0');
     const shown = badges().length;
     expect(shown).toBeGreaterThan(0);
-    expect(layout.edges.some((edge) => isClockOrReset(edge.data))).toBe(false);
+    expect(layout.edges.some((edge) => isClockOrReset(edge.data))).toBe(true);
 
     rerender(canvas(layout, true));
     expect(badges()).toHaveLength(shown);

@@ -6,16 +6,50 @@
  */
 
 import type { ElkNode, ElkPort } from 'elkjs/lib/elk-api';
-import type { SystemGraph, SystemInstance } from '../../../domain/systemGraph';
+import type { SystemGraph, SystemInstance, SystemPin } from '../../../domain/systemGraph';
 import { cellCount, endpointKey, netsByEndpoint } from '../model';
 import type { FrameNodeData, FramePinRow, PinSide } from './diagramTypes';
 import { portId } from './levelEdges';
 import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
 import { FRAME_MARGIN, framePadding, type TextMeasure } from './nodeSizing';
 import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, pinRow, splitSides } from './pinRows';
+import { EDGE_MARGIN, LANE_STEP } from './wireRoutes';
 
 type ClockResetNets = ReturnType<typeof clockResetNetsByEndpoint>;
 type NetLookup = ReturnType<typeof netsByEndpoint>;
+
+/** Least room between the frame's pin labels and its inner blocks for the trunks of clock and reset wires. */
+export const FRAME_WIRE_CHANNEL = 24;
+
+/**
+ * Room beside the pin labels of each side for the trunks of the inner level's
+ * clock and reset nets that end on a pin of that side: a lane each, at least
+ * `FRAME_WIRE_CHANNEL`.
+ */
+export function frameWireChannels(
+  graph: SystemGraph,
+  instance: SystemInstance
+): { west: number; east: number } {
+  const inner = clockResetNetsByEndpoint(graph, instance.path);
+  const sides = splitSides(instance.pins);
+  const room = (pins: readonly SystemPin[]) => {
+    const nets = new Set(
+      pins
+        .flatMap((pin) => inner.get(endpointKey({ instance: null, pin: pin.name })) ?? [])
+        .map((net) => net.id)
+    );
+    return Math.max(FRAME_WIRE_CHANNEL, 2 * EDGE_MARGIN + (nets.size - 1) * LANE_STEP);
+  };
+  return { west: room(sides.west), east: room(sides.east) };
+}
+
+/** Widths of the strips on each side of a frame where it draws its pin labels. */
+export function frameLabelWidths(
+  instance: SystemInstance,
+  measure: TextMeasure
+): { west: number; east: number } {
+  return framePadding(splitSides(instance.pins), measure);
+}
 
 export interface CompoundOptions {
   measure: TextMeasure;
@@ -39,7 +73,8 @@ export function compoundNode(
   { measure, baseOptions, minSize }: CompoundOptions
 ): ElkNode {
   const sides = splitSides(instance.pins);
-  const padding = framePadding(sides, measure);
+  const padding = frameLabelWidths(instance, measure);
+  const channel = frameWireChannels(graph, instance);
   const ports: ElkPort[] = (['west', 'east'] as const).flatMap((side) =>
     sides[side].map((pin) => ({
       id: portId(instance.path, pin.name),
@@ -58,7 +93,7 @@ export function compoundNode(
       ...baseOptions,
       'elk.portConstraints': 'FIXED_SIDE',
       'elk.spacing.portPort': String(PIN_ROW_HEIGHT),
-      'elk.padding': `[top=${HEADER_HEIGHT + FRAME_MARGIN},left=${padding.west},bottom=${FRAME_MARGIN},right=${padding.east}]`,
+      'elk.padding': `[top=${HEADER_HEIGHT + FRAME_MARGIN},left=${padding.west + channel.west},bottom=${FRAME_MARGIN},right=${padding.east + channel.east}]`,
       'elk.nodeSize.constraints': 'MINIMUM_SIZE',
       'elk.nodeSize.minimum': `(${minSize.width},${minSize.height})`,
     },

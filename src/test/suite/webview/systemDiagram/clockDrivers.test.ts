@@ -323,7 +323,7 @@ describe('nets on a status output of a clock IP', () => {
     expect(marks?.dcm_locked).toBeUndefined();
     const edge = { id: `${LOCKED}#0`, data: { netId: LOCKED, category: 'clock' as const } };
     const context = { domainMode: true, tree: undefined, crossingEdgeIds: new Set<string>() };
-    expect(edgeMarks(context, edge)).toEqual({ dimmed: true });
+    expect(edgeMarks(context, edge)).toEqual({});
     expect(marks?.slowest_sync_clk?.color).toBe(analysis.domains[0].color);
   });
 });

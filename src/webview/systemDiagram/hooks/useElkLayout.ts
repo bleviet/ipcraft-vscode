@@ -61,7 +61,11 @@ export function useElkLayout(
       (laidOut) => {
         if (!stale) {
           setResult({
-            layout: { levelPath, viewKey, ...toFlowElements(laidOut, graph, levelPath, measure) },
+            layout: {
+              levelPath,
+              viewKey,
+              ...toFlowElements(laidOut, graph, levelPath, measure, isolation ?? undefined),
+            },
             error: null,
           });
         }

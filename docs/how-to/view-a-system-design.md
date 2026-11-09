@@ -80,7 +80,7 @@ To focus on a few blocks of a busy level, select them and isolate them.
 1. Click a block or port, then Cmd+Click (macOS) or Ctrl+Click (Windows and Linux) to add more, or to remove one that is already selected. Details shows "N selected" with a list of the names; clicking a name selects that block alone.
 2. Right-click one of the selected blocks and choose **Isolate N Selected** (N is the number of selected blocks). Right-clicking a block that is not selected selects it alone, and the item reads **Isolate Selection**.
 
-The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden, unless 1-hop already shows everything connected to the selection. Clock and reset nets bring in no block of their own; as everywhere, they show as badges on their pins. A toolbar chip reads "Isolated · N selected · M of T shown", where M counts the blocks and ports on screen and T those of the level. Next to it, **+** shows the blocks one connection further out (the chip reads "2-hop", "3-hop", and so on), and **-** removes the outermost ring again. **+** stops, and the chip adds "all connected", once every connected block and every wire between them is shown (the wires between the outermost blocks appear at that last step). With the canvas focused (click empty canvas), the `+` and `-` keys do the same. Isolating again, including a different selection from inside an isolated view, always starts at 1-hop; clicking blocks without isolating keeps the view and its radius. Clock and reset nets never bring in a block, at any step.
+The diagram then shows the selected blocks, the wires that touch them, and the block or port at the other end of each of those wires, laid out compactly. Wires between two of the other blocks stay hidden, unless 1-hop already shows everything connected to the selection. Clock and reset nets bring in no block of their own; their wires are drawn only between the blocks that are shown, with badges on the pins. A toolbar chip reads "Isolated · N selected · M of T shown", where M counts the blocks and ports on screen and T those of the level. Next to it, **+** shows the blocks one connection further out (the chip reads "2-hop", "3-hop", and so on), and **-** removes the outermost ring again. **+** stops, and the chip adds "all connected", once every connected block and every wire between them is shown (the wires between the outermost blocks appear at that last step). With the canvas focused (click empty canvas), the `+` and `-` keys do the same. Isolating again, including a different selection from inside an isolated view, always starts at 1-hop; clicking blocks without isolating keeps the view and its radius. Clock and reset nets never bring in a block, at any step.
 
 Choose **Show All** from the right-click menu (on a block or on the empty canvas) or the toolbar to return to the full level, with the zoom and pan it had before. Isolation also ends when you go to another level (breadcrumb, opening a hierarchy block, the mouse back button, or an outline or search jump) or when a search step or outline row selects a block that the isolated view hides.
 
@@ -108,9 +108,13 @@ that collapses a panel, see [Keyboard Shortcuts](../reference/keyboard-shortcuts
 
 ## Clocks and resets
 
-Clock and reset nets are not drawn as wires. Each pin that is on one shows a
-small badge with the net name, or the first name and `+N` when the pin is on
-several nets. Blocks are placed by their data and interface connections, and
+Clock and reset nets are drawn as wires, one tree per net, from the driver to
+every load on the level. A small dot marks where a branch leaves the tree; two
+wires that cross without a dot are not connected. The wires are routed around
+the blocks, in the gaps between them. Each pin that is on one of these nets
+shows a badge with the net name at the end of its wire, or the first name and
+`+N` when the pin is on several nets. Blocks are placed by their data and
+interface connections, so the clock and reset wires never move them, and
 each external port sits next to a block it connects to, so data paths stay
 short and readable. A block with no data connection on the level, such as a
 clocking wizard or a reset block, sits next to the block that drives its clock
@@ -118,7 +122,7 @@ or reset, and a clock or reset input port sits next to one of its loads.
 
 Turn on **Clocks and resets** in the toolbar to color the clock and reset pins
 by clock domain, with the frequencies, crossings, and other markers described
-in [Clock and reset domains](#clock-and-reset-domains). The badges stay, and the
+in [Clock and reset domains](#clock-and-reset-domains). The badges and wires stay, and the
 blocks stay in place when you turn it on or off: the toggle only adds or
 removes the domain markers.
 
@@ -195,8 +199,8 @@ While **Clocks and resets** is on and the **Unconnected pins** review is off:
   of a domain with a frequency shows it next to the pin.
 - The markers of reset pins take the color of the domain that releases the
   reset; an asynchronous reset, or one whose release clock is unknown, is muted.
-- Wires are dimmed, except the wires of a clock domain crossing, which are drawn
-  dashed in the warning color.
+- Data wires are dimmed, except the wires of a clock domain crossing, which are
+  drawn dashed in the warning color. Clock and reset wires are not dimmed.
 - The names of the pins at the ends of a crossing turn to the warning color:
   both ends of a clock domain crossing, only the sink pin of a reset domain
   crossing.
