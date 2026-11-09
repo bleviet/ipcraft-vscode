@@ -170,9 +170,11 @@ Checked on 2026-11-09 against `main` (90b89a4e) before any implementation.
 |---|---|
 | cocotb tests | Read the field metadata from the `.ip.yml` to build typed accessors: `status.level` instead of `(val >> 8) & 0xff`, enum names in assertion messages, decoded `TDATA` beats |
 | Documentation | Render a bit-field table per port, like the register tables |
-| Data Inspector | "Import from port" next to the existing register import (separate issue, first consumer after the schema change) |
+| Data Inspector | "Import from port" next to the existing register import (issue #288, first consumer after the schema change) |
 
 ### Data Inspector: Import from port
+
+Tracked in issue #288.
 
 Import copies the fields once into a recipe, like the register import; there is no live link.
 
