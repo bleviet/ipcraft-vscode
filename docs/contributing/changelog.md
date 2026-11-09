@@ -12,11 +12,15 @@ Marketplace, so it describes each release in user terms only. When you make a
 change, record it here; if users will notice it, also add a plain-language
 entry to the release notes.
 
-## [Unreleased]
+## [1.5.1] - 2026-11-09
 
 ### Fixed
 
 - System viewer: highlighted nets keep selection-like emphasis ([#241](https://github.com/bleviet/ipcraft-vscode/issues/241)). `ElkEdge` gives a highlighted wire the selection width bump and an underlying `sd-edge-halo` path in the highlight color; `highlightedEdgesLast` (`highlights.ts`) orders highlighted edges after the others in `useCanvasElements` so they paint on top; `NetBadgeView` takes `highlightColors` (built by `highlightedNetColors`, set only on nodes found by `badgedNodeIds`) and colors the stub and label of clock and reset badges.
+
+### Security
+
+- Transitive dependency advisories: non-breaking `npm audit fix` plus scoped `overrides` in `package.json` that lift nested `minimatch` (>=7 <11.0.1) to ^11.0.5 and `glob` (>=9 <14.0.2) to ^14.0.4. `npm audit` goes from 30 findings (1 critical, 5 high) to 6 low (`deepmerge` via `jest-config`, no patched release yet). ([#280](https://github.com/bleviet/ipcraft-vscode/issues/280), [#281](https://github.com/bleviet/ipcraft-vscode/pull/281))
 
 ## [1.5.0] - 2026-11-08
 

@@ -1,6 +1,6 @@
 {
   "name": "ipcraft",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Headless IPCraft HDL and FPGA vendor-project generator",
   "license": "MIT",
   "repository": {

@@ -6,7 +6,7 @@ attention when you update, for example because generated files change.
 Contributors: the technical changelog, with modules, issues and pull requests,
 is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
-## [Unreleased]
+## [1.5.1] - 2026-11-09
 
 ### Fixed
 
