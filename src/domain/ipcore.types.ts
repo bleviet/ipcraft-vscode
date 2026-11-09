@@ -165,13 +165,39 @@ export type Description4 = string;
  */
 export type Endianness = 'little' | 'big';
 /**
+ * Bit field name
+ */
+export type Name5 = string;
+/**
+ * Starting bit position (LSB = 0)
+ */
+export type Offset = number | null;
+/**
+ * Number of bits
+ */
+export type Width4 = number | null;
+/**
+ * Bit range string e.g. [7:0]
+ */
+export type Bits = string | null;
+/**
+ * Field description
+ */
+export type Description5 = string;
+/**
+ * Enumeration mapping {value: name}
+ */
+export type Enumeratedvalues = {
+  [k: string]: string;
+} | null;
+/**
  * Data/control ports
  */
 export type Ports = Port[];
 /**
  * Logical interface name
  */
-export type Name5 = string;
+export type Name6 = string;
 /**
  * Bus type identifier: a full VLNV in vendor:library:name:version format (e.g., 'ipcraft:busif:axi4_lite:1.0'), or a recognized short alias (e.g., 'AXI4L').
  */
@@ -223,7 +249,7 @@ export type Physicalprefixpattern = string | null;
 /**
  * Interface description
  */
-export type Description5 = string;
+export type Description6 = string;
 /**
  * User-defined signals for conduit (custom) interfaces
  */
@@ -231,7 +257,7 @@ export type ConduitPorts = ConduitPort[] | null;
 /**
  * Port name (HDL signal name)
  */
-export type Name6 = string;
+export type Name7 = string;
 /**
  * Port direction enumeration.
  */
@@ -239,11 +265,11 @@ export type PortDirection4 = 'in' | 'out' | 'inout';
 /**
  * Port width in bits, a parameter name, or an arithmetic expression with predefined functions (clog2, log2, ceil, floor, abs, min, max), e.g. clog2(FIFO_DEPTH)
  */
-export type Width4 = number | string;
+export type Width5 = number | string;
 /**
  * Optional port description
  */
-export type Description6 = string | null;
+export type Description7 = string | null;
 /**
  * Whether the port is required or optional in the generated interface
  */
@@ -259,11 +285,11 @@ export type Businterfaces = BusInterface[];
 /**
  * Memory map name
  */
-export type Name7 = string;
+export type Name8 = string;
 /**
  * Memory map description
  */
-export type Description7 = string;
+export type Description8 = string;
 /**
  * Path to an external .mm.yml file whose content is loaded for this map entry. When present, addressBlocks from this entry override the imported file.
  */
@@ -271,7 +297,7 @@ export type Import = string | null;
 /**
  * Block name
  */
-export type Name8 = string;
+export type Name9 = string;
 /**
  * Block starting address
  */
@@ -298,7 +324,7 @@ export type AccessType =
 /**
  * Block description
  */
-export type Description8 = string;
+export type Description9 = string;
 /**
  * Default register width
  */
@@ -306,11 +332,11 @@ export type Defaultregwidth = number;
 /**
  * Register name
  */
-export type Name9 = string;
+export type Name10 = string;
 /**
  * Offset from address block base
  */
-export type Offset = number | null;
+export type Offset1 = number | null;
 /**
  * Register width in bits
  */
@@ -333,23 +359,23 @@ export type Resetvalue = number | null;
 /**
  * Register description
  */
-export type Description9 = string;
+export type Description10 = string;
 /**
  * Bit field name
  */
-export type Name10 = string;
+export type Name11 = string;
 /**
  * Starting bit position (LSB = 0)
  */
-export type Offset1 = number | null;
+export type Offset2 = number | null;
 /**
  * Number of bits
  */
-export type Width5 = number | null;
+export type Width6 = number | null;
 /**
  * Bit range string e.g. [7:0]
  */
-export type Bits = string | null;
+export type Bits1 = string | null;
 /**
  * Access type
  */
@@ -368,11 +394,11 @@ export type Resetvalue1 = number | null;
 /**
  * Field description
  */
-export type Description10 = string;
+export type Description11 = string;
 /**
  * Enumeration mapping {value: name}
  */
-export type Enumeratedvalues = {
+export type Enumeratedvalues1 = {
   [k: string]: string;
 } | null;
 /**
@@ -402,7 +428,7 @@ export type Addressblocks = AddressBlock[];
 /**
  * Parameter name
  */
-export type Name11 = string;
+export type Name12 = string;
 /**
  * Human-friendly label shown in place of the parameter name in vendor tools (e.g. Vivado IP Packager). Defaults to the parameter name when unset.
  */
@@ -414,7 +440,7 @@ export type ParameterType = 'integer' | 'natural' | 'boolean' | 'string';
 /**
  * Parameter description
  */
-export type Description11 = string | null;
+export type Description12 = string | null;
 /**
  * Generics/parameters
  */
@@ -422,11 +448,11 @@ export type Parameters = Parameter[];
 /**
  * File set name
  */
-export type Name12 = string;
+export type Name13 = string;
 /**
  * File set description
  */
-export type Description12 = string;
+export type Description13 = string;
 /**
  * Whether the file should be overwritten on generation
  */
@@ -462,7 +488,7 @@ export type FileType =
 /**
  * File description
  */
-export type Description13 = string;
+export type Description14 = string;
 /**
  * Whether file is an include file
  */
@@ -566,9 +592,9 @@ export interface IpCore {
    */
   targets?: string[];
   /**
-   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Tools must not read a file that declares a newer version than they support.
+   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Version 1.2 adds port field metadata (fields on ports and conduit ports, portFields on bus interfaces). Tools must not read a file that declares a newer version than they support.
    */
-  apiVersion?: '1.0' | '1.1';
+  apiVersion?: '1.0' | '1.1' | '1.2';
   /**
    * Path to a custom bus library directory relative to this file.
    */
@@ -647,6 +673,21 @@ export interface Port {
   type?: Type2;
   description?: Description4;
   endianness?: Endianness;
+  /**
+   * Optional named bit ranges of this port (bit 0 = LSB of the HDL vector). Metadata only; generators ignore it.
+   */
+  fields?: PortFieldDef[];
+}
+/**
+ * Named bit range of a port. Metadata only; generators ignore it.
+ */
+export interface PortFieldDef {
+  name: Name5;
+  offset?: Offset;
+  width?: Width4;
+  bits?: Bits;
+  description?: Description5;
+  enumeratedValues?: Enumeratedvalues;
 }
 /**
  * Bus interface definition for an IP core.
@@ -655,7 +696,7 @@ export interface Port {
  * optional width overrides, clock/reset associations, and array support.
  */
 export interface BusInterface {
-  name: Name5;
+  name: Name6;
   type: Type3;
   /**
    * IP-XACT bus type VLNV of an imported interface whose type has no bus definition in the library. Written by the component.xml importer; generators use it to re-emit the original bus type.
@@ -689,6 +730,12 @@ export interface BusInterface {
     [k: string]: string;
   };
   /**
+   * Field metadata of bus interface ports, keyed by canonical logical port name (like portWidthOverrides). Bit 0 = LSB of the HDL vector. Applies to every instance of an array interface. Metadata only; generators ignore it.
+   */
+  portFields?: {
+    [k: string]: PortFieldDef[];
+  };
+  /**
    * Per-port assertion polarity overrides keyed by canonical bus port name.
    */
   portPolarityOverrides?: {
@@ -700,7 +747,7 @@ export interface BusInterface {
    * Array configuration for multiple instances
    */
   array?: ArrayConfig | null;
-  description?: Description5;
+  description?: Description6;
   conduitPorts?: ConduitPorts;
   endianness?: Endianness1;
 }
@@ -731,14 +778,18 @@ export interface ArrayConfig {
  * A single signal within a conduit (custom) bus interface.
  */
 export interface ConduitPort {
-  name: Name6;
+  name: Name7;
   /**
    * Port direction
    */
   direction?: PortDirection4;
-  width?: Width4;
-  description?: Description6;
+  width?: Width5;
+  description?: Description7;
   presence?: Presence;
+  /**
+   * Optional named bit ranges of this port (bit 0 = LSB of the HDL vector). Metadata only; generators ignore it.
+   */
+  fields?: PortFieldDef[];
   [k: string]: unknown;
 }
 /**
@@ -747,8 +798,8 @@ export interface ConduitPort {
  * Organizes registers into address blocks with validation.
  */
 export interface MemoryMap {
-  name: Name7;
-  description?: Description7;
+  name: Name8;
+  description?: Description8;
   import?: Import;
   addressBlocks?: Addressblocks;
 }
@@ -758,12 +809,12 @@ export interface MemoryMap {
  * Can contain registers, memory, or reserved space.
  */
 export interface AddressBlock {
-  name: Name8;
+  name: Name9;
   baseAddress?: Baseaddress;
   range?: Range;
   usage?: BlockUsage;
   access?: AccessType;
-  description?: Description8;
+  description?: Description9;
   defaultRegWidth?: Defaultregwidth;
   registers?: Registers;
   [k: string]: unknown;
@@ -774,12 +825,12 @@ export interface AddressBlock {
  * Represents a memory-mapped register with bit fields.
  */
 export interface RegisterDef {
-  name: Name9;
-  offset?: Offset;
+  name: Name10;
+  offset?: Offset1;
   size?: Size;
   access?: AccessType1;
   resetValue?: Resetvalue;
-  description?: Description9;
+  description?: Description10;
   fields?: Fields;
   registers?: Registers1;
   count?: Count1;
@@ -792,14 +843,14 @@ export interface RegisterDef {
  * Represents a named range of bits with specific access semantics.
  */
 export interface BitFieldDef {
-  name: Name10;
-  offset?: Offset1;
-  width?: Width5;
-  bits?: Bits;
+  name: Name11;
+  offset?: Offset2;
+  width?: Width6;
+  bits?: Bits1;
   access?: AccessType2;
   resetValue?: Resetvalue1;
-  description?: Description10;
-  enumeratedValues?: Enumeratedvalues;
+  description?: Description11;
+  enumeratedValues?: Enumeratedvalues1;
   [k: string]: unknown;
 }
 /**
@@ -808,11 +859,11 @@ export interface BitFieldDef {
  * Used for VHDL generics, Verilog parameters, or component configuration.
  */
 export interface Parameter {
-  name: Name11;
+  name: Name12;
   displayName?: DisplayName;
   value?: Value;
   dataType?: ParameterType;
-  description?: Description11;
+  description?: Description12;
   /**
    * Default value (alias for value; accepted for compatibility).
    */
@@ -866,8 +917,8 @@ export interface SubcoreRef {
  * Groups related files together (e.g., RTL sources, C API, documentation).
  */
 export interface FileSet {
-  name: Name12;
-  description?: Description12;
+  name: Name13;
+  description?: Description13;
   files?: Files;
 }
 /**
@@ -879,7 +930,7 @@ export interface File {
   managed?: Managed;
   path: Path;
   type: FileType;
-  description?: Description13;
+  description?: Description14;
   isIncludeFile?: Isincludefile;
   logicalName?: Logicalname4;
   version?: Version1;

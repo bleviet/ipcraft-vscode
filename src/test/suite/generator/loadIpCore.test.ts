@@ -33,10 +33,10 @@ describe('loadIpCoreData schema diagnostics', () => {
   it('rejects a newer format version before schema validation', async () => {
     const repoRoot = path.resolve(__dirname, '../../../..');
     const sourceText =
-      "apiVersion: '1.2'\nvlnv:\n  vendor: acme\n  library: ip\n  name: demo\n  version: '1.0'\n";
+      "apiVersion: '1.3'\nvlnv:\n  vendor: acme\n  library: ip\n  name: demo\n  version: '1.0'\n";
 
     await expect(
       loadIpCoreData('/tmp/demo.ip.yml', devResourceRoots(repoRoot), sourceText)
-    ).rejects.toThrow(/apiVersion 1\.2.*up to 1\.1/);
+    ).rejects.toThrow(/apiVersion 1\.3.*up to 1\.2/);
   });
 });

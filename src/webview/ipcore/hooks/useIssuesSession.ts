@@ -4,6 +4,7 @@ import type { ConformanceReport, IpcraftIssue } from '../../../shared/issues';
 import type { IpCore } from '../../types/ipCore';
 import type { ValidationError } from './useIpCoreState';
 import type { NormalizedBusLibrary } from '../../../shared/busContracts';
+import { checkPortFields } from '../utils/portFieldChecks';
 import {
   deduplicateAndOrderIssues,
   elementIdsForIssue,
@@ -69,15 +70,21 @@ export function useIssuesSession(options: {
     return checkBusConformance(ipCore, busLibrary);
   }, [ipCore, busLibrary]);
 
+  const portFieldIssues = useMemo(
+    () => (ipCore ? checkPortFields(ipCore, busLibrary) : []),
+    [ipCore, busLibrary]
+  );
+
   const issues = useMemo(
     () =>
       deduplicateAndOrderIssues([
         ...(protocolReport?.issues ?? []),
         ...referenceIssues(ipCore, validationErrors),
+        ...portFieldIssues,
         ...consistencyIssues,
         ...(hostReport?.issues ?? []),
       ]),
-    [protocolReport, ipCore, validationErrors, consistencyIssues, hostReport]
+    [protocolReport, ipCore, validationErrors, portFieldIssues, consistencyIssues, hostReport]
   );
 
   const focusIssue = useCallback(

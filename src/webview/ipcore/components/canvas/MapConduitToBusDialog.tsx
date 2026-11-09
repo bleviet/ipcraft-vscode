@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { ConduitPort } from '../../../types/ipCore';
+import type { ConduitPort, PortField } from '../../../types/ipCore';
 import { isAssociatedPort, type BusPortDef } from '../../utils/busLibrary';
 import {
   portNameCandidates,
@@ -7,6 +7,7 @@ import {
   type PortPolarity,
 } from '../../../../shared/busContracts';
 import type { MapConduitToBusOptions } from '../../hooks/useGroupPorts';
+import { collectPortFields } from '../../utils/portFieldTransfer';
 
 export type { MapConduitToBusOptions as MapConduitToBusResult } from '../../hooks/useGroupPorts';
 
@@ -168,6 +169,7 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
     const assignedPortNames = new Set<string>();
     // Build a quick lookup from conduit port name to width
     const conduitWidthByName: Record<string, number | string> = {};
+    const portFieldEntries: Array<[string, PortField[] | undefined]> = [];
     for (const cp of conduitPorts) {
       if (cp.width !== undefined) {
         conduitWidthByName[cp.name] = cp.width;
@@ -197,12 +199,18 @@ export const MapConduitToBusDialog: React.FC<MapConduitToBusDialogProps> = ({
       if (w !== undefined) {
         portWidthOverrides[def.name] = w;
       }
+      portFieldEntries.push([
+        def.name,
+        conduitPorts.find((cp) => cp.name === assignment.physicalPort)?.fields,
+      ]);
     }
+    const portFields = collectPortFields(portFieldEntries);
     onConfirm({
       mode,
       portNameOverrides,
       ...(Object.keys(portWidthOverrides).length > 0 ? { portWidthOverrides } : {}),
       ...(Object.keys(portPolarityOverrides).length > 0 ? { portPolarityOverrides } : {}),
+      ...(portFields ? { portFields } : {}),
       ...(conduitPorts.some((port) => !assignedPortNames.has(port.name))
         ? { unmappedConduitPorts: conduitPorts.filter((port) => !assignedPortNames.has(port.name)) }
         : {}),

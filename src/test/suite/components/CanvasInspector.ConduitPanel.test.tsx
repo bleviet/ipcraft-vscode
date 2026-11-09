@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { CanvasInspector } from '../../../webview/ipcore/components/canvas/CanvasInspector';
 import type { IpCore } from '../../../webview/types/ipCore';
 import type { CanvasElement } from '../../../webview/ipcore/hooks/useCanvasSelection';
@@ -145,5 +145,62 @@ describe('CanvasInspector BusPanel — Avalon-ST configuration', () => {
     expect(endianness).toHaveValue('big');
     fireEvent.change(endianness, { target: { value: 'little' } });
     expect(onUpdate).toHaveBeenCalledWith(['busInterfaces', 0, 'endianness'], 'little');
+  });
+});
+
+describe('CanvasInspector ConduitPanel - save as custom bus definition', () => {
+  const FIELDS = [{ name: 'low', bits: '[3:0]' }];
+
+  function saveAndAck(conduitPorts: unknown[]) {
+    const onUpdate = jest.fn<void, [Array<string | number>, unknown]>();
+    render(
+      <CanvasInspector
+        selected={BUS_SELECTION}
+        ipCore={baseIpCore({
+          name: 'custom_if',
+          type: 'user:busif:custom:1.0',
+          mode: 'conduit',
+          conduitPorts,
+        })}
+        imports={{ busLibrary: builtinBusLibrary() }}
+        onUpdate={onUpdate}
+        onClose={jest.fn()}
+      />
+    );
+    fireEvent.click(screen.getByText(/Save Bus Definition/));
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { type: 'customBusDefinitionSaved', customBusLibraryDir: 'custom_bus_definitions' },
+        })
+      );
+    });
+    return onUpdate;
+  }
+
+  it('writes portFields keyed by conduit port name before clearing conduitPorts', () => {
+    const onUpdate = saveAndAck([
+      { name: 'dbg_val', direction: 'out', width: 4, fields: FIELDS },
+      { name: 'dbg_plain', direction: 'in', width: 1 },
+    ]);
+
+    const paths = onUpdate.mock.calls.map(([path]) => path.join('.'));
+    expect(onUpdate).toHaveBeenCalledWith(['busInterfaces', 0, 'portFields'], {
+      dbg_val: FIELDS,
+    });
+    expect(paths.indexOf('busInterfaces.0.portFields')).toBeGreaterThanOrEqual(0);
+    expect(paths.indexOf('busInterfaces.0.portFields')).toBeLessThan(
+      paths.indexOf('busInterfaces.0.conduitPorts')
+    );
+    expect(onUpdate).toHaveBeenCalledWith(['busInterfaces', 0, 'conduitPorts'], null);
+  });
+
+  it('writes no portFields when no conduit port has fields', () => {
+    const onUpdate = saveAndAck([{ name: 'dbg_val', direction: 'out', width: 4 }]);
+
+    expect(onUpdate).toHaveBeenCalledWith(['busInterfaces', 0, 'conduitPorts'], null);
+    expect(onUpdate.mock.calls.map(([path]) => path.join('.'))).not.toContain(
+      'busInterfaces.0.portFields'
+    );
   });
 });

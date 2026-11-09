@@ -355,7 +355,7 @@ describe('ComponentXmlParser', () => {
     it('always sets apiVersion to the latest format version', () => {
       const { ipYamlText } = parseComponentXmlText(MINIMAL_XML);
       const doc = parseYaml(ipYamlText) as { apiVersion: string };
-      expect(doc.apiVersion).toBe('1.1');
+      expect(doc.apiVersion).toBe('1.2');
     });
   });
 

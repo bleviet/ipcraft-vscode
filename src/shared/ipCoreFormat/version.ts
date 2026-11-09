@@ -4,10 +4,10 @@ import type { IpCore } from '../../domain/ipcore.types';
 export type IpCoreFormatVersion = NonNullable<IpCore['apiVersion']>;
 
 /** Every format version this IPCraft reads, oldest first. Mirrors the `apiVersion` schema enum. */
-export const IP_CORE_FORMAT_VERSIONS: readonly IpCoreFormatVersion[] = ['1.0', '1.1'];
+export const IP_CORE_FORMAT_VERSIONS: readonly IpCoreFormatVersion[] = ['1.0', '1.1', '1.2'];
 
 /** The latest format version this IPCraft supports; importers write it and upgrades target it. */
-export const IP_CORE_FORMAT_VERSION: IpCoreFormatVersion = '1.1';
+export const IP_CORE_FORMAT_VERSION: IpCoreFormatVersion = '1.2';
 
 /** The version of a file that declares no `apiVersion`. */
 export const IP_CORE_LEGACY_FORMAT_VERSION: IpCoreFormatVersion = '1.0';

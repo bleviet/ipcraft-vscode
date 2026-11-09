@@ -325,4 +325,22 @@ describe('MapConduitToBusDialog', () => {
       useOptionalPorts: [],
     });
   });
+
+  it('carries the fields of an assigned conduit port into portFields by logical name', () => {
+    const fields = [{ name: 'low', bits: '[3:0]' }];
+    const onConfirm = jest.fn<void, [MapConduitToBusResult]>();
+    renderDialog({
+      onConfirm,
+      conduitPorts: CONDUIT_PORTS.map((port) =>
+        port.name === 'fifo_wr_data' ? { ...port, fields } : port
+      ),
+    });
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: 'master' } });
+    fireEvent.change(selects[1], { target: { value: 'fifo_wr_data' } });
+    fireEvent.change(selects[2], { target: { value: 'fifo_wr_en' } });
+    fireEvent.click(screen.getByText('Confirm'));
+
+    expect(onConfirm.mock.calls[0][0].portFields).toEqual({ WR_DATA: fields });
+  });
 });

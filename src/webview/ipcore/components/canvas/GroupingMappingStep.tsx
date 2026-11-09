@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import type { IpCore, Port } from '../../../types/ipCore';
+import type { IpCore, Port, PortField } from '../../../types/ipCore';
 import type { GroupAsStandardOptions } from '../../hooks/useGroupPorts';
 import {
   inferPortAssignments,
@@ -9,6 +9,7 @@ import {
   type BusDefinitionLookup,
 } from '../../utils/protocolMatcher';
 import { isAssociatedPort } from '../../utils/busLibrary';
+import { collectPortFields } from '../../utils/portFieldTransfer';
 import type { PortPolarity } from '../../../../shared/busContracts';
 
 interface GroupingMappingStepProps {
@@ -287,6 +288,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
     const portPolarityOverrides: Record<string, PortPolarity> = {};
     const useOptionalPorts: string[] = [];
     const assignedPortIndices: number[] = [];
+    const portFieldEntries: Array<[string, PortField[] | undefined]> = [];
 
     for (const a of assignments) {
       // Locked rows are already part of the existing bus — skip them entirely.
@@ -306,6 +308,9 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
       if (a.presence === 'optional') {
         useOptionalPorts.push(a.logicalName);
       }
+      if (idx >= 0) {
+        portFieldEntries.push([a.logicalName, ipCore.ports?.[idx]?.fields]);
+      }
       // Preserve the physical port's actual width instead of the bus default
       const physicalPort = selectedPorts.find((p) => p.name === a.assignedPort!.name);
       if (physicalPort?.width !== undefined) {
@@ -324,6 +329,7 @@ export const GroupingMappingStep: React.FC<GroupingMappingStepProps> = ({
         Object.keys(portWidthOverrides).length > 0 ? portWidthOverrides : undefined,
       ...(Object.keys(portPolarityOverrides).length > 0 ? { portPolarityOverrides } : {}),
       useOptionalPorts: useOptionalPorts.length > 0 ? useOptionalPorts : undefined,
+      portFields: collectPortFields(portFieldEntries),
       associatedClock: associatedClock || null,
       associatedReset: associatedReset || null,
     });

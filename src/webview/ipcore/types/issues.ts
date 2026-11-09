@@ -15,6 +15,7 @@ export const ISSUE_GROUPS: readonly { sources: readonly IssueSource[]; label: st
   { sources: ['schema'], label: 'Schema' },
   { sources: ['protocol'], label: 'Protocol' },
   { sources: ['references'], label: 'References' },
+  { sources: ['portFields'], label: 'Port fields' },
   { sources: ['hdl'], label: 'HDL consistency' },
   { sources: ['hwTcl', 'componentXml'], label: 'Vendor artifact consistency' },
 ];
@@ -54,7 +55,7 @@ export function elementIdsForIssue(issue: IpcraftIssue): string[] {
   const parentId = `${prefix}:${rawIndex}`;
   if (
     collection === 'busInterfaces' &&
-    (field === 'portWidthOverrides' || field === 'portNameOverrides') &&
+    (field === 'portWidthOverrides' || field === 'portNameOverrides' || field === 'portFields') &&
     typeof logicalPort === 'string'
   ) {
     return [parentId, `${parentId}:${logicalPort}`];

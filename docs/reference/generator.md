@@ -414,14 +414,15 @@ same options give on the command line.
 
 ### Upgrading `.ip.yml` to the latest format version
 
-An `.ip.yml` declares its file format version in `apiVersion` (`1.0` or `1.1`);
+An `.ip.yml` declares its file format version in `apiVersion` (`1.0`, `1.1`, or `1.2`);
 a file without `apiVersion` is version 1.0. IPCraft reads every version up to
-its latest (1.1), refuses a file that declares a newer version with an error
+its latest (1.2), refuses a file that declares a newer version with an error
 asking you to upgrade IPCraft, and can upgrade older files. Version 1.1
 introduced bus interface contracts: legacy port names such as Avalon-MM
 `read_n` or `waitrequest_n` become one port plus an entry in
-`portPolarityOverrides`. The IP Core editor applies this upgrade (and sets
-`apiVersion: '1.1'`) when you make the first edit to an older file; to upgrade
+`portPolarityOverrides`. Version 1.2 added port field metadata and changes no
+existing content. The IP Core editor applies this upgrade (and sets
+`apiVersion: '1.2'`) when you make the first edit to an older file; to upgrade
 explicitly, run:
 
 ```bash
@@ -431,9 +432,9 @@ ipcraft migrate path/to/map.mm.yml
 ```
 
 Each file is rewritten in place only when it changes, preserving comments and
-hex literals; the command prints `Upgraded <path> (1.0 -> 1.1, <n> change(s))`
-or `Up to date: <path> (1.1)`. With `--check` nothing is written, files that
-need an upgrade are listed as `Needs upgrade: <path> (1.0 -> 1.1)`, and the
+hex literals; the command prints `Upgraded <path> (1.0 -> 1.2, <n> change(s))`
+or `Up to date: <path> (1.2)`. With `--check` nothing is written, files that
+need an upgrade are listed as `Needs upgrade: <path> (1.0 -> 1.2)`, and the
 exit status is 1 if any file would change (useful in CI). A file that cannot
 be read or parsed, or that declares a newer version, is reported and makes the
 exit status 1, but the remaining files are still processed. The bus library

@@ -11,23 +11,23 @@ describe('readIpCoreFormatVersion', () => {
     expect(readIpCoreFormatVersion({})).toEqual({ ok: true, version: '1.0' });
   });
 
-  it.each(['1.0', '1.1'])('accepts supported version %s', (version) => {
+  it.each(['1.0', '1.1', '1.2'])('accepts supported version %s', (version) => {
     expect(readIpCoreFormatVersion({ apiVersion: version })).toEqual({ ok: true, version });
   });
 
   it('rejects a newer version, naming it and the supported maximum', () => {
-    const result = readIpCoreFormatVersion({ apiVersion: '1.2' });
+    const result = readIpCoreFormatVersion({ apiVersion: '1.3' });
     expect(result).toEqual({
       ok: false,
-      message: expect.stringMatching(/apiVersion 1\.2.*up to 1\.1.*Upgrade IPCraft/),
+      message: expect.stringMatching(/apiVersion 1\.3.*up to 1\.2.*Upgrade IPCraft/),
     });
   });
 
-  it.each([1.1, 1, 2])('asks for a quoted string when apiVersion is the number %s', (value) => {
+  it.each([1.2, 1, 2])('asks for a quoted string when apiVersion is the number %s', (value) => {
     const result = readIpCoreFormatVersion({ apiVersion: value });
     expect(result).toEqual({
       ok: false,
-      message: expect.stringMatching(/must be a quoted string such as '1\.1'/),
+      message: expect.stringMatching(/must be a quoted string such as '1\.2'/),
     });
     expect((result as { message: string }).message).not.toMatch(/Upgrade IPCraft/);
   });
