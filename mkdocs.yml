@@ -87,6 +87,7 @@ nav:
       - EDA Integration Tests: concepts/eda-integration-tests.md
       - Generator Feature Coverage: concepts/generator-feature-coverage.md
       - Clock and Reset Wires: concepts/clock-reset-wires.md
+      - Port Field Metadata: concepts/port-fields.md
   - Architecture:
       - Overview: architecture/overview.md
       - Extension Host: architecture/extension-host.md
