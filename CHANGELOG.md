@@ -6,6 +6,12 @@ attention when you update, for example because generated files change.
 Contributors: the technical changelog, with modules, issues and pull requests,
 is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
+## [Unreleased]
+
+### Fixed
+
+- **Highlighted wires stand out.** A highlighted wire is now as thick as a selected one, with a soft glow in its color, and is drawn above other wires; clock and reset badges of a highlighted net take its color.
+
 ## [1.5.0] - 2026-11-08
 
 ### New

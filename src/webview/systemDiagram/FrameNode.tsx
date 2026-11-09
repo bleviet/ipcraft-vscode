@@ -134,6 +134,7 @@ function FrameNodeBase({ data, selected, width, height }: NodeProps<FrameFlowNod
               key={`badge:${row.name}`}
               badge={row.badge}
               selectedNetIds={data.selectedNetIds}
+              highlightColors={data.highlightColors}
               onSelectNet={data.onSelectNet}
             />
           )

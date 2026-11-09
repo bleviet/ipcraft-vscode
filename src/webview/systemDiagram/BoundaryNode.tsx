@@ -72,6 +72,7 @@ function BoundaryNodeBase({ data, selected }: NodeProps<BoundaryFlowNode>) {
         <NetBadgeView
           badge={data.badge}
           selectedNetIds={data.selectedNetIds}
+          highlightColors={data.highlightColors}
           onSelectNet={data.onSelectNet}
         />
       )}

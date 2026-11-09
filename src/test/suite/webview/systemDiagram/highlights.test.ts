@@ -3,6 +3,8 @@ import {
   hasAnyHighlight,
   highlightCount,
   highlightCss,
+  highlightedEdgesLast,
+  highlightedNetColors,
   highlightedNetIds,
   isHighlightColor,
   netHighlightColor,
@@ -113,5 +115,34 @@ describe('highlights', () => {
       '/::axi_dma_0_M_AXIS_MM2S',
       '/dsp_pipeline::Conn1',
     ]);
+  });
+});
+
+describe('highlight rendering helpers', () => {
+  it('maps every highlighted net to its css color and ignores other kinds', () => {
+    const colors = highlightedNetColors({
+      'net:/::a': 'red',
+      'net:/::b': 'green',
+      'instance:/x': 'cyan',
+    });
+    expect([...colors]).toEqual([
+      ['/::a', 'var(--vscode-charts-red)'],
+      ['/::b', 'var(--vscode-charts-green)'],
+    ]);
+  });
+
+  it('orders highlighted edges last and keeps the order within each group', () => {
+    const edge = (id: string, highlightColor?: string) => ({
+      id,
+      data: { highlightColor },
+    });
+    const ordered = highlightedEdgesLast([
+      edge('a', 'red'),
+      edge('b'),
+      edge('c', 'green'),
+      edge('d'),
+      { id: 'e', data: undefined },
+    ]);
+    expect(ordered.map((e) => e.id)).toEqual(['b', 'd', 'e', 'a', 'c']);
   });
 });

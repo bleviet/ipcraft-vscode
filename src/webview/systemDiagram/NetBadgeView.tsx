@@ -6,23 +6,35 @@ interface NetBadgeViewProps {
   badge: NetBadge;
   /** Nets of the selected clock or reset tree; the badge is drawn selected when it holds one. */
   selectedNetIds?: ReadonlySet<string>;
+  /** Highlight CSS color by net id; the badge takes the color of the first of its nets present. */
+  highlightColors?: ReadonlyMap<string, string>;
   onSelectNet?: (netId: string, additive?: boolean) => void;
 }
 
 /** Quiet label drawn where ELK reserved space for a clock or reset net, which has no wire. */
-export function NetBadgeView({ badge, selectedNetIds, onSelectNet }: NetBadgeViewProps) {
+export function NetBadgeView({
+  badge,
+  selectedNetIds,
+  highlightColors,
+  onSelectNet,
+}: NetBadgeViewProps) {
   const categories = new Set(badge.nets.map((net) => net.category));
   const kind =
     categories.size > 1 ? 'Clock and reset' : badge.category === 'reset' ? 'Reset' : 'Clock';
   const names = badge.nets.map((net) => net.name).join(', ');
-  const color = categoryColor(badge.category);
+  const highlight = badge.nets
+    .map((net) => highlightColors?.get(net.id))
+    .find((css) => css !== undefined);
+  const color = highlight ?? categoryColor(badge.category);
   return (
     <button
       type="button"
       className="sd-badge nodrag nopan"
       data-side={badge.x < 0 ? 'west' : 'east'}
       data-selected={badge.nets.some((net) => selectedNetIds?.has(net.id)) || undefined}
+      data-highlighted={highlight !== undefined || undefined}
       style={{
+        ...(highlight !== undefined && { ['--sd-highlight' as string]: highlight }),
         left: badge.x,
         top: badge.y,
         width: badge.width,

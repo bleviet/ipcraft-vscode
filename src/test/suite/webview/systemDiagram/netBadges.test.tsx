@@ -49,6 +49,28 @@ describe('net badges of pins on several hidden nets', () => {
     expect(onSelectNet).toHaveBeenCalledWith('/::clk_0.clk_reset');
   });
 
+  it('draws a badge on a highlighted net in the highlight color', () => {
+    const badge = badgeOfPort(
+      reservedPort('/jtag_uart_0', 'reset'),
+      clockResetNetsByEndpoint(graph, '/').get('/jtag_uart_0::reset')
+    )!;
+    const plain = render(<NetBadgeView badge={badge} />);
+    expect(plain.container.querySelector('.sd-badge')).not.toHaveAttribute('data-highlighted');
+    plain.unmount();
+    const { container } = render(
+      <NetBadgeView
+        badge={badge}
+        highlightColors={new Map([['/::clk_0.clk_reset', 'var(--vscode-charts-red)']])}
+      />
+    );
+    const button = container.querySelector('.sd-badge') as HTMLElement;
+    expect(button).toHaveAttribute('data-highlighted', 'true');
+    expect(button.style.getPropertyValue('--sd-highlight')).toBe('var(--vscode-charts-red)');
+    expect((container.querySelector('.sd-badge-stub') as HTMLElement).style.background).toBe(
+      'var(--vscode-charts-red)'
+    );
+  });
+
   it('still renders a badge when a net id contains a newline', async () => {
     const odd = JSON.parse(JSON.stringify(graph)) as typeof graph;
     const net = odd.nets.find((candidate) => candidate.id === '/::clk_0.clk_reset')!;
