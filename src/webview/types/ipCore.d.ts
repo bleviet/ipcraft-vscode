@@ -556,6 +556,19 @@ export interface Port {
    * width is a multiple of 8 bits.
    */
   endianness?: 'little' | 'big';
+  /** Named bit ranges of this port (metadata only; generators ignore it). */
+  fields?: PortField[];
+}
+/**
+ * Named bit range of a port (a bit field without access and reset value).
+ */
+export interface PortField {
+  name: string;
+  offset?: number | null;
+  width?: number | null;
+  bits?: string | null;
+  description?: string;
+  enumeratedValues?: Record<string, string> | null;
 }
 /**
  * Bus interface definition for an IP core.
@@ -578,6 +591,8 @@ export interface BusInterface {
   /** Logical-signal-name → physical suffix overrides, used when physical port names
    *  deviate from the physicalPrefix + logicalName.toLowerCase() convention. */
   portNameOverrides?: Record<string, string>;
+  /** Field metadata of bus interface ports, keyed by canonical logical port name. */
+  portFields?: Record<string, PortField[]>;
   /** Per-port assertion polarity overrides keyed by canonical bus port name. */
   portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
   /**
@@ -627,6 +642,7 @@ export interface ConduitPort {
   width?: Width4;
   description?: Description6;
   presence?: Presence;
+  fields?: PortField[];
 }
 /**
  * Complete memory map for an IP core (Pydantic model).

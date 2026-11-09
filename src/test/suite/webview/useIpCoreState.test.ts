@@ -81,12 +81,12 @@ describe('useIpCoreState', () => {
       const { result } = renderHook(() => useIpCoreState());
 
       act(() =>
-        result.current.updateFromYaml(`apiVersion: '1.2'\n${BASE_YAML}`, 'future.ip.yml', {
+        result.current.updateFromYaml(`apiVersion: '1.3'\n${BASE_YAML}`, 'future.ip.yml', {
           busLibrary: builtinBusLibrary(),
         })
       );
 
-      expect(result.current.parseError).toMatch(/apiVersion 1\.2.*up to 1\.1/);
+      expect(result.current.parseError).toMatch(/apiVersion 1\.3.*up to 1\.2/);
       expect(result.current.ipCore).toBeNull();
     });
   });
@@ -140,7 +140,7 @@ describe('useIpCoreState', () => {
       expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
     });
 
-    it('upgrades a 1.0 file to apiVersion 1.1 with the first edit in one update', () => {
+    it('upgrades a 1.0 file to apiVersion 1.2 with the first edit in one update', () => {
       const rawYamlHistory: string[] = [];
       const { result } = renderHook(() => {
         const hook = useIpCoreState();
@@ -162,11 +162,11 @@ describe('useIpCoreState', () => {
       act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
 
       expect(rawYamlHistory).toHaveLength(3);
-      expect(result.current.rawYaml).toContain("apiVersion: '1.1'");
+      expect(result.current.rawYaml).toContain("apiVersion: '1.2'");
       expect(result.current.rawYaml).not.toContain("'1.0'\n#");
       expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
       expect(result.current.rawYaml).toContain('name: sys_clk');
-      expect(result.current.ipCore?.apiVersion).toBe('1.1');
+      expect(result.current.ipCore?.apiVersion).toBe('1.2');
     });
 
     it('keeps hex spellings and flush sequences when upgrading on the first edit', () => {
@@ -190,10 +190,10 @@ ports:
 
       expect(result.current.rawYaml).toContain('width: 0x0010');
       expect(result.current.rawYaml).toContain('ports:\n- name: data_in\n  direction: in');
-      expect(result.current.rawYaml).toContain("apiVersion: '1.1'");
+      expect(result.current.rawYaml).toContain("apiVersion: '1.2'");
     });
 
-    it('stamps apiVersion 1.1 on a file that declares none', () => {
+    it('stamps apiVersion 1.2 on a file that declares none', () => {
       const { result } = renderHook(() => useIpCoreState());
       act(() =>
         result.current.updateFromYaml(BASE_YAML, 'plain.ip.yml', {
@@ -202,19 +202,19 @@ ports:
       );
       act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
 
-      expect(result.current.ipCore?.apiVersion).toBe('1.1');
-      expect(result.current.rawYaml).toMatch(/^apiVersion: ["']1\.1["']$/m);
+      expect(result.current.ipCore?.apiVersion).toBe('1.2');
+      expect(result.current.rawYaml).toMatch(/^apiVersion: ["']1\.2["']$/m);
     });
 
-    it('does not touch apiVersion of a file already at 1.1', () => {
-      const source = `apiVersion: '1.1'\n${LEGACY_POLARITY_YAML}`;
+    it('does not touch apiVersion of a file already at 1.2', () => {
+      const source = `apiVersion: '1.2'\n${LEGACY_POLARITY_YAML}`;
       const { result } = renderHook(() => useIpCoreState());
       act(() =>
         result.current.updateFromYaml(source, 'current.ip.yml', { busLibrary: builtinBusLibrary() })
       );
       act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
 
-      expect(result.current.rawYaml.startsWith("apiVersion: '1.1'\n")).toBe(true);
+      expect(result.current.rawYaml.startsWith("apiVersion: '1.2'\n")).toBe(true);
       expect(result.current.rawYaml.match(/apiVersion/g)).toHaveLength(1);
       expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
     });
@@ -340,6 +340,112 @@ ports:
       expect(result.current.getValidationErrors()).not.toContainEqual(
         expect.objectContaining({ field: 'memoryMapRef', entityName: 'S_AXI' })
       );
+    });
+  });
+
+  describe('port field metadata round-trip', () => {
+    const FIELDS_YAML = `vlnv:
+  vendor: acme
+  library: user
+  name: my_core
+  version: "1.0"
+clocks:
+  - name: clk
+ports:
+  - name: o_status
+    direction: out
+    width: 8
+    fields:
+      # state machine state
+      - name: state
+        bits: "[3:0]"
+        enumeratedValues:
+          0x0: idle
+          0xF: error
+      - name: mode
+        offset: 4
+        width: 2
+busInterfaces:
+  - name: s_axis
+    type: ipcraft:busif:axi_stream:1.0
+    mode: slave
+    physicalPrefix: s_axis_
+    portFields:
+      TDATA:
+        - name: low
+          bits: "[7:0]"
+  - name: dbg
+    type: ipcraft:busif:conduit:1.0
+    mode: conduit
+    conduitPorts:
+      - name: dbg_val
+        direction: out
+        width: 4
+        fields:
+          - name: nibble
+            bits: "[3:0]"
+`;
+    const STATUS_FIELDS_BLOCK = FIELDS_YAML.slice(
+      FIELDS_YAML.indexOf('    fields:\n      # state'),
+      FIELDS_YAML.indexOf('busInterfaces:')
+    );
+
+    function load() {
+      const hook = renderHook(() => useIpCoreState());
+      act(() =>
+        hook.result.current.updateFromYaml(FIELDS_YAML, 'f.ip.yml', {
+          busLibrary: builtinBusLibrary(),
+        })
+      );
+      return hook;
+    }
+
+    type Loaded = {
+      ports?: Array<{ name: string; fields?: unknown[] }>;
+      busInterfaces?: Array<{
+        portFields?: Record<string, unknown[]>;
+        conduitPorts?: Array<{ name: string; fields?: unknown[] }>;
+      }>;
+    };
+
+    function expectAllFieldMetadata(hook: ReturnType<typeof load>, portName = 'o_status') {
+      const ipCore = hook.result.current.ipCore as unknown as Loaded;
+      expect(ipCore.ports?.find((p) => p.name === portName)?.fields).toHaveLength(2);
+      expect(ipCore.busInterfaces?.[0].portFields?.TDATA).toHaveLength(1);
+      expect(ipCore.busInterfaces?.[1].conduitPorts?.[0].fields).toHaveLength(1);
+    }
+
+    it('keeps field metadata and the fields block text across plain edits', () => {
+      const hook = load();
+
+      act(() => hook.result.current.updateIpCore(['ports', 0, 'name'], 'o_state'));
+      act(() => hook.result.current.updateIpCore(['busInterfaces', 0, 'physicalPrefix'], 's_'));
+      act(() =>
+        hook.result.current.updateIpCore(['busInterfaces', 1, 'conduitPorts', 0, 'name'], 'dbg_v')
+      );
+
+      expectAllFieldMetadata(hook, 'o_state');
+      expect(hook.result.current.rawYaml).toContain(STATUS_FIELDS_BLOCK);
+      expect(hook.result.current.rawYaml).toContain('0xF: error');
+      expect(hook.result.current.rawYaml).toContain('portFields:\n      TDATA:');
+      expect(hook.result.current.rawYaml).toContain('name: nibble');
+    });
+
+    it('keeps field metadata when the ports array is rewritten from ipCore.ports plus a new port', () => {
+      const hook = load();
+      const ports = (hook.result.current.ipCore as unknown as Loaded).ports ?? [];
+
+      act(() =>
+        hook.result.current.updateIpCore(
+          ['ports'],
+          [...ports, { name: 'i_new', direction: 'in', width: 1 }]
+        )
+      );
+
+      expectAllFieldMetadata(hook);
+      expect(hook.result.current.rawYaml).toContain('0xF: error');
+      expect(hook.result.current.rawYaml).toContain('i_new');
+      expect(hook.result.current.rawYaml).toContain(STATUS_FIELDS_BLOCK);
     });
   });
 });

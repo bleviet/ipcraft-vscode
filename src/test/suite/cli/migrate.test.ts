@@ -56,15 +56,15 @@ describe('runCliMigrate', () => {
     const file = write('legacy.ip.yml', LEGACY);
 
     const [first] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
-    expect(first).toMatchObject({ status: 'upgraded', fromVersion: '1.0', toVersion: '1.1' });
+    expect(first).toMatchObject({ status: 'upgraded', fromVersion: '1.0', toVersion: '1.2' });
     const upgraded = fs.readFileSync(file, 'utf-8');
     expect(upgraded).not.toBe(LEGACY);
     expect(upgraded).toContain('# keep me');
     expect(upgraded).toContain('portPolarityOverrides');
 
     const [second] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
-    expect(second).toEqual({ path: file, status: 'upToDate', version: '1.1' });
-    expect(upgraded).toContain("apiVersion: '1.1'");
+    expect(second).toEqual({ path: file, status: 'upToDate', version: '1.2' });
+    expect(upgraded).toContain("apiVersion: '1.2'");
     expect(fs.readFileSync(file, 'utf-8')).toBe(upgraded);
   });
 
@@ -79,7 +79,7 @@ describe('runCliMigrate', () => {
   });
 
   it('leaves a current file untouched', async () => {
-    const source = "apiVersion: '1.1'\nclocks: []\n";
+    const source = "apiVersion: '1.2'\nclocks: []\n";
     const file = write('current.ip.yml', source);
     const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
     expect(result.status).toBe('upToDate');
@@ -93,18 +93,18 @@ describe('runCliMigrate', () => {
       path: file,
       status: 'needsUpgrade',
       fromVersion: '1.0',
-      toVersion: '1.1',
+      toVersion: '1.2',
     });
     expect(fs.readFileSync(file, 'utf-8')).toBe(LEGACY);
   });
 
   it('reports a file with a newer format version as an error and leaves it untouched', async () => {
-    const newer = "apiVersion: '1.2'\nclocks: []\n";
+    const newer = "apiVersion: '1.3'\nclocks: []\n";
     const file = write('newer.ip.yml', newer);
     const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
     expect(result).toMatchObject({
       status: 'error',
-      error: expect.stringMatching(/apiVersion 1\.2.*up to 1\.1/),
+      error: expect.stringMatching(/apiVersion 1\.3.*up to 1\.2/),
     });
     expect(fs.readFileSync(file, 'utf-8')).toBe(newer);
   });
@@ -163,15 +163,15 @@ address_blocks:
   });
 
   it('writes a current-version .ip.yml that only has legacy keys', async () => {
-    const source = "apiVersion: '1.1'\nfile_sets: []\n";
+    const source = "apiVersion: '1.2'\nfile_sets: []\n";
     const file = write('keys.ip.yml', source);
     const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
-    expect(result).toMatchObject({ status: 'upgraded', fromVersion: '1.1', toVersion: '1.1' });
-    expect(fs.readFileSync(file, 'utf-8')).toBe("apiVersion: '1.1'\nfileSets: []\n");
+    expect(result).toMatchObject({ status: 'upgraded', fromVersion: '1.2', toVersion: '1.2' });
+    expect(fs.readFileSync(file, 'utf-8')).toBe("apiVersion: '1.2'\nfileSets: []\n");
   });
 
   describe('dotted bus types in a current-version file', () => {
-    const DOTTED = `apiVersion: '1.1'
+    const DOTTED = `apiVersion: '1.2'
 busInterfaces:
   - name: S_AXI
     type: ipcraft.busif.axi4_lite.1.0
@@ -184,8 +184,8 @@ busInterfaces:
       expect(result).toEqual({
         path: file,
         status: 'needsUpgrade',
-        fromVersion: '1.1',
-        toVersion: '1.1',
+        fromVersion: '1.2',
+        toVersion: '1.2',
       });
       expect(fs.readFileSync(file, 'utf-8')).toBe(DOTTED);
     });
@@ -193,13 +193,13 @@ busInterfaces:
     it('writes the canonical colon type', async () => {
       const file = write('dotted.ip.yml', DOTTED);
       const [result] = await runCliMigrate({ paths: [file], check: false }, resourceRoots);
-      expect(result).toMatchObject({ status: 'upgraded', fromVersion: '1.1', toVersion: '1.1' });
+      expect(result).toMatchObject({ status: 'upgraded', fromVersion: '1.2', toVersion: '1.2' });
       expect(fs.readFileSync(file, 'utf-8')).toContain(`type: ${BUS_VLNV.AXI4_LITE}`);
     });
   });
 
   describe('dangling memoryMapRef', () => {
-    const DANGLING = `apiVersion: '1.1'
+    const DANGLING = `apiVersion: '1.2'
 busInterfaces:
   - name: S_AXI
     type: ${BUS_VLNV.AXI4_LITE}

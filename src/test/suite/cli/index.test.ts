@@ -23,12 +23,12 @@ describe('ipcraft migrate output', () => {
         path: 'a.ip.yml',
         status: 'upgraded',
         fromVersion: '1.0',
-        toVersion: '1.1',
+        toVersion: '1.2',
         mutationCount: 3,
       },
     ]);
     expect(await main(['migrate', 'a.ip.yml'])).toBe(0);
-    expect(log).toHaveBeenCalledWith('Upgraded a.ip.yml (1.0 -> 1.1, 3 change(s))');
+    expect(log).toHaveBeenCalledWith('Upgraded a.ip.yml (1.0 -> 1.2, 3 change(s))');
   });
 
   it('reports a legacy-key-only conversion without a version change', async () => {
@@ -36,8 +36,8 @@ describe('ipcraft migrate output', () => {
       {
         path: 'a.ip.yml',
         status: 'upgraded',
-        fromVersion: '1.1',
-        toVersion: '1.1',
+        fromVersion: '1.2',
+        toVersion: '1.2',
         mutationCount: 2,
       },
     ]);

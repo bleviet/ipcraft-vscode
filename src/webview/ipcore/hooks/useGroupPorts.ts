@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
-import type { IpCore, BusInterface, ConduitPort, Port } from '../../types/ipCore';
+import type { IpCore, BusInterface, ConduitPort, Port, PortField } from '../../types/ipCore';
 import type { BusPortDef } from '../utils/busLibrary';
 import { BUS_VLNV } from '../../../shared/busVlnv';
+import { fieldsProp, mergePortFields, portFieldsForLogical } from '../utils/portFieldTransfer';
 
 export type BatchUpdate = (mutations: Array<[Array<string | number>, unknown]>) => void;
 
@@ -10,6 +11,8 @@ export interface MapConduitToBusOptions {
   portNameOverrides: Record<string, string>;
   portWidthOverrides?: Record<string, number | string>;
   portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
+  /** Field metadata of the mapped conduit ports, keyed by logical port name. */
+  portFields?: Record<string, PortField[]>;
   unmappedConduitPorts?: ConduitPort[];
   useOptionalPorts: string[];
 }
@@ -57,6 +60,9 @@ export function applyMapConduitToKnownBus(
   if (opts.useOptionalPorts.length > 0) {
     updated.useOptionalPorts = opts.useOptionalPorts;
   }
+  if (opts.portFields && Object.keys(opts.portFields).length > 0) {
+    updated.portFields = opts.portFields;
+  }
   buses[busIndex] = updated;
   if (!opts.unmappedConduitPorts?.length) {
     return buses;
@@ -90,6 +96,8 @@ export interface GroupAsStandardOptions {
   portWidthOverrides?: Record<string, number | string>;
   portPolarityOverrides?: Record<string, 'activeHigh' | 'activeLow'>;
   useOptionalPorts?: string[];
+  /** Field metadata of the grouped ports, keyed by logical port name. */
+  portFields?: Record<string, PortField[]>;
   associatedClock?: string | null;
   associatedReset?: string | null;
 }
@@ -140,6 +148,9 @@ export function useGroupPorts(
       if (opts.useOptionalPorts && opts.useOptionalPorts.length > 0) {
         newBus.useOptionalPorts = opts.useOptionalPorts;
       }
+      if (opts.portFields && Object.keys(opts.portFields).length > 0) {
+        newBus.portFields = opts.portFields;
+      }
 
       const existingBuses: BusInterface[] = [...(ipCore.busInterfaces ?? [])];
 
@@ -163,6 +174,7 @@ export function useGroupPorts(
         name: p.name,
         direction: p.direction,
         ...(p.width !== undefined ? { width: p.width } : {}),
+        ...fieldsProp(p.fields),
       }));
 
       const newBus: BusInterface = {
@@ -198,6 +210,7 @@ export function useGroupPorts(
         name: port.name,
         direction: port.direction,
         ...(port.width !== undefined ? { width: port.width } : {}),
+        ...fieldsProp(port.fields),
       };
 
       const updatedBus: BusInterface = {
@@ -246,6 +259,7 @@ export function useGroupPorts(
             name: cp.name,
             direction: cp.direction ?? 'inout',
             ...(cp.width !== undefined ? { width: cp.width } : {}),
+            ...fieldsProp(cp.fields),
           });
         }
       } else {
@@ -289,7 +303,12 @@ export function useGroupPorts(
             // Width: override > protocol default > 1
             const width: number | string = widthOverrides[def.name] ?? def.width ?? 1;
 
-            restoredPorts.push({ name: portName, direction: dir, width });
+            restoredPorts.push({
+              name: portName,
+              direction: dir,
+              width,
+              ...fieldsProp(portFieldsForLogical(bus.portFields, def.name)),
+            });
           }
         }
       }
@@ -349,8 +368,10 @@ export function useGroupPorts(
       };
 
       const existing = bus as BusWithOverrides;
+      const mergedPortFields = mergePortFields(existing.portFields, opts.portFields);
       const updatedBus: BusWithOverrides = {
         ...existing,
+        ...(mergedPortFields ? { portFields: mergedPortFields } : {}),
         portNameOverrides: opts.portNameOverrides
           ? { ...(existing.portNameOverrides ?? {}), ...opts.portNameOverrides }
           : existing.portNameOverrides,
@@ -404,9 +425,14 @@ export function useGroupPorts(
         (bus as BusInterface & { portNameOverrides?: Record<string, string> }).portNameOverrides ??
         {};
 
+      const portFields = mergePortFields(
+        bus.portFields,
+        port.fields?.length ? { [signalName]: port.fields } : undefined
+      );
       const updatedBus: BusInterface & { portNameOverrides?: Record<string, string> } = {
         ...bus,
         portNameOverrides: { ...existingOverrides, [signalName]: suffix },
+        ...(portFields ? { portFields } : {}),
       };
 
       const filteredPorts = ports.filter((_, i) => i !== portIndex);

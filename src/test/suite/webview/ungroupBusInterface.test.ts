@@ -101,4 +101,49 @@ describe('ungroupBusInterface', () => {
     // No ports can be restored — result should be an empty ports array
     expect((portsMutation[1] as unknown[]).length).toBe(0);
   });
+
+  it('moves portFields back to the restored ports, matching logical names case-insensitively', () => {
+    const ipCore = makeStandardBusIpCore();
+    (ipCore.busInterfaces![0] as unknown as Record<string, unknown>).portFields = {
+      awaddr: [{ name: 'page', bits: '[15:12]' }],
+    };
+    const mutations: Array<[Array<string | number>, unknown]>[] = [];
+    const { result } = renderHook(() =>
+      useGroupPorts(ipCore, (m) => mutations.push(m), makeBusDefs)
+    );
+
+    act(() => result.current.ungroupBusInterface(0));
+
+    const restored = mutations[0][0][1] as Array<{ name: string; fields?: unknown[] }>;
+    expect(restored.find((p) => p.name === 's_axi_awaddr')?.fields).toEqual([
+      { name: 'page', bits: '[15:12]' },
+    ]);
+    expect('fields' in restored.find((p) => p.name === 's_axi_wdata')!).toBe(false);
+  });
+
+  it('moves conduit port fields back to the restored ports', () => {
+    const ipCore = {
+      ports: [],
+      busInterfaces: [
+        {
+          name: 'dbg',
+          type: 'ipcraft:busif:conduit:1.0',
+          mode: 'conduit',
+          conduitPorts: [
+            { name: 'dbg_val', direction: 'out', width: 4, fields: [{ name: 'n', bits: '[3:0]' }] },
+            { name: 'dbg_other', direction: 'in', width: 1 },
+          ],
+        },
+      ],
+    } as unknown as IpCore;
+    const mutations: Array<[Array<string | number>, unknown]>[] = [];
+    const { result } = renderHook(() => useGroupPorts(ipCore, (m) => mutations.push(m)));
+
+    act(() => result.current.ungroupBusInterface(0));
+
+    expect(mutations[0][0][1]).toEqual([
+      { name: 'dbg_val', direction: 'out', width: 4, fields: [{ name: 'n', bits: '[3:0]' }] },
+      { name: 'dbg_other', direction: 'in', width: 1 },
+    ]);
+  });
 });

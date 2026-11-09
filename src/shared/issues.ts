@@ -1,4 +1,11 @@
-export type IssueSource = 'schema' | 'protocol' | 'references' | 'hdl' | 'hwTcl' | 'componentXml';
+export type IssueSource =
+  | 'schema'
+  | 'protocol'
+  | 'references'
+  | 'portFields'
+  | 'hdl'
+  | 'hwTcl'
+  | 'componentXml';
 
 export interface IpcraftIssue {
   code: string;

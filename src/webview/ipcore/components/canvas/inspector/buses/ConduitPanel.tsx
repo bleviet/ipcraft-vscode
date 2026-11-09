@@ -3,6 +3,7 @@ import type { BusInterface, ConduitPort } from '../../../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../../../types/editor';
 import { validateUniqueName, validateVhdlIdentifier } from '../../../../../shared/utils/validation';
 import { lookupBusDef } from '../../../../utils/busLibrary';
+import { collectPortFields } from '../../../../utils/portFieldTransfer';
 import { MapConduitToBusDialog, type MapConduitToBusResult } from '../../MapConduitToBusDialog';
 import { applyMapConduitToKnownBus } from '../../../../hooks/useGroupPorts';
 import { InterfaceTypeField } from '../controls/BusTypeFields';
@@ -95,6 +96,11 @@ export const ConduitPanel: React.FC<BusPanelProps> = ({
       }
       if (message.portWidthOverrides && Object.keys(message.portWidthOverrides).length > 0) {
         onUpdate(['busInterfaces', index, 'portWidthOverrides'], message.portWidthOverrides);
+      }
+      // The saved definition names its logical ports after the conduit ports.
+      const portFields = collectPortFields(conduitPorts.map((cp) => [cp.name, cp.fields]));
+      if (portFields) {
+        onUpdate(['busInterfaces', index, 'portFields'], portFields);
       }
       onUpdate(['busInterfaces', index, 'conduitPorts'], null);
       setTimeout(() => setSaveState('idle'), 2500);

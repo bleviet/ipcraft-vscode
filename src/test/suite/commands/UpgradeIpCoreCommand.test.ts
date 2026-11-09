@@ -28,7 +28,7 @@ busInterfaces:
     mode: master
     useOptionalPorts: [read_n, write_n]
 `;
-const CURRENT = "apiVersion: '1.1'\nclocks: []\n";
+const CURRENT = "apiVersion: '1.2'\nclocks: []\n";
 
 const resourceRoots = devResourceRoots(path.resolve(__dirname, '../../../..'));
 
@@ -96,7 +96,7 @@ describe('upgradeIpCore', () => {
       '/c.ip.yml',
     ]);
     expect(replace.mock.calls[0][2]).toContain('portPolarityOverrides');
-    expect(replace.mock.calls[0][2]).toContain("apiVersion: '1.1'");
+    expect(replace.mock.calls[0][2]).toContain("apiVersion: '1.2'");
     expect(vscode.workspace.applyEdit).toHaveBeenCalledTimes(2);
     expect(save).toHaveBeenCalledTimes(2);
     expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
@@ -209,7 +209,7 @@ describe('upgradeIpCore', () => {
       fs.writeFileSync(path.join(dir, 'csr.mm.yml'), '- name: CSR\n  addressBlocks: []\n');
       const ipPath = path.join(dir, 'dangling.ip.yml');
       installDocuments({
-        [ipPath]: `apiVersion: '1.1'
+        [ipPath]: `apiVersion: '1.2'
 busInterfaces:
   - name: S_AXI
     type: ${BUS_VLNV.AXI4_LITE}

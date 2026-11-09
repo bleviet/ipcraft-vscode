@@ -31,9 +31,9 @@ describe('migrateIpCoreYaml', () => {
     const result = migrateIpCoreYaml(legacyAvalon(), library);
 
     expect(result.changed).toBe(true);
-    expect(result).toMatchObject({ fromVersion: '1.0', toVersion: '1.1' });
+    expect(result).toMatchObject({ fromVersion: '1.0', toVersion: '1.2' });
     expect(result.mutationCount).toBeGreaterThan(1);
-    expect((yaml.parse(result.text) as { apiVersion: string }).apiVersion).toBe('1.1');
+    expect((yaml.parse(result.text) as { apiVersion: string }).apiVersion).toBe('1.2');
     const bus = (yaml.parse(result.text) as { busInterfaces: Array<Record<string, unknown>> })
       .busInterfaces[0];
     expect(bus.useOptionalPorts).toEqual([
@@ -68,8 +68,8 @@ describe('migrateIpCoreYaml', () => {
     expect(second).toEqual({
       text: first.text,
       changed: false,
-      fromVersion: '1.1',
-      toVersion: '1.1',
+      fromVersion: '1.2',
+      toVersion: '1.2',
       mutationCount: 0,
     });
   });
@@ -80,27 +80,39 @@ describe('migrateIpCoreYaml', () => {
     expect(result).toMatchObject({
       changed: true,
       fromVersion: '1.0',
-      toVersion: '1.1',
+      toVersion: '1.2',
       mutationCount: 1,
     });
-    expect(yaml.parse(result.text)).toEqual({ clocks: [], apiVersion: '1.1' });
+    expect(yaml.parse(result.text)).toEqual({ clocks: [], apiVersion: '1.2' });
     expect(result.text).toContain('# nothing here');
   });
 
-  it('leaves a 1.1 file unchanged, even with legacy content (the editor handles that)', () => {
-    const source = legacyAvalon().replace("apiVersion: '1.0'", "apiVersion: '1.1'");
+  it('leaves a latest-version file unchanged, even with legacy content (the editor handles that)', () => {
+    const source = legacyAvalon().replace("apiVersion: '1.0'", "apiVersion: '1.2'");
     expect(migrateIpCoreYaml(source, library)).toEqual({
       text: source,
       changed: false,
-      fromVersion: '1.1',
-      toVersion: '1.1',
+      fromVersion: '1.2',
+      toVersion: '1.2',
       mutationCount: 0,
     });
   });
 
+  it('upgrades a 1.1 file to 1.2 changing only the apiVersion', () => {
+    const source = legacyAvalon().replace("apiVersion: '1.0'", "apiVersion: '1.1'");
+    const result = migrateIpCoreYaml(source, library);
+    expect(result).toMatchObject({
+      changed: true,
+      fromVersion: '1.1',
+      toVersion: '1.2',
+      mutationCount: 1,
+    });
+    expect(result.text).toBe(source.replace("apiVersion: '1.1'", "apiVersion: '1.2'"));
+  });
+
   it('throws a clear error for a newer format version', () => {
-    expect(() => migrateIpCoreYaml("apiVersion: '1.2'\nclocks: []\n", library)).toThrow(
-      /apiVersion 1\.2.*up to 1\.1/
+    expect(() => migrateIpCoreYaml("apiVersion: '1.3'\nclocks: []\n", library)).toThrow(
+      /apiVersion 1\.3.*up to 1\.2/
     );
   });
 
@@ -132,17 +144,17 @@ parameters:
 `;
     const { text } = migrateIpCoreYaml(source, library);
     expect(text).toBe(
-      source.replace('  version: 1.0.0\n', "  version: 1.0.0\napiVersion: '1.1'\n")
+      source.replace('  version: 1.0.0\n', "  version: 1.0.0\napiVersion: '1.2'\n")
     );
   });
 
   it('inserts at the top when there is no vlnv', () => {
-    expect(migrateIpCoreYaml('clocks: []\n', library).text).toBe("apiVersion: '1.1'\nclocks: []\n");
+    expect(migrateIpCoreYaml('clocks: []\n', library).text).toBe("apiVersion: '1.2'\nclocks: []\n");
   });
 
   it('edits an existing apiVersion in place', () => {
     const { text } = migrateIpCoreYaml("clocks: []\napiVersion: '1.0'\nports: []\n", library);
-    expect(text).toBe("clocks: []\napiVersion: '1.1'\nports: []\n");
+    expect(text).toBe("clocks: []\napiVersion: '1.2'\nports: []\n");
   });
 });
 
@@ -162,18 +174,18 @@ ports:
   it('changes only the apiVersion line (hex spellings and flush sequences kept)', () => {
     const { text } = migrateIpCoreYaml(source, library);
     expect(text).toBe(
-      source.replace('  version: 1.0.0\n', "  version: 1.0.0\napiVersion: '1.1'\n")
+      source.replace('  version: 1.0.0\n', "  version: 1.0.0\napiVersion: '1.2'\n")
     );
   });
 
   it('keeps formatting when editing an existing apiVersion in place', () => {
     const { text } = migrateIpCoreYaml(`apiVersion: '1.0'\n${source}`, library);
-    expect(text).toBe(`apiVersion: '1.1'\n${source}`);
+    expect(text).toBe(`apiVersion: '1.2'\n${source}`);
   });
 });
 
 describe('migrateIpCoreYaml legacy snake_case keys', () => {
-  const legacyKeys = `apiVersion: '1.1'
+  const legacyKeys = `apiVersion: '1.2'
 vlnv:
   vendor: acme
   library: demo
@@ -193,8 +205,8 @@ busInterfaces:
     const result = migrateIpCoreYaml(legacyKeys, library);
     expect(result).toMatchObject({
       changed: true,
-      fromVersion: '1.1',
-      toVersion: '1.1',
+      fromVersion: '1.2',
+      toVersion: '1.2',
       mutationCount: 3,
     });
     expect(result.text).toContain('fileSets:');
@@ -204,10 +216,10 @@ busInterfaces:
   });
 
   it('renames before running the version steps and counts the renames', () => {
-    const result = migrateIpCoreYaml(legacyKeys.replace("'1.1'", "'1.0'"), library);
-    expect(result).toMatchObject({ changed: true, fromVersion: '1.0', toVersion: '1.1' });
+    const result = migrateIpCoreYaml(legacyKeys.replace("'1.2'", "'1.0'"), library);
+    expect(result).toMatchObject({ changed: true, fromVersion: '1.0', toVersion: '1.2' });
     expect(result.mutationCount).toBeGreaterThanOrEqual(4);
-    expect(result.text).toContain("apiVersion: '1.1'");
+    expect(result.text).toContain("apiVersion: '1.2'");
     expect(result.text).not.toMatch(/file_sets|physical_prefix|associated_clock/);
   });
 
@@ -249,7 +261,7 @@ busInterfaces:
 
     it('rewrites dotted types in a file already at the latest version', () => {
       const result = migrateIpCoreYaml(
-        dottedCore(['ipcraft.busif.axi4_lite.1.0', 'ipcraft.busif.axi_stream.1.0'], '1.1'),
+        dottedCore(['ipcraft.busif.axi4_lite.1.0', 'ipcraft.busif.axi_stream.1.0'], '1.2'),
         library
       );
       const buses = (yaml.parse(result.text) as { busInterfaces: Array<{ type: string }> })
@@ -257,8 +269,8 @@ busInterfaces:
       expect(buses.map((b) => b.type)).toEqual([BUS_VLNV.AXI4_LITE, BUS_VLNV.AXI_STREAM]);
       expect(result).toMatchObject({
         changed: true,
-        fromVersion: '1.1',
-        toVersion: '1.1',
+        fromVersion: '1.2',
+        toVersion: '1.2',
         mutationCount: 2,
       });
       expect(result.text).toContain('# bus type');
@@ -283,7 +295,7 @@ describe('migrateIpCoreYaml dangling memoryMapRef', () => {
   const bus = (name: string, ref: string, type: string = BUS_VLNV.AXI4_LITE): string =>
     `  - name: ${name}\n    type: ${type}\n    mode: slave\n    memoryMapRef: ${ref}\n`;
   const core = (...buses: string[]): string =>
-    `apiVersion: '1.1'\nbusInterfaces:\n${buses.join('')}`;
+    `apiVersion: '1.2'\nbusInterfaces:\n${buses.join('')}`;
   const refs = (text: string): string[] =>
     (yaml.parse(text) as { busInterfaces: Array<{ memoryMapRef: string }> }).busInterfaces.map(
       (b) => b.memoryMapRef
@@ -292,7 +304,7 @@ describe('migrateIpCoreYaml dangling memoryMapRef', () => {
   it('repoints the only dangling ref at the only map, at the latest version, idempotently', () => {
     const result = migrateIpCoreYaml(core(bus('S_AXI', 'FOO')), library, ['CSR']);
     expect(refs(result.text)).toEqual(['CSR']);
-    expect(result).toMatchObject({ changed: true, fromVersion: '1.1', mutationCount: 1 });
+    expect(result).toMatchObject({ changed: true, fromVersion: '1.2', mutationCount: 1 });
 
     const again = migrateIpCoreYaml(result.text, library, ['CSR']);
     expect(again.changed).toBe(false);

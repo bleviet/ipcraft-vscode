@@ -111,11 +111,20 @@ busInterfaces:
 
 ## Versioning
 
-`Port` and `BusInterface` reject unknown keys, and the schema states that tools must not read a file declaring a newer `apiVersion` than they support. Field metadata therefore ships as `apiVersion: 1.2`. A file that uses `fields` or `portFields` declares 1.2; files without them are unaffected. The Python package in `ipcraft-spec` takes the same schema bump.
+`Port` and `BusInterface` reject unknown keys, and the schema states that tools must not read a file declaring a newer `apiVersion` than they support. Field metadata therefore ships as `apiVersion: 1.2`, the new latest version, through the same upgrade mechanism as 1.1:
+
+| Path | Effect |
+|---|---|
+| Migration step 1.1 to 1.2 | No content changes; only `apiVersion` is stamped |
+| Editor | A file behind the latest version is upgraded on its first edit, so every file edited with this IPCraft declares 1.2, with or without field metadata |
+| `ipcraft migrate` | Upgrades files to 1.2 |
+| Older IPCraft | Refuses a 1.2 file with "upgrade IPCraft" instead of a schema error |
+
+The Python package in `ipcraft-spec` ships the schema files only, so the schema change is its whole update.
 
 ## Validation
 
-Metadata that nothing checks goes stale, so the IP core validator checks it from the first release. All checks are warnings, never generation errors.
+Metadata that nothing checks goes stale, so the IP core editor checks it from the first release, in a "Port fields" group of the Issues panel (`src/webview/ipcore/utils/portFieldChecks.ts`). All checks are warnings, never generation errors.
 
 | Check | Example message |
 |---|---|
@@ -137,13 +146,16 @@ Editing field metadata in the IP core UI is not part of this proposal; users wri
 | Gesture | Code | Field metadata |
 |---|---|---|
 | Rename, move, change width or direction of a port | `SignalPanels`, `useCanvasDrop` | Kept on the port |
-| Group ports into a bus interface | `useGroupPorts` `groupAsStandard` | `ports[].fields` moves to `portFields[<logicalName>]` |
-| Group ports into a conduit | `useGroupPorts` `groupAsConduit` | `ports[].fields` moves to `conduitPorts[].fields` |
+| Group ports into a bus interface, new or existing | `useGroupPorts` `groupAsStandard`, `mergePortsIntoStandardBus` (mapping from `GroupingMappingStep`) | `ports[].fields` moves to `portFields[<logicalName>]` |
+| Add one port to a bus interface | `useGroupPorts` `addPortToStandardBus` | `ports[].fields` moves to `portFields[<signalName>]` |
+| Group ports into a conduit, or add one | `useGroupPorts` `groupAsConduit`, `addPortToConduit` | `ports[].fields` moves to `conduitPorts[].fields` |
 | Ungroup a bus interface into ports | `useGroupPorts` `ungroupBusInterface` | `portFields[<logicalName>]` or `conduitPorts[].fields` moves to `ports[].fields` |
-| Map a conduit to a known bus | `applyMapConduitToKnownBus` | `conduitPorts[].fields` moves to `portFields[<logicalName>]` |
-| Remove a port from a bus interface | `useGroupPorts` | Its `portFields` entry moves with the port, or is removed with it |
+| Map a conduit to a known bus | `applyMapConduitToKnownBus` (mapping from `MapConduitToBusDialog`) | `conduitPorts[].fields` moves to `portFields[<logicalName>]`; unmapped conduit ports keep theirs |
+| Save a conduit as a custom bus definition | `ConduitPanel` | `conduitPorts[].fields` moves to `portFields[<conduit port name>]`, the logical name the saved definition uses |
+| Remove a conduit signal | `ConduitPanel` | Removed with the signal |
+| Disable an optional bus port | `IpBlockCanvas` | `portFields` entry kept; the validator warns that the port is not enabled |
 
-Each gesture stays one document update. Plain edits already keep field metadata (see Verification); the gestures above rebuild objects from a fixed list of keys and drop it today, so they need explicit handling plus tests.
+The physical-to-logical mapping comes from the dialog that already knows it, the same way `MapConduitToBusDialog` carries a conduit port's width into `portWidthOverrides`. Each gesture stays one document update. Plain edits already keep field metadata (see Verification); the gestures above rebuild objects from a fixed list of keys and drop it today, so they need explicit handling plus tests.
 
 ## Verification
 

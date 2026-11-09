@@ -208,4 +208,36 @@ describe('applyMapConduitToKnownBus', () => {
     const updated = result[0] as unknown as Record<string, unknown>;
     expect('portWidthOverrides' in updated).toBe(false);
   });
+
+  it('writes portFields onto the converted bus and omits them when empty', () => {
+    const fields = [{ name: 'low', bits: '[3:0]' }];
+    const withFields = applyMapConduitToKnownBus(makeIpCore(), 0, {
+      mode: 'master',
+      portNameOverrides: {},
+      portFields: { WR_DATA: fields },
+      useOptionalPorts: [],
+    });
+    expect(withFields[0].portFields).toEqual({ WR_DATA: fields });
+
+    const without = applyMapConduitToKnownBus(makeIpCore(), 0, {
+      mode: 'master',
+      portNameOverrides: {},
+      portFields: {},
+      useOptionalPorts: [],
+    });
+    expect('portFields' in without[0]).toBe(false);
+  });
+
+  it('keeps fields on unmapped conduit ports', () => {
+    const unmapped = [
+      { name: 'read_n', direction: 'out' as const, width: 1, fields: [{ name: 'x', bits: '[0]' }] },
+    ];
+    const result = applyMapConduitToKnownBus(makeIpCore(), 0, {
+      mode: 'master',
+      portNameOverrides: {},
+      unmappedConduitPorts: unmapped,
+      useOptionalPorts: [],
+    });
+    expect(result[1].conduitPorts).toEqual(unmapped);
+  });
 });
