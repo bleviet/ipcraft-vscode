@@ -6,6 +6,12 @@ attention when you update, for example because generated files change.
 Contributors: the technical changelog, with modules, issues and pull requests,
 is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
+## [Unreleased]
+
+### Changed
+
+- **Clock and reset nets are drawn as wires.** The system viewer, **Export image** and `ipcraft render` now draw each clock and reset net as a wire from its driver to every load, routed around the blocks, with a dot where a branch leaves the wire. The net-name badges stay as labels at the wire ends, and the blocks are still placed by their data flow.
+
 ## [1.5.1] - 2026-11-09
 
 ### Fixed

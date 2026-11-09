@@ -82,7 +82,7 @@ async function drawSystemLevel(
     ...(isolation && { isolate: isolation }),
   });
   const laidOut = await runElkLayout(input);
-  const flow = toFlowElements(laidOut, graph, level, plexTextMeasure);
+  const flow = toFlowElements(laidOut, graph, level, plexTextMeasure, isolation);
   const decor = request.clocks
     ? clockDecor(
         flow,

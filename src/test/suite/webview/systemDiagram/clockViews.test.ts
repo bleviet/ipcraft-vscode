@@ -38,7 +38,10 @@ describe('selectedTree', () => {
 });
 
 describe('edgeMarks', () => {
-  const edge = (netId: string, id = `${netId}#0`) => ({ id, data: { netId } });
+  const edge = (netId: string, id = `${netId}#0`) => ({
+    id,
+    data: { netId, category: netId === DATA_NET ? ('axis' as const) : ('clock' as const) },
+  });
   const base = { tree: undefined, crossingEdgeIds: new Set<string>() };
 
   it('marks nothing outside the domain mode without a selected tree', () => {
@@ -50,6 +53,10 @@ describe('edgeMarks', () => {
     expect(edgeMarks({ ...base, domainMode: true }, edge(DATA_NET))).toEqual({
       dimmed: true,
     });
+  });
+
+  it('never dims a clock or reset wire', () => {
+    expect(edgeMarks({ ...base, domainMode: true }, edge(CLK0))).toEqual({});
   });
 
   it('draws a crossing wire as a crossing, whatever its category', () => {

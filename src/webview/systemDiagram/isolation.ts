@@ -66,8 +66,9 @@ export function maxRadius(distances: ReadonlyMap<string, number>): number {
  * are those of any category between two visible nodes at least one of which is
  * closer than `hops`, so wires between two blocks of the outermost ring stay
  * hidden, unless `hops` reaches `maxRadius`: no further step could reveal
- * them, so every wire between the connected blocks is kept (the layout keeps
- * only the clock and reset edges that anchor a block, see `placementEdges`).
+ * them, so every wire between the connected blocks is kept (the layout places
+ * the blocks by data edges only, see `placementEdges`; the clock and reset
+ * wires among the kept edges are routed afterwards).
  * A selected node without edges is still shown. It depends on no view toggle.
  */
 export function isolationSubset(

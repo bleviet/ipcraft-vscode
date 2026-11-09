@@ -19,6 +19,7 @@ import type {
   DiagramFlowEdge,
   DiagramFlowNode,
 } from '../../webview/systemDiagram/layout/elkLayout';
+import { JUNCTION_RADIUS } from '../../webview/systemDiagram/layout/diagramTypes';
 import { diagramBounds, nodeBounds } from '../../webview/systemDiagram/layout/diagramBounds';
 import { frameSvg, instanceSvg } from './blockSvg';
 import { layoutLegend, legendSvg } from './legendSvg';
@@ -63,18 +64,31 @@ function edgeSvg(edge: DiagramFlowEdge, palette: Palette): string {
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${num(point.x)} ${num(point.y)}`)
     .join(' ');
   const { crossing, dimmed, category } = edge.data;
-  return element('path', {
+  const stroke = crossing
+    ? palette.warning
+    : dimmed
+      ? palette.category[category]
+      : palette.wire[category];
+  const opacity = dimmed && !crossing ? DIMMED_OPACITY : undefined;
+  const wire = element('path', {
     d,
     fill: 'none',
-    stroke: crossing
-      ? palette.warning
-      : dimmed
-        ? palette.category[category]
-        : palette.wire[category],
+    stroke,
     'stroke-width': edge.data.isInterface ? INTERFACE_WIDTH : SIGNAL_WIDTH,
     'stroke-dasharray': crossing ? CROSSING_DASH : undefined,
-    opacity: dimmed && !crossing ? DIMMED_OPACITY : undefined,
+    opacity,
   });
+  // A junction dot marks where a branch leaves its net's tree (ElkEdge draws the same).
+  return edge.data.junction
+    ? wire +
+        element('circle', {
+          cx: num(edge.data.points[0].x),
+          cy: num(edge.data.points[0].y),
+          r: JUNCTION_RADIUS,
+          fill: stroke,
+          opacity,
+        })
+    : wire;
 }
 
 function nodeSvg(node: DiagramFlowNode, palette: Palette, selected: boolean): string {

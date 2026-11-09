@@ -147,7 +147,7 @@ host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
 | Layer | Owner |
 |---|---|
 | Composition root | `SystemDiagramApp.tsx`, `DiagramWorkbench.tsx`, `WorkbenchLayout.tsx` wire the toolbar, outline, canvas, details, and bottom panels |
-| Pure layout and geometry | `layout/` (elkjs graph construction, `placementEdges.ts` for which nets place the blocks, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
+| Pure layout and geometry | `layout/` (elkjs graph construction, `placementEdges.ts` for which nets place the blocks, `clockResetWires.ts`, `wireRoutes.ts` and `wireTree.ts` (the tree of one net) for the clock and reset wires, node sizing, net badges, bounds, viewport policy, hover placement, panel sizes; `expandedLayout.ts` for hierarchy blocks expanded in place) and `expansion.ts` (which levels, nodes, and selections an expansion shows) |
 | Clock and reset analysis | `clocks/`, pure and computed once per graph by `analyzeClocks`: `clockTypes.ts` (the result types), `frequency.ts` (parse and format), `unionFind.ts` and `levelPaths.ts` (small shared helpers), `physicalNets.ts` (nets joined across hierarchy pins, and the driver of each), `clockRules.ts` (declarative clock output, frequency, forwarding, generator, and reset rules; which Vivado IP pins are outputs is the shared `src/domain/knownIpPins.ts`, which the Vivado reader also uses to give those pins the direction `out` with source `rule`), `clockDomains.ts`, `relatedClocks.ts` (clocks of one generator), `pinClocks.ts`, `resetSources.ts`, `crossings.ts`, and the helpers each surface reads: `crossingSummary.ts` (counts and toolbar text), `crossingEdges.ts`, `domainView.ts`, `treeSelection.ts`, `edgeView.ts`, `nodeView.ts` (wire styles, pin marks, node strips), `netTree.ts` and `treeChecks.ts` (the tree rows and checks of Details), `instanceClocks.ts`, `crossingRows.ts` (the texts of its crossing rows), `viewScope.ts` (which domains, resets and crossings the Clocks and Resets tabs list for the level and expanded blocks on screen). `clockDecor.ts` merges them into one description of what the canvas adds to a layout |
 | Hooks | `hooks/` (host messages, ELK layout, per-level viewport, navigation with the expanded blocks, pin hover, panel resize; `useSearchHistory.ts` for the search box history, whose pure rules are in `searchHistory.ts` beside `search.ts`) |
 | Components | the node, edge, panel, and table components in `src/webview/systemDiagram/`; `FrameNode.tsx` draws a hierarchy block expanded in place; `ClocksTable.tsx` and `ResetsTable.tsx` are the Clocks and Resets tabs, both listing crossings through `CrossingsTable.tsx`, `ClockTreeDetails.tsx` the clock and reset tree in Details, `InstanceClockDetails.tsx` the clocks of a block or port, `AutoDetail.tsx` and `DiagramMinimap.tsx` children of the React Flow canvas (the first sets the far-zoom detail, thresholds in `layout/zoomDetail.ts`; the second is the optional minimap, colored by `minimap.ts`), and `DiagramToolbar.tsx` groups its icon buttons with the shared `ToolbarGroup` and `ToolbarSeparator` (`src/webview/shared/components/Toolbar.tsx`) |
@@ -164,8 +164,23 @@ that block stays next to its driver, and the first clock or reset edge of a
 driver that would otherwise have none, so a clock or reset input port sits next
 to one of its loads (`placementEdges.ts`). Boundary pins carry no layer
 constraint, so an external port sits next to a block it connects to. The pins
-of clock and reset nets reserve a badge label, and `toFlowElements` emits no
-clock or reset wire: those nets are always badges. The Clocks and resets toggle
+of clock and reset nets reserve a badge label, the net-name label at the end of
+their wire. ELK routes no clock or reset wire: after the layout `toFlowElements`
+calls `clockResetWires` (`layout/clockResetWires.ts`), which finds the terminals
+at the outer ends of the badges and routes one orthogonal tree per net and
+level with `layout/wireRoutes.ts` (pure geometry: block columns, channels, gaps,
+lanes), around the blocks. Lanes and crossings keep clear of the data wires;
+taps cross them. An expanded block's frame reserves room between its pin
+labels and its inner blocks (`frameWireChannels` in `layout/expandedLayout.ts`:
+a lane per inner clock or reset net ending on that side, at least
+`FRAME_WIRE_CHANNEL`), so the inner level has a channel for its trunks. They are ordinary flow
+edges (with a junction dot where a branch leaves the tree), listed before the
+data wires, so the viewer, the image export, and `ipcraft render` draw the same
+wires. A wire that branches off the tree also carries `lead` (the tree path from
+the driver to its first point), which the viewer draws with it: React Flow culls
+every edge by its own two nodes, so a trunk piece owned by an off-screen wire
+would otherwise vanish under the junction dots of wires that are on screen. The
+clock and reset wires are never dimmed. See [Clock and reset wires](../concepts/clock-reset-wires.md). The Clocks and resets toggle
 only turns on the domain decorations of the clock context (which the
 unconnected-pin review pauses). Toggling therefore never runs ELK again, never
 moves a block, and never changes the viewport. `isolationSubset` picks its

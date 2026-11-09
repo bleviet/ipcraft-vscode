@@ -12,6 +12,12 @@ Marketplace, so it describes each release in user terms only. When you make a
 change, record it here; if users will notice it, also add a plain-language
 entry to the release notes.
 
+## [Unreleased]
+
+### Changed
+
+- System viewer and image export: clock and reset nets are drawn as routed wires ([#283](https://github.com/bleviet/ipcraft-vscode/issues/283)). `toFlowElements` takes an optional `IsolationSubset` and, after the data wires, calls `clockResetWires` (`layout/clockResetWires.ts`), which builds terminals from the badge geometry (frame pin rows for an expanded block's inner level) and routes each level with `layout/wireRoutes.ts` (pure: block columns, channels, gaps, lanes, one tree per net cut into one polyline per sink). The wires are plain `DiagramFlowEdge`s listed before the data wires, with `ElkEdgeData.junction` drawn as a dot by `ElkEdge` and `systemLevelSvg`. ELK still places the blocks from `placementEdges` only; `elk.separateConnectedComponents` is now `false` so the columns hold for the whole level. `wireTree.ts` holds the tree of one net. The frame of an expanded block is padded on each side (`frameWireChannels` in `expandedLayout.ts`, a lane per inner clock or reset net on that side, at least `FRAME_WIRE_CHANNEL`; `frameLabelWidths` gives the label widths) so its inner level has a wire channel beside the pin labels. `JUNCTION_RADIUS` is shared from `diagramTypes.ts`. `cutWires` gives a junction wire `lead` (the tree path from the driver to `points[0]`, passed as `ElkEdgeData.lead` and drawn by `ElkEdge` before `points`), because `onlyRenderVisibleElements` culls each edge by its own two nodes and would drop trunk pieces other wires hang off; `edgeMarks` no longer dims clock and reset wires, whose leads overlap. Design: `docs/concepts/clock-reset-wires.md`.
+
 ## [1.5.1] - 2026-11-09
 
 ### Fixed

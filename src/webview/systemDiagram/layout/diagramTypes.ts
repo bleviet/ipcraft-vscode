@@ -28,7 +28,7 @@ export interface PinRow {
   /** Every net the pin sits on, in graph order. */
   netNames: string[];
   definedBy?: SystemPin['definedBy'];
-  /** Present on a pin of a clock or reset net; drawn in place of the wires of those nets. */
+  /** Present on a pin of a clock or reset net; the label at the end of the wire of those nets. */
   badge?: NetBadge;
   interfaceType?: string;
   signalType?: SystemPin['signalType'];
@@ -130,11 +130,22 @@ export type DiagramFlowNode =
   | (FlowNodeBase & { type: 'boundary'; data: BoundaryNodeData })
   | (FlowNodeBase & { type: 'frame'; data: FrameNodeData });
 
+/** Radius of the junction dot, in the viewer and in the image export. */
+export const JUNCTION_RADIUS = 2.5;
+
 export interface ElkEdgeData extends Record<string, unknown>, EdgeMarks {
   points: { x: number; y: number }[];
   netId: string;
   category: NetCategory;
   isInterface: boolean;
+  /** The wire branches off its net's tree at its first point, drawn as a junction dot. */
+  junction?: true;
+  /**
+   * The part of the net's tree from the driver to `points[0]` (a junction wire only),
+   * which other wires of the net own. The viewer draws it as well because React Flow
+   * culls every edge by its own two nodes.
+   */
+  lead?: { x: number; y: number }[];
   /** User-assigned highlight color CSS value, when highlights are active on the canvas. */
   highlightColor?: string;
 }

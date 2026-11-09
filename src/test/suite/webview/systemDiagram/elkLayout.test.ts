@@ -9,7 +9,7 @@ import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLay
 import { isolationSubset } from '../../../../webview/systemDiagram/isolation';
 import { levelEdges } from '../../../../webview/systemDiagram/layout/levelEdges';
 import { boundaryId, isClockOrReset } from '../../../../webview/systemDiagram/model';
-import type { SystemGraph } from '../../../../domain/systemGraph';
+import type { NetCategory, SystemGraph } from '../../../../domain/systemGraph';
 import {
   loadFixtureGraph,
   loadQsysFixtureGraph,
@@ -36,9 +36,26 @@ function netOfEdge(design: SystemGraph, edgeId: string) {
   return net!;
 }
 
-/** The ELK edges drawn as wires: every one but the clock and reset edges that only anchor a block. */
+/** The ELK edges routed by ELK as wires: every one but the clock and reset edges that only anchor a block. */
 function wireCount(design: SystemGraph, input: ElkNode): number {
   return (input.edges ?? []).filter((edge) => !isClockOrReset(netOfEdge(design, edge.id))).length;
+}
+
+/** Clock and reset wires drawn for `levels`: one per edge, routed after the layout. */
+function clockResetCount(design: SystemGraph, levels: string[]): number {
+  return levels.flatMap((level) => levelEdges(design, level).filter(isClockOrReset)).length;
+}
+
+/** Asserts the flow edges hold the ELK data wires and one routed wire per clock or reset edge. */
+function expectWires(
+  design: SystemGraph,
+  input: ElkNode,
+  edges: { data: { category: NetCategory } }[],
+  levels: string[] = ['/']
+): void {
+  const routed = edges.filter((edge) => isClockOrReset(edge.data));
+  expect(edges.length - routed.length).toBe(wireCount(design, input));
+  expect(routed).toHaveLength(clockResetCount(design, levels));
 }
 
 /** Asserts that at least one badge exists and no badge box intersects any node box. */
@@ -182,10 +199,10 @@ describe('real ELK layout of the fixture root level', () => {
       expect(Number.isFinite(node.position.y)).toBe(true);
       expect(node.draggable).toBe(false);
     }
-    // The clock and reset edges that anchor a block are laid out but emit no wire.
+    // ELK routes the data wires; every clock and reset edge is routed afterwards.
     expect(wireCount(graph, input)).toBeLessThan(input.edges!.length);
-    expect(edges).toHaveLength(wireCount(graph, input));
-    expect(edges.some((edge) => isClockOrReset(edge.data))).toBe(false);
+    expectWires(graph, input, edges);
+    expect(edges.some((edge) => isClockOrReset(edge.data))).toBe(true);
     for (const edge of edges) {
       expect(edge.type).toBe('elk');
       expect(edge.data.points.length).toBeGreaterThanOrEqual(2);
@@ -205,7 +222,7 @@ describe('real ELK layout of the qsys fixture root level', () => {
     const input = buildElkInput(qsys, '/', { measure: fakeMeasure });
     const result = await runElkLayout(input);
     const { nodes, edges } = toFlowElements(result, qsys, '/', fakeMeasure);
-    expect(edges).toHaveLength(wireCount(qsys, input));
+    expectWires(qsys, input, edges);
     expect(edges.length).toBeGreaterThan(0);
     for (const edge of edges) {
       expect(edge.data.points.length).toBeGreaterThanOrEqual(2);
@@ -227,7 +244,7 @@ describe('real ELK layout of the qsys-script fixture root level', () => {
     const input = buildElkInput(qsysTcl, '/', { measure: fakeMeasure });
     const result = await runElkLayout(input);
     const { nodes, edges } = toFlowElements(result, qsysTcl, '/', fakeMeasure);
-    expect(edges).toHaveLength(wireCount(qsysTcl, input));
+    expectWires(qsysTcl, input, edges);
     expect(edges.length).toBeGreaterThan(0);
     for (const edge of edges) {
       expect(edge.data.points.length).toBeGreaterThanOrEqual(2);
@@ -611,8 +628,12 @@ describe('real ELK layout of expanded blocks', () => {
       expect(inner.position.y).toBeGreaterThanOrEqual(frame.position.y + 42);
       expect(inner.position.y + inner.height).toBeLessThanOrEqual(frame.position.y + frame.height);
     }
-    expect(edges).toHaveLength(wireCount(graph, input));
-    expectEndsOnBorders(nodes, edges);
+    expectWires(graph, input, edges, ['/', DSP]);
+    // Clock and reset wires end at their badges, outside the borders.
+    expectEndsOnBorders(
+      nodes,
+      edges.filter((edge) => !isClockOrReset(edge.data))
+    );
   }, 20000);
 
   it('centres the ports on the border and the pin rows on the ports', async () => {
@@ -692,8 +713,11 @@ describe('real ELK layout of expanded blocks', () => {
       expect(inner.position.y).toBeGreaterThanOrEqual(frame.position.y);
       expect(inner.position.y + inner.height).toBeLessThanOrEqual(frame.position.y + frame.height);
     }
-    expect(edges).toHaveLength(wireCount(graph, input));
-    expectEndsOnBorders(nodes, edges);
+    expectWires(graph, input, edges, ['/', DSP, BANK]);
+    expectEndsOnBorders(
+      nodes,
+      edges.filter((edge) => !isClockOrReset(edge.data))
+    );
   }, 20000);
 
   it('sizes an expanded block with an empty level inside as the collapsed block', async () => {
@@ -783,4 +807,28 @@ describe('placement by data flow (real ELK)', () => {
     const x = (id: string) => child(result, id).x ?? 0;
     expect(x('/ctrl_smc')).toBeLessThan(x('/rst_clk_out1'));
   }, 20000);
+});
+
+describe('toFlowElements of an empty level', () => {
+  const lay = async (design: SystemGraph, level: string) =>
+    toFlowElements(
+      await runElkLayout(buildElkInput(design, level, { measure: fakeMeasure })),
+      design,
+      level,
+      fakeMeasure
+    );
+
+  it('draws nothing for an empty root level', async () => {
+    const empty = readBdTcl('create_bd_design "empty"\n', 'empty.tcl');
+    expect(await lay(empty, '/')).toEqual({ nodes: [], edges: [] });
+  });
+
+  it('draws nothing for an empty hierarchy level', async () => {
+    const hier = readBdTcl(
+      'create_bd_design "top"\ncreate_bd_cell -type hier empty_h\n',
+      'top.tcl'
+    );
+    expect(hier.levels['/empty_h']).toBeDefined();
+    expect((await lay(hier, '/empty_h')).edges).toEqual([]);
+  });
 });

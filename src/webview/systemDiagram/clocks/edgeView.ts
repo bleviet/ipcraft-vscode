@@ -1,10 +1,14 @@
 /** How the domain mode and a selected clock tree restyle a drawn wire. */
 
+import type { NetCategory } from '../../../domain/systemGraph';
+import { isClockOrReset } from '../model';
 import type { SelectedTree } from './treeSelection';
 
 /**
  * Style overrides of one wire; absent fields keep the wire's category look.
- * Clock and reset nets are badges, not wires, so only data wires get these.
+ * A clock or reset wire gets them like a data wire, except that it is never
+ * dimmed: the leads of a net overlap and would add up, and the pins of these
+ * nets carry the domain colors.
  */
 export interface EdgeMarks {
   /** Stroke color: the domain of the selected clock tree the wire's net is on. */
@@ -24,7 +28,7 @@ export interface EdgeViewContext {
 
 export function edgeMarks(
   { domainMode, tree, crossingEdgeIds }: EdgeViewContext,
-  edge: { id: string; data: { netId: string } }
+  edge: { id: string; data: { netId: string; category: NetCategory } }
 ): EdgeMarks {
   const { netId } = edge.data;
   if (domainMode && crossingEdgeIds.has(edge.id)) {
@@ -33,5 +37,5 @@ export function edgeMarks(
   if (tree?.kind === 'clock' && tree.netIds.has(netId)) {
     return { domainColor: tree.domain.color };
   }
-  return domainMode ? { dimmed: true } : {};
+  return domainMode && !isClockOrReset(edge.data) ? { dimmed: true } : {};
 }

@@ -253,18 +253,18 @@ describe('the placement of the blocks across the view toggles', () => {
         .edges.map((edge) => edge.id)
         .filter((id) => clockEdgeIds.includes(id))
         .sort();
-    expect(drawnClockEdgeIds()).toEqual([]);
+    expect(drawnClockEdgeIds()).toEqual([...clockEdgeIds].sort());
 
     fireEvent.click(clocksAndResets());
     await settle();
     expect(flow().nodes.map((node) => node.id)).toEqual(ids);
     expect(placement()).toEqual(before);
-    expect(drawnClockEdgeIds()).toEqual([]);
+    expect(drawnClockEdgeIds()).toEqual([...clockEdgeIds].sort());
 
     fireEvent.click(unconnectedPins());
     await settle();
     expect(placement()).toEqual(before);
-    expect(drawnClockEdgeIds()).toEqual([]);
+    expect(drawnClockEdgeIds()).toEqual([...clockEdgeIds].sort());
     expect(mockLayoutRuns).toHaveLength(runs);
   }, 20000);
 
@@ -293,20 +293,20 @@ describe('the placement of the blocks across the view toggles', () => {
 });
 
 describe('what the toggles draw', () => {
-  it('draws the clock and reset badges, not their wires, while Clocks and resets is off', async () => {
+  it('draws the clock and reset wires with their badges while Clocks and resets is off', async () => {
     await renderApp();
-    expect(wireCategories()).not.toContain('clock');
-    expect(wireCategories()).not.toContain('reset');
+    expect(wireCategories()).toContain('clock');
+    expect(wireCategories()).toContain('reset');
     expect(badges().length).toBeGreaterThan(0);
   }, 20000);
 
-  it('keeps the badges and draws no clock or reset wire while Clocks and resets is on', async () => {
+  it('keeps the badges and the clock and reset wires while Clocks and resets is on', async () => {
     await renderApp();
     const shown = badges().length;
     fireEvent.click(clocksAndResets());
     await settle();
-    expect(wireCategories()).not.toContain('clock');
-    expect(wireCategories()).not.toContain('reset');
+    expect(wireCategories()).toContain('clock');
+    expect(wireCategories()).toContain('reset');
     expect(badges()).toHaveLength(shown);
   }, 20000);
 
@@ -325,7 +325,7 @@ describe('what the toggles draw', () => {
     fireEvent.click(clocksAndResets());
     fireEvent.click(unconnectedPins());
     await settle();
-    expect(wireCategories()).not.toContain('clock');
+    expect(wireCategories()).toContain('clock');
     expect(badges().length).toBeGreaterThan(0);
     expect(domainPins()).toHaveLength(0);
     expect(dimmedWires()).toHaveLength(0);
@@ -340,7 +340,7 @@ describe('what the toggles draw', () => {
     await renderApp();
     fireEvent.click(unconnectedPins());
     await settle();
-    expect(wireCategories()).not.toContain('clock');
+    expect(wireCategories()).toContain('clock');
     expect(badges().length).toBeGreaterThan(0);
   }, 20000);
 });

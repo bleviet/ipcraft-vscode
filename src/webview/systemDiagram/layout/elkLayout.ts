@@ -3,8 +3,9 @@
  * One ELK graph per level: a node per instance and per boundary pin, a
  * fixed-position port per pin, and one edge per net sink from the net driver.
  * The data and interface nets place the blocks (see `placementEdges.ts`). A
- * clock or reset net is never a wire: its pins show a net-name badge, in the
- * room their port labels reserve. An expanded hierarchy block is a compound node
+ * clock or reset net is routed after the layout by `clockResetWires.ts`; its
+ * pins show a net-name badge, in the room their port labels reserve, as the
+ * label at the wire end. An expanded hierarchy block is a compound node
  * holding its inner level (see `expandedLayout.ts`); the flow nodes stay flat,
  * in absolute coordinates.
  */
@@ -25,6 +26,7 @@ import {
   type TextMeasure,
 } from './nodeSizing';
 import { extendRouteEnds } from './edgePoints';
+import { clockResetWires } from './clockResetWires';
 import { compoundNode, frameData } from './expandedLayout';
 import { pinHandles } from './nodeHandles';
 import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
@@ -81,6 +83,8 @@ const LAYOUT_OPTIONS = {
   'elk.layered.spacing.nodeNodeBetweenLayers': '80',
   'elk.layered.spacing.edgeNodeBetweenLayers': '24',
   'elk.spacing.edgeEdge': '12',
+  // Keeps the block columns of the whole level aligned: the clock and reset wires are routed along them.
+  'elk.separateConnectedComponents': 'false',
 };
 
 function instanceHeight(instance: SystemInstance): number {
@@ -394,7 +398,8 @@ export function toFlowElements(
   layoutResult: ElkNode,
   graph: SystemGraph,
   levelPath: string,
-  measure: TextMeasure
+  measure: TextMeasure,
+  isolate?: IsolationSubset
 ): { nodes: DiagramFlowNode[]; edges: DiagramFlowEdge[] } {
   const nodes: DiagramFlowNode[] = [];
   addLevelNodes(layoutResult, levelPath, { x: 0, y: 0 }, { graph, measure }, nodes);
@@ -404,7 +409,7 @@ export function toFlowElements(
   for (const elkEdge of layoutResult.edges ?? []) {
     const section = elkEdge.sections?.[0];
     const net = netsById.get(elkEdge.id.slice(0, elkEdge.id.lastIndexOf('#')));
-    // A clock or reset edge only anchors a block in the layout; it is no wire.
+    // A clock or reset edge only anchors a block in the layout; its wire is routed below.
     if (!section || !net || isClockOrReset(net)) {
       continue;
     }
@@ -433,7 +438,13 @@ export function toFlowElements(
       },
     });
   }
-  return { nodes, edges };
+  return {
+    nodes,
+    edges: [
+      ...clockResetWires(graph, levelPath, nodes, edges, measure, isolate?.edgeIds),
+      ...edges,
+    ],
+  };
 }
 
 /** Splits `${nodeId}::${pin}` at the last separator (node ids may contain '::'). */

@@ -2,7 +2,11 @@
 
 import type { NetCategory } from '../../domain/systemGraph';
 import type { BoundaryNodeData } from '../../webview/systemDiagram/layout/diagramTypes';
-import type { NetBadge } from '../../webview/systemDiagram/layout/netBadges';
+import {
+  BADGE_GAP,
+  BADGE_STUB_WIDTH,
+  type NetBadge,
+} from '../../webview/systemDiagram/layout/netBadges';
 import { BOUNDARY_HEIGHT } from '../../webview/systemDiagram/layout/elkLayout';
 import { CIRCLE_MARKER, SQUARE_MARKER } from '../../webview/systemDiagram/layout/pinRows';
 import { portShapePath } from '../../webview/systemDiagram/layout/portShape';
@@ -44,9 +48,7 @@ export function markerSvg(cx: number, cy: number, spec: MarkerSpec, palette: Pal
   return element('circle', { cx, cy, r: size / 2 - inset, ...paint });
 }
 
-const BADGE_STUB_WIDTH = 8;
 const BADGE_STUB_HEIGHT = 2;
-const BADGE_GAP = 4;
 const BADGE_FONT_SIZE = 10;
 
 /** A clock or reset net label: an 8x2 color stub on the node side of the text, in the badge box. */

@@ -1,12 +1,13 @@
 /**
- * Net-name badges for pins of clock and reset nets, drawn in place of those
- * nets' wires. The badge text and size are reserved in the ELK graph as
- * OUTSIDE port labels; the label position ELK returns is where the badge is
- * drawn.
+ * Net-name badges for pins of clock and reset nets: the label at the end of
+ * the net's wire (routed by `clockResetWires.ts`). The badge text and size are
+ * reserved in the ELK graph as OUTSIDE port labels; the label position ELK
+ * returns is where the badge is drawn.
  */
 
 import type { ElkLabel, ElkPort } from 'elkjs/lib/elk-api';
 import type { NetCategory, PinRef, SystemGraph, SystemNet } from '../../../domain/systemGraph';
+import type { TextMeasure } from './nodeSizing';
 import { endpointKey, isClockOrReset, netsOfLevel, pinRole, resolvePin } from '../model';
 
 export const BADGE_MAX_CHARS = 24;
@@ -14,6 +15,11 @@ export const BADGE_CHAR_WIDTH = 6.5;
 const BADGE_PADDING = 12;
 const BADGE_HEIGHT = 14;
 const BADGE_ID_PREFIX = 'badge:';
+/** The drawn badge: a stub, a gap, then the 10 px text (`TextMeasure` measures at 11 px). */
+export const BADGE_STUB_WIDTH = 8;
+export const BADGE_GAP = 4;
+const BADGE_TEXT_RATIO = 10 / 11;
+const BADGE_TEXT_SLACK = 3;
 
 export interface NetBadge {
   netId: string;
@@ -27,6 +33,20 @@ export interface NetBadge {
   y: number;
   width: number;
   height: number;
+}
+
+/** Width from the pin side of the badge box to just past the drawn text. */
+export function badgeDrawnWidth(
+  badge: Pick<NetBadge, 'text' | 'width'>,
+  measure: TextMeasure
+): number {
+  return Math.min(
+    badge.width,
+    BADGE_STUB_WIDTH +
+      BADGE_GAP +
+      measure(badge.text, 'normal') * BADGE_TEXT_RATIO +
+      BADGE_TEXT_SLACK
+  );
 }
 
 export function badgeText(netName: string, extra = 0): string {

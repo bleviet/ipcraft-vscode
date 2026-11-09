@@ -64,3 +64,30 @@ describe('ElkEdge highlight', () => {
     expect(drawn({ highlightColor: RED, dimmed: true }, true).halo!.style.opacity).toBe('');
   });
 });
+
+describe('ElkEdge lead', () => {
+  it('draws the lead before the wire and keeps the dot and the halo on the wire', () => {
+    const lead = [
+      { x: -20, y: 5 },
+      { x: -20, y: 0 },
+      { x: 0, y: 0 },
+    ];
+    const { wire, halo, container } = drawn({ junction: true, lead, highlightColor: RED });
+    expect(wire.getAttribute('d')).toBe('M -20 5 L -20 0 L 0 0 L 10 0');
+    expect(halo!.getAttribute('d')).toBe('M 0 0 L 10 0');
+    expect(container.querySelector('circle')!.getAttribute('cx')).toBe('0');
+  });
+});
+
+describe('ElkEdge junction dot', () => {
+  it('draws the dot at the first point only for a wire with a junction', () => {
+    expect(drawn({}).container.querySelector('circle')).toBeNull();
+    const dot = drawn({ junction: true, dimmed: true }).container.querySelector('circle')!;
+    expect(dot.getAttribute('cx')).toBe('0');
+    expect(dot.getAttribute('cy')).toBe('0');
+    expect(dot.getAttribute('r')).toBe('2.5');
+    expect(dot.getAttribute('fill')).toBe('var(--vscode-charts-green)');
+    expect(dot.style.opacity).toBe('0.2');
+    expect(dot.style.pointerEvents).toBe('none');
+  });
+});
