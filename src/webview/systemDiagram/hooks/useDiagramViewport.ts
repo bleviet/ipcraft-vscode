@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { getViewportForBounds, useReactFlow, useStoreApi } from '@xyflow/react';
 import { diagramBounds, nodeBounds } from '../layout/diagramBounds';
 import { nodeCenter } from '../layout/nodeCenter';
 import { revealZoom } from '../layout/revealZoom';
-import { decideViewportAction, withSavedViewport, type Viewport } from '../layout/viewportPolicy';
+import {
+  anchoredViewport,
+  decideViewportAction,
+  toggledNodeId,
+  withSavedViewport,
+  type Viewport,
+} from '../layout/viewportPolicy';
 import type { RevealRequest } from '../model';
 import type { DiagramLayout } from './useElkLayout';
 
@@ -28,7 +34,9 @@ export interface DiagramViewport {
  * applied) and its node is in the layout; until then it waits, for example
  * while an isolated layout that hides the node is still displayed.
  * `focusNode` zooms to one node of the current level, badges included
- * (double-click). Must run inside a React Flow provider.
+ * (double-click). A hierarchy block expanded or collapsed in place stays at the
+ * same screen point: the pan follows its new position. Must run inside a React
+ * Flow provider.
  */
 export function useDiagramViewport(
   layout: DiagramLayout | null,
@@ -41,6 +49,7 @@ export function useDiagramViewport(
   const saved = useRef<ReadonlyMap<string, Viewport>>(new Map());
   const shownKey = useRef<string | null>(null);
   const handledToken = useRef(0);
+  const shownLayout = useRef<DiagramLayout | null>(null);
 
   const fit = useCallback(() => {
     if (bounds) {
@@ -59,8 +68,11 @@ export function useDiagramViewport(
   const fitRef = useRef(fit);
   fitRef.current = fit;
 
-  useEffect(() => {
+  // A layout effect, so the frame that shows the new layout already has the corrected pan.
+  useLayoutEffect(() => {
     const left = shownKey.current;
+    const previousLayout = shownLayout.current;
+    shownLayout.current = layout;
     if (!layout) {
       // The layout is unavailable (error). React Flow stays mounted, so the
       // view survives; save it so the recovered layout restores it even if the
@@ -85,6 +97,18 @@ export function useDiagramViewport(
       handledToken.current = reveal.token;
     }
     if (action.kind === 'keep' && !reveal) {
+      const toggled =
+        previousLayout && previousLayout !== layout
+          ? toggledNodeId(previousLayout.nodes, layout.nodes)
+          : undefined;
+      if (!previousLayout || toggled === undefined) {
+        return;
+      }
+      const before = previousLayout.nodes.find((node) => node.id === toggled);
+      const after = layout.nodes.find((node) => node.id === toggled);
+      if (before && after) {
+        void setViewport(anchoredViewport(getViewport(), before.position, after.position));
+      }
       return;
     }
     const centre = () => {
@@ -108,7 +132,8 @@ export function useDiagramViewport(
       }
       void setCenter(target.x, target.y, { zoom });
     };
-    // Wait a frame so React Flow has rendered the new nodes.
+    // These paths read the layout and the canvas size, not React Flow's node
+    // store; the frame lets the canvas commit before the viewport moves.
     window.requestAnimationFrame(() => {
       if (action.kind === 'keep') {
         centre();
