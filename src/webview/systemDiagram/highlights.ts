@@ -109,3 +109,23 @@ export function highlightedNetIds(current: HighlightMap): Set<string> {
   }
   return ids;
 }
+
+/** CSS color of every highlighted net, keyed by net id. */
+export function highlightedNetColors(current: HighlightMap): Map<string, string> {
+  const colors = new Map<string, string>();
+  for (const netId of highlightedNetIds(current)) {
+    const css = netHighlightColor(current, netId);
+    if (css !== undefined) {
+      colors.set(netId, css);
+    }
+  }
+  return colors;
+}
+
+/** Puts edges with a highlight color after the others (SVG paints later edges on top), keeping order within each group. */
+export function highlightedEdgesLast<T extends { data?: { highlightColor?: string } }>(
+  edges: readonly T[]
+): T[] {
+  const isHighlighted = (edge: T) => edge.data?.highlightColor !== undefined;
+  return [...edges.filter((edge) => !isHighlighted(edge)), ...edges.filter(isHighlighted)];
+}

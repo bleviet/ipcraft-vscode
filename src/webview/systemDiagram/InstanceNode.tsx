@@ -134,6 +134,7 @@ function InstanceNodeBase({ data, selected }: NodeProps<InstanceFlowNode>) {
               key={`badge:${row.name}`}
               badge={row.badge}
               selectedNetIds={data.selectedNetIds}
+              highlightColors={data.highlightColors}
               onSelectNet={data.onSelectNet}
             />
           )

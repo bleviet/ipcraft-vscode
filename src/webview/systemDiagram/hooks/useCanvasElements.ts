@@ -3,7 +3,13 @@ import type { SystemGraph } from '../../../domain/systemGraph';
 import type { HighlightMap } from '../../../shared/messages/systemDiagram';
 import { selectedTree } from '../clocks/treeSelection';
 import { clockDecor, clockNodeData, type ClockContext } from '../clockDecor';
-import { highlightedNetIds, netHighlightColor, nodeHighlightColor } from '../highlights';
+import {
+  highlightedEdgesLast,
+  highlightedNetColors,
+  highlightedNetIds,
+  netHighlightColor,
+  nodeHighlightColor,
+} from '../highlights';
 import type { DiagramLayout } from './useElkLayout';
 import type { SearchFlash } from './useSearchStepper';
 import { badgedNodeIds, highlightedPinsByNode } from '../pinHighlight';
@@ -92,6 +98,17 @@ export function useCanvasElements({
         : undefined,
     [selectedAndTreeNetIds, layout]
   );
+  const highlightColors = useMemo(
+    () => (showHighlights && highlights ? highlightedNetColors(highlights) : undefined),
+    [showHighlights, highlights]
+  );
+  const highlightBadgedNodes = useMemo(
+    () =>
+      highlightColors && highlightColors.size > 0 && layout
+        ? badgedNodeIds(new Set(highlightColors.keys()), layout.nodes)
+        : undefined,
+    [highlightColors, layout]
+  );
   const reviews = useMemo(
     () =>
       review && layout
@@ -128,6 +145,7 @@ export function useCanvasElements({
           ...(reviews && { review: reviews.get(node.id) }),
           ...clockNodeData(decor, node.id),
           ...(badgedNodes?.has(node.id) && { selectedNetIds: selectedAndTreeNetIds }),
+          ...(highlightBadgedNodes?.has(node.id) && { highlightColors }),
           ...(highlightColor !== undefined && { highlightColor }),
           ...(focused !== undefined && { focusedPin: focused }),
           ...(highlighted?.has(node.id) && { highlightedPins: highlighted.get(node.id) }),
@@ -147,6 +165,8 @@ export function useCanvasElements({
     selectedIds,
     selectedAndTreeNetIds,
     badgedNodes,
+    highlightColors,
+    highlightBadgedNodes,
     highlighted,
     showHighlights,
     highlights,
@@ -162,25 +182,29 @@ export function useCanvasElements({
 
   const builtEdges = useMemo(
     () =>
-      (layout?.edges ?? []).map((edge) => {
-        const marks = decor.edges.get(edge.id);
-        const highlightColor =
-          showHighlights && highlights ? netHighlightColor(highlights, edge.data.netId) : undefined;
-        return {
-          ...edge,
-          selected:
-            activeSelectedNetIds.has(edge.data.netId) ||
-            (selection?.kind === 'net' &&
-              (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId)),
-          ...((marks !== undefined || highlightColor !== undefined) && {
-            data: {
-              ...edge.data,
-              ...marks,
-              ...(highlightColor !== undefined && { highlightColor }),
-            },
-          }),
-        };
-      }),
+      highlightedEdgesLast(
+        (layout?.edges ?? []).map((edge) => {
+          const marks = decor.edges.get(edge.id);
+          const highlightColor =
+            showHighlights && highlights
+              ? netHighlightColor(highlights, edge.data.netId)
+              : undefined;
+          return {
+            ...edge,
+            selected:
+              activeSelectedNetIds.has(edge.data.netId) ||
+              (selection?.kind === 'net' &&
+                (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId)),
+            ...((marks !== undefined || highlightColor !== undefined) && {
+              data: {
+                ...edge.data,
+                ...marks,
+                ...(highlightColor !== undefined && { highlightColor }),
+              },
+            }),
+          };
+        })
+      ),
     [layout, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
   );
   const edges = useStableElements(builtEdges);

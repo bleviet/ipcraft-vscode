@@ -12,6 +12,12 @@ Marketplace, so it describes each release in user terms only. When you make a
 change, record it here; if users will notice it, also add a plain-language
 entry to the release notes.
 
+## [Unreleased]
+
+### Fixed
+
+- System viewer: highlighted nets keep selection-like emphasis ([#241](https://github.com/bleviet/ipcraft-vscode/issues/241)). `ElkEdge` gives a highlighted wire the selection width bump and an underlying `sd-edge-halo` path in the highlight color; `highlightedEdgesLast` (`highlights.ts`) orders highlighted edges after the others in `useCanvasElements` so they paint on top; `NetBadgeView` takes `highlightColors` (built by `highlightedNetColors`, set only on nodes found by `badgedNodeIds`) and colors the stub and label of clock and reset badges.
+
 ## [1.5.0] - 2026-11-08
 
 ### Added

@@ -930,6 +930,15 @@ input:focus-visible {
   height: 3px;
 }
 
+.sd-badge[data-highlighted='true'] {
+  font-weight: 700;
+  color: var(--sd-highlight);
+}
+
+.sd-badge[data-highlighted='true'] .sd-badge-stub {
+  height: 3px;
+}
+
 .sd-dot {
   display: inline-block;
   flex: none;

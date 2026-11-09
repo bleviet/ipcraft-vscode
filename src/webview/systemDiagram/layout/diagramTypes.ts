@@ -50,6 +50,8 @@ export interface InstanceUiData {
   pinMarks?: PinMarks;
   /** Nets of the selected clock or reset tree; badges on these nets are drawn selected. */
   selectedNetIds?: ReadonlySet<string>;
+  /** Highlight CSS color by net id, for badges on highlighted nets. */
+  highlightColors?: ReadonlyMap<string, string>;
   /** Name of the pin whose marker gets the focus halo. */
   focusedPin?: string;
   /** Set on the node being pulsed after a search step; a new value restarts the pulse. */
@@ -99,6 +101,8 @@ export interface BoundaryNodeData extends Record<string, unknown> {
   pinMarks?: PinMarks;
   /** Nets of the selected clock or reset tree; the badge is drawn selected when it holds one. */
   selectedNetIds?: ReadonlySet<string>;
+  /** Highlight CSS color by net id, for badges on highlighted nets. */
+  highlightColors?: ReadonlyMap<string, string>;
   /** Name of the pin when its marker gets the focus halo. */
   focusedPin?: string;
   /** User-assigned highlight color CSS value, when highlights are active on the canvas. */
