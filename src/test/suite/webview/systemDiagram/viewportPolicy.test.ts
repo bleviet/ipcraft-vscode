@@ -1,5 +1,7 @@
 import {
+  anchoredViewport,
   decideViewportAction,
+  toggledNodeId,
   withSavedViewport,
   type Viewport,
 } from '../../../../webview/systemDiagram/layout/viewportPolicy';
@@ -50,5 +52,46 @@ describe('withSavedViewport', () => {
   it('lets a recovered layout restore the saved view instead of keeping the reset one', () => {
     const saved = withSavedViewport(new Map(), '/', root);
     expect(decideViewportAction(null, '/', saved)).toEqual({ kind: 'restore', viewport: root });
+  });
+});
+
+describe('toggledNodeId', () => {
+  const instance = (id: string) => ({ id, type: 'instance' });
+  const frame = (id: string) => ({ id, type: 'frame' });
+
+  it('finds a block that became a frame (expand)', () => {
+    expect(toggledNodeId([instance('a'), instance('b')], [instance('a'), frame('b')])).toBe('b');
+  });
+
+  it('finds a frame that became a block (collapse)', () => {
+    expect(toggledNodeId([frame('b'), instance('a')], [instance('b'), instance('a')])).toBe('b');
+  });
+
+  it('returns the first flipped node in the next order', () => {
+    expect(toggledNodeId([instance('a'), instance('b')], [frame('b'), frame('a')])).toBe('b');
+  });
+
+  it('returns undefined when nothing flipped', () => {
+    expect(toggledNodeId([instance('a'), frame('b')], [instance('a'), frame('b')])).toBeUndefined();
+  });
+
+  it('ignores nodes that were added or removed without a flip', () => {
+    expect(toggledNodeId([instance('a')], [instance('a'), frame('c')])).toBeUndefined();
+    expect(toggledNodeId([instance('a'), frame('c')], [instance('a')])).toBeUndefined();
+  });
+});
+
+describe('anchoredViewport', () => {
+  it.each([1, 0.5])('keeps the moved point at its screen position at zoom %s', (zoom) => {
+    const viewport: Viewport = { x: 30, y: -40, zoom };
+    const before = { x: 100, y: 60 };
+    const after = { x: 260, y: 20 };
+    const result = anchoredViewport(viewport, before, after);
+    const screen = (v: Viewport, p: { x: number; y: number }) => ({
+      x: p.x * v.zoom + v.x,
+      y: p.y * v.zoom + v.y,
+    });
+    expect(result.zoom).toBe(zoom);
+    expect(screen(result, after)).toEqual(screen(viewport, before));
   });
 });

@@ -46,7 +46,8 @@ The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Un
   the level. The block becomes a frame with its pins on the border: wires from
   outside meet the pins from outside, and the wires inside meet them from
   inside. Click **-** in the frame header, or right-click and choose
-  **Collapse**, to fold it again. **Open Subsystem** in the same menu enters the
+  **Collapse**, to fold it again. The block stays where it is on screen when it opens into a
+  frame, and when you fold it again. **Open Subsystem** in the same menu enters the
   block like a double-click. Hierarchy blocks inside a frame can be expanded
   too, and expanded blocks stay expanded when you go to another level and back.
   Isolate works on the blocks of the level on show, not on those inside a frame.
