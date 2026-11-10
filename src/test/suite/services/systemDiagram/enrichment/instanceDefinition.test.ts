@@ -8,6 +8,31 @@ import {
 } from '../../../../../services/systemDiagram/enrichment/instanceDefinition';
 import { ipDefinition } from './definitionFixtures';
 
+describe('definitionFromIpCore conduit direction', () => {
+  const conduitDirection = (ports: string) =>
+    definitionFromIpCore(
+      parseIpCore(
+        `vlnv: { vendor: a, library: b, name: c, version: "1.0" }\nbusInterfaces:\n  - { name: ext, type: custom, mode: Conduit${ports} }\n`
+      ),
+      '/ws/c.ip.yml',
+      'file:///ws/c.ip.yml',
+      'c.ip.yml'
+    ).pins[0].direction;
+  const ports = (...directions: string[]) =>
+    `, conduitPorts: [${directions.map((d, i) => `{ name: p${i}, direction: ${d}, width: 1 }`).join(', ')}]`;
+
+  it('is master when every signal is an output and slave when every one is an input', () => {
+    expect(conduitDirection(ports('out', 'out'))).toBe('master');
+    expect(conduitDirection(ports('in', 'in'))).toBe('slave');
+  });
+
+  it('is unknown for mixed, inout or missing signals', () => {
+    expect(conduitDirection(ports('in', 'out'))).toBe('unknown');
+    expect(conduitDirection(ports('inout'))).toBe('unknown');
+    expect(conduitDirection('')).toBe('unknown');
+  });
+});
+
 describe('definitionFromIpCore', () => {
   it('orders bus interfaces, clocks, resets, interrupts, then ports', () => {
     expect(ipDefinition.pins.map((pin) => pin.name)).toEqual([

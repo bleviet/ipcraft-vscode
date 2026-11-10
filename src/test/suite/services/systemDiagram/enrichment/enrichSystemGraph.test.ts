@@ -8,6 +8,11 @@ import {
   ipEntryFromText,
   qsysEntry,
 } from '../../../../../services/systemDiagram/enrichment/fileEntries';
+import { readQsysTcl } from '../../../../../parser/system/QsysTclReader';
+import { buildElkInput } from '../../../../../webview/systemDiagram/layout/elkLayout';
+import { runElkLayout } from '../../../../../webview/systemDiagram/layout/runElkLayout';
+import { boundaryId } from '../../../../../webview/systemDiagram/model';
+import { fakeMeasure } from '../../../webview/systemDiagram/fixtureGraph';
 import { bdGraph, IP_YML } from './definitionFixtures';
 
 const PULSE = 'entity pulse_gen is\n  port (clk : in std_logic; q : out std_logic);\nend entity;\n';
@@ -115,4 +120,40 @@ describe('enrichSystemGraph', () => {
     expect(warnings[0]).toContain('Could not read subsystem');
     expect(graph.diagnostics.some((d) => d.message.includes('denied'))).toBe(true);
   });
+
+  it('uses the direction a definition makes clear for an exported conduit end', async () => {
+    const ipYml = `vlnv: { vendor: acme.com, library: ip, name: MY_CORE, version: "2.0" }
+busInterfaces:
+  - name: ext
+    type: custom
+    mode: conduit
+    conduitPorts:
+      - { name: a, direction: out, width: 1 }
+      - { name: b, direction: out, width: 1 }
+`;
+    const read = readQsysTcl(
+      [
+        'add_instance cpu MY_CORE 2.0',
+        'add_instance other not_defined 1',
+        'add_interface out_x conduit end',
+        'set_interface_property out_x EXPORT_OF cpu.ext',
+        'add_interface in_y conduit end',
+        'set_interface_property in_y EXPORT_OF other.ext',
+      ].join('\n'),
+      's.tcl'
+    );
+    const { io } = fakeIo({ 'my_core.ip.yml': ipYml });
+    const graph = await enrichSystemGraph(read, '/ws/s.tcl', io);
+    const result = await runElkLayout(buildElkInput(graph, '/', { measure: fakeMeasure }));
+    const right = (name: string) => {
+      const node = result.children!.find((candidate) => candidate.id === boundaryId('/', name))!;
+      return (node.x ?? 0) + (node.width ?? 0);
+    };
+    const blocks = result.children!.filter((node) => !node.id.includes('::'));
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(right('out_x')).toBeGreaterThan(
+      Math.max(...blocks.map((n) => (n.x ?? 0) + (n.width ?? 0)))
+    );
+    expect(graph.levels['/'].boundaryPins.find((p) => p.name === 'in_y')?.direction).toBe('slave');
+  }, 20000);
 });

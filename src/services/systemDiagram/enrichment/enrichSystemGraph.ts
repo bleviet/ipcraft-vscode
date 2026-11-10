@@ -10,6 +10,7 @@ import { extractVerilogInterface } from '../../../parser/VerilogParser';
 import { extractVhdlInterface, type ParsedPort } from '../../../parser/VhdlParser';
 import { applyDefinitions } from './applyDefinitions';
 import type { EnrichmentIo, EnrichmentLog } from './enrichmentIo';
+import { applyExportDirections } from './exportDirections';
 import { expandSubsystems } from './expandSubsystems';
 import type { HdlEntry } from './fileEntries';
 import {
@@ -101,7 +102,7 @@ export async function enrichSystemGraph<R>(
       log?.error(`Failed to read ${entry.displayName}`, error as Error);
     }
   }
-  const enriched = applyDefinitions(graph, definitions);
+  const enriched = applyExportDirections(applyDefinitions(graph, definitions));
   enriched.diagnostics.push(...notes);
   return enriched;
 }

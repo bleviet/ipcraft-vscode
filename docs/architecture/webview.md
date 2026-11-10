@@ -161,11 +161,21 @@ A view's ELK layout depends on its level, its expanded blocks, and its
 isolation, and on no toggle. Its edges are the data and interface nets of the
 level, plus the clock and reset edges into a block that has no data edge, so
 that block stays next to its driver, and the first clock or reset edge of a
-driver that would otherwise have none, so a clock or reset input port sits next
-to one of its loads (`placementEdges.ts`). Boundary pins carry no layer
-constraint, so an external port sits next to a block it connects to. The pins
-of clock and reset nets reserve a badge label, the net-name label at the end of
-their wire. ELK routes no clock or reset wire: after the layout `toFlowElements`
+driver that would otherwise have none, which only orders a clock or reset input
+port vertically next to one of its loads (`placementEdges.ts`). The boundary pins
+of the shown level form two columns by ELK layer constraints
+(`layout/boundaryColumns.ts`, used by `boundaryNode`): an input gets
+`FIRST_SEPARATE` and `elk.alignment: LEFT`, every other port (output, inout,
+unknown direction) gets `LAST_SEPARATE` and `RIGHT`, so the inputs share a left
+edge left of every block and the other ports share a right edge right of every
+block. ELK rejects a `LAST_SEPARATE` node with an outgoing edge to another
+`LAST_SEPARATE` node, so a right-column port that drives another right-column
+port (a net with no source endpoint) gets `LAST` instead, which ELK accepts
+before a `LAST_SEPARATE` target; it is placed in the last layer, which blocks can
+share. In a chain of such ports, where `LAST` to `LAST` would throw, the port
+that drives another driver stays unconstrained. The pins of clock and reset nets
+reserve a badge label, the net-name label at the end of their wire. ELK routes no
+clock or reset wire: after the layout `toFlowElements`
 calls `clockResetWires` (`layout/clockResetWires.ts`), which finds the terminals
 at the outer ends of the badges and routes one orthogonal tree per net and
 level with `layout/wireRoutes.ts` (pure geometry: block columns, channels, gaps,

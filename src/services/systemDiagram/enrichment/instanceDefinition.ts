@@ -63,6 +63,19 @@ function scalar(
   };
 }
 
+/** A conduit has no mode: its direction is that of its signals when they all agree (`out` -> master, `in` -> slave). */
+function conduitDirection(bus: NonNullable<IpCore['busInterfaces']>[number]): PinDirection {
+  const directions = new Set((bus.conduitPorts ?? []).map((port) => port.direction));
+  if (directions.size !== 1) {
+    return 'unknown';
+  }
+  const [only] = directions;
+  if (only === 'out') {
+    return 'master';
+  }
+  return only === 'in' ? 'slave' : 'unknown';
+}
+
 export function definitionFromIpCore(
   ipCore: IpCore,
   file: string,
@@ -80,7 +93,10 @@ export function definitionFromIpCore(
       pins.push({
         name,
         isInterface: true,
-        direction: modeDirection(bus.mode.toLowerCase()),
+        direction:
+          bus.mode.toLowerCase() === 'conduit'
+            ? conduitDirection(bus)
+            : modeDirection(bus.mode.toLowerCase()),
         ...(isVendorVlnv ? { vlnv: bus.type } : { interfaceType: bus.type }),
         ...(bus.associatedClock && { associatedClock: bus.associatedClock }),
       });
