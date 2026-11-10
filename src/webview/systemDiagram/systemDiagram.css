@@ -280,6 +280,10 @@ input:focus-visible {
   justify-content: flex-end;
 }
 
+.sd-node[data-kind='blackbox'] {
+  border-style: dashed;
+}
+
 .sd-node[data-kind='hier']::after {
   content: '';
   position: absolute;
@@ -520,6 +524,10 @@ input:focus-visible {
 
 .sd-ico-hier {
   border: 3px double var(--vscode-charts-green);
+}
+
+.sd-ico-blackbox {
+  border-style: dashed;
 }
 
 .sd-ico-port {

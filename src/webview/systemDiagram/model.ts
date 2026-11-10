@@ -122,10 +122,13 @@ export function shortVlnv(vlnv: string): string {
 }
 
 /**
- * Short type text of an ip or module instance (outline row, node header):
- * the short VLNV, the module reference, or qsys `component version`.
+ * Short type text of an ip, module or black box instance (outline row, node header):
+ * the short VLNV, the module reference, qsys `component version`, or `Black box`.
  */
 export function instanceTypeLabel(instance: SystemInstance): string | undefined {
+  if (instance.kind === 'blackbox') {
+    return 'Black box';
+  }
   if (instance.kind === 'module') {
     return instance.moduleRef;
   }

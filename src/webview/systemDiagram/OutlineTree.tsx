@@ -16,7 +16,7 @@ interface OutlineTreeProps {
   onSelect: (selection: Selection | null, levelPath?: string) => void;
 }
 
-type IconKind = 'ip' | 'module' | 'hier' | 'port';
+type IconKind = 'ip' | 'module' | 'hier' | 'blackbox' | 'port';
 
 interface RowProps {
   depth: number;

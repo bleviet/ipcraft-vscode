@@ -38,24 +38,27 @@ export function InstanceDetails({
       unconnectedClass(pin, false) === 'undriven'
   );
   const identity =
-    instance.kind === 'module'
-      ? `Module reference ${instance.moduleRef ?? ''}`
-      : instance.vlnv
-        ? `${instance.vlnv} (${shortVlnv(instance.vlnv)})`
-        : instance.component
-          ? `Platform Designer component ${instance.component} ${instance.version ?? ''}`.trim()
-          : 'Hierarchy';
+    instance.kind === 'blackbox'
+      ? 'Not defined in this file'
+      : instance.kind === 'module'
+        ? `Module reference ${instance.moduleRef ?? ''}`
+        : instance.vlnv
+          ? `${instance.vlnv} (${shortVlnv(instance.vlnv)})`
+          : instance.component
+            ? `Platform Designer component ${instance.component} ${instance.version ?? ''}`.trim()
+            : 'Hierarchy';
   return (
     <div className="space-y-3">
       <header>
         <div className="sd-eyebrow">Instance</div>
         <h2 className="sd-h2">{instance.name}</h2>
         <p className="opacity-70">
-          {instance.kind} · {identity}
+          {instance.kind === 'blackbox' ? 'Black box' : instance.kind} · {identity}
         </p>
       </header>
       <p>
-        Created at <LineLink source={source} line={instance.line} onReveal={onReveal} />
+        {instance.kind === 'blackbox' ? 'First referenced at' : 'Created at'}{' '}
+        <LineLink source={source} line={instance.line} onReveal={onReveal} />
         {instance.procLine !== undefined && (
           <>
             {' '}
@@ -63,6 +66,12 @@ export function InstanceDetails({
           </>
         )}
       </p>
+      {instance.kind === 'blackbox' && (
+        <p className="opacity-70">
+          This block is referenced by the design but not defined in the file read, so it is shown as
+          a black box. Its pins are the ones seen in connections.
+        </p>
+      )}
       {instance.definition && (
         <p>
           Defined by{' '}

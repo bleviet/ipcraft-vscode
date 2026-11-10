@@ -60,7 +60,12 @@ export interface SystemInstance {
   name: string;
   /** Level path that contains it (`/` for root). */
   parent: string;
-  kind: 'ip' | 'hier' | 'module';
+  /**
+   * `blackbox`: referenced by the design (a connection, an export, or a call to a
+   * hierarchy proc defined elsewhere) but not defined in the file read; its pins
+   * are those seen in connections.
+   */
+  kind: 'ip' | 'hier' | 'module' | 'blackbox';
   /** kind `ip`. */
   vlnv?: string;
   /** kind `module` (`-reference`). */

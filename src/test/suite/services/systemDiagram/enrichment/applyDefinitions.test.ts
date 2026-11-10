@@ -1,3 +1,4 @@
+import { readBdTcl } from '../../../../../parser/system/BdTclReader';
 import { applyDefinitions } from '../../../../../services/systemDiagram/enrichment/applyDefinitions';
 import { parseIpCore } from '../../../../../domain/parse';
 import {
@@ -243,5 +244,20 @@ describe('applyDefinitions with an HDL definition', () => {
     const message = result.diagnostics.find((d) => d.message.startsWith('Pins not in'))!.message;
     expect(message).not.toContain('S_AXI');
     expect(message).toContain('my_core_0/stale_pin');
+  });
+});
+
+describe('applyDefinitions with a black box', () => {
+  it('reports unconnected pins as partial when a black box has no definition', () => {
+    const graph = readBdTcl(
+      [
+        'create_bd_cell -type ip -vlnv acme.com:ip:my_core:1.0 known',
+        'connect_bd_net -net n [get_bd_pins known/x] [get_bd_pins ghost/y]',
+      ].join('\n'),
+      'bb.tcl'
+    );
+    const result = applyDefinitions(graph, defs('/known', ipDefinition));
+    expect(result.instances['/ghost'].kind).toBe('blackbox');
+    expect(result.capabilities.unconnectedPins).toBe('partial');
   });
 });

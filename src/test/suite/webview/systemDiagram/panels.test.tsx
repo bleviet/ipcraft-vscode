@@ -63,6 +63,28 @@ describe('InstanceDetails pin provenance', () => {
   });
 });
 
+describe('InstanceDetails black box', () => {
+  it('states the block is not defined in the file, lists its pins, and has no hierarchy button', () => {
+    const graph = JSON.parse(JSON.stringify(qsys)) as typeof qsys;
+    graph.instances['/pio_0'].kind = 'blackbox';
+    render(
+      <InstanceDetails
+        graph={graph}
+        clocks={analyzeClocks(graph)}
+        instance={graph.instances['/pio_0']}
+        onSelect={jest.fn()}
+        onEnterHierarchy={jest.fn()}
+        onReveal={jest.fn()}
+        onOpenDefinition={jest.fn()}
+      />
+    );
+    expect(screen.getByText(/Black box · Not defined in this file/)).toBeVisible();
+    expect(screen.getByText(/shown as a black box/)).toBeVisible();
+    expect(screen.getAllByText('s1').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Open hierarchy')).toBeNull();
+  });
+});
+
 describe('AddressMapTable ranges', () => {
   const props = { onSelectInstance: jest.fn(), onReveal: jest.fn() };
 

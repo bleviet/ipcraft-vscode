@@ -311,7 +311,7 @@ describe('readQsys: errors and warnings', () => {
     );
   });
 
-  it('warns about a connection to an unknown module and marks connections partial', () => {
+  it('shows an undeclared connected module as a black box and keeps the connection', () => {
     const graph = readQsys(
       system(
         ` <module name="a" kind="k" version="1" />\n` +
@@ -322,15 +322,23 @@ describe('readQsys: errors and warnings', () => {
     expect(graph.diagnostics).toEqual([
       {
         severity: 'warning',
-        message: 'Connection a.clk -> ghost.clk refers to unknown module ghost.',
+        message: 'Not defined in this file, shown as a black box: ghost',
         lines: [4],
       },
     ]);
-    expect(graph.nets).toEqual([]);
+    expect(graph.instances['/ghost']).toMatchObject({
+      kind: 'blackbox',
+      parent: '/',
+      line: 4,
+      pins: [expect.objectContaining({ name: 'clk' })],
+    });
+    expect(graph.levels['/'].instances).toContain('/ghost');
+    expect(graph.nets).toHaveLength(1);
+    expect(graph.nets[0].endpoints).toContainEqual({ instance: '/ghost', pin: 'clk' });
     expect(graph.capabilities.connections).toBe('partial');
   });
 
-  it('warns about an exported interface of an unknown module', () => {
+  it('keeps an exported interface of an undeclared module on a black box', () => {
     const graph = readQsys(
       system(` <interface name="x" internal="ghost.clk" type="clock" dir="end" />`),
       'a.qsys'
@@ -338,14 +346,18 @@ describe('readQsys: errors and warnings', () => {
     expect(graph.diagnostics).toEqual([
       {
         severity: 'warning',
-        message: 'Exported interface x refers to unknown module ghost.',
+        message: 'Not defined in this file, shown as a black box: ghost',
         lines: [3],
       },
     ]);
+    expect(graph.instances['/ghost'].kind).toBe('blackbox');
     expect(graph.levels['/'].boundaryPins).toEqual([
       expect.objectContaining({ name: 'x', directionSource: 'declared', line: 3 }),
     ]);
-    expect(graph.nets).toEqual([]);
+    expect(graph.nets[0].endpoints).toEqual([
+      { instance: null, pin: 'x' },
+      { instance: '/ghost', pin: 'clk' },
+    ]);
     expect(graph.capabilities.connections).toBe('partial');
   });
 
@@ -458,5 +470,44 @@ describe('readQsys: errors and warnings', () => {
     expect(graph.nets.map((n) => n.category)).toEqual(['aximm', 'axis', 'interface']);
     expect(graph.addressSegments).toHaveLength(1);
     expect(graph.addressSegments[0].offset).toBe('0x10');
+  });
+});
+
+describe('readQsys: black box guards (#291)', () => {
+  it('creates no black box for a missing endpoint attribute', () => {
+    const graph = readQsys(
+      system(
+        ` <module name="a" kind="k" version="1" />\n` +
+          ` <connection kind="clock" start="a.clk" />\n` +
+          ` <interface name="x" type="clock" dir="end" />`
+      ),
+      'a.qsys'
+    );
+    expect(Object.keys(graph.instances)).toEqual(['/a']);
+    expect(graph.levels['/'].instances).toEqual(['/a']);
+    expect(graph.nets).toEqual([]);
+    expect(graph.levels['/'].boundaryPins).toEqual([expect.objectContaining({ name: 'x' })]);
+    expect(graph.diagnostics.every((d) => !d.message.includes('black box'))).toBe(true);
+    expect(graph.diagnostics.map((d) => d.message)).toEqual([
+      'Connection a.clk ->  refers to unknown module .',
+      'Exported interface x refers to unknown module .',
+    ]);
+  });
+
+  it('does not make a black box of a module only connected to a disabled module', () => {
+    const graph = readQsys(
+      system(
+        ` <module name="off" kind="k" version="1" enabled="0" />\n` +
+          ` <module name="a" kind="k" version="1" />\n` +
+          ` <connection kind="clock" start="off.clk" end="ghost.clk" />\n` +
+          ` <connection kind="clock" start="a.clk" end="other.clk" />`
+      ),
+      'a.qsys'
+    );
+    expect(graph.instances['/ghost']).toBeUndefined();
+    expect(graph.instances['/other'].kind).toBe('blackbox');
+    expect(graph.diagnostics.map((d) => d.message)).toContain(
+      'Not defined in this file, shown as a black box: other'
+    );
   });
 });

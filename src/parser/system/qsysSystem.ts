@@ -80,20 +80,50 @@ export function buildQsysGraph(
     builder.addModule(module.name, module.kind, module.version, module.parameters, module.line);
   }
 
-  /** The first module name that is neither enabled nor disabled, if any. */
-  const unknownModule = (...instances: string[]): string | undefined =>
-    instances.find((name) => !builder.hasModule(name) && !disabled.has(name));
   const touchesDisabled = (...instances: string[]): boolean =>
     instances.some((name) => disabled.has(name));
+  /** An empty module name (missing attribute) can neither be shown nor connected. */
+  const unnamed = (...instances: string[]): boolean => instances.some((name) => name === '');
+
+  // Modules that connections and exports refer to but the file never declares.
+  const blackBoxes = new Map<string, number[]>();
+  const noteReference = (name: string, line: number): void => {
+    if (name === '' || builder.hasModule(name) || disabled.has(name)) {
+      return;
+    }
+    blackBoxes.set(name, [...(blackBoxes.get(name) ?? []), line]);
+    builder.addBlackBox(name, blackBoxes.get(name)?.[0] ?? line);
+  };
+  for (const connection of description.connections) {
+    const start = splitEndpoint(connection.start).instance;
+    const end = splitEndpoint(connection.end).instance;
+    if (!touchesDisabled(start, end) && !unnamed(start, end)) {
+      noteReference(start, connection.line);
+      noteReference(end, connection.line);
+    }
+  }
+  for (const exported of description.interfaces) {
+    if (exported.internal !== undefined) {
+      const instance = splitEndpoint(exported.internal).instance;
+      if (!touchesDisabled(instance)) {
+        noteReference(instance, exported.line);
+      }
+    }
+  }
+  if (blackBoxes.size > 0) {
+    builder.warn(
+      `Not defined in this file, shown as a black box: ${[...blackBoxes.keys()].join(', ')}`,
+      [...new Set([...blackBoxes.values()].flat())].sort((x, y) => x - y)
+    );
+  }
 
   // Connections first, so an exported interface can join a connection's net.
   for (const connection of description.connections) {
     const start = splitEndpoint(connection.start);
     const end = splitEndpoint(connection.end);
-    const unknown = unknownModule(start.instance, end.instance);
-    if (unknown !== undefined) {
+    if (unnamed(start.instance, end.instance)) {
       builder.warn(
-        `Connection ${connection.start} -> ${connection.end} refers to unknown module ${unknown}.`,
+        `Connection ${connection.start} -> ${connection.end} refers to unknown module .`,
         connection.line
       );
     } else if (!touchesDisabled(start.instance, end.instance)) {
@@ -110,10 +140,9 @@ export function buildQsysGraph(
 
   for (const exported of description.interfaces) {
     const internal = exported.internal === undefined ? undefined : splitEndpoint(exported.internal);
-    const unknown = internal && unknownModule(internal.instance);
-    if (unknown !== undefined) {
+    if (internal && unnamed(internal.instance)) {
       builder.warn(
-        `Exported interface ${exported.name} refers to unknown module ${unknown}.`,
+        `Exported interface ${exported.name} refers to unknown module ${internal.instance}.`,
         exported.line
       );
       builder.exportInterface(exported.name, undefined, exported.type, exported.end, exported.line);

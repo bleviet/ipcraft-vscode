@@ -211,6 +211,7 @@ export function instanceSvg(
       fill: palette.nodeFill,
       stroke: border.color,
       'stroke-opacity': border.opacity,
+      'stroke-dasharray': data.instance.kind === 'blackbox' ? '4 3' : undefined,
     }),
     headerBand(box, palette),
     data.domains ? domainStripSvg(data.domains.segments, box, palette) : '',

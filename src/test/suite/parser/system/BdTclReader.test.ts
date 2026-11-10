@@ -706,3 +706,76 @@ describe('readBdTcl: known IP output pins', () => {
     expect(pin(versal, '/stream_src', 'M_AXIS')).toMatchObject({ directionSource: 'name' });
   });
 });
+
+describe('readBdTcl: black boxes (#291)', () => {
+  const read = (text: string): SystemGraph => readBdTcl(text, '/p/top.tcl');
+  const SCRIPT = [
+    'source ./dsp.tcl',
+    'set cpu [ create_bd_cell -type ip -vlnv xilinx.com:ip:processing_system7:5.5 cpu ]',
+    'create_hier_cell_dsp [current_bd_instance .] dsp',
+    'connect_bd_intf_net -intf_net cpu_M_AXI [get_bd_intf_pins cpu/M_AXI] [get_bd_intf_pins dsp/S_AXI]',
+    'connect_bd_net -net clk_1 [get_bd_ports clk] [get_bd_pins cpu/clk] [get_bd_pins dsp/clk] [get_bd_pins ext_ip/clk]',
+  ].join('\n');
+
+  it('adds referenced but undefined blocks as black boxes with their connection pins', () => {
+    const g = read(SCRIPT);
+    expect(g.instances['/cpu'].kind).toBe('ip');
+    expect(g.instances['/dsp']).toMatchObject({ kind: 'blackbox', parent: '/', line: 3 });
+    expect(g.instances['/dsp'].pins.map((p) => [p.name, p.isInterface, p.direction])).toEqual([
+      ['S_AXI', true, 'slave'],
+      ['clk', false, 'unknown'],
+    ]);
+    expect(g.instances['/ext_ip']).toMatchObject({ kind: 'blackbox', line: 5 });
+    expect(g.levels['/'].instances).toEqual(expect.arrayContaining(['/cpu', '/dsp', '/ext_ip']));
+    expect(g.nets.find((n) => n.id === '/::clk_1')?.category).toBe('clock');
+  });
+
+  it('reports one aggregated warning and no longer ignores the hier proc call', () => {
+    const g = read(SCRIPT);
+    const warning = g.diagnostics.find((d) => d.message.includes('black box'));
+    expect(warning).toMatchObject({
+      severity: 'warning',
+      message: 'Not defined in this file, shown as a black box: dsp, ext_ip',
+    });
+    expect(warning?.lines).toEqual(expect.arrayContaining([3, 4, 5]));
+    expect(g.diagnostics.some((d) => d.message.includes('create_hier_cell_dsp'))).toBe(false);
+  });
+
+  it('keeps a cell created after its first connection a normal cell', () => {
+    const g = read(
+      [
+        'connect_bd_net -net n [get_bd_pins a/x] [get_bd_pins late/y]',
+        'create_bd_cell -type ip -vlnv a:b:c:1 late',
+        'create_bd_cell -type ip -vlnv a:b:c:1 a',
+      ].join('\n')
+    );
+    expect(g.instances['/late'].kind).toBe('ip');
+    expect(Object.values(g.instances).some((i) => i.kind === 'blackbox')).toBe(false);
+  });
+
+  it('leaves endpoints of a nonexistent level alone', () => {
+    const g = read('connect_bd_net -net n [get_bd_pins nolevel/inner/x] [get_bd_pins nolevel/y]');
+    expect(g.instances['/nolevel/inner']).toBeUndefined();
+  });
+});
+
+describe('readBdTcl: black box guards (#291)', () => {
+  const read = (text: string): SystemGraph => readBdTcl(text, '/p/top.tcl');
+
+  it('creates no black box for a name argument that does not resolve', () => {
+    const g = read('create_hier_cell_x [get_bd_cells -hier foo] [get_bd_cells -filter x]');
+    expect(Object.keys(g.instances)).toEqual([]);
+    expect(g.levels['/'].instances).toEqual([]);
+  });
+
+  it('points a black box at the connect command that first names it', () => {
+    const g = read(
+      [
+        'create_bd_cell -type ip -vlnv a:b:c:1 a',
+        'connect_bd_net -net n [get_bd_pins a/x] [get_bd_pins a/y]',
+        'connect_bd_net -net n [get_bd_pins ghost/z]',
+      ].join('\n')
+    );
+    expect(g.instances['/ghost'].line).toBe(3);
+  });
+});

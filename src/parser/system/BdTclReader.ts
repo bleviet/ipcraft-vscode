@@ -166,6 +166,12 @@ class BdTclInterpreter {
     const proc = this.procs.get(cmd);
     if (proc) {
       this.callProc(proc, words.slice(1), line, frame);
+    } else if (cmd.startsWith('create_hier_cell_') && words.length === 3) {
+      this.builder.addBlackBox(
+        this.levelArg(words[1], line, frame),
+        this.argValue(words[2], line, frame),
+        line
+      );
     } else if (cmd === 'set') {
       this.set(words, line, frame);
     } else if (cmd === 'if') {
