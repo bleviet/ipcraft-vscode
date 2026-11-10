@@ -7,6 +7,7 @@ import type {
   DataInspectorToWebviewMessage,
 } from '../shared/messages/dataInspector';
 import { DataInspectorRegisterLayoutReader } from '../services/DataInspectorRegisterLayoutReader';
+import type { ResourceRoots } from '../services/ResourceRoots';
 import { createSharedProviderServices } from './providerServices';
 import { Logger } from '../utils/Logger';
 import { saveDataInspectorRecipeAs } from '../commands/DataInspectorCommands';
@@ -15,9 +16,13 @@ import { WebviewRouter } from '../services/WebviewRouter';
 export class DataInspectorRecipeEditorProvider implements vscode.CustomTextEditorProvider {
   private readonly logger = new Logger('DataInspectorRecipeEditorProvider');
   private readonly services;
-  private readonly registerLayouts = new DataInspectorRegisterLayoutReader();
+  private readonly registerLayouts: DataInspectorRegisterLayoutReader;
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  constructor(
+    private readonly context: vscode.ExtensionContext,
+    resourceRoots: ResourceRoots
+  ) {
+    this.registerLayouts = new DataInspectorRegisterLayoutReader(resourceRoots);
     this.services = createSharedProviderServices(context);
   }
 

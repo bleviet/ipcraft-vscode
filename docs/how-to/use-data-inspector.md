@@ -10,7 +10,7 @@ not change the IP core, memory map, or generated hardware.
 | Goal | Command |
 |---|---|
 | Inspect a temporary value | **IPCraft: Open Data Inspector** |
-| Decode a known register | **IPCraft: Open Register in Data Inspector** |
+| Decode a known register or port | **IPCraft: Open Register or Port in Data Inspector** |
 | Save and reuse a setup | **IPCraft: New Data Inspector** |
 
 A saved setup uses an `.ipci.yml` recipe file.
@@ -71,7 +71,7 @@ operation details.
 
 ## Decode a memory-mapped register
 
-1. Run **IPCraft: Open Register in Data Inspector**.
+1. Run **IPCraft: Open Register or Port in Data Inspector**.
 2. Choose a register.
 3. Paste the captured value.
 4. Select **Decode**.
@@ -79,6 +79,11 @@ operation details.
 
 The import copies field names, ranges, descriptions, and known values. It does
 not edit or stay linked to the `.mm.yml` file.
+
+To decode a port instead, choose it from the same list. Ports come from the
+`fields` metadata in `.ip.yml` files: top-level ports, conduit ports, and bus
+interface ports (`portFields`). The width is the port width resolved with
+parameter defaults, and the import never edits the `.ip.yml` file.
 
 ![Register fields decoded in the Inspector](../images/data-inspector-fields-light.png)
 

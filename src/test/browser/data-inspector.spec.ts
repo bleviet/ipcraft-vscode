@@ -305,9 +305,9 @@ test.describe('Data Inspector responsive and accessible workspace', () => {
     await page.goto(harnessPath);
     await decode(page, "32'hDEADBEEF");
     await openFields(page);
-    await page.getByText('Import register layout').click();
+    await page.getByText('Import layout').click();
 
-    const layoutSelect = page.getByLabel('Register');
+    const layoutSelect = page.getByRole('combobox', { name: /^Layout/ });
     await layoutSelect.evaluate((select: HTMLSelectElement) => {
       select.add(
         new Option(

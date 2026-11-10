@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { MemoryMapEditorProvider } from '../../../providers/MemoryMapEditorProvider';
+import type { ResourceRoots } from '../../../services/ResourceRoots';
 import { DataInspectorRecipeEditorProvider } from '../../../providers/DataInspectorRecipeEditorProvider';
 
 /**
@@ -86,7 +87,7 @@ describe('webview localResourceRoots', () => {
   });
 
   it('DataInspectorRecipeEditorProvider scopes roots to dist and never node_modules', () => {
-    const provider = new DataInspectorRecipeEditorProvider(createContext());
+    const provider = new DataInspectorRecipeEditorProvider(createContext(), {} as ResourceRoots);
     const { panel, webview } = createPanel();
 
     provider.resolveCustomTextEditor(

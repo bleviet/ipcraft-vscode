@@ -192,9 +192,11 @@ Import copies the fields once into a recipe, like the register import; there is 
 
 | Item | Decision |
 |---|---|
-| Source | One source per imported port, width resolved with parameter defaults |
-| Field translation | `bits` / `offset`+`width` become the recipe's `msb`/`lsb`; `enumeratedValues` becomes `enumValues` with `display.interpretation: enum` |
-| Provenance | `importProvenance` in `data_inspector.schema.json` currently requires `registerName`. It gains a port form that names either a top-level or conduit port, or a bus interface plus logical port. |
+| Picker | Ports join the existing layout picker and the **Open Register or Port in Data Inspector** command, grouped as Registers and Ports. One layout reader, one message, one copy path. |
+| Source | One source per imported port, width resolved with parameter defaults. Ports whose width does not resolve or exceeds 4096 bits are not offered. |
+| What is offered | Ports with at least one usable field. Bus `portFields` keys that are unknown or not enabled are skipped, as are fields with a malformed position, a range beyond the port width, or a range that overlaps an earlier field of the same port. A key that differs from an earlier key of the same bus only in case is skipped too. |
+| Field translation | `bits` / `offset`+`width` become the recipe's `msb`/`lsb`; `enumeratedValues` becomes `enumValues`. The display interpretation stays at its default, as for the register import. |
+| Provenance | `importProvenance` is one of `{ sourceFile, registerName }` or `{ sourceFile, portName, busInterface? }`. A top-level port names only `portName`; a conduit port adds `busInterface`; a bus interface port uses the logical port name in contract casing (`TDATA`). |
 
 ## Rejected
 

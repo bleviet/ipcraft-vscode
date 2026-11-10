@@ -168,8 +168,9 @@ describe('useDataInspectorSync', () => {
         label: 'CTRL',
         width: 16,
         fields: [{ id: 'field-1', name: 'ENABLE', msb: 0, lsb: 0, groupId: 'default' }],
+        kind: 'register',
         sourceFile: 'regs.mm.yml',
-        registerName: 'CTRL',
+        provenance: { sourceFile: 'regs.mm.yml', registerName: 'CTRL' },
       },
     });
 
@@ -179,6 +180,50 @@ describe('useDataInspectorSync', () => {
     expect(setters.setFieldProvenance).toHaveBeenCalledWith({
       'field-1': { sourceFile: 'regs.mm.yml', registerName: 'CTRL' },
     });
+  });
+
+  it('records port provenance when the host applies a port layout', () => {
+    const { receive, setters } = renderSync();
+    const provenance = { sourceFile: 'cores/s.ip.yml', busInterface: 'm_axis', portName: 'TDATA' };
+
+    receive({
+      type: 'applyRegisterLayout',
+      layout: {
+        id: 'cores/s.ip.yml:port:m_axis/TDATA',
+        label: 's.ip.yml · m_axis/TDATA',
+        kind: 'port',
+        width: 32,
+        fields: [{ id: 'field-1', name: 'LOW', msb: 7, lsb: 0, groupId: 'default' }],
+        sourceFile: 'cores/s.ip.yml',
+        provenance,
+      },
+    });
+
+    expect(setters.setFieldProvenance).toHaveBeenCalledWith({ 'field-1': provenance });
+  });
+
+  it('gives each applied field its own provenance object', () => {
+    const { receive, setters } = renderSync();
+
+    receive({
+      type: 'applyRegisterLayout',
+      layout: {
+        id: 'p',
+        label: 'p',
+        kind: 'port',
+        width: 8,
+        fields: [
+          { id: 'a', name: 'A', msb: 0, lsb: 0, groupId: 'default' },
+          { id: 'b', name: 'B', msb: 1, lsb: 1, groupId: 'default' },
+        ],
+        sourceFile: 's.ip.yml',
+        provenance: { sourceFile: 's.ip.yml', portName: 'o' },
+      },
+    });
+
+    const recorded = setters.setFieldProvenance.mock.calls[0][0] as Record<string, object>;
+    expect(recorded.a).toEqual(recorded.b);
+    expect(recorded.a).not.toBe(recorded.b);
   });
 
   it('stops handling host messages after unmount', () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { createEvent, fireEvent, render, screen } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react';
 import { parseLiteral } from '../../../dataInspector/parseLiteral';
 import { createEmptyRecipe } from '../../../dataInspector/recipe';
 import { DataInspectorApp, LaneRibbon } from '../../../webview/dataInspector/DataInspectorApp';
@@ -9,6 +9,43 @@ beforeAll(() => {
 });
 
 describe('DataInspectorApp', () => {
+  it('groups register and port layouts in one import picker', () => {
+    render(<DataInspectorApp />);
+    const base = { width: 8, fields: [], sourceFile: 'a.yml' };
+
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: {
+            type: 'registerLayouts',
+            layouts: [
+              {
+                ...base,
+                id: 'r',
+                label: 'a.mm.yml · REGS/STATUS',
+                kind: 'register',
+                provenance: { sourceFile: 'a.mm.yml', registerName: 'STATUS' },
+              },
+              {
+                ...base,
+                id: 'p',
+                label: 'a.ip.yml · o_status',
+                kind: 'port',
+                provenance: { sourceFile: 'a.ip.yml', portName: 'o_status' },
+              },
+            ],
+          },
+        })
+      );
+    });
+
+    const picker = screen.getByLabelText('Layout');
+    const groups = Array.from(picker.querySelectorAll('optgroup'));
+    expect(groups.map((group) => group.label)).toEqual(['Registers', 'Ports']);
+    expect(groups[0]).toHaveTextContent('a.mm.yml · REGS/STATUS');
+    expect(groups[1]).toHaveTextContent('a.ip.yml · o_status');
+  });
+
   it('opens the main workbench with a zero-valued 32-bit input', () => {
     render(<DataInspectorApp />);
 

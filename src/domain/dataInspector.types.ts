@@ -5,6 +5,7 @@
  */
 
 export type StableId = string;
+export type ImportProvenance = RegisterProvenance | PortProvenance;
 
 /**
  * Shareable Data Inspector definitions. Transient sample values and capture histories are intentionally excluded.
@@ -41,9 +42,14 @@ export interface Field {
   importProvenance?: ImportProvenance;
   display: Display;
 }
-export interface ImportProvenance {
+export interface RegisterProvenance {
   sourceFile: string;
   registerName: string;
+}
+export interface PortProvenance {
+  sourceFile: string;
+  portName: string;
+  busInterface?: string;
 }
 export interface Display {
   interpretation: 'hex' | 'binary' | 'unsigned' | 'signed' | 'enum' | 'float' | 'fixedPoint';

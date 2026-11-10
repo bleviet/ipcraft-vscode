@@ -59,8 +59,8 @@ fixed-point views. Numeric results become unknown if required bits contain `X`
 or `Z`.
 
 Fields in one overlay group cannot overlap. Different groups may describe
-alternative views of the same bits. Importing a register layout copies field
-metadata once; it does not create a live link to the memory map.
+alternative views of the same bits. Importing a register or port layout copies field
+metadata once; it does not create a live link to the memory map or IP core.
 
 ![Continuous bit view with field overlays](../images/data-inspector-bit-visualizer-light.png)
 

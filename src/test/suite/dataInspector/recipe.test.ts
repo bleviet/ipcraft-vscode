@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { stringify } from 'yaml';
 import {
   createEmptyRecipe,
   parseRecipe,
@@ -60,6 +61,47 @@ describe('Data Inspector recipes', () => {
 
     expect(result.valid).toBe(false);
     expect(result.error).toContain('additional properties');
+  });
+
+  describe('import provenance', () => {
+    const withProvenance = (importProvenance: unknown) => {
+      const recipe = createEmptyRecipe('provenance');
+      recipe.fields = [
+        {
+          id: 'ready',
+          sourceId: 'input',
+          name: 'READY',
+          msb: 0,
+          lsb: 0,
+          groupId: 'default',
+          display: { interpretation: 'hex' },
+          importProvenance,
+        } as never,
+      ];
+      return recipe;
+    };
+    const validate = (importProvenance: unknown) =>
+      new YamlValidator().validateAgainstSchema(withProvenance(importProvenance), schemaPath);
+
+    it.each([
+      ['register', { sourceFile: 'a.mm.yml', registerName: 'CTRL' }],
+      ['top-level port', { sourceFile: 'a.ip.yml', portName: 'o_status' }],
+      ['bus port', { sourceFile: 'a.ip.yml', busInterface: 'm_axis', portName: 'TDATA' }],
+    ])('accepts and round-trips %s provenance', (_name, provenance) => {
+      const recipe = withProvenance(provenance);
+
+      expect(validate(provenance)).toEqual({ valid: true });
+      expect(parseRecipe(stringify(recipe)).fields[0].importProvenance).toEqual(provenance);
+    });
+
+    it.each([
+      ['mixed register and port', { sourceFile: 'a.yml', registerName: 'R', portName: 'p' }],
+      ['port without sourceFile', { portName: 'p' }],
+      ['empty port name', { sourceFile: 'a.yml', portName: '' }],
+      ['unknown key', { sourceFile: 'a.yml', portName: 'p', extra: 1 }],
+    ])('rejects %s provenance', (_name, provenance) => {
+      expect(validate(provenance).valid).toBe(false);
+    });
   });
 
   it('round-trips definitions without inventing a transient value', () => {

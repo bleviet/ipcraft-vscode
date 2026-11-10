@@ -12,6 +12,13 @@ Marketplace, so it describes each release in user terms only. When you make a
 change, record it here; if users will notice it, also add a plain-language
 entry to the release notes.
 
+## [Unreleased]
+
+### Added
+
+- **Port field metadata in `.ip.yml`.** Optional `fields` on `ports[]` and `busInterfaces[].conduitPorts[]`, and `portFields: { <logicalName>: [...] }` on bus interfaces, name bit ranges of a port (`bits` or `offset`/`width`, `description`, `enumeratedValues`). Metadata only: generators ignore it, and an integration test proves generated VHDL/SystemVerilog for Vivado and Quartus is byte-identical with and without it. `apiVersion` 1.2 is the latest format version (the 1.1 to 1.2 migration step only stamps the version). The Issues panel gets "Port fields" warnings (`checkPortFields`, source `portFields`) for the position form, range against the resolved width, overlap, duplicate names, enum values, and `portFields` keys that are unknown or not enabled. The fields follow the signal through group (standard, merge, single port, conduit), ungroup, map conduit to known bus, and save conduit as custom bus definition, each still one document update. Design: `docs/concepts/port-fields.md`. ([#287](https://github.com/bleviet/ipcraft-vscode/issues/287))
+- **Data Inspector: import from a port.** The register-layout picker also lists ports with field metadata, grouped as Registers and Ports; the command is now **Open Register or Port in Data Inspector** (`fpga-ip-core.openRegisterInDataInspector`, id unchanged). `DataInspectorRegisterLayoutReader` also scans `**/*.ip.yml` and appends `copyPortLayouts` (`src/dataInspector/portLayouts.ts`), built on the new `src/shared/portFields.ts` (`portFieldRange`, `enumeratePortFieldLists`), which `checkPortFields` now shares; the bit-range parser moved to `src/shared/bitRange.ts`. `RegisterLayoutCopy` gains `kind` and `provenance`. `importProvenance` in `data_inspector.schema.json` is one of `{ sourceFile, registerName }` or `{ sourceFile, portName, busInterface? }`. Ports whose width does not resolve or exceeds 4096 bits are not offered. ([#288](https://github.com/bleviet/ipcraft-vscode/issues/288))
+
 ## [1.5.2] - 2026-11-09
 
 ### Changed

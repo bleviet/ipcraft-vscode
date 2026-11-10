@@ -71,6 +71,43 @@ describe('Data Inspector hooks', () => {
     expect(result.current.fieldAnnouncement).toBe('Removed field FIELD_2');
   });
 
+  it('records a port layout provenance on each copied field', () => {
+    const recipe = createEmptyRecipe('port-import');
+    recipe.sources[0].width = 8;
+    const setError = jest.fn();
+    const showFields = jest.fn();
+    const { result } = renderHook(() => useFieldPanel());
+    const provenance = { sourceFile: 's.ip.yml', busInterface: 'm_axis', portName: 'TDATA' };
+
+    act(() =>
+      result.current.copySelectedRegisterLayout({
+        activeSource: recipe.sources[0],
+        activeSourceFields: [],
+        currentRecipe: recipe,
+        layout: {
+          id: 's.ip.yml:bus:m_axis/TDATA',
+          label: 's.ip.yml · m_axis/TDATA',
+          kind: 'port',
+          width: 32,
+          fields: [
+            { id: 'import-0-a', name: 'A', msb: 0, lsb: 0, groupId: 'default' },
+            { id: 'import-1-b', name: 'B', msb: 1, lsb: 1, groupId: 'default' },
+          ],
+          sourceFile: 's.ip.yml',
+          provenance,
+        },
+        setError,
+        showFields,
+      })
+    );
+
+    const recorded = Object.values(result.current.fieldProvenance);
+    expect(recorded).toEqual([provenance, provenance]);
+    expect(recorded[0]).not.toBe(recorded[1]);
+    expect(setError).toHaveBeenCalledWith(expect.stringContaining('Copied 32-bit layout onto'));
+    expect(showFields).toHaveBeenCalledTimes(1);
+  });
+
   it('owns CSV mapping and sample application as one capture concern', () => {
     const recipe = createEmptyRecipe('capture');
     const setSamples = jest.fn();
