@@ -12,7 +12,7 @@ Marketplace, so it describes each release in user terms only. When you make a
 change, record it here; if users will notice it, also add a plain-language
 entry to the release notes.
 
-## [Unreleased]
+## [1.5.3] - 2026-11-10
 
 ### Added
 
