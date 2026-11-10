@@ -28,9 +28,13 @@ function setup(files: Record<string, string>, sizes: Record<string, number> = {}
     findFiles: jest.Mock;
     createFileSystemWatcher: jest.Mock;
     asRelativePath: jest.Mock;
+    getConfiguration: jest.Mock;
+    onDidChangeConfiguration: jest.Mock;
     fs: { readFile: jest.Mock; stat: jest.Mock };
   };
   workspace.isTrusted = true;
+  workspace.getConfiguration.mockReturnValue({ get: () => undefined });
+  workspace.onDidChangeConfiguration.mockReturnValue({ dispose: jest.fn() });
   workspace.asRelativePath.mockImplementation((u: vscode.Uri) => u.fsPath.replace('/ws/', ''));
   const excluded = new Set<string>();
   workspace.findFiles.mockImplementation((glob: string | { base: string; pattern: string }) => {
@@ -129,14 +133,16 @@ describe('SystemDesignEnricher', () => {
     });
   });
 
-  it('lets files.exclude apply and drops generated and dependency directories in code', async () => {
+  it('passes the exclude glob and drops generated and dependency directories in code', async () => {
     const { workspace } = setup({
       '/ws/node_modules/x/my_core.ip.yml': IP_YML,
       '/ws/proj.gen/my_core.ip.yml': IP_YML,
       '/ws/ip/my_core.ip.yml': IP_YML,
     });
     const result = await new SystemDesignEnricher().enrich(bdGraph, DESIGN);
-    expect((workspace.findFiles.mock.calls as unknown[][])[0][1]).toBeUndefined();
+    expect((workspace.findFiles.mock.calls as unknown[][])[0][1]).toEqual(
+      expect.stringContaining('**/node_modules/**')
+    );
     expect(result.instances['/my_core_0'].definition?.file).toBe('/ws/ip/my_core.ip.yml');
   });
 
