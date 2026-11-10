@@ -421,13 +421,13 @@ describe('readQsysTcl: commands', () => {
     expect(graph.capabilities.connections).toBe('complete');
   });
 
-  it('reports duplicate and unknown modules like the .qsys reader', () => {
+  it('reports duplicate modules and black boxes like the .qsys reader', () => {
     const graph = read(
       ['add_instance a c', 'add_instance a c', 'add_connection a.x ghost.y clock'].join('\n')
     );
     expect(graph.diagnostics.map((d) => [d.message, d.lines])).toEqual([
       ['Duplicate module a; the first definition is used.', [1, 2]],
-      ['Connection a.x -> ghost.y refers to unknown module ghost.', [3]],
+      ['Not defined in this file, shown as a black box: ghost', [3]],
     ]);
   });
 });

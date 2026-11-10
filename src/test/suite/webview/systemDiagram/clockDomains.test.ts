@@ -314,3 +314,18 @@ describe('the plain zynq fixture', () => {
     expect(analysis.crossings.every((crossing) => crossing.kind === 'block')).toBe(true);
   });
 });
+
+describe('clock domains with a black box', () => {
+  it('counts a clock input of a black box as a load', () => {
+    const graph = readBdTcl(
+      [
+        'create_bd_port -dir I -type clk clk2',
+        'connect_bd_net -net n [get_bd_ports clk2] [get_bd_pins B/clk]',
+      ].join('\n'),
+      'bb.tcl'
+    );
+    expect(graph.instances['/B'].kind).toBe('blackbox');
+    const domain = analyzeClocks(graph).domains.find((candidate) => candidate.name === 'clk2');
+    expect(domain).toMatchObject({ loads: 1 });
+  });
+});

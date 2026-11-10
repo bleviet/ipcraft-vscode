@@ -422,6 +422,20 @@ be read, stay opaque blocks.
 
 ![A Platform Designer system with the address map open](../images/system-diagram-platform-designer-light.png)
 
+## Black boxes
+
+A block that the design uses but does not define in the file you opened is drawn
+as a black box instead of being dropped. A Vivado script gets one when a
+connection names a block it never creates, or when it calls a
+`create_hier_cell_*` procedure defined in another file (for example one loaded
+with `source`). A Platform Designer file gets one when a connection or exported
+interface names a module the file does not declare. A black box has a dashed
+border and the subtitle **Black box**, it shows the pins seen in connections,
+and it cannot be expanded. Details states that it is not defined in the file,
+and the view is marked partial, with a warning that lists the black boxes. A
+block that is created later in the same script is a normal block, not a black
+box.
+
 ## What the offline view cannot show
 
 - Default and propagated parameters. Only values set in the file appear.

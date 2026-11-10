@@ -74,7 +74,7 @@ function isEnd(graph: SystemGraph, level: string, ref: PinRef): boolean {
     return level === '/';
   }
   const kind = graph.instances[ref.instance]?.kind;
-  return kind === 'ip' || kind === 'module';
+  return kind === 'ip' || kind === 'module' || kind === 'blackbox';
 }
 
 /**

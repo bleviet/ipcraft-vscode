@@ -10,6 +10,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ### New
 
+- **Blocks defined elsewhere are shown as black boxes.** The system viewer, **Export image** and `ipcraft render` no longer drop a block that the design uses but does not define, for example a hierarchy created by a `create_hier_cell_*` procedure in a sourced Tcl file, or a Platform Designer module that is not declared. The block is drawn with a dashed border and the label **Black box**, with the pins and connections seen in the file, and a warning lists it. ([#291](https://github.com/bleviet/ipcraft-vscode/issues/291))
 - **Describe what the bits of a port carry.** In `.ip.yml`, a port, a conduit port or a bus interface port (for example AXI-Stream `TDATA`) can list named bit fields with a description and enumerated values, in the same format as register fields. Generated code does not change. The IP core editor warns in a new **Port fields** group when a field is outside the port, overlaps another or has an enum value that does not fit, and keeps the fields when you group ports into a bus interface or ungroup them. Files edited with this version declare `apiVersion` 1.2.
 - **Import a port's fields into the Data Inspector.** The layout picker lists ports with field metadata next to registers, and **IPCraft: Open Register or Port in Data Inspector** (formerly **Open Register in Data Inspector**) opens either.
 

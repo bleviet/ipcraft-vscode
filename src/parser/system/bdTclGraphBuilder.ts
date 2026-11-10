@@ -53,6 +53,9 @@ export class SystemGraphBuilder {
   private readonly graph: SystemGraph;
   private readonly diagnostics = new Map<string, SystemDiagnostic>();
   private readonly vivadoOnly = new Map<string, number[]>();
+  private readonly blackBoxLines = new Map<string, number[]>();
+  /** Lines of the connect commands naming each instance path, in order. */
+  private readonly mentions = new Map<string, number[]>();
   private hasWarning = false;
 
   constructor(private readonly fileName: string) {
@@ -133,6 +136,63 @@ export class SystemGraphBuilder {
     return path;
   }
 
+  /** Adds an instance the design references but does not define, once per path. */
+  addBlackBox(parent: string, name: string, line: number): void {
+    if (name.trim() === '') {
+      return;
+    }
+    const path = this.addInstance({ parent, name, kind: 'blackbox', line });
+    if (path !== undefined && this.graph.instances[path].kind === 'blackbox') {
+      this.noteBlackBox(path, line);
+    }
+  }
+
+  private noteBlackBox(path: string, line: number): void {
+    const lines = this.blackBoxLines.get(path) ?? [];
+    if (!lines.includes(line)) {
+      lines.push(line);
+    }
+    this.blackBoxLines.set(path, lines);
+  }
+
+  /** Turns net endpoints naming an undefined instance of an existing level into black boxes. */
+  private addReferencedBlackBoxes(): void {
+    for (const net of this.graph.nets) {
+      for (const ref of net.endpoints) {
+        if (
+          ref.instance === null ||
+          lastComponent(ref.instance) === '' ||
+          !this.hasLevel(parentPath(ref.instance))
+        ) {
+          continue;
+        }
+        const lines = this.mentions.get(ref.instance) ?? [net.line];
+        if (!this.hasInstance(ref.instance)) {
+          this.addInstance({
+            parent: parentPath(ref.instance),
+            name: lastComponent(ref.instance),
+            kind: 'blackbox',
+            line: lines[0],
+          });
+        }
+        const box = this.graph.instances[ref.instance];
+        if (box.kind !== 'blackbox') {
+          continue;
+        }
+        lines.forEach((line) => this.noteBlackBox(ref.instance as string, line));
+        if (!box.pins.some((p) => p.name === ref.pin)) {
+          box.pins.push({
+            name: ref.pin,
+            isInterface: net.isInterface,
+            direction: 'unknown',
+            directionSource: 'unknown',
+            parameters: {},
+          });
+        }
+      }
+    }
+  }
+
   /** Declares a boundary pin of `level`; returns its path. */
   addBoundaryPin(level: string, spec: PinSpec): string | undefined {
     const pins = this.graph.levels[level]?.boundaryPins;
@@ -197,6 +257,12 @@ export class SystemGraphBuilder {
       this.graph.nets.push(net);
     }
     for (const ref of refs) {
+      if (ref.instance !== null) {
+        const lines = this.mentions.get(ref.instance) ?? [];
+        if (!lines.includes(line)) {
+          this.mentions.set(ref.instance, [...lines, line]);
+        }
+      }
       if (!net.endpoints.some((e) => e.instance === ref.instance && e.pin === ref.pin)) {
         net.endpoints.push(ref);
         this.ensurePin(level, ref, isInterface);
@@ -230,6 +296,17 @@ export class SystemGraphBuilder {
     const base = this.fileName.split(/[\\/]/).pop() ?? this.fileName;
     const name = this.designName ?? this.createdDesignName ?? base.replace(/\.[^.]*$/, '');
     const graph = this.graph;
+    this.addReferencedBlackBoxes();
+    if (this.blackBoxLines.size > 0) {
+      this.hasWarning = true;
+      const message = `Not defined in this file, shown as a black box: ${[
+        ...this.blackBoxLines.keys(),
+      ]
+        .map((path) => path.slice(1))
+        .join(', ')}`;
+      const lines = [...new Set([...this.blackBoxLines.values()].flat())].sort((x, y) => x - y);
+      this.diagnostics.set(`warning:${message}`, { severity: 'warning', message, lines });
+    }
     graph.name = name;
     graph.levels['/'].name = name;
     if (this.toolVersion !== undefined) {

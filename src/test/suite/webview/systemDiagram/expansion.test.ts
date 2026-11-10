@@ -36,6 +36,26 @@ describe('shownLevels', () => {
   });
 });
 
+describe('black boxes', () => {
+  const blackBoxGraph = {
+    ...graph,
+    instances: {
+      ...graph.instances,
+      '/ghost': {
+        ...graph.instances['/axi_dma_0'],
+        path: '/ghost',
+        name: 'ghost',
+        kind: 'blackbox',
+      },
+    },
+  } as typeof graph;
+
+  it('are leaves: expanding one shows no level and pruneExpanded drops it', () => {
+    expect([...shownLevels(blackBoxGraph, '/', new Set(['/ghost']))]).toEqual(['/']);
+    expect([...pruneExpanded(blackBoxGraph, new Set(['/ghost']))]).toEqual([]);
+  });
+});
+
 describe('isShownNode', () => {
   it('shows the instances and boundary pins of the level alone without expansion', () => {
     expect(isShownNode(graph, '/', none, '/axi_dma_0')).toBe(true);

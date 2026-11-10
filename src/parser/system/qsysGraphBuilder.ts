@@ -83,6 +83,24 @@ export class QsysGraphBuilder {
     this.graph.levels[ROOT].instances.push(path);
   }
 
+  /** Adds a module the design refers to but does not declare; its pins come from connections. */
+  addBlackBox(name: string, line: number): void {
+    const path = `/${name}`;
+    if (name === '' || this.graph.instances[path]) {
+      return;
+    }
+    this.graph.instances[path] = {
+      path,
+      name,
+      parent: ROOT,
+      kind: 'blackbox',
+      parameters: {},
+      pins: [],
+      line,
+    };
+    this.graph.levels[ROOT].instances.push(path);
+  }
+
   hasModule(name: string): boolean {
     return `/${name}` in this.graph.instances;
   }
@@ -135,7 +153,7 @@ export class QsysGraphBuilder {
 
   /**
    * Exports `internal` as a root boundary pin named `name`. Without `internal`
-   * (its module is unknown) only the unconnected boundary pin is added.
+   * (the interface exports nothing) only the unconnected boundary pin is added.
    */
   exportInterface(
     name: string,

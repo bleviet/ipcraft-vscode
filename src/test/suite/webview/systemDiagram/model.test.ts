@@ -156,6 +156,7 @@ describe('system diagram model', () => {
     expect(label({ kind: 'module', moduleRef: 'fir_filter' })).toBe('fir_filter');
     expect(label({ kind: 'module' })).toBeUndefined();
     expect(label({ kind: 'hier' })).toBeUndefined();
+    expect(label({ kind: 'blackbox' })).toBe('Black box');
     expect(label({ component: 'altera_nios2_gen2', version: '18.1' })).toBe(
       'altera_nios2_gen2 18.1'
     );
