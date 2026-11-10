@@ -47,6 +47,12 @@ const MIGRATION_STEPS: readonly MigrationStep[] = [
     to: '1.2',
     migrate: (text) => ({ text, mutationCount: 0 }),
   },
+  {
+    // 1.3 adds the optional packetFormatRef on streaming bus interfaces; additive, nothing to rewrite.
+    from: '1.2',
+    to: '1.3',
+    migrate: (text) => ({ text, mutationCount: 0 }),
+  },
 ];
 
 /**

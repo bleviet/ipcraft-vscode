@@ -81,12 +81,12 @@ describe('useIpCoreState', () => {
       const { result } = renderHook(() => useIpCoreState());
 
       act(() =>
-        result.current.updateFromYaml(`apiVersion: '1.3'\n${BASE_YAML}`, 'future.ip.yml', {
+        result.current.updateFromYaml(`apiVersion: '1.4'\n${BASE_YAML}`, 'future.ip.yml', {
           busLibrary: builtinBusLibrary(),
         })
       );
 
-      expect(result.current.parseError).toMatch(/apiVersion 1\.3.*up to 1\.2/);
+      expect(result.current.parseError).toMatch(/apiVersion 1\.4.*up to 1\.3/);
       expect(result.current.ipCore).toBeNull();
     });
   });
@@ -140,7 +140,7 @@ describe('useIpCoreState', () => {
       expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
     });
 
-    it('upgrades a 1.0 file to apiVersion 1.2 with the first edit in one update', () => {
+    it('upgrades a 1.0 file to apiVersion 1.3 with the first edit in one update', () => {
       const rawYamlHistory: string[] = [];
       const { result } = renderHook(() => {
         const hook = useIpCoreState();
@@ -162,11 +162,11 @@ describe('useIpCoreState', () => {
       act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
 
       expect(rawYamlHistory).toHaveLength(3);
-      expect(result.current.rawYaml).toContain("apiVersion: '1.2'");
+      expect(result.current.rawYaml).toContain("apiVersion: '1.3'");
       expect(result.current.rawYaml).not.toContain("'1.0'\n#");
       expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
       expect(result.current.rawYaml).toContain('name: sys_clk');
-      expect(result.current.ipCore?.apiVersion).toBe('1.2');
+      expect(result.current.ipCore?.apiVersion).toBe('1.3');
     });
 
     it('keeps hex spellings and flush sequences when upgrading on the first edit', () => {
@@ -190,10 +190,10 @@ ports:
 
       expect(result.current.rawYaml).toContain('width: 0x0010');
       expect(result.current.rawYaml).toContain('ports:\n- name: data_in\n  direction: in');
-      expect(result.current.rawYaml).toContain("apiVersion: '1.2'");
+      expect(result.current.rawYaml).toContain("apiVersion: '1.3'");
     });
 
-    it('stamps apiVersion 1.2 on a file that declares none', () => {
+    it('stamps apiVersion 1.3 on a file that declares none', () => {
       const { result } = renderHook(() => useIpCoreState());
       act(() =>
         result.current.updateFromYaml(BASE_YAML, 'plain.ip.yml', {
@@ -202,19 +202,19 @@ ports:
       );
       act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
 
-      expect(result.current.ipCore?.apiVersion).toBe('1.2');
-      expect(result.current.rawYaml).toMatch(/^apiVersion: ["']1\.2["']$/m);
+      expect(result.current.ipCore?.apiVersion).toBe('1.3');
+      expect(result.current.rawYaml).toMatch(/^apiVersion: ["']1\.3["']$/m);
     });
 
-    it('does not touch apiVersion of a file already at 1.2', () => {
-      const source = `apiVersion: '1.2'\n${LEGACY_POLARITY_YAML}`;
+    it('does not touch apiVersion of a file already at 1.3', () => {
+      const source = `apiVersion: '1.3'\n${LEGACY_POLARITY_YAML}`;
       const { result } = renderHook(() => useIpCoreState());
       act(() =>
         result.current.updateFromYaml(source, 'current.ip.yml', { busLibrary: builtinBusLibrary() })
       );
       act(() => result.current.updateIpCore(['clocks', 0, 'name'], 'sys_clk'));
 
-      expect(result.current.rawYaml.startsWith("apiVersion: '1.2'\n")).toBe(true);
+      expect(result.current.rawYaml.startsWith("apiVersion: '1.3'\n")).toBe(true);
       expect(result.current.rawYaml.match(/apiVersion/g)).toHaveLength(1);
       expect(result.current.rawYaml).toContain('portPolarityOverrides:\n      read: activeLow');
     });

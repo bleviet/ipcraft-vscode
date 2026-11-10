@@ -40,12 +40,12 @@ describe('ip_core schema: versionScheme and apiVersion 1.2', () => {
     }
   );
 
-  it.each(['1.0', '1.1', '1.2'])('accepts apiVersion %s', (apiVersion) => {
+  it.each(['1.0', '1.1', '1.2', '1.3'])('accepts apiVersion %s', (apiVersion) => {
     expect(validate(core({}, { apiVersion }))).toEqual({ valid: true });
   });
 
-  it('rejects an apiVersion newer than 1.2', () => {
-    expect(validate(core({}, { apiVersion: '1.3' })).valid).toBe(false);
+  it('rejects an apiVersion newer than 1.3', () => {
+    expect(validate(core({}, { apiVersion: '1.4' })).valid).toBe(false);
   });
 
   it('documents versionScheme and the 1.2 apiVersion', () => {
@@ -61,7 +61,7 @@ describe('ip_core schema: versionScheme and apiVersion 1.2', () => {
     const { VLNV } = schema.$defs;
     expect(VLNV.properties.versionScheme.default).toBe('free');
     expect(VLNV.required).not.toContain('versionScheme');
-    expect(schema.properties.apiVersion.enum).toEqual(['1.0', '1.1', '1.2']);
+    expect(schema.properties.apiVersion.enum).toEqual(['1.0', '1.1', '1.2', '1.3']);
     expect(schema.properties.apiVersion.description).toMatch(
       /Version 1\.2 adds [^.]*vlnv\.versionScheme/
     );

@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { postPacketFormatCandidates, postPacketFormatInfo } from './IpCorePacketFormats';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
@@ -523,6 +524,10 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
       await vscode.commands.executeCommand('fpga-ip-core.openWalkthroughMenu');
     });
 
+    router.on('findPacketFormats', async () => {
+      await postPacketFormatCandidates(router, document.uri.fsPath);
+    });
+
     router.on('openFile', async (message) => {
       await this.handleOpenFileMessage(message, document);
     });
@@ -746,6 +751,7 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
         },
         docVersion
       );
+      postPacketFormatInfo(router, parsed, text, document.uri.fsPath);
       if (schemaIssues.length > 0) {
         router.postNotification({
           type: 'conformanceResult',

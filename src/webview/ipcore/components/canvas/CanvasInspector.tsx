@@ -5,6 +5,7 @@ import type { IpCore } from '../../../types/ipCore';
 import type { YamlUpdateHandler } from '../../../types/editor';
 import type { CanvasElement } from '../../hooks/useCanvasSelection';
 import type { BatchUpdate } from '../../hooks/useGroupPorts';
+import type { PacketFormats } from '../../hooks/usePacketFormats';
 import { InspectorPanelRouter } from './inspector/InspectorPanelRouter';
 import { getElementName, kindLabel } from './inspector/inspectorMetadata';
 import { useInspectorWidth } from './inspector/useInspectorWidth';
@@ -13,6 +14,7 @@ interface CanvasInspectorProps {
   selected: CanvasElement | null;
   ipCore: IpCore;
   imports?: { busLibrary?: NormalizedBusLibrary; memoryMaps?: unknown[] };
+  packetFormats?: PacketFormats;
   onUpdate: YamlUpdateHandler;
   batchUpdate?: BatchUpdate;
   issueFocusRequest?: IssueFocusRequest | null;
@@ -26,6 +28,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
   selected,
   ipCore,
   imports,
+  packetFormats,
   onUpdate,
   batchUpdate,
   issueFocusRequest,
@@ -74,6 +77,7 @@ export const CanvasInspector: React.FC<CanvasInspectorProps> = ({
           element={selected}
           ipCore={ipCore}
           imports={imports}
+          packetFormats={packetFormats}
           onUpdate={onUpdate}
           batchUpdate={batchUpdate}
           issueFocusRequest={issueFocusRequest}

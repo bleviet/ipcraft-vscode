@@ -81,6 +81,8 @@ for (const schema of [
   'data_inspector.schema.json',
   'ip_core.schema.json',
   'memory_map.schema.json',
+  'packet_format.schema.json',
+  'packet_map.schema.json',
 ]) {
   requiredFiles.add(`extension/dist/resources/schemas/${schema}`);
 }

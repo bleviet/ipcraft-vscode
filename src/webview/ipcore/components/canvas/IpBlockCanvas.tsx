@@ -24,6 +24,10 @@ import { IpBlockDiagram, type CanvasSearchMatches } from './IpBlockDiagram';
 import { CanvasHud } from './CanvasHud';
 import type { IssueFocusRequest } from '../../types/issues';
 import { PortMappingOverlay, type PendingPortDrop } from './PortMappingOverlay';
+import { CanvasDetailsRow } from './CanvasDetailsRow';
+import { usePacketDetails } from '../../hooks/usePacketDetails';
+import { useResizeAnchor } from '../../hooks/useResizeAnchor';
+import type { PacketFormatRefInfo } from '../../../../shared/packetFormat';
 import './canvas.css';
 import {
   canonicalizeBusType,
@@ -75,6 +79,10 @@ interface IpBlockCanvasProps {
   issueFocusRequest?: IssueFocusRequest | null;
   /** Filled with a reader of the visible layout rectangle, for the Export image button. */
   visibleRectRef?: MutableRefObject<VisibleRectReader | null>;
+  /** Host-resolved packet formats by `packetFormatRef`; enables the packet-format card beside stream buses. */
+  packetFormatInfos?: Record<string, PacketFormatRefInfo>;
+  /** Opens a file relative to the `.ip.yml` (the card's "Open format"). */
+  onOpenPacketFormat?: (relativeFile: string) => void;
 }
 
 /**
@@ -108,6 +116,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   issueAnnotations,
   issueFocusRequest,
   visibleRectRef,
+  packetFormatInfos,
+  onOpenPacketFormat,
 }) => {
   // Pending port-drop onto a standard (protocol-defined) bus interface
   const [pendingPortDrop, setPendingPortDrop] = useState<PendingPortDrop | null>(null);
@@ -166,9 +176,14 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const packetDetails = usePacketDetails(hoveredId, selectedId, ipCore.busInterfaces);
+  const details = packetFormatInfos ? packetDetails.target : null;
+
   const {
     zoom,
     pan,
+    setPan,
+    currentPanRef,
     isPanning,
     spaceDown,
     spaceDownRef,
@@ -176,6 +191,14 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
     hasDraggedRef,
     resetView,
   } = useCanvasViewport(containerRef);
+  useResizeAnchor({
+    containerRef,
+    viewBox: layout.viewBox,
+    zoom,
+    currentPanRef,
+    setPan,
+    engaged: details !== null,
+  });
   useCanvasVisibleRect(
     visibleRectRef,
     containerRef,
@@ -564,108 +587,121 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   }, [showSearch, searchQuery, ports, subPorts, busDefs]);
 
   return (
-    <div
-      ref={containerRef}
-      className={[
-        'ip-canvas-container',
-        dragActive ? 'ip-canvas-container--drag-active' : '',
-        isPanning ? 'ip-canvas-container--panning' : '',
-        portDragActive ? 'ip-canvas-container--port-dragging' : '',
-        spaceDown ? 'ip-canvas-container--space-down' : '',
-        marqueeRect ? 'ip-canvas-container--marquee' : '',
-      ]
-        .filter(Boolean)
-        .join(' ')}
-      onDragEnd={handleDragEnd}
-      onDoubleClick={(e) => {
-        // When the SVG has been panned off-screen the event target is the
-        // container div itself (nothing else to click). Center the view.
-        if (e.target === e.currentTarget) {
-          handleBackgroundDoubleClick();
-        }
-      }}
-    >
-      <RemoveZone visible={dragOutActive} />
-      <IpBlockDiagram
-        layout={layout}
-        ipCore={ipCore}
-        pan={pan}
-        zoom={zoom}
-        selectedId={selectedId}
-        onSelect={onSelect}
-        selectedSubPortId={selectedSubPortId}
-        onSelectSubPort={onSelectSubPort}
-        hoveredId={hoveredId}
-        setHoveredId={setHoveredId}
-        blockHovered={blockHovered}
-        setBlockHovered={setBlockHovered}
-        multiSelectedIds={multiSelectedIds}
-        onShiftSelect={onShiftSelect}
-        annotations={annotations}
-        matchedIds={matchedIds}
-        expandedBusIds={expandedBusIds}
-        toggleBusExpand={toggleBusExpand}
-        busDefs={busDefs}
-        getDomainColor={getDomainColor}
-        dragActive={dragActive}
-        dragHoverSide={dragHoverSide}
-        portDragActive={portDragActive}
-        portDragActivePIdx={portDragActivePIdx}
-        portDragHoveredBus={portDragHoveredBus}
-        canDropPorts={!!batchUpdate}
-        onPortDropOnBus={handlePortDropOnBus}
-        onPortPointerDragStart={handlePortPointerDragStart}
-        onSubPortActivate={handleSubPortActivate}
-        onSubPortDeactivate={handleSubPortDeactivate}
-        onSubPortRename={handleSubPortRename}
-        onElementRename={handleElementRename}
-        onBackgroundClick={handleBackgroundClick}
-        onBackgroundDoubleClick={handleBackgroundDoubleClick}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      />
-
-      <CanvasHud
-        ipCore={ipCore}
-        ports={ports}
-        marqueeRect={marqueeRect}
-        hoveredId={hoveredId}
-        showZoomIndicator={showZoomIndicator}
-        zoom={zoom}
-        multiSelectedIds={multiSelectedIds}
-        batchUpdate={batchUpdate}
-        onDismissSelection={onDismissSelection}
-        onExitSelectMode={exitSelectMode}
-        suggestionChips={suggestionChips}
-        onDismissSuggestion={onDismissSuggestion}
-        showSearch={showSearch}
-        searchQuery={searchQuery}
-        onSearchQueryChange={setSearchQuery}
-        onCloseSearch={closeSearch}
-        matchedIds={matchedIds}
-        searchInputRef={searchInputRef}
-        showHelp={showHelp}
-        onToggleHelp={() => setShowHelp((v) => !v)}
-        busDefs={busDefs}
-      />
-
-      {pendingPortDrop && (
-        <div className="ip-canvas-hud">
-          <PortMappingOverlay
+    <div className="ip-canvas-layout" onMouseLeave={packetDetails.clearPreview}>
+      <div className="ip-canvas-layout__body">
+        <div
+          ref={containerRef}
+          className={[
+            'ip-canvas-container',
+            dragActive ? 'ip-canvas-container--drag-active' : '',
+            isPanning ? 'ip-canvas-container--panning' : '',
+            portDragActive ? 'ip-canvas-container--port-dragging' : '',
+            spaceDown ? 'ip-canvas-container--space-down' : '',
+            marqueeRect ? 'ip-canvas-container--marquee' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          onDragEnd={handleDragEnd}
+          onDoubleClick={(e) => {
+            // When the SVG has been panned off-screen the event target is the
+            // container div itself (nothing else to click). Center the view.
+            if (e.target === e.currentTarget) {
+              handleBackgroundDoubleClick();
+            }
+          }}
+        >
+          <RemoveZone visible={dragOutActive} />
+          <IpBlockDiagram
+            layout={layout}
             ipCore={ipCore}
-            pendingPortDrop={pendingPortDrop}
+            pan={pan}
+            zoom={zoom}
+            selectedId={selectedId}
+            onSelect={onSelect}
+            selectedSubPortId={selectedSubPortId}
+            onSelectSubPort={onSelectSubPort}
+            hoveredId={hoveredId}
+            setHoveredId={setHoveredId}
+            blockHovered={blockHovered}
+            setBlockHovered={setBlockHovered}
+            multiSelectedIds={multiSelectedIds}
+            onShiftSelect={onShiftSelect}
+            annotations={annotations}
+            matchedIds={matchedIds}
+            expandedBusIds={expandedBusIds}
+            toggleBusExpand={toggleBusExpand}
             busDefs={busDefs}
-            onConfirm={(opts, busIndex) => {
-              groupPorts.mergePortsIntoStandardBus(opts, busIndex);
-              const busId = `bus:${busIndex}`;
-              setExpandedBusIds((prev) => new Set([...prev, busId]));
-              setPendingPortDrop(null);
-            }}
-            onCancel={() => setPendingPortDrop(null)}
+            getDomainColor={getDomainColor}
+            dragActive={dragActive}
+            dragHoverSide={dragHoverSide}
+            portDragActive={portDragActive}
+            portDragActivePIdx={portDragActivePIdx}
+            portDragHoveredBus={portDragHoveredBus}
+            canDropPorts={!!batchUpdate}
+            onPortDropOnBus={handlePortDropOnBus}
+            onPortPointerDragStart={handlePortPointerDragStart}
+            onSubPortActivate={handleSubPortActivate}
+            onSubPortDeactivate={handleSubPortDeactivate}
+            onSubPortRename={handleSubPortRename}
+            onElementRename={handleElementRename}
+            onBackgroundClick={handleBackgroundClick}
+            onBackgroundDoubleClick={handleBackgroundDoubleClick}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           />
+
+          <CanvasHud
+            ipCore={ipCore}
+            ports={ports}
+            marqueeRect={marqueeRect}
+            hoveredId={details ? null : hoveredId}
+            showZoomIndicator={showZoomIndicator}
+            zoom={zoom}
+            multiSelectedIds={multiSelectedIds}
+            batchUpdate={batchUpdate}
+            onDismissSelection={onDismissSelection}
+            onExitSelectMode={exitSelectMode}
+            suggestionChips={suggestionChips}
+            onDismissSuggestion={onDismissSuggestion}
+            showSearch={showSearch}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            onCloseSearch={closeSearch}
+            matchedIds={matchedIds}
+            searchInputRef={searchInputRef}
+            showHelp={showHelp}
+            onToggleHelp={() => setShowHelp((v) => !v)}
+            busDefs={busDefs}
+          />
+
+          {pendingPortDrop && (
+            <div className="ip-canvas-hud">
+              <PortMappingOverlay
+                ipCore={ipCore}
+                pendingPortDrop={pendingPortDrop}
+                busDefs={busDefs}
+                onConfirm={(opts, busIndex) => {
+                  groupPorts.mergePortsIntoStandardBus(opts, busIndex);
+                  const busId = `bus:${busIndex}`;
+                  setExpandedBusIds((prev) => new Set([...prev, busId]));
+                  setPendingPortDrop(null);
+                }}
+                onCancel={() => setPendingPortDrop(null)}
+              />
+            </div>
+          )}
         </div>
-      )}
+        {details && packetFormatInfos && (
+          <CanvasDetailsRow
+            target={details}
+            pinned={packetDetails.pinned}
+            ports={ports}
+            info={packetFormatInfos[details.ref]}
+            onOpen={(file) => onOpenPacketFormat?.(file)}
+          />
+        )}
+      </div>
     </div>
   );
 };

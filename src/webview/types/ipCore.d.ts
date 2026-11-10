@@ -593,6 +593,8 @@ export interface BusInterface {
   associatedClock?: Associatedclock;
   associatedReset?: Associatedreset;
   memoryMapRef?: Memorymapref;
+  /** Packet format of a streaming interface: '<*.pkt.yml relative path>#<format name>'. */
+  packetFormatRef?: string;
   useOptionalPorts?: Useoptionalports;
   portWidthOverrides?: Portwidthoverrides;
   /** Semantic properties validated by the resolved bus contract. */

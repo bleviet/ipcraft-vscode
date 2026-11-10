@@ -16,6 +16,7 @@ export const ISSUE_GROUPS: readonly { sources: readonly IssueSource[]; label: st
   { sources: ['protocol'], label: 'Protocol' },
   { sources: ['references'], label: 'References' },
   { sources: ['portFields'], label: 'Port fields' },
+  { sources: ['packetFormat'], label: 'Packet format' },
   { sources: ['hdl'], label: 'HDL consistency' },
   { sources: ['hwTcl', 'componentXml'], label: 'Vendor artifact consistency' },
 ];

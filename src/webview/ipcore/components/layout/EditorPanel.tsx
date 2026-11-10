@@ -8,6 +8,7 @@ import type { CanvasAnnotations } from '../../hooks/useCanvasValidation';
 import type { NormalizedBusLibrary } from '../../../../shared/busContracts';
 import type { IssueFocusRequest } from '../../types/issues';
 import type { VisibleRectReader } from '../../hooks/useCanvasVisibleRect';
+import type { PacketFormatRefInfo } from '../../../../shared/packetFormat';
 
 interface EditorPanelProps {
   ipCore: IpCore | null;
@@ -32,6 +33,8 @@ interface EditorPanelProps {
   issueAnnotations?: CanvasAnnotations;
   issueFocusRequest?: IssueFocusRequest | null;
   visibleRectRef?: React.MutableRefObject<VisibleRectReader | null>;
+  packetFormatInfos?: Record<string, PacketFormatRefInfo>;
+  onOpenPacketFormat?: (relativeFile: string) => void;
 }
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
@@ -57,6 +60,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   issueAnnotations,
   issueFocusRequest,
   visibleRectRef,
+  packetFormatInfos,
+  onOpenPacketFormat,
 }) => {
   if (!ipCore) {
     return (
@@ -99,6 +104,8 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         issueAnnotations={issueAnnotations}
         issueFocusRequest={issueFocusRequest}
         visibleRectRef={visibleRectRef}
+        packetFormatInfos={packetFormatInfos}
+        onOpenPacketFormat={onOpenPacketFormat}
       />
     </div>
   );

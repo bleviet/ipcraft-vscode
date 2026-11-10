@@ -11,6 +11,9 @@ import {
   dropHalfSide,
   isCanvasBackground,
   visibleLayoutRect,
+  clampPanToFit,
+  layoutPointAt,
+  panKeepingPoint,
 } from '../../../webview/ipcore/components/canvas/canvasGeometry';
 
 describe('nextZoomForWheel', () => {
@@ -176,6 +179,49 @@ describe('visibleLayoutRect', () => {
       y: 50,
       width: 840,
       height: 280,
+    });
+  });
+});
+
+describe('layoutPointAt / panKeepingPoint', () => {
+  const vb = { width: 400, height: 300 };
+
+  it('maps the container centre to the layout centre plus pan', () => {
+    const p = layoutPointAt(vb, { width: 800, height: 600 }, { x: 0, y: 0 }, 1, { x: 400, y: 300 });
+    expect(p).toEqual({ x: 200, y: 150 });
+  });
+
+  it('keeps a layout point under the pointer when the container shrinks', () => {
+    const before = { width: 800, height: 600 };
+    const after = { width: 800, height: 360 };
+    const pointer = { x: 620, y: 410 };
+    const point = layoutPointAt(vb, before, { x: 30, y: -20 }, 1.5, pointer);
+    const pan = panKeepingPoint(vb, after, 1.5, point, pointer);
+    const again = layoutPointAt(vb, after, pan, 1.5, pointer);
+    expect(again.x).toBeCloseTo(point.x);
+    expect(again.y).toBeCloseTo(point.y);
+  });
+});
+
+describe('clampPanToFit', () => {
+  const vb = { width: 400, height: 300 };
+
+  it('keeps a fitting layout inside the container', () => {
+    // unit 1.5: content 600 x 450 in 800 x 450, slack 100 / 0
+    expect(clampPanToFit(vb, { width: 800, height: 450 }, 1, { x: 250, y: -40 })).toEqual({
+      x: 100,
+      y: 0,
+    });
+    expect(clampPanToFit(vb, { width: 800, height: 450 }, 1, { x: -60, y: 0 })).toEqual({
+      x: -60,
+      y: 0,
+    });
+  });
+
+  it('leaves an axis alone where the zoomed layout is larger than the container', () => {
+    expect(clampPanToFit(vb, { width: 800, height: 450 }, 2, { x: 250, y: -40 })).toEqual({
+      x: 250,
+      y: -40,
     });
   });
 });

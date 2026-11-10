@@ -71,6 +71,16 @@
     }
   },
   "contributes": {
+    "yamlValidation": [
+      {
+        "fileMatch": "*.pkt.yml",
+        "url": "./dist/resources/schemas/packet_format.schema.json"
+      },
+      {
+        "fileMatch": "*.pktmap.yml",
+        "url": "./dist/resources/schemas/packet_map.schema.json"
+      }
+    ],
     "commands": [
       {
         "command": "fpga-ip-core.installCliInPath",
