@@ -14,6 +14,10 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 - **Describe what the bits of a port carry.** In `.ip.yml`, a port, a conduit port or a bus interface port (for example AXI-Stream `TDATA`) can list named bit fields with a description and enumerated values, in the same format as register fields. Generated code does not change. The IP core editor warns in a new **Port fields** group when a field is outside the port, overlaps another or has an enum value that does not fit, and keeps the fields when you group ports into a bus interface or ungroup them. Files edited with this version declare `apiVersion` 1.2.
 - **Import a port's fields into the Data Inspector.** The layout picker lists ports with field metadata next to registers, and **IPCraft: Open Register or Port in Data Inspector** (formerly **Open Register in Data Inspector**) opens either.
 
+### Changed
+
+- **External ports sit in two columns.** In the system viewer, **Export image** and `ipcraft render`, the input ports of the shown level are now a column on the left of every block, and the output and bidirectional ports a column on the right, instead of landing somewhere inside the design. Ports of unknown direction go to the right column. The diagram can be a little wider. A Platform Designer conduit export is an input (`conduit end`) or an output (`conduit start`), unless the exporting component's `.ip.yml` shows that all its conduit signals are outputs or all are inputs; then the export follows that direction. An `.ip.yml` conduit whose signals are all inputs or all outputs now has a direction, which can change which pin drives a conduit net (wire direction and block placement) and whether an unconnected conduit pin is reported as undriven or unused.
+
 ## [1.5.2] - 2026-11-09
 
 ### Changed

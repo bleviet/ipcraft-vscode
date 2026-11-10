@@ -115,11 +115,15 @@ wires that cross without a dot are not connected. The wires are routed around
 the blocks, in the gaps between them. Each pin that is on one of these nets
 shows a badge with the net name at the end of its wire, or the first name and
 `+N` when the pin is on several nets. Blocks are placed by their data and
-interface connections, so the clock and reset wires never move them, and
-each external port sits next to a block it connects to, so data paths stay
-short and readable. A block with no data connection on the level, such as a
-clocking wizard or a reset block, sits next to the block that drives its clock
-or reset, and a clock or reset input port sits next to one of its loads.
+interface connections, so the clock and reset wires never move them. The
+external ports of the level form two columns: input ports on the left of every
+block; output, bidirectional and unknown-direction ports on the right, ordered
+to keep the wires short. A Platform Designer conduit export counts as an input
+(`conduit end`) or an output (`conduit start`) unless the `.ip.yml` of the
+exporting component makes its direction clear: when all its conduit signals are
+outputs, or all are inputs, the export uses that direction. A block with no data
+connection on the level, such as a clocking wizard or a reset block, sits next to
+the block that drives its clock or reset.
 
 Turn on **Clocks and resets** in the toolbar to color the clock and reset pins
 by clock domain, with the frequencies, crossings, and other markers described

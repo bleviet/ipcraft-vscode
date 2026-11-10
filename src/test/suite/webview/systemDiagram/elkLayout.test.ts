@@ -1,5 +1,6 @@
 import type { ElkNode } from 'elkjs/lib/elk-api';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
+import { readQsysTcl } from '../../../../parser/system/QsysTclReader';
 import {
   buildElkInput,
   toFlowElements,
@@ -8,7 +9,7 @@ import {
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { isolationSubset } from '../../../../webview/systemDiagram/isolation';
 import { levelEdges } from '../../../../webview/systemDiagram/layout/levelEdges';
-import { boundaryId, isClockOrReset } from '../../../../webview/systemDiagram/model';
+import { boundaryId, isClockOrReset, pinRole } from '../../../../webview/systemDiagram/model';
 import type { NetCategory, SystemGraph } from '../../../../domain/systemGraph';
 import {
   loadFixtureGraph,
@@ -135,13 +136,17 @@ describe('buildElkInput', () => {
     expect(westPorts.map((port) => port.y)).toEqual(westPorts.map((_, i) => 42 + i * 18 + 6));
   });
 
-  it('sizes boundary pins and leaves them free of any layer constraint', () => {
+  it('sizes boundary pins and puts them in a column of their own', () => {
     const source = child(input, boundaryId('/', 'ext_trigger'));
     const sink = child(input, boundaryId('/', 'trigger_pulse'));
-    for (const pin of graph.levels['/'].boundaryPins) {
-      const node = child(input, boundaryId('/', pin.name));
-      expect(node.layoutOptions?.['elk.layered.layering.layerConstraint']).toBeUndefined();
-    }
+    expect(source.layoutOptions).toMatchObject({
+      'elk.layered.layering.layerConstraint': 'FIRST_SEPARATE',
+      'elk.alignment': 'LEFT',
+    });
+    expect(sink.layoutOptions).toMatchObject({
+      'elk.layered.layering.layerConstraint': 'LAST_SEPARATE',
+      'elk.alignment': 'RIGHT',
+    });
     expect(source.height).toBe(26);
     expect(source.width).toBe(Math.max(100, 24 + 'ext_trigger'.length * 7));
     expect(source.ports).toHaveLength(1);
@@ -831,4 +836,176 @@ describe('toFlowElements of an empty level', () => {
     expect(hier.levels['/empty_h']).toBeDefined();
     expect((await lay(hier, '/empty_h')).edges).toEqual([]);
   });
+});
+
+describe('external port columns (real ELK)', () => {
+  const EPS = 0.5;
+
+  /**
+   * Asserts the boundary pins of `level` form two columns: inputs share a left edge left of every
+   * block, every other port shares a right edge right of every block.
+   */
+  async function expectPortColumns(
+    design: SystemGraph,
+    level: string,
+    options: Partial<Parameters<typeof buildElkInput>[2]> = {},
+    distinctWidths = true
+  ) {
+    const input = buildElkInput(design, level, { measure: fakeMeasure, ...options });
+    const result = await runElkLayout(input);
+    const inputIds = new Set(
+      design.levels[level].boundaryPins
+        .filter((pin) => pinRole(pin, true) === 'source')
+        .map((pin) => boundaryId(level, pin.name))
+    );
+    const outputIds = new Set(
+      design.levels[level].boundaryPins
+        .map((pin) => boundaryId(level, pin.name))
+        .filter((id) => !inputIds.has(id))
+    );
+    const shown = result.children ?? [];
+    const ins = shown.filter((node) => inputIds.has(node.id));
+    const outs = shown.filter((node) => outputIds.has(node.id));
+    const blocks = shown.filter((node) => !inputIds.has(node.id) && !outputIds.has(node.id));
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(ins.length + outs.length).toBeGreaterThan(0);
+    const minBlockX = Math.min(...blocks.map((node) => node.x ?? 0));
+    const maxBlockRight = Math.max(...blocks.map((node) => (node.x ?? 0) + (node.width ?? 0)));
+    // Different widths keep the edge alignment checks meaningful.
+    for (const column of [ins, outs]) {
+      if (distinctWidths && column.length > 1) {
+        expect(new Set(column.map((node) => node.width)).size).toBeGreaterThan(1);
+      }
+    }
+    for (const node of ins) {
+      expect(Math.abs((node.x ?? 0) - (ins[0].x ?? 0))).toBeLessThan(EPS);
+      expect(node.x ?? 0).toBeLessThan(minBlockX);
+    }
+    for (const node of outs) {
+      const right = (node.x ?? 0) + (node.width ?? 0);
+      expect(Math.abs(right - ((outs[0].x ?? 0) + (outs[0].width ?? 0)))).toBeLessThan(EPS);
+      expect(right).toBeGreaterThan(maxBlockRight);
+    }
+    return { ins, outs };
+  }
+
+  it('aligns the ports of the zynq_dma_system root', async () => {
+    const { ins, outs } = await expectPortColumns(graph, '/');
+    expect(ins.length).toBeGreaterThan(0);
+    expect(outs.length).toBeGreaterThan(0);
+  }, 20000);
+
+  it('aligns the ports of a Platform Designer root', async () => {
+    for (const design of [loadQsysFixtureGraph(), loadQsysTclFixtureGraph()]) {
+      await expectPortColumns(design, '/');
+    }
+  }, 20000);
+
+  it('aligns the pins of a hierarchy level shown as the level', async () => {
+    const { ins, outs } = await expectPortColumns(graph, '/dsp_pipeline', {}, false);
+    expect(ins.length).toBeGreaterThan(0);
+    expect(outs.length).toBeGreaterThan(0);
+  }, 20000);
+
+  it('keeps the columns in an isolated view', async () => {
+    const subset = isolationSubset(graph, '/', ['/pulse_gen_0']);
+    await expectPortColumns(graph, '/', { isolate: subset });
+  }, 20000);
+
+  it('keeps the columns with an expanded hierarchy block', async () => {
+    await expectPortColumns(graph, '/', { expanded: new Set(['/dsp_pipeline']) });
+  }, 20000);
+
+  it('puts an inout port in the right column', async () => {
+    const design = readBdTcl(
+      [
+        'create_bd_design "top"',
+        'set a [ create_bd_port -dir I a ]',
+        'set b [ create_bd_port -dir IO b ]',
+        'set c [ create_bd_port -dir O long_output_name ]',
+        'set u [ create_bd_cell -type module -reference blk u ]',
+        'connect_bd_net [get_bd_ports a] [get_bd_pins u/a]',
+        'connect_bd_net [get_bd_ports b] [get_bd_pins u/b]',
+        'connect_bd_net [get_bd_pins u/c] [get_bd_ports long_output_name]',
+      ].join('\n'),
+      'top.tcl'
+    );
+    const pins = design.levels['/'].boundaryPins;
+    expect(pins.find((pin) => pin.name === 'b')?.direction).toBe('inout');
+    const { ins, outs } = await expectPortColumns(design, '/');
+    expect(outs.map((node) => node.id)).toContain(boundaryId('/', 'b'));
+    expect(ins.map((node) => node.id)).toEqual([boundaryId('/', 'a')]);
+  }, 20000);
+
+  /** A level whose nets join right-column ports: `nets` lists the connect commands. */
+  function ioDesign(connects: string[]) {
+    return readBdTcl(
+      [
+        'create_bd_design "top"',
+        'set a [ create_bd_port -dir IO a ]',
+        'set b [ create_bd_port -dir IO b ]',
+        'set c [ create_bd_port -dir IO c ]',
+        'set o [ create_bd_port -dir O long_output_name ]',
+        'set u [ create_bd_cell -type module -reference blk u ]',
+        'connect_bd_net [get_bd_pins u/y] [get_bd_ports long_output_name]',
+        ...connects,
+      ].join('\n'),
+      'top.tcl'
+    );
+  }
+
+  it('lays out a net that joins two right-column ports', async () => {
+    const design = ioDesign(['connect_bd_net [get_bd_ports a] [get_bd_ports b] [get_bd_pins u/x]']);
+    const input = buildElkInput(design, '/', { measure: fakeMeasure });
+    expect(
+      (input.edges ?? []).some(
+        (edge) =>
+          edge.sources[0].startsWith(boundaryId('/', 'a')) &&
+          edge.targets[0].startsWith(boundaryId('/', 'b'))
+      )
+    ).toBe(true);
+    const result = await runElkLayout(input);
+    const node = (id: string) => child(result, id);
+    const right = (id: string) => (node(id).x ?? 0) + (node(id).width ?? 0);
+    const blockRight = right('/u');
+    for (const name of ['a', 'b', 'long_output_name']) {
+      expect(right(boundaryId('/', name))).toBeGreaterThan(blockRight);
+    }
+    expect(right(boundaryId('/', 'b'))).toBeCloseTo(right(boundaryId('/', 'long_output_name')), 0);
+  }, 20000);
+
+  it('lays out a chain of right-column ports without throwing', async () => {
+    const design = ioDesign([
+      'connect_bd_net [get_bd_ports a] [get_bd_ports b] [get_bd_pins u/x]',
+      'connect_bd_net [get_bd_ports b] [get_bd_ports c] [get_bd_pins u/z]',
+    ]);
+    const input = buildElkInput(design, '/', { measure: fakeMeasure });
+    const edgeFrom = (from: string, to: string) =>
+      (input.edges ?? []).some(
+        (edge) =>
+          edge.sources[0].startsWith(boundaryId('/', from)) &&
+          edge.targets[0].startsWith(boundaryId('/', to))
+      );
+    expect(edgeFrom('a', 'b')).toBe(true);
+    expect(edgeFrom('b', 'c')).toBe(true);
+    await expect(runElkLayout(input)).resolves.toBeDefined();
+  }, 20000);
+
+  it('puts an exported conduit end in the left column and a conduit start in the right', async () => {
+    const design = readQsysTcl(
+      [
+        'add_instance pio altera_avalon_pio',
+        'add_interface in_c conduit end',
+        'set_interface_property in_c EXPORT_OF pio.external_connection',
+        'add_interface out_c conduit start',
+        'set_interface_property out_c EXPORT_OF pio.other_connection',
+      ].join('\n'),
+      'conduits.tcl'
+    );
+    const names = design.levels['/'].boundaryPins.map((pin) => pin.name);
+    expect(names).toEqual(expect.arrayContaining(['in_c', 'out_c']));
+    const { ins, outs } = await expectPortColumns(design, '/', {}, false);
+    expect(ins.map((node) => node.id)).toContain(boundaryId('/', 'in_c'));
+    expect(outs.map((node) => node.id)).toContain(boundaryId('/', 'out_c'));
+  }, 20000);
 });

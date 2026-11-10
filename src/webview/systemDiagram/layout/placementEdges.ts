@@ -5,8 +5,9 @@
  * block, a clock source, the load of a clock input port) stays next to its
  * driver without pushing the data blocks to later columns. A driver left with
  * no edge at all (a clock or reset input port whose loads all have data edges)
- * keeps its first clock or reset edge, so it sits next to one of its loads
- * instead of floating apart.
+ * keeps its first clock or reset edge, which only orders it vertically next to
+ * one of its loads: the input ports of a level sit in a column of their own
+ * (see `boundaryNode` in `elkLayout.ts`), so the edge never moves them sideways.
  */
 
 import type { LevelEdge } from './levelEdges';

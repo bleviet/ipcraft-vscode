@@ -2,7 +2,10 @@
  * Pure conversion between a {@link SystemGraph} level and ELK / React Flow.
  * One ELK graph per level: a node per instance and per boundary pin, a
  * fixed-position port per pin, and one edge per net sink from the net driver.
- * The data and interface nets place the blocks (see `placementEdges.ts`). A
+ * The data and interface nets place the blocks (see `placementEdges.ts`); the
+ * boundary pins of the level form two columns by ELK layer constraints (see
+ * `boundaryColumns.ts`): inputs left of every block, left edges aligned, and every
+ * other port right of every block, right edges aligned. A
  * clock or reset net is routed after the layout by `clockResetWires.ts`; its
  * pins show a net-name badge, in the room their port labels reserve, as the
  * label at the wire end. An expanded hierarchy block is a compound node
@@ -31,6 +34,12 @@ import { compoundNode, frameData } from './expandedLayout';
 import { pinHandles } from './nodeHandles';
 import { levelEdges, portId, remapBoundaryEnds } from './levelEdges';
 import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
+import {
+  boundaryColumnOptions,
+  boundarySide,
+  rightColumnDrivers,
+  type RightDrive,
+} from './boundaryColumns';
 import { placementEdges } from './placementEdges';
 import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, pinRow, splitSides } from './pinRows';
 import {
@@ -40,7 +49,6 @@ import {
   instanceSubtitle,
   isClockOrReset,
   netsByEndpoint,
-  pinRole,
 } from '../model';
 
 export { HEADER_HEIGHT, PIN_ROW_HEIGHT } from './pinRows';
@@ -136,16 +144,13 @@ function instanceNode(
   };
 }
 
-function boundarySide(pin: SystemPin): PinSide {
-  return pinRole(pin, true) === 'source' ? 'east' : 'west';
-}
-
 function boundaryNode(
   graph: SystemGraph,
   levelPath: string,
   pin: SystemPin,
   width: number,
-  clockReset: ClockResetNets
+  clockReset: ClockResetNets,
+  drive?: RightDrive
 ): ElkNode {
   const id = boundaryId(levelPath, pin.name);
   const side = boundarySide(pin);
@@ -153,7 +158,11 @@ function boundaryNode(
     id,
     width,
     height: BOUNDARY_HEIGHT,
-    layoutOptions: { 'org.eclipse.elk.portConstraints': 'FIXED_POS', ...PORT_LABEL_OPTIONS },
+    layoutOptions: {
+      'org.eclipse.elk.portConstraints': 'FIXED_POS',
+      ...PORT_LABEL_OPTIONS,
+      ...boundaryColumnOptions(pin, drive),
+    },
     ports: [
       {
         id: portId(id, pin.name),
@@ -232,10 +241,21 @@ function levelNodes(context: BuildContext, levelPath: string): ElkNode[] {
     }
   }
   // The boundary pins of an expanded level are the pins of its frame, not nodes.
+  const drivers = isCurrent
+    ? rightColumnDrivers(level?.boundaryPins ?? [], levelPath, context.edges)
+    : new Map<string, RightDrive>();
   for (const pin of isCurrent ? (level?.boundaryPins ?? []) : []) {
-    if (shown(boundaryId(levelPath, pin.name))) {
+    const id = boundaryId(levelPath, pin.name);
+    if (shown(id)) {
       children.push(
-        boundaryNode(graph, levelPath, pin, boundaryLayout(pin, options.measure).width, clockReset)
+        boundaryNode(
+          graph,
+          levelPath,
+          pin,
+          boundaryLayout(pin, options.measure).width,
+          clockReset,
+          drivers.get(id)
+        )
       );
     }
   }
