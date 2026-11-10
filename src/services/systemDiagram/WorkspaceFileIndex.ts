@@ -7,6 +7,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import type { Logger } from '../../utils/Logger';
+import { buildExcludeGlob } from './enrichment/excludeGlob';
 import { isIgnoredWorkspacePath } from './enrichment/workspaceFilter';
 
 const READ_POOL_SIZE = 8;
@@ -16,6 +17,7 @@ export class WorkspaceFileIndex<T> {
   private watching = false;
   private disposables: vscode.Disposable[] = [];
   private queue: Promise<void> = Promise.resolve();
+  private readonly warnedPatterns = new Set<string>();
 
   constructor(
     private readonly glob: string,
@@ -50,7 +52,12 @@ export class WorkspaceFileIndex<T> {
   }
 
   private async build(): Promise<Map<string, T>> {
-    const found = await vscode.workspace.findFiles(this.glob, undefined, this.limit);
+    const found = await vscode.workspace.findFiles(this.glob, this.excludeGlob(), this.limit);
+    if (found.length >= this.limit) {
+      this.logger.warn(
+        `The workspace search for ${this.glob} reached its limit of ${this.limit} files; later files are not indexed.`
+      );
+    }
     const uris = found.filter((uri) => !isIgnoredWorkspacePath(uri.fsPath));
     const entries = new Map<string, T>();
     let next = 0;
@@ -85,6 +92,15 @@ export class WorkspaceFileIndex<T> {
     const refresh = (uri: vscode.Uri) => this.update(uri, false);
     this.disposables.push(
       watcher,
+      // A changed exclude changes what a build finds: drop the cache so the next get() rebuilds.
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (
+          event.affectsConfiguration('files.exclude') ||
+          event.affectsConfiguration('search.exclude')
+        ) {
+          this.entries = undefined;
+        }
+      }),
       watcher.onDidCreate(refresh),
       watcher.onDidChange(refresh),
       watcher.onDidDelete((uri) => this.update(uri, true))
@@ -116,14 +132,39 @@ export class WorkspaceFileIndex<T> {
       });
   }
 
-  /** Whether `findFiles` (which applies `files.exclude`) still returns this one path. */
+  /** The ignored directories plus `search.exclude`; VS Code adds `files.exclude` itself. */
+  private excludeGlob(): string {
+    const read = (section: string) =>
+      vscode.workspace.getConfiguration(section).get<Record<string, unknown>>('exclude');
+    const { glob, skipped } = buildExcludeGlob(read('search'));
+    for (const pattern of skipped) {
+      if (!this.warnedPatterns.has(pattern)) {
+        this.warnedPatterns.add(pattern);
+        this.logger.warn(
+          `Ignoring the exclude pattern ${pattern}: its braces cannot be expanded (nested, unbalanced or stray).`
+        );
+      }
+    }
+    return glob;
+  }
+
+  /**
+   * Whether `findFiles` (which applies the exclude) still returns this one path.
+   * The pattern is relative to the workspace folder so directory excludes match;
+   * outside any folder it falls back to the file's own directory. `!` is not
+   * escaped (a class escape misparses); a top-level file whose name starts with
+   * `!` is a known limit.
+   */
   private async isVisible(uri: vscode.Uri): Promise<boolean> {
-    const name = path.basename(uri.fsPath).replace(/[\\*?{}[\]()!]/g, '[$&]');
-    const found = await vscode.workspace.findFiles(
-      new vscode.RelativePattern(path.dirname(uri.fsPath), name),
-      undefined,
-      1
-    );
+    const escape = (text: string) => text.replace(/[\\*?{}[\]()]/g, '[$&]');
+    const folder = vscode.workspace.getWorkspaceFolder(uri);
+    const pattern = folder
+      ? new vscode.RelativePattern(
+          folder,
+          path.relative(folder.uri.fsPath, uri.fsPath).split(path.sep).map(escape).join('/')
+        )
+      : new vscode.RelativePattern(path.dirname(uri.fsPath), escape(path.basename(uri.fsPath)));
+    const found = await vscode.workspace.findFiles(pattern, this.excludeGlob(), 1);
     return found.length > 0;
   }
 }

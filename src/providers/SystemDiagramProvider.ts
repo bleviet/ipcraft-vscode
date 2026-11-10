@@ -12,8 +12,12 @@ import { pruneHighlights } from '../webview/systemDiagram/highlights';
 import type { RenderAssets } from '../services/render/renderResources';
 import type { RenderRoots } from '../services/render/imageEncoding';
 import { Logger } from '../utils/Logger';
+import { settleWithin, STILL_PENDING } from './settleWithin';
 import { ExportTargets } from './imageExport/ExportTargets';
 import { ImageExportHost } from './imageExport/ImageExportHost';
+
+/** How long to wait for workspace enrichment before showing the parsed graph. */
+export const ENRICHMENT_GRACE_MS = 100;
 
 /** Read-only custom editor that draws a block design script as a system diagram. */
 export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
@@ -57,7 +61,34 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
 
     let sequence = 0;
     let lastGraph: SystemGraph | undefined;
+    /** False while `lastGraph` is the early, not yet enriched graph. */
+    let lastGraphFinal = true;
     const storageKey = `ipcraft.systemDiagram.highlights:${document.uri.toString()}`;
+
+    /** Posts a graph with its remembered highlights; only `persist` prunes workspaceState. */
+    const publish = (graph: SystemGraph, persist: boolean) => {
+      lastGraph = graph;
+      lastGraphFinal = persist;
+      const raw = this.context.workspaceState?.get<unknown>(storageKey);
+      const highlights = pruneHighlights(graph, raw);
+      if (
+        persist &&
+        raw !== undefined &&
+        (typeof raw !== 'object' ||
+          raw === null ||
+          Object.keys(highlights).length !== Object.keys(raw).length)
+      ) {
+        void this.context.workspaceState?.update(
+          storageKey,
+          Object.keys(highlights).length > 0 ? highlights : undefined
+        );
+      }
+      post({
+        type: 'graph',
+        graph,
+        ...(Object.keys(highlights).length > 0 && { highlights }),
+      });
+    };
 
     const postGraph = async () => {
       const current = ++sequence;
@@ -68,32 +99,33 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
           post({ type: 'notRecognized', fileName });
           return;
         }
-        const graph = await this.enricher
-          .enrich(read, document.fileName)
-          .catch((error: unknown) => {
-            this.logger.error('Failed to enrich system design', error as Error);
-            return read;
-          });
-        if (current === sequence) {
-          lastGraph = graph;
-          const raw = this.context.workspaceState?.get<unknown>(storageKey);
-          const highlights = pruneHighlights(graph, raw);
-          if (
-            raw !== undefined &&
-            (typeof raw !== 'object' ||
-              raw === null ||
-              Object.keys(highlights).length !== Object.keys(raw).length)
-          ) {
-            void this.context.workspaceState?.update(
-              storageKey,
-              Object.keys(highlights).length > 0 ? highlights : undefined
-            );
+        const enrichment = this.enricher.enrich(read, document.fileName).catch((error: unknown) => {
+          this.logger.error('Failed to enrich system design', error as Error);
+          return read;
+        });
+        const quick = await settleWithin(enrichment, ENRICHMENT_GRACE_MS);
+        if (quick !== STILL_PENDING) {
+          if (current === sequence) {
+            publish(quick, true);
           }
-          post({
-            type: 'graph',
-            graph,
-            ...(Object.keys(highlights).length > 0 && { highlights }),
-          });
+          return;
+        }
+        // Slow enrichment: show the parsed graph now, the enriched one when ready.
+        if (current === sequence) {
+          publish(
+            {
+              ...read,
+              diagnostics: [
+                ...read.diagnostics,
+                { severity: 'info', message: 'Resolving workspace definitions…' },
+              ],
+            },
+            false
+          );
+        }
+        const graph = await enrichment;
+        if (current === sequence) {
+          publish(graph, true);
         }
       } catch (error) {
         if (current !== sequence) {
@@ -157,7 +189,19 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     });
 
     router.on('setHighlights', async (message) => {
-      const highlights = pruneHighlights(lastGraph, message.highlights);
+      let highlights = pruneHighlights(lastGraph, message.highlights);
+      if (!lastGraphFinal) {
+        // The webview only knows the highlights the early graph showed. Carry over
+        // the stored ones that graph hid (instances only enrichment adds); the final
+        // publish prunes them against the enriched graph. Trade-off: "clear all"
+        // during the grace window keeps those hidden entries.
+        const stored = pruneHighlights(undefined, this.context.workspaceState?.get(storageKey));
+        const shown = pruneHighlights(lastGraph, stored);
+        const hidden = Object.fromEntries(
+          Object.entries(stored).filter(([key]) => !(key in shown))
+        );
+        highlights = { ...hidden, ...pruneHighlights(undefined, message.highlights) };
+      }
       await this.context.workspaceState?.update(
         storageKey,
         Object.keys(highlights).length > 0 ? highlights : undefined

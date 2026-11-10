@@ -2,7 +2,10 @@ import * as vscode from 'vscode';
 import { DEFAULT_EXPORT_OPTIONS } from '../../../shared/messages/imageExport';
 import { RenderAssets } from '../../../services/render/renderResources';
 import { ExportTargets } from '../../../providers/imageExport/ExportTargets';
-import { SystemDiagramProvider } from '../../../providers/SystemDiagramProvider';
+import {
+  ENRICHMENT_GRACE_MS,
+  SystemDiagramProvider,
+} from '../../../providers/SystemDiagramProvider';
 import { renderSystemLevelImage } from '../../../services/render/systemLevelImage';
 import type { RenderRoots } from '../../../services/render/imageEncoding';
 import { fixtureText, qsysFixtureText } from '../webview/systemDiagram/fixtureGraph';
@@ -141,6 +144,7 @@ describe('SystemDiagramProvider', () => {
   it('posts the graph when the webview is ready', async () => {
     const { posted, send } = setup(fixtureText);
     await send({ type: 'ready' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(posted).toHaveLength(1);
     expect(posted[0]).toMatchObject({
       type: 'graph',
@@ -151,6 +155,7 @@ describe('SystemDiagramProvider', () => {
   it('posts a qsys graph for a Platform Designer document', async () => {
     const { posted, send } = setup(qsysFixtureText, '/ws/nios.qsys', 'nios.qsys');
     await send({ type: 'ready' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(posted).toHaveLength(1);
     expect(posted[0]).toMatchObject({
       type: 'graph',
@@ -173,6 +178,7 @@ describe('SystemDiagramProvider', () => {
   it('re-posts when the document changes and ignores other documents', async () => {
     const { posted, send, change, webviewPanel } = setup(fixtureText);
     await send({ type: 'ready' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
     change();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(posted.map((message) => (message as { type: string }).type)).toEqual(['graph', 'graph']);
@@ -356,6 +362,180 @@ describe('SystemDiagramProvider', () => {
     expect(posted[0]).toMatchObject({ type: 'graph', graph: { name: 'zynq_dma_system' } });
   });
 
+  describe('slow enrichment', () => {
+    const storageKey = 'ipcraft.systemDiagram.highlights:file:///ws/zynq.tcl';
+    const types = (posted: unknown[]) =>
+      posted.map((message) => (message as { type: string }).type);
+    const resolvers: ((graph: unknown) => void)[] = [];
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      resolvers.length = 0;
+    });
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    const slowEnrichment = () =>
+      mockEnrich.mockImplementation(
+        (graph: object) =>
+          new Promise((resolve) => resolvers.push(() => resolve({ ...graph, name: 'enriched' })))
+      );
+
+    it('posts the parsed graph with an info diagnostic after the grace period, then the enriched one', async () => {
+      const { posted, send } = setup(fixtureText);
+      slowEnrichment();
+      const ready = send({ type: 'ready' });
+      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS - 1);
+      expect(posted).toHaveLength(0);
+      await jest.advanceTimersByTimeAsync(1);
+      expect(posted).toHaveLength(1);
+      expect(posted[0]).toMatchObject({
+        type: 'graph',
+        graph: {
+          name: 'zynq_dma_system',
+          diagnostics: expect.arrayContaining([
+            { severity: 'info', message: 'Resolving workspace definitions…' },
+          ]),
+        },
+      });
+      resolvers[0](undefined);
+      await ready;
+      await jest.advanceTimersByTimeAsync(0);
+      expect(types(posted)).toEqual(['graph', 'graph']);
+      expect(posted[1]).toMatchObject({ graph: { name: 'enriched' } });
+      const final = posted[1] as { graph: { diagnostics: { message: string }[] } };
+      expect(final.graph.diagnostics.map((d) => d.message)).not.toContain(
+        'Resolving workspace definitions…'
+      );
+    });
+
+    it('posts exactly one graph when enrichment beats the grace period', async () => {
+      const { posted, send } = setup(fixtureText);
+      await send({ type: 'ready' });
+      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS * 2);
+      expect(types(posted)).toEqual(['graph']);
+    });
+
+    it('posts no stale graph when a document edit overtakes a slow enrichment', async () => {
+      const { posted, send, change, document } = setup(fixtureText);
+      slowEnrichment();
+      void send({ type: 'ready' });
+      document.text = 'puts hello\n';
+      change();
+      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS * 2);
+      resolvers[0](undefined);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(posted).toEqual([{ type: 'notRecognized', fileName: 'zynq.tcl' }]);
+    });
+
+    it('does not write workspaceState on the early post, only on the final one', async () => {
+      const { posted, send, workspaceState, workspaceStateStore } = setup(fixtureText);
+      workspaceStateStore.set(storageKey, {
+        'instance:/axi_dma_0': 'red',
+        'instance:/vanished_ip': 'yellow',
+      });
+      slowEnrichment();
+      void send({ type: 'ready' });
+      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS);
+      expect(posted[0]).toMatchObject({
+        type: 'graph',
+        highlights: { 'instance:/axi_dma_0': 'red' },
+      });
+      expect(workspaceState.update).not.toHaveBeenCalled();
+      resolvers[0](undefined);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(workspaceState.update).toHaveBeenCalledWith(storageKey, {
+        'instance:/axi_dma_0': 'red',
+      });
+    });
+
+    it('posts the plain parsed graph and persists when enrichment rejects after the early post', async () => {
+      const { posted, send, workspaceState, workspaceStateStore } = setup(fixtureText);
+      workspaceStateStore.set(storageKey, {
+        'instance:/axi_dma_0': 'red',
+        'instance:/vanished_ip': 'yellow',
+      });
+      const rejecters: ((error: Error) => void)[] = [];
+      mockEnrich.mockImplementation(
+        () => new Promise((_resolve, reject) => rejecters.push(reject))
+      );
+      void send({ type: 'ready' });
+      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS);
+      rejecters[0](new Error('index failed'));
+      await jest.advanceTimersByTimeAsync(0);
+      expect(types(posted)).toEqual(['graph', 'graph']);
+      const final = posted[1] as { graph: { name: string; diagnostics: { message: string }[] } };
+      expect(final.graph.name).toBe('zynq_dma_system');
+      expect(final.graph.diagnostics.map((d) => d.message)).not.toContain(
+        'Resolving workspace definitions…'
+      );
+      expect(workspaceState.update).toHaveBeenCalledWith(storageKey, {
+        'instance:/axi_dma_0': 'red',
+      });
+    });
+
+    it('drops the first run final post when a document edit follows the early post', async () => {
+      const { posted, send, change } = setup(fixtureText);
+      slowEnrichment();
+      void send({ type: 'ready' });
+      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS);
+      change();
+      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS);
+      resolvers[0](undefined);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(types(posted)).toEqual(['graph', 'graph']);
+      resolvers[1](undefined);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(types(posted)).toEqual(['graph', 'graph', 'graph']);
+      expect(posted[2]).toMatchObject({ graph: { name: 'enriched' } });
+    });
+
+    it('keeps stored highlights on enrichment-only instances across a grace-window edit', async () => {
+      const { posted, send, workspaceStateStore } = setup(fixtureText);
+      workspaceStateStore.set(storageKey, {
+        'instance:/axi_dma_0': 'red',
+        'instance:/sub_0/inner': 'green',
+      });
+      mockEnrich.mockImplementation(
+        (graph: { instances: Record<string, object> }) =>
+          new Promise((resolve) =>
+            resolvers.push(() =>
+              resolve({
+                ...graph,
+                instances: { ...graph.instances, '/sub_0/inner': graph.instances['/axi_dma_0'] },
+              })
+            )
+          )
+      );
+      void send({ type: 'ready' });
+      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS);
+      // The early message hides the enrichment-only key from the webview.
+      expect(posted[0]).toMatchObject({ highlights: { 'instance:/axi_dma_0': 'red' } });
+      expect((posted[0] as { highlights: object }).highlights).not.toHaveProperty(
+        'instance:/sub_0/inner'
+      );
+      await send({
+        type: 'setHighlights',
+        highlights: { 'instance:/axi_dma_0': 'red', 'instance:/axi_gpio_0': 'yellow' },
+      });
+      expect(workspaceStateStore.get(storageKey)).toEqual({
+        'instance:/axi_dma_0': 'red',
+        'instance:/axi_gpio_0': 'yellow',
+        'instance:/sub_0/inner': 'green',
+      });
+      resolvers[0](undefined);
+      await jest.advanceTimersByTimeAsync(0);
+      expect(posted[1]).toMatchObject({
+        highlights: {
+          'instance:/axi_dma_0': 'red',
+          'instance:/axi_gpio_0': 'yellow',
+          'instance:/sub_0/inner': 'green',
+        },
+      });
+    });
+  });
+
   it('reveals the requested line in a text editor beside the diagram', async () => {
     const { send } = setup(fixtureText);
     await send({ type: 'revealSource', line: 42 });
@@ -393,6 +573,7 @@ describe('SystemDiagramProvider', () => {
       (vscode.workspace as unknown as { openTextDocument: jest.Mock }).openTextDocument =
         openTextDocument;
       await ctx.send({ type: 'ready' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
       await ctx.send({ type: 'revealSource', line: 7, uri: requested });
       return { openTextDocument, subDocument };
     };
@@ -480,6 +661,7 @@ describe('SystemDiagramProvider export image', () => {
     const { posted, send, workspaceStateStore } = setup(fixtureText);
     workspaceStateStore.set('ipcraft.exportImage.systemDiagram', stored);
     await send({ type: 'ready' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(posted.map((message) => (message as { type: string }).type)).toEqual([
       'exportOptions',
       'graph',

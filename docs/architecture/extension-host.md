@@ -36,7 +36,11 @@ diagram. It reads the document with `readSystemDesign`, enriches the graph, and
 posts it to the webview again on every document change or workspace trust grant.
 `SystemDesignEnricher` indexes workspace `.ip.yml` and HDL files and merges
 the pins of matching definitions into the graph. It reads nothing in an
-untrusted workspace.
+untrusted workspace. If enrichment takes longer than 100 ms, the provider posts
+the parsed graph first (with an info diagnostic) and the enriched graph when it
+is ready. The index excludes generated and dependency directories plus the
+`search.exclude` setting in the search itself (VS Code adds `files.exclude`),
+before the file limit applies.
 
 The providers share these central services:
 
