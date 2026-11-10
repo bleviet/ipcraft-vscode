@@ -134,7 +134,7 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     logger,
     EDITOR_VIEW_TYPE_DATA_INSPECTOR,
-    new DataInspectorRecipeEditorProvider(context),
+    new DataInspectorRecipeEditorProvider(context, resourceRoots),
     'Data Inspector Recipe'
   );
 
@@ -167,7 +167,7 @@ export function activate(context: vscode.ExtensionContext): void {
   safeRegisterCommand(context, 'fpga-ip-core.createIpCore', createIpCoreCommand);
   safeRegisterCommand(context, 'fpga-ip-core.createMemoryMap', createMemoryMapCommand);
   safeRegisterCommand(context, 'fpga-ip-core.openDataInspector', () =>
-    DataInspectorPanel.show(context)
+    DataInspectorPanel.show(context, resourceRoots)
   );
   safeRegisterCommand(
     context,
@@ -175,9 +175,9 @@ export function activate(context: vscode.ExtensionContext): void {
     createDataInspectorRecipeCommand
   );
   safeRegisterCommand(context, 'fpga-ip-core.openRegisterInDataInspector', async () => {
-    const layout = await selectRegisterLayout();
+    const layout = await selectRegisterLayout(resourceRoots);
     if (layout) {
-      DataInspectorPanel.show(context).applyRegisterLayout(layout);
+      DataInspectorPanel.show(context, resourceRoots).applyRegisterLayout(layout);
     }
   });
   safeRegisterCommand(

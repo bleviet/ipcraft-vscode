@@ -1,64 +1,17 @@
-import type { BusInterface as DomainBusInterface, Parameter } from '../../../domain/ipcore.types';
-import {
-  createParameterContext,
-  isPortActive,
-  resolveBusInterface,
-  resolveNumericValue,
-  type NormalizedBusLibrary,
-  type ParameterContext,
-} from '../../../shared/busContracts';
+import type { IpCore as DomainIpCore } from '../../../domain/ipcore.types';
+import type { NormalizedBusLibrary } from '../../../shared/busContracts';
 import type { IpcraftIssue } from '../../../shared/issues';
-import type { BusInterface, IpCore, PortField } from '../../types/ipCore';
-import { parseBitsRange } from '../../utils/BitFieldUtils';
+import {
+  enumeratePortFieldLists,
+  portFieldRange,
+  type PortFieldBitRange,
+  type PortFieldList,
+} from '../../../shared/portFields';
+import type { IpCore } from '../../types/ipCore';
 
-interface FieldList {
-  /** Name used in messages, e.g. the port name or the logical port name. */
-  label: string;
-  fields: readonly PortField[];
-  /** Path of the field array; a field index is appended per issue. */
-  path: readonly (string | number)[];
-  width: number | undefined;
-  interfaceName?: string;
-}
-
-interface Range {
-  msb: number;
-  lsb: number;
-}
+type Range = PortFieldBitRange;
 
 const ENUM_KEY = /^(?:0x[0-9a-f]+|\d+)$/i;
-
-function resolveWidth(raw: unknown, context: ParameterContext): number | undefined {
-  return resolveNumericValue(raw ?? 1, context).value;
-}
-
-function isNonNegativeInteger(value: unknown): value is number {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0;
-}
-
-/** The field's bit range, or a reason string when its position is malformed. */
-function fieldRange(field: PortField): Range | string {
-  const hasBits = field.bits !== undefined && field.bits !== null;
-  const hasOffset = field.offset !== undefined && field.offset !== null;
-  const hasWidth = field.width !== undefined && field.width !== null;
-  if (hasBits && (hasOffset || hasWidth)) {
-    return 'use bits or offset/width, not both';
-  }
-  if (hasBits) {
-    const parsed = parseBitsRange(String(field.bits));
-    if (!parsed) {
-      return `bits '${String(field.bits)}' is not a valid range`;
-    }
-    return { msb: Math.max(...parsed), lsb: Math.min(...parsed) };
-  }
-  if (hasOffset && hasWidth) {
-    if (!isNonNegativeInteger(field.offset) || !isNonNegativeInteger(field.width) || !field.width) {
-      return 'offset must be a non-negative integer and width a positive integer';
-    }
-    return { msb: field.offset + field.width - 1, lsb: field.offset };
-  }
-  return 'use bits or offset/width';
-}
 
 function enumValueProblem(key: string, bitWidth: number): string | null {
   if (!ENUM_KEY.test(key.trim())) {
@@ -69,7 +22,7 @@ function enumValueProblem(key: string, bitWidth: number): string | null {
     : null;
 }
 
-function checkFieldList(list: FieldList): IpcraftIssue[] {
+function checkFieldList(list: PortFieldList): IpcraftIssue[] {
   const issues: IpcraftIssue[] = [];
   const ranges: Array<Range | undefined> = [];
   const seenNames = new Set<string>();
@@ -83,17 +36,17 @@ function checkFieldList(list: FieldList): IpcraftIssue[] {
         source: 'portFields',
         path: [...path, ...extra],
         message,
-        ...(list.interfaceName !== undefined ? { interfaceName: list.interfaceName } : {}),
+        ...(list.busInterface !== undefined ? { interfaceName: list.busInterface } : {}),
       });
     };
-    const where = `${list.label}.${field.name}`;
+    const where = `${list.portName}.${field.name}`;
 
     if (seenNames.has(field.name)) {
-      issue('PORT_FIELD_DUPLICATE_NAME', `${list.label}: duplicate field name ${field.name}`);
+      issue('PORT_FIELD_DUPLICATE_NAME', `${list.portName}: duplicate field name ${field.name}`);
     }
     seenNames.add(field.name);
 
-    const range = fieldRange(field);
+    const range = portFieldRange(field);
     if (typeof range === 'string') {
       issue('PORT_FIELD_POSITION', `${where}: ${range}`);
       ranges.push(undefined);
@@ -115,7 +68,7 @@ function checkFieldList(list: FieldList): IpcraftIssue[] {
       const other = ranges[earlier] as Range;
       issue(
         'PORT_FIELD_OVERLAP',
-        `${list.label}: fields ${list.fields[earlier].name} and ${field.name} overlap at bit ${Math.max(other.lsb, range.lsb)}`
+        `${list.portName}: fields ${list.fields[earlier].name} and ${field.name} overlap at bit ${Math.max(other.lsb, range.lsb)}`
       );
     }
 
@@ -130,80 +83,28 @@ function checkFieldList(list: FieldList): IpcraftIssue[] {
   return issues;
 }
 
-function checkBusPortFields(
-  bus: BusInterface,
-  busIndex: number,
-  parameters: readonly Parameter[],
-  library: NormalizedBusLibrary
-): IpcraftIssue[] {
-  const entries = Object.entries(bus.portFields ?? {});
-  if (entries.length === 0) {
+function checkBusKey(list: PortFieldList): IpcraftIssue[] {
+  if (!list.keyProblem) {
     return [];
   }
-  const resolution = resolveBusInterface({
-    busInterface: bus as unknown as DomainBusInterface,
-    busIndex,
-    parameters,
-    library,
-  });
-  const contract = resolution.match?.contract;
-  const rawPortMaps = (bus as { rawPortMaps?: Array<{ logical: string; width: number }> })
-    .rawPortMaps;
-  const canKeyCheck = contract !== undefined || (rawPortMaps?.length ?? 0) > 0;
-
-  const issues: IpcraftIssue[] = [];
-  for (const [key, fields] of entries) {
-    const lower = key.toLowerCase();
-    const path = ['busInterfaces', busIndex, 'portFields', key];
-    const portIssue = (code: string, message: string): void => {
-      issues.push({
-        code,
-        severity: 'warning',
-        source: 'portFields',
-        path,
-        message,
-        interfaceName: bus.name,
-      });
-    };
-    let width: number | undefined;
-    if (contract) {
-      const port = contract.ports.find((candidate) => candidate.name.toLowerCase() === lower);
-      if (!port) {
-        portIssue(
-          'PORT_FIELDS_UNKNOWN_PORT',
-          `${bus.name}.portFields: ${key} is not a port of ${contract.key}`
-        );
-      } else {
-        width = resolution.portWidths[port.name]?.value;
-        if (!isPortActive(port, resolution.canonicalBusInterface ?? (bus as never))) {
-          portIssue(
-            'PORT_FIELDS_INACTIVE_PORT',
-            `${bus.name}.portFields: ${key} is not enabled on this interface`
-          );
-        }
-      }
-    } else if (canKeyCheck) {
-      const raw = rawPortMaps?.find((map) => map.logical.toLowerCase() === lower);
-      if (!raw) {
-        portIssue(
-          'PORT_FIELDS_UNKNOWN_PORT',
-          `${bus.name}.portFields: ${key} is not a port of this interface`
-        );
-      } else {
-        width = raw.width;
-      }
-    }
-    issues.push(
-      ...checkFieldList({
-        label: key,
-        fields,
-        path,
-        width,
-        interfaceName: bus.name,
-      })
-    );
-  }
-  return issues;
+  const bus = list.busInterface;
+  const key = list.portName;
+  const code =
+    list.keyProblem === 'unknown' ? 'PORT_FIELDS_UNKNOWN_PORT' : 'PORT_FIELDS_INACTIVE_PORT';
+  const message =
+    list.keyProblem === 'inactive'
+      ? `${bus}.portFields: ${key} is not enabled on this interface`
+      : `${bus}.portFields: ${key} is not a port of ${list.contractKey ?? 'this interface'}`;
+  return [
+    {
+      code,
+      severity: 'warning',
+      source: 'portFields',
+      path: [...list.path],
+      message,
+      interfaceName: bus,
+    },
+  ];
 }
 
 /**
@@ -214,41 +115,8 @@ export function checkPortFields(
   ipCore: IpCore,
   library: NormalizedBusLibrary | undefined
 ): IpcraftIssue[] {
-  const parameters = (ipCore.parameters ?? []) as unknown as readonly Parameter[];
-  const context = createParameterContext(parameters);
-  const issues: IpcraftIssue[] = [];
-
-  (ipCore.ports ?? []).forEach((port, i) => {
-    if (port.fields?.length) {
-      issues.push(
-        ...checkFieldList({
-          label: port.name,
-          fields: port.fields,
-          path: ['ports', i, 'fields'],
-          width: resolveWidth(port.width, context),
-        })
-      );
-    }
-  });
-
-  (ipCore.busInterfaces ?? []).forEach((bus, b) => {
-    const conduitPorts = Array.isArray(bus.conduitPorts) ? bus.conduitPorts : [];
-    conduitPorts.forEach((port, c) => {
-      if (port.fields?.length) {
-        issues.push(
-          ...checkFieldList({
-            label: port.name,
-            fields: port.fields,
-            path: ['busInterfaces', b, 'conduitPorts', c, 'fields'],
-            width: resolveWidth(port.width, context),
-            interfaceName: bus.name,
-          })
-        );
-      }
-    });
-    if (library) {
-      issues.push(...checkBusPortFields(bus, b, parameters, library));
-    }
-  });
-  return issues;
+  return enumeratePortFieldLists(ipCore as unknown as DomainIpCore, library).flatMap((list) => [
+    ...checkBusKey(list),
+    ...checkFieldList(list),
+  ]);
 }

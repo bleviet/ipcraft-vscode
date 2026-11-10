@@ -6,6 +6,7 @@ import type {
 import { HtmlGenerator } from '../services/HtmlGenerator';
 import { Logger } from '../utils/Logger';
 import { DataInspectorRegisterLayoutReader } from '../services/DataInspectorRegisterLayoutReader';
+import type { ResourceRoots } from '../services/ResourceRoots';
 import type { RegisterLayoutCopy } from '../shared/messages/dataInspector';
 import { saveDataInspectorRecipeAs } from '../commands/DataInspectorCommands';
 
@@ -14,11 +15,15 @@ export class DataInspectorPanel {
   private readonly panel: vscode.WebviewPanel;
   private readonly disposables: vscode.Disposable[] = [];
   private readonly logger = new Logger('DataInspectorPanel');
-  private readonly registerLayouts = new DataInspectorRegisterLayoutReader();
+  private readonly registerLayouts: DataInspectorRegisterLayoutReader;
   private ready = false;
   private pendingLayout: RegisterLayoutCopy | undefined;
 
-  private constructor(private readonly context: vscode.ExtensionContext) {
+  private constructor(
+    private readonly context: vscode.ExtensionContext,
+    resourceRoots: ResourceRoots
+  ) {
+    this.registerLayouts = new DataInspectorRegisterLayoutReader(resourceRoots);
     this.panel = vscode.window.createWebviewPanel(
       'ipcraft.dataInspector',
       'IPCraft: Data Inspector',
@@ -53,9 +58,9 @@ export class DataInspectorPanel {
     );
   }
 
-  static show(context: vscode.ExtensionContext): DataInspectorPanel {
+  static show(context: vscode.ExtensionContext, resourceRoots: ResourceRoots): DataInspectorPanel {
     if (DataInspectorPanel.instance === undefined) {
-      DataInspectorPanel.instance = new DataInspectorPanel(context);
+      DataInspectorPanel.instance = new DataInspectorPanel(context, resourceRoots);
     } else {
       DataInspectorPanel.instance.panel.reveal(vscode.ViewColumn.Active, true);
     }

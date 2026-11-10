@@ -8,7 +8,10 @@ import {
 import { BitVector } from '../../../dataInspector/BitVector';
 import { recipeFields } from '../../../dataInspector/recipe';
 import type { InspectorField } from '../../../dataInspector/fieldLayout';
-import type { IPCraftDataInspectorRecipe } from '../../../domain/dataInspector.types';
+import type {
+  IPCraftDataInspectorRecipe,
+  ImportProvenance,
+} from '../../../domain/dataInspector.types';
 import type {
   DataInspectorToExtensionMessage,
   DataInspectorToWebviewMessage,
@@ -20,9 +23,7 @@ interface DataInspectorSyncOptions {
   postMessage: ((message: DataInspectorToExtensionMessage) => void) | undefined;
   revisionStateRef: MutableRefObject<RevisionState>;
   setDraft: Dispatch<SetStateAction<string>>;
-  setFieldProvenance: Dispatch<
-    SetStateAction<Record<string, { sourceFile: string; registerName: string }>>
-  >;
+  setFieldProvenance: Dispatch<SetStateAction<Record<string, ImportProvenance>>>;
   setFields: Dispatch<SetStateAction<InspectorField[]>>;
   setFieldSourceIds: Dispatch<SetStateAction<Record<string, string>>>;
   setInspectedValueId: Dispatch<SetStateAction<string | null>>;
@@ -132,12 +133,7 @@ export function useDataInspectorSync({
         setFields(layout.fields.map((field) => ({ ...field })));
         setFieldSourceIds(Object.fromEntries(layout.fields.map((field) => [field.id, sourceId])));
         setFieldProvenance(
-          Object.fromEntries(
-            layout.fields.map((field) => [
-              field.id,
-              { sourceFile: layout.sourceFile, registerName: layout.registerName },
-            ])
-          )
+          Object.fromEntries(layout.fields.map((field) => [field.id, { ...layout.provenance }]))
         );
       }
     };

@@ -275,7 +275,7 @@ test.describe('Data Inspector transform canvas', () => {
     );
     await page.getByRole('tab', { name: 'Fields' }).click();
     await expect(page.getByRole('button', { name: 'Add field' })).toBeVisible();
-    await expect(page.getByText('Import register layout')).toBeVisible();
+    await expect(page.getByText('Import layout')).toBeVisible();
   });
 
   test('rewires a step output into a binary input', async ({ page }) => {

@@ -145,22 +145,33 @@ export function FieldPanel({
         <button onClick={addField}>Add field</button>
       </header>
       <details className="di-field-import">
-        <summary>Import register layout</summary>
+        <summary>Import layout</summary>
         <label>
-          Register
+          Layout
           <select value={layoutId} onChange={(event) => setLayoutId(event.target.value)}>
-            <option value="">Choose a register…</option>
-            {layouts.map((layout) => (
-              <option value={layout.id} key={layout.id}>
-                {layout.label}
-              </option>
-            ))}
+            <option value="">Choose a register or port…</option>
+            {[
+              { title: 'Registers', items: layouts.filter((layout) => layout.kind === 'register') },
+              { title: 'Ports', items: layouts.filter((layout) => layout.kind === 'port') },
+            ]
+              .filter((group) => group.items.length > 0)
+              .map((group) => (
+                <optgroup label={group.title} key={group.title}>
+                  {group.items.map((layout) => (
+                    <option value={layout.id} key={layout.id}>
+                      {layout.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
           </select>
         </label>
         <button disabled={!layoutId} onClick={copySelectedRegisterLayout}>
           Copy fields
         </button>
-        <p className="di-note">One-way copy. The memory map is never modified or linked.</p>
+        <p className="di-note">
+          One-way copy. The memory map or IP core is never modified or linked.
+        </p>
       </details>
       <label className="di-search">
         <span className="codicon codicon-search" aria-hidden="true" />
@@ -398,7 +409,9 @@ export function FieldPanel({
           </div>
         </div>
       )}
-      {fields.length === 0 && <p className="di-note">Define a field or copy a register layout.</p>}
+      {fields.length === 0 && (
+        <p className="di-note">Define a field or copy a register or port layout.</p>
+      )}
     </div>
   );
 }

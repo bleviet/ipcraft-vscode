@@ -106,7 +106,7 @@
       },
       {
         "command": "fpga-ip-core.openRegisterInDataInspector",
-        "title": "Open Register in Data Inspector",
+        "title": "Open Register or Port in Data Inspector",
         "category": "IPCraft",
         "icon": "$(search)"
       },

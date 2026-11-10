@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { BitVector } from '../../../dataInspector/BitVector';
 import { copyFieldsForSource, type InspectorField } from '../../../dataInspector/fieldLayout';
-import type { IPCraftDataInspectorRecipe } from '../../../domain/dataInspector.types';
+import type {
+  IPCraftDataInspectorRecipe,
+  ImportProvenance,
+} from '../../../domain/dataInspector.types';
 import type { RegisterLayoutCopy } from '../../../shared/messages/dataInspector';
 
 interface AddFieldOptions {
@@ -30,9 +33,7 @@ export function useFieldPanel() {
   const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
   const [fieldAnnouncement, setFieldAnnouncement] = useState('');
   const [nextFieldNumber, setNextFieldNumber] = useState(1);
-  const [fieldProvenance, setFieldProvenance] = useState<
-    Record<string, { sourceFile: string; registerName: string }>
-  >({});
+  const [fieldProvenance, setFieldProvenance] = useState<Record<string, ImportProvenance>>({});
   const [fieldSourceIds, setFieldSourceIds] = useState<Record<string, string>>({});
   const [newGroupName, setNewGroupName] = useState('');
 
@@ -132,12 +133,7 @@ export function useFieldPanel() {
     ]);
     setFieldProvenance((current) => ({
       ...Object.fromEntries(Object.entries(current).filter(([fieldId]) => !activeIds.has(fieldId))),
-      ...Object.fromEntries(
-        importedFields.map((field) => [
-          field.id,
-          { sourceFile: layout.sourceFile, registerName: layout.registerName },
-        ])
-      ),
+      ...Object.fromEntries(importedFields.map((field) => [field.id, { ...layout.provenance }])),
     }));
     setFieldSourceIds((current) => ({
       ...Object.fromEntries(Object.entries(current).filter(([fieldId]) => !activeIds.has(fieldId))),
@@ -145,7 +141,7 @@ export function useFieldPanel() {
     }));
     if (layout.width !== activeSource.width) {
       setError(
-        `Copied ${layout.width}-bit register layout onto a ${activeSource.width}-bit value; out-of-range fields are flagged below`
+        `Copied ${layout.width}-bit layout onto a ${activeSource.width}-bit value; out-of-range fields are flagged below`
       );
     }
     showFields();

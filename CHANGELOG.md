@@ -6,6 +6,13 @@ attention when you update, for example because generated files change.
 Contributors: the technical changelog, with modules, issues and pull requests,
 is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
+## [Unreleased]
+
+### New
+
+- **Describe what the bits of a port carry.** In `.ip.yml`, a port, a conduit port or a bus interface port (for example AXI-Stream `TDATA`) can list named bit fields with a description and enumerated values, in the same format as register fields. Generated code does not change. The IP core editor warns in a new **Port fields** group when a field is outside the port, overlaps another or has an enum value that does not fit, and keeps the fields when you group ports into a bus interface or ungroup them. Files edited with this version declare `apiVersion` 1.2.
+- **Import a port's fields into the Data Inspector.** The layout picker lists ports with field metadata next to registers, and **IPCraft: Open Register or Port in Data Inspector** (formerly **Open Register in Data Inspector**) opens either.
+
 ## [1.5.2] - 2026-11-09
 
 ### Changed

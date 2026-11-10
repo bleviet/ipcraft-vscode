@@ -1,13 +1,18 @@
 import type { InspectorField } from '../../dataInspector/fieldLayout';
-import type { IPCraftDataInspectorRecipe } from '../../domain/dataInspector.types';
+import type {
+  IPCraftDataInspectorRecipe,
+  ImportProvenance,
+} from '../../domain/dataInspector.types';
 
+/** A layout to copy into a recipe; it may come from a register or a port. */
 export interface RegisterLayoutCopy {
   id: string;
   label: string;
+  kind: 'register' | 'port';
   width: number;
   fields: InspectorField[];
   sourceFile: string;
-  registerName: string;
+  provenance: ImportProvenance;
 }
 
 export type DataInspectorToExtensionMessage =
