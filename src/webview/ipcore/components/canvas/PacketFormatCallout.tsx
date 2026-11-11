@@ -9,8 +9,6 @@ export interface PacketFormatCalloutProps {
   busName: string;
   packetRef: string;
   info: PacketFormatRefInfo | undefined;
-  /** Pinned (bus selected): focusable, with "Open format". Otherwise a hover preview. */
-  pinned: boolean;
   onOpen: (relativeFile: string) => void;
 }
 
@@ -22,7 +20,6 @@ export const PacketFormatCallout: React.FC<PacketFormatCalloutProps> = ({
   busName,
   packetRef,
   info,
-  pinned,
   onOpen,
 }) => {
   const lanes = useMemo(() => (info?.format ? buildLanes(info.format, LANE_ROW_BITS) : []), [info]);
@@ -31,32 +28,30 @@ export const PacketFormatCallout: React.FC<PacketFormatCalloutProps> = ({
 
   return (
     <div
-      className={`packet-callout ${pinned ? 'packet-callout--pinned' : ''}`}
+      className="packet-callout"
       data-testid="packet-callout"
       role="region"
       aria-label={`Packet format of ${busName}`}
-      // Pinned card can overflow (max-height); a focus stop lets keyboard users scroll it.
-      tabIndex={pinned ? 0 : undefined}
+      // The card can overflow (max-height); a focus stop lets keyboard users scroll it.
+      tabIndex={0}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="packet-callout__header">
         <span className="packet-callout__title">{format ? format.name : packetRef}</span>
         {format && <span className="ci-field__hint">{format.dataWidth} bit</span>}
-        {pinned && (
-          <button
-            type="button"
-            className="ci-section__action-btn packet-callout__open"
-            title="Open the packet format file"
-            onClick={() => onOpen(file)}
-          >
-            <span className="codicon codicon-go-to-file" aria-hidden="true" /> Open format
-          </button>
-        )}
+        <button
+          type="button"
+          className="ci-section__action-btn packet-callout__open"
+          title="Open the packet format file"
+          onClick={() => onOpen(file)}
+        >
+          <span className="codicon codicon-go-to-file" aria-hidden="true" /> Open format
+        </button>
       </div>
       {!info && <div className="ci-field__hint">Resolving {packetRef}…</div>}
       {info?.error && (
-        <div className="packet-format__error" role={pinned ? 'alert' : undefined}>
+        <div className="packet-format__error" role="alert">
           {info.error.message}
         </div>
       )}
@@ -69,11 +64,6 @@ export const PacketFormatCallout: React.FC<PacketFormatCalloutProps> = ({
           </div>
           <PacketLanes lanes={lanes} />
         </>
-      )}
-      {!pinned && (
-        <div className="ci-field__hint packet-callout__footer">
-          Click the interface to keep this view
-        </div>
       )}
     </div>
   );

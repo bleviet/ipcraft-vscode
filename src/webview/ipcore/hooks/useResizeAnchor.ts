@@ -19,7 +19,7 @@ interface Options {
 
 /**
  * Keeps the symbol point under the pointer fixed when the canvas is resized by the details row. Opening the row
- * shrinks the canvas, which re-fits the symbol; without this the hovered bus would slide away from the pointer and
+ * shrinks the canvas, which re-fits the symbol; without this the clicked bus would slide away from the pointer and
  * the pointer would land on a different bus. The pan never moves the symbol out of the canvas where it fits, so it is
  * not hidden behind the row; the anchor is then as close as that allows. The pan applied this way is undone once the row has closed with the
  * pointer outside the canvas, so the symbol returns to where it was. Unrelated resizes are left alone.

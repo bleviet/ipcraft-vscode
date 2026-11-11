@@ -3,11 +3,10 @@ import type { PacketFormatRefInfo } from '../../../../shared/packetFormat';
 import type { LayoutPort } from './canvasLayout';
 import { PortTooltip } from './CanvasHud';
 import { PacketFormatCallout } from './PacketFormatCallout';
-import type { PacketDetailsTarget } from '../../hooks/usePacketDetails';
+import type { PacketDetailsTarget } from './packetDetails';
 
 export interface CanvasDetailsRowProps {
   target: PacketDetailsTarget;
-  pinned: boolean;
   ports: LayoutPort[];
   info: PacketFormatRefInfo | undefined;
   onOpen: (relativeFile: string) => void;
@@ -19,7 +18,6 @@ export interface CanvasDetailsRowProps {
  */
 export const CanvasDetailsRow: React.FC<CanvasDetailsRowProps> = ({
   target,
-  pinned,
   ports,
   info,
   onOpen,
@@ -67,7 +65,6 @@ export const CanvasDetailsRow: React.FC<CanvasDetailsRowProps> = ({
         busName={target.busName}
         packetRef={target.ref}
         info={info}
-        pinned={pinned}
         onOpen={onOpen}
       />
     </div>

@@ -25,7 +25,7 @@ import { CanvasHud } from './CanvasHud';
 import type { IssueFocusRequest } from '../../types/issues';
 import { PortMappingOverlay, type PendingPortDrop } from './PortMappingOverlay';
 import { CanvasDetailsRow } from './CanvasDetailsRow';
-import { usePacketDetails } from '../../hooks/usePacketDetails';
+import { packetDetailsTarget } from './packetDetails';
 import { useResizeAnchor } from '../../hooks/useResizeAnchor';
 import type { PacketFormatRefInfo } from '../../../../shared/packetFormat';
 import './canvas.css';
@@ -176,8 +176,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const packetDetails = usePacketDetails(hoveredId, selectedId, ipCore.busInterfaces);
-  const details = packetFormatInfos ? packetDetails.target : null;
+  // Clicking (selecting) a stream bus with a packet format opens the details row; deselecting closes it.
+  const details = packetFormatInfos ? packetDetailsTarget(selectedId, ipCore.busInterfaces) : null;
 
   const {
     zoom,
@@ -587,7 +587,7 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
   }, [showSearch, searchQuery, ports, subPorts, busDefs]);
 
   return (
-    <div className="ip-canvas-layout" onMouseLeave={packetDetails.clearPreview}>
+    <div className="ip-canvas-layout">
       <div className="ip-canvas-layout__body">
         <div
           ref={containerRef}
@@ -655,7 +655,8 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
             ipCore={ipCore}
             ports={ports}
             marqueeRect={marqueeRect}
-            hoveredId={details ? null : hoveredId}
+            // The details row already shows the info box of its bus; other ports keep their hover tooltip.
+            hoveredId={hoveredId === details?.portId ? null : hoveredId}
             showZoomIndicator={showZoomIndicator}
             zoom={zoom}
             multiSelectedIds={multiSelectedIds}
@@ -695,7 +696,6 @@ export const IpBlockCanvas: React.FC<IpBlockCanvasProps> = ({
         {details && packetFormatInfos && (
           <CanvasDetailsRow
             target={details}
-            pinned={packetDetails.pinned}
             ports={ports}
             info={packetFormatInfos[details.ref]}
             onOpen={(file) => onOpenPacketFormat?.(file)}

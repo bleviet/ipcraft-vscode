@@ -56,36 +56,42 @@ function renderCanvas(selectedId: string | null, onOpen = jest.fn()) {
 }
 
 describe('canvas details row with the packet format', () => {
-  it('previews on hover and stays until the pointer leaves the canvas', () => {
-    const { bundle, container } = renderCanvas(null);
-    expect(screen.queryByTestId('canvas-details')).not.toBeInTheDocument();
+  it('does not open on hover, only when the bus is clicked (selected)', () => {
+    const { bundle, container, rerender } = renderCanvas(null);
     fireEvent.mouseEnter(bundle('bus:0'));
+    expect(screen.queryByTestId('canvas-details')).not.toBeInTheDocument();
+
+    rerender(
+      <IpBlockCanvas
+        ipCore={ipCore}
+        selectedId="bus:0"
+        onSelect={jest.fn()}
+        busLibrary={builtinBusLibrary()}
+        packetFormatInfos={{ [REF]: info }}
+      />
+    );
     const card = screen.getByRole('region', { name: 'Packet format of m_axis' });
     const row = screen.getByTestId('canvas-details');
     expect(row).toHaveTextContent('Protocol');
     expect(row).toHaveTextContent('m_axis');
     expect(screen.getByTestId('lane-one-data').children).toHaveLength(2);
     expect(card).toHaveTextContent('extends base');
-    expect(screen.queryByText(/Open format/)).not.toBeInTheDocument();
-    // The info box moved into the row; the floating tooltip is not shown twice.
+    // The info box moved into the row; the floating tooltip of the hovered bus is not shown twice.
     expect(container.querySelectorAll('.ip-canvas-tooltip')).toHaveLength(1);
-    // Pointer moves from the bundle onto the canvas background (the row shrank the canvas under it).
-    fireEvent.mouseOut(bundle('bus:0'), {
-      relatedTarget: container.querySelector('.ip-canvas-container'),
-    });
-    expect(screen.getByTestId('canvas-details')).toBeInTheDocument();
-    fireEvent.mouseLeave(container.querySelector('.ip-canvas-layout')!);
-    expect(screen.queryByTestId('canvas-details')).not.toBeInTheDocument();
   });
 
-  it('closes a hover preview on Escape', () => {
-    const { bundle, container } = renderCanvas(null);
-    fireEvent.mouseEnter(bundle('bus:0'));
-    fireEvent.mouseOut(bundle('bus:0'), {
-      relatedTarget: container.querySelector('.ip-canvas-container'),
-    });
+  it('closes when the bus is deselected', () => {
+    const { rerender } = renderCanvas('bus:0');
     expect(screen.getByTestId('canvas-details')).toBeInTheDocument();
-    fireEvent.keyDown(window, { key: 'Escape' });
+    rerender(
+      <IpBlockCanvas
+        ipCore={ipCore}
+        selectedId={null}
+        onSelect={jest.fn()}
+        busLibrary={builtinBusLibrary()}
+        packetFormatInfos={{ [REF]: info }}
+      />
+    );
     expect(screen.queryByTestId('canvas-details')).not.toBeInTheDocument();
   });
 
@@ -119,7 +125,7 @@ describe('canvas details row with the packet format', () => {
     expect(view.getByTestId('lane-one-data-32')).toHaveTextContent('x');
   });
 
-  it('stays pinned while the bus is selected and opens the format file', () => {
+  it('stays open while another bus is hovered and opens the format file', () => {
     const { bundle, onOpen } = renderCanvas('bus:0');
     expect(screen.getByRole('region', { name: 'Packet format of m_axis' })).toBeInTheDocument();
     fireEvent.mouseEnter(bundle('bus:1'));
