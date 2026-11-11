@@ -16,6 +16,7 @@ import {
   type EnrichmentLog,
 } from './enrichmentIo';
 import { applyExportDirections } from './exportDirections';
+import { expandContainers } from './expandContainers';
 import { expandSubsystems } from './expandSubsystems';
 import type { HdlEntry } from './fileEntries';
 import {
@@ -69,7 +70,12 @@ export async function enrichSystemGraph<R>(
   if (hasOnlyHierarchies(read)) {
     return read;
   }
-  const graph = await expandSubsystems(read, designFile, io, log);
+  const graph = await expandContainers(
+    await expandSubsystems(read, designFile, io, log),
+    designFile,
+    io,
+    log
+  );
   const typed = Object.values(graph.instances).filter((instance) => instance.kind !== 'hier');
   if (typed.length === 0) {
     return graph;

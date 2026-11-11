@@ -1001,6 +1001,68 @@ and the view is marked partial, with a warning that lists the black boxes. A
 block that is created later in the same script is a normal block, not a black
 box.
 
+## Block design containers
+
+A Vivado block design can hold a container: a cell created with
+`create_bd_cell -type container`. The content of a container is a separate
+block design. IPCraft reads that block design from the Tcl script that
+generates it, never from the `.bd` build file, and shows the container as a
+hierarchy level. You can open it or expand it like any other hierarchy.
+
+To find the script, IPCraft uses the first of these that gives an answer:
+
+1. **Link.** A script you chose yourself with **Assign Tcl** (see below).
+2. **CMake project.** A script in the `DESIGN` list of the same
+   `add_vivado_project(...)` call that lists your design. This is the most
+   reliable automatic way, because that list is what the build really uses.
+3. **design_name.** A script in the workspace with `set design_name <name>`,
+   where `<name>` is the block design of the container.
+4. **File name.** A script named `<name>.tcl` that has no `set design_name`.
+
+The block design name is the `ACTIVE_SYNTH_BD` of the container, without `.bd`.
+Names must match exactly, including upper and lower case. If several scripts
+match at the same level, IPCraft takes the one nearest to your design in the
+folder tree. If two are equally near, it shows a warning and keeps the
+container as a black box until you choose one.
+
+When no script is found, the container stays a black box and a warning says so.
+Details shows **Assign Tcl…** for every container. Details also shows which
+script was read and how it was found, and lists the other block designs of
+the container, for example the alternatives of a dynamic function exchange
+region.
+
+**Assign Tcl** works in VS Code only. Select the container, choose **Assign
+Tcl…**, and pick one of the scripts IPCraft found, or **Browse…** for another
+one inside the workspace folder. **Remove assignment** goes back to the
+automatic choice. The choice is saved in `.ipcraft/bd-links.json` in the
+workspace folder:
+
+```json
+{
+  "version": 1,
+  "links": {
+    "fpga/board/src/tcl/top.tcl": {
+      "base_partition": "fpga/common/src/tcl/base_partition.tcl"
+    }
+  }
+}
+```
+
+Paths are relative to the workspace folder and use `/`. You can commit this
+file to share the choice with your team. A link must point to a `.tcl` file
+inside the workspace folder. If the linked script cannot be read, or the link
+is not valid, IPCraft warns and uses the automatic choice instead.
+
+`ipcraft render` resolves containers in the same way, but it searches only the
+folder given with `--workspace`, or the folder of the design file when you
+omit it. Use `--workspace <folder>` with a folder that contains all the Tcl
+files and the `CMakeLists.txt`. Use the repository root, which is the folder
+that holds `.ipcraft/`: the command reads `<folder>/.ipcraft/bd-links.json`,
+and the paths in that file are relative to that folder.
+
+In a workspace that is not trusted, VS Code does not resolve containers and
+**Assign Tcl…** does not work. Trust the workspace to use them.
+
 ## What the offline view cannot show
 
 - Default and propagated parameters. Only values set in the file appear.

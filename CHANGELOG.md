@@ -8,6 +8,10 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ## [Unreleased]
 
+### New
+
+- **Vivado block design containers show their content.** A cell created with `create_bd_cell -type container` is now read from the Tcl script that generates its block design and shown as a hierarchy level, in the system viewer, **Export image** and `ipcraft render`. IPCraft finds the script from the CMake project that lists your design, from `set design_name`, or from the file name, and Details shows which script was read and why. When no script is found, or several match, the container stays a black box with a warning. In VS Code, **Assign Tcl…** in Details lets you choose the script yourself; the choice is saved in `.ipcraft/bd-links.json`. For `ipcraft render`, use `--workspace` with a folder that contains the Tcl files.
+
 ### Fixed
 
 - **Avalon-MM registers decode at the right address when the address port is narrower than the register map.** With `portWidthOverrides: { address: 2 }` (a word-addressed slave, as the Nios II needs), a two-register map placed the second register at word address 2 instead of 1, so software writing `base + 4` missed it. The old VHDL wrapper was right only when the port was exactly as many bits narrower than the register file's address as the byte lane is wide (2 bits for 32-bit data), so it depended on the number of registers. The SystemVerilog wrapper was wrong for every narrow port (the upper address bits were undefined). The generated wrapper now shifts the word address by the width of a data word for any register count and address width, in VHDL and SystemVerilog, including a 1-bit address port. Byte-addressed slaves are unchanged.

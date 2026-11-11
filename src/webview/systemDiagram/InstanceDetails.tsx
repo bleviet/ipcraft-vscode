@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ResourceReport } from '../../domain/resourceUsage';
+import { BD_EVIDENCE_TEXT, containerDesigns } from '../../domain/bdContainer';
 import type { SystemGraph, SystemInstance } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { shownInside } from './changeMarks';
@@ -29,6 +30,7 @@ interface InstanceDetailsProps {
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
   onOpenDefinition: (instance: string) => void;
+  onAssignContainerTcl: (instance: string) => void;
 }
 
 const NO_NETS: ReadonlySet<string> = new Set();
@@ -45,6 +47,7 @@ export function InstanceDetails({
   onEnterHierarchy,
   onReveal,
   onOpenDefinition,
+  onAssignContainerTcl,
 }: InstanceDetailsProps) {
   const source = levelSource(graph, instance.parent);
   // Connected or not is a fact of the open design: a wire only the base has does not connect a pin.
@@ -63,8 +66,10 @@ export function InstanceDetails({
         !nets.has(endpointKey({ instance: instance.path, pin: pin.name })) &&
         unconnectedClass(pin, false) === 'undriven'
     );
-  const identity =
-    instance.kind === 'blackbox'
+  const container = containerDesigns(instance);
+  const identity = container
+    ? `Block design container ${container.active}`
+    : instance.kind === 'blackbox'
       ? 'Not defined in this file'
       : instance.kind === 'module'
         ? `Module reference ${instance.moduleRef ?? ''}`
@@ -103,9 +108,29 @@ export function InstanceDetails({
       </p>
       {instance.kind === 'blackbox' && (
         <p className="opacity-70">
-          This block is referenced by the design but not defined in the file read, so it is shown as
-          a black box. Its pins are the ones seen in connections.
+          {container
+            ? `This block design container is shown as a black box because no Tcl script that generates block design ${container.active} was found. Its pins are the ones seen in connections.`
+            : 'This block is referenced by the design but not defined in the file read, so it is shown as a black box. Its pins are the ones seen in connections.'}
         </p>
+      )}
+      {instance.container?.source && (
+        <p>
+          Read from <LineLink source={instance.container.source} line={1} onReveal={onReveal} /> (
+          {BD_EVIDENCE_TEXT[instance.container.source.evidence]})
+        </p>
+      )}
+      {container && (
+        <button
+          type="button"
+          className="sd-button"
+          title="Choose the Tcl script that generates this block design"
+          onClick={() => onAssignContainerTcl(instance.path)}
+        >
+          Assign Tcl…
+        </button>
+      )}
+      {container && container.alternatives.length > 0 && (
+        <p>Other block designs: {container.alternatives.join(', ')}</p>
       )}
       {instance.definition && (
         <p>

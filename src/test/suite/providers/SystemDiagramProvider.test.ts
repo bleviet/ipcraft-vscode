@@ -39,6 +39,7 @@ jest.mock('../../../services/resources/reportDiscovery', () => ({
 }));
 
 const mockEnrich = jest.fn();
+const mockCandidates = jest.fn();
 /** The revision of the workspace definitions the mocked enricher reports; a test bumps it. */
 let mockEnrichRevision = 1;
 
@@ -49,6 +50,7 @@ jest.mock('../../../services/systemDiagram/SystemDesignEnricher', () => ({
     }
     enrich = (graph: unknown, _file: string, readAt?: unknown) =>
       mockEnrich(graph, readAt) as Promise<unknown>;
+    bdTclCandidates = (file: string, bd: string) => mockCandidates(file, bd) as Promise<unknown>;
     dispose = jest.fn();
   },
 }));
@@ -89,6 +91,14 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
     }
   );
   (vscode.Uri.joinPath as jest.Mock).mockReturnValue({ fsPath: '/ext/dist' });
+
+  const linksWatcher = {
+    onDidCreate: jest.fn(),
+    onDidChange: jest.fn(),
+    onDidDelete: jest.fn(),
+    dispose: jest.fn(),
+  };
+  (vscode.workspace.createFileSystemWatcher as jest.Mock).mockReturnValue(linksWatcher);
 
   const documentState = { text };
   const document = {
@@ -149,6 +159,7 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
     workspaceStateStore,
     document: documentState,
     trustSubscription,
+    linksWatcher,
     grantTrust: () => {
       // The enricher's revision includes whether the workspace is trusted.
       mockEnrichRevision += 1;
@@ -415,6 +426,196 @@ describe('SystemDiagramProvider', () => {
     await send({ type: 'openDefinition', instance: '/axi_dma_0' });
     expect(vscode.Uri.parse).toHaveBeenCalledWith('vscode-remote://host/remote/dma.vhd');
     expect(vscode.Uri.file).not.toHaveBeenCalled();
+  });
+
+  describe('Assign Tcl', () => {
+    const FOLDER = '/ws';
+    const candidate = (file: string, evidence = 'design_name') => ({
+      evidence,
+      entry: { file, displayName: file.replace('/ws/', ''), uri: `file://${file}`, ref: file },
+    });
+
+    async function ready(extra: { levels?: object; instances?: object } = {}) {
+      const context = setup(fixtureText);
+      mockEnrich.mockImplementation((graph: { instances: Record<string, object> }) =>
+        Promise.resolve({
+          ...graph,
+          ...(extra.levels && { levels: extra.levels }),
+          instances: {
+            ...graph.instances,
+            '/axi_dma_0': { ...graph.instances['/axi_dma_0'], container: { reference: 'part' } },
+            ...extra.instances,
+          },
+        })
+      );
+      (vscode.workspace.getWorkspaceFolder as jest.Mock).mockReturnValue({
+        uri: { fsPath: FOLDER },
+      });
+      (vscode.Uri.joinPath as jest.Mock).mockImplementation(
+        (base: { fsPath: string }, ...rest) => ({
+          fsPath: [base.fsPath, ...rest].join('/'),
+        })
+      );
+      (vscode.workspace.fs.readFile as jest.Mock).mockRejectedValue(new Error('missing'));
+      (vscode.workspace.fs.writeFile as jest.Mock).mockResolvedValue(undefined);
+      (vscode.workspace.fs.createDirectory as jest.Mock).mockResolvedValue(undefined);
+      mockCandidates.mockResolvedValue([
+        candidate('/ws/fpga/common/part.tcl'),
+        candidate('/ws/fpga/other/part.tcl'),
+      ]);
+      await context.send({ type: 'ready' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return context;
+    }
+    const written = () =>
+      JSON.parse(
+        new TextDecoder().decode(
+          (vscode.workspace.fs.writeFile as jest.Mock).mock.calls[0][1] as Uint8Array
+        )
+      ) as unknown;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('offers the candidates, then writes the picked link and re-posts the graph', async () => {
+      const { send, posted } = await ready();
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
+        Promise.resolve(items[1])
+      );
+      await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
+      const items = (vscode.window.showQuickPick as jest.Mock).mock.calls[0][0] as {
+        label: string;
+        description?: string;
+        detail?: string;
+      }[];
+      expect(items.map((item) => item.label)).toEqual(['part.tcl', 'part.tcl', 'Browse…']);
+      expect(items[0]).toMatchObject({
+        description: 'fpga/common/part.tcl',
+        detail: 'design_name matches',
+      });
+      expect(mockCandidates).toHaveBeenCalledWith('/ws/zynq.tcl', 'part');
+      expect(vscode.workspace.fs.createDirectory).toHaveBeenCalled();
+      expect((vscode.workspace.fs.writeFile as jest.Mock).mock.calls[0][0]).toEqual({
+        fsPath: '/ws/.ipcraft/bd-links.json',
+      });
+      expect(written()).toEqual({
+        version: 1,
+        links: { 'zynq.tcl': { part: 'fpga/other/part.tcl' } },
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(posted.filter((m) => (m as { type: string }).type === 'graph')).toHaveLength(2);
+    });
+
+    it('removes an existing assignment', async () => {
+      const { send } = await ready();
+      (vscode.workspace.fs.readFile as jest.Mock).mockResolvedValue(
+        new TextEncoder().encode(
+          JSON.stringify({ version: 1, links: { 'zynq.tcl': { part: 'a/part.tcl' } } })
+        )
+      );
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
+        Promise.resolve(items.find((item) => item.label === 'Remove assignment'))
+      );
+      await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
+      expect(written()).toEqual({ version: 1, links: {} });
+    });
+
+    it('rejects a browsed file outside the workspace folder and writes nothing', async () => {
+      const { send } = await ready();
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
+        Promise.resolve(items.find((item) => item.label === 'Browse…'))
+      );
+      (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([
+        { fsPath: '/elsewhere/p.tcl' },
+      ]);
+      await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
+      expect(vscode.window.showOpenDialog).toHaveBeenCalledWith(
+        expect.objectContaining({ filters: { 'Tcl scripts': ['tcl'] } })
+      );
+      expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+      expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('writes a browsed file inside the folder', async () => {
+      const { send } = await ready();
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
+        Promise.resolve(items.find((item) => item.label === 'Browse…'))
+      );
+      (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([{ fsPath: '/ws/x/mine.tcl' }]);
+      await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
+      expect(written()).toEqual({ version: 1, links: { 'zynq.tcl': { part: 'x/mine.tcl' } } });
+    });
+
+    it('keys the link of a nested container by the file of its level', async () => {
+      (vscode.Uri.parse as jest.Mock).mockReturnValue({ fsPath: '/ws/common/part.tcl' });
+      const { send } = await ready({
+        levels: { '/part': { source: { uri: 'file:///ws/common/part.tcl' } } },
+        instances: {
+          '/part/deep': { parent: '/part', parameters: {}, container: { reference: 'deep' } },
+        },
+      });
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
+        Promise.resolve(items[0])
+      );
+      await send({ type: 'assignContainerTcl', instance: '/part/deep' });
+      expect(vscode.Uri.parse).toHaveBeenCalledWith('file:///ws/common/part.tcl');
+      expect(mockCandidates).toHaveBeenCalledWith('/ws/common/part.tcl', 'deep');
+      expect(written()).toEqual({
+        version: 1,
+        links: { 'common/part.tcl': { deep: 'fpga/common/part.tcl' } },
+      });
+    });
+
+    it('does nothing in an untrusted workspace', async () => {
+      const { send } = await ready();
+      (vscode.workspace as { isTrusted: boolean }).isTrusted = false;
+      try {
+        await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
+      } finally {
+        (vscode.workspace as { isTrusted: boolean }).isTrusted = true;
+      }
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        'Trust this workspace to assign a Tcl script.'
+      );
+      expect(vscode.workspace.fs.readFile).not.toHaveBeenCalled();
+      expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled();
+      expect(vscode.workspace.fs.createDirectory).not.toHaveBeenCalled();
+    });
+
+    it('does nothing for a cancelled pick, a non-container or outside a workspace folder', async () => {
+      const { send } = await ready();
+      (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(undefined);
+      await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
+      await send({ type: 'assignContainerTcl', instance: '/axi_gpio_0' });
+      expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled();
+      expect(vscode.window.showQuickPick).toHaveBeenCalledTimes(1);
+      (vscode.workspace.getWorkspaceFolder as jest.Mock).mockReturnValue(undefined);
+      await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        'Open the design inside a workspace folder to assign a Tcl script.'
+      );
+    });
+
+    it('re-posts the graph when the links file changes and disposes the watcher', async () => {
+      const { linksWatcher, posted, dispose } = await ready();
+      expect(vscode.workspace.createFileSystemWatcher).toHaveBeenCalledWith(
+        '**/.ipcraft/bd-links.json'
+      );
+      for (const on of [
+        linksWatcher.onDidCreate,
+        linksWatcher.onDidChange,
+        linksWatcher.onDidDelete,
+      ]) {
+        (on.mock.calls[0][0] as () => void)();
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(posted.filter((m) => (m as { type: string }).type === 'graph').length).toBeGreaterThan(
+        1
+      );
+      dispose();
+      expect(linksWatcher.dispose).toHaveBeenCalled();
+    });
   });
 
   it('re-posts the graph when workspace trust is granted and disposes the listener', async () => {

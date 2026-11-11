@@ -91,6 +91,7 @@ export type SystemDiagramToExtensionMessage =
   | { type: 'ready' }
   | { type: 'revealSource'; line: number; uri?: string }
   | { type: 'openDefinition'; instance: string }
+  | { type: 'assignContainerTcl'; instance: string }
   | { type: 'setHighlights'; highlights: HighlightMap }
   | { type: 'exportImage'; options: ExportImageOptions; view: SystemExportView }
   /** Pick a revision or file to compare the open design with. */

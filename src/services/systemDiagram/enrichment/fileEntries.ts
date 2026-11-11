@@ -23,10 +23,15 @@ export interface FileLocation<R> {
 export type IpEntry<R> = IpFileKey & FileLocation<R> & { ipCore: IpCore };
 export type HdlEntry<R> = HdlFileKey & FileLocation<R>;
 export type QsysEntry<R> = QsysFileKey & FileLocation<R>;
+/** `designName`: the `set design_name` of a block design Tcl script, if it has one. */
+export type BdTclEntry<R> = FileLocation<R> & { designName?: string };
 
 /** Generated netlists are not module references. */
 export const HDL_MAX_BYTES = 1024 * 1024;
+/** Larger Tcl files are skipped. */
+export const TCL_MAX_BYTES = 4 * 1024 * 1024;
 
+const DESIGN_NAME = /^\s*set\s+design_name\s+(\S+)\s*$/m;
 const VHDL_ENTITY = /^\s*entity\s+([A-Za-z_]\w*)\s+is\b/gim;
 // SystemVerilog lifetime keywords may sit between `module` and its name.
 const VERILOG_MODULE = /^\s*module\s+(?:(?:automatic|static)\s+)?([A-Za-z_]\w*)/gm;
@@ -52,4 +57,10 @@ export function hdlEntryFromText<R>(text: string, location: FileLocation<R>): Hd
 
 export function qsysEntry<R>(location: FileLocation<R>): QsysEntry<R> {
   return { ...location, systemName: fileBaseName(location.file) };
+}
+
+export function bdTclEntryFromText<R>(text: string, location: FileLocation<R>): BdTclEntry<R> {
+  const raw = DESIGN_NAME.exec(text)?.[1];
+  const designName = raw?.replace(/^"(.*)"$|^\{(.*)\}$/, '$1$2');
+  return designName === undefined ? location : { ...location, designName };
 }

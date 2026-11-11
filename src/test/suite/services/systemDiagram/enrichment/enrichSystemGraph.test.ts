@@ -46,6 +46,10 @@ function fakeIo(files: Record<string, string>) {
       calls.qsys += 1;
       return names(/\.qsys$/).map((n) => qsysEntry(location(n)));
     },
+    listBdTclFiles: async () => [],
+    listCmakeFiles: async () => [],
+    locate: (file) => location(file),
+    readBdLinks: async () => ({ links: {}, rejected: {} }),
     readText: async (ref) => files[ref],
   };
   return { io, calls };

@@ -187,6 +187,67 @@ describe('definitions', () => {
   });
 });
 
+describe('block design containers', () => {
+  const part = (inner: string) =>
+    `set design_name part\ncreate_bd_port -dir I -type clk clk\ncreate_bd_cell -type ip -vlnv a:b:c:1 ${inner}\n`;
+  const files = {
+    'fpga/b/CMakeLists.txt':
+      'add_vivado_project(b\n  DESIGN src/tcl/top.tcl;../common/src/tcl/part.tcl\n)\n',
+    'fpga/b/src/tcl/top.tcl':
+      'create_bd_cell -type container -reference part part\nconnect_bd_net -net n [get_bd_pins part/clk]\n',
+    'fpga/common/src/tcl/part.tcl': part('inner_common'),
+    'fpga/other/src/tcl/part.tcl': part('inner_other'),
+    'fpga/b/build/x.gen/sources_1/bd/part/hw_handoff/part.tcl': part('inner_handoff'),
+  };
+
+  it('expands the container from the script its CMake project lists', async () => {
+    const dir = workspace(files);
+    const svg = await render(path.join(dir, 'fpga/b/src/tcl/top.tcl'), {
+      level: '/part',
+      workspace: dir,
+    });
+    expect(svg).toContain('inner_common');
+    expect(svg).not.toContain('inner_other');
+    expect(svg).not.toContain('inner_handoff');
+  });
+
+  it('never lists a generated folder or a CMake file without a Vivado project', async () => {
+    const dir = workspace({ ...files, 'fpga/c/CMakeLists.txt': 'project(c)\n' });
+    const io = createWorkspaceIo(dir);
+    expect((await io.listBdTclFiles()).map((e) => e.displayName)).toEqual([
+      'fpga/b/src/tcl/top.tcl',
+      'fpga/common/src/tcl/part.tcl',
+      'fpga/other/src/tcl/part.tcl',
+    ]);
+    expect((await io.listCmakeFiles()).map((e) => e.file)).toEqual([
+      path.join(dir, 'fpga/b/CMakeLists.txt'),
+    ]);
+  });
+
+  it('reads the links file and ignores an invalid one', async () => {
+    const dir = workspace({
+      ...files,
+      '.ipcraft/bd-links.json': JSON.stringify({
+        version: 1,
+        links: { 'fpga/b/src/tcl/top.tcl': { part: 'fpga/other/src/tcl/part.tcl' } },
+      }),
+    });
+    const design = path.join(dir, 'fpga/b/src/tcl/top.tcl');
+    expect(await createWorkspaceIo(dir).readBdLinks(design)).toEqual({
+      links: { part: path.join(dir, 'fpga/other/src/tcl/part.tcl') },
+      rejected: {},
+    });
+    expect(await render(design, { level: '/part', workspace: dir })).toContain('inner_other');
+    const warnings: string[] = [];
+    fs.writeFileSync(path.join(dir, '.ipcraft/bd-links.json'), '{');
+    expect(await createWorkspaceIo(dir, (m) => warnings.push(m)).readBdLinks(design)).toEqual({
+      links: {},
+      rejected: {},
+    });
+    expect(warnings).toHaveLength(1);
+  });
+});
+
 describe('file discovery', () => {
   it('skips dependency and generated folders and files over 1 MiB', async () => {
     const dir = workspace({

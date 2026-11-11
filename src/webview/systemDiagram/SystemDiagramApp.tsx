@@ -15,6 +15,7 @@ export function SystemDiagramApp() {
     state,
     revealSource,
     openDefinition,
+    assignContainerTcl,
     setHighlights,
     imageExport,
     startCompare,
@@ -39,6 +40,7 @@ export function SystemDiagramApp() {
           problem={state.problem}
           revealSource={revealSource}
           openDefinition={openDefinition}
+          assignContainerTcl={assignContainerTcl}
           onChangeHighlights={setHighlights}
           imageExport={imageExport}
           compare={state.compare}

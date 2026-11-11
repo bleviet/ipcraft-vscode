@@ -7,6 +7,7 @@ import type {
   CurrentSide,
 } from '../services/systemDiagram/compare/SystemDesignCompare';
 import type { SystemGraph } from '../domain/systemGraph';
+import { BD_LINKS_FILE } from '../services/systemDiagram/enrichment/bdLinks';
 import { WebviewRouter } from '../services/WebviewRouter';
 import type {
   SystemDiagramToExtensionMessage,
@@ -16,6 +17,7 @@ import { pruneHighlights } from '../webview/systemDiagram/highlights';
 import type { RenderAssets } from '../services/render/renderResources';
 import type { RenderRoots } from '../services/render/imageEncoding';
 import { Logger } from '../utils/Logger';
+import { assignContainerTcl } from './assignContainerTcl';
 import { settleWithin, STILL_PENDING } from './settleWithin';
 import { ExportTargets } from './imageExport/ExportTargets';
 import { ImageExportHost } from './imageExport/ImageExportHost';
@@ -296,6 +298,18 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       }
     });
 
+    router.on('assignContainerTcl', async (message) => {
+      const changed = await assignContainerTcl({
+        graph: lastGraph,
+        instancePath: message.instance,
+        openDesign: document.fileName,
+        candidates: (designFile, bd) => this.enricher.bdTclCandidates(designFile, bd),
+      });
+      if (changed) {
+        await postGraph();
+      }
+    });
+
     router.on('setHighlights', async (message) => {
       let highlights = pruneHighlights(lastGraph, message.highlights);
       if (!lastGraphFinal) {
@@ -349,11 +363,17 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     const trustGranted = vscode.workspace.onDidGrantWorkspaceTrust(() => {
       void postGraph();
     });
+    const linksWatcher = vscode.workspace.createFileSystemWatcher(`**/${BD_LINKS_FILE}`);
+    const linksChanged = () => void postGraph();
+    linksWatcher.onDidCreate(linksChanged);
+    linksWatcher.onDidChange(linksChanged);
+    linksWatcher.onDidDelete(linksChanged);
     webviewPanel.onDidDispose(() => {
       disposed = true;
       compare.dispose();
       resources.dispose();
       this.panels.remove(webviewPanel);
+      linksWatcher.dispose();
       documentChanges.dispose();
       trustGranted.dispose();
       exportTarget.dispose();

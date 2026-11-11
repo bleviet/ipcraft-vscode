@@ -38,6 +38,7 @@ interface DetailsPanelProps {
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
   onOpenDefinition: (instance: string) => void;
+  onAssignContainerTcl: (instance: string) => void;
 }
 
 /** The design as opened: `graph` may hold the ghosts of a comparison, which are not part of it. */
@@ -247,6 +248,7 @@ export function DetailsPanel({
   onEnterHierarchy,
   onReveal,
   onOpenDefinition,
+  onAssignContainerTcl,
 }: DetailsPanelProps) {
   const items = selectedItems ?? selectedNodeIds.map(nodeSelection);
   let content: React.ReactNode = <DesignSummary graph={graph} comparison={comparison} />;
@@ -272,6 +274,7 @@ export function DetailsPanel({
         onEnterHierarchy={onEnterHierarchy}
         onReveal={onReveal}
         onOpenDefinition={onOpenDefinition}
+        onAssignContainerTcl={onAssignContainerTcl}
       />
     );
   } else if (selection?.kind === 'net') {

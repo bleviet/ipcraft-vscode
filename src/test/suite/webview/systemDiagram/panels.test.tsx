@@ -21,6 +21,7 @@ describe('InstanceDetails with a pin on several nets', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     // The first match is the Pins table; the interface clocks table lists `s1` again.
@@ -54,6 +55,7 @@ describe('InstanceDetails pin provenance', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     const direction = (name: string) =>
@@ -115,12 +117,71 @@ describe('InstanceDetails black box', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     expect(screen.getByText(/Black box · Not defined in this file/)).toBeVisible();
     expect(screen.getByText(/shown as a black box/)).toBeVisible();
     expect(screen.getAllByText('s1').length).toBeGreaterThan(0);
     expect(screen.queryByText('Open hierarchy')).toBeNull();
+  });
+});
+
+describe('InstanceDetails block design container', () => {
+  const containerGraph = (source?: { evidence: 'cmake' }) => {
+    const graph = JSON.parse(JSON.stringify(qsys)) as typeof qsys;
+    const instance = graph.instances['/pio_0'];
+    instance.kind = source ? 'hier' : 'blackbox';
+    instance.container = {
+      reference: 'part',
+      ...(source && {
+        source: { fileName: 'tcl/part.tcl', uri: 'file:///ws/tcl/part.tcl', ...source },
+      }),
+    };
+    instance.parameters = {
+      'CONFIG.ACTIVE_SYNTH_BD': 'part.bd',
+      'CONFIG.LIST_SYNTH_BD': 'other.bd:part.bd',
+    };
+    return graph;
+  };
+  const show = (graph: typeof qsys, onReveal = jest.fn(), onAssign = jest.fn()) =>
+    render(
+      <InstanceDetails
+        graph={graph}
+        clocks={analyzeClocks(graph)}
+        instance={graph.instances['/pio_0']}
+        onSelect={jest.fn()}
+        onEnterHierarchy={jest.fn()}
+        onReveal={onReveal}
+        onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={onAssign}
+      />
+    );
+
+  it('names the block design, explains the black box and offers Assign Tcl', () => {
+    const onAssign = jest.fn();
+    show(containerGraph(), jest.fn(), onAssign);
+    expect(screen.getByText(/Block design container part/, { selector: 'p' })).toBeVisible();
+    expect(
+      screen.getByText(/no Tcl script that generates block design part was found/)
+    ).toBeVisible();
+    expect(screen.getByText('Other block designs: other')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Assign Tcl…' }));
+    expect(onAssign).toHaveBeenCalledWith('/pio_0');
+  });
+
+  it('shows the source script and how it was found', () => {
+    const onReveal = jest.fn();
+    show(containerGraph({ evidence: 'cmake' }), onReveal);
+    expect(screen.getByText(/listed in the CMake project/)).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'part.tcl:1' }));
+    expect(onReveal).toHaveBeenCalledWith(1, 'file:///ws/tcl/part.tcl');
+    expect(screen.queryByText(/shown as a black box/)).toBeNull();
+  });
+
+  it('has no Assign Tcl button on other instances', () => {
+    show(JSON.parse(JSON.stringify(qsys)) as typeof qsys);
+    expect(screen.queryByRole('button', { name: 'Assign Tcl…' })).toBeNull();
   });
 });
 

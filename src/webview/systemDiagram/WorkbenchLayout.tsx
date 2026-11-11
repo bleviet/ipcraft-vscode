@@ -45,6 +45,7 @@ interface WorkbenchLayoutProps {
   problem?: DiagramProblem;
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
+  assignContainerTcl: (instance: string) => void;
   onChangeHighlights?: (highlights: HighlightMap) => void;
   imageExport?: ImageExportChannel;
   /** The resource sources and numbers, and the gestures that ask for others; without it there is no Resources toggle. */
@@ -65,6 +66,7 @@ export function WorkbenchLayout({
   problem,
   revealSource,
   openDefinition,
+  assignContainerTcl,
   onChangeHighlights,
   imageExport,
   resourceChannel,
@@ -381,6 +383,7 @@ export function WorkbenchLayout({
                   onEnterHierarchy={nav.enterHierarchy}
                   onReveal={revealSource}
                   onOpenDefinition={openDefinition}
+                  onAssignContainerTcl={assignContainerTcl}
                 />
               </div>
             </>

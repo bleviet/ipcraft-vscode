@@ -88,6 +88,7 @@ export const workspace = {
     readFile: jest.fn(),
     writeFile: jest.fn(),
     stat: jest.fn(),
+    createDirectory: jest.fn(),
   },
   workspaceFolders: undefined as undefined | Array<{ uri: { fsPath: string } }>,
 };

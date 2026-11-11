@@ -82,6 +82,10 @@ export function revisionIo<R>(io: EnrichmentIo<R>, readAt: ReadAt<R>): Enrichmen
       return entries;
     },
     listQsysFiles: () => io.listQsysFiles(),
+    listBdTclFiles: () => io.listBdTclFiles(),
+    listCmakeFiles: () => io.listCmakeFiles(),
+    locate: (file) => io.locate(file),
+    readBdLinks: (designFile) => io.readBdLinks(designFile),
     readText: async (ref) => {
       let text: string | undefined;
       try {
