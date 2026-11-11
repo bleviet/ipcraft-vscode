@@ -55,6 +55,14 @@ export function hdlEntryFromText<R>(text: string, location: FileLocation<R>): Hd
   };
 }
 
+/**
+ * The base names (without extension) of the HDL files read first for the module references
+ * `refs`: each name as written and in lower case (VHDL names ignore case).
+ */
+export function hdlFileNames(refs: Iterable<string>): string[] {
+  return [...new Set([...refs].flatMap((ref) => [ref, ref.toLowerCase()]))].sort();
+}
+
 export function qsysEntry<R>(location: FileLocation<R>): QsysEntry<R> {
   return { ...location, systemName: fileBaseName(location.file) };
 }

@@ -29,8 +29,14 @@ show](#what-the-offline-view-cannot-show).
    System Diagram**.
 3. Press the same keys again to return to the text editor.
 
-The diagram updates as you edit the file. If an edit breaks the file, the
+The diagram updates when you pause typing. If an edit breaks the file, the
 diagram keeps the last valid design and shows a banner with the reason.
+
+The first time you open a design, IPCraft searches the workspace for the IP and
+HDL definitions it uses. If that takes longer than a moment, the diagram is
+shown first and a **Resolving workspace definitions…** notice appears at the
+top of the canvas until the search is done. After **Assign Tcl…**, the notice
+**Reloading the design…** appears while the design is read again.
 
 ## Navigate
 
@@ -131,7 +137,13 @@ The **Unconnected** tab lists every finding with its pin, block, level, directio
 
 The outline, details, and bottom panels start hidden so the diagram has the
 full width. Use the three buttons at the top right to show or hide them. Drag
-the edge of a panel to resize it. For the arrow-key resize and the double-click
+the edge of a panel to resize it.
+
+The details panel shows what you selected: the design, a block, a net or a
+port. A block shows its name and type at the top, then the actions it offers,
+such as **Open hierarchy** or **Assign Tcl…**, then its parameters and pins with
+their counts. Long pin and net names end in `…`; point at a name to see it in
+full. For the arrow-key resize and the double-click
 that collapses a panel, see [Keyboard Shortcuts](../reference/keyboard-shortcuts.md#system-diagram).
 
 ![System diagram with the outline and details panels open](../images/system-diagram-overview-light.png)
@@ -213,13 +225,13 @@ script." It is the requested value: Vivado can round the output of a processing
 system or a clocking wizard during validation, and the achieved frequency is not
 available offline.
 
-| Clock source | Value read |
-|---|---|
-| Zynq-7000 `processing_system7`, pin `FCLK_CLK<n>` | `CONFIG.PCW_FPGA<n>_PERIPHERAL_FREQMHZ` |
-| Zynq UltraScale+ `zynq_ultra_ps_e`, pin `pl_clk<n>` | `CONFIG.PSU__CRL_APB__PL<n>_REF_CTRL__FREQMHZ` |
-| Clocking Wizard `clk_wiz`, pin `clk_out<n>` | `CONFIG.CLKOUT<n>_REQUESTED_OUT_FREQ` |
-| Platform Designer `clock_source` | `clockFrequency` |
-| External port or hierarchy pin | `CONFIG.FREQ_HZ`, or the `-freq_hz` flag of `create_bd_port` / `create_bd_pin` that Vivado writes in exported scripts |
+| Clock source                                        | Value read                                                                                                            |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Zynq-7000 `processing_system7`, pin `FCLK_CLK<n>`   | `CONFIG.PCW_FPGA<n>_PERIPHERAL_FREQMHZ`                                                                               |
+| Zynq UltraScale+ `zynq_ultra_ps_e`, pin `pl_clk<n>` | `CONFIG.PSU__CRL_APB__PL<n>_REF_CTRL__FREQMHZ`                                                                        |
+| Clocking Wizard `clk_wiz`, pin `clk_out<n>`         | `CONFIG.CLKOUT<n>_REQUESTED_OUT_FREQ`                                                                                 |
+| Platform Designer `clock_source`                    | `clockFrequency`                                                                                                      |
+| External port or hierarchy pin                      | `CONFIG.FREQ_HZ`, or the `-freq_hz` flag of `create_bd_port` / `create_bd_pin` that Vivado writes in exported scripts |
 
 When the parameter is not set, or the source has no rule, no frequency is shown.
 An `.ip.yml` clock can declare the frequency it expects (`frequency`); Details
@@ -937,7 +949,9 @@ A match adds pins that the design leaves unconnected, pin directions, and
 interface types. The details panel then shows a **Defined by** link that opens
 the definition. When several files match, a Platform Designer component first
 prefers the file with the same version; otherwise the file nearest to the design
-file wins. Large HDL files and generated or dependency folders are skipped.
+file wins. For a module reference, a file named after the module (for example
+`my_block.vhd` for `my_block`) is used first; IPCraft reads the other HDL files
+only when no such file defines it. Large HDL files and generated or dependency folders are skipped.
 A match that cannot be decided is not used.
 
 In an untrusted workspace, IPCraft reads no definitions. Trust the workspace to
@@ -1031,8 +1045,9 @@ script was read and how it was found, and lists the other block designs of
 the container, for example the alternatives of a dynamic function exchange
 region.
 
-**Assign Tcl** works in VS Code only. Select the container, choose **Assign
-Tcl…**, and pick one of the scripts IPCraft found, or **Browse…** for another
+**Assign Tcl** works in VS Code only. Right-click the container in the
+diagram and choose **Assign Tcl…**, or select it and choose **Assign Tcl…**
+in Details. Then pick one of the scripts IPCraft found, or **Browse…** for another
 one inside the workspace folder. **Remove assignment** goes back to the
 automatic choice. The choice is saved in `.ipcraft/bd-links.json` in the
 workspace folder:

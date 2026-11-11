@@ -31,12 +31,18 @@ const location = (file: string) => ({
 
 /** An in-memory workspace: file name -> text. Counts the list calls. */
 function fakeIo(files: Record<string, string>) {
-  const calls = { ip: 0, hdl: 0, qsys: 0 };
+  const calls = { ip: 0, hdlNamed: 0, hdl: 0, qsys: 0 };
   const names = (pattern: RegExp) => Object.keys(files).filter((name) => pattern.test(name));
   const io: EnrichmentIo<string> = {
     listIpFiles: async () => {
       calls.ip += 1;
       return names(/\.ip\.yml$/).map((n) => ipEntryFromText(files[n], location(n)));
+    },
+    listHdlFilesNamed: async (wanted) => {
+      calls.hdlNamed += 1;
+      return names(/\.vhd$/)
+        .filter((n) => wanted.includes(n.replace(/^.*\/|\.vhd$/g, '')))
+        .map((n) => hdlEntryFromText(files[n], location(n)));
     },
     listHdlFiles: async () => {
       calls.hdl += 1;
@@ -71,17 +77,29 @@ describe('enrichSystemGraph', () => {
     expect(pinNames(graph, 'pulse_0')).toEqual(expect.arrayContaining(['clk', 'q']));
   });
 
+  it('reads the HDL index only when no file named after the module defines it', async () => {
+    const named = fakeIo({ 'my_core.ip.yml': IP_YML, 'rtl/pulse_gen.vhd': PULSE });
+    const graph = await enrichSystemGraph(bdGraph, '/ws/d.tcl', named.io);
+    expect(pinNames(graph, 'pulse_0')).toEqual(expect.arrayContaining(['clk', 'q']));
+    expect(named.calls.hdl).toBe(0);
+
+    const elsewhere = fakeIo({ 'pulse_gen.vhd': 'entity other is end;', 'rtl/gens.vhd': PULSE });
+    const found = await enrichSystemGraph(bdGraph, '/ws/d.tcl', elsewhere.io);
+    expect(pinNames(found, 'pulse_0')).toEqual(expect.arrayContaining(['clk', 'q']));
+    expect(elsewhere.calls.hdl).toBe(1);
+  });
+
   it('lists only the file kinds the graph needs', async () => {
     const { io, calls } = fakeIo({ 'my_core.ip.yml': IP_YML });
     await enrichSystemGraph(bdGraph, '/ws/d.tcl', io);
-    expect(calls).toEqual({ ip: 1, hdl: 1, qsys: 0 });
+    expect(calls).toEqual({ ip: 1, hdlNamed: 1, hdl: 1, qsys: 0 });
     const qsys = readQsys(
       '<system name="s"><module name="a" kind="k" version="1" /></system>',
       's.qsys'
     );
     const second = fakeIo({});
     await enrichSystemGraph(qsys, '/ws/s.qsys', second.io);
-    expect(second.calls).toEqual({ ip: 1, hdl: 0, qsys: 1 });
+    expect(second.calls).toEqual({ ip: 1, hdlNamed: 0, hdl: 0, qsys: 1 });
   });
 
   it('grafts a subsystem and reports one that instantiates itself', async () => {

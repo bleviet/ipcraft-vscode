@@ -5,7 +5,7 @@
  * supplies its file discovery and reads through {@link EnrichmentIo}.
  */
 
-import type { SystemDiagnostic, SystemGraph } from '../../../domain/systemGraph';
+import type { SystemDiagnostic, SystemGraph, SystemInstance } from '../../../domain/systemGraph';
 import { extractVerilogInterface } from '../../../parser/VerilogParser';
 import { extractVhdlInterface, type ParsedPort } from '../../../parser/VhdlParser';
 import { applyDefinitions } from './applyDefinitions';
@@ -18,7 +18,7 @@ import {
 import { applyExportDirections } from './exportDirections';
 import { expandContainers } from './expandContainers';
 import { expandSubsystems } from './expandSubsystems';
-import type { HdlEntry } from './fileEntries';
+import { hdlFileNames, type HdlEntry } from './fileEntries';
 import {
   definitionFromHdl,
   definitionFromIpCore,
@@ -55,6 +55,35 @@ function hdlPorts(
     : undefined;
 }
 
+const defines = (file: HdlEntry<unknown>, ref: string) =>
+  file.vhdlEntities.some((name) => name.toLowerCase() === ref.toLowerCase()) ||
+  file.verilogModules.includes(ref);
+
+/**
+ * The HDL files for the module instances: the files named after the references, plus the
+ * whole HDL index only when one reference is not defined in such a file. Reading the
+ * index means reading thousands of files in a large workspace.
+ */
+async function moduleFiles<R>(
+  typed: readonly SystemInstance[],
+  io: EnrichmentIo<R>
+): Promise<HdlEntry<R>[]> {
+  const modules = typed.filter((instance) => instance.kind === 'module');
+  if (modules.length === 0) {
+    return [];
+  }
+  const refs = new Set(modules.flatMap((instance) => instance.moduleRef ?? []));
+  const named = refs.size > 0 ? await io.listHdlFilesNamed(hdlFileNames(refs)) : [];
+  if ([...refs].every((ref) => named.some((file) => defines(file, ref)))) {
+    return named;
+  }
+  const byFile = new Map(named.map((file) => [file.file, file]));
+  for (const file of await io.listHdlFiles()) {
+    byFile.set(file.file, file);
+  }
+  return [...byFile.values()];
+}
+
 /** Whether every instance is a hierarchy block: nothing to look up. */
 export function hasOnlyHierarchies(graph: SystemGraph): boolean {
   return Object.values(graph.instances).every((instance) => instance.kind === 'hier');
@@ -81,9 +110,7 @@ export async function enrichSystemGraph<R>(
     return graph;
   }
   const ipFiles = await io.listIpFiles(graph, designFile);
-  const hdlFiles = typed.some((instance) => instance.kind === 'module')
-    ? await io.listHdlFiles()
-    : [];
+  const hdlFiles = await moduleFiles(typed, io);
   const matches = matchDefinitions(graph, ipFiles, hdlFiles, designFile);
 
   const definitions = new Map<string, InstanceDefinition>();

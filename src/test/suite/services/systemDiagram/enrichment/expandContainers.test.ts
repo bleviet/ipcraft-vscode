@@ -48,6 +48,7 @@ function fakeIo(
   const calls = { tcl: 0, cmake: 0, links: 0 };
   const io: EnrichmentIo<string> = {
     listIpFiles: async () => [],
+    listHdlFilesNamed: async () => [],
     listHdlFiles: async () => [],
     listQsysFiles: async () => [],
     listBdTclFiles: async () => {
@@ -107,6 +108,20 @@ describe('expandContainers', () => {
       evidence: 'cmake',
     });
     expect(warnings(graph)).toEqual([]);
+  });
+
+  it('does not read the workspace Tcl index when the link or the CMake project decides', async () => {
+    const mine = '/ws/mine/anything.tcl';
+    const byProject = fakeIo(
+      { [COMMON]: partScript('part') },
+      { cmake: [{ file: '/c/CMakeLists.txt', projects: [[DESIGN, COMMON]] }] }
+    );
+    await expandContainers(read(top()), DESIGN, byProject.io);
+    const byLink = fakeIo({ [mine]: partScript('part') }, { links: { part: mine } });
+    await expandContainers(read(top()), DESIGN, byLink.io);
+    const undecided = fakeIo({ [COMMON]: partScript('part') });
+    await expandContainers(read(top()), DESIGN, undecided.io);
+    expect([byProject.calls.tcl, byLink.calls.tcl, undecided.calls.tcl]).toEqual([0, 0, 1]);
   });
 
   it('never reads a non-Tcl file listed in a project', async () => {

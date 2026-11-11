@@ -80,10 +80,13 @@ export function InstanceDetails({
             : 'Hierarchy';
   return (
     <div className="space-y-3">
-      <header>
+      <header className="sd-dhead">
         <div className="sd-eyebrow">Instance</div>
-        <h2 className="sd-h2">{instance.name}</h2>
-        <p className="opacity-70">
+        <h2 className="sd-h2">
+          <span className={`sd-ico sd-ico-${instance.kind}`} aria-hidden="true" />
+          {instance.name}
+        </h2>
+        <p className="sd-meta">
           {instance.kind === 'blackbox' ? 'Black box' : instance.kind} · {identity}
         </p>
       </header>
@@ -96,7 +99,7 @@ export function InstanceDetails({
           inside={shownInside(comparison.marks.blocks.get(instance.path))}
         />
       )}
-      <p>
+      <p className="sd-source">
         {instance.kind === 'blackbox' ? 'First referenced at' : 'Created at'}{' '}
         <LineLink source={source} line={instance.line} onReveal={onReveal} />
         {instance.procLine !== undefined && (
@@ -107,7 +110,7 @@ export function InstanceDetails({
         )}
       </p>
       {instance.kind === 'blackbox' && (
-        <p className="opacity-70">
+        <p className="sd-callout">
           {container
             ? `This block design container is shown as a black box because no Tcl script that generates block design ${container.active} was found. Its pins are the ones seen in connections.`
             : 'This block is referenced by the design but not defined in the file read, so it is shown as a black box. Its pins are the ones seen in connections.'}
@@ -119,15 +122,28 @@ export function InstanceDetails({
           {BD_EVIDENCE_TEXT[instance.container.source.evidence]})
         </p>
       )}
-      {container && (
-        <button
-          type="button"
-          className="sd-button"
-          title="Choose the Tcl script that generates this block design"
-          onClick={() => onAssignContainerTcl(instance.path)}
-        >
-          Assign Tcl…
-        </button>
+      {(Boolean(container) || instance.kind === 'hier') && (
+        <div className="sd-actions">
+          {instance.kind === 'hier' && (
+            <button
+              type="button"
+              className="sd-button sd-button-primary"
+              onClick={() => onEnterHierarchy(instance.path)}
+            >
+              Open hierarchy
+            </button>
+          )}
+          {container && (
+            <button
+              type="button"
+              className={instance.kind === 'blackbox' ? 'sd-button sd-button-primary' : 'sd-button'}
+              title="Choose the Tcl script that generates this block design"
+              onClick={() => onAssignContainerTcl(instance.path)}
+            >
+              Assign Tcl…
+            </button>
+          )}
+        </div>
       )}
       {container && container.alternatives.length > 0 && (
         <p>Other block designs: {container.alternatives.join(', ')}</p>
@@ -145,25 +161,22 @@ export function InstanceDetails({
           </button>
         </p>
       )}
-      {instance.kind === 'hier' && (
-        <button type="button" className="sd-button" onClick={() => onEnterHierarchy(instance.path)}>
-          Open hierarchy
-        </button>
-      )}
       <section>
-        <h3 className="sd-h3">Parameters</h3>
-        <p className="text-xs opacity-70">
+        <h3 className="sd-h3">
+          Parameters <span className="sd-count">{parameters.length}</span>
+        </h3>
+        <p className="sd-note">
           Only values set in the design file are shown. Defaults and propagated values are not
           available offline.
         </p>
         {parameters.length === 0 ? (
-          <p className="opacity-70">None set.</p>
+          <p className="sd-note">None set.</p>
         ) : (
-          <dl className="sd-kv">
+          <dl className="sd-kv sd-kv-code">
             {parameters.map(([key, value]) => (
               <React.Fragment key={key}>
-                <dt>{key}</dt>
-                <dd className="break-all">{value}</dd>
+                <dt title={key}>{key}</dt>
+                <dd>{value}</dd>
               </React.Fragment>
             ))}
           </dl>
@@ -173,8 +186,10 @@ export function InstanceDetails({
         <ResourceDetails report={resources} compare={compareResources} path={instance.path} />
       )}
       <section>
-        <h3 className="sd-h3">Pins</h3>
-        <table className="sd-table">
+        <h3 className="sd-h3">
+          Pins <span className="sd-count">{instance.pins.length}</span>
+        </h3>
+        <table className="sd-table sd-pins">
           <thead>
             <tr>
               <th>Pin</th>
@@ -196,7 +211,7 @@ export function InstanceDetails({
                   key={pin.name}
                   className={focusedPin === pin.name ? 'sd-row-selected' : undefined}
                 >
-                  <td>
+                  <td className="sd-cut" title={pin.name}>
                     {pin.name}
                     {onlyInBase && (
                       <>
@@ -219,7 +234,8 @@ export function InstanceDetails({
                         <div key={net.id}>
                           <button
                             type="button"
-                            className="sd-link"
+                            className="sd-link sd-cut"
+                            title={net.name}
                             onClick={() => onSelect({ kind: 'net', id: net.id })}
                           >
                             {net.name}
@@ -257,7 +273,7 @@ export function InstanceDetails({
                       </div>
                     ))}
                   </td>
-                  <td>
+                  <td className="sd-dim">
                     {pin.direction} <span className="opacity-60">({pin.directionSource})</span>
                     {pin.definedBy ? ` · ${pin.definedBy}` : ''}
                   </td>
@@ -267,13 +283,13 @@ export function InstanceDetails({
           </tbody>
         </table>
         {hasUndriven && (
-          <p className="mt-2 text-xs opacity-70">
+          <p className="sd-note mt-2">
             The vendor tool ties an input without a driver to a constant, usually its default value.
             An active-low reset tied to 0 holds the block in reset.
           </p>
         )}
         {!pinListKnown && (
-          <p className="mt-2 text-xs opacity-70">
+          <p className="sd-note mt-2">
             The design file does not list every pin of this block, so unconnected pins cannot be
             checked.
           </p>

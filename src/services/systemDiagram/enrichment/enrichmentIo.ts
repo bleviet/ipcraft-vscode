@@ -11,7 +11,12 @@ export interface EnrichmentIo<R> {
    * `designFile` the design: an io may read only the files that can match them.
    */
   listIpFiles(graph: SystemGraph, designFile: string): Promise<IpEntry<R>[]>;
-  /** Called only when the graph has module instances. */
+  /**
+   * The HDL files whose base name without extension is one of `names`, without the
+   * index limit. Called first for module instances (see {@link hdlFileNames}).
+   */
+  listHdlFilesNamed(names: readonly string[]): Promise<HdlEntry<R>[]>;
+  /** Called only when a module reference is not defined in a file named after it. */
   listHdlFiles(): Promise<HdlEntry<R>[]>;
   /** Called only for Platform Designer designs. */
   listQsysFiles(): Promise<QsysEntry<R>[]>;

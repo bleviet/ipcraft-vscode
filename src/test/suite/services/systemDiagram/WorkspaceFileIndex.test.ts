@@ -1,5 +1,9 @@
 import * as vscode from 'vscode';
-import { WorkspaceFileIndex } from '../../../../services/systemDiagram/WorkspaceFileIndex';
+import {
+  WATCH_BATCH_MS,
+  WATCH_BURST_FILES,
+  WorkspaceFileIndex,
+} from '../../../../services/systemDiagram/WorkspaceFileIndex';
 import { buildExcludeGlob } from '../../../../services/systemDiagram/enrichment/excludeGlob';
 import { Logger } from '../../../../utils/Logger';
 
@@ -58,6 +62,8 @@ function setup(files: string[], excludes: Excludes = {}) {
       }),
   };
 }
+
+const batchApplied = () => new Promise((resolve) => setTimeout(resolve, WATCH_BATCH_MS + 20));
 
 describe('WorkspaceFileIndex', () => {
   it('passes the exclude glob built from the ignored directories and search.exclude (VS Code adds files.exclude)', async () => {
@@ -176,7 +182,7 @@ describe('WorkspaceFileIndex', () => {
       read.mockImplementation(() => new Promise<string>((resolve) => (finish = resolve)));
       onChange(workspace)(uri('/ws/a.vhd'));
       expect(index.revision).toBe(built + 1);
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await batchApplied();
       expect(index.revision).toBe(built + 1);
       finish('new text');
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -208,6 +214,32 @@ describe('WorkspaceFileIndex', () => {
     });
   });
 
+  it('looks up a narrower glob with the exclude, without building the index', async () => {
+    const { workspace, read, logger } = setup(['/ws/a.vhd', '/ws/node_modules/a.vhd']);
+    const index = new WorkspaceFileIndex('**/*.vhd', 10, read, logger);
+    expect(await index.lookup('**/a.vhd', 5)).toEqual(['/ws/a.vhd']);
+    expect(workspace.findFiles).toHaveBeenCalledTimes(1);
+    expect(workspace.findFiles).toHaveBeenCalledWith(
+      '**/a.vhd',
+      buildExcludeGlob(undefined).glob,
+      5
+    );
+  });
+
+  it('keeps a lookup until a watched file changes, then searches again', async () => {
+    const { workspace, read, logger } = setup(['/ws/a.vhd']);
+    const index = new WorkspaceFileIndex('**/*.vhd', 10, read, logger);
+    await index.lookup('**/a.vhd', 5);
+    await index.lookup('**/a.vhd', 5);
+    expect(workspace.findFiles).toHaveBeenCalledTimes(1);
+    const watcher = workspace.createFileSystemWatcher.mock.results[0].value as {
+      onDidCreate: jest.Mock;
+    };
+    (watcher.onDidCreate.mock.calls[0][0] as (u: vscode.Uri) => void)(uri('/ws/new/a.vhd'));
+    await index.lookup('**/a.vhd', 5);
+    expect(workspace.findFiles).toHaveBeenCalledTimes(2);
+  });
+
   describe('watched file visibility', () => {
     const watcherHandlers = (workspace: ReturnType<typeof setup>['workspace']) =>
       (
@@ -222,7 +254,7 @@ describe('WorkspaceFileIndex', () => {
       const index = new WorkspaceFileIndex('**/*.vhd', 10, read, logger);
       await index.get();
       watcherHandlers(workspace)(uri('/ws/sub dir/a[1]!b.vhd'));
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await batchApplied();
       const call = (workspace.findFiles.mock.calls as unknown[][]).at(-1) as [
         { base: unknown; pattern: string },
         string,
@@ -234,12 +266,26 @@ describe('WorkspaceFileIndex', () => {
       expect(call[2]).toBe(1);
     });
 
+    it('drops the index on a burst instead of searching per file, and rebuilds once', async () => {
+      const { workspace, read, logger } = setup(['/ws/a.vhd']);
+      workspace.getWorkspaceFolder.mockReturnValue({ uri: { fsPath: '/ws' } });
+      const index = new WorkspaceFileIndex('**/*.vhd', 10, read, logger);
+      await index.get();
+      for (let i = 0; i <= WATCH_BURST_FILES; i += 1) {
+        watcherHandlers(workspace)(uri(`/ws/gen/f${i}.vhd`));
+      }
+      await batchApplied();
+      expect(workspace.findFiles).toHaveBeenCalledTimes(1);
+      await index.get();
+      expect(workspace.findFiles).toHaveBeenCalledTimes(2);
+    });
+
     it('falls back to the file directory outside any workspace folder', async () => {
       const { workspace, read, logger } = setup(['/ws/a.vhd']);
       workspace.getWorkspaceFolder.mockReturnValue(undefined);
       await new WorkspaceFileIndex('**/*.vhd', 10, read, logger).get();
       watcherHandlers(workspace)(uri('/elsewhere/b.vhd'));
-      await new Promise((resolve) => setTimeout(resolve, 0));
+      await batchApplied();
       const call = (workspace.findFiles.mock.calls as unknown[][]).at(-1) as [
         { base: unknown; pattern: string },
       ];

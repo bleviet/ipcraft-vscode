@@ -493,8 +493,13 @@ describe('SystemDesignCompare', () => {
       const failing = jest.fn().mockRejectedValue(new Error('Cannot read core at v1: offline'));
       const workspace = {
         listIpFiles: async () => [ipEntryFromText(IP_YML, location)],
+        listHdlFilesNamed: async () => [],
         listHdlFiles: async () => [],
         listQsysFiles: async () => [],
+        listBdTclFiles: async () => [],
+        listCmakeFiles: async () => [],
+        locate: () => location,
+        readBdLinks: async () => ({ links: {}, rejected: {} }),
         readText: async () => '',
       };
       const logError = jest.fn();
@@ -539,8 +544,13 @@ describe('SystemDesignCompare', () => {
     it('shows a pin that is in only one of the definition at the revision and the workspace one', async () => {
       const workspace = {
         listIpFiles: async () => [ipEntryFromText(IP_YML, location)],
+        listHdlFilesNamed: async () => [],
         listHdlFiles: async () => [],
         listQsysFiles: async () => [],
+        listBdTclFiles: async () => [],
+        listCmakeFiles: async () => [],
+        locate: () => location,
+        readBdLinks: async () => ({ links: {}, rejected: {} }),
         readText: async () => '',
       };
       const { enricher, logError } = setup();

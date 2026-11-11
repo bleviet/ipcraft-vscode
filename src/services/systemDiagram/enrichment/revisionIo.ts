@@ -64,7 +64,7 @@ async function ipEntryAt<R>(entry: IpEntry<R>, readAt: ReadAt<R>): Promise<IpEnt
 }
 
 export function revisionIo<R>(io: EnrichmentIo<R>, readAt: ReadAt<R>): EnrichmentIo<R> {
-  /** The files `listHdlFiles` gave: the size limit applies to them, not to `.qsys` files. */
+  /** The files `listHdlFiles(Named)` gave: the size limit applies to them, not to `.qsys` files. */
   const hdlRefs = new Set<R>();
   return {
     listIpFiles: async (graph: SystemGraph, designFile: string) => {
@@ -78,6 +78,11 @@ export function revisionIo<R>(io: EnrichmentIo<R>, readAt: ReadAt<R>): Enrichmen
     },
     listHdlFiles: async () => {
       const entries = await io.listHdlFiles();
+      entries.forEach((entry) => hdlRefs.add(entry.ref));
+      return entries;
+    },
+    listHdlFilesNamed: async (names) => {
+      const entries = await io.listHdlFilesNamed(names);
       entries.forEach((entry) => hdlRefs.add(entry.ref));
       return entries;
     },

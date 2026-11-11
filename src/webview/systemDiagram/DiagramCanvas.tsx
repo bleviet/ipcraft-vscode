@@ -23,7 +23,7 @@ import type { DiagramLayout } from './hooks/useElkLayout';
 import type { ResourceReport } from '../../domain/resourceUsage';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
-import type { InstanceNodeData } from './layout/diagramTypes';
+import type { FrameNodeData, InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
 import type { ChangeContext } from './changeDecor';
 import type { ClockContext } from './clockDecor';
@@ -82,6 +82,8 @@ interface DiagramCanvasProps {
   onEnterHierarchy: (instancePath: string) => void;
   /** Expands a hierarchy block in place, or collapses it. */
   onToggleExpand: (instancePath: string) => void;
+  /** Picks the Tcl script of a block design container. Absent, the menu does not offer it. */
+  onAssignContainerTcl?: (instancePath: string) => void;
   /** Whether the nodes can be isolated: all of them belong to the level on show. */
   isolatable: (nodeIds: string[]) => boolean;
   /** Whether the boundary port has a wire to trace. */
@@ -103,6 +105,14 @@ function isHierarchy(node: Node): boolean {
     (node.type === 'instance' &&
       (node.data as InstanceNodeData).instance.kind === 'hier' &&
       (node.data as InstanceNodeData).change?.status !== 'removed')
+  );
+}
+
+/** Whether a React Flow node is a block design container, collapsed or expanded. */
+function isContainer(node: Node): boolean {
+  return (
+    (node.type === 'instance' || node.type === 'frame') &&
+    (node.data as InstanceNodeData | FrameNodeData).instance.container !== undefined
   );
 }
 
@@ -136,6 +146,7 @@ export function DiagramCanvas({
   onClearHighlights,
   onEnterHierarchy,
   onToggleExpand,
+  onAssignContainerTcl,
   isolatable,
   traceable,
   onTraceSignal,
@@ -311,6 +322,9 @@ export function DiagramCanvas({
                     onSelect: () => onTraceSignal(node.id),
                   },
                 ]
+              : []),
+            ...(onAssignContainerTcl && isContainer(node)
+              ? [{ label: 'Assign Tcl…', onSelect: () => onAssignContainerTcl(node.id) }]
               : []),
             ...(isHierarchy(node)
               ? [

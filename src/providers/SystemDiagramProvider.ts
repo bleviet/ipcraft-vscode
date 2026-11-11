@@ -27,6 +27,8 @@ import { PanelResources } from './systemDiagram/PanelResources';
 
 /** How long to wait for workspace enrichment before showing the parsed graph. */
 export const ENRICHMENT_GRACE_MS = 100;
+/** Typing re-reads the design once the edits pause this long: each read parses the whole file. */
+export const EDIT_DEBOUNCE_MS = 300;
 
 /** Read-only custom editor that draws a block design script as a system diagram. */
 export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
@@ -204,6 +206,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
             false,
             compare.diffRead(read)
           );
+          post({ type: 'busy', message: 'Resolving workspace definitions…' });
         }
         const graph = await enrichment;
         const sides = { read, enriched: graph, fellBack };
@@ -306,6 +309,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
         candidates: (designFile, bd) => this.enricher.bdTclCandidates(designFile, bd),
       });
       if (changed) {
+        post({ type: 'busy', message: 'Reloading the design…' });
         await postGraph();
       }
     });
@@ -354,9 +358,13 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     router.on('extractResources', (message) => resources.extractResources(message.id));
     router.on('compareResourceSource', (message) => resources.compareResourceSource(message.id));
 
+    let editTimer: ReturnType<typeof setTimeout> | undefined;
     const documentChanges = vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.uri.toString() === document.uri.toString()) {
-        void postGraph();
+        // A read still running is stale now, even before the debounced one starts.
+        sequence += 1;
+        clearTimeout(editTimer);
+        editTimer = setTimeout(() => void postGraph(), EDIT_DEBOUNCE_MS);
       }
     });
     // Granting trust lets the enricher read definitions it skipped before.
@@ -373,6 +381,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       compare.dispose();
       resources.dispose();
       this.panels.remove(webviewPanel);
+      clearTimeout(editTimer);
       linksWatcher.dispose();
       documentChanges.dispose();
       trustGranted.dispose();

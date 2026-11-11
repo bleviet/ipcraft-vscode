@@ -263,6 +263,23 @@ describe('file discovery', () => {
     expect((await io.listHdlFiles()).map((e) => e.displayName)).toEqual(['rtl/small.v']);
   });
 
+  it('lists the HDL files named exactly after a module, skipping big and ignored ones', async () => {
+    const dir = workspace({
+      'rtl/Foo.vhd': 'entity Foo is end entity;\n',
+      'rtl/foo.v': 'module foo(input a);\nendmodule\n',
+      'rtl/foo.tb.vhd': 'entity foo_tb is end entity;\n',
+      'rtl/bar.vhd': 'entity bar is end entity;\n',
+      'big/foo.vhd': `entity foo is end entity;\n${'-- pad\n'.repeat(200000)}`,
+      'node_modules/x/foo.vhd': 'entity foo is end entity;\n',
+    });
+    const io = createWorkspaceIo(dir);
+    expect((await io.listHdlFilesNamed(['Foo', 'foo'])).map((e) => e.displayName)).toEqual([
+      'rtl/Foo.vhd',
+      'rtl/foo.v',
+    ]);
+    expect(await io.listHdlFilesNamed(['baz'])).toEqual([]);
+  });
+
   it('lists files in sorted order with folder-relative display names', async () => {
     const dir = workspace({ 'z/a.ip.yml': IP_YML, 'b.ip.yml': IP_YML, 'a/c.ip.yml': IP_YML });
     const io = createWorkspaceIo(dir);

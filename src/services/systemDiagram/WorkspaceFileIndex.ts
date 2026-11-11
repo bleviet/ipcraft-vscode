@@ -1,7 +1,9 @@
 /**
  * Lazily built, in-memory index of workspace files matching a glob. After the
  * first build a file watcher (created once) updates the index for the changed
- * file only. Files are read with a small concurrent pool.
+ * files only, in batches; a burst (a build writing many files) drops the index
+ * instead, so the next use rebuilds it once. Files are read with a small
+ * concurrent pool.
  */
 
 import * as path from 'path';
@@ -11,12 +13,21 @@ import { buildExcludeGlob } from './enrichment/excludeGlob';
 import { isIgnoredWorkspacePath } from './enrichment/workspaceFilter';
 
 const READ_POOL_SIZE = 8;
+/** Watcher events are collected from the first one for this long, then applied together. */
+export const WATCH_BATCH_MS = 250;
+/** A batch with more files drops the index: checking each one would cost a search per file. */
+export const WATCH_BURST_FILES = 50;
 
 export class WorkspaceFileIndex<T> {
   private entries?: Promise<Map<string, T>>;
   private watching = false;
   private disposables: vscode.Disposable[] = [];
   private queue: Promise<void> = Promise.resolve();
+  /** Changed files not applied yet: path -> (uri, whether it was deleted). */
+  private pending = new Map<string, { uri: vscode.Uri; removed: boolean }>();
+  private batchTimer?: ReturnType<typeof setTimeout>;
+  /** Results of lookup() by glob; any watcher event drops them. */
+  private lookups = new Map<string, Promise<T[]>>();
   private readonly warnedPatterns = new Set<string>();
   private changes = 0;
 
@@ -51,7 +62,37 @@ export class WorkspaceFileIndex<T> {
     return [...(await this.entries).values()];
   }
 
+  /**
+   * The files matching `glob` (narrower than the index glob): for the few files a caller can
+   * name, without building the whole index. Kept until a file of the index glob changes.
+   */
+  lookup(glob: string, limit: number): Promise<T[]> {
+    this.watch();
+    let result = this.lookups.get(glob);
+    if (!result) {
+      const searching = this.search(glob, limit);
+      result = searching;
+      this.lookups.set(glob, searching);
+      searching.catch(() => {
+        if (this.lookups.get(glob) === searching) {
+          this.lookups.delete(glob);
+        }
+      });
+    }
+    return result;
+  }
+
+  private async search(glob: string, limit: number): Promise<T[]> {
+    const found = await vscode.workspace.findFiles(glob, this.excludeGlob(), limit);
+    const entries = await this.readAll(found.filter((uri) => !isIgnoredWorkspacePath(uri.fsPath)));
+    return [...entries.values()];
+  }
+
   dispose(): void {
+    clearTimeout(this.batchTimer);
+    this.batchTimer = undefined;
+    this.pending.clear();
+    this.lookups.clear();
     for (const disposable of this.disposables) {
       disposable.dispose();
     }
@@ -68,7 +109,10 @@ export class WorkspaceFileIndex<T> {
         `The workspace search for ${this.glob} reached its limit of ${this.limit} files; later files are not indexed.`
       );
     }
-    const uris = found.filter((uri) => !isIgnoredWorkspacePath(uri.fsPath));
+    return this.readAll(found.filter((uri) => !isIgnoredWorkspacePath(uri.fsPath)));
+  }
+
+  private async readAll(uris: readonly vscode.Uri[]): Promise<Map<string, T>> {
     const entries = new Map<string, T>();
     let next = 0;
     const worker = async () => {
@@ -99,7 +143,7 @@ export class WorkspaceFileIndex<T> {
     }
     this.watching = true;
     const watcher = vscode.workspace.createFileSystemWatcher(this.glob);
-    const refresh = (uri: vscode.Uri) => this.update(uri, false);
+    const refresh = (uri: vscode.Uri) => this.collect(uri, false);
     this.disposables.push(
       watcher,
       // A changed exclude changes what a build finds: drop the cache so the next get() rebuilds.
@@ -110,21 +154,45 @@ export class WorkspaceFileIndex<T> {
         ) {
           this.entries = undefined;
           this.changes++;
+          this.lookups.clear();
         }
       }),
       watcher.onDidCreate(refresh),
       watcher.onDidChange(refresh),
-      watcher.onDidDelete((uri) => this.update(uri, true))
+      watcher.onDidDelete((uri) => this.collect(uri, true))
     );
   }
 
-  /** Re-reads (or removes) one file, in event order, once the index is built. */
-  private update(uri: vscode.Uri, removed: boolean): void {
+  private collect(uri: vscode.Uri, removed: boolean): void {
     if (isIgnoredWorkspacePath(uri.fsPath)) {
       return;
     }
     // Before the update is queued, so an enrichment that runs meanwhile is not taken as current.
     this.changes++;
+    this.lookups.clear();
+    if (!this.entries) {
+      return;
+    }
+    this.pending.set(uri.fsPath, { uri, removed });
+    this.batchTimer ??= setTimeout(() => this.applyBatch(), WATCH_BATCH_MS);
+  }
+
+  private applyBatch(): void {
+    this.batchTimer = undefined;
+    const batch = [...this.pending.values()];
+    this.pending.clear();
+    if (batch.length > WATCH_BURST_FILES) {
+      this.entries = undefined;
+      this.changes++;
+      return;
+    }
+    for (const { uri, removed } of batch) {
+      this.update(uri, removed);
+    }
+  }
+
+  /** Re-reads (or removes) one file, in event order, once the index is built. */
+  private update(uri: vscode.Uri, removed: boolean): void {
     this.queue = this.queue
       .then(async () => {
         const entries = await this.entries?.catch(() => undefined);

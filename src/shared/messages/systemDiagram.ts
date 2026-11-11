@@ -76,6 +76,8 @@ export type SystemDiagramToWebviewMessage =
   | { type: 'graph'; graph: SystemGraph; highlights?: HighlightMap; compare?: DiagramCompare }
   | { type: 'notRecognized'; fileName: string }
   | { type: 'error'; message: string }
+  /** Work is running that ends with the next graph (or notRecognized/error) message. */
+  | { type: 'busy'; message: string }
   /** The options of the last export in this workspace. */
   | { type: 'exportOptions'; options: ExportImageOptions }
   /** The Export Diagram as Image command: open the export popover. */

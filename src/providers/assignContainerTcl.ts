@@ -87,18 +87,20 @@ export async function assignContainerTcl(options: {
     links !== undefined && linksForDesign(links, root, designFile).links[bd] !== undefined;
 
   const current = instance.container?.source?.uri;
-  const items: ChoiceItem[] = (await options.candidates(designFile, bd)).map(
-    ({ entry, evidence }) => ({
+  // A promise: the pick opens at once and shows its busy state while the workspace is searched.
+  const items = options.candidates(designFile, bd).then((candidates) => {
+    const found: ChoiceItem[] = candidates.map(({ entry, evidence }) => ({
       label: path.basename(entry.file),
       description: entry.uri === current ? `${entry.displayName} (current)` : entry.displayName,
       detail: BD_EVIDENCE_TEXT[evidence],
       choice: { kind: 'file', file: entry.file },
-    })
-  );
-  items.push({ label: 'Browse…', choice: { kind: 'browse' } });
-  if (hasLink) {
-    items.push({ label: 'Remove assignment', choice: { kind: 'remove' } });
-  }
+    }));
+    found.push({ label: 'Browse…', choice: { kind: 'browse' } });
+    if (hasLink) {
+      found.push({ label: 'Remove assignment', choice: { kind: 'remove' } });
+    }
+    return found;
+  });
   const picked = await vscode.window.showQuickPick(items, {
     title: `Tcl script for block design ${bd}`,
     placeHolder: 'Choose the Tcl script that generates this block design',

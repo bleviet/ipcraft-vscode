@@ -88,6 +88,7 @@ describe('InstanceDetails unconnected tag', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     return screen.getByText('spare_in').closest('tr')!.children[1];

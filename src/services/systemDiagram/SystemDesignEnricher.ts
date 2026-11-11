@@ -39,11 +39,14 @@ import { SubsystemExpander } from './SubsystemExpander';
 import { WorkspaceFileIndex } from './WorkspaceFileIndex';
 
 const IP_GLOB = '**/*.ip.yml';
-const HDL_GLOB = '**/*.{vhd,vhdl,v,sv}';
+const HDL_EXTENSIONS = '{vhd,vhdl,v,sv}';
+const HDL_GLOB = `**/*.${HDL_EXTENSIONS}`;
 const TCL_GLOB = '**/*.tcl';
 const CMAKE_GLOB = '**/CMakeLists.txt';
 const IP_LIMIT = 2000;
 const HDL_LIMIT = 5000;
+/** The files named after the module references of one design: a few per name. */
+const HDL_NAMED_LIMIT = 500;
 const TCL_LIMIT = 5000;
 const CMAKE_LIMIT = 5000;
 const UNTRUSTED_MESSAGE = 'IP definitions are not read in untrusted workspaces.';
@@ -105,6 +108,10 @@ export class SystemDesignEnricher {
   };
   private readonly io: EnrichmentIo<vscode.Uri> = {
     listIpFiles: () => this.ipIndex.get(),
+    listHdlFilesNamed: (names) =>
+      names.length === 0
+        ? Promise.resolve([])
+        : this.hdlIndex.lookup(`**/{${names.join(',')}}.${HDL_EXTENSIONS}`, HDL_NAMED_LIMIT),
     listHdlFiles: () => this.hdlIndex.get(),
     listQsysFiles: () => this.subsystems.files(),
     listBdTclFiles: () => this.tclIndex.get(),

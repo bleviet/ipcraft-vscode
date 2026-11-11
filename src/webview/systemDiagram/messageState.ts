@@ -18,6 +18,8 @@ export type SystemDiagramState =
       /** Present while a comparison is on; each graph message replaces it. */
       compare?: DiagramCompare;
       problem?: DiagramProblem;
+      /** What the extension is doing until the next graph arrives. */
+      busy?: string;
     }
   | { status: 'notRecognized'; fileName: string }
   | { status: 'error'; message: string };
@@ -27,6 +29,8 @@ export type DiagramContentMessage = Exclude<
   SystemDiagramToWebviewMessage,
   { type: 'exportOptions' | 'openExport' | 'resources' }
 >;
+
+const withoutBusy = <S extends { busy?: string }>({ busy: _busy, ...rest }: S) => rest;
 
 /**
  * Once a graph has been shown, a bad message only adds a problem to it so the
@@ -54,11 +58,13 @@ export function reduceDiagramMessage(
     }
     case 'notRecognized':
       return state.status === 'graph'
-        ? { ...state, problem: { kind: 'notRecognized' } }
+        ? { ...withoutBusy(state), problem: { kind: 'notRecognized' } }
         : { status: 'notRecognized', fileName: message.fileName };
     case 'error':
       return state.status === 'graph'
-        ? { ...state, problem: { kind: 'error', message: message.message } }
+        ? { ...withoutBusy(state), problem: { kind: 'error', message: message.message } }
         : { status: 'error', message: message.message };
+    case 'busy':
+      return state.status === 'graph' ? { ...state, busy: message.message } : state;
   }
 }

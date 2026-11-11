@@ -6,6 +6,7 @@ import { RenderAssets } from '../../../services/render/renderResources';
 import { ExportTargets } from '../../../providers/imageExport/ExportTargets';
 import { SWAP_GRACE_MS } from '../../../providers/systemDiagram/DiagramPanels';
 import {
+  EDIT_DEBOUNCE_MS,
   ENRICHMENT_GRACE_MS,
   SystemDiagramProvider,
 } from '../../../providers/SystemDiagramProvider';
@@ -16,6 +17,8 @@ import { changeRows, cellText } from '../../../services/systemDiagram/diff/chang
 import { PanelResources } from '../../../providers/systemDiagram/PanelResources';
 import { vivadoReport } from '../webview/systemDiagram/resources/resourceReports';
 import { fixtureText, qsysFixtureText } from '../webview/systemDiagram/fixtureGraph';
+
+const editsSettled = () => new Promise((resolve) => setTimeout(resolve, EDIT_DEBOUNCE_MS + 10));
 
 jest.mock('../../../services/HtmlGenerator', () => ({
   HtmlGenerator: class {
@@ -215,6 +218,7 @@ describe('SystemDiagramProvider', () => {
 
     posted.length = 0;
     change();
+    await editsSettled();
     await new Promise((resolve) => setTimeout(resolve, 10));
     expect(posted.map((m) => (m as { type: string }).type)).toEqual(['graph', 'resources']);
   });
@@ -280,7 +284,9 @@ describe('SystemDiagramProvider', () => {
     await send({ type: 'ready' });
     await new Promise((resolve) => setTimeout(resolve, 0));
     change();
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    change();
+    change();
+    await editsSettled();
     expect(posted.map((message) => (message as { type: string }).type)).toEqual(['graph', 'graph']);
     expect(webviewPanel.webview.postMessage).toHaveBeenCalledTimes(2);
   });
@@ -334,6 +340,7 @@ describe('SystemDiagramProvider', () => {
     mockEnrich.mockImplementation(() => new Promise((resolve) => resolvers.push(resolve)));
     await send({ type: 'ready' });
     change();
+    await editsSettled();
     resolvers[1]({ name: 'second' });
     await new Promise((resolve) => setTimeout(resolve, 0));
     resolvers[0]({ name: 'first' });
@@ -467,6 +474,11 @@ describe('SystemDiagramProvider', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
       return context;
     }
+    type Item = { label: string; description?: string; detail?: string };
+    /** showQuickPick gets a promise of the items: the pick opens before the search ends. */
+    const pick =
+      (choose: (items: Item[]) => Item | undefined) => async (pending: Promise<Item[]>) =>
+        choose(await pending);
     const written = () =>
       JSON.parse(
         new TextDecoder().decode(
@@ -480,15 +492,11 @@ describe('SystemDiagramProvider', () => {
 
     it('offers the candidates, then writes the picked link and re-posts the graph', async () => {
       const { send, posted } = await ready();
-      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
-        Promise.resolve(items[1])
-      );
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation(pick((items) => items[1]));
       await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
-      const items = (vscode.window.showQuickPick as jest.Mock).mock.calls[0][0] as {
-        label: string;
-        description?: string;
-        detail?: string;
-      }[];
+      const items = await ((vscode.window.showQuickPick as jest.Mock).mock.calls[0][0] as Promise<
+        Item[]
+      >);
       expect(items.map((item) => item.label)).toEqual(['part.tcl', 'part.tcl', 'Browse…']);
       expect(items[0]).toMatchObject({
         description: 'fpga/common/part.tcl',
@@ -504,7 +512,8 @@ describe('SystemDiagramProvider', () => {
         links: { 'zynq.tcl': { part: 'fpga/other/part.tcl' } },
       });
       await new Promise((resolve) => setTimeout(resolve, 0));
-      expect(posted.filter((m) => (m as { type: string }).type === 'graph')).toHaveLength(2);
+      expect(posted.map((m) => (m as { type: string }).type)).toEqual(['graph', 'busy', 'graph']);
+      expect(posted[1]).toEqual({ type: 'busy', message: 'Reloading the design…' });
     });
 
     it('removes an existing assignment', async () => {
@@ -514,8 +523,8 @@ describe('SystemDiagramProvider', () => {
           JSON.stringify({ version: 1, links: { 'zynq.tcl': { part: 'a/part.tcl' } } })
         )
       );
-      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
-        Promise.resolve(items.find((item) => item.label === 'Remove assignment'))
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation(
+        pick((items) => items.find((item) => item.label === 'Remove assignment'))
       );
       await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
       expect(written()).toEqual({ version: 1, links: {} });
@@ -523,8 +532,8 @@ describe('SystemDiagramProvider', () => {
 
     it('rejects a browsed file outside the workspace folder and writes nothing', async () => {
       const { send } = await ready();
-      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
-        Promise.resolve(items.find((item) => item.label === 'Browse…'))
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation(
+        pick((items) => items.find((item) => item.label === 'Browse…'))
       );
       (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([
         { fsPath: '/elsewhere/p.tcl' },
@@ -539,8 +548,8 @@ describe('SystemDiagramProvider', () => {
 
     it('writes a browsed file inside the folder', async () => {
       const { send } = await ready();
-      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
-        Promise.resolve(items.find((item) => item.label === 'Browse…'))
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation(
+        pick((items) => items.find((item) => item.label === 'Browse…'))
       );
       (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([{ fsPath: '/ws/x/mine.tcl' }]);
       await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
@@ -555,9 +564,7 @@ describe('SystemDiagramProvider', () => {
           '/part/deep': { parent: '/part', parameters: {}, container: { reference: 'deep' } },
         },
       });
-      (vscode.window.showQuickPick as jest.Mock).mockImplementation((items: { label: string }[]) =>
-        Promise.resolve(items[0])
-      );
+      (vscode.window.showQuickPick as jest.Mock).mockImplementation(pick((items) => items[0]));
       await send({ type: 'assignContainerTcl', instance: '/part/deep' });
       expect(vscode.Uri.parse).toHaveBeenCalledWith('file:///ws/common/part.tcl');
       expect(mockCandidates).toHaveBeenCalledWith('/ws/common/part.tcl', 'deep');
@@ -584,11 +591,12 @@ describe('SystemDiagramProvider', () => {
     });
 
     it('does nothing for a cancelled pick, a non-container or outside a workspace folder', async () => {
-      const { send } = await ready();
+      const { send, posted } = await ready();
       (vscode.window.showQuickPick as jest.Mock).mockResolvedValue(undefined);
       await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
       await send({ type: 'assignContainerTcl', instance: '/axi_gpio_0' });
       expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled();
+      expect(posted.map((m) => (m as { type: string }).type)).toEqual(['graph']);
       expect(vscode.window.showQuickPick).toHaveBeenCalledTimes(1);
       (vscode.workspace.getWorkspaceFolder as jest.Mock).mockReturnValue(undefined);
       await send({ type: 'assignContainerTcl', instance: '/axi_dma_0' });
@@ -639,7 +647,7 @@ describe('SystemDiagramProvider', () => {
     document.text = 'puts hello\n';
     change();
     resolvePending({ name: 'stale' });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await editsSettled();
     expect(posted).toEqual([{ type: 'notRecognized', fileName: 'zynq.tcl' }]);
   });
 
@@ -679,7 +687,8 @@ describe('SystemDiagramProvider', () => {
       await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS - 1);
       expect(posted).toHaveLength(0);
       await jest.advanceTimersByTimeAsync(1);
-      expect(posted).toHaveLength(1);
+      expect(types(posted)).toEqual(['graph', 'busy']);
+      expect(posted[1]).toEqual({ type: 'busy', message: 'Resolving workspace definitions…' });
       expect(posted[0]).toMatchObject({
         type: 'graph',
         graph: {
@@ -692,9 +701,9 @@ describe('SystemDiagramProvider', () => {
       resolvers[0](undefined);
       await ready;
       await jest.advanceTimersByTimeAsync(0);
-      expect(types(posted)).toEqual(['graph', 'graph']);
-      expect(posted[1]).toMatchObject({ graph: { name: 'enriched' } });
-      const final = posted[1] as { graph: { diagnostics: { message: string }[] } };
+      expect(types(posted)).toEqual(['graph', 'busy', 'graph']);
+      expect(posted[2]).toMatchObject({ graph: { name: 'enriched' } });
+      const final = posted[2] as { graph: { diagnostics: { message: string }[] } };
       expect(final.graph.diagnostics.map((d) => d.message)).not.toContain(
         'Resolving workspace definitions…'
       );
@@ -713,7 +722,7 @@ describe('SystemDiagramProvider', () => {
       void send({ type: 'ready' });
       document.text = 'puts hello\n';
       change();
-      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS * 2);
+      await jest.advanceTimersByTimeAsync(EDIT_DEBOUNCE_MS + ENRICHMENT_GRACE_MS * 2);
       resolvers[0](undefined);
       await jest.advanceTimersByTimeAsync(0);
       expect(posted).toEqual([{ type: 'notRecognized', fileName: 'zynq.tcl' }]);
@@ -754,8 +763,8 @@ describe('SystemDiagramProvider', () => {
       await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS);
       rejecters[0](new Error('index failed'));
       await jest.advanceTimersByTimeAsync(0);
-      expect(types(posted)).toEqual(['graph', 'graph']);
-      const final = posted[1] as { graph: { name: string; diagnostics: { message: string }[] } };
+      expect(types(posted)).toEqual(['graph', 'busy', 'graph']);
+      const final = posted[2] as { graph: { name: string; diagnostics: { message: string }[] } };
       expect(final.graph.name).toBe('zynq_dma_system');
       expect(final.graph.diagnostics.map((d) => d.message)).not.toContain(
         'Resolving workspace definitions…'
@@ -771,14 +780,14 @@ describe('SystemDiagramProvider', () => {
       void send({ type: 'ready' });
       await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS);
       change();
-      await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS);
+      await jest.advanceTimersByTimeAsync(EDIT_DEBOUNCE_MS + ENRICHMENT_GRACE_MS);
       resolvers[0](undefined);
       await jest.advanceTimersByTimeAsync(0);
-      expect(types(posted)).toEqual(['graph', 'graph']);
+      expect(types(posted)).toEqual(['graph', 'busy', 'graph', 'busy']);
       resolvers[1](undefined);
       await jest.advanceTimersByTimeAsync(0);
-      expect(types(posted)).toEqual(['graph', 'graph', 'graph']);
-      expect(posted[2]).toMatchObject({ graph: { name: 'enriched' } });
+      expect(types(posted)).toEqual(['graph', 'busy', 'graph', 'busy', 'graph']);
+      expect(posted[4]).toMatchObject({ graph: { name: 'enriched' } });
     });
 
     it('keeps stored highlights on enrichment-only instances across a grace-window edit', async () => {
@@ -816,7 +825,7 @@ describe('SystemDiagramProvider', () => {
       });
       resolvers[0](undefined);
       await jest.advanceTimersByTimeAsync(0);
-      expect(posted[1]).toMatchObject({
+      expect(posted[2]).toMatchObject({
         highlights: {
           'instance:/axi_dma_0': 'red',
           'instance:/axi_gpio_0': 'yellow',
@@ -1082,7 +1091,7 @@ describe('SystemDiagramProvider export image', () => {
       expect((posted[0] as Posted).compare?.diff.summary).toMatchObject({ version: 0 });
       document.text = editedText(fixtureText);
       change();
-      await flush();
+      await editsSettled();
       expect(posted).toHaveLength(2);
       expect((posted[1] as Posted).compare).toMatchObject({
         baseLabel: 'HEAD',
@@ -1175,7 +1184,7 @@ describe('SystemDiagramProvider export image', () => {
         context.posted.length = 0;
         const undo = breakIt(context.document);
         context.change();
-        await flush();
+        await editsSettled();
         undo?.();
         expect(context.posted).toMatchObject([problem]);
         context.posted.length = 0;
@@ -1248,7 +1257,7 @@ describe('SystemDiagramProvider export image', () => {
         await flush();
         document.text = 'puts hello\n';
         change();
-        await flush();
+        await editsSettled();
         expect(posted).toMatchObject([{ type: 'notRecognized' }]);
         release();
         await started;
@@ -1290,7 +1299,7 @@ describe('SystemDiagramProvider export image', () => {
         "Compare failed: 'main' is not a recognized system design"
       );
       change();
-      await flush();
+      await editsSettled();
       expect((posted[0] as Posted).compare?.baseLabel).toBe('HEAD');
     });
 
@@ -1333,7 +1342,7 @@ describe('SystemDiagramProvider export image', () => {
         expect(mockEnrich.mock.calls.map((call: unknown[]) => call[1])).toEqual([readDefinitionAt]);
         document.text = editedText(fixtureText);
         change();
-        await flush();
+        await editsSettled();
         // An edit enriches the current side with the workspace definitions.
         expect(mockEnrich.mock.calls.map((call: unknown[]) => call[1])).toEqual([
           readDefinitionAt,
@@ -1393,16 +1402,19 @@ describe('SystemDiagramProvider export image', () => {
         // A definition changed, so the base is enriched anew too.
         mockEnrichRevision += 1;
         change();
-        await new Promise((resolve) => setTimeout(resolve, ENRICHMENT_GRACE_MS + 50));
-        expect(posted).toHaveLength(1);
+        await new Promise((resolve) =>
+          setTimeout(resolve, EDIT_DEBOUNCE_MS + ENRICHMENT_GRACE_MS + 50)
+        );
+        expect(posted).toHaveLength(2);
         expect(calls).toBe(1);
         noChanges(posted[0]);
+        expect(posted[1]).toEqual({ type: 'busy', message: 'Resolving workspace definitions…' });
         release();
         await flush();
-        expect(posted).toHaveLength(2);
+        expect(posted).toHaveLength(3);
         expect(calls).toBe(2);
-        noChanges(posted[1]);
-        expect(posted[1]).toMatchObject({ graph: { instances: { '/axi_dma_0': {} } } });
+        noChanges(posted[2]);
+        expect(posted[2]).toMatchObject({ graph: { instances: { '/axi_dma_0': {} } } });
       });
 
       it('enriches the current side again when the document is edited, the base only once', async () => {
@@ -1413,7 +1425,7 @@ describe('SystemDiagramProvider export image', () => {
         mockEnrich.mockClear();
         document.text = editedText(fixtureText);
         change();
-        await flush();
+        await editsSettled();
         expect(mockEnrich).toHaveBeenCalledTimes(1);
         expect((posted[0] as Posted).compare?.diff.summary).toMatchObject({ version: 1 });
       });
@@ -1427,7 +1439,7 @@ describe('SystemDiagramProvider export image', () => {
         mockEnrichRevision += 1;
         document.text = editedText(fixtureText);
         change();
-        await flush();
+        await editsSettled();
         expect(mockEnrich).toHaveBeenCalledTimes(2);
         expect((posted[0] as Posted).compare?.diff.summary).toMatchObject({ version: 1 });
       });
@@ -1451,7 +1463,7 @@ describe('SystemDiagramProvider export image', () => {
       mockEnrichRevision += 1;
       document.text = editedText(fixtureText);
       change();
-      await new Promise((resolve) => setTimeout(resolve, 20));
+      await new Promise((resolve) => setTimeout(resolve, EDIT_DEBOUNCE_MS + 20));
       expect(calls).toBe(2);
       pick.mockResolvedValueOnce({ text: editedText(fixtureText), label: 'B' });
       await send({ type: 'startCompare' });

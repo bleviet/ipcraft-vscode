@@ -73,16 +73,8 @@ async function projectEntries<R>(
     }
   }
   files.delete(design);
-  const indexed = new Map(
-    (await sources.workspace()).map((entry) => [path.resolve(entry.file), entry])
-  );
   const entries: BdTclEntry<R>[] = [];
   for (const file of files) {
-    const known = indexed.get(file);
-    if (known) {
-      entries.push(known);
-      continue;
-    }
     try {
       const location = sources.io.locate(file);
       entries.push(bdTclEntryFromText(await sources.io.readText(location.ref), location));
@@ -93,13 +85,18 @@ async function projectEntries<R>(
   return entries;
 }
 
-/** The user's link (when readable) and the Tcl files found for block design `bd`, ranked. */
+/**
+ * The user's link (when readable) and the Tcl files found for block design `bd`, ranked. The
+ * workspace Tcl index is read only when the link and the CMake project do not decide, or when
+ * `all` candidates are wanted: a weaker evidence never changes their choice.
+ */
 async function rankContainerTcl<R>(
   bd: string,
   designFile: string,
   links: Record<string, string>,
   project: () => Promise<BdTclEntry<R>[]>,
-  sources: Sources<R>
+  sources: Sources<R>,
+  all = false
 ): Promise<{ ranking: BdTclRanking<R>; unreadableLink?: string }> {
   let link: BdTclEntry<R> | undefined;
   let unreadableLink: string | undefined;
@@ -111,11 +108,10 @@ async function rankContainerTcl<R>(
       unreadableLink = links[bd];
     }
   }
-  const ranking = rankBdTcl(bd, designFile, {
-    link,
-    project: await project(),
-    workspace: await sources.workspace(),
-  });
+  const rank = async (workspace: readonly BdTclEntry<R>[]) =>
+    rankBdTcl(bd, designFile, { link, project: await project(), workspace });
+  const decided = all ? undefined : await rank([]);
+  const ranking = decided?.chosen ? decided : await rank(await sources.workspace());
   return { ranking, unreadableLink };
 }
 
@@ -132,7 +128,8 @@ export async function bdTclCandidates<R>(
     designFile,
     (await io.readBdLinks(designFile)).links,
     once(() => projectEntries(designFile, sources)),
-    sources
+    sources,
+    true
   );
   return ranking.candidates;
 }

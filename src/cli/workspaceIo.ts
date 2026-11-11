@@ -43,6 +43,8 @@ export type Warn = (message: string) => void;
 interface FoundFiles {
   ip: string[];
   hdl: string[];
+  /** Every HDL file, without the limit: the files named after a module are read from it. */
+  hdlAll: string[];
   qsys: string[];
   tcl: string[];
   cmake: string[];
@@ -54,7 +56,7 @@ interface FoundFiles {
  * entered; symbolic links are followed unless they close a loop; a broken link is skipped.
  */
 async function scanWorkspace(root: string, warn: Warn): Promise<FoundFiles> {
-  const found: FoundFiles = { ip: [], hdl: [], qsys: [], tcl: [], cmake: [] };
+  const found: Omit<FoundFiles, 'hdlAll'> = { ip: [], hdl: [], qsys: [], tcl: [], cmake: [] };
   const walk = async (relativeDir: string, ancestors: ReadonlySet<string>): Promise<void> => {
     const dir = path.join(root, relativeDir);
     let entries;
@@ -108,6 +110,7 @@ async function scanWorkspace(root: string, warn: Warn): Promise<FoundFiles> {
   return {
     ip: first(found.ip, IP_LIMIT),
     hdl: first(found.hdl, HDL_LIMIT),
+    hdlAll: found.hdl,
     qsys: first(found.qsys, QSYS_LIMIT),
     tcl: first(found.tcl, TCL_LIMIT),
     cmake: first(found.cmake, CMAKE_LIMIT),
@@ -155,6 +158,13 @@ export function createWorkspaceIo(
     return () => (cached ??= build());
   };
   const files = once(() => scanWorkspace(base, warn));
+  const readHdl = async (relative: string) => {
+    const location = locate(relative);
+    if ((await stat(location.file)).size > HDL_MAX_BYTES) {
+      return undefined;
+    }
+    return hdlEntryFromText(await readText(location.file), location);
+  };
   const skipped = (relative: string, error: unknown) =>
     warn(
       `Skipping unreadable file ${relative}: ${error instanceof Error ? error.message : String(error)}`
@@ -170,19 +180,17 @@ export function createWorkspaceIo(
         skipped
       )
     ),
-    listHdlFiles: once(async () =>
-      readAll(
-        (await files()).hdl,
-        async (relative) => {
-          const location = locate(relative);
-          if ((await stat(location.file)).size > HDL_MAX_BYTES) {
-            return undefined;
-          }
-          return hdlEntryFromText(await readText(location.file), location);
-        },
+    listHdlFilesNamed: async (names) => {
+      const wanted = new Set(names);
+      return readAll(
+        (await files()).hdlAll.filter((relative) =>
+          wanted.has(path.posix.basename(relative).replace(/\.[^.]*$/, ''))
+        ),
+        readHdl,
         skipped
-      )
-    ),
+      );
+    },
+    listHdlFiles: once(async () => readAll((await files()).hdl, readHdl, skipped)),
     listQsysFiles: once(async () =>
       (await files()).qsys.map((relative) => qsysEntry(locate(relative)))
     ),

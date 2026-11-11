@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
-import { registerSystemDesignContextKey } from '../../../../services/systemDiagram/systemDesignContextKey';
+import {
+  DETECT_DEBOUNCE_MS,
+  registerSystemDesignContextKey,
+} from '../../../../services/systemDiagram/systemDesignContextKey';
 import { fixtureText } from '../../webview/systemDiagram/fixtureGraph';
 
 type EditorHandler = (editor: unknown) => void;
@@ -51,7 +54,7 @@ describe('registerSystemDesignContextKey', () => {
   it('is false at activation without an active editor', () => {
     const subscriptions = register();
     expect(lastContextValue()).toBe(false);
-    expect(subscriptions).toHaveLength(2);
+    expect(subscriptions).toHaveLength(3);
   });
 
   it('is true at activation for a block design script', () => {
@@ -74,20 +77,41 @@ describe('registerSystemDesignContextKey', () => {
     expect(lastContextValue()).toBe(false);
   });
 
-  it('re-evaluates when the active document changes but not others', () => {
+  it('re-evaluates the active document once edits pause, but not others', () => {
+    jest.useFakeTimers();
+    try {
+      register();
+      const callsBefore = (vscode.commands.executeCommand as jest.Mock).mock.calls.length;
+      onDocument({ document: editorFor('/ws/other.tcl', fixtureText).document });
+      const text = { value: 'puts hello' };
+      const edited = {
+        document: { fileName: '/ws/system.tcl', getText: jest.fn(() => text.value) },
+      };
+      setActive(edited);
+      onDocument({ document: edited.document });
+      text.value = fixtureText;
+      onDocument({ document: edited.document });
+      jest.advanceTimersByTime(DETECT_DEBOUNCE_MS - 1);
+      expect(edited.document.getText).not.toHaveBeenCalled();
+      jest.advanceTimersByTime(1);
+      expect(edited.document.getText).toHaveBeenCalledTimes(1);
+      expect(lastContextValue()).toBe(true);
+      expect((vscode.commands.executeCommand as jest.Mock).mock.calls).toHaveLength(
+        callsBefore + 1
+      );
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('does not read the text of other files or set an unchanged key', () => {
     register();
-    const active = editorFor('/ws/system.tcl', 'puts hello');
-    setActive(active);
-    onDocument({ document: active.document });
-    expect(lastContextValue()).toBe(false);
-
     const callsBefore = (vscode.commands.executeCommand as jest.Mock).mock.calls.length;
-    onDocument({ document: editorFor('/ws/other.tcl', fixtureText).document });
+    const notes = { document: { fileName: '/ws/big.log', getText: jest.fn(() => '') } };
+    onEditor(notes);
+    setActive(notes);
+    onDocument({ document: notes.document });
+    expect(notes.document.getText).not.toHaveBeenCalled();
     expect((vscode.commands.executeCommand as jest.Mock).mock.calls).toHaveLength(callsBefore);
-
-    const edited = editorFor('/ws/system.tcl', fixtureText);
-    setActive(edited);
-    onDocument({ document: edited.document });
-    expect(lastContextValue()).toBe(true);
   });
 });

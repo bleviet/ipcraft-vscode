@@ -54,8 +54,10 @@ function DesignSummary({
   ).length;
   return (
     <div>
-      <div className="sd-eyebrow">{designEyebrow(graph.source.format)}</div>
-      <h2 className="sd-h2">{graph.name}</h2>
+      <header className="sd-dhead">
+        <div className="sd-eyebrow">{designEyebrow(graph.source.format)}</div>
+        <h2 className="sd-h2">{graph.name}</h2>
+      </header>
       <dl className="sd-kv">
         <dt>Source</dt>
         <dd>{graph.source.fileName}</dd>
@@ -103,14 +105,14 @@ function NetDetails({
   const tree = selectedTree(clocks, { kind: 'net', id: net.id });
   return (
     <div className="space-y-3">
-      <header>
+      <header className="sd-dhead">
         <div className="sd-eyebrow">Net</div>
         <h2 className="sd-h2">{net.name}</h2>
-        <p className="opacity-70">
+        <p className="sd-meta">
           {net.category} net ({net.categorySource})
         </p>
       </header>
-      <p>
+      <p className="sd-source">
         First connected at{' '}
         <LineLink source={levelSource(graph, net.level)} line={net.line} onReveal={onReveal} />
       </p>
@@ -127,8 +129,10 @@ function NetDetails({
         />
       ) : (
         <section>
-          <h3 className="sd-h3">Endpoints</h3>
-          <ul>
+          <h3 className="sd-h3">
+            Endpoints <span className="sd-count">{net.endpoints.length}</span>
+          </h3>
+          <ul className="sd-list">
             {net.endpoints.map((ref) => {
               const label = ref.instance === null ? ref.pin : `${ref.instance}/${ref.pin}`;
               return (
@@ -180,10 +184,13 @@ function BoundaryDetails({
   );
   return (
     <div className="space-y-3">
-      <header>
+      <header className="sd-dhead">
         <div className="sd-eyebrow">Port</div>
-        <h2 className="sd-h2">{pin.name}</h2>
-        <p className="opacity-70">
+        <h2 className="sd-h2">
+          <span className="sd-ico sd-ico-port" aria-hidden="true" />
+          {pin.name}
+        </h2>
+        <p className="sd-meta">
           {pin.direction} ({pin.directionSource}) ·{' '}
           {pin.vlnv ?? pin.interfaceType ?? pin.signalType ?? 'scalar'}
         </p>
@@ -197,7 +204,7 @@ function BoundaryDetails({
         />
       )}
       {unconnected && (
-        <p className="text-xs opacity-70">
+        <p className="sd-note">
           {unconnectedClass(pin, true) === 'undriven'
             ? 'No net drives this port on this level.'
             : 'Nothing on this level uses this port.'}
@@ -215,17 +222,17 @@ function BoundaryDetails({
         />
       )}
       {pin.line !== undefined && (
-        <p>
+        <p className="sd-source">
           Declared at{' '}
           <LineLink source={levelSource(graph, level)} line={pin.line} onReveal={onReveal} />
         </p>
       )}
       {parameters.length > 0 && (
-        <dl className="sd-kv">
+        <dl className="sd-kv sd-kv-code">
           {parameters.map(([key, value]) => (
             <React.Fragment key={key}>
-              <dt>{key}</dt>
-              <dd className="break-all">{value}</dd>
+              <dt title={key}>{key}</dt>
+              <dd>{value}</dd>
             </React.Fragment>
           ))}
         </dl>
@@ -321,7 +328,10 @@ export function DetailsPanel({
     }
   }
   return (
-    <aside aria-label="Details" className="min-h-0 flex-1 overflow-auto px-3.5 pb-5 pt-3">
+    <aside
+      aria-label="Details"
+      className="sd-details min-h-0 flex-1 overflow-auto px-3.5 pb-5 pt-3"
+    >
       {content}
     </aside>
   );

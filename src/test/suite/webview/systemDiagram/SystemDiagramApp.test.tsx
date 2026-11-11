@@ -1510,7 +1510,7 @@ describe('SystemDiagramApp', () => {
         await enterDspAndCollapseOutline();
 
         send(message);
-        expect(await screen.findByRole('status')).toHaveTextContent(banner);
+        expect(await screen.findByText(banner)).toHaveAttribute('role', 'status');
         expect(crumbs().getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('button', { name: 'Toggle Outline' })).toHaveAttribute(
           'aria-pressed',
@@ -1523,7 +1523,7 @@ describe('SystemDiagramApp', () => {
         expect(screen.getByTestId('node:/dsp_pipeline/fir_compiler_0')).toBeInTheDocument();
 
         send({ type: 'graph', graph: clone() });
-        await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+        await waitFor(() => expect(screen.queryByText(banner)).not.toBeInTheDocument());
         await settle();
         expect(crumbs().getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('button', { name: 'Toggle Outline' })).toHaveAttribute(
@@ -2086,6 +2086,35 @@ describe('SystemDiagramApp', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
       await waitFor(() => expect(mockSetViewport).toHaveBeenCalledWith(before));
       expect(mockFitBounds).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('block design container context menu', () => {
+    const node = (id: string) => screen.getByTestId(`node:${id}`);
+    const containerDesign = () => {
+      const design = JSON.parse(JSON.stringify(graph)) as typeof graph;
+      design.instances['/axi_dma_0'].kind = 'blackbox';
+      design.instances['/axi_dma_0'].container = { reference: 'part' };
+      return design;
+    };
+
+    it('offers Assign Tcl on a container block with the details panel hidden', async () => {
+      await renderWithGraph({ panelsOpen: false, design: containerDesign() });
+      mockPostMessage.mockClear();
+      fireEvent.contextMenu(node('/axi_dma_0'));
+      expect(screen.getAllByRole('menuitem')[0]).toHaveAccessibleName('Assign Tcl…');
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Assign Tcl…' }));
+      expect(mockPostMessage).toHaveBeenCalledWith({
+        type: 'assignContainerTcl',
+        instance: '/axi_dma_0',
+      });
+    });
+
+    it('does not offer Assign Tcl on other blocks', async () => {
+      await renderWithGraph({ panelsOpen: false, design: containerDesign() });
+      fireEvent.contextMenu(node('/axi_gpio_0'));
+      expect(screen.getByRole('menuitem', { name: 'Isolate Selection' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Assign Tcl…' })).not.toBeInTheDocument();
     });
   });
 
@@ -3179,6 +3208,15 @@ describe('SystemDiagramApp', () => {
     expect(
       screen.getByText('This file is not a Vivado block design script or Platform Designer system.')
     ).toBeVisible();
+  });
+
+  it('shows the busy status over the diagram until the next graph arrives', async () => {
+    await renderWithGraph({ panelsOpen: false });
+    send({ type: 'busy', message: 'Reloading the design…' });
+    expect(screen.getByText('Reloading the design…')).toHaveAttribute('role', 'status');
+    expect(screen.getByTestId('node:/axi_dma_0')).toBeInTheDocument();
+    send({ type: 'graph', graph });
+    expect(screen.queryByText('Reloading the design…')).not.toBeInTheDocument();
   });
 
   it('shows read errors', () => {

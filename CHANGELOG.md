@@ -10,7 +10,13 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
 ### New
 
-- **Vivado block design containers show their content.** A cell created with `create_bd_cell -type container` is now read from the Tcl script that generates its block design and shown as a hierarchy level, in the system viewer, **Export image** and `ipcraft render`. IPCraft finds the script from the CMake project that lists your design, from `set design_name`, or from the file name, and Details shows which script was read and why. When no script is found, or several match, the container stays a black box with a warning. In VS Code, **Assign Tcl…** in Details lets you choose the script yourself; the choice is saved in `.ipcraft/bd-links.json`. For `ipcraft render`, use `--workspace` with a folder that contains the Tcl files.
+- **Vivado block design containers show their content.** A cell created with `create_bd_cell -type container` is now read from the Tcl script that generates its block design and shown as a hierarchy level, in the system viewer, **Export image** and `ipcraft render`. IPCraft finds the script from the CMake project that lists your design, from `set design_name`, or from the file name, and Details shows which script was read and why. When no script is found, or several match, the container stays a black box with a warning. In VS Code, **Assign Tcl…** in the block's right-click menu or in Details lets you choose the script yourself; the choice is saved in `.ipcraft/bd-links.json`. For `ipcraft render`, use `--workspace` with a folder that contains the Tcl files.
+
+### Changed
+
+- **The system viewer opens large workspaces faster.** The first open reads far fewer files: IPCraft looks for a module in the HDL file named after it first, and reads the other Tcl scripts only when the CMake project does not decide a block design container. The diagram now waits until you pause typing before it updates, and file changes in bulk, such as a `git checkout`, no longer slow VS Code down.
+- **The system viewer shows when it is busy.** A notice at the top of the canvas says **Resolving workspace definitions…** while the first search runs and **Reloading the design…** after **Assign Tcl…**. The list of scripts in **Assign Tcl…** opens at once and shows its progress while IPCraft searches.
+- **A clearer Details panel.** The block type icon is next to the name, actions are buttons in one row, sections show their counts, parameters use a fixed-width font, and the pin table no longer runs off the side of the panel.
 
 ### Fixed
 

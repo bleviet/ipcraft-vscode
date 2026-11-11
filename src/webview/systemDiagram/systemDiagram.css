@@ -67,6 +67,25 @@ body {
   text-decoration: underline;
 }
 
+.sd-button,
+.sd-link {
+  outline-offset: 1px;
+}
+
+.sd-button:focus-visible,
+.sd-link:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.sd-button-primary {
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+}
+
+.sd-button-primary:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
 .sd-row:hover {
   background: var(--vscode-list-hoverBackground);
 }
@@ -711,6 +730,48 @@ input:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .sd-flash {
     display: none;
+  }
+}
+
+.sd-busy {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+  border-radius: 999px;
+  color: var(--vscode-editorWidget-foreground, var(--vscode-foreground));
+  background: var(--vscode-editorWidget-background);
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow);
+  transform: translateX(-50%);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.sd-busy-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--vscode-progressBar-background, var(--vscode-focusBorder));
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: sd-spin 0.8s linear infinite;
+}
+
+@keyframes sd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-busy-spinner {
+    animation: none;
+    border-right-color: var(--vscode-progressBar-background, var(--vscode-focusBorder));
+    opacity: 0.6;
   }
 }
 
@@ -1622,4 +1683,177 @@ th[aria-sort='descending'] > .sd-res-sort::after {
   user-select: text;
   background: var(--vscode-textCodeBlock-background);
   border-radius: 2px;
+}
+
+/* Details panel: a header with a divider, sections with counts, quiet hairlines. */
+.sd-details {
+  --sd-hairline: color-mix(in srgb, var(--vscode-panel-border, currentColor) 35%, transparent);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.sd-details .sd-dhead {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--sd-hairline);
+}
+
+.sd-details .sd-h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 2px;
+  font-size: 15px;
+  word-break: break-all;
+}
+
+.sd-details .sd-h2 .sd-ico {
+  width: 14px;
+  height: 14px;
+}
+
+.sd-details .sd-meta {
+  margin: 0;
+  color: var(--vscode-descriptionForeground);
+  overflow-wrap: anywhere;
+}
+
+.sd-details .sd-source {
+  color: var(--vscode-descriptionForeground);
+}
+
+.sd-details .sd-note {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.sd-details .sd-callout {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--vscode-foreground);
+  background: var(--vscode-textBlockQuote-background, var(--vscode-editorWidget-background));
+  border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-focusBorder));
+  border-radius: 0 3px 3px 0;
+}
+
+.sd-details .sd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sd-details .sd-button {
+  padding: 4px 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 3px;
+}
+
+.sd-details .sd-h3 {
+  display: flex;
+  align-items: center;
+  margin: 20px 0 8px;
+}
+
+.sd-details .sd-h3::after {
+  flex: 1;
+  margin-left: 8px;
+  content: '';
+  border-top: 1px solid var(--sd-hairline);
+}
+
+.sd-details .sd-kv {
+  grid-template-columns: fit-content(55%) minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+}
+
+.sd-details .sd-kv-code {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 11.5px;
+}
+
+.sd-details .sd-kv dt,
+.sd-details .sd-kv dd {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--sd-hairline);
+}
+
+.sd-details .sd-kv dt {
+  padding-right: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-details .sd-kv dd {
+  overflow-wrap: anywhere;
+}
+
+.sd-details .sd-pins {
+  table-layout: fixed;
+}
+
+.sd-details .sd-table th {
+  padding: 4px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom-color: var(--sd-hairline);
+}
+
+.sd-details .sd-table td {
+  padding: 4px 6px;
+  overflow-wrap: anywhere;
+  border-bottom-color: var(--sd-hairline);
+}
+
+.sd-details .sd-table tbody tr:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.sd-details .sd-pins th:first-child {
+  width: 36%;
+}
+
+.sd-details .sd-pins th:last-child {
+  width: 28%;
+}
+
+/* Long pin and net names end in an ellipsis; the full name is the tooltip. */
+.sd-details .sd-cut {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sd-details td.sd-cut {
+  display: table-cell;
+}
+
+.sd-details .sd-dim {
+  font-size: 11.5px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.sd-details .sd-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sd-details .sd-list li {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--sd-hairline);
+  overflow-wrap: anywhere;
+}
+
+.sd-details .sd-cap-list li {
+  border-bottom-color: var(--sd-hairline);
+}
+
+.sd-details .sd-h3 .sd-count {
+  margin-left: 2px;
 }

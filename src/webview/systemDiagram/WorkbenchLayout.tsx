@@ -30,6 +30,7 @@ import { useUnionGraph } from './hooks/useUnionGraph';
 import type { DiagramProblem } from './messageState';
 import { boundaryId, nodeSelection, type RevealZoom, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
+import { BusyIndicator } from './BusyIndicator';
 import { OutlineTree } from './OutlineTree';
 import type { ResourceChannel } from './resources/useResourceChannel';
 import { useResourceView } from './resources/useResourceView';
@@ -43,6 +44,8 @@ interface WorkbenchLayoutProps {
   graph: SystemGraph;
   highlights?: HighlightMap;
   problem?: DiagramProblem;
+  /** What the extension is doing; shown over the canvas until the next graph. */
+  busy?: string;
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
   assignContainerTcl: (instance: string) => void;
@@ -64,6 +67,7 @@ export function WorkbenchLayout({
   graph,
   highlights = EMPTY_HIGHLIGHTS,
   problem,
+  busy,
   revealSource,
   openDefinition,
   assignContainerTcl,
@@ -324,7 +328,8 @@ export function WorkbenchLayout({
               <ResizeHandle label="Resize Outline" {...panels.outline.separator} />
             </>
           )}
-          <main className="min-w-0 flex-1">
+          <main className="relative min-w-0 flex-1">
+            <BusyIndicator message={busy} />
             <DiagramCanvas
               layout={layout}
               error={error}
@@ -355,6 +360,7 @@ export function WorkbenchLayout({
               onClearHighlights={handleClearHighlights}
               onEnterHierarchy={nav.enterHierarchy}
               onToggleExpand={nav.toggleExpanded}
+              onAssignContainerTcl={assignContainerTcl}
               isolatable={view.canIsolate}
               traceable={trace.traceable}
               onTraceSignal={trace.onTraceSignal}
