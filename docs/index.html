@@ -770,6 +770,262 @@
       border-bottom: 1px solid var(--line);
     }
 
+    /* ---------- Overview hub ---------- */
+    .hub {
+      margin-top: 3.5rem;
+    }
+
+    .hub-routes {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .hub-routes-label {
+      margin-right: 0.5rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.76rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .hub-route {
+      min-height: 44px;
+      padding: 0 1.1rem;
+      font: inherit;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    }
+
+    .hub-route:hover {
+      border-color: var(--accent);
+    }
+
+    .hub-route.is-active {
+      color: #ffffff;
+      background: var(--grad);
+      border-color: transparent;
+    }
+
+    .hub-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) clamp(40px, 7vw, 110px) minmax(0, 1.1fr) clamp(40px, 7vw, 110px) minmax(0, 1fr);
+      align-items: stretch;
+    }
+
+    .hub-col {
+      display: grid;
+      grid-auto-rows: 1fr;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .hub-col li {
+      display: flex;
+      padding: 6px 0;
+    }
+
+    .hub-node {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--bg-card);
+      transition: border-color 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease;
+    }
+
+    .hub-node b {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.02rem;
+      letter-spacing: -0.01em;
+      color: var(--text-strong);
+    }
+
+    .hub-node span {
+      font-size: 0.86rem;
+      line-height: 1.4;
+      color: var(--text-soft);
+    }
+
+    .hub code,
+    .layers code,
+    .headless code {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.9em;
+    }
+
+    .hub.has-route .hub-node {
+      opacity: 0.6;
+    }
+
+    .hub.has-route .hub-node.is-on {
+      opacity: 1;
+      border-color: var(--brand-2);
+      box-shadow: 0 10px 34px rgba(221, 36, 118, 0.22);
+    }
+
+    .hub-wires {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .hub-wire,
+    .hub-pulse {
+      fill: none;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .hub-wire {
+      stroke: var(--line-strong);
+      stroke-width: 1.5;
+      transition: stroke 0.4s ease;
+    }
+
+    .hub-wire.is-on {
+      stroke: var(--brand-2);
+    }
+
+    .hub-pulse {
+      stroke: var(--brand);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-dasharray: 10 100;
+      stroke-dashoffset: 10;
+      opacity: 0;
+    }
+
+    .hub-pulse.is-on {
+      opacity: 1;
+      animation: hub-flow 1.6s linear infinite;
+    }
+
+    .hub-core {
+      align-self: center;
+      padding: 1px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2) 50%, var(--node-cyan));
+      box-shadow: 0 24px 80px rgba(221, 36, 118, 0.25);
+    }
+
+    .hub-core-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      padding: 1.5rem;
+      border-radius: 21px;
+      background: var(--bg-card);
+    }
+
+    .hub-core-inner > b {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+      color: var(--text-strong);
+    }
+
+    .hub-file {
+      display: flex;
+      flex-direction: column;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .hub-file span {
+      font-size: 1.05rem;
+      color: var(--accent);
+    }
+
+    .hub-file small,
+    .hub-core-note {
+      font-size: 0.84rem;
+      line-height: 1.45;
+      color: var(--text-soft);
+    }
+
+    .hub-caption {
+      min-height: 3.2em;
+      max-width: 720px;
+      margin: 1.5rem auto 0;
+      text-align: center;
+      color: var(--text-soft);
+    }
+
+    .layers {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem 1.75rem;
+      margin: 4rem 0 0;
+      padding: 2.5rem 0 0;
+      list-style: none;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .layers .tag {
+      display: block;
+      margin-top: 0.9rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .layers h3 {
+      margin: 0.2rem 0 0.4rem;
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+    }
+
+    .layers p {
+      font-size: 0.95rem;
+      color: var(--text-soft);
+    }
+
+    .ring circle {
+      stroke: var(--line-strong);
+      stroke-width: 1.5;
+    }
+
+    .ring circle.in {
+      stroke: var(--muted);
+    }
+
+    .ring circle.on {
+      stroke: var(--brand-2);
+      stroke-width: 2.5;
+    }
+
+    .headless {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 3.5rem;
+    }
+
+    .headless > .pad {
+      flex: 1 1 340px;
+    }
+
+    .headless > .terminal {
+      flex: 1.4 1 460px;
+      min-width: 0;
+      padding: 1.75rem 2rem;
+      background: var(--bg-code);
+      font-size: 0.85rem;
+    }
+
     /* ---------- Walkthrough tours ---------- */
     .tour-tabs {
       display: flex;
@@ -811,7 +1067,7 @@
     }
 
     .editor-tour {
-      margin-top: 6rem;
+      margin-top: 3.5rem;
     }
 
     .editor-tour .tour-panels {
@@ -1158,57 +1414,6 @@
       transform: scale(1.012);
     }
 
-    /* ---------- Workflow ---------- */
-    .steps {
-      position: relative;
-      list-style: none;
-      margin: 4rem 0 0;
-      padding: 0;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 2.5rem 3rem;
-    }
-
-    .steps::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      right: 0;
-      top: 27px;
-      height: 2px;
-      background: linear-gradient(90deg, var(--brand), var(--brand-2) 60%, transparent);
-      transform-origin: left;
-    }
-
-    .steps li {
-      position: relative;
-      flex: 1 1 280px;
-    }
-
-    .step-num {
-      width: 56px;
-      height: 56px;
-      display: grid;
-      place-items: center;
-      border-radius: 16px;
-      background: var(--grad);
-      color: #ffffff;
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-weight: 700;
-      font-size: 1.375rem;
-      box-shadow: 0 0 0 8px var(--bg);
-    }
-
-    .steps h3 {
-      margin: 1.5rem 0 0.5rem;
-      font-size: 1.625rem;
-      letter-spacing: -0.03em;
-    }
-
-    .steps p {
-      color: var(--text-soft);
-    }
-
     /* ---------- Capabilities ---------- */
     .sheet {
       margin-top: 3.5rem;
@@ -1348,14 +1553,12 @@
       transform: none;
     }
 
-    .js .marker::before,
-    .js .steps::before {
+    .js .marker::before {
       transform: scaleX(0);
       transition: transform 1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s;
     }
 
-    .js .marker.in::before,
-    .js .steps.in::before {
+    .js .marker.in::before {
       transform: scaleX(1);
     }
 
@@ -1411,6 +1614,11 @@
       to { transform: translateX(-50%); }
     }
 
+    @keyframes hub-flow {
+      from { stroke-dashoffset: 10; }
+      to { stroke-dashoffset: -100; }
+    }
+
     @keyframes seg-fill {
       from { width: 0; }
       to { width: 100%; }
@@ -1425,6 +1633,19 @@
         display: none;
       }
 
+      .hub-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+      }
+
+      .hub-wires {
+        display: none;
+      }
+
+      .hub-core {
+        margin: 2.5rem 0;
+      }
+
       .marquee {
         flex-direction: column;
         align-items: flex-start;
@@ -1433,10 +1654,6 @@
 
       .marquee-track {
         width: 100%;
-      }
-
-      .steps::before {
-        display: none;
       }
 
       .badge-float {
@@ -1498,8 +1715,7 @@
         transform: none;
       }
 
-      .js .marker::before,
-      .js .steps::before {
+      .js .marker::before {
         transform: none;
       }
     }
@@ -1516,9 +1732,10 @@
         IPCraft
       </a>
       <nav class="nav-links" aria-label="Main">
-        <a href="#system-viewer">System Viewer <span class="pill-new">NEW</span></a>
+        <a href="#overview">Overview</a>
         <a href="#editors">Editors</a>
-        <a href="#workflow">Workflow</a>
+        <a href="#system-viewer">System Viewer <span class="pill-new">NEW</span></a>
+        <a href="#data-inspector">Data Inspector</a>
         <a href="#capabilities">Capabilities</a>
         <a href="how-to/create-your-first-ip-core/">Docs</a>
       </nav>
@@ -1589,6 +1806,162 @@
               <li aria-hidden="true">IP-XACT</li><li aria-hidden="true">Nunjucks</li>
             </ul>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Overview -->
+    <section class="block wrap" id="overview">
+      <p class="marker reveal" style="--c: var(--chart-2)"><span>Overview</span></p>
+      <div class="split reveal">
+        <h2>One specification at the core. Everything else comes out of it.</h2>
+        <div class="split-side">
+          <p>An IP core and its memory-mapped registers live in two readable YAML files. IPCraft reads existing
+            designs into them and writes the HDL, testbenches, vendor packaging, and projects out of them.</p>
+        </div>
+      </div>
+
+      <div class="hub reveal" data-hub>
+        <div class="hub-routes" role="group" aria-label="Example routes through IPCraft">
+          <span class="hub-routes-label">Follow a route</span>
+          <button class="hub-route" type="button" data-route="altera-amd">Altera to AMD</button>
+          <button class="hub-route" type="button" data-route="amd-altera">AMD to Altera</button>
+          <button class="hub-route" type="button" data-route="vhdl">VHDL to everything</button>
+          <button class="hub-route" type="button" data-route="new">New core</button>
+        </div>
+        <div class="hub-grid">
+          <ul class="hub-col" aria-label="Sources">
+            <li><div class="hub-node" data-node="editors"><b>Visual editors</b><span>Start a new core from scratch</span></div></li>
+            <li><div class="hub-node" data-node="vhdl"><b>VHDL entity</b><span>Import ports, generics, and bus interfaces</span></div></li>
+            <li><div class="hub-node" data-node="hwtcl"><b>Altera <code>_hw.tcl</code></b><span>Import a Platform Designer component</span></div></li>
+            <li><div class="hub-node" data-node="xml"><b>AMD <code>component.xml</code></b><span>Import Vivado IP-XACT packaging</span></div></li>
+          </ul>
+          <svg class="hub-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="hub-wire" data-node="editors" d="M0 12.5C50 12.5 50 50 100 50" />
+            <path class="hub-pulse" data-node="editors" d="M0 12.5C50 12.5 50 50 100 50" pathLength="100" />
+            <path class="hub-wire" data-node="vhdl" d="M0 37.5C50 37.5 50 50 100 50" />
+            <path class="hub-pulse" data-node="vhdl" d="M0 37.5C50 37.5 50 50 100 50" pathLength="100" />
+            <path class="hub-wire" data-node="hwtcl" d="M0 62.5C50 62.5 50 50 100 50" />
+            <path class="hub-pulse" data-node="hwtcl" d="M0 62.5C50 62.5 50 50 100 50" pathLength="100" />
+            <path class="hub-wire" data-node="xml" d="M0 87.5C50 87.5 50 50 100 50" />
+            <path class="hub-pulse" data-node="xml" d="M0 87.5C50 87.5 50 50 100 50" pathLength="100" />
+          </svg>
+          <div class="hub-core">
+            <div class="hub-core-inner">
+              <img src="images/ipcraft-logo.svg" alt="" width="40" height="40" />
+              <b>IP core specification</b>
+              <div class="hub-file"><span class="mono">.ip.yml</span><small>ports, clocks, resets, bus interfaces, parameters</small></div>
+              <div class="hub-file"><span class="mono">.mm.yml</span><small>address blocks, registers, bit fields</small></div>
+              <small class="hub-core-note">Readable YAML. Comments and number formats survive visual edits.</small>
+            </div>
+          </div>
+          <svg class="hub-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="hub-wire" data-node="rtl" d="M0 50C50 50 50 10.0 100 10.0" />
+            <path class="hub-pulse" data-node="rtl" d="M0 50C50 50 50 10.0 100 10.0" pathLength="100" />
+            <path class="hub-wire" data-node="tb" d="M0 50C50 50 50 30.0 100 30.0" />
+            <path class="hub-pulse" data-node="tb" d="M0 50C50 50 50 30.0 100 30.0" pathLength="100" />
+            <path class="hub-wire" data-node="doc" d="M0 50C50 50 50 50.0 100 50.0" />
+            <path class="hub-pulse" data-node="doc" d="M0 50C50 50 50 50.0 100 50.0" pathLength="100" />
+            <path class="hub-wire" data-node="altera" d="M0 50C50 50 50 70.0 100 70.0" />
+            <path class="hub-pulse" data-node="altera" d="M0 50C50 50 50 70.0 100 70.0" pathLength="100" />
+            <path class="hub-wire" data-node="amd" d="M0 50C50 50 50 90.0 100 90.0" />
+            <path class="hub-pulse" data-node="amd" d="M0 50C50 50 50 90.0 100 90.0" pathLength="100" />
+          </svg>
+          <ul class="hub-col" aria-label="Generated output">
+            <li><div class="hub-node" data-node="rtl"><b>RTL</b><span>VHDL or SystemVerilog: top, core, bus wrapper, register file</span></div></li>
+            <li><div class="hub-node" data-node="tb"><b>Testbench</b><span>cocotb tests and a register model</span></div></li>
+            <li><div class="hub-node" data-node="doc"><b>Datasheet</b><span>Markdown documentation of the core</span></div></li>
+            <li><div class="hub-node" data-node="altera"><b>Altera</b><span><code>_hw.tcl</code> component and a Quartus project</span></div></li>
+            <li><div class="hub-node" data-node="amd"><b>AMD</b><span><code>component.xml</code> packaging and a Vivado project</span></div></li>
+          </ul>
+        </div>
+        <p class="hub-caption" data-hub-caption aria-live="polite"></p>
+      </div>
+
+      <ol class="layers">
+        <li class="reveal" style="--i: 0">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="on" /><circle cx="24" cy="24" r="7.5" class="" /><circle cx="24" cy="24" r="12" class="" /><circle cx="24" cy="24" r="16.5" class="" /><circle cx="24" cy="24" r="21" class="" /></svg>
+          <span class="tag mono">01</span>
+          <h3>The core</h3>
+          <p>An IP core with memory-mapped registers, described in <code>.ip.yml</code> and <code>.mm.yml</code> and edited visually.</p>
+          <a class="more" href="#editors">See the editors <span aria-hidden="true">&rarr;</span></a>
+        </li>
+        <li class="reveal" style="--i: 1">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="on" /><circle cx="24" cy="24" r="12" class="" /><circle cx="24" cy="24" r="16.5" class="" /><circle cx="24" cy="24" r="21" class="" /></svg>
+          <span class="tag mono">02</span>
+          <h3>Formats</h3>
+          <p>VHDL or SystemVerilog, the Altera <code>_hw.tcl</code>, and the AMD <code>component.xml</code> come from the same core, and each can be imported back. Porting between vendors starts from a finished specification, not a blank file.</p>
+        </li>
+        <li class="reveal" style="--i: 2">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="in" /><circle cx="24" cy="24" r="12" class="on" /><circle cx="24" cy="24" r="16.5" class="" /><circle cx="24" cy="24" r="21" class="" /></svg>
+          <span class="tag mono">03</span>
+          <h3>Projects and tests</h3>
+          <p>Quartus and Vivado projects and cocotb testbenches are generated with the core. Open them in the vendor tool, or build them, from the workspace where you edit and code.</p>
+        </li>
+        <li class="reveal" style="--i: 3">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="in" /><circle cx="24" cy="24" r="12" class="in" /><circle cx="24" cy="24" r="16.5" class="on" /><circle cx="24" cy="24" r="21" class="" /></svg>
+          <span class="tag mono">04</span>
+          <h3>The system</h3>
+          <p>See how the cores connect in a Vivado block design or a Platform Designer system.</p>
+          <a class="more" href="#system-viewer">See the System Viewer <span aria-hidden="true">&rarr;</span></a>
+        </li>
+        <li class="reveal" style="--i: 4">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="in" /><circle cx="24" cy="24" r="12" class="in" /><circle cx="24" cy="24" r="16.5" class="in" /><circle cx="24" cy="24" r="21" class="on" /></svg>
+          <span class="tag mono">05</span>
+          <h3>Debug</h3>
+          <p>Decode data captured from hardware against the register definitions.</p>
+          <a class="more" href="#data-inspector">See the Data Inspector <span aria-hidden="true">&rarr;</span></a>
+        </li>
+      </ol>
+
+      <article class="card big headless reveal">
+        <div class="pad">
+          <h3>The same engine on the command line</h3>
+          <p>The <code>ipcraft</code> command generates, verifies, packages, and renders without VS Code, so a
+            continuous-integration job produces the same files as the editor.</p>
+          <a class="more" href="reference/generator/">Read the generator reference <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <div class="terminal" role="img"
+          aria-label="Terminal: ipcraft generate core.ip.yml --target quartus,vivado --lang systemverilog; ipcraft verify core.ip.yml generated; ipcraft package core.ip.yml --out core.zip --zip; ipcraft render system.tcl --out system.svg">
+          <div class="c"># RTL, testbench, and both vendor projects</div>
+          <div><span class="p">$</span> <span class="k">ipcraft generate</span> <span class="f">core.ip.yml</span> <span class="o">--target</span> quartus,vivado <span class="o">--lang</span> systemverilog</div>
+          <div class="c"># check that generated files still match the specification</div>
+          <div><span class="p">$</span> <span class="k">ipcraft verify</span> <span class="f">core.ip.yml</span> generated/</div>
+          <div class="c"># one self-contained archive, and a diagram for the docs</div>
+          <div><span class="p">$</span> <span class="k">ipcraft package</span> <span class="f">core.ip.yml</span> <span class="o">--out</span> core.zip <span class="o">--zip</span></div>
+          <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">system.tcl</span> <span class="o">--out</span> system.svg</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Editors -->
+    <section class="block wrap" id="editors">
+      <p class="marker reveal" style="--c: var(--node-cyan)"><span>Visual editors</span></p>
+      <h2 class="reveal">A dedicated editor for each part of the specification.</h2>
+
+      <div class="editor-row reveal">
+        <div class="editor-copy">
+          <span class="tag mono">01 &middot; .ip.yml</span>
+          <h3>Design an IP core on a visual canvas.</h3>
+          <p>Place clocks, resets, ports, bus interfaces, and parameters. Select an item to edit its properties in the
+            inspector.</p>
+          <a class="more" href="reference/ip-core-editor/">Explore the IP Core editor <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <img class="theme-image editor-shot" loading="lazy" src="images/ipcore-editor-dark.png"
+          data-dark="images/ipcore-editor-dark.png" data-light="images/ipcore-editor-light.png" width="2800" height="1800"
+          alt="IP Core editor with an interface library and a core symbol on the canvas" />
+      </div>
+
+      <div class="editor-row flip reveal">
+        <img class="theme-image editor-shot" loading="lazy" src="images/memorymap-editor-dark.png"
+          data-dark="images/memorymap-editor-dark.png" data-light="images/memorymap-editor-light.png" width="2800"
+          height="1800" alt="Memory Map editor with a register tree, a bit layout, and a bit-field table" />
+        <div class="editor-copy">
+          <span class="tag mono">02 &middot; .mm.yml</span>
+          <h3>Define registers and bit fields visually.</h3>
+          <p>Edit blocks, registers, and bit fields in keyboard-friendly tables with a bit layout that stays
+            synchronized with the YAML.</p>
+          <a class="more" href="tutorials/memory-mapped-registers/">Learn memory-mapped registers <span aria-hidden="true">&rarr;</span></a>
         </div>
       </div>
     </section>
@@ -1805,44 +2178,22 @@
       <a class="more" href="how-to/view-a-system-design/">Read the System Viewer guide <span aria-hidden="true">&rarr;</span></a>
     </section>
 
-    <!-- Editors -->
-    <section class="block wrap" id="editors">
-      <p class="marker reveal" style="--c: var(--node-cyan)"><span>Visual editors</span></p>
-      <h2 class="reveal">A dedicated editor for each part of the specification.</h2>
-
-      <div class="editor-row reveal">
-        <div class="editor-copy">
-          <span class="tag mono">01 &middot; .ip.yml</span>
-          <h3>Design an IP core on a visual canvas.</h3>
-          <p>Place clocks, resets, ports, bus interfaces, and parameters. Select an item to edit its properties in the
-            inspector.</p>
-          <a class="more" href="reference/ip-core-editor/">Explore the IP Core editor <span aria-hidden="true">&rarr;</span></a>
-        </div>
-        <img class="theme-image editor-shot" loading="lazy" src="images/ipcore-editor-dark.png"
-          data-dark="images/ipcore-editor-dark.png" data-light="images/ipcore-editor-light.png" width="2800" height="1800"
-          alt="IP Core editor with an interface library and a core symbol on the canvas" />
-      </div>
-
-      <div class="editor-row flip reveal">
-        <img class="theme-image editor-shot" loading="lazy" src="images/memorymap-editor-dark.png"
-          data-dark="images/memorymap-editor-dark.png" data-light="images/memorymap-editor-light.png" width="2800"
-          height="1800" alt="Memory Map editor with a register tree, a bit layout, and a bit-field table" />
-        <div class="editor-copy">
-          <span class="tag mono">02 &middot; .mm.yml</span>
-          <h3>Define registers and bit fields visually.</h3>
-          <p>Edit blocks, registers, and bit fields in keyboard-friendly tables with a bit layout that stays
-            synchronized with the YAML.</p>
-          <a class="more" href="tutorials/memory-mapped-registers/">Learn memory-mapped registers <span aria-hidden="true">&rarr;</span></a>
+    <!-- Data Inspector -->
+    <section class="block wrap" id="data-inspector">
+      <p class="marker reveal" style="--c: var(--chart-7)"><span>Debug &middot; Data Inspector</span></p>
+      <div class="split reveal">
+        <h2>Inspect captured data against register definitions.</h2>
+        <div class="split-side">
+          <p>Map CSV captures and literals onto real register definitions, then wire operators together to decode,
+            combine, and transform values.</p>
         </div>
       </div>
-
       <div class="tour editor-tour reveal" data-tour>
         <div class="tour-panels" style="--ratio: 1280 / 800">
           <div class="walk" data-walk>
             <div class="walk-side">
-              <span class="tag mono">03 &middot; captured data</span>
-              <h3 class="editor-title">Inspect captured data against register definitions.</h3>
-              <p>Map CSV captures and literals onto real register definitions, then wire operators together to decode, combine, and transform values.</p>
+              <h3>Wire operators together</h3>
+              <p>Compose two captured words into one address, step by step.</p>
               <ol class="walk-steps">
                 <li><button class="walk-step" type="button"><b>Decode two captured words</b><span>ADDR_HI and ADDR_LO are entered as literals and decoded against their fields.</span></button></li>
                 <li><button class="walk-step" type="button"><b>Add an operator</b><span>Click Concat in the library. A draft step appears on the canvas.</span></button></li>
@@ -1885,32 +2236,6 @@
             <span class="tour-count mono" data-tour-count aria-live="polite">1 / 5</span>
           </div>
       </div>
-    </section>
-
-    <!-- Workflow -->
-    <section class="block wrap" id="workflow">
-      <p class="marker reveal" style="--c: var(--chart-2)"><span>Workflow</span></p>
-      <h2 class="reveal">From specification to implementation, described once.</h2>
-      <ol class="steps reveal">
-        <li class="reveal">
-          <div class="step-num">1</div>
-          <h3>Describe</h3>
-          <p>Define ports, interfaces, address blocks, registers, and fields in visual editors. Every change stays
-            visible in reviewable YAML.</p>
-        </li>
-        <li class="reveal" style="--i: 2">
-          <div class="step-num">2</div>
-          <h3>Generate</h3>
-          <p>Generate VHDL or SystemVerilog, bus wrappers, register files, cocotb tests, documentation, and vendor
-            project files.</p>
-        </li>
-        <li class="reveal" style="--i: 4">
-          <div class="step-num">3</div>
-          <h3>Verify and build</h3>
-          <p>Check the generated HDL, run simulations, inspect captured data, and build with Vivado or Quartus without
-            leaving VS Code.</p>
-        </li>
-      </ol>
     </section>
 
     <!-- Capabilities -->
@@ -2160,6 +2485,79 @@
           },
           { threshold: 0.35 }
         ).observe(tour);
+      }
+      document.addEventListener('visibilitychange', schedule);
+      render();
+    });
+    // Overview hub: light up one route through the core at a time. It cycles on its
+    // own until the visitor picks a route.
+    document.querySelectorAll('[data-hub]').forEach((hub) => {
+      const all = ['rtl', 'tb', 'doc', 'altera', 'amd'];
+      const routes = {
+        'altera-amd': {
+          on: ['hwtcl', 'amd'],
+          text: 'Import a Platform Designer component, review it in the editor, then generate the AMD packaging: component.xml and a Vivado project.',
+        },
+        'amd-altera': {
+          on: ['xml', 'altera'],
+          text: 'Import Vivado IP-XACT packaging, review it in the editor, then generate the Altera _hw.tcl component and a Quartus project.',
+        },
+        vhdl: {
+          on: ['vhdl', ...all],
+          text: 'Import an existing VHDL entity and get testbenches, documentation, and packaging for both vendors.',
+        },
+        new: {
+          on: ['editors', ...all],
+          text: 'Design a new core on the canvas and generate every output from the one specification.',
+        },
+      };
+      const names = Object.keys(routes);
+      const buttons = Array.from(hub.querySelectorAll('.hub-route'));
+      const caption = hub.querySelector('[data-hub-caption]');
+      let current = 0;
+      let auto = !reducedMotion;
+      let visible = false;
+      let timer = null;
+
+      const render = () => {
+        const route = routes[names[current]];
+        hub.classList.add('has-route');
+        hub.querySelectorAll('[data-node]').forEach((element) => {
+          element.classList.toggle('is-on', route.on.includes(element.dataset.node));
+        });
+        buttons.forEach((button) => {
+          const active = button.dataset.route === names[current];
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+        caption.textContent = route.text;
+      };
+      const schedule = () => {
+        clearTimeout(timer);
+        if (auto && visible && !document.hidden) {
+          timer = setTimeout(() => {
+            current = (current + 1) % names.length;
+            render();
+            schedule();
+          }, 4200);
+        }
+      };
+      buttons.forEach((button) =>
+        button.addEventListener('click', () => {
+          current = names.indexOf(button.dataset.route);
+          auto = false;
+          render();
+          schedule();
+        })
+      );
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(
+          ([entry]) => {
+            visible = entry.isIntersecting;
+            schedule();
+          },
+          { threshold: 0.05 }
+        ).observe(hub);
       }
       document.addEventListener('visibilitychange', schedule);
       render();
