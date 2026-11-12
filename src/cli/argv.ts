@@ -21,11 +21,12 @@ Usage:
                                           self-contained folder (or .zip with --zip)
   ipcraft migrate <file>... [--check]     Upgrade .ip.yml files to the latest format version and
                                           convert legacy snake_case keys in .ip.yml / .mm.yml files
-  ipcraft render <design.tcl|design.qsys|ip.yml> --out <file.svg|png|jpg> [options]
+  ipcraft render <design.tcl|design.bd|design.qsys|ip.yml> --out <file.svg|png|jpg> [options]
                                           Draw one level of a system design (Vivado block design
-                                          .tcl, Platform Designer .qsys or qsys-script .tcl), or
-                                          the symbol of an IP core (.ip.yml), as an SVG, PNG or
-                                          JPG image (the --out extension picks the format)
+                                          .tcl or .bd, Platform Designer .qsys or qsys-script
+                                          .tcl), or the symbol of an IP core (.ip.yml), as an
+                                          SVG, PNG or JPG image (the --out extension picks the
+                                          format)
   ipcraft render --manifest <file.yml>    Render every image listed in a manifest file
   ipcraft vhdl-ls [--root <dir>] [--dry-run] [--force]
                                           Generate a root vhdl_ls.toml that maps every VHDL file

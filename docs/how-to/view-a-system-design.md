@@ -11,6 +11,7 @@ no license, and it never runs your script.
 | File | Source |
 |---|---|
 | `.tcl` | Vivado block design script written by `write_bd_tcl` |
+| `.bd` | Vivado block design file (JSON, Vivado 2018.3 and later) |
 | `.qsys` | Platform Designer system (Standard) |
 | `.tcl` | Platform Designer system script for `qsys-script` |
 
@@ -23,7 +24,7 @@ show](#what-the-offline-view-cannot-show).
 
 ## Open the diagram
 
-1. Open the `.tcl` or `.qsys` file in the text editor.
+1. Open the `.tcl`, `.bd` or `.qsys` file in the text editor.
 2. Press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS), or run **IPCraft: Open as
    System Diagram**.
 3. Press the same keys again to return to the text editor.
@@ -108,9 +109,9 @@ Turning the review on or off does not move any block, and it does not change **C
 
 While the review is on, the diagram dims wires and blocks without findings. Each unconnected pin gets a short dashed stub ending in a hollow circle, a block header shows a warning icon (a disconnect icon when nothing is undriven) with the count, and hovering it gives the undriven and unused split (hierarchy blocks count the pins inside them too). The outline shows a count on each block and external port.
 
-Only blocks whose full pin list is known can be checked: blocks with an `.ip.yml` or HDL definition, hierarchy blocks and their pins, and external ports. For the other blocks (drawn with a dashed border), the viewer knows only the pins that appear in connections, so it cannot tell which pins are open. They are listed as not checked.
+Only blocks whose full pin list is known can be checked: blocks with an `.ip.yml` or HDL definition, hierarchy blocks and their pins, module references of a `.bd` file (the file lists all their ports), and external ports. For the other blocks (drawn with a dashed border), the viewer knows only the pins that appear in connections, so it cannot tell which pins are open. They are listed as not checked.
 
-The **Unconnected** tab lists every finding with its pin, block, level, direction, type, where the pin is known from, and a link to the line that created it. The **Undriven** and **Unused** chips filter the rows. Click a row to go to its level, select the block, centre it (zooming in if it is too small to read), and mark the pin on the diagram and in Details. A hierarchy pin that is open on both sides is listed twice: once on the hierarchy block in the parent level and once as the port inside. Details shows `undriven` or `unused` in the Net column of every unconnected pin, with or without the review on.
+The **Unconnected** tab lists every finding with its pin, block, level, direction, type, where the pin is known from, and a link to the line that created it. The **Undriven** and **Unused** chips filter the rows. Click a row to go to its level, select the block, centre it (zooming in if it is too small to read), and mark the pin on the diagram and in Details. A hierarchy pin that is open on both sides is listed twice: once on the hierarchy block in the parent level and once as the port inside. Details shows `undriven` or `unused` in the Net column of every unconnected pin of a block whose full pin list is known, with or without the review on.
 
 ## Panels
 
@@ -423,6 +424,25 @@ Zynq-7000, Zynq UltraScale+ and Versal, `xlconstant`, `util_vector_logic`,
 `util_reduced_logic` and `axi_gpio`. An IP definition, when present, decides
 instead.
 
+## Vivado `.bd` files
+
+A `.bd` file is the block design itself. Vivado 2018.3 and later save it as
+JSON, and IPCraft reads it without Vivado. The XML `.bd` files of earlier
+releases are not supported: save the design with Vivado 2018.3 or later, or
+export it with `write_bd_tcl`.
+
+- An IP that carries its own inner design, such as `axi_interconnect`, is one
+  block, as in a script. Its inner blocks and connections are not shown.
+- Only parameters that you set are shown. Default and propagated parameters
+  are not.
+- The pins that the file lists for a block get their declared direction. A
+  module reference lists all its ports, so its unconnected ports are checked. An
+  IP lists only some of its ports, so it stays not checked.
+- Long parameter values, which Vivado stores in several pieces, are shown joined
+  with a space.
+- Address ranges such as `64K` are shown in hex.
+- Address segments that are excluded in the design are not listed.
+
 ## Platform Designer scripts
 
 A system script does not always say what a connection carries. IPCraft infers
@@ -446,7 +466,8 @@ A block that the design uses but does not define in the file you opened is drawn
 as a black box instead of being dropped. A Vivado script gets one when a
 connection names a block it never creates, or when it calls a
 `create_hier_cell_*` procedure defined in another file (for example one loaded
-with `source`). A Platform Designer file gets one when a connection or exported
+with `source`). A `.bd` file gets one when a net names a block the file does not
+define. A Platform Designer file gets one when a connection or exported
 interface names a module the file does not declare. A black box has a dashed
 border and the subtitle **Black box**, it shows the pins seen in connections,
 and it cannot be expanded. Details states that it is not defined in the file,
@@ -460,7 +481,8 @@ box.
 - The frequency a clock achieves after validation, and clocks a block derives
   itself. Only the requested frequency of the sources listed under
   [Frequencies](#frequencies) is known.
-- Unconnected pins of an instance that has no definition in the workspace.
+- Unconnected pins of an instance that has no definition in the workspace. The
+  exception is a module reference in a `.bd` file, whose ports the file lists.
 - Address ranges in Platform Designer systems, both `.qsys` files and system
   scripts. Base addresses are shown, and ranges that come from the IP
   definitions are not filled in yet.

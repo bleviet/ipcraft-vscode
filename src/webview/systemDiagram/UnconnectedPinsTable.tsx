@@ -61,7 +61,8 @@ export function UnconnectedPinsTable({
   const unchecked = uncheckedInstanceCount(graph);
   const coverage = (
     <span className="min-w-0 flex-1">
-      Checked: blocks with an .ip.yml or HDL definition, hierarchy pins, and external ports.{' '}
+      Checked: blocks with an .ip.yml or HDL definition or a full pin list in the design file,
+      hierarchy pins, and external ports.{' '}
       {unchecked === 0 ? (
         'All blocks were checked.'
       ) : (
@@ -69,7 +70,7 @@ export function UnconnectedPinsTable({
           <b>
             Not checked: {unchecked} {unchecked === 1 ? 'block' : 'blocks'}
           </b>
-          , whose pins come from connections only.
+          , whose full pin list is not known.
         </>
       )}
     </span>

@@ -1,4 +1,5 @@
 import type { SystemGraph } from '../../domain/systemGraph';
+import { readBdJson } from '../../parser/system/BdJsonReader';
 import { readBdTcl } from '../../parser/system/BdTclReader';
 import { readQsys } from '../../parser/system/QsysReader';
 import { readQsysTcl } from '../../parser/system/QsysTclReader';
@@ -12,6 +13,9 @@ export function readSystemDesign(
 ): SystemGraph | undefined {
   if (!isSystemDesignScript(filePath, text)) {
     return undefined;
+  }
+  if (filePath.endsWith('.bd')) {
+    return readBdJson(text, displayName);
   }
   if (filePath.endsWith('.qsys')) {
     return readQsys(text, displayName);

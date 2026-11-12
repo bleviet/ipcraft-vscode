@@ -59,7 +59,9 @@ export function unconnectedClass(
 
 /** Whether the full pin list of the instance is known (not just pins seen in connections). */
 export function isPinListKnown(instance: SystemInstance): boolean {
-  return instance.kind === 'hier' || instance.definition !== undefined;
+  return (
+    instance.kind === 'hier' || instance.pinsComplete === true || instance.definition !== undefined
+  );
 }
 
 export function unconnectedPins(graph: SystemGraph): UnconnectedPin[] {
@@ -68,7 +70,10 @@ export function unconnectedPins(graph: SystemGraph): UnconnectedPin[] {
     const lookup = netsByEndpoint(graph, level);
     for (const path of info.instances) {
       const instance = graph.instances[path];
-      for (const pin of instance?.pins ?? []) {
+      if (!instance || !isPinListKnown(instance)) {
+        continue;
+      }
+      for (const pin of instance.pins) {
         if (!lookup.has(endpointKey({ instance: path, pin: pin.name }))) {
           found.push({
             level,
@@ -173,7 +178,10 @@ export function findingRow(graph: SystemGraph, finding: UnconnectedPin): Finding
     (pin.vlnv ? shortVlnv(pin.vlnv) : undefined) ??
     pin.signalType ??
     (pin.isInterface ? 'interface' : 'signal');
-  const knownFrom = instance && instance.kind !== 'hier' ? (pin.definedBy ?? '-') : 'declared';
+  const knownFrom =
+    instance && instance.kind !== 'hier'
+      ? (pin.definedBy ?? (instance.pinsComplete ? 'declared' : '-'))
+      : 'declared';
   const line = instance ? instance.line : pin.line;
   return {
     block,

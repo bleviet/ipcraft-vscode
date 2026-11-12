@@ -6,6 +6,7 @@ import {
   unconnectedClass,
   unconnectedPins,
 } from '../../../../webview/systemDiagram/unconnectedPins';
+import { readBdJson } from '../../../../parser/system/BdJsonReader';
 import { loadFixtureGraph, loadReviewFixtureGraph } from './fixtureGraph';
 
 const BANK = '/dsp_pipeline/coeff_bank';
@@ -138,5 +139,40 @@ describe('focusedPinOf', () => {
     expect(focusedPinOf(focused, { kind: 'net', id: 'n2' }, '/a')).toBeUndefined();
     expect(focusedPinOf(focused, instance, '/a')).toBeUndefined();
     expect(focusedPinOf(focused, null, '/a')).toBeUndefined();
+  });
+});
+
+describe('unconnected pins of a .bd design', () => {
+  const graph = readBdJson(
+    JSON.stringify({
+      design: {
+        components: {
+          sync_0: {
+            vlnv: 'xilinx.com:module_ref:sync:1.0',
+            reference_info: { ref_name: 'sync' },
+            ports: { clk: { direction: 'I' }, spare: { direction: 'O' } },
+          },
+          gpio_0: {
+            vlnv: 'xilinx.com:ip:axi_gpio:2.0',
+            ports: { s_axi_aclk: { direction: 'I' }, gpio_o: { direction: 'O' } },
+          },
+        },
+        nets: { n: { ports: ['sync_0/clk', 'gpio_0/s_axi_aclk'] } },
+      },
+    }),
+    'd.bd'
+  );
+
+  it('checks a module reference and reports its open declared pin', () => {
+    expect(isPinListKnown(graph.instances['/sync_0'])).toBe(true);
+    expect(
+      unconnectedPins(graph).map((finding) => [finding.nodeId, finding.pin.name, finding.cls])
+    ).toEqual([['/sync_0', 'spare', 'unused']]);
+  });
+
+  it('lists an ip with declared pins as not checked and reports none of its pins', () => {
+    expect(isPinListKnown(graph.instances['/gpio_0'])).toBe(false);
+    expect(unconnectedPins(graph).some((finding) => finding.nodeId === '/gpio_0')).toBe(false);
+    expect(uncheckedInstanceCount(graph)).toBe(1);
   });
 });

@@ -34,6 +34,20 @@ describe('isSystemDesignScript', () => {
     expect(isSystemDesignScript('/p/sys.tcl', '<system name="s">')).toBe(false);
   });
 
+  it('accepts a .bd file with a design object', () => {
+    expect(isSystemDesignScript('/p/s.bd', '{\n  "design": {\n  }\n}')).toBe(true);
+    expect(isSystemDesignScript('/p/s.bd', '{"design":{}}')).toBe(true);
+  });
+
+  it('accepts an XML .bd file so the reader can explain it is unsupported', () => {
+    expect(isSystemDesignScript('/p/s.bd', '\n  <?xml version="1.0"?>')).toBe(true);
+  });
+
+  it('rejects a .bd file that is neither', () => {
+    expect(isSystemDesignScript('/p/s.bd', '{"other": {}}')).toBe(false);
+    expect(isSystemDesignScript('/p/s.json', '{"design": {}}')).toBe(false);
+  });
+
   it('rejects non-tcl files', () => {
     expect(isSystemDesignScript('/p/system.yml', 'create_bd_design foo')).toBe(false);
   });

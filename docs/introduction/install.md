@@ -27,7 +27,7 @@ settings.
 | `*.ip.yml` | IP Core editor |
 | `*.mm.yml` | Memory Map editor |
 | `*.ipci.yml` | Data Inspector |
-| Vivado block design `.tcl`, Platform Designer `.qsys` or system `.tcl` | Text editor; press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) for the System Viewer |
+| Vivado block design `.tcl` or `.bd`, Platform Designer `.qsys` or system `.tcl` | Text editor; press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) for the System Viewer |
 | `_hw.tcl`, `component.xml`, VHDL, Verilog, and SystemVerilog files | Text editor; `Ctrl+Shift+V` shows a read-only IP core preview that you can save as an `.ip.yml` |
 
 To see the YAML behind a visual editor, run **IPCraft: Open as Text Editor**.

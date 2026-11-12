@@ -1,7 +1,8 @@
 /**
  * Hand-written types for the offline system viewer (issue #239): a vendor-neutral
  * graph of instances, pins, nets and address segments read statically from a
- * Vivado block design script or a Platform Designer `.qsys` file.
+ * Vivado block design (a `write_bd_tcl` script or a JSON `.bd` file) or a
+ * Platform Designer `.qsys` file.
  * JSON-serializable only (no Map, no bigint) because the
  * graph crosses the extension/webview process boundary.
  */
@@ -74,6 +75,8 @@ export interface SystemInstance {
   component?: string;
   /** qsys: module `version`. */
   version?: string;
+  /** The design file lists every pin of the instance (`.bd` module references). */
+  pinsComplete?: true;
   /** Key as written, e.g. `CONFIG.c_include_sg`. */
   parameters: Record<string, string>;
   /** ip/module: pins seen in connections; hier: the level's boundary pins. */
@@ -142,7 +145,7 @@ export interface AddressSegment {
   slaveInstance: string;
   /** As written, e.g. `0x40400000`; qsys: `baseAddress`. Undefined when the tool assigns it. */
   offset?: string;
-  /** As written, e.g. `0x00010000`; qsys: always undefined (the size is in the slave definition). */
+  /** As written, e.g. `0x00010000` (`.bd`: sizes such as `64K` are converted to hex); qsys: always undefined (the size is in the slave definition). */
   range?: string;
   line: number;
 }
@@ -157,7 +160,11 @@ export interface SystemDiagnostic {
 
 export interface SystemGraph {
   name: string;
-  source: { fileName: string; format: 'vivado-bd-tcl' | 'qsys' | 'qsys-tcl'; toolVersion?: string };
+  source: {
+    fileName: string;
+    format: 'vivado-bd-tcl' | 'vivado-bd' | 'qsys' | 'qsys-tcl';
+    toolVersion?: string;
+  };
   /** Keyed by path; always contains `/`. */
   levels: Record<string, SystemLevel>;
   instances: Record<string, SystemInstance>;

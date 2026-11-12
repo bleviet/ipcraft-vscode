@@ -23,8 +23,20 @@ describe('readSystemDesign', () => {
     expect(graph?.source.format).toBe('vivado-bd-tcl');
   });
 
+  it('reads a .bd file with the JSON reader', () => {
+    const graph = readSystemDesign('/p/s.bd', 's.bd', '{"design":{"components":{}}}');
+    expect(graph?.source).toEqual({ fileName: 's.bd', format: 'vivado-bd' });
+  });
+
+  it('throws the reader error for an XML .bd file', () => {
+    expect(() => readSystemDesign('/p/s.bd', 's.bd', '<?xml version="1.0"?>')).toThrow(
+      /XML format of Vivado 2018.2/
+    );
+  });
+
   it('returns undefined for files that are not system designs', () => {
     expect(readSystemDesign('/p/build.tcl', 'build.tcl', 'puts hello')).toBeUndefined();
     expect(readSystemDesign('/p/x.qsys', 'x.qsys', '<project/>')).toBeUndefined();
+    expect(readSystemDesign('/p/x.bd', 'x.bd', '{}')).toBeUndefined();
   });
 });

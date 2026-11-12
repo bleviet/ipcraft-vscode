@@ -1,0 +1,288 @@
+{
+  "design": {
+    "design_info": {
+      "boundary_crc": "0x0",
+      "device": "xc7z020clg400-1",
+      "name": "zynq_gpio_system",
+      "tool_version": "2022.2",
+      "validated": "true"
+    },
+    "design_tree": {
+      "sys_ps7": "",
+      "axi_periph": {
+        "xbar": ""
+      },
+      "gpio_block": {
+        "axi_gpio_1": ""
+      }
+    },
+    "interface_ports": {
+      "DDR": {
+        "mode": "Master",
+        "vlnv": "xilinx.com:interface:ddrx_rtl:1.0",
+        "parameters": {
+          "CAN_DEBUG": {
+            "value": "false",
+            "value_src": "default"
+          }
+        }
+      }
+    },
+    "ports": {
+      "sys_clk": {
+        "type": "clk",
+        "direction": "I",
+        "parameters": {
+          "FREQ_HZ": {
+            "value": "125000000"
+          },
+          "PHASE": {
+            "value": "0.0",
+            "value_src": "default"
+          }
+        }
+      },
+      "sys_rst_n": {
+        "type": "rst",
+        "direction": "I"
+      },
+      "led_o": {
+        "direction": "O",
+        "left": "7",
+        "right": "0"
+      }
+    },
+    "components": {
+      "sys_ps7": {
+        "vlnv": "xilinx.com:ip:processing_system7:5.5",
+        "xci_name": "zynq_gpio_system_sys_ps7_0",
+        "parameters": {
+          "PCW_FPGA0_PERIPHERAL_FREQMHZ": {
+            "value": "100",
+            "value_src": "user"
+          },
+          "PCW_MIO_TREE_PERIPHERALS": {
+            "value": [
+              "GPIO#Quad SPI Flash#Quad SPI",
+              "Flash#UART 1"
+            ]
+          },
+          "PCW_USE_M_AXI_GP0": {
+            "value": "1",
+            "value_src": "default"
+          }
+        },
+        "interface_ports": {
+          "M_AXI_GP0": {
+            "mode": "Master",
+            "vlnv": "xilinx.com:interface:aximm_rtl:1.0"
+          }
+        }
+      },
+      "axi_periph": {
+        "vlnv": "xilinx.com:ip:axi_interconnect:2.1",
+        "xci_name": "zynq_gpio_system_axi_periph_0",
+        "parameters": {
+          "NUM_MI": {
+            "value": "2"
+          }
+        },
+        "ports": {
+          "ACLK": {
+            "type": "clk",
+            "direction": "I"
+          }
+        },
+        "components": {
+          "xbar": {
+            "vlnv": "xilinx.com:ip:axi_crossbar:2.1",
+            "xci_name": "zynq_gpio_system_xbar_0"
+          }
+        },
+        "nets": {
+          "inner_clk": {
+            "ports": [
+              "ACLK",
+              "xbar/aclk"
+            ]
+          }
+        }
+      },
+      "axi_gpio_0": {
+        "vlnv": "xilinx.com:ip:axi_gpio:2.0",
+        "xci_name": "zynq_gpio_system_axi_gpio_0",
+        "parameters": {
+          "C_GPIO_WIDTH": {
+            "value": "8"
+          }
+        },
+        "interface_ports": {
+          "S_AXI": {
+            "mode": "Slave",
+            "vlnv": "xilinx.com:interface:aximm_rtl:1.0"
+          }
+        }
+      },
+      "gpio_block": {
+        "interface_ports": {
+          "S_AXI": {
+            "mode": "Slave",
+            "vlnv": "xilinx.com:interface:aximm_rtl:1.0"
+          },
+          "GPIO": {
+            "mode": "Master",
+            "vlnv": "xilinx.com:interface:gpio_rtl:1.0"
+          }
+        },
+        "ports": {
+          "clk": {
+            "type": "clk",
+            "direction": "I"
+          },
+          "rst_n": {
+            "type": "rst",
+            "direction": "I"
+          }
+        },
+        "components": {
+          "axi_gpio_1": {
+            "vlnv": "xilinx.com:ip:axi_gpio:2.0",
+            "xci_name": "zynq_gpio_system_axi_gpio_1",
+            "parameters": {
+              "C_ALL_OUTPUTS": {
+                "value": "1"
+              }
+            }
+          }
+        },
+        "interface_nets": {
+          "gpio_axi": {
+            "interface_ports": [
+              "S_AXI",
+              "axi_gpio_1/S_AXI"
+            ]
+          },
+          "gpio_pins": {
+            "interface_ports": [
+              "axi_gpio_1/GPIO",
+              "GPIO"
+            ]
+          }
+        },
+        "nets": {
+          "block_clk": {
+            "ports": [
+              "clk",
+              "axi_gpio_1/s_axi_aclk"
+            ]
+          },
+          "block_rst": {
+            "ports": [
+              "rst_n",
+              "axi_gpio_1/s_axi_aresetn"
+            ]
+          }
+        }
+      },
+      "sync_0": {
+        "vlnv": "xilinx.com:module_ref:reset_synchronizer:1.0",
+        "xci_name": "zynq_gpio_system_sync_0_0",
+        "reference_info": {
+          "ref_type": "hdl",
+          "ref_name": "reset_synchronizer",
+          "boundary_crc": "0x0"
+        },
+        "ports": {
+          "clk": {
+            "type": "clk",
+            "direction": "I"
+          },
+          "rst_n": {
+            "type": "rst",
+            "direction": "O"
+          }
+        }
+      }
+    },
+    "interface_nets": {
+      "ps_axi": {
+        "interface_ports": [
+          "axi_periph/S00_AXI",
+          "sys_ps7/M_AXI_GP0"
+        ]
+      },
+      "periph_gpio0": {
+        "interface_ports": [
+          "axi_periph/M00_AXI",
+          "axi_gpio_0/S_AXI"
+        ]
+      },
+      "periph_block": {
+        "interface_ports": [
+          "axi_periph/M01_AXI",
+          "gpio_block/S_AXI"
+        ]
+      },
+      "ps_ddr": {
+        "interface_ports": [
+          "sys_ps7/DDR",
+          "DDR"
+        ]
+      }
+    },
+    "nets": {
+      "fclk": {
+        "ports": [
+          "sys_ps7/FCLK_CLK0",
+          "axi_periph/ACLK",
+          "axi_gpio_0/s_axi_aclk",
+          "gpio_block/clk"
+        ]
+      },
+      "ext_rst": {
+        "ports": [
+          "sys_rst_n",
+          "sync_0/rst_n_in",
+          "ghost_ctrl/rst_n"
+        ]
+      }
+    },
+    "addressing": {
+      "/sys_ps7": {
+        "address_spaces": {
+          "Data": {
+            "segments": {
+              "SEG_axi_gpio_0_Reg": {
+                "address_block": "/axi_gpio_0/S_AXI/Reg",
+                "offset": "0x41200000",
+                "range": "64K"
+              },
+              "SEG_axi_gpio_1_Reg": {
+                "address_block": "/gpio_block/axi_gpio_1/S_AXI/Reg",
+                "offset": "0x41210000",
+                "range": "64K"
+              },
+              "SEG_axi_gpio_0_Mem": {
+                "address_block": "/axi_gpio_0/S_AXI/Mem",
+                "offset": "0x00000000",
+                "range": "4G"
+              },
+              "SEG_axi_gpio_2_Reg": {
+                "address_block": "/axi_gpio_0/S_AXI/Reg2",
+                "offset": "0x41220000",
+                "range": "4K",
+                "is_excluded": "TRUE"
+              },
+              "SEG_axi_gpio_3_Reg": {
+                "address_block": "/axi_gpio_0/S_AXI/Reg3",
+                "offset": "0x41230000",
+                "range": "4K",
+                "is_excluded": "true"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

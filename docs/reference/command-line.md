@@ -105,7 +105,7 @@ deduplicated. In VS Code the same service is available as
 ## Render a diagram as an image
 
 `render` draws one level of a system design, or the symbol of an IP core, as an
-SVG, PNG or JPG image for documentation. It reads a Vivado block design `.tcl`, a
+SVG, PNG or JPG image for documentation. It reads a Vivado block design `.tcl` or `.bd`, a
 Platform Designer `.qsys`, a `qsys-script` `.tcl` or an `.ip.yml`, and needs no
 VS Code window:
 

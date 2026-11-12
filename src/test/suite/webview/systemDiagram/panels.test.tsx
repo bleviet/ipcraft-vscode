@@ -63,6 +63,45 @@ describe('InstanceDetails pin provenance', () => {
   });
 });
 
+describe('InstanceDetails unconnected tag', () => {
+  const details = (pinsComplete: boolean) => {
+    const graph = JSON.parse(JSON.stringify(qsys)) as typeof qsys;
+    const instance = graph.instances['/pio_0'];
+    instance.pins.push({
+      name: 'spare_in',
+      isInterface: false,
+      direction: 'in',
+      directionSource: 'declared',
+      parameters: {},
+    });
+    if (pinsComplete) {
+      instance.pinsComplete = true;
+    }
+    render(
+      <InstanceDetails
+        graph={graph}
+        clocks={analyzeClocks(graph)}
+        instance={instance}
+        onSelect={jest.fn()}
+        onEnterHierarchy={jest.fn()}
+        onReveal={jest.fn()}
+        onOpenDefinition={jest.fn()}
+      />
+    );
+    return screen.getByText('spare_in').closest('tr')!.children[1];
+  };
+
+  it('tags an open pin of a block whose full pin list is known', () => {
+    expect(details(true)).toHaveTextContent('undriven');
+    expect(screen.queryByText(/does not list every pin/)).toBeNull();
+  });
+
+  it('shows no tag when the pin list is not known', () => {
+    expect(details(false)).toHaveTextContent(/^-$/);
+    expect(screen.getByText(/does not list every pin/)).toBeVisible();
+  });
+});
+
 describe('InstanceDetails black box', () => {
   it('states the block is not defined in the file, lists its pins, and has no hierarchy button', () => {
     const graph = JSON.parse(JSON.stringify(qsys)) as typeof qsys;

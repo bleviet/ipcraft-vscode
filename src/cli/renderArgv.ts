@@ -203,7 +203,10 @@ export function parseRenderArgs(rest: string[]): ParsedArgv {
     }
   }
   if (positional.length === 0) {
-    return { kind: 'error', message: 'Missing required argument: <design.tcl|design.qsys|ip.yml>' };
+    return {
+      kind: 'error',
+      message: 'Missing required argument: <design.tcl|design.bd|design.qsys|ip.yml>',
+    };
   }
   if (positional.length > 1) {
     return { kind: 'error', message: `Unexpected argument '${positional[1]}'` };

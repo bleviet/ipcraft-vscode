@@ -1,7 +1,7 @@
 /**
- * Mutable accumulator the block design Tcl reader writes into: instances,
- * levels, pins, nets, address segments and aggregated diagnostics. Knows
- * nothing about Tcl syntax.
+ * Mutable accumulator the Vivado block design readers (Tcl script and JSON
+ * `.bd`) write into: instances, levels, pins, nets, address segments and
+ * aggregated diagnostics. Knows nothing about either syntax.
  */
 
 import type {
@@ -36,6 +36,7 @@ export interface NewInstance {
   kind: SystemInstance['kind'];
   vlnv?: string;
   moduleRef?: string;
+  pinsComplete?: true;
   line: number;
   procLine?: number;
 }
@@ -58,10 +59,13 @@ export class SystemGraphBuilder {
   private readonly mentions = new Map<string, number[]>();
   private hasWarning = false;
 
-  constructor(private readonly fileName: string) {
+  constructor(
+    private readonly fileName: string,
+    format: SystemGraph['source']['format'] = 'vivado-bd-tcl'
+  ) {
     this.graph = {
       name: '',
-      source: { fileName, format: 'vivado-bd-tcl' },
+      source: { fileName, format },
       levels: { '/': { path: '/', name: '', boundaryPins: [], instances: [] } },
       instances: {},
       nets: [],
@@ -127,6 +131,7 @@ export class SystemGraphBuilder {
       kind: spec.kind,
       ...(spec.vlnv !== undefined && { vlnv: spec.vlnv }),
       ...(spec.moduleRef !== undefined && { moduleRef: spec.moduleRef }),
+      ...(spec.pinsComplete && { pinsComplete: true as const }),
       parameters: {},
       pins,
       line: spec.line,
@@ -204,6 +209,14 @@ export class SystemGraphBuilder {
       pins.push({ ...spec, parameters: { ...spec.parameters } });
     }
     return joinPath(level, spec.name);
+  }
+
+  /** Declares a pin on the instance at `owner`, unless it has a pin of that name. */
+  addInstancePin(owner: string, spec: PinSpec): void {
+    const pins = this.graph.instances[owner]?.pins;
+    if (pins && !pins.some((p) => p.name === spec.name)) {
+      pins.push({ ...spec, parameters: { ...spec.parameters } });
+    }
   }
 
   setParameters(target: ParameterTarget, entries: readonly (readonly [string, string])[]): void {
