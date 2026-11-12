@@ -216,16 +216,7 @@ When the user edits a bit range in the table:
 
 ## Commit path
 
-```mermaid
-flowchart LR
-    A[User gesture] --> B[Visualizer callback]
-    B --> C[Register editor]
-    C --> D[YAML update handler]
-    D --> E[Comment-preserving edit]
-    E --> F[Serialize without editor-only values]
-    F --> G[Versioned webview message]
-    G --> H[VS Code document]
-```
+![Flow diagram: User gesture, Visualizer callback, Register editor, YAML update handler, Comment-preserving edit, Serialize without editor-only values, Versioned webview message, VS Code document](../images/diagrams/reference-bitfield-interaction-1.drawio.svg)
 
 ## Test files
 

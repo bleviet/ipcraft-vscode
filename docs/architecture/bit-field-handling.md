@@ -20,17 +20,7 @@ The editor derives three temporary views from that value:
 Temporary row IDs, selected cells, and unfinished text edits are editor state.
 They must never be written to YAML.
 
-```mermaid
-flowchart LR
-    A[YAML bits value] --> B[Normalized field]
-    B --> C[Field table]
-    B --> D[Bit-field visualizer]
-    B --> E[Bit ownership map]
-    C --> F[One document update]
-    D --> F
-    E --> F
-    F --> A
-```
+![Flow diagram: YAML bits value, Normalized field, Field table, Bit-field visualizer, Bit ownership map, One document update](../images/diagrams/architecture-bit-field-handling-1.drawio.svg)
 
 ## Main modules
 
@@ -57,12 +47,7 @@ IPCraft deliberately uses two different rules.
 from bit 0 upward. It is used after a structural change such as insertion or
 deletion.
 
-```mermaid
-flowchart LR
-    A[Fields at 15:12 and 7:4] --> B[Delete or insert]
-    B --> C[Recalculate positions]
-    C --> D[Fields packed from bit 0]
-```
+![Flow diagram: Fields at 15:12 and 7:4, Delete or insert, Recalculate positions, Fields packed from bit 0](../images/diagrams/architecture-bit-field-handling-2.drawio.svg)
 
 ### Move: keep existing gaps
 
@@ -89,21 +74,7 @@ Reject an invalid change before writing it to the document.
 
 ## Insert, delete, and move
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant UI as Table or visualizer
-    participant Layout as Layout service
-    participant Commit as YAML update handler
-    participant File as Memory-map file
-
-    User->>UI: Insert, delete, or move
-    UI->>Layout: Request new field layout
-    Layout-->>UI: Return complete valid layout
-    UI->>Commit: Send one structured update
-    Commit->>File: Write one document change
-    File-->>UI: Send updated document version
-```
+![Sequence diagram between User, Table or visualizer, Layout service, YAML update handler, Memory-map file: Insert, delete, or move; Request new field layout; Return complete valid layout; Send one structured update; Write one document...](../images/diagrams/architecture-bit-field-handling-3.drawio.svg)
 
 A structural gesture must result in one document update. Do not send one update
 for the array change and another for recalculated positions. Two updates can be

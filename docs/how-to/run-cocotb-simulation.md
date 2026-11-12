@@ -24,13 +24,7 @@ run:
 pytest -v
 ```
 
-```mermaid
-flowchart LR
-    A[IP core and memory map] --> B[Generate project]
-    B --> C[HDL and Python test]
-    C --> D[pytest starts simulator]
-    D --> E[Test result and waveform]
-```
+![Flow diagram: IP core and memory map, Generate project, HDL and Python test, pytest starts simulator, Test result and waveform](../images/diagrams/how-to-run-cocotb-simulation-1.drawio.svg)
 
 ## Generated files
 

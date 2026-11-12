@@ -6,14 +6,7 @@ hardware results live with the generated designs under [`examples/`](../../examp
 
 ## System path
 
-```mermaid
-flowchart LR
-    A[IPCraft .ip.yml and .mm.yml] --> B[Generated Avalon-MM peripheral]
-    B --> C[Platform Designer system]
-    C --> D[FPGA image]
-    D --> E[DE10-Nano board]
-    F[Nios II or Nios V software, or System Console] --> C
-```
+![Flow diagram: IPCraft .ip.yml and .mm.yml, Generated Avalon-MM peripheral, Platform Designer system, FPGA image, DE10-Nano board, Nios II or Nios V software, or System Console](../images/diagrams/tutorials-de10-nano-case-study-1.drawio.svg)
 
 The example register map contains:
 
@@ -32,13 +25,7 @@ The example register map contains:
 | Integrate    | Platform Designer connects the peripheral to the system bus       |
 | Run on board | Software reaches the same registers through the real interconnect |
 
-```mermaid
-flowchart TD
-    A[Generate] --> B[Simulate]
-    B --> C[Compile in Quartus]
-    C --> D[Connect in Platform Designer]
-    D --> E[Read and write on hardware]
-```
+![Flow diagram: Generate, Simulate, Compile in Quartus, Connect in Platform Designer, Read and write on hardware](../images/diagrams/tutorials-de10-nano-case-study-2.drawio.svg)
 
 Each stage finds a different class of problem. Simulation can validate register
 behavior, but only the board run proves that addresses, interconnect, clocks,

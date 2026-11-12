@@ -63,12 +63,7 @@ When several cores use the same interface, save it as `<name>.busdef.yml`.
 This gives the signal list one source of truth and makes it discoverable in the
 workspace.
 
-```mermaid
-flowchart LR
-    A[Reusable .busdef.yml] --> B[IP core A]
-    A --> C[IP core B]
-    A --> D[IPCraft generator]
-```
+![Flow diagram: Reusable .busdef.yml, IP core A, IP core B, IPCraft generator](../images/diagrams/concepts-custom-interface-1.drawio.svg)
 
 Reusable definitions also have a full identity: vendor, library, name, and
 version. This four-part identity is often shortened to VLNV.
@@ -107,16 +102,7 @@ connections.
 
 ## Decision guide
 
-```mermaid
-flowchart TD
-    A[Need an interface] --> B{Built-in protocol matches?}
-    B -->|Yes| C[Use built-in interface]
-    B -->|No| D{Vivado catalog has it?}
-    D -->|Yes| E[Use catalog interface]
-    D -->|No| F{Used by several cores?}
-    F -->|Yes| G[Create reusable .busdef.yml]
-    F -->|No| H[Use inline conduitPorts]
-```
+![Flow diagram: Need an interface, Built-in protocol matches?, Use built-in interface, Vivado catalog has it?, Use catalog interface, Used by several cores?, Create reusable .busdef.yml, Use inline conduitPorts](../images/diagrams/concepts-custom-interface-2.drawio.svg)
 
 See [Defining a custom interface](../how-to/defining-a-custom-interface.md) for the editor
 workflow.

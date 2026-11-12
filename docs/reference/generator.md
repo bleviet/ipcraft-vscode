@@ -3,16 +3,7 @@
 IPCraft can generate HDL, tests, documentation, and files for Vivado or Quartus.
 The selected scaffold pack controls the exact file list and directory layout.
 
-```mermaid
-flowchart LR
-    A[IP core] --> C[Generator]
-    B[Linked memory maps] --> C
-    C --> D[RTL]
-    C --> E[Tests]
-    C --> F[Documentation]
-    C --> G[Vivado files]
-    C --> H[Quartus files]
-```
+![Flow diagram: IP core, Generator, Linked memory maps, RTL, Tests, Documentation, Vivado files, Quartus files](../images/diagrams/reference-generator-1.drawio.svg)
 
 ## Main commands
 
@@ -126,16 +117,7 @@ choosing templates.
 Templates use Nunjucks and have a `.j2` suffix. IPCraft searches the selected
 scaffold pack first, then the built-in template library.
 
-```mermaid
-flowchart TD
-    A[Output rule] --> B{Condition passes?}
-    B -->|No| C[Skip file]
-    B -->|Yes| D{Custom template found?}
-    D -->|Yes| E[Render custom template]
-    D -->|No| F[Render built-in template]
-    E --> G[Stage output]
-    F --> G
-```
+![Flow diagram: Output rule, Condition passes?, Skip file, Custom template found?, Render custom template, Render built-in template, Stage output](../images/diagrams/reference-generator-2.drawio.svg)
 
 Common template values:
 

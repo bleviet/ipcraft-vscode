@@ -6,20 +6,7 @@ edits or repeating the webview's own changes.
 
 ## Complete flow
 
-```mermaid
-sequenceDiagram
-    participant File as VS Code document
-    participant Host as Extension host
-    participant View as React webview
-    File->>Host: Open or change document
-    Host->>View: Text and document version
-    View->>View: Parse and add editor-only row IDs
-    View->>Host: Edited text, edit ID, starting version
-    Host->>File: Apply comment-preserving change
-    File-->>Host: New document version
-    Host->>View: Updated text and source edit ID
-    View->>View: Ignore own echo or apply external change
-```
+![Sequence diagram between VS Code document, Extension host, React webview: Open or change document; Text and document version; Parse and add editor-only row IDs; Edited text, edit ID, starting version; Apply comment-preserving change...](../images/diagrams/concepts-yaml-data-flow-1.drawio.svg)
 
 ## Opening a document
 

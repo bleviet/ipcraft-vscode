@@ -23,15 +23,7 @@ Do not edit generated PNG files by hand.
 
 ## How capture works
 
-```mermaid
-flowchart LR
-    A[Entry in shots.ts] --> B[Build webview]
-    B --> C[Open browser harness]
-    C --> D[Load example data]
-    D --> E[Apply VS Code theme]
-    E --> F[Reach requested UI state]
-    F --> G[Write light and dark PNGs]
-```
+![Flow diagram: Entry in shots.ts, Build webview, Open browser harness, Load example data, Apply VS Code theme, Reach requested UI state, Write light and dark PNGs](../images/diagrams/concepts-docs-screenshots-1.drawio.svg)
 
 The capture list is `scripts/docs-screenshots/shots.ts`. One entry describes
 the webview, input data, viewport, optional clipped element, and any interaction
@@ -44,11 +36,21 @@ export interface Shot {
   source: string;
   viewport?: { width: number; height: number };
   clip?: string;
+  scale?: 'css' | 'device';
   setup?: (page: Page) => Promise<void>;
 }
 ```
 
 The output name is `docs/images/<id>-<theme>.png`.
+
+## Walkthrough frames
+
+The landing page (`docs/index.html`) plays two walkthroughs as a sequence of
+stills: `anim-isolate-1` to `-5` and `anim-inspect-1` to `-5`. Each frame is a
+shot whose `setup` repeats the steps of the frames before it, then draws a
+pointer where the user acts (`showPointer`). They use `scale: 'css'`, one image
+pixel per CSS pixel, to keep ten frames per theme small. To regenerate only
+these, run `npm run docs:screenshots -- -g anim-`.
 
 ## Add a screenshot
 
@@ -60,8 +62,10 @@ The output name is `docs/images/<id>-<theme>.png`.
 6. Add the light PNG to the relevant Markdown page.
 
 Prefer one screenshot that explains a workflow over several images of similar
-states. Use a Mermaid diagram instead when the page explains data flow,
-ownership, or internal architecture.
+states. Use a draw.io diagram instead when the page explains data flow,
+ownership, or internal architecture. Save it as an editable `.drawio.svg` in
+`docs/images/diagrams/`, in the light bahonavi palette of the diagrams already
+there, and embed it as an image.
 
 ## Supported webviews
 

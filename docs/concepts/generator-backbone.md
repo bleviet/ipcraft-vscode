@@ -16,14 +16,7 @@ selected bus type.
 Passing raw YAML directly to templates would make every template repeat those
 calculations and handle missing values differently.
 
-```mermaid
-flowchart LR
-    A[IP core YAML] --> C[Validate and convert]
-    B[Memory-map YAML] --> C
-    C --> D[Stable template data]
-    D --> E[Built-in templates]
-    D --> F[Custom scaffold packs]
-```
+![Flow diagram: IP core YAML, Validate and convert, Memory-map YAML, Stable template data, Built-in templates, Custom scaffold packs](../images/diagrams/concepts-generator-backbone-1.drawio.svg)
 
 ## Conversion steps
 

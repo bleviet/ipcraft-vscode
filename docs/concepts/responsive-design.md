@@ -18,13 +18,7 @@ Code panes; it is not a separate mobile application.
 |---|---|
 | ![Memory Map editor at desktop width](../images/memorymap-responsive-wide-light.png) | ![Memory Map editor at narrow width with the outline overlay](../images/memorymap-responsive-narrow-light.png) |
 
-```mermaid
-flowchart LR
-    A[Wide editor] -->|Pane narrows| B[Compact table]
-    B -->|Below 641 px| C[Outline moves to overlay]
-    C -->|Pane widens| B
-    B -->|Above 900 px| A
-```
+![Flow diagram: Wide editor, Compact table, Outline moves to overlay](../images/diagrams/concepts-responsive-design-1.drawio.svg)
 
 ## Memory Map layout
 

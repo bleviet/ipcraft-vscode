@@ -40,12 +40,7 @@ ELK's layered layout puts the blocks of a level in columns (its layers). The col
 
 A **terminal** is the point where a wire meets a pin: the end of the drawn badge text, at the pin's height. It leaves towards the west or the east. A frame pin seen from the inner level has no badge on the inside. The strip where the frame draws its pin labels is an obstacle of the inner level, so no trunk or crossing runs through a label; the terminal is on the inner edge of the strip and leaves inwards, and the wire end is then extended to the frame border at the pin's height, below the label. The channel of a terminal is the first channel in the direction it leaves.
 
-```mermaid
-flowchart LR
-    T[Terminals of the net] --> S[Spine: one crossing per column between the outermost channels]
-    S --> V[Trunk: one vertical segment per channel, over all taps and crossings]
-    V --> P[Per sink: the path from the tree to the sink that no earlier sink drew]
-```
+![Flow diagram: Terminals of the net, Spine: one crossing per column between the outermost channels, Trunk: one vertical segment per channel, over all taps and crossings, Per sink: the path from the tree to the sink that no earlier sink drew](../images/diagrams/concepts-clock-reset-wires-1.drawio.svg)
 
 1. **Spine.** Walking from the driver's channel outwards in both directions, as far as the outermost channel with a terminal, the net crosses each column through a gap. The crossing height is the free position nearest to the previous height (the driver's height at the start).
 2. **Trunks.** In every channel the net uses, one vertical trunk spans all its terminals and crossings there. Each terminal reaches the trunk by a horizontal tap at its own height. The tap is clear of blocks because a block's badges never overlap another block of its column.

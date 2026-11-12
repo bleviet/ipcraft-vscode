@@ -13,48 +13,7 @@ share domain types but communicate only through messages.
 
 ## High-Level Structure
 
-```mermaid
-graph TB
-    subgraph "Extension Host"
-        EXT["extension.ts"]
-        PROV["Providers\nMemoryMapEditorProvider\nIpCoreEditorProvider\nIpCoreGenerateHandler\nproviderServices"]
-        SVC["Services\nWebviewRouter, DocumentManager\nYamlValidator, HtmlGenerator\nImportResolver, BusLibraryService\nFileSetUpdater, SubcoreResolver\nVivadoCatalogScanner, VivadoInterfaceScanner\nWorkspaceBusDefinitionScanner, BusDefScanCache\nToolDetector, BuildRunner\nReportParser, ResourceRoots"]
-        CMD["Commands\nFileCreation\nGenerate\nBuild\nVivado/Quartus\nMigrate"]
-        GEN["Generator\nIpCoreScaffolder\nregisterProcessor\nTemplateLoader\ntestbench/"]
-        TC["Toolchains\nVivadoToolchain\nQuartusToolchain\nregistry"]
-        PAR["Importers\nVhdlParser, VerilogParser\nHwTclParser, ComponentXmlParser"]
-    end
-    subgraph "Domain (shared across the process boundary)"
-        DOMAIN["src/domain/\nparse.ts, serialize.ts\nNormalized*Model types"]
-    end
-    subgraph "Webview"
-        MM["Memory Map App\nindex.tsx"]
-        IP["IP Core App\nIpCoreApp.tsx"]
-        MMCOMP["MM Components\nOutline, DetailsPanel\nRegisterEditor\nBlockEditor, etc."]
-        IPCOMP["IP Core Components (mounted)\nEditorPanel (renders canvas only)\nIpBlockCanvas, LibraryPalette\nCanvasInspector, StagingOverlay\nCanvasBusBundle, CanvasPort"]
-        HOOK["MM Hooks\nuseMemoryMapState\nuseYamlSync\nuseSelection"]
-        IPHOOK["IP Core Hooks\nuseIpCoreState\nuseIpCoreSync\nuseCanvasDrop\nuseCanvasUndo\nuseCanvasSelection\nuseCanvasValidation"]
-        WSVC["Services\nYamlService, YamlPathResolver\nSpatialInsertionService\nFieldOperationService"]
-        ALG["Algorithms (src/webview/algorithms/)\nLayoutEngine, MutationService\nBitFieldRepacker, RegisterRepacker\nAddressBlockRepacker"]
-        SHARED["Shared\nEditableTable, FormField\nvalidation, formatters\ncolors, constants"]
-    end
-    EXT --> PROV
-    EXT --> CMD
-    PROV <-->|"postMessage"| MM
-    PROV <-->|"postMessage"| IP
-    PROV --> SVC
-    CMD --> GEN
-    CMD --> PAR
-    CMD --> TC
-    GEN --> TC
-    GEN --> DOMAIN
-    MM --> MMCOMP --> HOOK --> WSVC --> ALG
-    HOOK --> DOMAIN
-    IP --> IPCOMP --> IPHOOK
-    IPHOOK --> DOMAIN
-    MMCOMP --> SHARED
-    IPCOMP --> SHARED
-```
+![Flow diagram: extension.ts, Providers, Services, Commands, Generator, Toolchains, Importers, src/domain/, Memory Map App, IP Core App, MM Components, IP Core Components (mounted), MM Hooks, IP Core Hooks, Services, Algorithms...](../images/diagrams/architecture-overview-1.drawio.svg)
 
 ## Data Flow
 

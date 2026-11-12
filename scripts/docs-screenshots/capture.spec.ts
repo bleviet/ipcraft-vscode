@@ -32,10 +32,11 @@ for (const shot of shots) {
       }
 
       const outputPath = path.join(OUTPUT_DIR, `${shot.id}-${theme}.png`);
+      const options = { path: outputPath, scale: shot.scale ?? 'device' };
       if (shot.clip) {
-        await page.locator(shot.clip).screenshot({ path: outputPath });
+        await page.locator(shot.clip).screenshot(options);
       } else {
-        await page.screenshot({ path: outputPath });
+        await page.screenshot(options);
       }
     });
   }

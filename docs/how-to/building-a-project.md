@@ -22,13 +22,7 @@ Run **IPCraft: Scaffold Project**, **Generate Vivado Project**, or
 4. Follow live messages in the **IPCraft Build** output channel.
 5. Review the Build panel in the Explorer when the tool finishes.
 
-```mermaid
-flowchart LR
-    A[Generated project scripts] --> B[IPCraft: Build]
-    B --> C[Vivado or Quartus batch process]
-    C --> D[Tool reports]
-    D --> E[Build panel and status bar]
-```
+![Flow diagram: Generated project scripts, IPCraft: Build, Vivado or Quartus batch process, Tool reports, Build panel and status bar](../images/diagrams/how-to-building-a-project-1.drawio.svg)
 
 ## Choose a target
 

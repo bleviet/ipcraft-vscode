@@ -17,12 +17,7 @@ A saved setup uses an `.ipci.yml` recipe file.
 
 ## Four simple terms
 
-```mermaid
-flowchart LR
-    A[Sample] --> B[Named source]
-    B --> C[Optional operations]
-    C --> D[Fields decode bit ranges]
-```
+![Flow diagram: Sample, Named source, Optional operations, Fields decode bit ranges](../images/diagrams/how-to-use-data-inspector-1.drawio.svg)
 
 - A **sample** is the temporary value you paste or load.
 - A **source** gives that value a stable name and width.

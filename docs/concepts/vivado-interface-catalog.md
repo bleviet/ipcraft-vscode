@@ -19,14 +19,7 @@ three as interfaces with named logical signals.
 
 ## Discovery flow
 
-```mermaid
-flowchart LR
-    A[Vivado installation] --> B[Read interface definitions]
-    B --> C[Searchable IPCraft catalog]
-    C --> D[Choose an interface]
-    D --> E[Map logical signals to IP ports]
-    E --> F[Save mapping in .ip.yml]
-```
+![Flow diagram: Vivado installation, Read interface definitions, Searchable IPCraft catalog, Choose an interface, Map logical signals to IP ports, Save mapping in .ip.yml](../images/diagrams/concepts-vivado-interface-catalog-1.drawio.svg)
 
 IPCraft reads the same interface metadata that Vivado uses for IP packaging.
 The source files remain owned by Vivado; IPCraft stores only the selected
@@ -41,16 +34,7 @@ existing IP port or a newly created port.
 For example, a logical clock signal may map to the IP port `sample_clk` even if
 the catalog calls that signal `CLK`.
 
-```mermaid
-flowchart TD
-    A[Select catalog interface] --> B[List logical signals]
-    B --> C{Matching IP port exists?}
-    C -->|Yes| D[Map to existing port]
-    C -->|No| E[Create or leave unmapped]
-    D --> F[Review mapping]
-    E --> F
-    F --> G[Save interface]
-```
+![Flow diagram: Select catalog interface, List logical signals, Matching IP port exists?, Map to existing port, Create or leave unmapped, Review mapping, Save interface](../images/diagrams/concepts-vivado-interface-catalog-2.drawio.svg)
 
 The saved mapping is explicit. Later generation does not need to guess from
 port names.
