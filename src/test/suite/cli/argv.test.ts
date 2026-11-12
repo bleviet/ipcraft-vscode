@@ -352,4 +352,85 @@ describe('ipcraft CLI argv parsing', () => {
       expect((result as { message: string }).message).toContain("'vhdl-ls'");
     });
   });
+  describe('diff', () => {
+    it('parses one file with --base and the defaults', () => {
+      expect(parseArgs(['diff', 'bd/system.bd', '--base', 'HEAD'])).toEqual({
+        kind: 'diff',
+        args: {
+          files: ['bd/system.bd'],
+          baseRef: 'HEAD',
+          format: 'markdown',
+          ignoreVersionOnly: false,
+        },
+      });
+    });
+
+    it('parses --head, --format, --out and --ignore-version-only', () => {
+      expect(
+        parseArgs([
+          'diff',
+          'system.bd',
+          '--base',
+          'main',
+          '--head',
+          'feature/fifo',
+          '--format',
+          'json',
+          '--out',
+          'diff.json',
+          '--ignore-version-only',
+        ])
+      ).toEqual({
+        kind: 'diff',
+        args: {
+          files: ['system.bd'],
+          baseRef: 'main',
+          headRef: 'feature/fifo',
+          format: 'json',
+          out: 'diff.json',
+          ignoreVersionOnly: true,
+        },
+      });
+    });
+
+    it('parses two files', () => {
+      expect(parseArgs(['diff', 'old.qsys', 'new.qsys'])).toEqual({
+        kind: 'diff',
+        args: { files: ['old.qsys', 'new.qsys'], format: 'markdown', ignoreVersionOnly: false },
+      });
+    });
+
+    it('requires --base for one file', () => {
+      expect(parseArgs(['diff', 'system.bd']).kind).toBe('error');
+      expect(parseArgs(['diff']).kind).toBe('error');
+    });
+
+    it('forbids --base and --head with two files', () => {
+      expect(parseArgs(['diff', 'a.bd', 'b.bd', '--base', 'HEAD']).kind).toBe('error');
+      expect(parseArgs(['diff', 'a.bd', 'b.bd', '--head', 'HEAD']).kind).toBe('error');
+    });
+
+    it('requires --base for --head', () => {
+      const result = parseArgs(['diff', 'a.bd', 'b.bd', '--head', 'HEAD']);
+      expect((result as { message: string }).message).toContain('--head needs --base');
+      expect(parseArgs(['diff', 'a.bd', '--head', 'HEAD']).kind).toBe('error');
+    });
+
+    it('rejects a third file, unknown options, a bad --format and missing values', () => {
+      expect(parseArgs(['diff', 'a.bd', 'b.bd', 'c.bd']).kind).toBe('error');
+      expect(parseArgs(['diff', 'a.bd', '--base', 'HEAD', '--image', 'x.svg']).kind).toBe('error');
+      const format = parseArgs(['diff', 'a.bd', '--base', 'HEAD', '--format', 'xml']);
+      expect((format as { message: string }).message).toContain("Invalid --format 'xml'");
+      expect(parseArgs(['diff', 'a.bd', '--base']).kind).toBe('error');
+      expect(parseArgs(['diff', 'a.bd', '--base', '--format', 'json']).kind).toBe('error');
+      expect(parseArgs(['diff', 'a.bd', '--base', 'HEAD', '--out']).kind).toBe('error');
+    });
+
+    it('is listed in the usage text and the unknown-command message', () => {
+      expect(usageText()).toContain('ipcraft diff <design> --base');
+      expect(usageText()).toContain('--ignore-version-only');
+      const result = parseArgs(['bogus']);
+      expect((result as { message: string }).message).toContain("'diff'");
+    });
+  });
 });

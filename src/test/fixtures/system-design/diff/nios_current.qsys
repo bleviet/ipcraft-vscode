@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<system name="$${FILENAME}">
+ <component
+   name="$${FILENAME}"
+   displayName="$${FILENAME}"
+   version="1.0"
+   description=""
+   tags="INTERNAL_COMPONENT=true"
+   categories="System" />
+ <parameter name="bonusData"><![CDATA[bonusData
+{
+   element clk_0
+   {
+      datum _sortIndex
+      {
+         value = "0";
+         type = "int";
+      }
+   }
+   element nios2_gen2_0
+   {
+      datum _sortIndex
+      {
+         value = "1";
+         type = "int";
+      }
+   }
+}
+]]></parameter>
+ <parameter name="deviceFamily" value="Cyclone V" />
+ <parameter name="hideFromIPCatalog" value="false" />
+ <interface name="clk" internal="clk_0.clk_in" type="clock" dir="end" />
+ <interface name="reset" internal="clk_0.clk_in_reset" type="reset" dir="end" />
+ <module name="clk_0" kind="clock_source" version="18.1" enabled="1">
+  <parameter name="clockFrequency" value="50000000" />
+  <parameter name="clockFrequencyKnown" value="true" />
+  <parameter name="resetSynchronousEdges" value="NONE" />
+ </module>
+ <module name="nios2_gen2_0" kind="altera_nios2_gen2" version="18.1" enabled="1">
+  <parameter name="setting_support31bitdcachebypass" value="true" />
+  <parameter name="resetSlave" value="onchip_memory2_0.s1" />
+ </module>
+ <module name="onchip_memory2_0" kind="altera_avalon_onchip_memory2" version="18.1" enabled="1">
+  <parameter name="memorySize" value="20480" />
+  <parameter name="dualPort" value="false" />
+ </module>
+ <module name="jtag_uart_0" kind="altera_avalon_jtag_uart" version="18.1" enabled="1">
+  <parameter name="readBufferDepth" value="64" />
+  <parameter name="writeBufferDepth" value="64" />
+ </module>
+ <module name="sysid_qsys_0" kind="altera_avalon_sysid_qsys" version="19.1" enabled="1">
+  <parameter name="id" value="0" />
+ </module>
+ <module name="pio_0" kind="altera_avalon_pio" version="18.1" enabled="1">
+  <parameter name="direction" value="Output" />
+  <parameter name="width" value="16" />
+ </module>
+ <module name="st_source_0" kind="altera_avalon_data_source" version="18.1" enabled="1" />
+ <module name="st_sink_0" kind="altera_avalon_data_sink" version="18.1" enabled="1" />
+ <module name="fifo_0" kind="altera_avalon_sc_fifo" version="18.1" enabled="1">
+  <parameter name="BITS_PER_SYMBOL" value="8" />
+ </module>
+ <connection kind="avalon" version="18.1" start="nios2_gen2_0.data_master" end="onchip_memory2_0.s1">
+  <parameter name="arbitrationPriority" value="1" />
+  <parameter name="baseAddress" value="0x00004000" />
+ </connection>
+ <connection kind="avalon" version="18.1" start="nios2_gen2_0.data_master" end="jtag_uart_0.avalon_jtag_slave">
+  <parameter name="baseAddress" value="0x00012000" />
+ </connection>
+ <connection kind="avalon" version="18.1" start="nios2_gen2_0.data_master" end="sysid_qsys_0.control_slave">
+  <parameter name="baseAddress" value="0x00011008" />
+ </connection>
+ <connection kind="avalon" version="18.1" start="nios2_gen2_0.data_master" end="pio_0.s1">
+  <parameter name="baseAddress" value="0x00011010" />
+ </connection>
+ <connection kind="avalon" version="18.1" start="nios2_gen2_0.instruction_master" end="onchip_memory2_0.s1">
+  <parameter name="baseAddress" value="0x00004000" />
+ </connection>
+ <connection kind="avalon_streaming" version="18.1" start="st_source_0.src" end="fifo_0.in" />
+ <connection kind="avalon_streaming" version="18.1" start="fifo_0.out" end="st_sink_0.sink" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="st_sink_0.clk" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="st_source_0.clk" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="pio_0.clk" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="sysid_qsys_0.clk" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="jtag_uart_0.clk" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="onchip_memory2_0.clk1" />
+ <connection kind="clock" version="18.1" start="clk_0.clk" end="nios2_gen2_0.clk" />
+ <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="nios2_gen2_0.reset" />
+ <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="jtag_uart_0.reset" />
+ <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="sysid_qsys_0.reset" />
+ <connection kind="reset" version="18.1" start="clk_0.clk_reset" end="pio_0.reset" />
+ <connection kind="reset" version="18.1" start="nios2_gen2_0.debug_reset_request" end="onchip_memory2_0.reset1" />
+ <connection kind="reset" version="18.1" start="nios2_gen2_0.debug_reset_request" end="jtag_uart_0.reset" />
+ <connection kind="reset" version="18.1" start="nios2_gen2_0.debug_reset_request" end="pio_0.reset" />
+ <connection kind="interrupt" version="18.1" start="nios2_gen2_0.irq" end="jtag_uart_0.irq">
+  <parameter name="irqNumber" value="0" />
+ </connection>
+ <connection kind="interrupt" version="18.1" start="nios2_gen2_0.irq" end="pio_0.irq">
+  <parameter name="irqNumber" value="1" />
+ </connection>
+ <interconnectRequirement for="$system" name="qsys_mm.clockCrossingAdapter" value="HANDSHAKE" />
+</system>

@@ -2,7 +2,11 @@
 
 ## Status
 
-Idea. Nothing is implemented. This document describes how the
+Partly implemented. The diff engine (`diffSystemGraphs`) and the `ipcraft diff`
+command with its Markdown and JSON report, the first part of phase 1, work; see
+the [command line reference](../../reference/command-line.md#compare-two-revisions-of-a-system-design).
+The viewer part (the **Changes** tab, the overlay, the base picker) and the later
+phases are open. This document describes how the
 [system viewer](../../how-to/view-a-system-design.md) could show what changed
 between two revisions of a block design or Platform Designer system.
 
@@ -77,8 +81,8 @@ A change can only be named when the same thing is found in both graphs.
 | Element | Identity | Compared |
 |---|---|---|
 | Instance | Its path, for example `/dsp_pipeline/fir_0` | Kind, type (VLNV, component or module reference), parameters, pins |
-| Pin | Owner path and pin name | Direction, interface type, width, what it connects to |
-| External port | Level and name | As a pin |
+| Pin | Owner path and pin name | What it connects to. For the pins of a hierarchy block also direction, signal type, interface type, width and parameters |
+| External port | Level and name | What it connects to, direction, signal type, interface type, width and parameters |
 | Connection | The pin, not the net | The set of pins on the same net |
 | Address segment | Address space and segment | Offset and range |
 | Parameter | Owner and key | Value |
@@ -88,6 +92,16 @@ A change can only be named when the same thing is found in both graphs.
 gains one load is still the same wire for every other pin on it. For each pin
 the diff compares the set of pins it shares a net with. A net name appears only
 as a label.
+
+Only the pin that moved is reported, not the pins it joined or left. A
+difference is dropped when it is a pin of an added or removed block (the block
+already says so). Of what remains, a pin that kept some of its connections is
+not reported when every pin it gained or lost kept fewer connections than it
+did: it is a host that gained or lost a neighbour, and the neighbour is the
+change. A pin that kept nothing, or that is as well connected as the one that
+joined, is reported. An added or removed block lists its connected pins.
+
+A hierarchy pin has two views: the outside one, on the nets of the level that contains the hierarchy, and the inside one, on the nets of the hierarchy's own level (a feed-through inside the hierarchy changes only the inside view). Both are compared by the same rules, and the inside view is listed as its own change of the hierarchy block.
 
 ### Kinds of Change
 
@@ -322,8 +336,8 @@ are. No move is needed first.
 - Both revisions are read as text. Nothing is executed, as in the plain viewer.
 - The base revision comes from the local git object store. No network access.
 - A base revision that cannot be read (the file did not exist, or is not a
-  system design) gives a clear message. A file that did not exist in the base
-  is shown as "all added".
+  system design) gives a clear message. `ipcraft diff` reports a file that did
+  not exist in the base as an error; showing it as "all added" is open.
 
 ## Testing
 

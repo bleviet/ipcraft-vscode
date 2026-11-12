@@ -1,3 +1,5 @@
+import type { CliDiffArgs } from './diff';
+import { parseDiffArgs } from './diffArgv';
 import type { CliGenerateArgs } from './generate';
 import { DEFAULT_QUARTUS_DEVICE, DEFAULT_VIVADO_PART } from './generate';
 import type { CliMigrateArgs } from './migrate';
@@ -28,6 +30,11 @@ Usage:
                                           SVG, PNG or JPG image (the --out extension picks the
                                           format)
   ipcraft render --manifest <file.yml>    Render every image listed in a manifest file
+  ipcraft diff <design> --base <git ref> [--head <git ref>] [options]
+  ipcraft diff <base file> <current file> [options]
+                                          Report what changed between two revisions of a system
+                                          design: a revision (or the working tree) against
+                                          another revision, or two files. Markdown by default
   ipcraft vhdl-ls [--root <dir>] [--dry-run] [--force]
                                           Generate a root vhdl_ls.toml that maps every VHDL file
                                           under <dir> (default: current directory) to a library
@@ -39,6 +46,8 @@ Options:
   --lang <vhdl|systemverilog>        HDL language to generate (default: vhdl)
   --out <dir>                        [generate only] Output directory
                                       (default: alongside the .ip.yml)
+  --out <file>                       [diff only] Write the report to this file (default:
+                                      standard output)
   --pack <name>                      Scaffold pack to use (overrides scaffold_pack
                                       in the .ip.yml)
   --quartus-device <part>            Quartus device part (default: ${DEFAULT_QUARTUS_DEVICE})
@@ -82,6 +91,12 @@ Options:
                                       without those definitions
   --manifest <file.yml>              [render only] Render the images listed in the manifest;
                                       takes no input file and no other option
+  --base <git ref>                   [diff only] Revision to compare the design file with
+  --head <git ref>                   [diff, with --base] Compare with this revision instead
+                                      of the working tree
+  --format <markdown|json>           [diff only] Report format (default: markdown)
+  --ignore-version-only              [diff only] Leave out blocks whose only change is the
+                                      version of their IP
   --root <dir>                       [vhdl-ls only] Workspace root (default: current directory)
   --dry-run                          [vhdl-ls only] Print the vhdl_ls.toml instead of writing it
   --force                            [vhdl-ls only] Replace a vhdl_ls.toml that IPCraft did not
@@ -101,6 +116,9 @@ Examples:
   ipcraft render path/to.ip.yml --out docs/img/core.jpg --quality 80
   ipcraft render bd/system.tcl --out docs/img/system.svg --workspace .
   ipcraft render --manifest docs/images.yml
+  ipcraft diff bd/system.bd --base HEAD
+  ipcraft diff bd/system.bd --base main --head feature/fifo --format json --out diff.json
+  ipcraft diff old/system.qsys new/system.qsys --ignore-version-only
   ipcraft vhdl-ls --root . --dry-run
 `;
 }
@@ -108,6 +126,7 @@ Examples:
 export type ParsedArgv =
   | { kind: 'help' }
   | { kind: 'error'; message: string }
+  | { kind: 'diff'; args: CliDiffArgs }
   | { kind: 'generate'; args: CliGenerateArgs }
   | { kind: 'verify'; args: CliVerifyArgs }
   | { kind: 'migrate'; args: CliMigrateArgs }
@@ -305,11 +324,12 @@ export function parseArgs(argv: string[]): ParsedArgv {
     command !== 'migrate' &&
     command !== 'package' &&
     command !== 'render' &&
+    command !== 'diff' &&
     command !== 'vhdl-ls'
   ) {
     return {
       kind: 'error',
-      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate', 'package', 'render' or 'vhdl-ls'.`,
+      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate', 'package', 'render', 'diff' or 'vhdl-ls'.`,
     };
   }
   if (command === 'package') {
@@ -317,6 +337,9 @@ export function parseArgs(argv: string[]): ParsedArgv {
   }
   if (command === 'render') {
     return parseRenderArgs(rest);
+  }
+  if (command === 'diff') {
+    return parseDiffArgs(rest);
   }
   if (command === 'vhdl-ls') {
     return parseVhdlLsArgs(rest);

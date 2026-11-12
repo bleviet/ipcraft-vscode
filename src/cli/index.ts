@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import * as path from 'path';
 import { resolveResourceRoots } from '../services/ResourceRoots';
+import { runCliDiff } from './diff';
 import { runCliGenerate } from './generate';
 import { runCliMigrate } from './migrate';
 import { runCliPackage } from './package';
@@ -31,6 +32,20 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     }
     printWarnings(result.warnings);
     console.log(`Packaged ${result.fileCount} file(s) into ${result.outputPath}`);
+    return 0;
+  }
+
+  if (parsed.kind === 'diff') {
+    const result = await runCliDiff(parsed.args);
+    if (!result.success) {
+      console.error(`Diff failed: ${result.error}`);
+      return 1;
+    }
+    if (result.outputPath) {
+      console.log(`Wrote ${result.outputPath}`);
+    } else {
+      process.stdout.write(result.report ?? '');
+    }
     return 0;
   }
 
