@@ -2,14 +2,18 @@
 
 ## System overview
 
-`ipcraft-vscode` is a VS Code extension providing two custom visual editors:
+`ipcraft-vscode` is a VS Code extension with four webview surfaces:
 
-- **Memory Map editor** for `*.mm.yml` -- edit address blocks, registers, and bit fields
-- **IP Core editor** for `*.ip.yml` -- edit IP core metadata, clocks, resets, bus interfaces, parameters, file sets, and generate VHDL projects
+| Surface | Files | Kind |
+|---|---|---|
+| IP Core editor | `*.ip.yml` | Visual editor |
+| Memory Map editor | `*.mm.yml` | Visual editor |
+| Data Inspector | `*.ipci.yml`, or a panel opened from a register or port | Analysis tool |
+| System diagram | Vivado block design `.tcl`, Platform Designer `.qsys` and system `.tcl` | Read-only viewer |
 
 The **extension host** is the Node.js process that can access VS Code and the
-file system. A **webview** is an embedded browser that renders an editor. They
-share domain types but communicate only through messages.
+file system. A **webview** is an embedded browser that renders one of these
+surfaces. They share domain types but communicate only through messages.
 
 ## High-Level Structure
 
@@ -17,35 +21,48 @@ share domain types but communicate only through messages.
 
 ## Data Flow
 
+The extension host owns the VS Code document. The webview owns the visible
+editor state. Versioned messages keep them in step without losing external
+edits or re-applying the webview's own changes.
+
+![Sequence diagram between VS Code document, Extension host, React webview: Open or change document; Text and document version; Parse and add editor-only row IDs; Edited text, edit ID, starting version; Apply comment-preserving change...](../images/diagrams/concepts-yaml-data-flow-1.drawio.svg)
+
 ### Document open
-
-1. VS Code opens a matching YAML file
-2. Provider resolves webview HTML and waits for `type: 'ready'`
-3. Provider sends `type: 'update'` with text (+ filename; IP Core includes resolved imports)
-4. Webview parses, normalizes, and renders
-
-### User edit
-
-1. User edits in the webview UI
-2. Webview updates in-memory model and serializes YAML
-3. Webview posts `type: 'update'` with full text
-4. Host `WebviewRouter` routes to `DocumentManager.updateDocument()`
-5. VS Code document updates and re-syncs
-
-### Host commands
-
-Webview can post `type: 'command'` (`save`, `validate`, `openFile`). Host executes VS Code actions and may show notifications.
-
-### Message lifecycle and revisions
 
 1. VS Code calls `resolveCustomTextEditor` for a matching file.
 2. The provider creates the webview HTML and waits for a `ready` message.
-3. The provider sends the document text with its current `docVersion`.
-4. Webview edits carry a monotonic `editId` and the `baseDocVersion` they were based on.
-5. `DocumentManager` serializes document writes and rejects stale base versions.
+3. The provider sends `update` with the text and its `docVersion`. For IP core
+   files it also sends the resolved imports.
+4. The webview parses the YAML with `src/domain/parse.ts` into the normalized
+   model and adds editor-only values such as `rowId`.
 
-The revision pair distinguishes a genuine external update from an echo or a stale edit. See
-[YAML Data Flow](../concepts/yaml-data-flow.md) for the complete protocol.
+### User edit
+
+1. A component requests a path edit such as `['fields', 0, 'name']`, or a
+   structured operation such as `['__op', 'field-move']` so that no invalid
+   intermediate state reaches the file.
+2. `src/yamledit/` applies it to the parsed YAML document, keeping comments and
+   number spellings such as hexadecimal values.
+3. Serialization removes `rowId`, `__kind`, and other editor-only values.
+4. The webview posts `update` with the full text, a monotonic `editId`, and the
+   `baseDocVersion` it started from.
+5. `WebviewRouter` passes it to `DocumentManager`, which applies writes in order.
+
+### Stale edits and echoes
+
+If the document changed after `baseDocVersion`, the host rejects the edit and
+replies with `forceResync: true`. The webview drops:
+
+- an echo that carries its own completed edit ID;
+- an update older than the newest version it already shows.
+
+`src/services/WebviewRouter.ts` and `src/webview/sync/revisionFilter.ts`
+implement the two sides of this rule. Change and test them together.
+
+### Host commands
+
+The webview can post `command` (`save`, `validate`, `openFile`). The host runs
+the VS Code action and may show a notification.
 
 ### Canvas edit (IP Core only)
 
@@ -59,11 +76,15 @@ Canvas keyboard shortcuts (Delete, Ctrl+D, Ctrl+Z/Y) follow the same update path
 
 ### HDL generation
 
-1. User configures options in the Generator Panel (bus type, targets, testbench)
-2. Webview posts `type: 'generate'` with options
-3. Host `IpCoreGenerateHandler` invokes `IpCoreScaffolder.generateAll()`
-4. Scaffolder loads templates, builds context from IP Core data, renders files
-5. Host posts `type: 'generateResult'` back to webview with file list or error
+1. The user picks the HDL language, vendor targets, and scaffold pack in the
+   IP Core toolbar and runs Scaffold Project or a generate command.
+2. The webview posts `generate`; `IpCoreGenerateHandler` runs
+   `IpCoreScaffolder`, which renders every file in memory.
+3. The files are shown in the staging review (`StagingPanel`,
+   `WebviewStagingBridge`). Nothing is written until the user confirms.
+4. The host posts `generateResult` with the written files or the error.
+
+See [Generator architecture](generator-backbone.md).
 
 ## System viewer
 
@@ -84,11 +105,14 @@ part of the YAML round trip: the files are read statically and never written.
 | Output | Location |
 |--------|----------|
 | Extension bundle | `dist/extension.js` |
-| Webview bundle | `dist/webview.js` |
+| Command-line bundle | `dist/cli.js` |
+| Memory Map webview bundle | `dist/webview.js` |
+| IP Core webview bundle | `dist/ipcore.js` |
+| Data Inspector bundle | `dist/dataInspector.js` |
 | System diagram bundle | `dist/systemDiagram.js` |
 | Shared elkjs layout engine (system diagram page and CLI) | `dist/elk.bundled.js` |
 | IBM Plex fonts for rendered images | `dist/resources/fonts/` |
-| Nunjucks templates | `dist/templates/` |
+| Nunjucks templates and scaffold packs | `dist/templates/`, `dist/packs/` |
 | Compiled tests | `out/**` |
 
 Built with webpack. See [Development Setup](../getting-started/development.md) for commands.
@@ -102,11 +126,7 @@ and host commands are checked against an allow-list.
 
 ## YAML Libraries
 
-This project uses two YAML libraries by design:
-
-| Library | Package | When to use |
-|---------|---------|-------------|
-| `js-yaml` (v4) | `js-yaml` | Simple parse/dump (no comment preservation) |
-| `yaml` (v2) | `yaml` | Comment-preserving round-trip manipulation (`parseDocument`) |
-
-Rule: if only reading YAML, use `js-yaml`. If modifying and writing back while preserving comments, use `yaml` v2.
+| Library | When to use |
+|---|---|
+| `js-yaml` (v4) | Read-only parsing or simple output where formatting does not matter |
+| `yaml` (v2) through `src/yamledit/` | Any edit written back to an existing document; keeps comments and hexadecimal spelling |

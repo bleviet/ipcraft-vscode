@@ -56,7 +56,7 @@ Interface drift of existing HDL files (ports or generics that differ from the ne
 | Direction/width/default mismatch | Decide which side is correct, then edit the other to match |
 | Missing register/field-range mismatch | Regenerate the register file, or reconcile the memory map manually if the HDL was hand-tuned |
 
-After fixing the spec side, re-run **IPCraft: Scaffold Project** (see [Generating a Project](generating-a-project.md)) to bring the generated files back in sync, or edit the HDL directly if it is `managed: false`.
+After fixing the spec side, re-run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)** (see [Generating a Project](generating-a-project.md)) to bring the generated files back in sync, or edit the HDL directly if it is `managed: false`.
 
 ## Next steps
 

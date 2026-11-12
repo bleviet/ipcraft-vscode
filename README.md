@@ -102,7 +102,7 @@ The extension ships the `ipcraft` command-line tool. It is on `PATH` in VS Code
 integrated terminals automatically. For external terminals on this machine, run
 `IPCraft: Install 'ipcraft' Command in PATH` (no sudo or admin rights, and no
 Node.js needed). CI runners without VS Code are not covered. See the
-[Generator Reference](docs/reference/generator.md#command-line-package) for details.
+[Command line](docs/reference/command-line.md) for details.
 
 ---
 

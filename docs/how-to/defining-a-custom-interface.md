@@ -1,62 +1,108 @@
-# Defining a Custom Interface
+# Custom Interfaces
 
-Use a custom interface to keep related signals together when no built-in
-protocol matches them. A **conduit** is a group with no implied bus transaction.
+A custom interface is a named group of signals that does not follow one of
+IPCraft's built-in protocols, such as a proprietary streaming link or a
+diagnostic port. A **conduit** is such a group with no implied bus transaction.
 
-Use this when a connection between cores does not fit a standard protocol — a proprietary streaming link, a diagnostic port grouping unrelated signals, or a chip-level conduit with no bus semantics. See [Custom Interface](../concepts/custom-interface.md) for the full data model this guide walks through.
+Use a built-in interface (AXI, Avalon) or one from the
+[Vivado interface catalog](../concepts/vivado-interface-catalog.md) when one
+matches: vendor tools then understand the interface and can connect it
+automatically. Use a custom interface for everything else.
 
-## Prerequisites
+| Interface | Signal list | Tool understanding |
+|---|---|---|
+| AXI or Avalon | Fixed by the protocol | Vivado or Quartus understands the bus |
+| Vivado catalog | Supplied by Vivado | Vivado understands the interface identity |
+| Custom | Defined by you | Tools keep the group but may not connect it automatically |
 
-- An open `.ip.yml` file in the visual canvas editor
+![Flow diagram: Need an interface, Built-in protocol matches?, Use built-in interface, Vivado catalog has it?, Use catalog interface, Used by several cores?, Create reusable .busdef.yml, Use inline conduitPorts](../images/diagrams/concepts-custom-interface-2.drawio.svg)
 
 ## Add the interface
 
-1. Open the Library Palette (left sidebar of the canvas) and find **Custom Interface** under **Bus Protocols**
-2. Drag it onto the edge of the canvas block
-3. Click the new interface to select it — the Inspector opens on the right
+1. In an `.ip.yml` open in the IP Core editor, find **Custom Interface** under
+   **Bus Protocols** in the library on the left.
+2. Drag it onto the edge of the core block.
+3. Select the new interface; the inspector opens on the right.
 
 ![Custom conduit interface selected on the canvas, with its signal list open in the Inspector](../images/custom-interface-conduit-light.png)
 
 ## Configure it
 
-In the Inspector's **Configuration** section:
+In the inspector's **Configuration** section:
 
 | Field | What it controls |
-| --- | --- |
-| Mode | `conduit` for a pass-through signal grouping with no transaction semantics; `slave`/`master` if the interface has an initiator/responder distinction (a named proprietary protocol) |
-| Physical Prefix | HDL signal prefix, e.g. `dbg_` → `dbg_trace_data`, `dbg_trigger` |
-| Interface Type | Leave blank for a one-off conduit, or enter vendor, library, name, and version to give it a reusable identity |
+|---|---|
+| Mode | `conduit` for a signal group without transactions; `master` or `slave` when one side clearly initiates |
+| Physical Prefix | HDL signal prefix, for example `dbg_` gives `dbg_trace_data` |
+| Interface Type | Empty for a one-off conduit, or vendor, library, name, and version for a reusable identity |
+
+`slave` and `conduit` interfaces are drawn on the left of the block, `master`
+interfaces on the right.
 
 ## Add signals
 
-In the **Signals** section, click **Add signal** for each wire the interface needs. Each signal has:
+In the **Signals** section, select **Add signal** for each wire:
 
-| Field | Notes |
-| --- | --- |
-| Direction | `in`, `out`, or `inout` — asymmetric like a standard bus port: a signal declared `out` on a master instance becomes `in` on a slave instance |
-| Name | Appears in the generated RTL port list as `<physicalPrefix><name>` |
-| Width | A literal integer or a reference to one of the core's generics/parameters |
-| Presence | `REQ` (required, always generated) or `OPT` (optional) |
+| Field | Meaning |
+|---|---|
+| Direction | `in`, `out`, or `inout`, seen from this interface's mode; the opposite mode sees the reverse |
+| Name | Appears in the RTL port list as `<physicalPrefix><name>` |
+| Width | A number or a parameter name; empty for one bit |
+| Presence | `REQ` (always generated) or `OPT` (generated only when the core enables it); click the badge to toggle |
+
+The signals are stored inline in the `.ip.yml`:
+
+```yaml
+busInterfaces:
+  - name: DIAG_OUT
+    type: ipcraft:busif:conduit:1.0
+    mode: conduit
+    physicalPrefix: diag_
+    conduitPorts:
+      - name: ENABLE
+        direction: in
+      - name: SAMPLE
+        direction: out
+        width: 12
+      - name: STATUS
+        direction: out
+        width: 3
+```
 
 ## Reuse across IP cores
 
-An interface defined inline (via `conduitPorts` in the `.ip.yml`) is private to that one core. To share the same signal contract across multiple cores:
+An inline interface belongs to one core. To share the same signals between
+cores:
 
-1. Select the interface and click **Save Bus Definition** in the Inspector
-2. Choose a name — IPCraft writes a `<name>.busdef.yml` file to the project directory and switches the interface to reference it via `useBusLibrary`
-3. On another IP core, drag **Custom Interface** onto the canvas, then pick the saved definition from the Inspector — or rely on auto-discovery: any `*.busdef.yml` file in the workspace is picked up automatically and offered as a known interface type, no per-core configuration needed
+1. Select the interface and select **Save Bus Definition** in the inspector.
+2. Choose a name. IPCraft writes `<name>.busdef.yml` and switches the interface
+   to reference it.
+3. In another core, add a **Custom Interface** and pick the saved definition.
 
-Once shared, editing the `.busdef.yml` file updates every IP core that references it — a single source of truth for both the canvas and the HDL generator.
+Files named `*.busdef.yml` anywhere in the workspace are discovered
+automatically and offered as interface types. A core can also point to a folder
+of definitions with `useBusLibrary`. Editing a `.busdef.yml` updates every core
+that uses it.
 
-## Generated output
+![Flow diagram: Reusable .busdef.yml, IP core A, IP core B, IPCraft generator](../images/diagrams/concepts-custom-interface-1.drawio.svg)
 
-| Target | What gets generated |
-| --- | --- |
-| Vivado | A matching Bus Definition + Abstraction Definition XML pair under `busdef/`, generated automatically for any interface type not in the built-in Vivado catalog. Reused across instances of the same type — one XML pair regardless of how many interfaces reference it. |
-| Quartus (Platform Designer) | Mapped to Platform Designer's generic `conduit` interface class — signals appear in the IP catalogue but are not auto-connected by protocol matching |
+## Generated vendor files
+
+| Target | Result |
+|---|---|
+| Vivado, interface with its own type | A bus definition and abstraction definition XML pair under `busdef/`, one pair per type however many interfaces use it |
+| Vivado, generic `ipcraft:busif:conduit:1.0` | No bus interface: Vivado has no conduit concept, so the signals become plain ports in `component.xml` |
+| Quartus Platform Designer | A `conduit` interface; the signals stay grouped, but Platform Designer does not connect them by protocol |
+
+Importing a `component.xml` back gives plain ports for a generic conduit,
+because the grouping cannot be recovered. Avalon-MM ports that Vivado's
+`avalon_rtl` does not declare (`chipselect`, `debugaccess`, and their
+active-low forms) are also plain ports in `component.xml`, but the importer
+folds them back into the Avalon-MM interface.
 
 ## Next steps
 
-- [Custom Interface](../concepts/custom-interface.md) — the full signal definition model, storage formats, and when to prefer a standard bus type instead
-- [Vivado Interface Catalog](../concepts/vivado-interface-catalog.md) — check whether Vivado already ships metadata for your protocol before building a custom one
-- [Creating Your First IP Core](create-your-first-ip-core.md) — adding standard bus interfaces, clocks, resets, and ports
+- [Vivado interface catalog](../concepts/vivado-interface-catalog.md): check
+  whether Vivado already describes your protocol
+- [Creating your first IP core](create-your-first-ip-core.md): standard bus
+  interfaces, clocks, resets, and ports

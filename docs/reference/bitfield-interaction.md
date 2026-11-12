@@ -41,27 +41,9 @@ resize-boundary calculation, and gap detection.
 
 ## Keyboard shortcuts
 
-### Visualizer (focused bit-field cell)
-
-Direction maps to the layout's orientation.
-
-| Layout | Reorder (swap with neighbour) | Resize (grow/shrink an edge) |
-|--------|-------------------------------|------------------------------|
-| `pro` (horizontal) | `Alt+Left` toward MSB, `Alt+Right` toward LSB | `Shift+Left` / `Shift+Right` |
-| `vertical` (stacked) | `Alt+Up` toward LSB, `Alt+Down` toward MSB | `Shift+Up` / `Shift+Down` |
-
-### Field table
-
-| Key | Action |
-|-----|--------|
-| `Arrow` keys / `h` `j` `k` `l` | Move the active cell |
-| `Alt+Up` / `Alt+Down` | Move the selected field up/down (focus follows the field) |
-| `F2` / `Enter` / `e` | Edit the active cell |
-| `d` / `Delete` | Delete the selected field |
-| `o` | Insert field after | 
-| `O` (`Shift+o`) | Insert field before |
-
-`Ctrl` / `Cmd` chords are not hijacked by table navigation.
+The visualizer and field table shortcuts are listed in
+[Keyboard shortcuts](keyboard-shortcuts.md#bit-field-visualizer-pro-layout).
+Table navigation does not take `Ctrl` or `Cmd` chords.
 
 ## Pointer gestures
 

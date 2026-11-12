@@ -8,7 +8,7 @@ common tasks below; the later tables are the complete reference.
 | Goal | Command |
 |---|---|
 | Create a core and linked register map | **IPCraft: New IP Core + Register Map** |
-| Generate the complete project | **IPCraft: Scaffold Project** |
+| Generate the complete project | **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)** |
 | Check generated files against the specification | **IPCraft: Check Consistency** |
 | Import an existing VHDL entity | **IPCraft: Import from VHDL (Experimental)** |
 | Run the available vendor build | **IPCraft: Build** |
@@ -81,7 +81,7 @@ These commands are available on `.ip.yml` files.
 
 | Command | Palette | IPCraft Menu | Editor Title |
 |---------|:-------:|:------------:|:------------:|
-| `IPCraft: Scaffold Project` | Yes | Yes | Yes |
+| `IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)` | Yes | Yes | Yes |
 | `IPCraft: Generate Top-Level HDL` | Yes | | |
 | `IPCraft: Generate CocoTB Testbench` | Yes | Yes | Yes |
 | `IPCraft: Generate Vivado Project` | Yes | Yes | Yes |
@@ -199,10 +199,14 @@ Available build targets:
 | `IPCraft: Scan Vivado Interface Catalog` | Yes | | |
 | `IPCraft: Open in Vivado` | Yes | Yes | Yes (`.ip.yml`) |
 | `IPCraft: Open in Quartus` | Yes | Yes | Yes (`.ip.yml`) |
+| `IPCraft: Select Vivado Version` | Yes (`.xpr`) | | Yes (`.xpr`) |
+| `IPCraft: Select Quartus Version` | Yes (`.qpf`) | | Yes (`.qpf`) |
 
-**Edit in IP Packager** — Launches Vivado in GUI mode with the selected `component.xml`, opening it directly in the IP Packager. Requires Vivado to be configured (see `ipcraft.vivado.runner` and `ipcraft.vivado.installDir`).
+**Select Vivado Version** / **Select Quartus Version** — With a Vivado `.xpr` or Quartus `.qpf` project open, choose which installed version opens and builds it, and pin that choice for the workspace (`ipcraft.vivado.pinnedVersion` / `ipcraft.quartus.pinnedVersion`).
 
-**Open in Platform Designer** — Launches Quartus Platform Designer (qsys-edit) with the selected `_hw.tcl` component. Requires Quartus to be configured (see `ipcraft.quartus.runner` and `ipcraft.quartus.installDir`).
+**Edit in IP Packager** — Launches Vivado in GUI mode with the selected `component.xml`, opening it directly in the IP Packager. Requires Vivado to be configured (see `ipcraft.vivado.runner` and `ipcraft.vivado.installDirs`).
+
+**Open in Platform Designer** — Launches Quartus Platform Designer (qsys-edit) with the selected `_hw.tcl` component. Requires Quartus to be configured (see `ipcraft.quartus.runner` and `ipcraft.quartus.installDirs`).
 
 **Scan Vivado IP Catalog** — Invokes Vivado in batch mode to enumerate the installed IP catalog and caches the result in the IPCraft config directory. Used for bus-library suggestions.
 
@@ -260,7 +264,7 @@ Available build targets:
 
 **Open as Visual Editor** — Reopens the current file in the IPCraft visual editor. Useful after opening a file with the text editor.
 
-**Preview in IPCraft** — Opens a read-only IPCraft preview panel for any YAML file. Experimental.
+**Preview in IPCraft** — Opens a `_hw.tcl`, `component.xml`, VHDL, Verilog, or SystemVerilog file as a read-only IP core preview, from which you can save an `.ip.yml`. The same as `Ctrl+Shift+V` (`Cmd+Shift+V`) on those files. Experimental.
 
 **Export Diagram as Image** — Opens the export options of the active IP core editor or system diagram (the same popover as the camera button in the toolbar) to save the diagram as an SVG, PNG or JPG file. See [Viewing a System Design](../how-to/view-a-system-design.md#export-an-image).
 
@@ -300,8 +304,10 @@ Configure via **File → Preferences → Settings** and search for `IPCraft`, or
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `ipcraft.vivado.runner` | `"local"` \| `"docker"` | `"local"` | How IPCraft executes Vivado. `local` uses a native install; `docker` runs every command in a container. |
-| `ipcraft.vivado.installDir` | string | `""` | *(local)* Path to your Vivado installation directory (e.g. `/tools/Xilinx/Vivado/2024.2`). Leave empty to rely on `vivado` being in `PATH`. |
-| `ipcraft.vivado.dockerImage` | string | `""` | *(docker)* Docker image used to run Vivado (e.g. `cvsoc/vivado:2024.2`). |
+| `ipcraft.vivado.installDirs` | string[] | `[]` | *(local)* Vivado installation directories, one per version installed side by side (e.g. `/tools/Xilinx/Vivado/2024.2`). IPCraft detects each version and, for an existing project, uses the version it was created with. Leave empty to rely on `vivado` being in `PATH`. |
+| `ipcraft.vivado.dockerImages` | object[] | `[]` | *(docker)* Docker images, one per version. Each entry needs `label` (the version shown in pickers) and `image`. |
+| `ipcraft.vivado.pinnedVersion` | string | `""` | Version or label to use in this workspace without detecting or asking. Also set by **Select Vivado Version**. |
+| `ipcraft.vivado.installDir`, `ipcraft.vivado.dockerImage` | string | `""` | Deprecated single-version forms of `installDirs` and `dockerImages`. |
 | `ipcraft.vivado.defaultPart` | string | `"xc7z020clg484-1"` | Fallback FPGA part when no board has been selected. |
 | `ipcraft.customBoards.vivado` | object[] | `[]` | Custom Vivado boards shown under **My Boards** in the board picker. Each entry requires `label` (string) and `part` (Xilinx part number). |
 | `ipcraft.vivado.pinnedPart` | string | `""` | Part chosen and pinned for the current workspace via the board picker; takes precedence over `defaultPart` when set. Written by the board picker, not usually edited by hand. |
@@ -311,8 +317,10 @@ Configure via **File → Preferences → Settings** and search for `IPCraft`, or
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `ipcraft.quartus.runner` | `"local"` \| `"docker"` | `"local"` | How IPCraft executes Quartus. `local` uses a native install; `docker` runs every command in a container. |
-| `ipcraft.quartus.installDir` | string | `""` | *(local)* Top-level Quartus installation directory (e.g. `/opt/intelFPGA_pro/23.1`). IPCraft automatically locates `quartus_sh` and `qsys-edit` inside it. |
-| `ipcraft.quartus.dockerImage` | string | `""` | *(docker)* Docker image used to run Quartus (e.g. `cvsoc/quartus:23.1`). |
+| `ipcraft.quartus.installDirs` | string[] | `[]` | *(local)* Top-level Quartus installation directories, one per version (e.g. `/opt/intelFPGA_pro/23.1`). IPCraft locates `quartus_sh` and `qsys-edit` inside each and detects its version. |
+| `ipcraft.quartus.dockerImages` | object[] | `[]` | *(docker)* Docker images, one per version. Each entry needs `label` and `image`. |
+| `ipcraft.quartus.pinnedVersion` | string | `""` | Version or label to use in this workspace without detecting or asking. Also set by **Select Quartus Version**. |
+| `ipcraft.quartus.installDir`, `ipcraft.quartus.dockerImage` | string | `""` | Deprecated single-version forms of `installDirs` and `dockerImages`. |
 | `ipcraft.quartus.defaultDevice` | string | `"5CSEBA6U23I7"` | Fallback device part when no board has been selected. |
 | `ipcraft.customBoards.quartus` | object[] | `[]` | Custom Quartus boards shown under **My Boards** in the board picker. Each entry requires `label` (string) and `device` (Intel/Altera part number). |
 | `ipcraft.quartus.pinnedDevice` | string | `""` | Device chosen and pinned for the current workspace via the board picker; takes precedence over `defaultDevice` when set. Written by the board picker, not usually edited by hand. |

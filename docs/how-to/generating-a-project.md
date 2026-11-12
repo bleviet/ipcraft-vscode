@@ -7,7 +7,7 @@ selected scaffold pack controls the exact files.
 
 1. Open an `.ip.yml` file.
 2. Choose the HDL language, vendor targets, and scaffold pack in the toolbar.
-3. Run **IPCraft: Scaffold Project**.
+3. Run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**.
 4. Review the staged files.
 5. Select **Confirm and Apply**.
 

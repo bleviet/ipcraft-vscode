@@ -81,13 +81,13 @@ A bus interface groups related signals (address, data, handshake) into one named
 | Register access (control/status) | AXI4-Lite Slave or Avalon-MM Slave |
 | Burst DMA from the core | AXI4 Master |
 | Simple memory-mapped I/O | APB Slave |
-| Custom/proprietary bus | Custom Interface (conduit) — see [Custom Interfaces](../concepts/custom-interface.md) |
+| Custom/proprietary bus | Custom Interface (conduit) — see [Custom interfaces](defining-a-custom-interface.md) |
 
 The Inspector's `physicalPrefix` field sets the HDL signal prefix, e.g. `s_axi_` → `s_axi_awaddr`, `s_axi_awvalid`.
 
 ## Generate your RTL
 
-Run **IPCraft: Scaffold Project** from the Command Palette, the editor title bar, or the **IPCraft** menu. It generates RTL, a testbench, and vendor project files in one step — see [Generating a Project](generating-a-project.md) for the full output layout and per-piece generation commands.
+Run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)** from the Command Palette, the editor title bar, or the **IPCraft** menu. It generates RTL, a testbench, and vendor project files in one step — see [Generating a Project](generating-a-project.md) for the full output layout and per-piece generation commands.
 
 | Output | What it is |
 | --- | --- |

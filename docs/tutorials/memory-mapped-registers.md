@@ -148,7 +148,7 @@ For a non-zero block base, add the register offset to that base.
 ## Generate and test
 
 1. Save both YAML files.
-2. Run **IPCraft: Scaffold Project**.
+2. Run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**.
 3. Review the staged file list.
 4. Accept the generated files.
 5. Compile the generated HDL.

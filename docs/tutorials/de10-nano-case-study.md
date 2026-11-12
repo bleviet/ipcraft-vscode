@@ -2,7 +2,7 @@
 
 This case study shows where IPCraft fits in a complete Terasic DE10-Nano
 project. The maintained board files, build scripts, shared scenarios, and
-hardware results live with the generated designs under [`examples/`](../../examples/).
+hardware results live with the generated designs under [`examples/`](https://github.com/bleviet/ipcraft-vscode/tree/main/examples).
 
 ## System path
 
@@ -75,7 +75,7 @@ You do not need the board to repeat the first three stages:
 4. If Quartus is available, [run a headless build](../how-to/building-a-project.md).
 
 For the board-specific stages, use
-[`examples/regmap_conformance_avmm/`](../../examples/regmap_conformance_avmm/):
+[`examples/regmap_conformance_avmm/`](https://github.com/bleviet/ipcraft-vscode/tree/main/examples/regmap_conformance_avmm):
 
 ```bash
 cd examples/regmap_conformance_avmm/altera
@@ -90,7 +90,7 @@ runs the same directed and seeded-random scenarios as cocotb, and writes
 the board produce a nonzero exit; they are never treated as a passing hardware
 run.
 
-[`examples/regmap_conformance_axil/`](../../examples/regmap_conformance_axil/)
+[`examples/regmap_conformance_axil/`](https://github.com/bleviet/ipcraft-vscode/tree/main/examples/regmap_conformance_axil)
 proves the same register map and manifest-driven suite through the AXI4-Lite
 bus wrapper instead, over the same JTAG-to-Avalon-MM master bridged to AXI4
 by Platform Designer -- same `make qsys project compile && make test`

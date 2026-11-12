@@ -21,21 +21,26 @@ Generate the project in IPCraft, open a terminal in the generated project, and
 run:
 
 ```bash
-pytest -v
+pytest -v tb/
 ```
 
 ![Flow diagram: IP core and memory map, Generate project, HDL and Python test, pytest starts simulator, Test result and waveform](../images/diagrams/how-to-run-cocotb-simulation-1.drawio.svg)
 
 ## Generated files
 
-The exact names depend on the selected scaffold pack. A typical project has:
+The built-in packs write the tests to `tb/`:
 
 ```text
 generated-project/
-├── rtl/                 # Generated VHDL or SystemVerilog
-├── test/                # Cocotb tests and register-map helper
-├── Makefile             # Optional simulator shortcut
-└── pytest.ini           # Pytest configuration, when supplied by the pack
+├── rtl/                          # Generated VHDL or SystemVerilog
+├── tb/
+│   ├── <name>_test.py            # cocotb tests; extend this file
+│   ├── test_<name>_sim.py        # one pytest function per cocotb test
+│   ├── conftest.py               # compiles the HDL once per run
+│   ├── register_model.py         # register model for memory-mapped cores
+│   ├── verification_manifest.json
+│   └── Makefile                  # make-based alternative to pytest
+└── .vscode/settings.json         # points the Testing view at tb/
 ```
 
 The register-map helper gives tests named access to registers and fields. This
@@ -46,34 +51,29 @@ is clearer than repeating numeric addresses and masks throughout a test.
 Run every test:
 
 ```bash
-pytest -v
+pytest -v tb/
 ```
 
-Run one file:
+Run one test:
 
 ```bash
-pytest -v test/test_my_core.py
+pytest -v tb/ -k test_register_access
 ```
 
-Run one test function:
+You can also run the cocotb Makefile directly:
 
 ```bash
-pytest -v test/test_my_core.py::test_reset_values
-```
-
-If the generated project provides a Makefile, you can also run:
-
-```bash
-make
+make -C tb
 ```
 
 ## Choose a simulator
 
-Cocotb reads the `SIM` environment variable. Examples:
+Cocotb reads the `SIM` environment variable. The default is the simulator
+selected when the testbench was generated. Examples:
 
 ```bash
-SIM=ghdl pytest -v
-SIM=icarus pytest -v
+SIM=ghdl pytest -v tb/
+SIM=icarus pytest -v tb/
 ```
 
 Use GHDL for generated VHDL and Icarus Verilog for generated SystemVerilog
@@ -96,7 +96,9 @@ With the Python extension installed, VS Code can discover the generated
 1. Open the generated project folder.
 2. Open the **Testing** view.
 3. Choose **Configure Python Tests** if discovery has not run.
-4. Select `pytest` and the generated test directory.
+4. Select `pytest` and the `tb` directory. The generated
+   `.vscode/settings.json` already does this when you open the generated
+   project as the workspace folder.
 5. Run or debug a test from the test tree.
 
 The terminal command remains the best way to confirm the same tests work in
@@ -147,8 +149,9 @@ iverilog -V
 
 ### Pytest finds no tests
 
-Test filenames normally start with `test_`, and test functions start with
-`test_`. Also check that you are running `pytest` from the generated project.
+Pass the `tb/` directory to `pytest` and run it from the generated project
+root. Only `test_<name>_sim.py` holds pytest functions; `<name>_test.py` holds
+the cocotb tests they start.
 
 ### GHDL rejects VHDL syntax
 
@@ -170,4 +173,4 @@ file.
 
 - [Generating a project](generating-a-project.md)
 - [Memory-mapped registers](../tutorials/memory-mapped-registers.md)
-- [Testing](../testing.md)
+- [Generator reference](../reference/generator.md#cocotb-verification-source-of-truth)

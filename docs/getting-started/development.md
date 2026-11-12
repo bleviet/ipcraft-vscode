@@ -55,30 +55,39 @@ IPCraft runs in two JavaScript environments that communicate through `postMessag
 
 - The **extension host** runs in Node.js and owns VS Code APIs, files, commands, importers,
   generation, and vendor tools.
-- The **webviews** run in embedded browsers and render the Memory Map, IP Core, and Data
-  Inspector React applications.
+- The **webviews** run in embedded browsers and render the Memory Map, IP Core, Data
+  Inspector, and system diagram React applications.
 
 The main entry points are `src/extension.ts`, `src/webview/index.tsx`,
-`src/webview/ipcore/IpCoreApp.tsx`, and `src/webview/dataInspector/index.tsx`. Start with
-[Architecture Overview](../architecture/overview.md) before changing the message boundary.
+`src/webview/ipcore/IpCoreApp.tsx`, `src/webview/dataInspector/index.tsx`, and
+`src/webview/systemDiagram/index.tsx`; the command line starts in `src/cli/`.
+Start with [Architecture Overview](../architecture/overview.md) before changing
+the message boundary.
 
 ## Repository Layout
 
 ```text
 src/
-  extension.ts              # entry point
+  extension.ts              # extension entry point
+  cli/                      # ipcraft command line
   commands/                 # VS Code command implementations
-  providers/                # custom editor providers
-  services/                 # extension host services
-  parser/                   # VHDL parser
-  generator/                # VHDL scaffolding + Nunjucks templates
+  providers/                # custom editor providers and panels
+  services/                 # extension host services (incl. systemDiagram/)
+  domain/                   # normalized types shared by host and webviews
+  yamledit/                 # comment-preserving YAML edits
+  parser/                   # VHDL, Verilog, _hw.tcl, component.xml, system design readers
+  generator/                # scaffolder, resolvers, Nunjucks templates, scaffold packs
+  dataInspector/            # bit vectors, literals, recipes, capture readers
+  shared/                   # code used by both host and webviews
+  sidebar/                  # IP core tree view
   utils/                    # logging, error handling, helpers
-  webview/                  # React apps (Memory Map & IP Core)
-  test/suite/               # Jest unit tests
-config/                     # Tool configurations (Jest, Webpack, Playwright, etc.)
-resources/                  # Icons and static assets
+  webview/                  # React apps: Memory Map, IP Core, Data Inspector, system diagram
+  test/                     # unit, browser, e2e, and integration tests
+config/                     # Jest, webpack, Playwright, and other tool configuration
+resources/                  # icons and static assets
+scripts/                    # build, screenshot, and maintenance scripts
 docs/                       # this documentation
-ipcraft-spec/               # specification schemas + examples (local package)
+ipcraft-spec/               # specification schemas and examples (git submodule)
 ```
 
 ## Build, Lint, Type Check
@@ -129,35 +138,9 @@ Format-preserving writes go through `src/yamledit/` (`applyPathEdits`,
 
 ## Testing
 
-=== "CMake"
-
-    | Target | Purpose |
-    |--------|---------|
-    | `test` | Jest unit tests |
-    | `test_coverage` | Jest unit tests + HTML/LCOV coverage → `coverage/` |
-    | `test_watch` | Jest watch mode (TDD) |
-    | `test_e2e` | VS Code E2E tests (requires display / xvfb) |
-    | `test_browser` | Playwright browser tests (Chromium headless) |
-    | `test_all` | All suites: unit + e2e + browser |
-
-    ```bash
-    cmake --build build --target test
-    cmake --build build --target test_coverage
-    ```
-
-=== "npm"
-
-    | Command | Purpose |
-    |---------|---------|
-    | `npm run test:unit` | Jest unit tests (`src/test/suite/**`) |
-    | `npm run test:unit -- --testPathPatterns <file>` | Run a single test file |
-    | `npm run test:unit:coverage` | Tests with coverage report |
-    | `npm run test:browser` | Playwright browser tests (Chromium headless) |
-    | `npm run test:e2e` | VS Code E2E tests (requires display / xvfb) |
-
-!!! note
-    `npm run pretest` checks the submodule, compiles tests and bundles, and runs
-    lint. For fast iteration, run `npm run test:unit` directly.
+See [Testing](../testing.md) for the test suites and which to run. With CMake,
+`cmake --build build --target test`, `test_coverage`, `test_browser`,
+`test_e2e`, and `test_all` run the same suites.
 
 ## Packaging a VSIX
 
@@ -224,21 +207,9 @@ plus its Inspector panel. See [IP Core Editor Reference](../reference/ip-core-ed
 
 ## Validation Flow
 
-Run these before submitting a PR:
-
-=== "CMake"
-    ```bash
-    cmake --build build --target validate
-    ```
-    Runs lint → type-check → unit tests → compile in sequence. Fails fast on the first error.
-
-=== "npm"
-    ```bash
-    npm run lint
-    npm run type-check
-    npm run test:unit
-    npm run compile
-    ```
+`cmake --build build --target validate` runs lint, type check, unit tests, and
+compile in sequence and stops at the first error. The npm equivalent is in
+[Testing](../testing.md#quick-start).
 
 ## Troubleshooting
 

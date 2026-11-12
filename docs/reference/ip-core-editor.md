@@ -143,7 +143,7 @@ Dragging **Custom Interface** creates a conduit: a named group of signals that
 does not use a built-in protocol. Add its signals in the Inspector. You can save
 the definition as a reusable `.busdef.yml` file.
 
-See [Defining a custom interface](../how-to/defining-a-custom-interface.md).
+See [Custom interfaces](../how-to/defining-a-custom-interface.md).
 
 ## Generation review
 

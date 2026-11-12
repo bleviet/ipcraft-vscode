@@ -63,7 +63,7 @@ it neither advances nor filters document versions. The full-text comparison is
 a deliberate per-result cost and should be considered if this mechanism is
 extended to larger or more frequent payloads.
 
-See [YAML data flow](../concepts/yaml-data-flow.md) for the paired webview logic.
+See [Data flow](overview.md#data-flow) for the paired webview logic.
 
 ## Commands
 

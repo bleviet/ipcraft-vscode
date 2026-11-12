@@ -1,4 +1,4 @@
-# Data Inspector Design
+# How the Data Inspector Decodes Values
 
 The Data Inspector decodes values from pasted literals, simulator waveforms,
 Vivado ILA, SignalTap, and CSV captures. It is an analysis tool and never edits

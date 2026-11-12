@@ -67,5 +67,5 @@ validate that interface.
 | Save interface mapping | IP core domain and YAML editing layers |
 | Generate Vivado metadata | `src/generator/` |
 
-See [Defining a custom interface](../how-to/defining-a-custom-interface.md) when the
+See [Custom interfaces](../how-to/defining-a-custom-interface.md) when the
 interface is not available from the built-in or Vivado catalogs.

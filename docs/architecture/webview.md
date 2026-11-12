@@ -243,7 +243,7 @@ When a valid edit is committed:
 4. the extension host applies or rejects the update;
 5. the webview accepts the resulting document version.
 
-See [YAML data flow](../concepts/yaml-data-flow.md) for the message rules and
+See [Data flow](overview.md#data-flow) for the message rules and
 [bit field handling](bit-field-handling.md) for structural field edits.
 
 ## Shared components

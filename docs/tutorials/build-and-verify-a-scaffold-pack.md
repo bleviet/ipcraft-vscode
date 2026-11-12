@@ -110,7 +110,7 @@ The two previews answer different questions:
 
 1. Open the IP core in the visual editor.
 2. Select `ipcraft-with-docs` from **Scaffold Template**.
-3. Run **IPCraft: Scaffold Project**.
+3. Run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**.
 4. Review the staged file list.
 5. Accept the output.
 

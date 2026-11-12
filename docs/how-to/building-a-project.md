@@ -11,7 +11,7 @@ You need:
 - generated Vivado or Quartus project files;
 - the matching tool configured locally or through Docker.
 
-Run **IPCraft: Scaffold Project**, **Generate Vivado Project**, or
+Run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**, **Generate Vivado Project**, or
 **Generate Quartus Project** first if no build target exists.
 
 ## Run the build
@@ -80,30 +80,43 @@ shows maximum clock frequency. Select the item to reopen the output channel.
 
 ## Configure a local tool
 
+List every installed version. IPCraft detects the version of each folder and,
+for an existing project, uses the version the project was created with:
+
 ```json
 {
   "ipcraft.vivado.runner": "local",
-  "ipcraft.vivado.installDir": "/tools/Xilinx/Vivado/2024.2",
+  "ipcraft.vivado.installDirs": ["/tools/Xilinx/Vivado/2024.2", "/tools/Xilinx/Vivado/2025.1"],
   "ipcraft.quartus.runner": "local",
-  "ipcraft.quartus.installDir": "/opt/intelFPGA_pro/23.1",
+  "ipcraft.quartus.installDirs": ["/opt/intelFPGA_pro/23.1"],
   "ipcraft.build.jobs": 4
 }
 ```
 
-Leave an installation directory empty when the tool command is already on
-`PATH`.
+Leave the list empty when the tool command is already on `PATH`. To always use
+one version in a workspace, set `ipcraft.vivado.pinnedVersion` or
+`ipcraft.quartus.pinnedVersion`. With an `.xpr` or `.qpf` project file open,
+**IPCraft: Select Vivado Version** or **IPCraft: Select Quartus Version** picks
+and pins the version for you.
 
 ## Configure Docker
+
+Give each image a version label, because an image reference cannot be parsed
+into a version:
 
 ```json
 {
   "ipcraft.vivado.runner": "docker",
-  "ipcraft.vivado.dockerImage": "cvsoc/vivado:2024.2"
+  "ipcraft.vivado.dockerImages": [{ "label": "2024.2", "image": "cvsoc/vivado:2024.2" }]
 }
 ```
 
 Quartus uses the equivalent `ipcraft.quartus.runner` and
-`ipcraft.quartus.dockerImage` settings.
+`ipcraft.quartus.dockerImages` settings.
+
+The single-folder settings `ipcraft.vivado.installDir`,
+`ipcraft.vivado.dockerImage`, `ipcraft.quartus.installDir`, and
+`ipcraft.quartus.dockerImage` are deprecated; use the lists above.
 
 ## Troubleshooting
 

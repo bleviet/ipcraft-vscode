@@ -454,6 +454,3 @@ box.
   definitions are not filled in yet.
 - Anything that needs Tcl to be evaluated, such as loops and computed names.
   The view is marked partial in Details, under **What this view knows**.
-
-For the design behind this feature, see [Offline System
-Viewer](../concepts/brainstorm/offline-system-viewer.md).
