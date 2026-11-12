@@ -6,17 +6,7 @@ design. Pack authors should start with [scaffold packs](../how-to/customizing-ge
 
 ## Pipeline
 
-```mermaid
-flowchart TD
-    A[Load IP core and linked maps] --> B[Normalize and validate]
-    B --> C[Resolve widths, buses, clocks, and registers]
-    C --> D[Validate template data]
-    D --> E[Check scaffold-pack version]
-    E --> F[Evaluate output rules]
-    F --> G[Render templates]
-    G --> H[Add tests and vendor files]
-    H --> I[Return staged files]
-```
+![Flow diagram: Load IP core and linked maps, Normalize and validate, Resolve widths, buses, clocks, and registers, Validate template data, Check scaffold-pack version, Evaluate output rules, Render templates, Add tests and vendor files...](../images/diagrams/architecture-generator-backbone-1.drawio.svg)
 
 `src/generator/IpCoreScaffolder.ts` coordinates the pipeline. It returns file
 contents to the staging workflow; it does not ask React components to write
@@ -80,16 +70,7 @@ values such as `axil` or `avmm` instead of recognizing aliases themselves.
 
 ## Pack and template lookup
 
-```mermaid
-flowchart TD
-    A[Requested pack name] --> B{Workspace pack exists?}
-    B -->|Yes| C[Use workspace pack]
-    B -->|No| D[Use built-in pack]
-    C --> E{Template exists in pack?}
-    D --> E
-    E -->|Yes| F[Render pack template]
-    E -->|No| G[Try built-in template]
-```
+![Flow diagram: Requested pack name, Workspace pack exists?, Use workspace pack, Use built-in pack, Template exists in pack?, Render pack template, Try built-in template](../images/diagrams/architecture-generator-backbone-2.drawio.svg)
 
 A workspace pack can replace a built-in template by using the same filename.
 Unchanged templates fall back to the built-in library.
@@ -110,12 +91,7 @@ from calculating different widths.
 
 Generator changes should prove progressively more:
 
-```mermaid
-flowchart LR
-    A[Resolver and snapshot tests] --> B[Generated HDL compile]
-    B --> C[Vendor metadata checks]
-    C --> D[Real Quartus or Vivado validation]
-```
+![Flow diagram: Resolver and snapshot tests, Generated HDL compile, Vendor metadata checks, Real Quartus or Vivado validation](../images/diagrams/architecture-generator-backbone-3.drawio.svg)
 
 Run the focused unit tests, then:
 

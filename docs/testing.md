@@ -20,18 +20,7 @@ git submodule update --init --recursive
 
 ## Choose the right test
 
-```mermaid
-flowchart TD
-    A[What changed?] --> B{Pure logic or service?}
-    B -->|Yes| C[Run a focused Jest test]
-    B -->|No| D{React editor behavior?}
-    D -->|Yes| E[Run Jest and browser tests]
-    D -->|No| F{VS Code integration?}
-    F -->|Yes| G[Run compile and VS Code tests]
-    F -->|No| H{Generated HDL or vendor files?}
-    H -->|Yes| I[Run HDL or EDA integration tests]
-    H -->|No| J[Run the standard quick checks]
-```
+![Flow diagram: What changed?, Pure logic or service?, Run a focused Jest test, React editor behavior?, Run Jest and browser tests, VS Code integration?, Run compile and VS Code tests, Generated HDL or vendor files?, Run HDL or EDA...](images/diagrams/testing-1.drawio.svg)
 
 | Change | Start with | Also run |
 |---|---|---|

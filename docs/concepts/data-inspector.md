@@ -1,4 +1,4 @@
-# Data Inspector Design
+# How the Data Inspector Decodes Values
 
 The Data Inspector decodes values from pasted literals, simulator waveforms,
 Vivado ILA, SignalTap, and CSV captures. It is an analysis tool and never edits
@@ -8,14 +8,7 @@ an IP core, memory map, or generated HDL.
 
 ## Data model
 
-```mermaid
-flowchart LR
-    A[Temporary sample] --> B[Named source]
-    B --> C[Ordered operation graph]
-    B --> D[Field overlays]
-    C --> D
-    D --> E[Decoded values and comparisons]
-```
+![Flow diagram: Temporary sample, Named source, Ordered operation graph, Field overlays, Decoded values and comparisons](../images/diagrams/concepts-data-inspector-1.drawio.svg)
 
 The model separates four ideas:
 
@@ -105,13 +98,7 @@ one selected signal column at a time.
 Captured samples remain temporary. Recipes save the decoding structure, not the
 potentially large capture content.
 
-```mermaid
-flowchart LR
-    A[VCD or CSV file] --> B[Choose signals and ordering]
-    B --> C[Temporary sample timeline]
-    C --> D[Existing recipe]
-    D --> E[Decoded fields]
-```
+![Flow diagram: VCD or CSV file, Choose signals and ordering, Temporary sample timeline, Existing recipe, Decoded fields](../images/diagrams/concepts-data-inspector-2.drawio.svg)
 
 ## Saved recipes
 

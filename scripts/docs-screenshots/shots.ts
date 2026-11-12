@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import * as YAML from 'yaml';
@@ -103,6 +103,215 @@ async function setupSplitAddress(page: Page): Promise<void> {
   await page.locator('.react-flow__node[data-id="address"]').click();
 }
 
+/** Draws a pointer at the centre of `target`, so a still frame shows where the user acts. */
+async function showPointer(page: Page, target: Locator): Promise<void> {
+  const box = await target.boundingBox();
+  if (!box) {
+    throw new Error('showPointer: target is not visible');
+  }
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x, y);
+  await page.evaluate(
+    ([left, top]) => {
+      document.getElementById('docs-pointer')?.remove();
+      const pointer = document.createElement('div');
+      pointer.id = 'docs-pointer';
+      pointer.setAttribute(
+        'style',
+        `position:fixed;left:${left}px;top:${top}px;z-index:2147483647;pointer-events:none;`
+      );
+      pointer.innerHTML =
+        '<svg width="26" height="26" viewBox="0 0 24 24"><path d="M5 3l14 8.5-6.2 1.4L9.6 19z" fill="#ffffff" stroke="#0d1120" stroke-width="1.4" stroke-linejoin="round"/></svg>';
+      document.body.appendChild(pointer);
+    },
+    [x - 5, y - 3] as const
+  );
+}
+
+/**
+ * Frames of the isolate walkthrough on the landing page: a busy level, one block
+ * selected, its context menu, the isolated view, and the view one hop further out.
+ */
+function isolateFrame(frame: 1 | 2 | 3 | 4 | 5): (page: Page) => Promise<void> {
+  return async (page) => {
+    const block = page.locator('.react-flow__node[data-id="/jtag_uart"]');
+    if (frame === 1) {
+      await showPointer(page, block);
+      return;
+    }
+    await block.click({ position: { x: 40, y: 12 } });
+    if (frame === 2) {
+      await showPointer(page, block);
+      return;
+    }
+    await block.click({ button: 'right', position: { x: 40, y: 12 } });
+    const isolate = page.getByRole('menuitem', { name: /^Isolate/ });
+    if (frame === 3) {
+      await showPointer(page, isolate);
+      return;
+    }
+    await untilViewportChanges(page, () => isolate.click());
+    const moreHops = page.getByRole('button', { name: 'More hops' });
+    if (frame === 4) {
+      await showPointer(page, moreHops);
+      return;
+    }
+    await untilViewportChanges(page, () => moreHops.click());
+    await showPointer(page, moreHops);
+  };
+}
+
+/**
+ * Frames of the hierarchy walkthrough: the top level, inside a hierarchy block,
+ * a nested block expanded in place, and the breadcrumb back to the top.
+ */
+function hierarchyFrame(frame: 1 | 2 | 3 | 4 | 5): (page: Page) => Promise<void> {
+  return async (page) => {
+    const block = page.locator('.react-flow__node[data-id="/dsp_pipeline"]');
+    if (frame === 1) {
+      await showPointer(page, block);
+      return;
+    }
+    await untilViewportChanges(page, () => block.dblclick());
+    const expand = page.getByRole('button', { name: 'Expand coeff_bank in place' });
+    if (frame === 2) {
+      await showPointer(page, expand);
+      return;
+    }
+    await expand.click();
+    const collapse = page.getByRole('button', { name: 'Collapse coeff_bank' });
+    await expect(collapse).toBeVisible();
+    await page.waitForTimeout(600);
+    await page.getByRole('button', { name: 'Fit' }).click();
+    await page.waitForTimeout(300);
+    const top = page
+      .getByRole('navigation', { name: 'Hierarchy' })
+      .getByRole('button', { name: 'zynq_dma_system' });
+    if (frame === 3) {
+      await showPointer(page, collapse);
+      return;
+    }
+    if (frame === 4) {
+      await showPointer(page, top);
+      return;
+    }
+    await untilViewportChanges(page, () => top.click());
+    await showPointer(page, block);
+  };
+}
+
+/** Frames of the unconnected-pins walkthrough: the toggle, the findings, and one finding opened. */
+function unconnectedFrame(frame: 1 | 2 | 3): (page: Page) => Promise<void> {
+  return async (page) => {
+    const toggle = page.getByRole('button', { name: /^Unconnected pins/ });
+    if (frame === 1) {
+      await showPointer(page, toggle);
+      return;
+    }
+    await untilViewportChanges(page, () => toggle.click());
+    const row = page.getByRole('region', { name: 'Bottom panel' }).locator('tbody tr').first();
+    await expect(row).toBeVisible();
+    if (frame === 2) {
+      await showPointer(page, row);
+      return;
+    }
+    await untilViewportChanges(page, () => row.click());
+    await showPointer(page, row);
+  };
+}
+
+/** Frames of the export walkthrough: the Export image button, its options, and the Export button. */
+function exportFrame(frame: 1 | 2 | 3): (page: Page) => Promise<void> {
+  return async (page) => {
+    const button = page.getByRole('button', { name: 'Export image' });
+    if (frame === 1) {
+      await showPointer(page, button);
+      return;
+    }
+    await button.click();
+    const dialog = page.getByRole('dialog', { name: 'Export image options' });
+    if (frame === 2) {
+      await showPointer(page, dialog.getByLabel('Format'));
+      return;
+    }
+    await dialog.getByLabel('Area').selectOption('whole');
+    await showPointer(page, dialog.getByRole('button', { name: 'Export', exact: true }));
+  };
+}
+
+async function dragBetween(page: Page, from: Locator, to: Locator): Promise<void> {
+  const start = await from.boundingBox();
+  const end = await to.boundingBox();
+  if (!start || !end) {
+    throw new Error('dragBetween: handle is not visible');
+  }
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, { steps: 12 });
+  await page.mouse.up();
+}
+
+/**
+ * Frames of the Data Inspector walkthrough on the landing page: two decoded words,
+ * a Concat operator added from the library, each word wired in, and the result.
+ */
+function inspectFrame(frame: 1 | 2 | 3 | 4 | 5): (page: Page) => Promise<void> {
+  return async (page) => {
+    // Decode both words as setupSplitAddress does, then remove the example's
+    // ready-made Concat step so the walkthrough starts from the two inputs alone.
+    await page.getByRole('textbox', { name: 'Literal' }).fill("32'h0001_2000");
+    await page.getByRole('button', { name: 'Decode ADDR_HI' }).click();
+    await page.locator('.react-flow__node[data-id="addr-low"]').click();
+    await page.getByLabel('ADDR_LO value').fill("32'h0000_3F00");
+    await page.getByRole('button', { name: 'Decode ADDR_LO' }).click();
+    await page.locator('.react-flow__node[data-id="address"]').click();
+    await page.getByRole('button', { name: 'Delete selected components' }).click();
+    await expect(page.locator('.di-flow-step')).toHaveCount(0);
+    const addConcat = page.getByRole('button', { name: 'Add Concat draft' });
+    if (frame === 1) {
+      await showPointer(page, addConcat);
+      return;
+    }
+    await addConcat.click();
+    const step = page.locator('.di-flow-step');
+    await expect(step).toHaveCount(1);
+    // The draft lands on top of ADDR_LO; move it to the right of the two inputs.
+    const title = await step.locator('strong').boundingBox();
+    if (!title) {
+      throw new Error('inspectFrame: the draft step is not visible');
+    }
+    await page.mouse.move(title.x + 10, title.y + 8);
+    await page.mouse.down();
+    await page.mouse.move(title.x + 80, title.y - 52, { steps: 12 });
+    await page.mouse.up();
+    const high = page.locator('.react-flow__node[data-id="addr-high"] .react-flow__handle');
+    const low = page.locator('.react-flow__node[data-id="addr-low"] .react-flow__handle');
+    const hiInput = page.getByLabel('hi input');
+    const loInput = page.getByLabel('lo input');
+    if (frame === 2) {
+      await showPointer(page, high);
+      return;
+    }
+    await dragBetween(page, high, hiInput);
+    await expect(page.locator('.react-flow__edge')).toHaveCount(1);
+    if (frame === 3) {
+      await showPointer(page, hiInput);
+      return;
+    }
+    await dragBetween(page, low, loInput);
+    await expect(page.locator('.react-flow__edge')).toHaveCount(2);
+    if (frame === 4) {
+      await showPointer(page, loInput);
+      return;
+    }
+    await step.click();
+    await showPointer(page, step);
+  };
+}
+
+const FRAMES = [1, 2, 3, 4, 5] as const;
+
 export interface Shot {
   /** Output basename -> docs/images/<id>-{dark,light}.png */
   id: string;
@@ -118,6 +327,8 @@ export interface Shot {
   viewport?: { width: number; height: number };
   /** Selector to capture instead of the full page. */
   clip?: string;
+  /** 'css' writes one image pixel per CSS pixel (smaller files, for animation frames). Default: device pixels. */
+  scale?: 'css' | 'device';
   /** Clicks/expansion to run after the harness has real content, before capture. */
   setup?: (page: Page) => Promise<void>;
 }
@@ -286,6 +497,13 @@ export const shots: Shot[] = [
     setup: setupSystemOverview,
   },
   {
+    // The whole top level with every panel hidden, so nothing covers the diagram.
+    id: 'system-diagram-level',
+    harness: 'systemDiagram',
+    source: SYSTEM_BD_SOURCE,
+    viewport: { width: 1600, height: 640 },
+  },
+  {
     id: 'system-diagram-hierarchy',
     harness: 'systemDiagram',
     source: SYSTEM_BD_SOURCE,
@@ -370,6 +588,57 @@ export const shots: Shot[] = [
       await page.getByLabel('Signal column').selectOption('STATUS');
     },
   },
+  // Walkthrough frames for the landing page (docs/index.html); see isolateFrame and inspectFrame.
+  ...FRAMES.map(
+    (frame): Shot => ({
+      id: `anim-isolate-${frame}`,
+      harness: 'systemDiagram',
+      source: SYSTEM_QSYS_SOURCE,
+      viewport: { width: 1440, height: 800 },
+      scale: 'css',
+      setup: isolateFrame(frame),
+    })
+  ),
+  ...FRAMES.map(
+    (frame): Shot => ({
+      id: `anim-hierarchy-${frame}`,
+      harness: 'systemDiagram',
+      source: SYSTEM_BD_SOURCE,
+      viewport: { width: 1440, height: 800 },
+      scale: 'css',
+      setup: hierarchyFrame(frame),
+    })
+  ),
+  ...([1, 2, 3] as const).map(
+    (frame): Shot => ({
+      id: `anim-unconnected-${frame}`,
+      harness: 'systemDiagram',
+      source: SYSTEM_QSYS_SOURCE,
+      viewport: { width: 1440, height: 800 },
+      scale: 'css',
+      setup: unconnectedFrame(frame),
+    })
+  ),
+  ...([1, 2, 3] as const).map(
+    (frame): Shot => ({
+      id: `anim-export-${frame}`,
+      harness: 'systemDiagram',
+      source: SYSTEM_BD_SOURCE,
+      viewport: { width: 1440, height: 800 },
+      scale: 'css',
+      setup: exportFrame(frame),
+    })
+  ),
+  ...FRAMES.map(
+    (frame): Shot => ({
+      id: `anim-inspect-${frame}`,
+      harness: 'dataInspector',
+      source: DATA_INSPECTOR_SPLIT_SOURCE,
+      viewport: { width: 1280, height: 800 },
+      scale: 'css',
+      setup: inspectFrame(frame),
+    })
+  ),
 ];
 
 export function readShotSource(shot: Shot): string {

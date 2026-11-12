@@ -11,12 +11,7 @@ those ranges valid.
 
 ## Hierarchy
 
-```mermaid
-flowchart TD
-    A[Memory map address space] --> B[Address block range]
-    B --> C[Register byte range]
-    C --> D[Bit-field range]
-```
+![Flow diagram: Memory map address space, Address block range, Register byte range, Bit-field range](../images/diagrams/concepts-spatial-editing-1.drawio.svg)
 
 Each level has its own unit. A register offset is measured in bytes; a field
 offset is measured in bits. Do not reuse calculations between levels without
@@ -49,14 +44,7 @@ close gaps; field movement keeps existing gaps. This distinction is deliberate.
 
 ## One-operation pipeline
 
-```mermaid
-flowchart LR
-    A[User gesture] --> B[Validate requested range]
-    B --> C[Calculate complete new layout]
-    C --> D[Check boundaries and overlap]
-    D --> E[Commit one document update]
-    E --> F[Restore selection by stable row ID]
-```
+![Flow diagram: User gesture, Validate requested range, Calculate complete new layout, Check boundaries and overlap, Commit one document update, Restore selection by stable row ID](../images/diagrams/concepts-spatial-editing-2.drawio.svg)
 
 The editor must not save an intermediate overlapping layout. One gesture creates
 one complete document update so undo and document versions remain predictable.

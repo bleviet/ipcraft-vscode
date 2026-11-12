@@ -4,7 +4,7 @@ IPCraft can show a Vivado block design or a Platform Designer system as a
 diagram. The view is read-only and works offline. It needs no vendor tool and
 no license, and it never runs your script.
 
-![System diagram with the outline and details panels open](../images/system-diagram-overview-light.png)
+![System diagram of a Vivado block design, with every panel hidden](../images/system-diagram-level-light.png)
 
 ## Supported files
 
@@ -106,6 +106,8 @@ The outline, details, and bottom panels start hidden so the diagram has the
 full width. Use the three buttons at the top right to show or hide them. Drag
 the edge of a panel to resize it. For the arrow-key resize and the double-click
 that collapses a panel, see [Keyboard Shortcuts](../reference/keyboard-shortcuts.md#system-diagram).
+
+![System diagram with the outline and details panels open](../images/system-diagram-overview-light.png)
 
 ## Clocks and resets
 
@@ -452,6 +454,3 @@ box.
   definitions are not filled in yet.
 - Anything that needs Tcl to be evaluated, such as loops and computed names.
   The view is marked partial in Details, under **What this view knows**.
-
-For the design behind this feature, see [Offline System
-Viewer](../concepts/brainstorm/offline-system-viewer.md).

@@ -15,14 +15,7 @@ You will define:
 A processor reads and writes numbered addresses. The register map gives those
 addresses names and divides each register into fields.
 
-```mermaid
-flowchart LR
-    A[Software reads or writes an address] --> B[Bus interface]
-    B --> C[Address block]
-    C --> D[Register]
-    D --> E[Bit field]
-    E --> F[Hardware signal or stored value]
-```
+![Flow diagram: Software reads or writes an address, Bus interface, Address block, Register, Bit field, Hardware signal or stored value](../images/diagrams/tutorials-memory-mapped-registers-1.drawio.svg)
 
 For example, software may write address `0x00` to enable a device and read
 address `0x04` to check whether it is busy.
@@ -38,15 +31,7 @@ address `0x04` to check whether it is busy.
 
 The editor follows this hierarchy:
 
-```mermaid
-flowchart TD
-    A[Memory map] --> B[Address block]
-    B --> C[Register]
-    C --> D[Bit field]
-    B --> E[Register array]
-    E --> F[Repeated registers]
-    B --> G[Memory region]
-```
+![Flow diagram: Memory map, Address block, Register, Bit field, Register array, Repeated registers, Memory region](../images/diagrams/tutorials-memory-mapped-registers-2.drawio.svg)
 
 ## Add an address block
 
@@ -143,14 +128,7 @@ The memory map describes addresses and fields. The IP core describes ports,
 parameters, clocks, resets, and bus interfaces. Link them so the generator can
 connect the register map to a bus.
 
-```mermaid
-flowchart LR
-    A[.ip.yml: ports and interfaces] --> C[Generator]
-    B[.mm.yml: registers and fields] --> C
-    C --> D[Bus wrapper]
-    C --> E[Register logic]
-    C --> F[Testbench helpers]
-```
+![Flow diagram: .ip.yml: ports and interfaces, Generator, .mm.yml: registers and fields, Bus wrapper, Register logic, Testbench helpers](../images/diagrams/tutorials-memory-mapped-registers-3.drawio.svg)
 
 You can create both linked files at once with
 **IPCraft: New IP Core + Register Map**, or add the memory-map reference to an
@@ -170,7 +148,7 @@ For a non-zero block base, add the register offset to that base.
 ## Generate and test
 
 1. Save both YAML files.
-2. Run **IPCraft: Scaffold Project**.
+2. Run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**.
 3. Review the staged file list.
 4. Accept the generated files.
 5. Compile the generated HDL.
@@ -188,13 +166,7 @@ The rest of this page introduces structures to use after a simple map works.
 Use an array when the same register layout repeats, for example one control and
 status pair per channel.
 
-```mermaid
-flowchart LR
-    A[Channel template] --> B[Channel 0]
-    A --> C[Channel 1]
-    A --> D[Channel 2]
-    A --> E[Channel 3]
-```
+![Flow diagram: Channel template, Channel 0, Channel 1, Channel 2, Channel 3](../images/diagrams/tutorials-memory-mapped-registers-4.drawio.svg)
 
 A group array repeats several registers together. A flat array repeats one
 register. Choose a stride large enough for every item and any required address

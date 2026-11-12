@@ -21,14 +21,7 @@ If you need a sample core, first follow
 
 ## Workflow
 
-```mermaid
-flowchart LR
-    A[Export built-in pack] --> B[Add template]
-    B --> C[Add output rule]
-    C --> D[Preview]
-    D --> E[Generate]
-    E --> F[Compile and inspect]
-```
+![Flow diagram: Export built-in pack, Add template, Add output rule, Preview, Generate, Compile and inspect](../images/diagrams/tutorials-build-and-verify-a-scaffold-pack-1.drawio.svg)
 
 ## 1. Export a starting pack
 
@@ -117,7 +110,7 @@ The two previews answer different questions:
 
 1. Open the IP core in the visual editor.
 2. Select `ipcraft-with-docs` from **Scaffold Template**.
-3. Run **IPCraft: Scaffold Project**.
+3. Run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**.
 4. Review the staged file list.
 5. Accept the output.
 

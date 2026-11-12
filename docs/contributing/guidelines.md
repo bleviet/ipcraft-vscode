@@ -37,16 +37,9 @@ npm install
 
 ## Local Validation Checklist
 
-Run before opening a PR:
-
-```bash
-npm run lint
-npm run type-check
-npm run test:unit
-npm run compile
-```
-
-If your change affects extension-host behavior, also run `npm run test`.
+Run lint, type check, unit tests, and a compile before opening a pull request,
+plus the suites that cover your change. [Testing](../testing.md) lists the
+commands and which suite to choose.
 
 ## Commit Messages
 
@@ -88,21 +81,9 @@ Examples:
 
 ## Testing Expectations
 
-Use the [testing guide](../testing.md) to choose the smallest suite that covers
-your change.
-
-Add or update tests for:
-
-- Bug fixes (regression test preferred)
-- Algorithm behavior changes
-- Hook/service behavior changes
-
-Test directories:
-
-- `src/test/suite/algorithms/`
-- `src/test/suite/services/`
-- `src/test/suite/hooks/`
-- `src/test/suite/components/`
+Add or update tests for bug fixes (a regression test), algorithm changes, and
+hook or service behavior changes. See [Testing](../testing.md) for where each
+kind of test lives.
 
 ## Pull Requests
 

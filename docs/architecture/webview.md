@@ -15,15 +15,7 @@ designs (`#system-diagram-root`). It is described in
 
 ## Shared boundary
 
-```mermaid
-flowchart LR
-    A[VS Code document] <-->|versioned messages| B[React app]
-    B --> C[Normalized domain model]
-    C --> D[Editor components]
-    D --> E[User gesture]
-    E --> F[Serialized YAML update]
-    F --> B
-```
+![Flow diagram: VS Code document, React app, Normalized domain model, Editor components, User gesture, Serialized YAML update](../images/diagrams/architecture-webview-1.drawio.svg)
 
 Both applications use `src/domain/parse.ts` to convert document data into the
 editor model and `src/domain/serialize.ts` to remove editor-only values before
@@ -43,16 +35,7 @@ The table editors for blocks, registers, and fields share
 `useTableEditorState`. It combines keyboard navigation, draft protection, and
 the pointer insert bar.
 
-```mermaid
-flowchart TD
-    A[Memory Map app] --> B[Outline]
-    A --> C[Details panel]
-    C --> D[Block editor]
-    C --> E[Register editor]
-    C --> F[Field table]
-    C --> G[Register array editor]
-    E --> H[Bit-field visualizer]
-```
+![Flow diagram: Memory Map app, Outline, Details panel, Block editor, Register editor, Field table, Register array editor, Bit-field visualizer](../images/diagrams/architecture-webview-2.drawio.svg)
 
 Layout calculations belong in pure functions under
 `src/webview/algorithms/`. Components request an operation and render the
@@ -260,7 +243,7 @@ When a valid edit is committed:
 4. the extension host applies or rejects the update;
 5. the webview accepts the resulting document version.
 
-See [YAML data flow](../concepts/yaml-data-flow.md) for the message rules and
+See [Data flow](overview.md#data-flow) for the message rules and
 [bit field handling](bit-field-handling.md) for structural field edits.
 
 ## Shared components

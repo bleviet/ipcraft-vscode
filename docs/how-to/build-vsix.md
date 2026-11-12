@@ -220,8 +220,9 @@ the post-publication installation smoke test.
 
 ## Releasing the standalone CLI
 
-The VSIX and npm CLI are separate artifacts. Installing the extension does not
-add `ipcraft` to the user's shell `PATH`.
+The VSIX and the npm CLI are separate artifacts. The VSIX bundles `ipcraft` and
+puts it on `PATH` in VS Code terminals (see [Command line](../reference/command-line.md));
+the npm package is for machines without VS Code.
 
 Build and test the npm archive locally without publishing it:
 

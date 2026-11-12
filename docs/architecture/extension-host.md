@@ -6,15 +6,7 @@ perform these privileged tasks directly.
 
 ## Responsibilities
 
-```mermaid
-flowchart TD
-    A[src/extension.ts] --> B[Custom editor providers]
-    A --> C[Commands]
-    B --> D[Document and validation services]
-    C --> E[Generator and importers]
-    C --> F[Vivado and Quartus toolchains]
-    B <-->|typed messages| G[React webviews]
-```
+![Flow diagram: src/extension.ts, Custom editor providers, Commands, Document and validation services, Generator and importers, Vivado and Quartus toolchains, React webviews](../images/diagrams/architecture-extension-host-1.drawio.svg)
 
 `src/extension.ts` is the entry point. During activation it registers providers,
 commands, views, and services with the extension context.
@@ -58,17 +50,7 @@ The providers share these central services:
 Each document update has a version. Each webview edit states which document
 version it was based on.
 
-```mermaid
-sequenceDiagram
-    participant File as VS Code document
-    participant Host as Extension host
-    participant View as Webview
-    Host->>View: Document text and version 12
-    View->>Host: Edit 7 based on version 12
-    Host->>File: Apply edit in write queue
-    File-->>Host: Document version 13
-    Host->>View: Updated text and version 13
-```
+![Sequence diagram between VS Code document, Extension host, Webview: Document text and version 12; Edit 7 based on version 12; Apply edit in write queue; Document version 13; Updated text and version 13](../images/diagrams/architecture-extension-host-2.drawio.svg)
 
 If the file changed after the webview's starting version, the host rejects the
 stale edit and sends the current document back. This prevents two updates from
@@ -81,7 +63,7 @@ it neither advances nor filters document versions. The full-text comparison is
 a deliberate per-result cost and should be considered if this mechanism is
 extended to larger or more frequent payloads.
 
-See [YAML data flow](../concepts/yaml-data-flow.md) for the paired webview logic.
+See [Data flow](overview.md#data-flow) for the paired webview logic.
 
 ## Commands
 
@@ -154,15 +136,7 @@ Policy that a second caller needs is extracted instead of grown in place:
 Toolchains under `src/services/toolchains/` provide one interface for local and
 Docker-based tools.
 
-```mermaid
-flowchart LR
-    A[Build or open command] --> B[Toolchain registry]
-    B --> C{Selected vendor}
-    C -->|AMD| D[Vivado toolchain]
-    C -->|Intel| E[Quartus toolchain]
-    D --> F[Local process or Docker]
-    E --> F
-```
+![Flow diagram: Build or open command, Toolchain registry, Selected vendor, Vivado toolchain, Quartus toolchain, Local process or Docker](../images/diagrams/architecture-extension-host-3.drawio.svg)
 
 Commands ask the registry for a toolchain instead of reading installation
 settings themselves. `BuildRunner` streams output, and `ReportParser` extracts

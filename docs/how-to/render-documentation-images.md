@@ -55,5 +55,5 @@ Use the editors for one-off images, including **Current view** crops, and the
 command for images that must stay current in a documentation build. See
 [Viewing a system design](view-a-system-design.md#export-an-image).
 
-See [the generator reference](../reference/generator.md#rendering-a-system-design-or-an-ip-core-as-an-image)
+See [the generator reference](../reference/command-line.md#render-a-diagram-as-an-image)
 for every option.

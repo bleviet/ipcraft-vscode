@@ -5,81 +5,91 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description"
-    content="IPCraft is a visual FPGA IP core workspace for designing, generating, inspecting, and building hardware from VS Code." />
+    content="IPCraft is a visual FPGA IP workspace for VS Code: view Vivado and Platform Designer systems as diagrams, design IP cores and register maps, and generate HDL projects." />
   <meta name="theme-color" content="#050811" />
-  <title>IPCraft | Visual FPGA IP design in VS Code</title>
+  <title>IPCraft | See the whole system. Craft every core.</title>
   <link rel="icon" type="image/svg+xml" href="images/ipcraft-logo.svg" />
+  <script>
+    (function () {
+      var stored = null;
+      try { stored = localStorage.getItem('ipcraft-theme'); } catch (e) { /* storage blocked */ }
+      document.documentElement.dataset.theme = stored === 'light' ? 'light' : 'dark';
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
-    href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap"
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Manrope:wght@400;500;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap"
     rel="stylesheet" />
   <style>
     :root {
       color-scheme: dark;
       --bg: #050811;
       --bg-card: #0c1123;
+      --bg-code: #070b18;
       --surface: rgba(255, 255, 255, 0.05);
       --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.16);
       --text: #d4deee;
+      --text-strong: #ffffff;
+      --text-soft: #a9b8cd;
       --muted: #7a8fa8;
       --accent: #00f2fe;
       --nav-bg: rgba(5, 8, 17, 0.84);
       --shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
+      --shadow-deep: 0 40px 120px rgba(0, 0, 0, 0.6);
       --brand: #ff512f;
       --brand-2: #dd2476;
       --grad: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
       --node-cyan: #4facfe;
       --node-pink: #f5576c;
       --node-purple: #da22ff;
-      --chart-1: #4facfe;
       --chart-2: #ff7354;
       --chart-3: #c76bff;
-      --chart-4: #f5576c;
       --chart-5: #74c7f0;
       --chart-6: #f4a44a;
       --chart-7: #56d4b0;
-      --chart-8: #9f7bea;
-      --chart-bg: var(--bg-card);
-      --chart-grid: rgba(255, 255, 255, 0.06);
-      --chart-axis: rgba(255, 255, 255, 0.12);
-      --chart-label: var(--muted);
-      --chart-tooltip-bg: rgba(12, 17, 35, 0.95);
       --button-text: #ffffff;
-      --code-key: #74c7f0;
-      --code-value: #56d4b0;
+      --grid-dot: rgba(255, 255, 255, 0.1);
+      --hero-glow-1: rgba(221, 36, 118, 0.2);
+      --hero-glow-2: rgba(0, 242, 254, 0.1);
+      --shot-glow: 0.34;
+      --wire-alpha: 0.5;
       --r: 20px;
       --max: 1140px;
-      --nav-height: 76px;
+      --wide: 1240px;
+      --nav-height: 72px;
     }
 
     [data-theme='light'] {
       color-scheme: light;
       --bg: #e8ecf5;
       --bg-card: #f1f4fb;
+      --bg-code: #0c1123;
       --surface: rgba(0, 0, 0, 0.07);
       --line: rgba(0, 0, 0, 0.14);
+      --line-strong: rgba(0, 0, 0, 0.24);
       --text: #0d1120;
+      --text-strong: #0d1120;
+      --text-soft: #3d5370;
       --muted: #3d5370;
       --accent: #006ea3;
       --nav-bg: rgba(232, 236, 245, 0.93);
       --shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+      --shadow-deep: 0 40px 100px rgba(13, 17, 32, 0.22);
       --node-cyan: #005e9e;
       --node-pink: #b51c3c;
       --node-purple: #8a0ea8;
-      --chart-1: #005e9e;
       --chart-2: #d63e1a;
       --chart-3: #8a0ea8;
-      --chart-4: #b51c3c;
       --chart-5: #0079b3;
       --chart-6: #b06000;
       --chart-7: #1a7a62;
-      --chart-8: #5c2e9a;
-      --chart-grid: rgba(0, 0, 0, 0.05);
-      --chart-axis: rgba(0, 0, 0, 0.12);
-      --chart-tooltip-bg: rgba(241, 244, 251, 0.97);
-      --code-key: #005e9e;
-      --code-value: #1a7a62;
+      --grid-dot: rgba(13, 17, 32, 0.13);
+      --hero-glow-1: rgba(221, 36, 118, 0.13);
+      --hero-glow-2: rgba(0, 110, 163, 0.1);
+      --shot-glow: 0.2;
+      --wire-alpha: 0.42;
     }
 
     *,
@@ -90,1144 +100,1593 @@
 
     html {
       scroll-behavior: smooth;
-      scroll-padding-top: calc(var(--nav-height) + 24px);
+      scroll-padding-top: calc(var(--nav-height) + 16px);
     }
 
     body {
       margin: 0;
-      min-width: 320px;
-      overflow-x: hidden;
-      background:
-        radial-gradient(circle at 8% 12%,
-          color-mix(in srgb, var(--node-purple) 12%, transparent),
-          transparent 32rem),
-        radial-gradient(circle at 92% 22%,
-          color-mix(in srgb, var(--node-cyan) 10%, transparent),
-          transparent 30rem),
-        var(--bg);
+      background: var(--bg);
       color: var(--text);
       font-family: 'Manrope', system-ui, sans-serif;
+      font-size: 1.0625rem;
       line-height: 1.6;
-      transition:
-        background-color 180ms ease,
-        color 180ms ease;
-    }
-
-    body::before {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      background-image:
-        linear-gradient(var(--line) 1px, transparent 1px),
-        linear-gradient(90deg, var(--line) 1px, transparent 1px);
-      background-size: 72px 72px;
-      mask-image: linear-gradient(to bottom, black, transparent 72%);
-      opacity: 0.28;
-      content: '';
-      pointer-events: none;
-    }
-
-    h1,
-    h2,
-    h3,
-    p {
-      margin-top: 0;
-    }
-
-    h1,
-    h2,
-    h3,
-    .display {
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      letter-spacing: -0.035em;
-      line-height: 1.06;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    button,
-    a {
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    button:focus-visible,
-    a:focus-visible {
-      outline: 3px solid var(--accent);
-      outline-offset: 4px;
+      overflow-x: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
 
     img {
       display: block;
       max-width: 100%;
+      height: auto;
     }
 
-    .container {
-      width: min(var(--max), calc(100% - 2.5rem));
-      margin-inline: auto;
-    }
-
-    .skip-link {
-      position: fixed;
-      top: 12px;
-      left: 12px;
-      z-index: 200;
-      padding: 0.7rem 1rem;
-      border-radius: 10px;
-      background: var(--accent);
-      color: var(--bg);
-      font-weight: 700;
-      transform: translateY(-150%);
-    }
-
-    .skip-link:focus {
-      transform: translateY(0);
-    }
-
-    .section-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.65rem;
-      margin-bottom: 1.1rem;
+    a {
       color: var(--accent);
+      text-decoration: none;
+    }
+
+    a:hover {
+      color: var(--text-strong);
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 6px;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
       font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
+      color: var(--text-strong);
     }
 
-    .section-label::before {
-      width: 28px;
-      height: 1px;
-      background: currentColor;
-      content: '';
+    p {
+      margin: 0;
     }
 
-    .grad-text {
-      background: var(--grad);
-      background-clip: text;
-      color: transparent;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+    .mono {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
     }
 
-    .site-nav {
-      position: fixed;
-      top: 0;
-      right: 0;
-      left: 0;
+    .wrap {
+      width: min(var(--wide), calc(100% - 2.5rem));
+      margin: 0 auto;
+    }
+
+    .skip {
+      position: absolute;
+      left: -999px;
+      top: 8px;
       z-index: 100;
-      border-bottom: 1px solid var(--line);
-      background: var(--nav-bg);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
+      padding: 10px 16px;
+      background: var(--bg-card);
+      border-radius: 10px;
     }
 
-    .nav-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      min-height: var(--nav-height);
-      gap: 2rem;
+    .skip:focus {
+      left: 12px;
     }
 
-    .brand-lockup {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.7rem;
-      color: var(--text);
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: -0.03em;
-    }
-
-    .brand-lockup img {
-      width: 38px;
-      height: 38px;
-    }
-
-    .brand-lockup small {
-      padding-left: 0.7rem;
-      border-left: 1px solid var(--line);
-      color: var(--muted);
-      font-family: 'Manrope', system-ui, sans-serif;
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .nav-actions,
-    .nav-links,
-    .hero-actions,
-    .proof-row {
-      display: flex;
-      align-items: center;
-    }
-
-    .nav-actions {
-      gap: 1rem;
-    }
-
-    .nav-links {
-      gap: 1.6rem;
-    }
-
-    .nav-links a {
-      color: var(--muted);
-      font-size: 0.86rem;
-      font-weight: 700;
-      transition: color 160ms ease;
-    }
-
-    .nav-links a:hover {
-      color: var(--text);
-    }
-
-    .theme-toggle {
-      display: grid;
-      width: 40px;
-      height: 40px;
-      padding: 0;
-      border: 1px solid var(--line);
-      border-radius: 50%;
-      background: var(--surface);
-      color: var(--text);
-      cursor: pointer;
-      place-items: center;
-      transition:
-        border-color 160ms ease,
-        transform 160ms ease;
-    }
-
-    .theme-toggle:hover {
-      border-color: var(--accent);
-      transform: rotate(8deg);
-    }
-
-    .theme-toggle svg {
-      width: 18px;
-      height: 18px;
-    }
-
+    /* ---------- Buttons ---------- */
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       min-height: 48px;
-      padding: 0.78rem 1.25rem;
-      border: 1px solid transparent;
-      border-radius: 14px;
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-size: 0.92rem;
+      padding: 0 1.7rem;
+      border-radius: 999px;
       font-weight: 700;
-      transition:
-        border-color 160ms ease,
-        box-shadow 160ms ease,
-        transform 160ms ease;
+      font-size: 1.0625rem;
+      color: var(--button-text);
+      background: var(--grad);
+      background-size: 160% 160%;
+      box-shadow: 0 14px 40px rgba(221, 36, 118, 0.35);
+      transition: transform 0.25s ease, box-shadow 0.25s ease, background-position 0.5s ease;
     }
 
     .btn:hover {
-      transform: translateY(-2px);
-    }
-
-    .btn-primary {
-      background: var(--grad);
-      box-shadow: 0 12px 30px color-mix(in srgb, var(--brand) 26%, transparent);
       color: var(--button-text);
+      transform: translateY(-2px);
+      background-position: 100% 100%;
+      box-shadow: 0 20px 50px rgba(221, 36, 118, 0.48);
     }
 
-    .btn-secondary {
-      border-color: var(--line);
-      background: var(--surface);
+    .btn-ghost {
       color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      box-shadow: none;
     }
 
-    .btn-secondary:hover {
+    .btn-ghost:hover {
+      color: var(--text-strong);
       border-color: var(--accent);
+      box-shadow: none;
     }
 
-    .hero {
-      position: relative;
-      display: grid;
-      min-height: 100svh;
-      padding: calc(var(--nav-height) + 6rem) 0 7rem;
+    .btn-small {
+      min-height: 44px;
+      padding: 0 1.25rem;
+      font-size: 0.94rem;
+    }
+
+    /* ---------- Nav ---------- */
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--nav-bg);
+      -webkit-backdrop-filter: blur(16px);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav-inner {
+      min-height: var(--nav-height);
+      display: flex;
       align-items: center;
+      gap: 1.75rem;
     }
 
-    .hero-grid {
-      display: grid;
-      grid-template-columns: minmax(0, 0.88fr) minmax(480px, 1.12fr);
-      gap: clamp(3rem, 7vw, 6.5rem);
+    .logo {
+      display: flex;
       align-items: center;
-    }
-
-    .hero-copy {
-      position: relative;
-      z-index: 2;
-    }
-
-    .hero h1 {
-      max-width: 12ch;
-      margin-bottom: 1.5rem;
-      /* .container caps out at 1140px (viewport ~1180px+), but this clamp's old
-         6.7rem ceiling wasn't reached until ~1576px viewport -- so between 1180
-         and 1576px the font kept growing against a column that had already
-         stopped, wrapping to an extra line on larger screens. Capping at the
-         size this clamp already produces at 1440px (a verified-good wrap)
-         holds it flat from there instead of continuing to grow. */
-      font-size: clamp(3.4rem, 6.8vw, 6.12rem);
+      gap: 0.7rem;
+      min-height: 44px;
+      color: var(--text-strong);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
       font-weight: 700;
-      letter-spacing: -0.055em;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
     }
 
-    .hero-copy>p {
-      max-width: 590px;
-      margin-bottom: 2rem;
-      color: var(--muted);
-      font-size: clamp(1.05rem, 1.5vw, 1.22rem);
+    .nav-links {
+      flex: 1;
+      display: flex;
+      gap: 0.25rem;
+      font-size: 0.94rem;
+      font-weight: 500;
     }
 
-    .hero-actions {
-      flex-wrap: wrap;
-      gap: 0.8rem;
-      margin-bottom: 2rem;
-    }
-
-    .proof-row {
-      flex-wrap: wrap;
-      gap: 0.75rem 1.3rem;
-      color: var(--muted);
-      font-size: 0.77rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
-    .proof-row span {
-      display: inline-flex;
+    .nav-links a {
+      display: flex;
       align-items: center;
       gap: 0.5rem;
+      min-height: 44px;
+      padding: 0 0.75rem;
+      color: var(--text);
+      border-radius: 10px;
     }
 
-    .proof-row span::before {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
+    .nav-links a:hover {
+      color: var(--text-strong);
+      background: var(--surface);
+    }
+
+    .pill-new {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--bg);
       background: var(--accent);
-      box-shadow: 0 0 12px var(--accent);
-      content: '';
+      border-radius: 999px;
+      padding: 2px 7px;
     }
 
-    .hero-stage {
-      position: relative;
-      min-width: 0;
-      perspective: 1400px;
-    }
-
-    .window {
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: var(--r);
-      background: var(--bg-card);
-      box-shadow: var(--shadow);
-    }
-
-    .hero-window {
-      transform: rotateY(-5deg) rotateX(2deg);
-      animation: stage-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both 200ms;
-    }
-
-    .window-bar {
+    .nav-actions {
       display: flex;
       align-items: center;
-      min-height: 42px;
-      padding: 0 14px;
-      border-bottom: 1px solid var(--line);
-      background: var(--surface);
-      gap: 6px;
-    }
-
-    .window-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      opacity: 0.9;
-    }
-
-    .window-dot:nth-child(1) {
-      background: #ff5f57;
-    }
-
-    .window-dot:nth-child(2) {
-      background: #febc2e;
-    }
-
-    .window-dot:nth-child(3) {
-      background: #28c840;
-    }
-
-    .window-title {
+      gap: 0.6rem;
       margin-left: auto;
-      color: var(--muted);
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.04em;
     }
 
-    .window img {
-      width: 100%;
-      aspect-ratio: 14 / 9;
-      object-fit: cover;
-      object-position: center;
-    }
-
-    .yaml-card {
-      position: absolute;
-      right: -2.8rem;
-      bottom: -3rem;
-      z-index: 3;
-      width: min(330px, 70%);
-      padding: 1.2rem;
-      border: 1px solid var(--line);
-      border-radius: 16px;
-      background: color-mix(in srgb, var(--bg-card) 92%, transparent);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
-      font:
-        500 0.78rem/1.7 ui-monospace,
-        SFMono-Regular,
-        Menlo,
-        monospace;
-      animation: stage-in 900ms cubic-bezier(0.16, 1, 0.3, 1) both 420ms;
-    }
-
-    .yaml-card::before {
-      display: block;
-      margin-bottom: 0.7rem;
-      color: var(--muted);
-      font-family: 'Manrope', system-ui, sans-serif;
-      font-size: 0.62rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      content: 'core.ip.yml';
-    }
-
-    .code-key {
-      color: var(--code-key);
-    }
-
-    .code-value {
-      color: var(--code-value);
-    }
-
-    .signal-line {
-      position: absolute;
-      top: -4rem;
-      right: -8rem;
-      z-index: -1;
-      width: 320px;
-      height: 320px;
-      border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-      border-radius: 50%;
-      animation: pulse 4s ease-in-out infinite;
-    }
-
-    .signal-line::before,
-    .signal-line::after {
-      position: absolute;
-      border: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
-      border-radius: inherit;
-      content: '';
-    }
-
-    .signal-line::before {
-      inset: 48px;
-    }
-
-    .signal-line::after {
-      inset: 96px;
-    }
-
-    .section {
-      padding: clamp(3rem, 6vw, 5rem) 0;
-    }
-
-    .section-head {
+    .theme-toggle {
+      width: 44px;
+      height: 44px;
       display: grid;
-      grid-template-columns: 0.8fr 1.2fr;
-      gap: 4rem;
-      margin-bottom: 3.5rem;
-      align-items: end;
-    }
-
-    .section-head h2 {
-      margin-bottom: 0;
-      /* Same root cause as .hero h1 above: the old 4.8rem ceiling wasn't reached
-         until ~1536px viewport, well past where .container itself stops growing
-         (~1180px), so the Capabilities headline kept wrapping to an extra line
-         on larger screens. Capped at the 1440px value to hold flat beyond it. */
-      font-size: clamp(2.6rem, 5vw, 4.5rem);
-      text-wrap: balance;
-    }
-
-    /* This headline is the longest of the three section-head phrases, so the shared
-       clamp's mid-range preferred size (5vw) wraps it to an extra, orphaned line at
-       common desktop widths (~1350-1536px) where the 1140px container caps column
-       width but font size hasn't hit its ceiling yet. Capping it lower keeps the
-       phrase at the same 4-line shape it already takes at narrower/self-limiting
-       widths. */
-    #studio .section-head h2 {
-      font-size: clamp(2.6rem, 5vw, 4rem);
-    }
-
-    .section-head p {
-      max-width: 610px;
-      margin-bottom: 0;
-      padding-top: 1.1rem;
-      border-top: 2px solid var(--accent);
-      color: var(--muted);
-      font-size: 1.05rem;
-    }
-
-    .workflow {
-      border-block: 1px solid var(--line);
-      background: color-mix(in srgb, var(--bg-card) 40%, transparent);
-    }
-
-    .workflow-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      border: 1px solid var(--line);
-      border-radius: var(--r);
-      background: var(--bg-card);
-      box-shadow: var(--shadow);
-    }
-
-    .workflow-step {
-      position: relative;
-      min-height: 300px;
-      padding: 2.75rem 2rem 2.5rem;
-    }
-
-    .workflow-step+.workflow-step {
-      border-left: 1px solid var(--line);
-    }
-
-    .step-icon {
-      position: relative;
-      display: grid;
-      width: 46px;
-      height: 46px;
-      margin-bottom: 1.75rem;
-      border: 1px solid var(--line);
-      border-radius: 13px;
+      place-items: center;
+      color: var(--text);
       background: var(--surface);
-      color: var(--accent);
-      place-items: center;
-    }
-
-    .step-icon svg {
-      width: 22px;
-      height: 22px;
-    }
-
-    .step-icon-index {
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      display: grid;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--grad);
-      color: var(--button-text);
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-size: 0.68rem;
-      font-weight: 700;
-      place-items: center;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
-    }
-
-    .workflow-step h3 {
-      margin-bottom: 0.8rem;
-      font-size: 1.55rem;
-    }
-
-    .workflow-step p {
-      margin-bottom: 0;
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    .step-connector {
-      position: absolute;
-      top: 67px;
-      right: -16px;
-      z-index: 2;
-      display: grid;
-      width: 32px;
-      height: 32px;
       border: 1px solid var(--line);
       border-radius: 50%;
-      background: var(--bg-card);
-      color: var(--accent);
-      place-items: center;
+      cursor: pointer;
+      transition: transform 0.4s ease, border-color 0.2s ease;
     }
 
-    .studio-shell {
-      overflow: hidden;
-      border: 1px solid var(--line);
-      border-radius: calc(var(--r) + 6px);
-      background: var(--bg-card);
-      box-shadow: var(--shadow);
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      transform: rotate(40deg);
     }
 
-    .studio-view {
-      display: grid;
-      grid-template-columns: 1.5fr 0.5fr;
-      min-height: 420px;
-    }
-
-    .studio-view+.studio-view {
-      border-top: 1px solid var(--line);
-    }
-
-    .studio-media {
-      position: relative;
-      overflow: hidden;
-      border-right: 1px solid var(--line);
-      background: var(--bg);
-    }
-
-    .studio-media img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      transition: opacity 180ms ease;
-    }
-
-    .studio-copy {
-      display: flex;
-      padding: 2rem;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .studio-copy h3 {
-      margin-bottom: 1rem;
-      font-size: 1.75rem;
-    }
-
-    .studio-copy p {
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    .studio-copy a {
-      color: var(--accent);
-      font-size: 0.86rem;
-      font-weight: 700;
-    }
-
-    /* Scroll-driven cross-fade: sticky media on the left, IntersectionObserver-driven
-       text steps on the right swap which frame is visible. See the .studio-fallback
-       block below for the plain stacked layout used under 981px, where there isn't
-       room for a pinned two-column treatment. */
-    .studio-fallback {
+    .theme-toggle .sun,
+    [data-theme='light'] .theme-toggle .moon {
       display: none;
     }
 
-    .studio-scrolly {
-      display: grid;
-      grid-template-columns: 1.3fr 1fr;
-      gap: 3rem;
-      align-items: start;
+    [data-theme='light'] .theme-toggle .sun {
+      display: block;
     }
 
-    /* Sticky element centered vertically in the viewport. `top: 50vh` +
-       `transform: translateY(-50%)` looks equivalent but the transform applies
-       unconditionally -- including while the element is still in normal flow,
-       before it has actually reached its stuck position -- so it visually
-       creeps upward too early and overlaps whatever is still on screen above
-       it (the section heading). Making the sticky box itself span the full
-       viewport height and centering its content with flexbox avoids that: the
-       box only holds once its natural top would otherwise scroll past the
-       real viewport top, exactly like an un-centered sticky element. */
-    .studio-sticky {
-      position: sticky;
-      top: 0;
-      display: flex;
-      height: 100vh;
-      align-items: center;
-    }
-
-    .studio-window {
-      width: 100%;
-    }
-
-    .studio-media-stack {
+    /* ---------- Hero ---------- */
+    .hero {
       position: relative;
-      aspect-ratio: 14 / 9;
+      background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+      background-size: 28px 28px;
     }
 
-    .studio-frame {
+    .hero::before {
+      content: '';
       position: absolute;
       inset: 0;
-      opacity: 0;
-      transition: opacity 500ms ease;
-    }
-
-    .studio-frame.is-active {
-      opacity: 1;
-    }
-
-    .studio-frame img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-    }
-
-    .studio-copy-track {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .studio-copy-step {
-      display: flex;
-      min-height: 60vh;
-      padding: 2rem 0;
-      flex-direction: column;
-      justify-content: center;
-      gap: 0.6rem;
-      opacity: 0.4;
-      transition: opacity 400ms ease;
-    }
-
-    /* .studio-sticky needs a full 100vh of remaining room in its containing
-       block to stay fully pinned+centered (see its own comment above). At the
-       old 40vh, the first/last steps didn't leave enough lead-in/trailing
-       scroll distance, so the sticky panel was still easing into position (or
-       had already started releasing) by the time each step's own text was
-       naturally centered on screen -- most visible on the last step, where the
-       panel ended up scrolled well above its paired text. Matching each edge
-       step's height to the sticky's own 100vh gives it exactly enough room. */
-    .studio-copy-step:first-child {
-      min-height: 100vh;
-    }
-
-    .studio-copy-step:last-child {
-      min-height: 100vh;
-    }
-
-    .studio-copy-step.is-active {
-      opacity: 1;
-    }
-
-    .studio-copy-step h3 {
-      font-size: 1.75rem;
-    }
-
-    .studio-copy-step p {
-      color: var(--muted);
-      font-size: 0.92rem;
-    }
-
-    .studio-copy-step a {
-      color: var(--accent);
-      font-size: 0.86rem;
-      font-weight: 700;
-    }
-
-    .bento-grid {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 1rem;
-    }
-
-    .feature-card {
-      position: relative;
-      grid-column: span 4;
-      min-height: 260px;
-      overflow: hidden;
-      padding: 2rem;
-      border: 1px solid var(--line);
-      border-radius: var(--r);
-      background: var(--bg-card);
-      transition:
-        border-color 180ms ease,
-        transform 180ms ease;
-    }
-
-    .feature-card:hover {
-      border-color: color-mix(in srgb, var(--accent) 46%, var(--line));
-      transform: translateY(-4px);
-    }
-
-    .feature-card.wide {
-      grid-column: span 8;
-    }
-
-    .feature-card.half {
-      grid-column: span 6;
-    }
-
-    .feature-card::after {
-      position: absolute;
-      right: -30%;
-      bottom: -50%;
-      width: 280px;
-      height: 280px;
-      border-radius: 50%;
-      background: var(--node-cyan);
-      filter: blur(90px);
-      opacity: 0.08;
-      content: '';
+      background:
+        radial-gradient(ellipse 70% 55% at 78% 8%, var(--hero-glow-1), transparent 70%),
+        radial-gradient(ellipse 50% 40% at 8% 30%, var(--hero-glow-2), transparent 70%),
+        linear-gradient(180deg, transparent 55%, var(--bg) 100%);
       pointer-events: none;
     }
 
-    .feature-icon {
-      display: grid;
-      width: 46px;
-      height: 46px;
-      margin-bottom: 3rem;
-      border: 1px solid var(--line);
-      border-radius: 13px;
-      background: var(--surface);
-      color: var(--accent);
-      place-items: center;
+    .wires {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: var(--wire-alpha);
     }
 
-    .feature-icon svg {
-      width: 22px;
-      height: 22px;
+    .wires path {
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linejoin: round;
     }
 
-    .feature-card h3 {
-      margin-bottom: 0.7rem;
-      font-size: 1.4rem;
+    .wires .trace {
+      opacity: 0.35;
+      stroke-dasharray: 2400;
+      stroke-dashoffset: 2400;
+      animation: draw 2.6s 0.3s ease-out forwards;
     }
 
-    .feature-card p {
-      max-width: 48ch;
-      margin-bottom: 0;
-      color: var(--muted);
-      font-size: 0.9rem;
+    .wires .pulse {
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-dasharray: 46 2400;
+      stroke-dashoffset: 46;
+      animation: signal 7s linear infinite;
     }
 
-    .vendor-strip {
+    .wires .w1 { stroke: var(--node-cyan); }
+    .wires .w2 { stroke: var(--chart-7); }
+    .wires .w3 { stroke: var(--chart-6); }
+    .wires .w4 { stroke: var(--chart-3); }
+    .wires .pulse.w2 { animation-delay: -2.2s; animation-duration: 9s; }
+    .wires .pulse.w3 { animation-delay: -4.1s; animation-duration: 8s; }
+    .wires .pulse.w4 { animation-delay: -1.2s; animation-duration: 10s; }
+
+    .hero-inner {
+      position: relative;
+      padding-top: clamp(3.5rem, 8vw, 7rem);
+    }
+
+    .eyebrow {
       display: flex;
-      margin-top: 1.5rem;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+      font-size: 0.82rem;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+    }
+
+    .pin {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pin-pulse 2.2s ease-out infinite;
+    }
+
+    h1 {
+      max-width: 1040px;
+      font-size: clamp(2.75rem, 7.4vw, 6.5rem);
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+    }
+
+    .grad-text {
+      background: var(--grad);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: grad-shift 8s ease-in-out infinite alternate;
+    }
+
+    .hero-row {
+      display: flex;
       flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 2rem 4rem;
+      margin-top: 2.25rem;
+    }
+
+    .lede {
+      flex: 1 1 460px;
+      max-width: 620px;
+      font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
+      color: var(--text-soft);
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.875rem;
+    }
+
+    .hero-shot {
+      position: relative;
+      margin-top: clamp(3rem, 6vw, 5.25rem);
+    }
+
+    .hero-shot::before {
+      content: '';
+      position: absolute;
+      inset: 10% 8% -6%;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2) 55%, var(--node-cyan));
+      filter: blur(80px);
+      opacity: var(--shot-glow);
+      animation: breathe 7s ease-in-out infinite alternate;
+    }
+
+    .window {
+      position: relative;
+      margin: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--bg-card);
+      box-shadow: var(--shadow-deep);
+    }
+
+    .window figcaption {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 1rem;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--line);
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .window figcaption b {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .window figcaption .state {
+      margin-left: auto;
+      color: var(--chart-7);
+    }
+
+    .badge-float {
+      position: absolute;
+      top: -36px;
+      right: 4%;
+      z-index: 2;
+      display: flex;
+      align-items: center;
       gap: 0.6rem;
+      padding: 0.55rem 1rem;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1px solid var(--accent);
+      font-size: 0.78rem;
+      color: var(--accent);
+      box-shadow: var(--shadow);
+      animation: float 5s ease-in-out infinite alternate;
+    }
+
+    .badge-float i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .marquee {
+      margin-top: 2.5rem;
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-weight: 500;
+      font-size: 0.94rem;
+    }
+
+    .marquee-label {
+      flex: none;
+      font-size: 0.76rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .marquee-track {
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+      mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    }
+
+    .marquee-track ul {
+      display: flex;
+      gap: 2.75rem;
+      width: max-content;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      white-space: nowrap;
+      animation: marquee 32s linear infinite;
+    }
+
+    .marquee-track:hover ul {
+      animation-play-state: paused;
+    }
+
+    /* ---------- Sections ---------- */
+    section.block {
+      padding-top: clamp(5.5rem, 11vw, 10rem);
+    }
+
+    .marker {
+      display: flex;
+      align-items: center;
+      margin-bottom: 1.6rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--c);
+    }
+
+    .marker::before {
+      content: '';
+      width: 56px;
+      height: 2px;
+      background: var(--c);
+      transform-origin: left;
+    }
+
+    .marker span::before {
+      content: '';
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 14px;
+      background: var(--c);
+    }
+
+    h2 {
+      max-width: 880px;
+      font-size: clamp(2.1rem, 4.6vw, 4rem);
+      line-height: 1.05;
+      letter-spacing: -0.035em;
+    }
+
+    .split {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 1.75rem 4.5rem;
+    }
+
+    .split h2 {
+      flex: 1 1 520px;
+    }
+
+    .split-side {
+      flex: 1 1 380px;
+      max-width: 480px;
+      color: var(--text-soft);
+    }
+
+    .keys {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+      margin-top: 1.1rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    kbd {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.8rem;
+      color: var(--text-strong);
+      padding: 4px 9px;
+      border-radius: 7px;
+      border: 1px solid var(--line-strong);
+      border-bottom-width: 3px;
+      background: var(--bg-card);
+    }
+
+    /* ---------- Cards ---------- */
+    .card {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: var(--r);
+      background: var(--bg-card);
+      overflow: hidden;
+      transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--line-strong);
+      box-shadow: var(--shadow);
+    }
+
+    .card h3 {
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+
+    .card.big h3 {
+      font-size: 1.625rem;
+      letter-spacing: -0.03em;
+    }
+
+    .card p {
+      margin-top: 0.5rem;
+      color: var(--text-soft);
+      font-size: 0.97rem;
+    }
+
+    .card .pad {
+      padding: 1.75rem;
+    }
+
+    .card.big .pad {
+      padding: 2rem;
+    }
+
+    .card svg.icon {
+      margin-bottom: 0.875rem;
+    }
+
+    .card img {
+      width: 100%;
+    }
+
+    .files {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 3.5rem;
+    }
+
+    .files > div {
+      flex: 1 1 280px;
+      padding: 1.5rem 1.75rem;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      margin: 0 -1px -1px 0;
+    }
+
+    .files .ext {
+      font-size: 1.375rem;
+    }
+
+    .files b {
+      display: block;
+      margin-top: 0.375rem;
+      color: var(--text-strong);
+    }
+
+    .files small {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .bento {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.25rem;
+      margin-top: 1.25rem;
+    }
+
+    .bento > .big {
+      flex: 999 1 560px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .bento > .stack {
+      flex: 1 1 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .stack > .card {
+      flex: 1 1 auto;
+    }
+
+    .head-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0.875rem 2.5rem;
+    }
+
+    .head-row > div:first-child {
+      flex: 1 1 320px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.875rem;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.78rem;
+    }
+
+    .head-row .chips {
+      margin-top: 0;
     }
 
     .chip {
-      padding: 0.42rem 0.7rem;
-      border: 1px solid var(--line);
+      padding: 5px 11px;
       border-radius: 999px;
-      background: var(--surface);
-      color: var(--text);
-      font-size: 0.72rem;
-      font-weight: 700;
+      color: var(--c);
+      border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
     }
 
-    .feature-link {
-      display: inline-block;
-      margin-top: 1rem;
-      color: var(--accent);
-      font-size: 0.86rem;
-      font-weight: 700;
+    .chip.dashed {
+      border-style: dashed;
     }
 
-    .cta-panel {
-      position: relative;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      overflow: hidden;
-      padding: clamp(2rem, 6vw, 4.5rem);
-      border: 1px solid var(--line);
-      border-radius: calc(var(--r) + 8px);
-      background: var(--bg-card);
-      box-shadow: var(--shadow);
-      gap: 2rem;
-      align-items: center;
+    .chips .link {
+      width: 16px;
+      height: 1px;
+      background: var(--c);
     }
 
-    .cta-panel::before {
-      position: absolute;
-      top: 0;
-      right: 0;
-      left: 0;
-      height: 3px;
-      background: var(--grad);
-      content: '';
-    }
-
-    .cta-panel h2 {
-      max-width: 14ch;
-      margin-bottom: 0.8rem;
-      font-size: clamp(2.5rem, 5vw, 4.4rem);
-    }
-
-    .cta-panel p {
-      max-width: 640px;
-      margin-bottom: 0;
-      color: var(--muted);
-    }
-
-    .site-footer {
-      padding: 2.5rem 0;
+    .shot-top {
       border-top: 1px solid var(--line);
     }
 
-    .footer-inner {
+    .shot-bottom {
+      border-bottom: 1px solid var(--line);
+    }
+
+    /* ---------- Overview hub ---------- */
+    .hub {
+      margin-top: 3.5rem;
+    }
+
+    .hub-routes {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
-      justify-content: space-between;
-      gap: 2rem;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
     }
 
-    .footer-inner p {
-      margin: 0;
+    .hub-routes-label {
+      margin-right: 0.5rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.76rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
       color: var(--muted);
-      font-size: 0.78rem;
     }
 
-    .footer-links {
-      display: flex;
-      gap: 1.2rem;
-    }
-
-    .footer-links a {
-      color: var(--muted);
-      font-size: 0.78rem;
+    .hub-route {
+      min-height: 44px;
+      padding: 0 1.1rem;
+      font: inherit;
+      font-size: 0.92rem;
       font-weight: 700;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
     }
 
-    .footer-links a:hover {
+    .hub-route:hover {
+      border-color: var(--accent);
+    }
+
+    .hub-route.is-active {
+      color: #ffffff;
+      background: var(--grad);
+      border-color: transparent;
+    }
+
+    .hub-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) clamp(40px, 7vw, 110px) minmax(0, 1.1fr) clamp(40px, 7vw, 110px) minmax(0, 1fr);
+      align-items: stretch;
+    }
+
+    .hub-col {
+      display: grid;
+      grid-auto-rows: 1fr;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .hub-col li {
+      display: flex;
+      padding: 6px 0;
+    }
+
+    .hub-node {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0.8rem 1rem;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--bg-card);
+      transition: border-color 0.4s ease, opacity 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease;
+    }
+
+    .hub-node b {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.02rem;
+      letter-spacing: -0.01em;
+      color: var(--text-strong);
+    }
+
+    .hub-node span {
+      font-size: 0.86rem;
+      line-height: 1.4;
+      color: var(--text-soft);
+    }
+
+    .hub code,
+    .layers code,
+    .headless code {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.9em;
+    }
+
+    .hub.has-route .hub-node {
+      opacity: 0.6;
+    }
+
+    .hub.has-route .hub-node.is-on {
+      opacity: 1;
+      border-color: var(--brand-2);
+      box-shadow: 0 10px 34px rgba(221, 36, 118, 0.22);
+    }
+
+    .hub-wires {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .hub-wire,
+    .hub-pulse {
+      fill: none;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .hub-wire {
+      stroke: var(--line-strong);
+      stroke-width: 1.5;
+      transition: stroke 0.4s ease;
+    }
+
+    .hub-wire.is-on {
+      stroke: var(--brand-2);
+    }
+
+    .hub-pulse {
+      stroke: var(--brand);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-dasharray: 10 100;
+      stroke-dashoffset: 10;
+      opacity: 0;
+    }
+
+    .hub-pulse.is-on {
+      opacity: 1;
+      animation: hub-flow 1.6s linear infinite;
+    }
+
+    .hub-core {
+      align-self: center;
+      padding: 1px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2) 50%, var(--node-cyan));
+      box-shadow: 0 24px 80px rgba(221, 36, 118, 0.25);
+    }
+
+    .hub-core-inner {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      padding: 1.5rem;
+      border-radius: 21px;
+      background: var(--bg-card);
+    }
+
+    .hub-core-inner > b {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+      color: var(--text-strong);
+    }
+
+    .hub-file {
+      display: flex;
+      flex-direction: column;
+      padding: 0.7rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+
+    .hub-file span {
+      font-size: 1.05rem;
       color: var(--accent);
     }
 
-    .reveal {
-      animation: reveal-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    .hub-file small,
+    .hub-core-note {
+      font-size: 0.84rem;
+      line-height: 1.45;
+      color: var(--text-soft);
     }
 
-    @keyframes stage-in {
-      from {
-        opacity: 0;
-        transform: translateY(28px) rotateY(-5deg) rotateX(2deg);
-      }
+    .hub-caption {
+      min-height: 3.2em;
+      max-width: 720px;
+      margin: 1.5rem auto 0;
+      text-align: center;
+      color: var(--text-soft);
+    }
 
-      to {
-        opacity: 1;
-        transform: translateY(0) rotateY(-5deg) rotateX(2deg);
+    .layers {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem 1.75rem;
+      margin: 4rem 0 0;
+      padding: 2.5rem 0 0;
+      list-style: none;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .layers .tag {
+      display: block;
+      margin-top: 0.9rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .layers h3 {
+      margin: 0.2rem 0 0.4rem;
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+    }
+
+    .layers p {
+      font-size: 0.95rem;
+      color: var(--text-soft);
+    }
+
+    .ring circle {
+      stroke: var(--line-strong);
+      stroke-width: 1.5;
+    }
+
+    .ring circle.in {
+      stroke: var(--muted);
+    }
+
+    .ring circle.on {
+      stroke: var(--brand-2);
+      stroke-width: 2.5;
+    }
+
+    .headless {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 3.5rem;
+    }
+
+    .headless > .pad {
+      flex: 1 1 340px;
+    }
+
+    .headless > .terminal {
+      flex: 1.4 1 460px;
+      min-width: 0;
+      padding: 1.75rem 2rem;
+      background: var(--bg-code);
+      font-size: 0.85rem;
+    }
+
+    /* ---------- Walkthrough tours ---------- */
+    .tour-tabs {
+      display: flex;
+      gap: 0.25rem;
+      padding: 0.5rem 1rem 0;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--line);
+      scrollbar-width: none;
+    }
+
+    .tour-tab {
+      flex: none;
+      min-height: 52px;
+      padding: 0 1.1rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.98rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--muted);
+      background: none;
+      border: 0;
+      box-shadow: inset 0 -2px 0 transparent;
+      cursor: pointer;
+      transition: color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .tour-tab:hover {
+      color: var(--text-strong);
+    }
+
+    .tour-tab.is-active {
+      color: var(--text-strong);
+      box-shadow: inset 0 -2px 0 var(--brand-2);
+    }
+
+    .tour-panels {
+      display: grid;
+      padding: 2rem;
+    }
+
+    .editor-tour {
+      margin-top: 3.5rem;
+    }
+
+    .editor-tour .tour-panels {
+      padding: 0;
+    }
+
+    .walk {
+      grid-area: 1 / 1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 2rem 3rem;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.45s ease, visibility 0s linear 0.45s;
+    }
+
+    .walk.is-current {
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.45s ease;
+    }
+
+    .walk-side {
+      flex: 1 1 300px;
+      max-width: 400px;
+    }
+
+    .walk-side .tag {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .walk-side .editor-title {
+      margin: 0.6rem 0 0.75rem;
+      font-size: clamp(1.625rem, 2.6vw, 2.125rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .walk-side > p {
+      color: var(--text-soft);
+    }
+
+    .walk-steps {
+      list-style: none;
+      margin: 1.25rem 0 0;
+      padding: 0;
+    }
+
+    .walk-step {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      padding: 0.55rem 0 0.55rem 1.1rem;
+      text-align: left;
+      font: inherit;
+      color: var(--muted);
+      background: none;
+      border: 0;
+      border-left: 2px solid var(--line);
+      cursor: pointer;
+      transition: color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .walk-step b {
+      display: block;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.02rem;
+      letter-spacing: -0.01em;
+    }
+
+    .walk-step span {
+      display: block;
+      font-size: 0.9rem;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.45s ease, opacity 0.45s ease;
+    }
+
+    .walk-step code {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.92em;
+    }
+
+    .walk-step:hover,
+    .walk-step.is-active {
+      color: var(--text-strong);
+    }
+
+    .walk-step.is-active {
+      border-left-color: var(--brand-2);
+    }
+
+    .walk-step.is-active span {
+      max-height: 7rem;
+      opacity: 1;
+      color: var(--text-soft);
+    }
+
+    .walk-stage {
+      flex: 999 1 560px;
+      min-width: 0;
+    }
+
+    .walk-frames {
+      position: relative;
+      aspect-ratio: var(--ratio);
+    }
+
+    .walk-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.55s ease, visibility 0s linear 0.55s;
+    }
+
+    .walk-frame.is-active {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.55s ease;
+    }
+
+    .slide {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1rem;
+      padding: 5%;
+      background-color: var(--bg-card);
+      background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+
+    .slide img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow);
+    }
+
+    .slide-file {
+      align-self: flex-start;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      color: var(--accent);
+      background: var(--bg-card);
+      border: 1px solid var(--line-strong);
+    }
+
+    .slide.terminal {
+      gap: 0;
+      background-color: var(--bg-code);
+      background-image: none;
+      font-size: clamp(0.72rem, 1.25vw, 0.95rem);
+    }
+
+    .terminal {
+      color: #d4deee;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      line-height: 1.9;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .terminal .c { color: #7a8fa8; }
+    .terminal .p { color: #f5576c; }
+    .terminal .k { color: #ffffff; }
+    .terminal .f { color: #74c7f0; }
+    .terminal .o { color: #56d4b0; }
+
+    .terminal .caret {
+      display: inline-block;
+      width: 8px;
+      height: 1em;
+      vertical-align: -2px;
+      background: #00f2fe;
+      animation: blink 1.1s steps(1) infinite;
+    }
+
+    .tour-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--line);
+    }
+
+    .editor-tour .tour-controls {
+      margin-top: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--bg-card);
+    }
+
+    .tour-btn {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-width: 44px;
+      min-height: 44px;
+      font: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .tour-btn:hover {
+      color: var(--text-strong);
+      border-color: var(--accent);
+    }
+
+    .tour-play {
+      min-width: 6.5rem;
+      padding: 0 1rem;
+    }
+
+    .tour.is-paused .icon-pause,
+    .tour:not(.is-paused) .icon-play {
+      display: none;
+    }
+
+    .tour-segments {
+      flex: 1;
+      display: flex;
+      gap: 6px;
+      margin: 0 0.75rem;
+    }
+
+    .tour-seg {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--line-strong);
+      overflow: hidden;
+    }
+
+    .tour-seg i {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: var(--grad);
+    }
+
+    .tour-seg.is-done i,
+    .tour-seg.is-active i {
+      width: 100%;
+    }
+
+    .tour.is-running .tour-seg.is-active i {
+      animation: seg-fill var(--walk-ms, 3600ms) linear both;
+    }
+
+    .tour-count {
+      flex: none;
+      min-width: 3rem;
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .note h3 + p {
+      max-width: 760px;
+    }
+
+    .more {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      margin-top: 0.75rem;
+      font-weight: 700;
+    }
+
+    .more span {
+      margin-left: 0.4rem;
+      transition: transform 0.25s ease;
+    }
+
+    .more:hover span {
+      transform: translateX(5px);
+    }
+
+    /* ---------- Editors ---------- */
+    .editor-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 2rem 4rem;
+      margin-top: 6rem;
+    }
+
+    .editor-row:first-of-type {
+      margin-top: 4.5rem;
+    }
+
+    .editor-row.flip {
+      flex-wrap: wrap-reverse;
+    }
+
+    .editor-copy {
+      flex: 1 1 320px;
+      max-width: 420px;
+    }
+
+    .editor-copy .tag {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .editor-copy h3 {
+      margin: 0.6rem 0 0.75rem;
+      font-size: clamp(1.625rem, 2.6vw, 2.125rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .editor-copy p {
+      color: var(--text-soft);
+    }
+
+    .editor-shot {
+      flex: 999 1 520px;
+      min-width: 0;
+      border-radius: 16px;
+      border: 1px solid var(--line-strong);
+      overflow: hidden;
+      box-shadow: var(--shadow-deep);
+      transition: transform 0.5s ease;
+    }
+
+    .editor-shot:hover {
+      transform: scale(1.012);
+    }
+
+    /* ---------- Capabilities ---------- */
+    .sheet {
+      margin-top: 3.5rem;
+      border-top: 1px solid var(--line-strong);
+    }
+
+    .sheet-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 3rem;
+      padding: 1.75rem 0;
+      border-bottom: 1px solid var(--line);
+      transition: padding-left 0.3s ease, background-color 0.3s ease;
+    }
+
+    .sheet-row:hover {
+      padding-left: 0.875rem;
+      background: var(--surface);
+    }
+
+    .sheet-row .addr {
+      flex: 0 0 56px;
+      padding-top: 0.4rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .sheet-row h3 {
+      flex: 1 1 280px;
+      font-size: 1.5rem;
+      letter-spacing: -0.02em;
+    }
+
+    .sheet-row p {
+      flex: 2 1 420px;
+      color: var(--text-soft);
+    }
+
+    .sheet-row code {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.92em;
+      color: var(--text);
+    }
+
+    /* ---------- CTA + footer ---------- */
+    .cta {
+      position: relative;
+      padding: 1px;
+      border-radius: 28px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2) 45%, var(--node-cyan));
+      background-size: 220% 220%;
+      animation: grad-shift 9s ease-in-out infinite alternate;
+    }
+
+    .cta-inner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 2.25rem 4rem;
+      padding: clamp(3rem, 7vw, 6rem) clamp(1.5rem, 6vw, 5.5rem);
+      border-radius: 27px;
+      background-color: var(--bg-card);
+      background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
+
+    .cta-inner > div:first-child {
+      flex: 1 1 460px;
+    }
+
+    .cta h2 {
+      font-size: clamp(2.1rem, 5vw, 4.5rem);
+      line-height: 1.03;
+      letter-spacing: -0.04em;
+    }
+
+    .cta p {
+      max-width: 540px;
+      margin-top: 1rem;
+      color: var(--text-soft);
+    }
+
+    footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 1rem 2.5rem;
+      padding: 4rem 0 3rem;
+      font-size: 0.94rem;
+      color: var(--muted);
+    }
+
+    footer > div:first-child {
+      flex: 1 1 320px;
+    }
+
+    footer strong {
+      display: block;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.125rem;
+      color: var(--text-strong);
+    }
+
+    footer nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 0.5rem;
+    }
+
+    footer nav a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 0.75rem;
+      color: var(--text);
+    }
+
+    footer nav a:hover {
+      color: var(--accent);
+    }
+
+    /* ---------- Motion ---------- */
+    .rise {
+      animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      animation-delay: calc(var(--i, 0) * 90ms);
+    }
+
+    .js .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+      transition-delay: calc(var(--i, 0) * 90ms);
+    }
+
+    .js .reveal.in {
+      opacity: 1;
+      transform: none;
+    }
+
+    .js .marker::before {
+      transform: scaleX(0);
+      transition: transform 1s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s;
+    }
+
+    .js .marker.in::before {
+      transform: scaleX(1);
+    }
+
+    @supports (animation-timeline: view()) {
+      .hero-shot .window {
+        transform-origin: 50% 100%;
+        animation: flatten linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 45%;
       }
     }
 
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 0.35;
-        transform: scale(0.96);
-      }
-
-      50% {
-        opacity: 0.8;
-        transform: scale(1.03);
-      }
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: none; }
     }
 
-    @keyframes reveal-in {
-      from {
-        opacity: 0;
-        transform: translateY(22px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    @keyframes flatten {
+      from { transform: perspective(1800px) rotateX(9deg) scale(0.95); }
+      to { transform: perspective(1800px) rotateX(0deg) scale(1); }
     }
 
-    @media (max-width: 980px) {
-      .hero {
-        padding-top: calc(var(--nav-height) + 4rem);
-      }
-
-      .hero-grid,
-      .section-head {
-        grid-template-columns: 1fr;
-      }
-
-      .hero-grid {
-        gap: 5rem;
-      }
-
-      .hero h1 {
-        max-width: 11ch;
-      }
-
-      .hero-stage {
-        width: min(760px, 96%);
-      }
-
-      .section-head {
-        gap: 1.3rem;
-      }
-
-      .studio-view {
-        grid-template-columns: 1fr;
-      }
-
-      .studio-media {
-        min-height: 400px;
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-      }
-
-      .studio-scrolly {
-        display: none;
-      }
-
-      .studio-fallback {
-        display: block;
-      }
-
-      .feature-card,
-      .feature-card.wide {
-        grid-column: span 6;
-      }
+    @keyframes pin-pulse {
+      0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); }
+      100% { box-shadow: 0 0 0 14px transparent; }
     }
 
-    @media (max-width: 760px) {
-      :root {
-        --nav-height: 68px;
-      }
+    @keyframes draw {
+      to { stroke-dashoffset: 0; }
+    }
 
+    @keyframes signal {
+      from { stroke-dashoffset: 46; }
+      to { stroke-dashoffset: -2400; }
+    }
+
+    @keyframes grad-shift {
+      from { background-position: 0% 50%; }
+      to { background-position: 100% 50%; }
+    }
+
+    @keyframes breathe {
+      from { transform: scale(0.96); }
+      to { transform: scale(1.04); }
+    }
+
+    @keyframes float {
+      from { transform: translateY(0); }
+      to { transform: translateY(-8px); }
+    }
+
+    @keyframes marquee {
+      to { transform: translateX(-50%); }
+    }
+
+    @keyframes hub-flow {
+      from { stroke-dashoffset: 10; }
+      to { stroke-dashoffset: -100; }
+    }
+
+    @keyframes seg-fill {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    @media (max-width: 900px) {
       .nav-links {
         display: none;
       }
 
-      .brand-lockup small {
+      .hub-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0;
+      }
+
+      .hub-wires {
         display: none;
       }
 
-      .hero {
-        min-height: auto;
-        padding-bottom: 5rem;
+      .hub-core {
+        margin: 2.5rem 0;
       }
 
-      .hero h1 {
-        font-size: clamp(3rem, 15vw, 4.6rem);
-      }
-
-      .hero-window {
-        transform: none;
-      }
-
-      .yaml-card {
-        right: -0.5rem;
-        bottom: -3.6rem;
-      }
-
-      .workflow-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .workflow-step {
-        min-height: auto;
-      }
-
-      .workflow-step+.workflow-step {
-        border-top: 1px solid var(--line);
-        border-left: 0;
-      }
-
-      .step-icon {
-        margin-bottom: 2rem;
-      }
-
-      .step-connector {
-        display: none;
-      }
-
-      .studio-view {
-        min-height: 0;
-      }
-
-      .studio-media {
-        min-height: 300px;
-      }
-
-      .feature-card,
-      .feature-card.wide {
-        grid-column: 1 / -1;
-      }
-
-      .cta-panel {
-        grid-template-columns: 1fr;
-      }
-
-      .footer-inner {
-        align-items: flex-start;
+      .marquee {
         flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+      }
+
+      .marquee-track {
+        width: 100%;
+      }
+
+      .badge-float {
+        right: 3%;
+        font-size: 0.72rem;
       }
     }
 
-    @media (max-width: 480px) {
-      .container {
-        width: min(var(--max), calc(100% - 1.5rem));
-      }
-
-      .nav-actions>.btn {
+    @media (max-width: 520px) {
+      .nav-actions .btn-ghost {
         display: none;
       }
 
-      .hero-actions {
-        align-items: stretch;
-        flex-direction: column;
+      .tour-panels {
+        padding: 1.5rem 1.25rem;
       }
 
-      .hero-actions .btn {
-        width: 100%;
+      .editor-tour .tour-controls {
+        border-radius: 20px;
       }
 
-      .hero-stage {
-        width: 100%;
-      }
-
-      .yaml-card {
-        position: relative;
-        right: auto;
-        bottom: auto;
-        width: calc(100% - 1rem);
-        margin: -1.4rem auto 0;
-      }
-
-      .window-title {
-        display: none;
-      }
-
-      .section {
-        padding: 3rem 0;
-      }
-
-      .studio-copy,
-      .feature-card {
-        padding: 1.5rem;
-      }
-
-      .footer-links {
+      .tour-controls {
         flex-wrap: wrap;
+      }
+
+      .tour-segments {
+        order: -1;
+        flex-basis: 100%;
+        margin: 0 0 0.5rem;
+      }
+
+      .tour-count {
+        margin-left: auto;
       }
     }
 
@@ -1239,461 +1698,630 @@
       *,
       *::before,
       *::after {
-        animation-duration: 1ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 1ms !important;
+        animation: none !important;
+        transition: none !important;
+      }
+
+      .wires .trace {
+        stroke-dashoffset: 0;
+      }
+
+      .wires .pulse {
+        display: none;
+      }
+
+      .js .reveal {
+        opacity: 1;
+        transform: none;
+      }
+
+      .js .marker::before {
+        transform: none;
       }
     }
   </style>
 </head>
 
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
+  <a class="skip" href="#main">Skip to content</a>
 
-  <nav class="site-nav" aria-label="Primary navigation">
-    <div class="container nav-inner">
-      <a class="brand-lockup" href="#top" aria-label="IPCraft home">
-        <img src="images/ipcraft-logo.svg" alt="" width="38" height="38" />
-        <span>IPCraft</span>
-        <small>for VS Code</small>
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="logo" href="#top" aria-label="IPCraft home">
+        <img src="images/ipcraft-logo.svg" alt="" width="34" height="34" />
+        IPCraft
       </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#overview">Overview</a>
+        <a href="#editors">Editors</a>
+        <a href="#system-viewer">System Viewer <span class="pill-new">NEW</span></a>
+        <a href="#data-inspector">Data Inspector</a>
+        <a href="#capabilities">Capabilities</a>
+        <a href="introduction/what-is-ipcraft/">Docs</a>
+      </nav>
       <div class="nav-actions">
-        <div class="nav-links">
-          <a href="#workflow">Workflow</a>
-          <a href="#studio">Editors</a>
-          <a href="#capabilities">Capabilities</a>
-          <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/README.md">Docs</a>
-        </div>
-        <a class="btn btn-secondary"
-          href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Get IPCraft</a>
-        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme"
-          aria-pressed="false">
-          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path
-              d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41">
-            </path>
+        <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" aria-pressed="false">
+          <svg class="moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20 14.5A8 8 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5Z" />
+          </svg>
+          <svg class="sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
           </svg>
         </button>
+        <a class="btn btn-ghost btn-small" href="https://github.com/bleviet/ipcraft-vscode">GitHub</a>
+        <a class="btn btn-small" href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Get IPCraft</a>
       </div>
     </div>
-  </nav>
+  </header>
 
   <main id="main">
     <section class="hero" id="top">
-      <div class="container hero-grid">
-        <div class="hero-copy">
-          <span class="section-label">FPGA IP workspace</span>
-          <h1>Design FPGA IP cores <span class="grad-text">directly in VS Code.</span></h1>
-          <p>
-            Design IP cores and register maps visually, keep the design in readable YAML,
-            then generate and build RTL without leaving VS Code.
-          </p>
-          <div class="hero-actions">
-            <a class="btn btn-primary"
-              href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Install for VS Code</a>
-            <a class="btn btn-secondary"
-              href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/create-your-first-ip-core.md">Read
-              the quick start</a>
-          </div>
-          <div class="proof-row" aria-label="Supported workflows">
-            <span>VHDL</span>
-            <span>SystemVerilog</span>
-            <span>Vivado</span>
-            <span>Quartus</span>
+      <svg class="wires" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <path class="trace w1" d="M-10 150H260a14 14 0 0 1 14 14V420a14 14 0 0 0 14 14H520" />
+        <path class="pulse w1" d="M-10 150H260a14 14 0 0 1 14 14V420a14 14 0 0 0 14 14H520" />
+        <path class="trace w2" d="M1450 96H1180a14 14 0 0 0-14 14V250a14 14 0 0 1-14 14H930" />
+        <path class="pulse w2" d="M1450 96H1180a14 14 0 0 0-14 14V250a14 14 0 0 1-14 14H930" />
+        <path class="trace w3" d="M-10 640H120a14 14 0 0 0 14-14V540a14 14 0 0 1 14-14H1310a14 14 0 0 1 14 14V760H1450" />
+        <path class="pulse w3" d="M-10 640H120a14 14 0 0 0 14-14V540a14 14 0 0 1 14-14H1310a14 14 0 0 1 14 14V760H1450" />
+        <path class="trace w4" d="M1450 420H1260a14 14 0 0 0-14 14V480" />
+        <path class="pulse w4" d="M1450 420H1260a14 14 0 0 0-14 14V480" />
+      </svg>
+
+      <div class="wrap hero-inner">
+        <p class="eyebrow mono rise"><span class="pin"></span>v1.5.3 &middot; FPGA IP workspace for VS Code</p>
+        <h1 class="rise" style="--i: 1">See the whole system. <span class="grad-text">Craft every core.</span></h1>
+        <div class="hero-row rise" style="--i: 2">
+          <p class="lede">Read Vivado and Platform Designer systems as diagrams, design IP cores and register maps
+            visually, and generate VHDL or SystemVerilog projects from one readable YAML specification. All inside VS
+            Code.</p>
+          <div class="cta-row">
+            <a class="btn" href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Install for VS Code</a>
+            <a class="btn btn-ghost" href="#system-viewer">Explore the System Viewer</a>
           </div>
         </div>
 
-        <div class="hero-stage" aria-label="IPCraft IP Core editor preview">
-          <div class="signal-line" aria-hidden="true"></div>
-          <div class="window hero-window">
-            <div class="window-bar">
-              <span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span>
-              <span class="window-title">IPCraft — IP Core Editor</span>
-            </div>
-            <img class="theme-image" src="images/ipcore-editor-dark.png" data-dark="images/ipcore-editor-dark.png"
-              data-light="images/ipcore-editor-light.png" alt="IP Core visual canvas with ports and bus interfaces" />
-          </div>
-          <div class="yaml-card" aria-label="Example IPCraft IP Core YAML">
-            <span class="code-key">busInterfaces:</span><br />
-            &nbsp;&nbsp;- <span class="code-key">name:</span> <span class="code-value">s_axi</span><br />
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">busType:</span>
-            <span class="code-value">AXI4-Lite</span><br />
-            &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">mode:</span>
-            <span class="code-value">slave</span>
+        <div class="hero-shot rise" style="--i: 4">
+          <div class="badge-float mono"><i></i>New: System Viewer</div>
+          <figure class="window">
+            <figcaption><b>zynq_dma_system.tcl</b><span>System Diagram</span><span class="state">read-only &middot; offline</span></figcaption>
+            <img class="theme-image" src="images/system-diagram-level-dark.png"
+              data-dark="images/system-diagram-level-dark.png" data-light="images/system-diagram-level-light.png"
+              width="3200" height="1280"
+              alt="IPCraft system viewer showing the whole top level of a Vivado block design" />
+          </figure>
+        </div>
+
+        <div class="marquee">
+          <span class="marquee-label">Works with</span>
+          <div class="marquee-track">
+            <ul>
+              <li>VHDL</li><li>SystemVerilog</li><li>Vivado</li><li>Quartus</li><li>Platform Designer</li>
+              <li>AXI4-Lite</li><li>Avalon-MM</li><li>cocotb</li><li>IP-XACT</li><li>Nunjucks</li>
+              <li aria-hidden="true">VHDL</li><li aria-hidden="true">SystemVerilog</li><li aria-hidden="true">Vivado</li>
+              <li aria-hidden="true">Quartus</li><li aria-hidden="true">Platform Designer</li>
+              <li aria-hidden="true">AXI4-Lite</li><li aria-hidden="true">Avalon-MM</li><li aria-hidden="true">cocotb</li>
+              <li aria-hidden="true">IP-XACT</li><li aria-hidden="true">Nunjucks</li>
+            </ul>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="section workflow" id="workflow">
-      <div class="container">
-        <div class="section-head reveal">
-          <div>
-            <span class="section-label">Development workflow</span>
-            <h2>From specification to implementation.</h2>
-          </div>
-          <p>
-            Describe the design once, then use the same information to generate HDL, tests,
-            documentation, and Vivado or Quartus projects.
-          </p>
+    <!-- Overview -->
+    <section class="block wrap" id="overview">
+      <p class="marker reveal" style="--c: var(--chart-2)"><span>Overview</span></p>
+      <div class="split reveal">
+        <h2>One specification at the core. Everything else comes out of it.</h2>
+        <div class="split-side">
+          <p>An IP core and its memory-mapped registers live in two readable YAML files. IPCraft reads existing
+            designs into them and writes the HDL, testbenches, vendor packaging, and projects out of them.</p>
         </div>
-        <div class="workflow-grid reveal">
-          <article class="workflow-step">
-            <span class="step-connector" aria-hidden="true">→</span>
-            <div class="step-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
-              </svg>
-              <span class="step-icon-index">1</span>
+      </div>
+
+      <div class="hub reveal" data-hub>
+        <div class="hub-routes" role="group" aria-label="Example routes through IPCraft">
+          <span class="hub-routes-label">Follow a route</span>
+          <button class="hub-route" type="button" data-route="altera-amd">Altera to AMD</button>
+          <button class="hub-route" type="button" data-route="amd-altera">AMD to Altera</button>
+          <button class="hub-route" type="button" data-route="vhdl">VHDL to everything</button>
+          <button class="hub-route" type="button" data-route="new">New core</button>
+        </div>
+        <div class="hub-grid">
+          <ul class="hub-col" aria-label="Sources">
+            <li><div class="hub-node" data-node="editors"><b>Visual editors</b><span>Start a new core from scratch</span></div></li>
+            <li><div class="hub-node" data-node="vhdl"><b>VHDL entity</b><span>Import ports, generics, and bus interfaces</span></div></li>
+            <li><div class="hub-node" data-node="hwtcl"><b>Altera <code>_hw.tcl</code></b><span>Import a Platform Designer component</span></div></li>
+            <li><div class="hub-node" data-node="xml"><b>AMD <code>component.xml</code></b><span>Import Vivado IP-XACT packaging</span></div></li>
+          </ul>
+          <svg class="hub-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="hub-wire" data-node="editors" d="M0 12.5C50 12.5 50 50 100 50" />
+            <path class="hub-pulse" data-node="editors" d="M0 12.5C50 12.5 50 50 100 50" pathLength="100" />
+            <path class="hub-wire" data-node="vhdl" d="M0 37.5C50 37.5 50 50 100 50" />
+            <path class="hub-pulse" data-node="vhdl" d="M0 37.5C50 37.5 50 50 100 50" pathLength="100" />
+            <path class="hub-wire" data-node="hwtcl" d="M0 62.5C50 62.5 50 50 100 50" />
+            <path class="hub-pulse" data-node="hwtcl" d="M0 62.5C50 62.5 50 50 100 50" pathLength="100" />
+            <path class="hub-wire" data-node="xml" d="M0 87.5C50 87.5 50 50 100 50" />
+            <path class="hub-pulse" data-node="xml" d="M0 87.5C50 87.5 50 50 100 50" pathLength="100" />
+          </svg>
+          <div class="hub-core">
+            <div class="hub-core-inner">
+              <img src="images/ipcraft-logo.svg" alt="" width="40" height="40" />
+              <b>IP core specification</b>
+              <div class="hub-file"><span class="mono">.ip.yml</span><small>ports, clocks, resets, bus interfaces, parameters</small></div>
+              <div class="hub-file"><span class="mono">.mm.yml</span><small>address blocks, registers, bit fields</small></div>
+              <small class="hub-core-note">Readable YAML. Comments and number formats survive visual edits.</small>
             </div>
-            <h3>Describe</h3>
-            <p>
-              Define ports, interfaces, address blocks, registers, and fields in visual editors.
-              Every change remains visible in reviewable YAML.
-            </p>
-          </article>
-          <article class="workflow-step">
-            <span class="step-connector" aria-hidden="true">→</span>
-            <div class="step-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
-                <rect x="10" y="10" width="4" height="4"></rect>
-                <path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"></path>
-              </svg>
-              <span class="step-icon-index">2</span>
-            </div>
-            <h3>Generate</h3>
-            <p>
-              Generate VHDL or SystemVerilog, bus wrappers, register files, Cocotb tests,
-              documentation, and vendor project files.
-            </p>
-          </article>
-          <article class="workflow-step">
-            <div class="step-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <path d="M12 22s7-3.5 7-10V5l-7-3-7 3v7c0 6.5 7 10 7 10Z"></path>
-                <path d="m9 12 2 2 4-4"></path>
-              </svg>
-              <span class="step-icon-index">3</span>
-            </div>
-            <h3>Verify and build</h3>
-            <p>
-              Check generated HDL, inspect captured data, run simulations, and build with Vivado
-              or Quartus from VS Code.
-            </p>
-          </article>
+          </div>
+          <svg class="hub-wires" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <path class="hub-wire" data-node="rtl" d="M0 50C50 50 50 10.0 100 10.0" />
+            <path class="hub-pulse" data-node="rtl" d="M0 50C50 50 50 10.0 100 10.0" pathLength="100" />
+            <path class="hub-wire" data-node="tb" d="M0 50C50 50 50 30.0 100 30.0" />
+            <path class="hub-pulse" data-node="tb" d="M0 50C50 50 50 30.0 100 30.0" pathLength="100" />
+            <path class="hub-wire" data-node="doc" d="M0 50C50 50 50 50.0 100 50.0" />
+            <path class="hub-pulse" data-node="doc" d="M0 50C50 50 50 50.0 100 50.0" pathLength="100" />
+            <path class="hub-wire" data-node="altera" d="M0 50C50 50 50 70.0 100 70.0" />
+            <path class="hub-pulse" data-node="altera" d="M0 50C50 50 50 70.0 100 70.0" pathLength="100" />
+            <path class="hub-wire" data-node="amd" d="M0 50C50 50 50 90.0 100 90.0" />
+            <path class="hub-pulse" data-node="amd" d="M0 50C50 50 50 90.0 100 90.0" pathLength="100" />
+          </svg>
+          <ul class="hub-col" aria-label="Generated output">
+            <li><div class="hub-node" data-node="rtl"><b>RTL</b><span>VHDL or SystemVerilog: top, core, bus wrapper, register file</span></div></li>
+            <li><div class="hub-node" data-node="tb"><b>Testbench</b><span>cocotb tests and a register model</span></div></li>
+            <li><div class="hub-node" data-node="doc"><b>Datasheet</b><span>Markdown documentation of the core</span></div></li>
+            <li><div class="hub-node" data-node="altera"><b>Altera</b><span><code>_hw.tcl</code> component and a Quartus project</span></div></li>
+            <li><div class="hub-node" data-node="amd"><b>AMD</b><span><code>component.xml</code> packaging and a Vivado project</span></div></li>
+          </ul>
+        </div>
+        <p class="hub-caption" data-hub-caption aria-live="polite"></p>
+      </div>
+
+      <p class="reveal" style="margin-top: 1.5rem"><a class="more" href="introduction/what-is-ipcraft/">Read the overview in the documentation <span aria-hidden="true">&rarr;</span></a></p>
+
+      <ol class="layers">
+        <li class="reveal" style="--i: 0">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="on" /><circle cx="24" cy="24" r="7.5" class="" /><circle cx="24" cy="24" r="12" class="" /><circle cx="24" cy="24" r="16.5" class="" /><circle cx="24" cy="24" r="21" class="" /></svg>
+          <span class="tag mono">01</span>
+          <h3>The core</h3>
+          <p>An IP core with memory-mapped registers, described in <code>.ip.yml</code> and <code>.mm.yml</code> and edited visually.</p>
+          <a class="more" href="#editors">See the editors <span aria-hidden="true">&rarr;</span></a>
+        </li>
+        <li class="reveal" style="--i: 1">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="on" /><circle cx="24" cy="24" r="12" class="" /><circle cx="24" cy="24" r="16.5" class="" /><circle cx="24" cy="24" r="21" class="" /></svg>
+          <span class="tag mono">02</span>
+          <h3>Formats</h3>
+          <p>VHDL or SystemVerilog, the Altera <code>_hw.tcl</code>, and the AMD <code>component.xml</code> come from the same core, and each can be imported back. Porting between vendors starts from a finished specification, not a blank file.</p>
+        </li>
+        <li class="reveal" style="--i: 2">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="in" /><circle cx="24" cy="24" r="12" class="on" /><circle cx="24" cy="24" r="16.5" class="" /><circle cx="24" cy="24" r="21" class="" /></svg>
+          <span class="tag mono">03</span>
+          <h3>Projects and tests</h3>
+          <p>Quartus and Vivado projects and cocotb testbenches are generated with the core. Open them in the vendor tool, or build them, from the workspace where you edit and code.</p>
+        </li>
+        <li class="reveal" style="--i: 3">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="in" /><circle cx="24" cy="24" r="12" class="in" /><circle cx="24" cy="24" r="16.5" class="on" /><circle cx="24" cy="24" r="21" class="" /></svg>
+          <span class="tag mono">04</span>
+          <h3>The system</h3>
+          <p>See how the cores connect in a Vivado block design or a Platform Designer system.</p>
+          <a class="more" href="#system-viewer">See the System Viewer <span aria-hidden="true">&rarr;</span></a>
+        </li>
+        <li class="reveal" style="--i: 4">
+          <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="in" /><circle cx="24" cy="24" r="12" class="in" /><circle cx="24" cy="24" r="16.5" class="in" /><circle cx="24" cy="24" r="21" class="on" /></svg>
+          <span class="tag mono">05</span>
+          <h3>Debug</h3>
+          <p>Decode data captured from hardware against the register definitions.</p>
+          <a class="more" href="#data-inspector">See the Data Inspector <span aria-hidden="true">&rarr;</span></a>
+        </li>
+      </ol>
+
+      <article class="card big headless reveal">
+        <div class="pad">
+          <h3>The same engine on the command line</h3>
+          <p>The <code>ipcraft</code> command generates, verifies, packages, and renders without VS Code, so a
+            continuous-integration job produces the same files as the editor.</p>
+          <a class="more" href="reference/command-line/">Read the command line reference <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <div class="terminal" role="img"
+          aria-label="Terminal: ipcraft generate core.ip.yml --target quartus,vivado --lang systemverilog; ipcraft verify core.ip.yml generated; ipcraft package core.ip.yml --out core.zip --zip; ipcraft render system.tcl --out system.svg">
+          <div class="c"># RTL, testbench, and both vendor projects</div>
+          <div><span class="p">$</span> <span class="k">ipcraft generate</span> <span class="f">core.ip.yml</span> <span class="o">--target</span> quartus,vivado <span class="o">--lang</span> systemverilog</div>
+          <div class="c"># check that generated files still match the specification</div>
+          <div><span class="p">$</span> <span class="k">ipcraft verify</span> <span class="f">core.ip.yml</span> generated/</div>
+          <div class="c"># one self-contained archive, and a diagram for the docs</div>
+          <div><span class="p">$</span> <span class="k">ipcraft package</span> <span class="f">core.ip.yml</span> <span class="o">--out</span> core.zip <span class="o">--zip</span></div>
+          <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">system.tcl</span> <span class="o">--out</span> system.svg</div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Editors -->
+    <section class="block wrap" id="editors">
+      <p class="marker reveal" style="--c: var(--node-cyan)"><span>Visual editors</span></p>
+      <h2 class="reveal">A dedicated editor for each part of the specification.</h2>
+
+      <div class="editor-row reveal">
+        <div class="editor-copy">
+          <span class="tag mono">01 &middot; .ip.yml</span>
+          <h3>Design an IP core on a visual canvas.</h3>
+          <p>Place clocks, resets, ports, bus interfaces, and parameters. Select an item to edit its properties in the
+            inspector.</p>
+          <a class="more" href="reference/ip-core-editor/">Explore the IP Core editor <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <img class="theme-image editor-shot" loading="lazy" src="images/ipcore-editor-dark.png"
+          data-dark="images/ipcore-editor-dark.png" data-light="images/ipcore-editor-light.png" width="2800" height="1800"
+          alt="IP Core editor with an interface library and a core symbol on the canvas" />
+      </div>
+
+      <div class="editor-row flip reveal">
+        <img class="theme-image editor-shot" loading="lazy" src="images/memorymap-editor-dark.png"
+          data-dark="images/memorymap-editor-dark.png" data-light="images/memorymap-editor-light.png" width="2800"
+          height="1800" alt="Memory Map editor with a register tree, a bit layout, and a bit-field table" />
+        <div class="editor-copy">
+          <span class="tag mono">02 &middot; .mm.yml</span>
+          <h3>Define registers and bit fields visually.</h3>
+          <p>Edit blocks, registers, and bit fields in keyboard-friendly tables with a bit layout that stays
+            synchronized with the YAML.</p>
+          <a class="more" href="tutorials/memory-mapped-registers/">Learn memory-mapped registers <span aria-hidden="true">&rarr;</span></a>
         </div>
       </div>
     </section>
 
-    <section class="section" id="studio">
-      <div class="container">
-        <div class="section-head reveal">
-          <div>
-            <span class="section-label">Visual editors</span>
-            <h2>A dedicated editor for each part of the specification.</h2>
-          </div>
-          <p>
-            IPCraft provides separate editors for the IP core, register layout, and captured data.
-            They all use the same YAML design files.
-          </p>
+    <!-- System Viewer -->
+    <section class="block wrap" id="system-viewer">
+      <p class="marker reveal" style="--c: var(--accent)"><span>New &middot; System Viewer</span></p>
+      <div class="split reveal">
+        <h2>Open a block design without opening Vivado.</h2>
+        <div class="split-side">
+          <p>A read-only diagram of a Vivado block design or a Platform Designer system. Files are read as text and never
+            executed, so it needs no vendor tool and no license, and it works offline.</p>
+          <p class="keys">Press <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>V</kbd> on any supported file</p>
         </div>
+      </div>
 
-        <div class="studio-scrolly reveal">
-          <div class="studio-sticky">
-            <div class="window studio-window">
-              <div class="window-bar">
-                <span class="window-dot"></span><span class="window-dot"></span><span class="window-dot"></span>
-                <span class="window-title" data-studio-title>IPCraft — IP Core Editor</span>
+      <div class="card files reveal">
+        <div>
+          <span class="ext mono" style="color: var(--node-cyan)">.tcl</span>
+          <b>Vivado block design</b>
+          <small>Script written by write_bd_tcl</small>
+        </div>
+        <div>
+          <span class="ext mono" style="color: var(--chart-7)">.qsys</span>
+          <b>Platform Designer system</b>
+          <small>Nested subsystems open as levels</small>
+        </div>
+        <div>
+          <span class="ext mono" style="color: var(--chart-3)">.tcl</span>
+          <b>Platform Designer script</b>
+          <small>System script for qsys-script</small>
+        </div>
+      </div>
+
+      <article class="card big tour reveal" data-tour>
+        <div class="tour-tabs" role="tablist" aria-label="System Viewer walkthroughs">
+          <button class="tour-tab" type="button" role="tab" id="tour-hierarchy-tab" aria-controls="tour-hierarchy">Walk the hierarchy</button>
+          <button class="tour-tab" type="button" role="tab" id="tour-unconnected-tab" aria-controls="tour-unconnected">Find unconnected pins</button>
+          <button class="tour-tab" type="button" role="tab" id="tour-isolate-tab" aria-controls="tour-isolate">Isolate what matters</button>
+          <button class="tour-tab" type="button" role="tab" id="tour-export-tab" aria-controls="tour-export">Export diagrams</button>
+        </div>
+        <div class="tour-panels" style="--ratio: 1440 / 800">
+          <div class="walk" role="tabpanel" id="tour-hierarchy" aria-labelledby="tour-hierarchy-tab" data-walk>
+            <div class="walk-side">
+              <h3>Walk the hierarchy</h3>
+              <p>Enter a block, look inside another without leaving the level, and find your way back.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Start at the top level</b><span>Hierarchy blocks have a dashed outline and show how many cells they hold.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Double-click to enter</b><span>The block opens as its own level, and the breadcrumb shows where you are.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Expand a block in place</b><span>Click + in a block header to see inside it as a frame, without leaving the level.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Go back up</b><span>Click a level in the breadcrumb, or use the mouse back button.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Back at the top</b><span>You are on the top level again, with the zoom and position it had.</span></button></li>
+              </ol>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>zynq_dma_system.tcl</b><span>System Diagram</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-hierarchy-1-dark.png" data-light="images/anim-hierarchy-1-light.png"
+                  width="1440" height="800" alt="Top level of a Vivado block design with the pointer on the dsp_pipeline hierarchy block" />
+                <img class="walk-frame" data-dark="images/anim-hierarchy-2-dark.png" data-light="images/anim-hierarchy-2-light.png"
+                  width="1440" height="800" alt="Inside dsp_pipeline, with the pointer on the expand button of coeff_bank" />
+                <img class="walk-frame" data-dark="images/anim-hierarchy-3-dark.png" data-light="images/anim-hierarchy-3-light.png"
+                  width="1440" height="800" alt="coeff_bank expanded in place as a frame showing its two cells" />
+                <img class="walk-frame" data-dark="images/anim-hierarchy-4-dark.png" data-light="images/anim-hierarchy-4-light.png"
+                  width="1440" height="800" alt="The pointer on the top level name in the breadcrumb" />
+                <img class="walk-frame" data-dark="images/anim-hierarchy-5-dark.png" data-light="images/anim-hierarchy-5-light.png"
+                  width="1440" height="800" alt="The top level of the design again" />
               </div>
-              <div class="studio-media-stack">
-                <div class="studio-frame is-active" data-frame="0" data-title="IPCraft — IP Core Editor">
-                  <img class="theme-image" src="images/ipcore-editor-dark.png" data-dark="images/ipcore-editor-dark.png"
-                    data-light="images/ipcore-editor-light.png" alt="IP Core visual canvas with ports and bus interfaces" />
+            </figure>
+          </div>
+          <div class="walk" role="tabpanel" id="tour-unconnected" aria-labelledby="tour-unconnected-tab" data-walk>
+            <div class="walk-side">
+              <h3>Find unconnected pins</h3>
+              <p>Review every pin that nothing connects to, and go straight to it.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Turn on the review</b><span>The toolbar button shows how many pins nothing connects to, in the whole design.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Read the findings</b><span>The diagram dims everything without findings, and the Unconnected tab lists each open pin as undriven or unused.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Jump to a pin</b><span>Click a row to go to its level, centre the block, and mark the pin on the diagram.</span></button></li>
+              </ol>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>niosv_hps_system.tcl</b><span>System Diagram</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-unconnected-1-dark.png" data-light="images/anim-unconnected-1-light.png"
+                  width="1440" height="800" alt="Platform Designer system with the pointer on the Unconnected pins toolbar button" />
+                <img class="walk-frame" data-dark="images/anim-unconnected-2-dark.png" data-light="images/anim-unconnected-2-light.png"
+                  width="1440" height="800" alt="The review turned on: the diagram is dimmed and the Unconnected tab lists one unused pin" />
+                <img class="walk-frame" data-dark="images/anim-unconnected-3-dark.png" data-light="images/anim-unconnected-3-light.png"
+                  width="1440" height="800" alt="The debug_probe port centred and marked after clicking its row" />
+              </div>
+            </figure>
+          </div>
+          <div class="walk" role="tabpanel" id="tour-isolate" aria-labelledby="tour-isolate-tab" data-walk>
+            <div class="walk-side">
+              <h3>Isolate what matters</h3>
+              <p>From a crowded level to the few blocks you care about, in one right-click.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Start with a busy level</b><span>Every block, port, and wire of the design level is on screen.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Select a block</b><span>Click it. Ctrl+Click (Cmd+Click on macOS) adds more blocks to the selection.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Right-click, Isolate Selection</b><span>The context menu isolates whatever is selected.</span></button></li>
+                <li><button class="walk-step" type="button"><b>See only what touches it</b><span>The block, its wires, and the blocks at the other end remain, laid out compactly.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Grow the view by one hop</b><span>Press + to add the blocks one connection further out, until all connected blocks are shown.</span></button></li>
+              </ol>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>niosv_hps_system.tcl</b><span>System Diagram</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-isolate-1-dark.png" data-light="images/anim-isolate-1-light.png"
+                  width="1440" height="800" alt="System viewer showing a full Platform Designer level with all blocks and wires" />
+                <img class="walk-frame" data-dark="images/anim-isolate-2-dark.png" data-light="images/anim-isolate-2-light.png"
+                  width="1440" height="800" alt="The jtag_uart block selected on the full level" />
+                <img class="walk-frame" data-dark="images/anim-isolate-3-dark.png" data-light="images/anim-isolate-3-light.png"
+                  width="1440" height="800" alt="Context menu on the selected block with Isolate Selection highlighted" />
+                <img class="walk-frame" data-dark="images/anim-isolate-4-dark.png" data-light="images/anim-isolate-4-light.png"
+                  width="1440" height="800" alt="Isolated 1-hop view showing jtag_uart and the two blocks connected to it" />
+                <img class="walk-frame" data-dark="images/anim-isolate-5-dark.png" data-light="images/anim-isolate-5-light.png"
+                  width="1440" height="800" alt="Isolated 2-hop view with the blocks one connection further out added" />
+              </div>
+            </figure>
+          </div>
+          <div class="walk" role="tabpanel" id="tour-export" aria-labelledby="tour-export-tab" data-walk>
+            <div class="walk-side">
+              <h3>Diagrams for your documentation</h3>
+              <p>Save what you see from the toolbar, or render it in a documentation build.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Click Export image</b><span>The camera button is in the toolbar of the system viewer and of the IP core editor.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Choose the options</b><span>SVG, PNG, or JPG; the current view or the whole level; light or dark; grid, legend, and background.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Export</b><span>Exporting never moves your diagram, and the options are remembered per workspace.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Use it in your documentation</b><span>This is the whole level, drawn by IPCraft as an SVG.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Or render from the command line</b><span><code>ipcraft render</code> draws the same image. The same command always gives the same file, so committed images change only when the design does.</span></button></li>
+              </ol>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>zynq_dma_system.tcl</b><span>System Diagram</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-export-1-dark.png" data-light="images/anim-export-1-light.png"
+                  width="1440" height="800" alt="System viewer with the pointer on the Export image toolbar button" />
+                <img class="walk-frame" data-dark="images/anim-export-2-dark.png" data-light="images/anim-export-2-light.png"
+                  width="1440" height="800" alt="The export options: format, area, scale, theme, grid, legend, and background" />
+                <img class="walk-frame" data-dark="images/anim-export-3-dark.png" data-light="images/anim-export-3-light.png"
+                  width="1440" height="800" alt="The whole level chosen as the area, with the pointer on the Export button" />
+                <div class="walk-frame slide">
+                  <span class="slide-file mono">zynq_dma_system.svg</span>
+                  <img class="theme-image" loading="lazy" src="images/render-example-dark.svg" data-dark="images/render-example-dark.svg"
+                    data-light="images/render-example-light.svg" width="2618" height="636"
+                    alt="The whole top level of the block design as rendered by IPCraft" />
                 </div>
-                <div class="studio-frame" data-frame="1" data-title="IPCraft — Memory Map Editor" aria-hidden="true">
-                  <img class="theme-image" src="images/memorymap-editor-dark.png"
-                    data-dark="images/memorymap-editor-dark.png" data-light="images/memorymap-editor-light.png"
-                    alt="Memory map editor with register and bit-field tables" />
-                </div>
-                <div class="studio-frame" data-frame="2" data-title="IPCraft — Data Inspector" aria-hidden="true">
-                  <img class="theme-image" src="images/data-inspector-workspace-dark.png"
-                    data-dark="images/data-inspector-workspace-dark.png"
-                    data-light="images/data-inspector-workspace-light.png"
-                    alt="Data Inspector visual workspace with captured hardware values" />
+                <div class="walk-frame slide terminal" role="img"
+                  aria-label="Terminal: ipcraft render design.tcl --out image.svg, and ipcraft render design.tcl --out image.png --scale 2">
+                  <div class="c"># light or dark, with or without grid and legend</div>
+                  <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">design.tcl</span> <span class="o">--out</span> image.svg</div>
+                  <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">design.tcl</span> <span class="o">--out</span> image.png <span class="o">--scale</span> 2</div>
+                  <div><span class="p">$</span> <span class="caret"></span></div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          <div class="studio-copy-track">
-            <div class="studio-copy-step is-active" data-frame="0">
-              <span class="section-label">Architecture</span>
-              <h3>Design an IP core on a visual canvas.</h3>
-              <p>
-                Place clocks, resets, ports, bus interfaces, and parameters. Select an item to
-                edit its properties in the inspector.
-              </p>
-              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/reference/ip-core-editor.md">Explore the
-                IP Core editor →</a>
-            </div>
-            <div class="studio-copy-step" data-frame="1">
-              <span class="section-label">Register design</span>
-              <h3>Define registers and bit fields visually.</h3>
-              <p>
-                Edit blocks, registers, and bit fields in keyboard-friendly tables with a visual
-                bit layout that stays synchronized with YAML.
-              </p>
-              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/tutorials/memory-mapped-registers.md">Learn
-                memory-mapped registers →</a>
-            </div>
-            <div class="studio-copy-step" data-frame="2">
-              <span class="section-label">Hardware data</span>
-              <h3>Inspect captured data against register definitions.</h3>
-              <p>
-                Map CSV captures and literals onto register definitions, then decode, combine,
-                and inspect values in a visual workspace.
-              </p>
-              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/use-data-inspector.md">Explore
-                the Data Inspector →</a>
-            </div>
+            </figure>
           </div>
         </div>
+          <div class="tour-controls">
+            <button class="tour-btn" type="button" data-tour-prev aria-label="Previous step">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <button class="tour-btn tour-play" type="button" data-tour-play aria-label="Pause walkthrough">
+              <svg class="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+              <svg class="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a.6.6 0 0 0 .9.5l10.4-6.5a.6.6 0 0 0 0-1L8.900 5a.6.6 0 0 0-.9.5Z" /></svg>
+              <span data-tour-play-label>Pause</span>
+            </button>
+            <button class="tour-btn" type="button" data-tour-next aria-label="Next step">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            </button>
+            <div class="tour-segments" data-tour-segments aria-hidden="true"></div>
+            <span class="tour-count mono" data-tour-count aria-live="polite">1 / 5</span>
+          </div>
+      </article>
 
-        <div class="studio-fallback reveal">
-        <div class="studio-shell">
-          <div class="studio-view">
-            <div class="studio-media">
-              <img class="theme-image" src="images/ipcore-editor-dark.png" data-dark="images/ipcore-editor-dark.png"
-                data-light="images/ipcore-editor-light.png" alt="IP Core visual canvas with ports and bus interfaces" />
+      <div class="bento">
+        <article class="card big reveal">
+          <div class="pad head-row">
+            <div>
+              <h3>Clock and reset domains, on the wire</h3>
+              <p>Every clock and reset net is drawn as a routed tree. Turn on domain colors to read frequencies at the
+                pins and see where a signal crosses from one clock to another.</p>
             </div>
-            <div class="studio-copy">
-              <div>
-                <span class="section-label">Architecture</span>
-                <h3>Design an IP core on a visual canvas.</h3>
-                <p>
-                  Place clocks, resets, ports, bus interfaces, and parameters. Select an item to
-                  edit its properties in the inspector.
-                </p>
-              </div>
-              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/reference/ip-core-editor.md">Explore the
-                IP Core editor →</a>
+            <div class="chips">
+              <span class="chip" style="--c: var(--chart-6)">2 CDC &middot; 2 RDC</span>
+              <span class="chip" style="--c: var(--node-cyan)">FCLK_CLK0 &middot; 100 MHz</span>
             </div>
           </div>
-          <div class="studio-view">
-            <div class="studio-media">
-              <img class="theme-image" src="images/memorymap-editor-dark.png"
-                data-dark="images/memorymap-editor-dark.png" data-light="images/memorymap-editor-light.png"
-                alt="Memory map editor with register and bit-field tables" />
-            </div>
-            <div class="studio-copy">
-              <div>
-                <span class="section-label">Register design</span>
-                <h3>Define registers and bit fields visually.</h3>
-                <p>
-                  Edit blocks, registers, and bit fields in keyboard-friendly tables with a visual
-                  bit layout that stays synchronized with YAML.
-                </p>
-              </div>
-              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/tutorials/memory-mapped-registers.md">Learn
-                memory-mapped registers →</a>
-            </div>
+          <img class="theme-image shot-top" loading="lazy" src="images/system-diagram-hierarchy-dark.png"
+            data-dark="images/system-diagram-hierarchy-dark.png" data-light="images/system-diagram-hierarchy-light.png"
+            width="2800" height="1800"
+            alt="A hierarchy level of the system viewer with clock and reset wires and 100 MHz domain labels" />
+        </article>
+        <article class="card big reveal" style="--i: 1">
+          <img class="theme-image shot-bottom" loading="lazy" src="images/system-diagram-platform-designer-dark.png"
+            data-dark="images/system-diagram-platform-designer-dark.png"
+            data-light="images/system-diagram-platform-designer-light.png" width="2800" height="1800"
+            alt="A Platform Designer system in the system viewer with the address map panel open" />
+          <div class="pad">
+            <h3>Address map, clocks, and resets in one panel</h3>
+            <p>The bottom panel lists every address segment, clock domain, reset source, and unconnected pin of the
+              design. Select a row to jump to its instance; follow the source link to the exact line.</p>
           </div>
-          <div class="studio-view">
-            <div class="studio-media">
-              <img class="theme-image" src="images/data-inspector-workspace-dark.png"
-                data-dark="images/data-inspector-workspace-dark.png"
-                data-light="images/data-inspector-workspace-light.png"
-                alt="Data Inspector visual workspace with captured hardware values" />
+        </article>
+      </div>
+
+      <article class="card reveal note" style="margin-top: 1.25rem">
+        <div class="pad">
+          <h3>Knows your workspace</h3>
+          <p>Definitions in your .ip.yml and HDL files fill in pins, directions, and interface types, with a link to
+                where each block is defined. Blocks defined elsewhere stay visible as black boxes.</p>
+        </div>
+      </article>
+      <a class="more" href="how-to/view-a-system-design/">Read the System Viewer guide <span aria-hidden="true">&rarr;</span></a>
+    </section>
+
+    <!-- Data Inspector -->
+    <section class="block wrap" id="data-inspector">
+      <p class="marker reveal" style="--c: var(--chart-7)"><span>Debug &middot; Data Inspector</span></p>
+      <div class="split reveal">
+        <h2>Inspect captured data against register definitions.</h2>
+        <div class="split-side">
+          <p>Map CSV captures and literals onto real register definitions, then wire operators together to decode,
+            combine, and transform values.</p>
+        </div>
+      </div>
+      <div class="tour editor-tour reveal" data-tour>
+        <div class="tour-panels" style="--ratio: 1280 / 800">
+          <div class="walk" data-walk>
+            <div class="walk-side">
+              <h3>Wire operators together</h3>
+              <p>Compose two captured words into one address, step by step.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Decode two captured words</b><span>ADDR_HI and ADDR_LO are entered as literals and decoded against their fields.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Add an operator</b><span>Click Concat in the library. A draft step appears on the canvas.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Wire the high word</b><span>Drag from ADDR_HI to the hi input of the step.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Wire the low word</b><span>With both inputs connected, the step resolves to a 64-bit value.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Read the result</b><span>Select the step to see all 64 bits with the fields of both words.</span></button></li>
+              </ol>
+              <a class="more" href="how-to/use-data-inspector/">Explore the Data Inspector <span aria-hidden="true">&rarr;</span></a>
             </div>
-            <div class="studio-copy">
-              <div>
-                <span class="section-label">Hardware data</span>
-                <h3>Inspect captured data against register definitions.</h3>
-                <p>
-                  Map CSV captures and literals onto register definitions, then decode, combine,
-                  and inspect values in a visual workspace.
-                </p>
+            <figure class="window walk-stage">
+              <figcaption><b>split_address.ipci.yml</b><span>Data Inspector</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-inspect-1-dark.png" data-light="images/anim-inspect-1-light.png"
+                  width="1280" height="800" alt="Data Inspector with two decoded 32-bit inputs and the pointer on the Concat operator" />
+                <img class="walk-frame" data-dark="images/anim-inspect-2-dark.png" data-light="images/anim-inspect-2-light.png"
+                  width="1280" height="800" alt="A draft Concat step added to the canvas next to the two inputs" />
+                <img class="walk-frame" data-dark="images/anim-inspect-3-dark.png" data-light="images/anim-inspect-3-light.png"
+                  width="1280" height="800" alt="ADDR_HI wired to the hi input of the Concat step" />
+                <img class="walk-frame" data-dark="images/anim-inspect-4-dark.png" data-light="images/anim-inspect-4-light.png"
+                  width="1280" height="800" alt="ADDR_LO wired to the lo input; the step shows a 64-bit result" />
+                <img class="walk-frame" data-dark="images/anim-inspect-5-dark.png" data-light="images/anim-inspect-5-light.png"
+                  width="1280" height="800" alt="The Concat step selected, with the 64-bit value and its fields in the bit view" />
               </div>
-              <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/use-data-inspector.md">Explore
-                the Data Inspector →</a>
-            </div>
+            </figure>
           </div>
         </div>
+          <div class="tour-controls">
+            <button class="tour-btn" type="button" data-tour-prev aria-label="Previous step">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <button class="tour-btn tour-play" type="button" data-tour-play aria-label="Pause walkthrough">
+              <svg class="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+              <svg class="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a.6.6 0 0 0 .9.5l10.4-6.5a.6.6 0 0 0 0-1L8.900 5a.6.6 0 0 0-.9.5Z" /></svg>
+              <span data-tour-play-label>Pause</span>
+            </button>
+            <button class="tour-btn" type="button" data-tour-next aria-label="Next step">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            </button>
+            <div class="tour-segments" data-tour-segments aria-hidden="true"></div>
+            <span class="tour-count mono" data-tour-count aria-live="polite">1 / 5</span>
+          </div>
+      </div>
+    </section>
+
+    <!-- Capabilities -->
+    <section class="block wrap" id="capabilities">
+      <p class="marker reveal" style="--c: var(--chart-3)"><span>Capabilities</span></p>
+      <h2 class="reveal">The repetitive work between formats and tools, automated.</h2>
+      <div class="sheet">
+        <div class="sheet-row reveal">
+          <span class="addr mono">0x00</span>
+          <h3>Vendor project generation</h3>
+          <p>Complete RTL projects with bus wrappers, constraints, packaging metadata, testbenches, and scripts for
+            Vivado or Quartus.</p>
+        </div>
+        <div class="sheet-row reveal">
+          <span class="addr mono">0x04</span>
+          <h3>Consistency checks</h3>
+          <p>Cross-check the specification, the top-level HDL, and the vendor artifacts to catch mismatches before
+            integration. <a href="how-to/check-consistency/">Read the guide</a></p>
+        </div>
+        <div class="sheet-row reveal">
+          <span class="addr mono">0x08</span>
+          <h3>Import existing designs</h3>
+          <p>Turn VHDL entities, Platform Designer <code>_hw.tcl</code> components, and Vivado
+            <code>component.xml</code> metadata into an IPCraft specification instead of starting from a blank file.</p>
+        </div>
+        <div class="sheet-row reveal">
+          <span class="addr mono">0x0C</span>
+          <h3>Bring your own templates</h3>
+          <p>A scaffold pack is a plain directory of Nunjucks templates that overrides any built-in template by file
+            name. Replace one file or the entire set.
+            <a href="how-to/customizing-generated-files-with-scaffold-packs/">Read the guide</a></p>
+        </div>
+        <div class="sheet-row reveal">
+          <span class="addr mono">0x10</span>
+          <h3>Readable, version-controlled YAML</h3>
+          <p>Compact YAML stays at the center. Visual edits preserve your comments and numeric formatting, so diffs stay
+            reviewable.</p>
         </div>
       </div>
     </section>
 
-    <section class="section" id="capabilities">
-      <div class="container">
-        <div class="section-head reveal">
+    <!-- CTA -->
+    <section class="block wrap">
+      <div class="cta reveal">
+        <div class="cta-inner">
           <div>
-            <span class="section-label">Capabilities</span>
-            <h2>Support for the full FPGA project workflow.</h2>
-          </div>
-          <p>
-            IPCraft automates the repetitive work between formats and tools, so you can focus on
-            design decisions.
-          </p>
-        </div>
-
-        <div class="bento-grid">
-          <article class="feature-card wide reveal">
-            <div class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6zM10 7h4M7 10v4M17 10v4M10 17h4"></path>
-              </svg>
-            </div>
-            <h3>Vendor project generation</h3>
-            <p>
-              Generate complete RTL projects with bus wrappers, constraints, packaging metadata,
-              testbenches, and scripts for your chosen toolchain.
-            </p>
-            <div class="vendor-strip" aria-label="Supported formats and tools">
-              <span class="chip">AXI4-Lite</span><span class="chip">Avalon-MM</span><span
-                class="chip">Vivado</span><span class="chip">Quartus</span><span class="chip">cocotb</span>
-            </div>
-          </article>
-          <article class="feature-card reveal">
-            <div class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 6h16M4 12h10M4 18h7"></path>
-                <path d="m16 16 2 2 4-5"></path>
-              </svg>
-            </div>
-            <h3>Consistency checks</h3>
-            <p>
-              Cross-check the specification, top-level HDL, and vendor artifacts to catch
-              inconsistencies before integration.
-            </p>
-            <a class="feature-link"
-              href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/check-consistency.md">Read the
-              consistency check guide →</a>
-          </article>
-          <article class="feature-card reveal">
-            <div class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M4 19V5M4 19h16"></path>
-                <path d="m7 15 3-4 3 2 4-6"></path>
-              </svg>
-            </div>
-            <h3>Data Inspector</h3>
-            <p>
-              Decode literals and captured CSV data against real register definitions, then
-              transform signals visually.
-            </p>
-            <a class="feature-link"
-              href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/use-data-inspector.md">Read the
-              Data Inspector guide →</a>
-          </article>
-          <article class="feature-card wide reveal">
-            <div class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M6 3h12v4H6zM4 17h16v4H4zM8 7v4M16 7v4M8 11h8M12 11v6"></path>
-              </svg>
-            </div>
-            <h3>Import existing designs</h3>
-            <p>
-              Reverse-engineer VHDL entities, Platform Designer components, and Vivado IP-XACT
-              metadata into an IPCraft specification instead of beginning from a blank file.
-            </p>
-            <div class="vendor-strip">
-              <span class="chip">VHDL entity</span><span class="chip">_hw.tcl</span><span
-                class="chip">component.xml</span>
-            </div>
-          </article>
-          <article class="feature-card half reveal">
-            <div class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 2 2 7l10 5 10-5-10-5Z"></path>
-                <path d="m2 17 10 5 10-5"></path>
-                <path d="m2 12 10 5 10-5"></path>
-              </svg>
-            </div>
-            <h3>Bring your own templates</h3>
-            <p>
-              Generation is not locked to IPCraft's built-in HDL templates. A scaffold pack is a
-              plain directory of Nunjucks templates, referenced from the IP Core spec, that
-              overrides any built-in template by file name — replace one file or the entire set.
-            </p>
-            <div class="vendor-strip" aria-label="Scaffold pack mechanism">
-              <span class="chip">scaffold_pack</span><span class="chip">Nunjucks .j2</span><span class="chip">Template
-                overrides</span>
-            </div>
-            <a class="feature-link"
-              href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/how-to/customizing-generated-files-with-scaffold-packs.md">Read the scaffold
-              packs guide →</a>
-          </article>
-          <article class="feature-card half reveal">
-            <div class="feature-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M7 4h10l3 3v13H4V4z"></path>
-                <path d="M8 10h8M8 14h8M8 18h5"></path>
-              </svg>
-            </div>
-            <h3>Readable, version-controlled specification</h3>
-            <p>
-              Keep compact, versionable YAML at the center while visual edits preserve comments
-              and numeric formatting.
-            </p>
-          </article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <div class="cta-panel reveal">
-          <div>
-            <span class="section-label">Next steps</span>
             <h2>Get started with IPCraft.</h2>
-            <p>
-              Install IPCraft, create an IP Core with a register map, and generate a working
-              project from your first interface.
-            </p>
+            <p>Install IPCraft, open a block design script or create an IP core with a register map, and generate a
+              working project from your first interface.</p>
           </div>
-          <div class="hero-actions">
-            <a class="btn btn-primary"
-              href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Install IPCraft</a>
-            <a class="btn btn-secondary" href="https://github.com/bleviet/ipcraft-vscode">View on GitHub</a>
+          <div class="cta-row">
+            <a class="btn" href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Install IPCraft</a>
+            <a class="btn btn-ghost" href="https://github.com/bleviet/ipcraft-vscode">View on GitHub</a>
           </div>
         </div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
-    <div class="container footer-inner">
-      <div>
-        <a class="brand-lockup" href="#top"><img src="images/ipcraft-logo.svg" alt="" width="38"
-            height="38" /><span>IPCraft</span></a>
-        <p>Visual FPGA IP design for VS Code. Open source under the MIT license.</p>
-      </div>
-      <div class="footer-links">
-        <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/README.md">Documentation</a>
-        <a href="https://github.com/bleviet/ipcraft-vscode/blob/main/docs/reference/commands.md">Commands</a>
-        <a href="https://github.com/bleviet/ipcraft-vscode/issues">Issues</a>
-        <a href="https://bahonavi.de/">by bahonavi</a>
-      </div>
+  <footer class="wrap">
+    <div>
+      <strong>IPCraft</strong>
+      Visual FPGA IP design for VS Code. Open source under the MIT license.
     </div>
+    <nav aria-label="Footer">
+      <a href="introduction/what-is-ipcraft/">Documentation</a>
+      <a href="reference/commands/">Commands</a>
+      <a href="https://github.com/bleviet/ipcraft-vscode/issues">Issues</a>
+      <a href="https://bahonavi.de/">by bahonavi</a>
+    </nav>
   </footer>
 
   <script>
     const root = document.documentElement;
+    root.classList.add('js');
+
     const themeToggle = document.getElementById('themeToggle');
     const themeMeta = document.querySelector('meta[name="theme-color"]');
-    const storedTheme = localStorage.getItem('ipcraft-theme');
-    const initialTheme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark';
 
-    function applyTheme(theme) {
+    function applyTheme(theme, persist) {
       root.dataset.theme = theme;
-      localStorage.setItem('ipcraft-theme', theme);
+      if (persist) {
+        try { localStorage.setItem('ipcraft-theme', theme); } catch (e) { /* storage blocked */ }
+      }
       const isLight = theme === 'light';
       themeToggle.setAttribute('aria-pressed', String(isLight));
       themeToggle.setAttribute('aria-label', `Switch to ${isLight ? 'dark' : 'light'} theme`);
@@ -1701,44 +2329,241 @@
       document.querySelectorAll('.theme-image').forEach((image) => {
         image.src = image.dataset[theme];
       });
+      document.querySelectorAll('.walk-frame[src]').forEach((frame) => {
+        frame.src = frame.dataset[theme];
+      });
     }
 
-    applyTheme(initialTheme);
+    applyTheme(root.dataset.theme, false);
     themeToggle.addEventListener('click', () =>
-      applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark')
+      applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark', true)
     );
 
-    const studioSteps = document.querySelectorAll('.studio-copy-step');
-    const studioFrames = document.querySelectorAll('.studio-frame');
-    const studioTitle = document.querySelector('[data-studio-title]');
-    if (studioSteps.length && studioFrames.length && 'IntersectionObserver' in window) {
-      const setActiveFrame = (frameIndex) => {
-        studioSteps.forEach((step) => {
-          step.classList.toggle('is-active', step.dataset.frame === frameIndex);
-        });
-        studioFrames.forEach((frame) => {
-          const isActive = frame.dataset.frame === frameIndex;
-          frame.classList.toggle('is-active', isActive);
-          frame.setAttribute('aria-hidden', String(!isActive));
-          if (isActive && studioTitle) {
-            studioTitle.textContent = frame.dataset.title;
-          }
-        });
-      };
-
-      const studioObserver = new IntersectionObserver(
+    const revealTargets = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      const revealObserver = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              setActiveFrame(entry.target.dataset.frame);
+              entry.target.classList.add('in');
+              revealObserver.unobserve(entry.target);
             }
           });
         },
-        { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+        { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
       );
-
-      studioSteps.forEach((step) => studioObserver.observe(step));
+      revealTargets.forEach((target) => revealObserver.observe(target));
+    } else {
+      revealTargets.forEach((target) => target.classList.add('in'));
     }
+
+    // Walkthrough tours: each plays its steps one after another, and stops for good
+    // as soon as the visitor takes over (a step, a tab, an arrow, or Pause).
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const STEP_MS = 3600;
+
+    document.querySelectorAll('[data-tour]').forEach((tour) => {
+      const tabs = Array.from(tour.querySelectorAll('.tour-tab'));
+      const walks = Array.from(tour.querySelectorAll('[data-walk]')).map((element) => ({
+        element,
+        steps: Array.from(element.querySelectorAll('.walk-step')),
+        frames: Array.from(element.querySelectorAll('.walk-frame')),
+      }));
+      const playButton = tour.querySelector('[data-tour-play]');
+      const playLabel = tour.querySelector('[data-tour-play-label]');
+      const segments = tour.querySelector('[data-tour-segments]');
+      const count = tour.querySelector('[data-tour-count]');
+      let walkIndex = 0;
+      let stepIndex = 0;
+      let paused = reducedMotion;
+      let visible = false;
+      let timer = null;
+
+      const load = (frame) => {
+        if (frame && frame.dataset.dark) {
+          const source = frame.dataset[root.dataset.theme];
+          if (frame.getAttribute('src') !== source) {
+            frame.src = source;
+          }
+        }
+      };
+      const render = () => {
+        const walk = walks[walkIndex];
+        walks.forEach((item, i) => {
+          item.element.classList.toggle('is-current', i === walkIndex);
+          item.element.toggleAttribute('inert', i !== walkIndex);
+        });
+        tabs.forEach((tab, i) => {
+          tab.classList.toggle('is-active', i === walkIndex);
+          tab.setAttribute('aria-selected', String(i === walkIndex));
+          tab.tabIndex = i === walkIndex ? 0 : -1;
+        });
+        walk.steps.forEach((step, i) => {
+          step.classList.toggle('is-active', i === stepIndex);
+          if (i === stepIndex) {
+            step.setAttribute('aria-current', 'step');
+          } else {
+            step.removeAttribute('aria-current');
+          }
+        });
+        walk.frames.forEach((frame, i) => frame.classList.toggle('is-active', i === stepIndex));
+        load(walk.frames[stepIndex]);
+        // Fetch the frame that comes next so the crossfade never shows a blank.
+        const nextWalk = walks[(walkIndex + 1) % walks.length];
+        load(walk.frames[stepIndex + 1] || nextWalk.frames[0]);
+        segments.replaceChildren(
+          ...walk.steps.map((_, i) => {
+            const segment = document.createElement('span');
+            segment.className = `tour-seg${i < stepIndex ? ' is-done' : ''}${i === stepIndex ? ' is-active' : ''}`;
+            segment.appendChild(document.createElement('i'));
+            return segment;
+          })
+        );
+        count.textContent = `${stepIndex + 1} / ${walk.steps.length}`;
+        tour.classList.toggle('is-paused', paused);
+        playButton.setAttribute('aria-label', paused ? 'Play walkthrough' : 'Pause walkthrough');
+        playLabel.textContent = paused ? 'Play' : 'Pause';
+      };
+      const schedule = () => {
+        clearTimeout(timer);
+        const running = !paused && visible && !document.hidden;
+        tour.classList.toggle('is-running', running);
+        if (running) {
+          tour.style.setProperty('--walk-ms', `${STEP_MS}ms`);
+          timer = setTimeout(() => go(1, false), STEP_MS);
+        }
+      };
+      const show = (nextWalk, nextStep, byVisitor) => {
+        walkIndex = nextWalk;
+        stepIndex = nextStep;
+        if (byVisitor) {
+          paused = true;
+        }
+        render();
+        schedule();
+      };
+      const go = (delta, byVisitor) => {
+        let nextWalk = walkIndex;
+        let nextStep = stepIndex + delta;
+        if (nextStep >= walks[walkIndex].steps.length) {
+          nextWalk = (walkIndex + 1) % walks.length;
+          nextStep = 0;
+        } else if (nextStep < 0) {
+          nextWalk = (walkIndex - 1 + walks.length) % walks.length;
+          nextStep = walks[nextWalk].steps.length - 1;
+        }
+        show(nextWalk, nextStep, byVisitor);
+      };
+
+      tabs.forEach((tab, i) => tab.addEventListener('click', () => show(i, 0, true)));
+      walks.forEach((walk, w) =>
+        walk.steps.forEach((step, i) => step.addEventListener('click', () => show(w, i, true)))
+      );
+      tour.querySelector('[data-tour-prev]').addEventListener('click', () => go(-1, true));
+      tour.querySelector('[data-tour-next]').addEventListener('click', () => go(1, true));
+      playButton.addEventListener('click', () => {
+        paused = !paused;
+        render();
+        schedule();
+      });
+      tour.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
+          return;
+        }
+        event.preventDefault();
+        if (event.target.closest('.tour-tab')) {
+          const next = (walkIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+          show(next, 0, true);
+          tabs[next].focus();
+        } else {
+          go(event.key === 'ArrowRight' ? 1 : -1, true);
+        }
+      });
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(
+          ([entry]) => {
+            visible = entry.isIntersecting;
+            schedule();
+          },
+          { threshold: 0.35 }
+        ).observe(tour);
+      }
+      document.addEventListener('visibilitychange', schedule);
+      render();
+    });
+    // Overview hub: light up one route through the core at a time. It cycles on its
+    // own until the visitor picks a route.
+    document.querySelectorAll('[data-hub]').forEach((hub) => {
+      const all = ['rtl', 'tb', 'doc', 'altera', 'amd'];
+      const routes = {
+        'altera-amd': {
+          on: ['hwtcl', 'amd'],
+          text: 'Import a Platform Designer component, review it in the editor, then generate the AMD packaging: component.xml and a Vivado project.',
+        },
+        'amd-altera': {
+          on: ['xml', 'altera'],
+          text: 'Import Vivado IP-XACT packaging, review it in the editor, then generate the Altera _hw.tcl component and a Quartus project.',
+        },
+        vhdl: {
+          on: ['vhdl', ...all],
+          text: 'Import an existing VHDL entity and get testbenches, documentation, and packaging for both vendors.',
+        },
+        new: {
+          on: ['editors', ...all],
+          text: 'Design a new core on the canvas and generate every output from the one specification.',
+        },
+      };
+      const names = Object.keys(routes);
+      const buttons = Array.from(hub.querySelectorAll('.hub-route'));
+      const caption = hub.querySelector('[data-hub-caption]');
+      let current = 0;
+      let auto = !reducedMotion;
+      let visible = false;
+      let timer = null;
+
+      const render = () => {
+        const route = routes[names[current]];
+        hub.classList.add('has-route');
+        hub.querySelectorAll('[data-node]').forEach((element) => {
+          element.classList.toggle('is-on', route.on.includes(element.dataset.node));
+        });
+        buttons.forEach((button) => {
+          const active = button.dataset.route === names[current];
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', String(active));
+        });
+        caption.textContent = route.text;
+      };
+      const schedule = () => {
+        clearTimeout(timer);
+        if (auto && visible && !document.hidden) {
+          timer = setTimeout(() => {
+            current = (current + 1) % names.length;
+            render();
+            schedule();
+          }, 4200);
+        }
+      };
+      buttons.forEach((button) =>
+        button.addEventListener('click', () => {
+          current = names.indexOf(button.dataset.route);
+          auto = false;
+          render();
+          schedule();
+        })
+      );
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(
+          ([entry]) => {
+            visible = entry.isIntersecting;
+            schedule();
+          },
+          { threshold: 0.05 }
+        ).observe(hub);
+      }
+      document.addEventListener('visibilitychange', schedule);
+      render();
+    });
   </script>
 </body>
 

@@ -7,7 +7,7 @@ selected scaffold pack controls the exact files.
 
 1. Open an `.ip.yml` file.
 2. Choose the HDL language, vendor targets, and scaffold pack in the toolbar.
-3. Run **IPCraft: Scaffold Project**.
+3. Run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**.
 4. Review the staged files.
 5. Select **Confirm and Apply**.
 
@@ -26,14 +26,7 @@ Use **View Diff** on a modified file before accepting it. A protected file comes
 from a rule or file-set entry with `managed: false`. A file-set `managed: false` file is compared only once it
 exists on disk; before that IPCraft never generates it.
 
-```mermaid
-flowchart LR
-    A[IP core and memory map] --> B[Selected scaffold pack]
-    B --> C[Generate files in memory]
-    C --> D[Staging review]
-    D -->|Confirm| E[Write project]
-    D -->|Cancel| F[Write nothing]
-```
+![Flow diagram: IP core and memory map, Selected scaffold pack, Generate files in memory, Staging review, Write project, Write nothing](../images/diagrams/how-to-generating-a-project-1.drawio.svg)
 
 ## Generate one part
 

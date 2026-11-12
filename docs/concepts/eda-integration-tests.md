@@ -9,16 +9,7 @@ Vivado.
 
 ## What the tests prove
 
-```mermaid
-flowchart TD
-    A[IPCraft test input] --> B[Generate HDL and project files]
-    B --> C[Fast HDL compile]
-    B --> D[Quartus validation]
-    B --> E[Vivado validation]
-    C --> F[Syntax and basic HDL structure]
-    D --> G[Quartus project and bus test code]
-    E --> H[IP package and block-design use]
-```
+![Flow diagram: IPCraft test input, Generate HDL and project files, Fast HDL compile, Quartus validation, Vivado validation, Syntax and basic HDL structure, Quartus project and bus test code, IP package and block-design use](../images/diagrams/concepts-eda-integration-tests-1.drawio.svg)
 
 Each level answers a different question:
 
@@ -77,16 +68,7 @@ changes only Vivado output does not need to run Quartus locally.
 
 Use the first failing stage to narrow the cause:
 
-```mermaid
-flowchart TD
-    A[Integration test failed] --> B{Generation completed?}
-    B -->|No| C[Check schema, resolver, or template logic]
-    B -->|Yes| D{HDL compiled?}
-    D -->|No| E[Check generated HDL template]
-    D -->|Yes| F{Vendor accepted metadata?}
-    F -->|No| G[Check vendor project or IP metadata]
-    F -->|Yes| H[Check bus test or block-design connection]
-```
+![Flow diagram: Integration test failed, Generation completed?, Check schema, resolver, or template logic, HDL compiled?, Check generated HDL template, Vendor accepted metadata?, Check vendor project or IP metadata, Check bus test or...](../images/diagrams/concepts-eda-integration-tests-2.drawio.svg)
 
 Do not repair a generated test file by hand. Change the source generator or
 template, rebuild, and rerun the suite.

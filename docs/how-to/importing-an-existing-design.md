@@ -12,14 +12,7 @@ generating new files.
 | Quartus `_hw.tcl` | **IPCraft: Import from Altera Platform Designer (Experimental)** | `.ip.yml` |
 | Vivado `component.xml` | **IPCraft: Import from Xilinx Component XML (Experimental)** | `.ip.yml` and sometimes `.mm.yml` |
 
-```mermaid
-flowchart LR
-    A[Existing design file] --> B[Choose import command]
-    B --> C[IPCraft reads known structure]
-    C --> D[New .ip.yml and optional .mm.yml]
-    D --> E[Review in visual editor]
-    E --> F[Complete missing intent]
-```
+![Flow diagram: Existing design file, Choose import command, IPCraft reads known structure, New .ip.yml and optional .mm.yml, Review in visual editor, Complete missing intent](../images/diagrams/how-to-importing-an-existing-design-1.drawio.svg)
 
 ## Import VHDL
 

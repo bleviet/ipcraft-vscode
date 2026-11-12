@@ -32,13 +32,7 @@ The selection is saved with the IP core. If the file does not choose a pack,
 IPCraft uses the workspace setting `ipcraft.generate.scaffoldPack`, followed by
 `builtin-minimal`.
 
-```mermaid
-flowchart TD
-    A{Pack saved in .ip.yml?} -->|Yes| B[Use that pack]
-    A -->|No| C{Workspace setting set?}
-    C -->|Yes| D[Use workspace pack]
-    C -->|No| E[Use builtin-minimal]
-```
+![Flow diagram: Pack saved in .ip.yml?, Use that pack, Workspace setting set?, Use workspace pack, Use builtin-minimal](../images/diagrams/how-to-customizing-generated-files-with-scaffold-packs-1.drawio.svg)
 
 ## Preview a template
 
@@ -234,33 +228,18 @@ resolve indentation identically for the same pack and flags.
 IPCraft checks the selected pack first and then the built-in template library.
 You only need to copy templates you want to change.
 
-```mermaid
-flowchart LR
-    A[Output rule] --> B{Template in selected pack?}
-    B -->|Yes| C[Render custom template]
-    B -->|No| D{Built-in template exists?}
-    D -->|Yes| E[Render built-in template]
-    D -->|No| F[Report missing template]
-```
+![Flow diagram: Output rule, Template in selected pack?, Render custom template, Built-in template exists?, Render built-in template, Report missing template](../images/diagrams/how-to-customizing-generated-files-with-scaffold-packs-2.drawio.svg)
 
 The same rule applies to Cocotb and vendor project templates. A custom
 `component.xml.j2` is different: it replaces the complete Vivado component
 file, not part of it.
 
-## Common template values
+## Template values and conditions
 
-The complete list is in the [generator reference](../reference/generator.md).
-These values cover most small packs:
-
-| Value | Meaning |
-|---|---|
-| `name` | IP core name |
-| `is_systemverilog` | `true` for SystemVerilog output |
-| `has_memory_mapped_slave` | The core has a memory-mapped slave interface |
-| `bus_type` | Short bus name such as `axil` or `avmm` |
-| `registers` | Registers sorted by address |
-| `user_ports` | Ports that are not part of a bus |
-| `generics` | IP core parameters |
+Templates and `condition` expressions receive the template data described in
+the [generator reference](../reference/generator.md#template-data), for example
+`name`, `is_systemverilog`, `has_memory_mapped_slave`, `bus_type`, and
+`registers`.
 
 Common conditions are:
 

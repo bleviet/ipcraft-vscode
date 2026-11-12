@@ -18,15 +18,7 @@ npm run test:integration:quartus
 npm run test:integration:vivado
 ```
 
-```mermaid
-flowchart LR
-    A[Test input] --> B[IPCraft generates files]
-    B --> C{Vendor}
-    C -->|Quartus| D[Quartus checks project and testbench]
-    C -->|Vivado| E[Vivado checks IP and block design]
-    D --> F[Test report]
-    E --> F
-```
+![Flow diagram: Test input, IPCraft generates files, Vendor, Quartus checks project and testbench, Vivado checks IP and block design, Test report](../images/diagrams/how-to-run-eda-integration-tests-1.drawio.svg)
 
 ## Requirements
 
