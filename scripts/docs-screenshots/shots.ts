@@ -162,6 +162,84 @@ function isolateFrame(frame: 1 | 2 | 3 | 4 | 5): (page: Page) => Promise<void> {
   };
 }
 
+/**
+ * Frames of the hierarchy walkthrough: the top level, inside a hierarchy block,
+ * a nested block expanded in place, and the breadcrumb back to the top.
+ */
+function hierarchyFrame(frame: 1 | 2 | 3 | 4 | 5): (page: Page) => Promise<void> {
+  return async (page) => {
+    const block = page.locator('.react-flow__node[data-id="/dsp_pipeline"]');
+    if (frame === 1) {
+      await showPointer(page, block);
+      return;
+    }
+    await untilViewportChanges(page, () => block.dblclick());
+    const expand = page.getByRole('button', { name: 'Expand coeff_bank in place' });
+    if (frame === 2) {
+      await showPointer(page, expand);
+      return;
+    }
+    await expand.click();
+    const collapse = page.getByRole('button', { name: 'Collapse coeff_bank' });
+    await expect(collapse).toBeVisible();
+    await page.waitForTimeout(600);
+    await page.getByRole('button', { name: 'Fit' }).click();
+    await page.waitForTimeout(300);
+    const top = page
+      .getByRole('navigation', { name: 'Hierarchy' })
+      .getByRole('button', { name: 'zynq_dma_system' });
+    if (frame === 3) {
+      await showPointer(page, collapse);
+      return;
+    }
+    if (frame === 4) {
+      await showPointer(page, top);
+      return;
+    }
+    await untilViewportChanges(page, () => top.click());
+    await showPointer(page, block);
+  };
+}
+
+/** Frames of the unconnected-pins walkthrough: the toggle, the findings, and one finding opened. */
+function unconnectedFrame(frame: 1 | 2 | 3): (page: Page) => Promise<void> {
+  return async (page) => {
+    const toggle = page.getByRole('button', { name: /^Unconnected pins/ });
+    if (frame === 1) {
+      await showPointer(page, toggle);
+      return;
+    }
+    await untilViewportChanges(page, () => toggle.click());
+    const row = page.getByRole('region', { name: 'Bottom panel' }).locator('tbody tr').first();
+    await expect(row).toBeVisible();
+    if (frame === 2) {
+      await showPointer(page, row);
+      return;
+    }
+    await untilViewportChanges(page, () => row.click());
+    await showPointer(page, row);
+  };
+}
+
+/** Frames of the export walkthrough: the Export image button, its options, and the Export button. */
+function exportFrame(frame: 1 | 2 | 3): (page: Page) => Promise<void> {
+  return async (page) => {
+    const button = page.getByRole('button', { name: 'Export image' });
+    if (frame === 1) {
+      await showPointer(page, button);
+      return;
+    }
+    await button.click();
+    const dialog = page.getByRole('dialog', { name: 'Export image options' });
+    if (frame === 2) {
+      await showPointer(page, dialog.getByLabel('Format'));
+      return;
+    }
+    await dialog.getByLabel('Area').selectOption('whole');
+    await showPointer(page, dialog.getByRole('button', { name: 'Export', exact: true }));
+  };
+}
+
 async function dragBetween(page: Page, from: Locator, to: Locator): Promise<void> {
   const start = await from.boundingBox();
   const end = await to.boundingBox();
@@ -205,7 +283,7 @@ function inspectFrame(frame: 1 | 2 | 3 | 4 | 5): (page: Page) => Promise<void> {
     }
     await page.mouse.move(title.x + 10, title.y + 8);
     await page.mouse.down();
-    await page.mouse.move(title.x + 140, title.y - 52, { steps: 12 });
+    await page.mouse.move(title.x + 80, title.y - 52, { steps: 12 });
     await page.mouse.up();
     const high = page.locator('.react-flow__node[data-id="addr-high"] .react-flow__handle');
     const low = page.locator('.react-flow__node[data-id="addr-low"] .react-flow__handle');
@@ -519,6 +597,36 @@ export const shots: Shot[] = [
       viewport: { width: 1440, height: 800 },
       scale: 'css',
       setup: isolateFrame(frame),
+    })
+  ),
+  ...FRAMES.map(
+    (frame): Shot => ({
+      id: `anim-hierarchy-${frame}`,
+      harness: 'systemDiagram',
+      source: SYSTEM_BD_SOURCE,
+      viewport: { width: 1440, height: 800 },
+      scale: 'css',
+      setup: hierarchyFrame(frame),
+    })
+  ),
+  ...([1, 2, 3] as const).map(
+    (frame): Shot => ({
+      id: `anim-unconnected-${frame}`,
+      harness: 'systemDiagram',
+      source: SYSTEM_QSYS_SOURCE,
+      viewport: { width: 1440, height: 800 },
+      scale: 'css',
+      setup: unconnectedFrame(frame),
+    })
+  ),
+  ...([1, 2, 3] as const).map(
+    (frame): Shot => ({
+      id: `anim-export-${frame}`,
+      harness: 'systemDiagram',
+      source: SYSTEM_BD_SOURCE,
+      viewport: { width: 1440, height: 800 },
+      scale: 'css',
+      setup: exportFrame(frame),
     })
   ),
   ...FRAMES.map(

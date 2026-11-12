@@ -45,12 +45,23 @@ The output name is `docs/images/<id>-<theme>.png`.
 
 ## Walkthrough frames
 
-The landing page (`docs/index.html`) plays two walkthroughs as a sequence of
-stills: `anim-isolate-1` to `-5` and `anim-inspect-1` to `-5`. Each frame is a
-shot whose `setup` repeats the steps of the frames before it, then draws a
-pointer where the user acts (`showPointer`). They use `scale: 'css'`, one image
-pixel per CSS pixel, to keep ten frames per theme small. To regenerate only
-these, run `npm run docs:screenshots -- -g anim-`.
+The landing page (`docs/index.html`) plays its walkthroughs as sequences of
+stills: `anim-hierarchy-*`, `anim-unconnected-*`, `anim-isolate-*`,
+`anim-export-*` and `anim-inspect-*`. Each frame is a shot whose `setup`
+repeats the steps of the frames before it, then draws a pointer where the user
+acts (`showPointer`). They use `scale: 'css'`, one image pixel per CSS pixel, to
+keep the frames small. To regenerate only these, run
+`npm run docs:screenshots -- -g anim-`.
+
+The export walkthrough also shows `render-example-light.svg` and
+`render-example-dark.svg`, written by `ipcraft render` from the same design:
+
+```bash
+node dist/cli.js render src/test/fixtures/system-design/zynq_dma_system.tcl \
+  --out docs/images/render-example-light.svg --no-workspace
+node dist/cli.js render src/test/fixtures/system-design/zynq_dma_system.tcl \
+  --out docs/images/render-example-dark.svg --theme dark --no-workspace
+```
 
 ## Add a screenshot
 

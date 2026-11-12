@@ -770,24 +770,213 @@
       border-bottom: 1px solid var(--line);
     }
 
-    .cli {
+    /* ---------- Walkthrough tours ---------- */
+    .tour-tabs {
       display: flex;
-      flex-wrap: wrap;
-      margin-top: 1.25rem;
+      gap: 0.25rem;
+      padding: 0.5rem 1rem 0;
+      overflow-x: auto;
+      border-bottom: 1px solid var(--line);
+      scrollbar-width: none;
     }
 
-    .cli > .pad {
-      flex: 1 1 360px;
+    .tour-tab {
+      flex: none;
+      min-height: 52px;
+      padding: 0 1.1rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.98rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--muted);
+      background: none;
+      border: 0;
+      box-shadow: inset 0 -2px 0 transparent;
+      cursor: pointer;
+      transition: color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .tour-tab:hover {
+      color: var(--text-strong);
+    }
+
+    .tour-tab.is-active {
+      color: var(--text-strong);
+      box-shadow: inset 0 -2px 0 var(--brand-2);
+    }
+
+    .tour-panels {
+      display: grid;
+      padding: 2rem;
+    }
+
+    .editor-tour {
+      margin-top: 6rem;
+    }
+
+    .editor-tour .tour-panels {
+      padding: 0;
+    }
+
+    .walk {
+      grid-area: 1 / 1;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 2rem 3rem;
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.45s ease, visibility 0s linear 0.45s;
+    }
+
+    .walk.is-current {
+      visibility: visible;
+      opacity: 1;
+      transition: opacity 0.45s ease;
+    }
+
+    .walk-side {
+      flex: 1 1 300px;
+      max-width: 400px;
+    }
+
+    .walk-side .tag {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .walk-side .editor-title {
+      margin: 0.6rem 0 0.75rem;
+      font-size: clamp(1.625rem, 2.6vw, 2.125rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .walk-side > p {
+      color: var(--text-soft);
+    }
+
+    .walk-steps {
+      list-style: none;
+      margin: 1.25rem 0 0;
+      padding: 0;
+    }
+
+    .walk-step {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      padding: 0.55rem 0 0.55rem 1.1rem;
+      text-align: left;
+      font: inherit;
+      color: var(--muted);
+      background: none;
+      border: 0;
+      border-left: 2px solid var(--line);
+      cursor: pointer;
+      transition: color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .walk-step b {
+      display: block;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.02rem;
+      letter-spacing: -0.01em;
+    }
+
+    .walk-step span {
+      display: block;
+      font-size: 0.9rem;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.45s ease, opacity 0.45s ease;
+    }
+
+    .walk-step code {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.92em;
+    }
+
+    .walk-step:hover,
+    .walk-step.is-active {
+      color: var(--text-strong);
+    }
+
+    .walk-step.is-active {
+      border-left-color: var(--brand-2);
+    }
+
+    .walk-step.is-active span {
+      max-height: 7rem;
+      opacity: 1;
+      color: var(--text-soft);
+    }
+
+    .walk-stage {
+      flex: 999 1 560px;
+      min-width: 0;
+    }
+
+    .walk-frames {
+      position: relative;
+      aspect-ratio: var(--ratio);
+    }
+
+    .walk-frame {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.55s ease, visibility 0s linear 0.55s;
+    }
+
+    .walk-frame.is-active {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.55s ease;
+    }
+
+    .slide {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1rem;
+      padding: 5%;
+      background-color: var(--bg-card);
+      background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+
+    .slide img {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow);
+    }
+
+    .slide-file {
+      align-self: flex-start;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      color: var(--accent);
+      background: var(--bg-card);
+      border: 1px solid var(--line-strong);
+    }
+
+    .slide.terminal {
+      gap: 0;
+      background-color: var(--bg-code);
+      background-image: none;
+      font-size: clamp(0.72rem, 1.25vw, 0.95rem);
     }
 
     .terminal {
-      flex: 1 1 420px;
-      min-width: 0;
-      padding: 1.75rem 2rem;
-      background: var(--bg-code);
       color: #d4deee;
       font-family: 'IBM Plex Mono', ui-monospace, monospace;
-      font-size: 0.875rem;
       line-height: 1.9;
       overflow-x: auto;
       white-space: nowrap;
@@ -808,115 +997,96 @@
       animation: blink 1.1s steps(1) infinite;
     }
 
-    /* ---------- Walkthroughs ---------- */
-    .walk {
+    .tour-controls {
       display: flex;
-      flex-wrap: wrap;
       align-items: center;
-      gap: 2rem 3rem;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--line);
     }
 
-    .walk-side {
-      flex: 1 1 300px;
-      max-width: 400px;
+    .editor-tour .tour-controls {
+      margin-top: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--bg-card);
     }
 
-    .walk-steps {
-      list-style: none;
-      margin: 1.25rem 0 0;
-      padding: 0;
-    }
-
-    .walk-step {
-      position: relative;
-      display: block;
-      width: 100%;
+    .tour-btn {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      min-width: 44px;
       min-height: 44px;
-      padding: 0.55rem 0 0.55rem 1.1rem;
-      text-align: left;
       font: inherit;
-      color: var(--muted);
-      background: none;
-      border: 0;
-      border-left: 2px solid var(--line);
-      cursor: pointer;
-      transition: color 0.3s ease;
-    }
-
-    .walk-step b {
-      display: block;
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-size: 1.02rem;
-      letter-spacing: -0.01em;
-    }
-
-    .walk-step span {
-      display: block;
       font-size: 0.9rem;
-      max-height: 0;
-      overflow: hidden;
-      opacity: 0;
-      transition: max-height 0.45s ease, opacity 0.45s ease;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, color 0.2s ease;
     }
 
-    .walk-step::before {
-      content: '';
-      position: absolute;
-      left: -2px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--grad);
-      transform: scaleY(0);
-      transform-origin: top;
-    }
-
-    .walk-step:hover,
-    .walk-step.is-active {
+    .tour-btn:hover {
       color: var(--text-strong);
+      border-color: var(--accent);
     }
 
-    .walk-step.is-active span {
-      max-height: 5rem;
-      opacity: 1;
-      color: var(--text-soft);
+    .tour-play {
+      min-width: 6.5rem;
+      padding: 0 1rem;
     }
 
-    .walk-step.is-active::before {
-      transform: scaleY(1);
+    .tour.is-paused .icon-pause,
+    .tour:not(.is-paused) .icon-play {
+      display: none;
     }
 
-    .walk.is-playing .walk-step.is-active::before {
-      animation: step-progress var(--walk-ms, 3200ms) linear both;
+    .tour-segments {
+      flex: 1;
+      display: flex;
+      gap: 6px;
+      margin: 0 0.75rem;
     }
 
-    .walk-stage {
-      flex: 999 1 560px;
-      min-width: 0;
+    .tour-seg {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--line-strong);
+      overflow: hidden;
     }
 
-    .walk-frames {
-      position: relative;
+    .tour-seg i {
+      display: block;
+      width: 0;
+      height: 100%;
+      background: var(--grad);
     }
 
-    .walk-frames img {
+    .tour-seg.is-done i,
+    .tour-seg.is-active i {
       width: 100%;
-      opacity: 0;
-      transition: opacity 0.6s ease;
     }
 
-    .walk-frames img + img {
-      position: absolute;
-      inset: 0;
+    .tour.is-running .tour-seg.is-active i {
+      animation: seg-fill var(--walk-ms, 3600ms) linear both;
     }
 
-    .walk-frames img.is-active {
-      opacity: 1;
+    .tour-count {
+      flex: none;
+      min-width: 3rem;
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--muted);
     }
 
-    .walk-state {
-      margin-left: auto;
-      color: var(--accent);
+    .note h3 + p {
+      max-width: 760px;
     }
 
     .more {
@@ -1241,9 +1411,9 @@
       to { transform: translateX(-50%); }
     }
 
-    @keyframes step-progress {
-      from { transform: scaleY(0); }
-      to { transform: scaleY(1); }
+    @keyframes seg-fill {
+      from { width: 0; }
+      to { width: 100%; }
     }
 
     @keyframes blink {
@@ -1278,6 +1448,28 @@
     @media (max-width: 520px) {
       .nav-actions .btn-ghost {
         display: none;
+      }
+
+      .tour-panels {
+        padding: 1.5rem 1.25rem;
+      }
+
+      .editor-tour .tour-controls {
+        border-radius: 20px;
+      }
+
+      .tour-controls {
+        flex-wrap: wrap;
+      }
+
+      .tour-segments {
+        order: -1;
+        flex-basis: 100%;
+        margin: 0 0 0.5rem;
+      }
+
+      .tour-count {
+        margin-left: auto;
       }
     }
 
@@ -1431,6 +1623,147 @@
         </div>
       </div>
 
+      <article class="card big tour reveal" data-tour>
+        <div class="tour-tabs" role="tablist" aria-label="System Viewer walkthroughs">
+          <button class="tour-tab" type="button" role="tab" id="tour-hierarchy-tab" aria-controls="tour-hierarchy">Walk the hierarchy</button>
+          <button class="tour-tab" type="button" role="tab" id="tour-unconnected-tab" aria-controls="tour-unconnected">Find unconnected pins</button>
+          <button class="tour-tab" type="button" role="tab" id="tour-isolate-tab" aria-controls="tour-isolate">Isolate what matters</button>
+          <button class="tour-tab" type="button" role="tab" id="tour-export-tab" aria-controls="tour-export">Export diagrams</button>
+        </div>
+        <div class="tour-panels" style="--ratio: 1440 / 800">
+          <div class="walk" role="tabpanel" id="tour-hierarchy" aria-labelledby="tour-hierarchy-tab" data-walk>
+            <div class="walk-side">
+              <h3>Walk the hierarchy</h3>
+              <p>Enter a block, look inside another without leaving the level, and find your way back.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Start at the top level</b><span>Hierarchy blocks have a dashed outline and show how many cells they hold.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Double-click to enter</b><span>The block opens as its own level, and the breadcrumb shows where you are.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Expand a block in place</b><span>Click + in a block header to see inside it as a frame, without leaving the level.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Go back up</b><span>Click a level in the breadcrumb, or use the mouse back button.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Back at the top</b><span>You are on the top level again, with the zoom and position it had.</span></button></li>
+              </ol>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>zynq_dma_system.tcl</b><span>System Diagram</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-hierarchy-1-dark.png" data-light="images/anim-hierarchy-1-light.png"
+                  width="1440" height="800" alt="Top level of a Vivado block design with the pointer on the dsp_pipeline hierarchy block" />
+                <img class="walk-frame" data-dark="images/anim-hierarchy-2-dark.png" data-light="images/anim-hierarchy-2-light.png"
+                  width="1440" height="800" alt="Inside dsp_pipeline, with the pointer on the expand button of coeff_bank" />
+                <img class="walk-frame" data-dark="images/anim-hierarchy-3-dark.png" data-light="images/anim-hierarchy-3-light.png"
+                  width="1440" height="800" alt="coeff_bank expanded in place as a frame showing its two cells" />
+                <img class="walk-frame" data-dark="images/anim-hierarchy-4-dark.png" data-light="images/anim-hierarchy-4-light.png"
+                  width="1440" height="800" alt="The pointer on the top level name in the breadcrumb" />
+                <img class="walk-frame" data-dark="images/anim-hierarchy-5-dark.png" data-light="images/anim-hierarchy-5-light.png"
+                  width="1440" height="800" alt="The top level of the design again" />
+              </div>
+            </figure>
+          </div>
+          <div class="walk" role="tabpanel" id="tour-unconnected" aria-labelledby="tour-unconnected-tab" data-walk>
+            <div class="walk-side">
+              <h3>Find unconnected pins</h3>
+              <p>Review every pin that nothing connects to, and go straight to it.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Turn on the review</b><span>The toolbar button shows how many pins nothing connects to, in the whole design.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Read the findings</b><span>The diagram dims everything without findings, and the Unconnected tab lists each open pin as undriven or unused.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Jump to a pin</b><span>Click a row to go to its level, centre the block, and mark the pin on the diagram.</span></button></li>
+              </ol>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>niosv_hps_system.tcl</b><span>System Diagram</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-unconnected-1-dark.png" data-light="images/anim-unconnected-1-light.png"
+                  width="1440" height="800" alt="Platform Designer system with the pointer on the Unconnected pins toolbar button" />
+                <img class="walk-frame" data-dark="images/anim-unconnected-2-dark.png" data-light="images/anim-unconnected-2-light.png"
+                  width="1440" height="800" alt="The review turned on: the diagram is dimmed and the Unconnected tab lists one unused pin" />
+                <img class="walk-frame" data-dark="images/anim-unconnected-3-dark.png" data-light="images/anim-unconnected-3-light.png"
+                  width="1440" height="800" alt="The debug_probe port centred and marked after clicking its row" />
+              </div>
+            </figure>
+          </div>
+          <div class="walk" role="tabpanel" id="tour-isolate" aria-labelledby="tour-isolate-tab" data-walk>
+            <div class="walk-side">
+              <h3>Isolate what matters</h3>
+              <p>From a crowded level to the few blocks you care about, in one right-click.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Start with a busy level</b><span>Every block, port, and wire of the design level is on screen.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Select a block</b><span>Click it. Ctrl+Click (Cmd+Click on macOS) adds more blocks to the selection.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Right-click, Isolate Selection</b><span>The context menu isolates whatever is selected.</span></button></li>
+                <li><button class="walk-step" type="button"><b>See only what touches it</b><span>The block, its wires, and the blocks at the other end remain, laid out compactly.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Grow the view by one hop</b><span>Press + to add the blocks one connection further out, until all connected blocks are shown.</span></button></li>
+              </ol>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>niosv_hps_system.tcl</b><span>System Diagram</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-isolate-1-dark.png" data-light="images/anim-isolate-1-light.png"
+                  width="1440" height="800" alt="System viewer showing a full Platform Designer level with all blocks and wires" />
+                <img class="walk-frame" data-dark="images/anim-isolate-2-dark.png" data-light="images/anim-isolate-2-light.png"
+                  width="1440" height="800" alt="The jtag_uart block selected on the full level" />
+                <img class="walk-frame" data-dark="images/anim-isolate-3-dark.png" data-light="images/anim-isolate-3-light.png"
+                  width="1440" height="800" alt="Context menu on the selected block with Isolate Selection highlighted" />
+                <img class="walk-frame" data-dark="images/anim-isolate-4-dark.png" data-light="images/anim-isolate-4-light.png"
+                  width="1440" height="800" alt="Isolated 1-hop view showing jtag_uart and the two blocks connected to it" />
+                <img class="walk-frame" data-dark="images/anim-isolate-5-dark.png" data-light="images/anim-isolate-5-light.png"
+                  width="1440" height="800" alt="Isolated 2-hop view with the blocks one connection further out added" />
+              </div>
+            </figure>
+          </div>
+          <div class="walk" role="tabpanel" id="tour-export" aria-labelledby="tour-export-tab" data-walk>
+            <div class="walk-side">
+              <h3>Diagrams for your documentation</h3>
+              <p>Save what you see from the toolbar, or render it in a documentation build.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Click Export image</b><span>The camera button is in the toolbar of the system viewer and of the IP core editor.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Choose the options</b><span>SVG, PNG, or JPG; the current view or the whole level; light or dark; grid, legend, and background.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Export</b><span>Exporting never moves your diagram, and the options are remembered per workspace.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Use it in your documentation</b><span>This is the whole level, drawn by IPCraft as an SVG.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Or render from the command line</b><span><code>ipcraft render</code> draws the same image. The same command always gives the same file, so committed images change only when the design does.</span></button></li>
+              </ol>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>zynq_dma_system.tcl</b><span>System Diagram</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-export-1-dark.png" data-light="images/anim-export-1-light.png"
+                  width="1440" height="800" alt="System viewer with the pointer on the Export image toolbar button" />
+                <img class="walk-frame" data-dark="images/anim-export-2-dark.png" data-light="images/anim-export-2-light.png"
+                  width="1440" height="800" alt="The export options: format, area, scale, theme, grid, legend, and background" />
+                <img class="walk-frame" data-dark="images/anim-export-3-dark.png" data-light="images/anim-export-3-light.png"
+                  width="1440" height="800" alt="The whole level chosen as the area, with the pointer on the Export button" />
+                <div class="walk-frame slide">
+                  <span class="slide-file mono">zynq_dma_system.svg</span>
+                  <img class="theme-image" loading="lazy" src="images/render-example-dark.svg" data-dark="images/render-example-dark.svg"
+                    data-light="images/render-example-light.svg" width="2618" height="636"
+                    alt="The whole top level of the block design as rendered by IPCraft" />
+                </div>
+                <div class="walk-frame slide terminal" role="img"
+                  aria-label="Terminal: ipcraft render design.tcl --out image.svg, and ipcraft render design.tcl --out image.png --scale 2">
+                  <div class="c"># light or dark, with or without grid and legend</div>
+                  <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">design.tcl</span> <span class="o">--out</span> image.svg</div>
+                  <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">design.tcl</span> <span class="o">--out</span> image.png <span class="o">--scale</span> 2</div>
+                  <div><span class="p">$</span> <span class="caret"></span></div>
+                </div>
+              </div>
+            </figure>
+          </div>
+        </div>
+          <div class="tour-controls">
+            <button class="tour-btn" type="button" data-tour-prev aria-label="Previous step">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <button class="tour-btn tour-play" type="button" data-tour-play aria-label="Pause walkthrough">
+              <svg class="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+              <svg class="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a.6.6 0 0 0 .9.5l10.4-6.5a.6.6 0 0 0 0-1L8.900 5a.6.6 0 0 0-.9.5Z" /></svg>
+              <span data-tour-play-label>Pause</span>
+            </button>
+            <button class="tour-btn" type="button" data-tour-next aria-label="Next step">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            </button>
+            <div class="tour-segments" data-tour-segments aria-hidden="true"></div>
+            <span class="tour-count mono" data-tour-count aria-live="polite">1 / 5</span>
+          </div>
+      </article>
+
       <div class="bento">
         <article class="card big reveal">
           <div class="pad head-row">
@@ -1449,57 +1782,7 @@
             width="2800" height="1800"
             alt="A hierarchy level of the system viewer with clock and reset wires and 100 MHz domain labels" />
         </article>
-        <div class="stack">
-          <article class="card reveal" style="--i: 1">
-            <div class="pad">
-              <svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)"
-                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="3" width="7" height="6" rx="1" />
-                <rect x="14" y="15" width="7" height="6" rx="1" />
-                <path d="M6.5 9v5a2 2 0 0 0 2 2H14" />
-              </svg>
-              <h3>Walk the hierarchy</h3>
-              <p>Double-click a block to enter it, or expand it in place as a frame with its pins on the border.
-                Breadcrumbs and the mouse back button take you up.</p>
-            </div>
-          </article>
-          <article class="card reveal" style="--i: 2">
-            <div class="pad">
-              <svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--chart-6)"
-                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M3 12h7" stroke-dasharray="2.5 2.5" />
-                <circle cx="13" cy="12" r="2.5" />
-                <path d="M19 5v14" />
-              </svg>
-              <h3>Find unconnected pins</h3>
-              <p>One toggle dims everything without findings and lists every open pin with a link to the line that
-                created it.</p>
-              <div class="chips">
-                <span class="chip" style="--c: var(--chart-6)">undriven</span>
-                <span class="chip dashed" style="--c: var(--muted)">unused</span>
-              </div>
-            </div>
-          </article>
-        </div>
-      </div>
-
-      <div class="bento">
-        <div class="stack">
-          <article class="card reveal">
-            <div class="pad">
-              <svg class="icon" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--chart-7)"
-                stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M4 6h10M4 12h16M4 18h7" />
-                <circle cx="18" cy="6" r="2" />
-                <circle cx="15" cy="18" r="2" />
-              </svg>
-              <h3>Knows your workspace</h3>
-              <p>Definitions in your .ip.yml and HDL files fill in pins, directions, and interface types, with a link to
-                where each block is defined. Blocks defined elsewhere stay visible as black boxes.</p>
-            </div>
-          </article>
-        </div>
-        <article class="card big reveal" style="--i: 2">
+        <article class="card big reveal" style="--i: 1">
           <img class="theme-image shot-bottom" loading="lazy" src="images/system-diagram-platform-designer-dark.png"
             data-dark="images/system-diagram-platform-designer-dark.png"
             data-light="images/system-diagram-platform-designer-light.png" width="2800" height="1800"
@@ -1512,54 +1795,11 @@
         </article>
       </div>
 
-      <article class="card big reveal" style="margin-top: 1.25rem">
-        <div class="pad walk" data-walk>
-          <div class="walk-side">
-            <h3>Isolate what matters</h3>
-            <p>From a crowded level to the few blocks you care about, in one right-click.</p>
-            <ol class="walk-steps">
-              <li><button class="walk-step is-active" type="button" aria-current="step"><b>Start with a busy level</b><span>Every block, port, and wire of the design level is on screen.</span></button></li>
-              <li><button class="walk-step" type="button"><b>Select a block</b><span>Click it. Ctrl+Click (Cmd+Click on macOS) adds more blocks to the selection.</span></button></li>
-              <li><button class="walk-step" type="button"><b>Right-click, Isolate Selection</b><span>The context menu isolates whatever is selected.</span></button></li>
-              <li><button class="walk-step" type="button"><b>See only what touches it</b><span>The block, its wires, and the blocks at the other end remain, laid out compactly.</span></button></li>
-              <li><button class="walk-step" type="button"><b>Grow the view by one hop</b><span>Press + to add the blocks one connection further out, until all connected blocks are shown.</span></button></li>
-            </ol>
-          </div>
-          <figure class="window walk-stage">
-            <figcaption><b>niosv_hps_system.tcl</b><span>System Diagram</span><span class="walk-state" aria-live="off">1 / 5</span></figcaption>
-            <div class="walk-frames">
-              <img class="theme-image is-active" loading="lazy" src="images/anim-isolate-1-dark.png"
-                data-dark="images/anim-isolate-1-dark.png" data-light="images/anim-isolate-1-light.png" width="1440" height="800"
-                alt="System viewer showing a full Platform Designer level with all blocks and wires" />
-              <img class="theme-image" loading="lazy" src="images/anim-isolate-2-dark.png"
-                data-dark="images/anim-isolate-2-dark.png" data-light="images/anim-isolate-2-light.png" width="1440" height="800"
-                alt="The jtag_uart block selected on the full level" />
-              <img class="theme-image" loading="lazy" src="images/anim-isolate-3-dark.png"
-                data-dark="images/anim-isolate-3-dark.png" data-light="images/anim-isolate-3-light.png" width="1440" height="800"
-                alt="Context menu on the selected block with Isolate Selection highlighted" />
-              <img class="theme-image" loading="lazy" src="images/anim-isolate-4-dark.png"
-                data-dark="images/anim-isolate-4-dark.png" data-light="images/anim-isolate-4-light.png" width="1440" height="800"
-                alt="Isolated 1-hop view showing jtag_uart and the two blocks connected to it" />
-              <img class="theme-image" loading="lazy" src="images/anim-isolate-5-dark.png"
-                data-dark="images/anim-isolate-5-dark.png" data-light="images/anim-isolate-5-light.png" width="1440" height="800"
-                alt="Isolated 2-hop view with the blocks one connection further out added" />
-            </div>
-          </figure>
-        </div>
-      </article>
-
-      <article class="card big cli reveal">
+      <article class="card reveal note" style="margin-top: 1.25rem">
         <div class="pad">
-          <h3>Diagrams for your documentation</h3>
-          <p>Export the current view as SVG, PNG, or JPG, or render from the command line. The same command always gives
-            the same file, so committed images change only when the design does.</p>
-        </div>
-        <div class="terminal" role="img"
-          aria-label="Terminal: ipcraft render design.tcl --out image.svg, and ipcraft render design.tcl --out image.png --scale 2">
-          <div class="c"># light or dark, with or without grid and legend</div>
-          <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">design.tcl</span> <span class="o">--out</span> image.svg</div>
-          <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">design.tcl</span> <span class="o">--out</span> image.png <span class="o">--scale</span> 2</div>
-          <div><span class="p">$</span> <span class="caret"></span></div>
+          <h3>Knows your workspace</h3>
+          <p>Definitions in your .ip.yml and HDL files fill in pins, directions, and interface types, with a link to
+                where each block is defined. Blocks defined elsewhere stay visible as black boxes.</p>
         </div>
       </article>
       <a class="more" href="how-to/view-a-system-design/">Read the System Viewer guide <span aria-hidden="true">&rarr;</span></a>
@@ -1596,41 +1836,54 @@
         </div>
       </div>
 
-      <div class="editor-row walk reveal" data-walk>
-        <div class="editor-copy walk-side">
-          <span class="tag mono">03 &middot; captured data</span>
-          <h3>Inspect captured data against register definitions.</h3>
-          <p>Map CSV captures and literals onto real register definitions, then wire operators together to decode,
-            combine, and transform values.</p>
-          <ol class="walk-steps">
-              <li><button class="walk-step is-active" type="button" aria-current="step"><b>Decode two captured words</b><span>ADDR_HI and ADDR_LO are entered as literals and decoded against their fields.</span></button></li>
-              <li><button class="walk-step" type="button"><b>Add an operator</b><span>Click Concat in the library. A draft step appears on the canvas.</span></button></li>
-              <li><button class="walk-step" type="button"><b>Wire the high word</b><span>Drag from ADDR_HI to the hi input of the step.</span></button></li>
-              <li><button class="walk-step" type="button"><b>Wire the low word</b><span>With both inputs connected, the step resolves to a 64-bit value.</span></button></li>
-              <li><button class="walk-step" type="button"><b>Read the result</b><span>Select the step to see all 64 bits with the fields of both words.</span></button></li>
-          </ol>
-          <a class="more" href="how-to/use-data-inspector/">Explore the Data Inspector <span aria-hidden="true">&rarr;</span></a>
-        </div>
-        <figure class="window walk-stage">
-          <figcaption><b>split_address.ipci.yml</b><span>Data Inspector</span><span class="walk-state" aria-live="off">1 / 5</span></figcaption>
-          <div class="walk-frames">
-              <img class="theme-image is-active" loading="lazy" src="images/anim-inspect-1-dark.png"
-                data-dark="images/anim-inspect-1-dark.png" data-light="images/anim-inspect-1-light.png" width="1280" height="800"
-                alt="Data Inspector with two decoded 32-bit inputs and the pointer on the Concat operator" />
-              <img class="theme-image" loading="lazy" src="images/anim-inspect-2-dark.png"
-                data-dark="images/anim-inspect-2-dark.png" data-light="images/anim-inspect-2-light.png" width="1280" height="800"
-                alt="A draft Concat step added to the canvas next to the two inputs" />
-              <img class="theme-image" loading="lazy" src="images/anim-inspect-3-dark.png"
-                data-dark="images/anim-inspect-3-dark.png" data-light="images/anim-inspect-3-light.png" width="1280" height="800"
-                alt="ADDR_HI wired to the hi input of the Concat step" />
-              <img class="theme-image" loading="lazy" src="images/anim-inspect-4-dark.png"
-                data-dark="images/anim-inspect-4-dark.png" data-light="images/anim-inspect-4-light.png" width="1280" height="800"
-                alt="ADDR_LO wired to the lo input; the step shows a 64-bit result" />
-              <img class="theme-image" loading="lazy" src="images/anim-inspect-5-dark.png"
-                data-dark="images/anim-inspect-5-dark.png" data-light="images/anim-inspect-5-light.png" width="1280" height="800"
-                alt="The Concat step selected, with the 64-bit value and its fields in the bit view" />
+      <div class="tour editor-tour reveal" data-tour>
+        <div class="tour-panels" style="--ratio: 1280 / 800">
+          <div class="walk" data-walk>
+            <div class="walk-side">
+              <span class="tag mono">03 &middot; captured data</span>
+              <h3 class="editor-title">Inspect captured data against register definitions.</h3>
+              <p>Map CSV captures and literals onto real register definitions, then wire operators together to decode, combine, and transform values.</p>
+              <ol class="walk-steps">
+                <li><button class="walk-step" type="button"><b>Decode two captured words</b><span>ADDR_HI and ADDR_LO are entered as literals and decoded against their fields.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Add an operator</b><span>Click Concat in the library. A draft step appears on the canvas.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Wire the high word</b><span>Drag from ADDR_HI to the hi input of the step.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Wire the low word</b><span>With both inputs connected, the step resolves to a 64-bit value.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Read the result</b><span>Select the step to see all 64 bits with the fields of both words.</span></button></li>
+              </ol>
+              <a class="more" href="how-to/use-data-inspector/">Explore the Data Inspector <span aria-hidden="true">&rarr;</span></a>
+            </div>
+            <figure class="window walk-stage">
+              <figcaption><b>split_address.ipci.yml</b><span>Data Inspector</span></figcaption>
+              <div class="walk-frames">
+                <img class="walk-frame" data-dark="images/anim-inspect-1-dark.png" data-light="images/anim-inspect-1-light.png"
+                  width="1280" height="800" alt="Data Inspector with two decoded 32-bit inputs and the pointer on the Concat operator" />
+                <img class="walk-frame" data-dark="images/anim-inspect-2-dark.png" data-light="images/anim-inspect-2-light.png"
+                  width="1280" height="800" alt="A draft Concat step added to the canvas next to the two inputs" />
+                <img class="walk-frame" data-dark="images/anim-inspect-3-dark.png" data-light="images/anim-inspect-3-light.png"
+                  width="1280" height="800" alt="ADDR_HI wired to the hi input of the Concat step" />
+                <img class="walk-frame" data-dark="images/anim-inspect-4-dark.png" data-light="images/anim-inspect-4-light.png"
+                  width="1280" height="800" alt="ADDR_LO wired to the lo input; the step shows a 64-bit result" />
+                <img class="walk-frame" data-dark="images/anim-inspect-5-dark.png" data-light="images/anim-inspect-5-light.png"
+                  width="1280" height="800" alt="The Concat step selected, with the 64-bit value and its fields in the bit view" />
+              </div>
+            </figure>
           </div>
-        </figure>
+        </div>
+          <div class="tour-controls">
+            <button class="tour-btn" type="button" data-tour-prev aria-label="Previous step">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            <button class="tour-btn tour-play" type="button" data-tour-play aria-label="Pause walkthrough">
+              <svg class="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+              <svg class="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a.6.6 0 0 0 .9.5l10.4-6.5a.6.6 0 0 0 0-1L8.900 5a.6.6 0 0 0-.9.5Z" /></svg>
+              <span data-tour-play-label>Pause</span>
+            </button>
+            <button class="tour-btn" type="button" data-tour-next aria-label="Next step">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            </button>
+            <div class="tour-segments" data-tour-segments aria-hidden="true"></div>
+            <span class="tour-count mono" data-tour-count aria-live="polite">1 / 5</span>
+          </div>
       </div>
     </section>
 
@@ -1749,6 +2002,9 @@
       document.querySelectorAll('.theme-image').forEach((image) => {
         image.src = image.dataset[theme];
       });
+      document.querySelectorAll('.walk-frame[src]').forEach((frame) => {
+        frame.src = frame.dataset[theme];
+      });
     }
 
     applyTheme(root.dataset.theme, false);
@@ -1774,75 +2030,139 @@
       revealTargets.forEach((target) => target.classList.add('in'));
     }
 
+    // Walkthrough tours: each plays its steps one after another, and stops for good
+    // as soon as the visitor takes over (a step, a tab, an arrow, or Pause).
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const WALK_MS = 3200;
-    document.querySelectorAll('[data-walk]').forEach((walk) => {
-      const steps = Array.from(walk.querySelectorAll('.walk-step'));
-      const frames = Array.from(walk.querySelectorAll('.walk-frames img'));
-      const state = walk.querySelector('.walk-state');
-      let index = 0;
-      let timer = null;
-      let visible = false;
-      let held = false;
+    const STEP_MS = 3600;
 
-      const show = (next) => {
-        index = (next + steps.length) % steps.length;
-        steps.forEach((step, i) => {
-          step.classList.toggle('is-active', i === index);
-          if (i === index) {
+    document.querySelectorAll('[data-tour]').forEach((tour) => {
+      const tabs = Array.from(tour.querySelectorAll('.tour-tab'));
+      const walks = Array.from(tour.querySelectorAll('[data-walk]')).map((element) => ({
+        element,
+        steps: Array.from(element.querySelectorAll('.walk-step')),
+        frames: Array.from(element.querySelectorAll('.walk-frame')),
+      }));
+      const playButton = tour.querySelector('[data-tour-play]');
+      const playLabel = tour.querySelector('[data-tour-play-label]');
+      const segments = tour.querySelector('[data-tour-segments]');
+      const count = tour.querySelector('[data-tour-count]');
+      let walkIndex = 0;
+      let stepIndex = 0;
+      let paused = reducedMotion;
+      let visible = false;
+      let timer = null;
+
+      const load = (frame) => {
+        if (frame && frame.dataset.dark) {
+          const source = frame.dataset[root.dataset.theme];
+          if (frame.getAttribute('src') !== source) {
+            frame.src = source;
+          }
+        }
+      };
+      const render = () => {
+        const walk = walks[walkIndex];
+        walks.forEach((item, i) => {
+          item.element.classList.toggle('is-current', i === walkIndex);
+          item.element.toggleAttribute('inert', i !== walkIndex);
+        });
+        tabs.forEach((tab, i) => {
+          tab.classList.toggle('is-active', i === walkIndex);
+          tab.setAttribute('aria-selected', String(i === walkIndex));
+          tab.tabIndex = i === walkIndex ? 0 : -1;
+        });
+        walk.steps.forEach((step, i) => {
+          step.classList.toggle('is-active', i === stepIndex);
+          if (i === stepIndex) {
             step.setAttribute('aria-current', 'step');
           } else {
             step.removeAttribute('aria-current');
           }
         });
-        frames.forEach((frame, i) => frame.classList.toggle('is-active', i === index));
-        state.textContent = `${index + 1} / ${steps.length}`;
+        walk.frames.forEach((frame, i) => frame.classList.toggle('is-active', i === stepIndex));
+        load(walk.frames[stepIndex]);
+        // Fetch the frame that comes next so the crossfade never shows a blank.
+        const nextWalk = walks[(walkIndex + 1) % walks.length];
+        load(walk.frames[stepIndex + 1] || nextWalk.frames[0]);
+        segments.replaceChildren(
+          ...walk.steps.map((_, i) => {
+            const segment = document.createElement('span');
+            segment.className = `tour-seg${i < stepIndex ? ' is-done' : ''}${i === stepIndex ? ' is-active' : ''}`;
+            segment.appendChild(document.createElement('i'));
+            return segment;
+          })
+        );
+        count.textContent = `${stepIndex + 1} / ${walk.steps.length}`;
+        tour.classList.toggle('is-paused', paused);
+        playButton.setAttribute('aria-label', paused ? 'Play walkthrough' : 'Pause walkthrough');
+        playLabel.textContent = paused ? 'Play' : 'Pause';
       };
-      const stop = () => {
+      const schedule = () => {
         clearTimeout(timer);
-        timer = null;
-        walk.classList.remove('is-playing');
-      };
-      const play = () => {
-        stop();
-        if (reducedMotion || !visible || held) {
-          return;
+        const running = !paused && visible && !document.hidden;
+        tour.classList.toggle('is-running', running);
+        if (running) {
+          tour.style.setProperty('--walk-ms', `${STEP_MS}ms`);
+          timer = setTimeout(() => go(1, false), STEP_MS);
         }
-        walk.style.setProperty('--walk-ms', `${WALK_MS}ms`);
-        walk.classList.add('is-playing');
-        timer = setTimeout(() => {
-          show(index + 1);
-          play();
-        }, WALK_MS);
+      };
+      const show = (nextWalk, nextStep, byVisitor) => {
+        walkIndex = nextWalk;
+        stepIndex = nextStep;
+        if (byVisitor) {
+          paused = true;
+        }
+        render();
+        schedule();
+      };
+      const go = (delta, byVisitor) => {
+        let nextWalk = walkIndex;
+        let nextStep = stepIndex + delta;
+        if (nextStep >= walks[walkIndex].steps.length) {
+          nextWalk = (walkIndex + 1) % walks.length;
+          nextStep = 0;
+        } else if (nextStep < 0) {
+          nextWalk = (walkIndex - 1 + walks.length) % walks.length;
+          nextStep = walks[nextWalk].steps.length - 1;
+        }
+        show(nextWalk, nextStep, byVisitor);
       };
 
-      steps.forEach((step, i) =>
-        step.addEventListener('click', () => {
-          show(i);
-          play();
-        })
+      tabs.forEach((tab, i) => tab.addEventListener('click', () => show(i, 0, true)));
+      walks.forEach((walk, w) =>
+        walk.steps.forEach((step, i) => step.addEventListener('click', () => show(w, i, true)))
       );
-      ['pointerenter', 'focusin'].forEach((type) =>
-        walk.addEventListener(type, () => {
-          held = true;
-          stop();
-        })
-      );
-      ['pointerleave', 'focusout'].forEach((type) =>
-        walk.addEventListener(type, () => {
-          held = false;
-          play();
-        })
-      );
+      tour.querySelector('[data-tour-prev]').addEventListener('click', () => go(-1, true));
+      tour.querySelector('[data-tour-next]').addEventListener('click', () => go(1, true));
+      playButton.addEventListener('click', () => {
+        paused = !paused;
+        render();
+        schedule();
+      });
+      tour.addEventListener('keydown', (event) => {
+        if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
+          return;
+        }
+        event.preventDefault();
+        if (event.target.closest('.tour-tab')) {
+          const next = (walkIndex + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+          show(next, 0, true);
+          tabs[next].focus();
+        } else {
+          go(event.key === 'ArrowRight' ? 1 : -1, true);
+        }
+      });
       if ('IntersectionObserver' in window) {
         new IntersectionObserver(
           ([entry]) => {
             visible = entry.isIntersecting;
-            play();
+            schedule();
           },
           { threshold: 0.35 }
-        ).observe(walk);
+        ).observe(tour);
       }
+      document.addEventListener('visibilitychange', schedule);
+      render();
     });
   </script>
 </body>
