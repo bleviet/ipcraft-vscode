@@ -86,7 +86,7 @@ describe('InstanceDetails black box', () => {
 });
 
 describe('AddressMapTable ranges', () => {
-  const props = { onSelectInstance: jest.fn(), onReveal: jest.fn() };
+  const props = { filter: null, onSelectInstance: jest.fn(), onReveal: jest.fn() };
 
   it('shows an unknown range as a dash for qsys', () => {
     render(<AddressMapTable graph={qsys} {...props} />);
@@ -114,6 +114,131 @@ describe('AddressMapTable ranges', () => {
   });
 });
 
+describe('bottom panel filter', () => {
+  const graph = loadClockFixtureGraph();
+  const design = loadFixtureGraph();
+  const dataRows = () =>
+    screen.queryAllByRole('row').filter((row) => within(row).queryAllByRole('cell').length > 0);
+
+  function Panel({ initial }: { initial: 'address' | 'clocks' }) {
+    const [tab, setTab] = React.useState<React.ComponentProps<typeof BottomPanel>['tab']>(initial);
+    const shown = initial === 'address' ? design : graph;
+    return (
+      <BottomPanel
+        graph={shown}
+        clocks={analyzeClocks(shown)}
+        levelPath="/"
+        expanded={new Set()}
+        tab={tab}
+        onTabChange={setTab}
+        findings={[]}
+        selection={null}
+        focusedPin={null}
+        onSelectInstance={jest.fn()}
+        onSelectPin={jest.fn()}
+        onSelectNet={jest.fn()}
+        onReveal={jest.fn()}
+      />
+    );
+  }
+  const type = (name: string, value: string) =>
+    fireEvent.change(screen.getByRole('searchbox', { name }), { target: { value } });
+
+  it('lists only the rows of the tab on show that match, with wildcards', () => {
+    render(<Panel initial="address" />);
+    expect(dataRows()).toHaveLength(4);
+    type('Filter Address map', 'gpio');
+    expect(dataRows()).toHaveLength(1);
+    expect(dataRows()[0]).toHaveTextContent('axi_gpio_0');
+    type('Filter Address map', 'DMA*lite');
+    expect(dataRows()).toHaveLength(1);
+    // The tab counts what the design has, not what the filter leaves.
+    expect(screen.getByRole('tab', { name: 'Address map 4' })).toBeVisible();
+  });
+
+  it('matches an address as written and as grouped', () => {
+    render(<Panel initial="address" />);
+    type('Filter Address map', '0x41200000');
+    expect(dataRows()).toHaveLength(1);
+    type('Filter Address map', '4120_0000');
+    expect(dataRows()).toHaveLength(1);
+  });
+
+  it('says so when no row matches, and Escape clears the filter', () => {
+    render(<Panel initial="address" />);
+    type('Filter Address map', 'zzzz');
+    expect(screen.getByText('No rows match the filter.')).toBeVisible();
+    fireEvent.keyDown(screen.getByRole('searchbox', { name: 'Filter Address map' }), {
+      key: 'Escape',
+    });
+    expect(dataRows()).toHaveLength(4);
+  });
+
+  it('keeps a filter text per tab', () => {
+    render(<Panel initial="clocks" />);
+    const all = dataRows().length;
+    type('Filter Clocks', 'zzzz');
+    expect(screen.getAllByText('No rows match the filter.').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('tab', { name: /^Resets/ }));
+    expect(screen.getByRole('searchbox', { name: 'Filter Resets' })).toHaveValue('');
+    expect(screen.queryByText('No rows match the filter.')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /^Clocks/ }));
+    expect(screen.getByRole('searchbox', { name: 'Filter Clocks' })).toHaveValue('zzzz');
+    type('Filter Clocks', '');
+    expect(dataRows()).toHaveLength(all);
+  });
+});
+
+describe('outline while a search is on', () => {
+  const graph = loadFixtureGraph();
+  const renderOutline = (searchMatches: string[], onSelect = jest.fn()) =>
+    render(
+      <OutlineTree
+        graph={graph}
+        levelPath="/"
+        selection={null}
+        searchMatches={searchMatches}
+        review={null}
+        clocks={null}
+        onSelect={onSelect}
+      />
+    );
+  const row = (name: RegExp) => screen.getByRole('button', { name });
+
+  it('lists only the matches, under their opened hierarchies', () => {
+    renderOutline(['/dsp_pipeline/axis_data_fifo_0', '/dsp_pipeline/coeff_bank/config_fifo']);
+    expect(screen.getByRole('heading', { name: 'Search results' })).toBeVisible();
+    expect(row(/^axis_data_fifo_0/)).not.toHaveClass('opacity-60');
+    expect(row(/^config_fifo/)).not.toHaveClass('opacity-60');
+    expect(row(/^dsp_pipeline/)).toHaveClass('opacity-60');
+    expect(row(/^coeff_bank/)).toHaveClass('opacity-60');
+    expect(screen.queryByRole('button', { name: /^axi_dma_0/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^External ports/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^(Expand|Collapse) / })).not.toBeInTheDocument();
+  });
+
+  it('does not open a matching hierarchy without matches inside', () => {
+    renderOutline(['/dsp_pipeline']);
+    expect(row(/^dsp_pipeline/)).not.toHaveClass('opacity-60');
+    expect(screen.queryByRole('button', { name: /^coeff_bank/ })).not.toBeInTheDocument();
+  });
+
+  it('selects a result on its level', () => {
+    const onSelect = jest.fn();
+    renderOutline(['/dsp_pipeline/coeff_bank/config_fifo'], onSelect);
+    fireEvent.click(row(/^config_fifo/));
+    expect(onSelect).toHaveBeenCalledWith(
+      { kind: 'instance', id: '/dsp_pipeline/coeff_bank/config_fifo' },
+      '/dsp_pipeline/coeff_bank'
+    );
+  });
+
+  it('says so when nothing matches', () => {
+    renderOutline([]);
+    expect(screen.getByText('No matching instances')).toBeVisible();
+  });
+});
+
 describe('outline and tab text', () => {
   it('lets the type detail take only leftover room so the name shrinks last', () => {
     const graph = loadFixtureGraph();
@@ -122,6 +247,7 @@ describe('outline and tab text', () => {
         graph={graph}
         levelPath="/"
         selection={null}
+        searchMatches={null}
         review={null}
         clocks={null}
         onSelect={jest.fn()}

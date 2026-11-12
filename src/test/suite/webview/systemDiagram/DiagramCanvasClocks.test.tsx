@@ -46,7 +46,7 @@ function canvas(
         review={review ? { graph: design, findings: unconnectedPins(design) } : null}
         clocks={clockContextOf(design, domainMode, layout.levelPath)}
         focusedPin={null}
-        query=""
+        matcher={null}
         onSelect={jest.fn()}
         onToggleNode={jest.fn()}
         onIsolate={jest.fn()}

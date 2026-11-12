@@ -45,7 +45,7 @@ function canvas(
         review={review}
         clocks={clockContextOf(graph)}
         focusedPin={null}
-        query=""
+        matcher={null}
         isolatable={(ids) => ids.every((id) => isLevelNode(graph, '/', id))}
         onSelect={callbacks.onSelect}
         onToggleNode={callbacks.onToggleNode}

@@ -6,14 +6,12 @@ import type { ExportImageOptions } from '../../shared/messages/imageExport';
 import { ExportImageButton } from '../shared/components/ExportImageButton';
 import { ToolbarGroup, ToolbarSeparator } from '../shared/components/Toolbar';
 import { breadcrumbs } from './model';
+import { SearchBox, type SearchBoxProps } from './SearchBox';
 
 interface DiagramToolbarProps {
   graph: SystemGraph;
   levelPath: string;
-  query: string;
-  /** The Search instances box, which Ctrl/Cmd+F focuses. */
-  searchInputRef: React.Ref<HTMLInputElement>;
-  searchCounter: string;
+  search: SearchBoxProps;
   /** Clocks and resets is on: the clock and reset pins are colored by domain, with the domain decorations. */
   clocksOn: boolean;
   /** The count chip next to the Clocks and resets toggle: the crossings, else the number of domains. */
@@ -38,12 +36,6 @@ interface DiagramToolbarProps {
   highlightedCount?: number;
   onClearHighlights?: () => void;
   onNavigate: (levelPath: string) => void;
-  onQueryChange: (query: string) => void;
-  onSearchStep: (direction: 1 | -1) => void;
-  /** Up (-1) or Down (1) in the search box: show an older or newer search; true when the query changed. */
-  onSearchHistory: (direction: -1 | 1) => boolean;
-  /** The search box lost focus: remember its query. */
-  onSearchBlur: () => void;
   onClocksChange: (on: boolean) => void;
   onOpenClocksTab: () => void;
   onReviewUnconnectedChange: (on: boolean) => void;
@@ -72,9 +64,7 @@ const PANEL_TOGGLES: { panel: PanelName; title: string; icon: string }[] = [
 export function DiagramToolbar({
   graph,
   levelPath,
-  query,
-  searchInputRef,
-  searchCounter,
+  search,
   clocksOn,
   clockSummary,
   reviewUnconnected,
@@ -87,10 +77,6 @@ export function DiagramToolbar({
   highlightedCount,
   onClearHighlights,
   onNavigate,
-  onQueryChange,
-  onSearchStep,
-  onSearchHistory,
-  onSearchBlur,
   onClocksChange,
   onOpenClocksTab,
   onReviewUnconnectedChange,
@@ -174,47 +160,7 @@ export function DiagramToolbar({
           </span>
         )}
         <div className="flex-1" />
-        <input
-          ref={searchInputRef}
-          type="search"
-          className="sd-input w-[220px] min-w-0"
-          placeholder="Search instances (⇅ for history)"
-          aria-label="Search instances"
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          onBlur={onSearchBlur}
-          onKeyDown={(event) => {
-            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-              if (
-                event.altKey ||
-                event.ctrlKey ||
-                event.metaKey ||
-                event.shiftKey ||
-                event.nativeEvent.isComposing
-              ) {
-                return;
-              }
-              if (onSearchHistory(event.key === 'ArrowUp' ? -1 : 1)) {
-                event.preventDefault();
-              }
-            } else if (event.key === 'Enter') {
-              if (event.nativeEvent.isComposing) {
-                return;
-              }
-              event.preventDefault();
-              onSearchStep(event.shiftKey ? -1 : 1);
-            } else if (event.key === 'Escape') {
-              event.preventDefault();
-              onQueryChange('');
-              event.currentTarget.blur();
-            }
-          }}
-        />
-        {query.trim() !== '' && (
-          <span aria-live="polite" className="opacity-70">
-            {searchCounter}
-          </span>
-        )}
+        <SearchBox {...search} />
       </div>
       <ToolbarSeparator />
       <ToolbarGroup label="Design">

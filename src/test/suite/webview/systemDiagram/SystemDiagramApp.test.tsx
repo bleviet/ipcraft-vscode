@@ -15,6 +15,12 @@ import {
   loadVersalClockGraph,
   loadVersalGraphWithUnknownIp,
 } from './fixtureGraph';
+import {
+  compileSearch,
+  DEFAULT_SEARCH_OPTIONS,
+} from '../../../../webview/systemDiagram/searchMatcher';
+
+const query = (text: string) => compileSearch(text, DEFAULT_SEARCH_OPTIONS);
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
 let mockElkFailures = 0;
@@ -389,7 +395,7 @@ describe('SystemDiagramApp', () => {
 
     it('steps to the next and previous match on F3 and Shift+F3 anywhere', async () => {
       await rendered();
-      const matches = searchMatches(graph, 'axi');
+      const matches = searchMatches(graph, query('axi'));
       fireEvent.change(searchBox(), { target: { value: 'axi' } });
       searchBox().blur();
       fireEvent.keyDown(window, { key: 'F3' });
@@ -649,7 +655,7 @@ describe('SystemDiagramApp', () => {
   describe('search stepping', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
     const searchBox = () => screen.getByRole('searchbox', { name: 'Search instances' });
-    const matches = searchMatches(graph, 'axi');
+    const matches = searchMatches(graph, query('axi'));
     const last = matches.length - 1;
 
     async function search(query: string) {
@@ -704,6 +710,44 @@ describe('SystemDiagramApp', () => {
       expect(screen.queryByText(`${matches.length} matches`)).not.toBeInTheDocument();
     });
 
+    it('narrows the matches with Match Case and Match Whole Word', async () => {
+      await search('FIFO');
+      expect(screen.getByText('2 matches')).toBeVisible();
+      const matchCase = screen.getByRole('button', { name: 'Match Case' });
+      fireEvent.click(matchCase);
+      expect(matchCase).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByText('No results')).toBeVisible();
+      fireEvent.click(matchCase);
+      fireEvent.change(searchBox(), { target: { value: 'config_fifo' } });
+      expect(screen.getByText('1 match')).toBeVisible();
+      fireEvent.change(searchBox(), { target: { value: 'fifo' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Match Whole Word' }));
+      expect(screen.getByText('No results')).toBeVisible();
+      fireEvent.change(searchBox(), { target: { value: 'config_*' } });
+      expect(screen.getByText('1 match')).toBeVisible();
+    });
+
+    it('lists the results in the outline and goes to a clicked one', async () => {
+      await search('fifo');
+      expect(outline().getByRole('heading', { name: 'Search results' })).toBeVisible();
+      expect(outline().queryByRole('button', { name: /^axi_dma_0/ })).not.toBeInTheDocument();
+      fireEvent.click(outline().getByRole('button', { name: /^config_fifo/ }));
+      expect(await screen.findByText('2 of 2')).toBeVisible();
+      expect(await screen.findByTestId('node:/dsp_pipeline/coeff_bank/config_fifo')).toBeVisible();
+      fireEvent.change(searchBox(), { target: { value: '' } });
+      expect(outline().getByRole('heading', { name: 'Outline' })).toBeVisible();
+      expect(outline().getByRole('button', { name: /^axi_dma_0/ })).toBeVisible();
+    });
+
+    it('opens a hidden outline when a search starts, and lets it be closed again', async () => {
+      await renderWithGraph({ panelsOpen: false });
+      fireEvent.change(searchBox(), { target: { value: 'fifo' } });
+      expect(outline().getByRole('button', { name: /^config_fifo/ })).toBeVisible();
+      fireEvent.click(screen.getByRole('button', { name: 'Toggle Outline' }));
+      fireEvent.change(searchBox(), { target: { value: 'fif' } });
+      expect(screen.queryByRole('navigation', { name: 'Design outline' })).not.toBeInTheDocument();
+    });
+
     it('does nothing on Enter without results', async () => {
       await search('zzzz');
       expect(screen.getByText('No results')).toBeVisible();
@@ -730,7 +774,7 @@ describe('SystemDiagramApp', () => {
 
     it('restarts the pulse when the same single match is stepped to again', async () => {
       await search('dma');
-      expect(searchMatches(graph, 'dma')).toHaveLength(1);
+      expect(searchMatches(graph, query('dma'))).toHaveLength(1);
       enter();
       await waitFor(() => expect(flashOf('/axi_dma_0')).not.toBeNull());
       const first = flashOf('/axi_dma_0');

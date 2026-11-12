@@ -52,9 +52,17 @@ The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Un
   too, and expanded blocks stay expanded when you go to another level and back.
   Isolate works on the blocks of the level on show, not on those inside a frame.
 - **Outline.** Lists the instances of the current design and its external
-  ports. Select an item to select it in the diagram and center it.
+  ports. Select an item to select it in the diagram and center it. While a
+  search is on, it lists the search results instead.
 - **Search.** Type in **Search instances** to dim the blocks whose name or
-  type does not match. Press Enter or Shift+Enter to go to the next or
+  type does not match. The outline opens and lists every match on every
+  level under its hierarchy blocks, which are shown muted when they do not
+  match themselves; click a result to go to it. Clear the search to get the
+  full outline back. `*` stands for any characters and `?` for one character,
+  so `axi*fifo` finds `axis_data_fifo_0`. The **Match Case** and **Match
+  Whole Word** buttons next to the box narrow the matches: with **Match Whole
+  Word**, `count` finds a block named `count` but not `count_0`, and
+  `count*` finds both. Press Enter or Shift+Enter to go to the next or
   previous match on any level; a counter shows the position, and Escape
   clears the search. As in the VS Code text editor, Ctrl+F (Cmd+F on macOS)
   moves to the search box from anywhere in the viewer with its text selected,
@@ -71,6 +79,10 @@ The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Un
 - **Clocks.** Lists the clock domains with their frequencies and the clock
   domain crossings. See [Clock and reset domains](#clock-and-reset-domains).
 - **Resets.** Lists the reset sources and the reset domain crossings.
+- **Filter a bottom panel tab.** The box at the right of the tabs lists only
+  the rows of the tab on show that have its text in a column, ignoring case,
+  with `*` for any characters and `?` for one. Each tab keeps its own filter,
+  the tab counts stay those of the design, and Escape clears the box.
 
 ![A hierarchy level with clocks and resets drawn](../images/system-diagram-hierarchy-light.png)
 

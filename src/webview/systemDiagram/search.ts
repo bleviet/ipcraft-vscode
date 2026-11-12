@@ -1,11 +1,12 @@
 /** Pure search stepping over a {@link SystemGraph}: match order, wrap-around, counter text. */
 
 import type { SystemGraph } from '../../domain/systemGraph';
-import { matchesQuery, type Selection } from './model';
+import { levelOf, matchesQuery, type Selection } from './model';
+import type { TextMatcher } from './searchMatcher';
 
-/** Instance paths matching `query` on every level, in outline order (a hierarchy before its children). */
-export function searchMatches(graph: SystemGraph, query: string): string[] {
-  if (query.trim() === '') {
+/** Instance paths matching the search on every level, in outline order (a hierarchy before its children). */
+export function searchMatches(graph: SystemGraph, matcher: TextMatcher | null): string[] {
+  if (!matcher) {
     return [];
   }
   const matches: string[] = [];
@@ -15,7 +16,7 @@ export function searchMatches(graph: SystemGraph, query: string): string[] {
       if (!instance) {
         continue;
       }
-      if (matchesQuery(instance, query)) {
+      if (matchesQuery(instance, matcher)) {
         matches.push(path);
       }
       if (instance.kind === 'hier') {
@@ -25,6 +26,17 @@ export function searchMatches(graph: SystemGraph, query: string): string[] {
   };
   visit('/');
   return matches;
+}
+
+/** `matches` and every hierarchy above one: the rows the Outline keeps while a search is on. */
+export function withAncestors(matches: readonly string[]): Set<string> {
+  const shown = new Set<string>();
+  for (const match of matches) {
+    for (let path = match; path !== '/' && !shown.has(path); path = levelOf(path)) {
+      shown.add(path);
+    }
+  }
+  return shown;
 }
 
 /** The match after (1) or before (-1) `currentId`, wrapping; the first or last when `currentId` is not a match. */
@@ -43,7 +55,7 @@ export function stepMatch(
   return matches[(index + direction + matches.length) % matches.length];
 }
 
-/** Counter text for a non-blank query. */
+/** Counter text while a search is on. */
 export function matchCounter(matches: readonly string[], currentId: string | undefined): string {
   if (matches.length === 0) {
     return 'No results';
@@ -57,17 +69,17 @@ export function matchCounter(matches: readonly string[], currentId: string | und
 
 /**
  * Text Ctrl+F puts in the search box, as VS Code seeds its find widget from the
- * selection: the name of the selected instance, unless the query already
+ * selection: the name of the selected instance, unless the search already
  * matches it (it was reached by stepping through the matches). Undefined
  * keeps the query.
  */
 export function findSeed(
   graph: SystemGraph,
-  query: string,
+  matcher: TextMatcher | null,
   selection: Selection | null
 ): string | undefined {
   const instance = selection?.kind === 'instance' ? graph.instances[selection.id] : undefined;
-  if (!instance || (query.trim() !== '' && matchesQuery(instance, query))) {
+  if (!instance || (matcher && matchesQuery(instance, matcher))) {
     return undefined;
   }
   return instance.name;

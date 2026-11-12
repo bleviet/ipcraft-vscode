@@ -16,6 +16,7 @@ import { badgedNodeIds, highlightedPinsByNode } from '../pinHighlight';
 import { boundaryMatchesQuery, matchesQuery, type Selection } from '../model';
 import { focusedPinOf, nodeReview, type FocusedPin, type UnconnectedPin } from '../unconnectedPins';
 import type { PinHoverTarget } from '../model';
+import type { TextMatcher } from '../searchMatcher';
 import { useStableElements } from './useStableElements';
 
 /** Class of the node wrapper that fades a dimmed block (see systemDiagram.css). */
@@ -30,7 +31,7 @@ interface CanvasElementsInput {
   review: { graph: SystemGraph; findings: readonly UnconnectedPin[] } | null;
   clocks: ClockContext;
   focusedPin: FocusedPin | null;
-  query: string;
+  matcher: TextMatcher | null;
   flash?: SearchFlash | null;
   onFlashEnd?: (token: number) => void;
   onSelectNet: (netId: string, additive?: boolean) => void;
@@ -52,7 +53,7 @@ export function useCanvasElements({
   review,
   clocks,
   focusedPin,
-  query,
+  matcher,
   flash,
   onFlashEnd,
   onSelectNet,
@@ -123,13 +124,12 @@ export function useCanvasElements({
   );
 
   const builtNodes = useMemo(() => {
-    const searching = query.trim() !== '';
     return (layout?.nodes ?? []).map((node) => {
       const dimmed =
-        (searching &&
+        (matcher !== null &&
           (node.type === 'boundary'
-            ? !boundaryMatchesQuery(node.data.pin, query)
-            : !matchesQuery(node.data.instance, query))) ||
+            ? !boundaryMatchesQuery(node.data.pin, matcher)
+            : !matchesQuery(node.data.instance, matcher))) ||
         // A selected clock or reset tree dims the blocks and ports it does not touch.
         (tree !== undefined && node.type !== 'frame' && !highlighted?.has(node.id));
       const focused = focusedPinOf(focusedPin, selection, node.id);
@@ -158,7 +158,7 @@ export function useCanvasElements({
     });
   }, [
     layout,
-    query,
+    matcher,
     flash,
     onFlashEnd,
     selection,

@@ -6,6 +6,14 @@ attention when you update, for example because generated files change.
 Contributors: the technical changelog, with modules, issues and pull requests,
 is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
+## [Unreleased]
+
+### New
+
+- **See every search result at once in the system viewer.** While you search, the outline lists only the matching blocks under their hierarchy blocks, on every level, so you can see where each match sits; click one to go to it. The outline opens when you start a search and returns to the full design when you clear it. ([#298](https://github.com/bleviet/ipcraft-vscode/issues/298))
+- **Search options in the system viewer.** **Match Case** and **Match Whole Word** buttons next to the search box narrow the matches, and `*` (any characters) and `?` (one character) work as wildcards, for example `axi*fifo`. With **Match Whole Word**, `count` finds a block named `count` but not `count_0`. ([#298](https://github.com/bleviet/ipcraft-vscode/issues/298))
+- **Filter the bottom panel of the system viewer.** A box at the right of the **Address map**, **Clocks**, **Resets** and **Unconnected** tabs lists only the rows of the tab on show that contain its text, with the same `*` and `?` wildcards. Each tab keeps its own filter. ([#298](https://github.com/bleviet/ipcraft-vscode/issues/298))
+
 ## [1.5.3] - 2026-11-10
 
 ### New

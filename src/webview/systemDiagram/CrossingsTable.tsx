@@ -11,6 +11,8 @@ import {
 import { crossingCounts } from './clocks/crossingSummary';
 import { LineLink } from './LineLink';
 import type { Selection } from './model';
+import { crossingTexts, filterRows, NO_FILTER_MATCH } from './panelFilter';
+import type { TextMatcher } from './searchMatcher';
 import { focusedPinOf, type FocusedPin } from './unconnectedPins';
 
 interface CrossingsTableProps {
@@ -21,6 +23,8 @@ interface CrossingsTableProps {
   headline: (flagged: number) => string;
   /** Whether to show the Kind column; every row of a reset table is a reset. */
   showKind: boolean;
+  /** The panel's filter: only the rows it matches are listed. Null without one. */
+  filter: TextMatcher | null;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   /** Opens a crossing's net and haloes its sink pin. */
@@ -47,6 +51,7 @@ export function CrossingsTable({
   crossings,
   headline,
   showKind,
+  filter,
   selection,
   focusedPin,
   onSelectNet,
@@ -54,7 +59,8 @@ export function CrossingsTable({
 }: CrossingsTableProps) {
   const [showUnchecked, setShowUnchecked] = useState(false);
   const counts = crossingCounts(crossings);
-  const rows = listedCrossings(crossings, showUnchecked);
+  const listed = listedCrossings(crossings, showUnchecked);
+  const rows = filterRows(listed, filter, crossingTexts);
 
   const renderRow = (crossing: PinCrossing) => {
     const source = crossingSource(graph, crossing);
@@ -99,6 +105,9 @@ export function CrossingsTable({
           </label>
         )}
       </div>
+      {listed.length > 0 && rows.length === 0 && (
+        <p className="p-3 opacity-70">{NO_FILTER_MATCH}</p>
+      )}
       {rows.length > 0 && (
         <table className="sd-table">
           <thead>

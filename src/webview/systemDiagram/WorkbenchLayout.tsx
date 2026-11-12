@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
 import { BottomPanel, type BottomTab } from './BottomPanel';
@@ -25,6 +25,7 @@ import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
 import { findSeed } from './search';
+import { compileSearch, DEFAULT_SEARCH_OPTIONS } from './searchMatcher';
 import { unconnectedPins, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
 
 interface WorkbenchLayoutProps {
@@ -59,9 +60,11 @@ export function WorkbenchLayout({
   // The minimap is drawn, not laid out: no toggle moves a block.
   const [minimapOn, setMinimapOn] = useState(false);
   const [query, setQuery] = useState('');
+  const [searchOptions, setSearchOptions] = useState(DEFAULT_SEARCH_OPTIONS);
+  const matcher = useMemo(() => compileSearch(query, searchOptions), [query, searchOptions]);
   const view = useIsolation(graph, nav);
   const { isolation } = view;
-  const search = useSearchStepper(graph, query, nav.selection, view.revealMatch);
+  const search = useSearchStepper(graph, matcher, nav.selection, view.revealMatch);
   const { remember, browse } = useSearchHistory(query, setQuery);
   const stepSearch = useCallback(
     (direction: 1 | -1) => {
@@ -74,7 +77,7 @@ export function WorkbenchLayout({
   useFindShortcuts({
     inputRef: searchInputRef,
     query,
-    seed: findSeed(graph, query, nav.selection),
+    seed: findSeed(graph, matcher, nav.selection),
     onQueryChange: setQuery,
     onStep: stepSearch,
   });
@@ -117,6 +120,13 @@ export function WorkbenchLayout({
     details: !panels.details.collapsed,
     bottom: !panels.bottom.collapsed,
   };
+  // The Outline lists the results of a search, so starting one opens it; it can be closed again.
+  const searching = matcher !== null;
+  useEffect(() => {
+    if (searching && panels.outline.collapsed) {
+      panels.outline.toggle();
+    }
+  }, [searching]);
 
   const openBottomTab = (next: BottomTab) => {
     setTab(next);
@@ -163,9 +173,17 @@ export function WorkbenchLayout({
       <DiagramToolbar
         graph={graph}
         levelPath={nav.levelPath}
-        query={query}
-        searchInputRef={searchInputRef}
-        searchCounter={search.counter}
+        search={{
+          query,
+          options: searchOptions,
+          inputRef: searchInputRef,
+          counter: search.counter,
+          onQueryChange: setQuery,
+          onOptionsChange: setSearchOptions,
+          onStep: stepSearch,
+          onHistory: browse,
+          onBlur: remember,
+        }}
         clocksOn={clocksOn}
         autoDetail={autoDetail}
         onAutoDetailChange={setAutoDetail}
@@ -188,10 +206,6 @@ export function WorkbenchLayout({
         highlightedCount={highlightedCount}
         onClearHighlights={handleClearHighlights}
         onNavigate={nav.navigate}
-        onQueryChange={setQuery}
-        onSearchStep={stepSearch}
-        onSearchHistory={browse}
-        onSearchBlur={remember}
         onClocksChange={setClocksOn}
         onOpenClocksTab={() => openBottomTab('clocks')}
         onReviewUnconnectedChange={(on) => {
@@ -217,6 +231,7 @@ export function WorkbenchLayout({
                   graph={graph}
                   levelPath={nav.levelPath}
                   selection={nav.selection}
+                  searchMatches={searching ? search.matches : null}
                   review={reviewUnconnected ? findings : null}
                   clocks={domainsShown ? clocks : null}
                   onSelect={view.selectAndReveal}
@@ -239,7 +254,7 @@ export function WorkbenchLayout({
               review={reviewContext}
               clocks={clockContext}
               focusedPin={focusedPin}
-              query={query}
+              matcher={matcher}
               autoDetail={autoDetail}
               minimap={minimapOn}
               flash={search.flash}

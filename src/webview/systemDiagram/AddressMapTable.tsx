@@ -4,16 +4,29 @@ import { LineLink } from './LineLink';
 import { levelSource, segmentLevel } from './sourceFile';
 import { formatRange, groupHex } from './addressFormat';
 import { segmentHigh, segmentRangeText } from './model';
+import { filterRows, NO_FILTER_MATCH, segmentTexts } from './panelFilter';
+import type { TextMatcher } from './searchMatcher';
 
 interface AddressMapTableProps {
   graph: SystemGraph;
+  /** The panel's filter: only the rows it matches are listed. Null without one. */
+  filter: TextMatcher | null;
   onSelectInstance: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
 }
 
-export function AddressMapTable({ graph, onSelectInstance, onReveal }: AddressMapTableProps) {
+export function AddressMapTable({
+  graph,
+  filter,
+  onSelectInstance,
+  onReveal,
+}: AddressMapTableProps) {
   if (graph.addressSegments.length === 0) {
     return <p className="p-3 opacity-70">No address segments are assigned in this design.</p>;
+  }
+  const rows = filterRows(graph.addressSegments, filter, (segment) => segmentTexts(graph, segment));
+  if (rows.length === 0) {
+    return <p className="p-3 opacity-70">{NO_FILTER_MATCH}</p>;
   }
   return (
     <table className="sd-table">
@@ -28,7 +41,7 @@ export function AddressMapTable({ graph, onSelectInstance, onReveal }: AddressMa
         </tr>
       </thead>
       <tbody>
-        {graph.addressSegments.map((segment) => (
+        {rows.map((segment) => (
           <tr
             key={`${segment.line}:${segment.segment}`}
             className="sd-clickable cursor-pointer"
