@@ -12,6 +12,7 @@ import type {
   SystemPin,
 } from '../../domain/systemGraph';
 import { endpointRole, type EndpointRole } from '../../domain/systemGraphRoles';
+import type { TextMatcher } from './searchMatcher';
 
 export type Selection =
   | { kind: 'instance'; id: string }
@@ -99,21 +100,18 @@ export function isClockOrReset(net: Pick<SystemNet, 'category'>): boolean {
   return net.category === 'clock' || net.category === 'reset';
 }
 
-export function matchesQuery(instance: SystemInstance, query: string): boolean {
-  const needle = query.trim().toLowerCase();
-  if (needle === '') {
-    return true;
-  }
+/** Whether the name or the type of `instance` matches the search. */
+export function matchesQuery(instance: SystemInstance, matcher: TextMatcher): boolean {
   return (
-    instance.name.toLowerCase().includes(needle) ||
-    (instance.vlnv ?? instance.moduleRef ?? `${instance.component ?? ''} ${instance.version ?? ''}`)
-      .toLowerCase()
-      .includes(needle)
+    matcher(instance.name) ||
+    matcher(
+      instance.vlnv ?? instance.moduleRef ?? `${instance.component ?? ''} ${instance.version ?? ''}`
+    )
   );
 }
 
-export function boundaryMatchesQuery(pin: SystemPin, query: string): boolean {
-  return pin.name.toLowerCase().includes(query.trim().toLowerCase());
+export function boundaryMatchesQuery(pin: SystemPin, matcher: TextMatcher): boolean {
+  return matcher(pin.name);
 }
 
 /** 'xilinx.com:ip:axi_dma:7.1' -> 'axi_dma:7.1'. */

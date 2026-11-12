@@ -7,6 +7,8 @@ import type { ClocksInView } from './clocks/viewScope';
 import { CrossingsTable } from './CrossingsTable';
 import { LineLink } from './LineLink';
 import type { Selection } from './model';
+import { filterRows, NO_FILTER_MATCH, resetTexts } from './panelFilter';
+import type { TextMatcher } from './searchMatcher';
 import { levelSource } from './sourceFile';
 import type { FocusedPin } from './unconnectedPins';
 
@@ -15,6 +17,8 @@ interface ResetsTableProps {
   clocks: ClockAnalysis;
   /** What is on screen: the rows of both tables. */
   view: ClocksInView;
+  /** The panel's filter: only the rows it matches are listed. Null without one. */
+  filter: TextMatcher | null;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   /** Opens a net and reveals the given pin: a reset row its source, a crossing row its sink. */
@@ -27,11 +31,13 @@ export function ResetsTable({
   graph,
   clocks,
   view,
+  filter,
   selection,
   focusedPin,
   onSelectNet,
   onReveal,
 }: ResetsTableProps) {
+  const resets = filterRows(view.resets, filter, resetTexts);
   const selectedNet = selection?.kind === 'net' ? selection.id : undefined;
   const selectedReset = selectedNet === undefined ? undefined : clocks.resetOfNet(selectedNet);
 
@@ -56,6 +62,8 @@ export function ResetsTable({
       <h3 className="sd-psec">Reset sources</h3>
       {view.resets.length === 0 ? (
         <p className="p-3 opacity-70">No reset sources on this level.</p>
+      ) : resets.length === 0 ? (
+        <p className="p-3 opacity-70">{NO_FILTER_MATCH}</p>
       ) : (
         <table className="sd-table">
           <thead>
@@ -65,7 +73,7 @@ export function ResetsTable({
               <th>Source</th>
             </tr>
           </thead>
-          <tbody>{view.resets.map(resetRow)}</tbody>
+          <tbody>{resets.map(resetRow)}</tbody>
         </table>
       )}
       <h3 className="sd-psec">Reset domain crossings</h3>
@@ -74,6 +82,7 @@ export function ResetsTable({
         crossings={view.resetCrossings}
         headline={resetCrossingsHeadline}
         showKind={false}
+        filter={filter}
         selection={selection}
         focusedPin={focusedPin}
         onSelectNet={onSelectNet}

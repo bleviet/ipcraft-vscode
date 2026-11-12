@@ -37,7 +37,7 @@ function canvas(
         review={null}
         clocks={clockContextOf(graph, domainMode)}
         focusedPin={null}
-        query=""
+        matcher={null}
         onSelect={jest.fn()}
         onToggleNode={jest.fn()}
         onIsolate={jest.fn()}

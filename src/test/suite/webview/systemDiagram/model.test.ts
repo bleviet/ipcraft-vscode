@@ -20,6 +20,12 @@ import {
   shortVlnv,
 } from '../../../../webview/systemDiagram/model';
 import { loadFixtureGraph, loadQsysFixtureGraph } from './fixtureGraph';
+import {
+  compileSearch,
+  DEFAULT_SEARCH_OPTIONS,
+} from '../../../../webview/systemDiagram/searchMatcher';
+
+const query = (text: string) => compileSearch(text, DEFAULT_SEARCH_OPTIONS)!;
 
 const graph = loadFixtureGraph();
 
@@ -67,10 +73,9 @@ describe('system diagram model', () => {
 
   it('matches instances by name or VLNV, case-insensitively', () => {
     const dma = graph.instances['/axi_dma_0'];
-    expect(matchesQuery(dma, '')).toBe(true);
-    expect(matchesQuery(dma, 'AXI_DMA')).toBe(true);
-    expect(matchesQuery(dma, 'xilinx.com:ip:axi_dma')).toBe(true);
-    expect(matchesQuery(dma, 'gpio')).toBe(false);
+    expect(matchesQuery(dma, query('AXI_DMA'))).toBe(true);
+    expect(matchesQuery(dma, query('xilinx.com:ip:axi_dma'))).toBe(true);
+    expect(matchesQuery(dma, query('gpio'))).toBe(false);
   });
 
   it('filters clock and reset nets', () => {
@@ -165,10 +170,10 @@ describe('system diagram model', () => {
 
   it('matches qsys instances by component and version', () => {
     const instance = loadQsysFixtureGraph().instances['/nios2_gen2_0'];
-    expect(matchesQuery(instance, 'nios2_gen2')).toBe(true);
-    expect(matchesQuery(instance, 'altera_nios2')).toBe(true);
-    expect(matchesQuery(instance, '18.1')).toBe(true);
-    expect(matchesQuery(instance, 'zynq')).toBe(false);
+    expect(matchesQuery(instance, query('nios2_gen2'))).toBe(true);
+    expect(matchesQuery(instance, query('altera_nios2'))).toBe(true);
+    expect(matchesQuery(instance, query('18.1'))).toBe(true);
+    expect(matchesQuery(instance, query('zynq'))).toBe(false);
   });
 
   it('computes the high address only for hex offset and range', () => {

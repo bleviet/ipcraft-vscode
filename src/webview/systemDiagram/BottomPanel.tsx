@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { AddressMapTable } from './AddressMapTable';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
@@ -7,6 +7,7 @@ import { ClocksTable } from './ClocksTable';
 import { shownLevels } from './expansion';
 import { ResetsTable } from './ResetsTable';
 import type { Selection } from './model';
+import { compileSearch, DEFAULT_SEARCH_OPTIONS } from './searchMatcher';
 import { UnconnectedPinsTable } from './UnconnectedPinsTable';
 import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
@@ -55,34 +56,68 @@ export function BottomPanel({
     { id: 'resets', label: 'Resets', count: view.resets.length },
     { id: 'unconnected', label: 'Unconnected', count: findings.length },
   ];
+  // One filter box for the tab on show; each tab keeps its own text.
+  const [filters, setFilters] = useState<Record<BottomTab, string>>({
+    address: '',
+    clocks: '',
+    resets: '',
+    unconnected: '',
+  });
+  const filter = useMemo(() => compileSearch(filters[tab], DEFAULT_SEARCH_OPTIONS), [filters, tab]);
+  const setFilter = (text: string) => setFilters((previous) => ({ ...previous, [tab]: text }));
+  const tabLabel = tabs.find((item) => item.id === tab)?.label ?? '';
   return (
     <section
       aria-label="Bottom panel"
       className="flex min-h-0 flex-col border-t border-[var(--vscode-panel-border)]"
     >
-      <div role="tablist" className="sd-ptabs flex h-[30px] shrink-0 gap-0.5 px-2.5">
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === item.id}
-            onClick={() => onTabChange(item.id)}
-          >
-            {item.label}
-            <span className="sr-only"> </span>
-            <span className="sd-count">{item.count}</span>
-          </button>
-        ))}
+      <div className="flex h-[30px] shrink-0 items-center gap-2 px-2.5">
+        <div role="tablist" className="sd-ptabs flex h-full gap-0.5">
+          {tabs.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === item.id}
+              onClick={() => onTabChange(item.id)}
+            >
+              {item.label}
+              <span className="sr-only"> </span>
+              <span className="sd-count">{item.count}</span>
+            </button>
+          ))}
+        </div>
+        <div className="flex-1" />
+        <input
+          type="search"
+          className="sd-input w-[220px] min-w-0 text-xs"
+          placeholder={`Filter ${tabLabel.toLowerCase()}`}
+          aria-label={`Filter ${tabLabel}`}
+          title="Show only the rows with this text in a column. * matches any characters, ? matches one"
+          value={filters[tab]}
+          onChange={(event) => setFilter(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              setFilter('');
+            }
+          }}
+        />
       </div>
       <div className="min-h-0 flex-1 overflow-auto px-2.5 pb-2.5">
         {tab === 'address' ? (
-          <AddressMapTable graph={graph} onSelectInstance={onSelectInstance} onReveal={onReveal} />
+          <AddressMapTable
+            graph={graph}
+            filter={filter}
+            onSelectInstance={onSelectInstance}
+            onReveal={onReveal}
+          />
         ) : tab === 'clocks' ? (
           <ClocksTable
             graph={graph}
             clocks={clocks}
             view={view}
+            filter={filter}
             selection={selection}
             focusedPin={focusedPin}
             onSelectNet={onSelectNet}
@@ -93,6 +128,7 @@ export function BottomPanel({
             graph={graph}
             clocks={clocks}
             view={view}
+            filter={filter}
             selection={selection}
             focusedPin={focusedPin}
             onSelectNet={onSelectNet}
@@ -102,6 +138,7 @@ export function BottomPanel({
           <UnconnectedPinsTable
             graph={graph}
             findings={findings}
+            filter={filter}
             selection={selection}
             focusedPin={focusedPin}
             onSelectPin={onSelectPin}

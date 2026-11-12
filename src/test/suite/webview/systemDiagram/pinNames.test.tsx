@@ -42,7 +42,7 @@ function canvas(layout: Layout) {
         review={null}
         clocks={clocks}
         focusedPin={null}
-        query=""
+        matcher={null}
         onSelect={jest.fn()}
         onToggleNode={jest.fn()}
         onIsolate={jest.fn()}

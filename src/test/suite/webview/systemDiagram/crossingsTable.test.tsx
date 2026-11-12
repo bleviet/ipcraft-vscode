@@ -33,6 +33,7 @@ function renderTable(
       crossings={crossings}
       headline={props.headline ?? dataCrossingsHeadline}
       showKind={props.showKind ?? true}
+      filter={null}
       selection={props.selection ?? null}
       focusedPin={props.focusedPin ?? null}
       onSelectNet={onSelectNet}

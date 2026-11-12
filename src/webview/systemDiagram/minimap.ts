@@ -2,6 +2,7 @@
 
 import { boundaryMatchesQuery, matchesQuery } from './model';
 import type { DiagramFlowNode } from './layout/diagramTypes';
+import type { TextMatcher } from './searchMatcher';
 
 export const MINIMAP_COLORS = {
   block: 'color-mix(in srgb, var(--vscode-foreground) 35%, transparent)',
@@ -13,15 +14,15 @@ export const MINIMAP_COLORS = {
 type MinimapNode = DiagramFlowNode & { selected?: boolean };
 
 /** Fill of a block on the minimap: selected, else a search match, else a hierarchy tint, else plain. */
-export function minimapColor(node: MinimapNode, query: string): string {
+export function minimapColor(node: MinimapNode, matcher: TextMatcher | null): string {
   if (node.selected) {
     return MINIMAP_COLORS.selected;
   }
-  if (query.trim() !== '') {
+  if (matcher) {
     const matches =
       node.type === 'boundary'
-        ? boundaryMatchesQuery(node.data.pin, query)
-        : matchesQuery(node.data.instance, query);
+        ? boundaryMatchesQuery(node.data.pin, matcher)
+        : matchesQuery(node.data.instance, matcher);
     if (matches) {
       return MINIMAP_COLORS.match;
     }

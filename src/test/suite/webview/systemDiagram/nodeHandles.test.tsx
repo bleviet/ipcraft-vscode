@@ -48,7 +48,7 @@ function Harness({ design, layout }: { design: SystemGraph; layout: Layout }) {
         review={null}
         clocks={clockContextOf(design)}
         focusedPin={null}
-        query=""
+        matcher={null}
         onSelect={noop}
         onToggleNode={noop}
         onIsolate={noop}

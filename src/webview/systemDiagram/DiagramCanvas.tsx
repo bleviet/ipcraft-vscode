@@ -28,6 +28,7 @@ import type { ClockContext } from './clockDecor';
 import { useCanvasElements } from './hooks/useCanvasElements';
 import { HIGHLIGHT_COLORS, hasAnyHighlight, highlightCount } from './highlights';
 import { nodeSelection, sameSelection, type Selection } from './model';
+import type { TextMatcher } from './searchMatcher';
 import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
 /** Everything the canvas needs to draw the unconnected-pin review; null while the review is off. */
@@ -54,7 +55,8 @@ interface DiagramCanvasProps {
   review: ReviewContext | null;
   clocks: ClockContext;
   focusedPin: FocusedPin | null;
-  query: string;
+  /** The compiled search, or null without one. */
+  matcher: TextMatcher | null;
   /** Auto detail is on: far out, pin text goes and block names grow. Absent, it is off. */
   autoDetail?: boolean;
   /** The minimap is shown. Absent, it is not. */
@@ -97,7 +99,7 @@ export function DiagramCanvas({
   review,
   clocks,
   focusedPin,
-  query,
+  matcher,
   autoDetail,
   minimap,
   flash,
@@ -183,7 +185,7 @@ export function DiagramCanvas({
     review,
     clocks,
     focusedPin,
-    query,
+    matcher,
     flash,
     onFlashEnd,
     onSelectNet,
@@ -338,7 +340,7 @@ export function DiagramCanvas({
           domains={decor.legend}
         />
         <AutoDetail target={containerRef} enabled={autoDetail ?? false} />
-        {minimap && <DiagramMinimap query={query} />}
+        {minimap && <DiagramMinimap matcher={matcher} />}
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}
       {menu && (

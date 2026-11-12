@@ -9,6 +9,8 @@ import { CrossingsTable } from './CrossingsTable';
 import { DomainName } from './DomainLabel';
 import { LineLink } from './LineLink';
 import type { Selection } from './model';
+import { domainTexts, filterRows, NO_FILTER_MATCH } from './panelFilter';
+import type { TextMatcher } from './searchMatcher';
 import { levelSource } from './sourceFile';
 import type { FocusedPin } from './unconnectedPins';
 
@@ -17,6 +19,8 @@ interface ClocksTableProps {
   clocks: ClockAnalysis;
   /** What is on screen: the rows of both tables. */
   view: ClocksInView;
+  /** The panel's filter: only the rows it matches are listed. Null without one. */
+  filter: TextMatcher | null;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   /** Opens a net and reveals the given pin: a domain row its source, a crossing row its sink. */
@@ -33,11 +37,13 @@ export function ClocksTable({
   graph,
   clocks,
   view,
+  filter,
   selection,
   focusedPin,
   onSelectNet,
   onReveal,
 }: ClocksTableProps) {
+  const domains = filterRows(view.domains, filter, domainTexts);
   const selectedNet = selection?.kind === 'net' ? selection.id : undefined;
   const selectedDomain = selectedNet === undefined ? undefined : clocks.domainOfNet(selectedNet);
 
@@ -88,6 +94,8 @@ export function ClocksTable({
       <h3 className="sd-psec">Clock domains</h3>
       {view.domains.length === 0 ? (
         <p className="p-3 opacity-70">No clock domains on this level.</p>
+      ) : domains.length === 0 ? (
+        <p className="p-3 opacity-70">{NO_FILTER_MATCH}</p>
       ) : (
         <table className="sd-table">
           <thead>
@@ -101,7 +109,7 @@ export function ClocksTable({
               <th>Source</th>
             </tr>
           </thead>
-          <tbody>{view.domains.map(domainRow)}</tbody>
+          <tbody>{domains.map(domainRow)}</tbody>
         </table>
       )}
       <h3 className="sd-psec">Clock domain crossings</h3>
@@ -110,6 +118,7 @@ export function ClocksTable({
         crossings={view.dataCrossings}
         headline={dataCrossingsHeadline}
         showKind
+        filter={filter}
         selection={selection}
         focusedPin={focusedPin}
         onSelectNet={onSelectNet}

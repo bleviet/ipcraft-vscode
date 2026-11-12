@@ -36,7 +36,7 @@ function Harness({
         review={null}
         clocks={clockContextOf(graph)}
         focusedPin={null}
-        query=""
+        matcher={null}
         minimap={minimap}
         onSelect={jest.fn()}
         onToggleNode={jest.fn()}

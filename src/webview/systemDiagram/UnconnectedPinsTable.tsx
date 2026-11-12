@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import { LineLink } from './LineLink';
 import type { Selection } from './model';
+import { filterRows, findingTexts, NO_FILTER_MATCH } from './panelFilter';
+import type { TextMatcher } from './searchMatcher';
 import {
   findingRow,
   focusedPinOf,
@@ -14,6 +16,8 @@ import {
 interface UnconnectedPinsTableProps {
   graph: SystemGraph;
   findings: readonly UnconnectedPin[];
+  /** The panel's filter: only the rows it matches are listed. Null without one. */
+  filter: TextMatcher | null;
   selection: Selection | null;
   focusedPin: FocusedPin | null;
   onSelectPin: (finding: UnconnectedPin) => void;
@@ -44,6 +48,7 @@ function Severity({ cls }: { cls: UnconnectedClass }) {
 export function UnconnectedPinsTable({
   graph,
   findings,
+  filter,
   selection,
   focusedPin,
   onSelectPin,
@@ -69,7 +74,8 @@ export function UnconnectedPinsTable({
       )}
     </span>
   );
-  const rows = findings.filter((finding) => shown[finding.cls]);
+  const listed = findings.filter((finding) => shown[finding.cls]);
+  const rows = filterRows(listed, filter, (finding) => findingTexts(graph, finding));
   return (
     <div>
       <div className="sd-ubar">
@@ -88,6 +94,8 @@ export function UnconnectedPinsTable({
       </div>
       {findings.length === 0 ? (
         <p className="p-3 opacity-70">No unconnected pins found.</p>
+      ) : listed.length > 0 && rows.length === 0 ? (
+        <p className="p-3 opacity-70">{NO_FILTER_MATCH}</p>
       ) : (
         <table className="sd-table">
           <thead>

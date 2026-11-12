@@ -7,6 +7,12 @@ import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLay
 import type { Selection } from '../../../../webview/systemDiagram/model';
 import { clockContextOf } from './clockContext';
 import { loadFixtureGraph, fakeMeasure } from './fixtureGraph';
+import {
+  compileSearch,
+  DEFAULT_SEARCH_OPTIONS,
+} from '../../../../webview/systemDiagram/searchMatcher';
+
+const dma = compileSearch('dma', DEFAULT_SEARCH_OPTIONS);
 
 // Real @xyflow/react: the nodes and edges in the store are the objects the canvas handed
 // over, so identity there is what lets React Flow skip an element it already drew.
@@ -51,13 +57,13 @@ type Props = React.ComponentProps<typeof DiagramCanvas>;
 
 function Harness({
   layout,
-  query = '',
+  matcher = null,
   selection = null,
   selectedNodeIds = [],
   onSelect = handlers.onSelect,
 }: {
   layout: Props['layout'];
-  query?: string;
+  matcher?: Props['matcher'];
   selection?: Selection | null;
   selectedNodeIds?: string[];
   onSelect?: Props['onSelect'];
@@ -74,7 +80,7 @@ function Harness({
         review={null}
         clocks={clocks}
         focusedPin={null}
-        query={query}
+        matcher={matcher}
         {...handlers}
         onSelect={onSelect}
       />
@@ -102,7 +108,7 @@ describe('Stable React Flow elements', () => {
     const { rerender } = render(<Harness layout={layout} />);
     const before = userNodes();
     const edgesBefore = userEdges();
-    rerender(<Harness layout={layout} query="dma" />);
+    rerender(<Harness layout={layout} matcher={dma} />);
     const after = userNodes();
     const changed = [...after.values()].filter((n) => n !== before.get(n.id));
     expect(changed.length).toBeGreaterThan(0);
@@ -116,10 +122,10 @@ describe('Stable React Flow elements', () => {
   });
 
   it('keeps every node and edge when a render changes nothing', () => {
-    const { rerender } = render(<Harness layout={layout} query="dma" />);
+    const { rerender } = render(<Harness layout={layout} matcher={dma} />);
     const nodes = userNodes();
     const edges = userEdges();
-    rerender(<Harness layout={layout} query="dma" />);
+    rerender(<Harness layout={layout} matcher={dma} />);
     for (const [id, node] of userNodes()) {
       expect(node).toBe(nodes.get(id));
     }
@@ -170,7 +176,7 @@ describe('Stable React Flow elements', () => {
     const before = userNodes();
     expect(headerRenders.length).toBeGreaterThan(0);
     headerRenders.length = 0;
-    rerender(<Harness layout={layout} query="dma" />);
+    rerender(<Harness layout={layout} matcher={dma} />);
     const changed = [...userNodes().values()].filter((n) => n !== before.get(n.id));
     expect(changed.length).toBeGreaterThan(0);
     for (const node of changed) {

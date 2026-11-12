@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import type { Selection } from '../model';
 import { matchCounter, searchMatches, stepMatch } from '../search';
+import type { TextMatcher } from '../searchMatcher';
 
 /** The node to pulse; a new `token` restarts the pulse even on the same node. */
 export interface SearchFlash {
@@ -12,13 +13,13 @@ export interface SearchFlash {
 /** Steps through the search matches of every level and reports where it is. */
 export function useSearchStepper(
   graph: SystemGraph,
-  query: string,
+  matcher: TextMatcher | null,
   selection: Selection | null,
   revealMatch: (instancePath: string) => void
 ) {
-  const matches = useMemo(() => searchMatches(graph, query), [graph, query]);
+  const matches = useMemo(() => searchMatches(graph, matcher), [graph, matcher]);
   const [flash, setFlash] = useState<SearchFlash | null>(null);
-  const blank = query.trim() === '';
+  const blank = matcher === null;
   useEffect(() => {
     if (blank) {
       setFlash(null);
@@ -44,5 +45,5 @@ export function useSearchStepper(
     []
   );
 
-  return { counter: matchCounter(matches, selectedId), step, flash, clearFlash };
+  return { matches, counter: matchCounter(matches, selectedId), step, flash, clearFlash };
 }
