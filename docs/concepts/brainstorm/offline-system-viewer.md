@@ -468,7 +468,7 @@ the same graph for CI and scripts.
 | 1 | `write_bd_tcl` reader, system graph, read-only diagram with hierarchy, outline, details, go to source, pins from connections, address map table |
 | 2 | `.qsys` Standard reader, enrichment from `.ip.yml` and module references |
 | 3 | `.bd` JSON reader, Platform Designer Pro, vendor catalog and user repository enrichment |
-| 4 | `.hwh` and `.sopcinfo` resolved mode; graph diff between two revisions, which feeds the synchronization phase of design-aware documentation |
+| 4 | `.hwh` and `.sopcinfo` resolved mode; graph diff between two revisions (see [System Design Diff](system-design-diff.md)), which feeds the synchronization phase of design-aware documentation |
 
 ## Open Questions
 
