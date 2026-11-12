@@ -40,7 +40,7 @@ const CELL_FLAGS = new Set(['-type', '-vlnv', '-reference', '-dict']);
 const PIN_FLAGS = new Set(['-dir', '-type', '-from', '-to', '-mode', '-vlnv', '-freq_hz']);
 const NET_FLAGS = new Set(['-net', '-intf_net', '-boundary_type']);
 const ADDR_FLAGS = new Set(['-offset', '-range', '-target_address_space', '-dict']);
-const SIGNAL_TYPES: readonly string[] = ['clk', 'rst', 'intr', 'data', 'ce', 'undef'];
+export const SIGNAL_TYPES: readonly string[] = ['clk', 'rst', 'intr', 'data', 'ce', 'undef'];
 const UNRESOLVABLE_FLAGS = ['-filter', '-of_objects', '-hier'];
 
 function flagValue(env: CommandEnv, opts: ParsedOptions, name: string): string | undefined {
@@ -73,13 +73,13 @@ export function createCell(env: CommandEnv, words: readonly Word[]): string | un
   });
 }
 
-const INTERFACE_MODES: Record<string, PinDirection> = {
+export const INTERFACE_MODES: Record<string, PinDirection> = {
   Master: 'master',
   Slave: 'slave',
   MirroredMaster: 'slave',
   MirroredSlave: 'master',
 };
-const SCALAR_DIRECTIONS: Record<string, PinDirection> = { I: 'in', O: 'out', IO: 'inout' };
+export const SCALAR_DIRECTIONS: Record<string, PinDirection> = { I: 'in', O: 'out', IO: 'inout' };
 
 /**
  * `create_bd_(intf_)port` (root boundary) and `create_bd_(intf_)pin` (current

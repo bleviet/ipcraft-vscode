@@ -7,7 +7,7 @@ normal typing shortcuts unless a table cell is explicitly in navigation mode.
 
 | Key | Action |
 |-----|--------|
-| `Ctrl+Shift+V` / `Cmd+Shift+V` | On a Vivado block design `.tcl` script, a Platform Designer `.qsys` file, or a Platform Designer system script, open the read-only system diagram; in the diagram, return to the text editor |
+| `Ctrl+Shift+V` / `Cmd+Shift+V` | On a Vivado block design `.tcl` script or `.bd` file, a Platform Designer `.qsys` file, or a Platform Designer system script, open the read-only system diagram; in the diagram, return to the text editor |
 
 ## System Diagram
 

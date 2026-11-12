@@ -25,7 +25,7 @@ creating or importing a specification to generating, validating, and building.
 Verilog, SystemVerilog, `_hw.tcl`, or `component.xml` file it opens a read-only
 preview from which you can save an `.ip.yml`; on an `.ip.yml` or `.mm.yml` file
 it switches between the text and visual editors; on a Vivado block design
-`.tcl` script, a Platform Designer `.qsys` file, or a Platform Designer system
+`.tcl` script or `.bd` file, a Platform Designer `.qsys` file, or a Platform Designer system
 script it opens or closes the read-only system diagram. The editable source is [`commands-map.drawio`](../images/commands-map.drawio).
 
 ![Map of IPCraft commands grouped by workflow stage: create or import, specification, generate, validate, build, and vendor tools](../images/commands-map-light.png)
@@ -268,7 +268,7 @@ Available build targets:
 
 **Export Diagram as Image** — Opens the export options of the active IP core editor or system diagram (the same popover as the camera button in the toolbar) to save the diagram as an SVG, PNG or JPG file. See [Viewing a System Design](../how-to/view-a-system-design.md#export-an-image).
 
-**Open as System Diagram** — Opens a system design file in a read-only system diagram with hierarchy, details, and address map. Supported files are Vivado `write_bd_tcl` block design scripts (`.tcl`), Platform Designer `.qsys` systems (Standard), and Platform Designer system scripts (`qsys-script` `.tcl`). The file is read statically and never executed. A `_hw.tcl` file keeps its own preview. See [Viewing a System Design](../how-to/view-a-system-design.md). Press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) again to return to the text editor.
+**Open as System Diagram** — Opens a system design file in a read-only system diagram with hierarchy, details, and address map. Supported files are Vivado `write_bd_tcl` block design scripts (`.tcl`), Vivado block design files (`.bd`, Vivado 2018.3 and later), Platform Designer `.qsys` systems (Standard), and Platform Designer system scripts (`qsys-script` `.tcl`). The file is read statically and never executed. A `_hw.tcl` file keeps its own preview. See [Viewing a System Design](../how-to/view-a-system-design.md). Press `Ctrl+Shift+V` (`Cmd+Shift+V` on macOS) again to return to the text editor.
 
 ---
 

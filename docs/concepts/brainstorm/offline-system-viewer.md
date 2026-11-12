@@ -3,8 +3,9 @@
 ## Status
 
 Implemented: phase 1 (Vivado `write_bd_tcl`), phase 2 (`.qsys` Standard and
-enrichment from `.ip.yml` and module references), and Platform Designer system
-scripts. Phases 3 and 4 are open. For the user-facing behavior, see
+enrichment from `.ip.yml` and module references), Platform Designer system
+scripts, and the `.bd` JSON reader of phase 3 (Vivado 2018.3 and later). The rest
+of phase 3 and phase 4 are open. For the user-facing behavior, see
 [Viewing a System Design](../../how-to/view-a-system-design.md).
 
 It narrows one part of
@@ -426,7 +427,7 @@ and 500 instances, flat and with three hierarchy levels:
 | System graph types | `src/domain/systemGraph.ts` | `SystemGraph`, `Instance`, `Pin`, `Net`, `AddressSegment`, `SourceLocation`, `Provenance`, `Capabilities`. Pure types shared across the process boundary |
 | BD Tcl reader | `src/parser/system/BdTclReader.ts` | Pure: text to graph plus warnings, reusing the `hwTcl*` modules |
 | Qsys reader | `src/parser/system/QsysReader.ts` | Pure: XML text to graph plus warnings |
-| BD JSON reader | `src/parser/system/BdJsonReader.ts` | Pure, phase 3 |
+| BD JSON reader | `src/parser/system/BdJsonReader.ts` | Pure: JSON `.bd` text to graph (implemented) |
 | Pin enrichment | `src/services/systemGraph/PinEnrichmentService.ts` | File system access, VLNV index, calls to existing parsers |
 | Editor provider | `src/providers/SystemDiagramProvider.ts` | Read-only custom editor; watches the source file and posts the graph |
 | Webview root | `src/webview/system/` | Composition of outline, diagram, details, and address map |

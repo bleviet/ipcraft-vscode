@@ -32,11 +32,14 @@ export function InstanceDetails({
   const source = levelSource(graph, instance.parent);
   const nets = netsByEndpoint(graph, instance.parent);
   const parameters = Object.entries(instance.parameters);
-  const hasUndriven = instance.pins.some(
-    (pin) =>
-      !nets.has(endpointKey({ instance: instance.path, pin: pin.name })) &&
-      unconnectedClass(pin, false) === 'undriven'
-  );
+  const pinListKnown = isPinListKnown(instance);
+  const hasUndriven =
+    pinListKnown &&
+    instance.pins.some(
+      (pin) =>
+        !nets.has(endpointKey({ instance: instance.path, pin: pin.name })) &&
+        unconnectedClass(pin, false) === 'undriven'
+    );
   const identity =
     instance.kind === 'blackbox'
       ? 'Not defined in this file'
@@ -143,6 +146,8 @@ export function InstanceDetails({
                           </button>
                         </div>
                       ))
+                    ) : !pinListKnown ? (
+                      '-'
                     ) : (
                       <span
                         className="sd-unc-tag"
@@ -172,9 +177,9 @@ export function InstanceDetails({
             An active-low reset tied to 0 holds the block in reset.
           </p>
         )}
-        {!isPinListKnown(instance) && (
+        {!pinListKnown && (
           <p className="mt-2 text-xs opacity-70">
-            Pins come from the connections in the design file, so unconnected pins cannot be
+            The design file does not list every pin of this block, so unconnected pins cannot be
             checked.
           </p>
         )}

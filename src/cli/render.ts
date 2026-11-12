@@ -55,7 +55,7 @@ async function readGraph(
 ): Promise<SystemGraph> {
   if (!isSystemDesignScript(inputPath, text)) {
     throw new Error(
-      `'${inputPath}' is not a recognized system design (Vivado block design .tcl, Platform Designer .qsys or qsys-script .tcl) or .ip.yml`
+      `'${inputPath}' is not a recognized system design (Vivado block design .tcl or .bd, Platform Designer .qsys or qsys-script .tcl) or .ip.yml`
     );
   }
   const graph = readSystemDesign(inputPath, path.basename(inputPath), text);

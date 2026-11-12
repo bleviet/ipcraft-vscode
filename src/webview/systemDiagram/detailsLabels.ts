@@ -7,6 +7,7 @@ type Capabilities = SystemGraph['capabilities'];
 
 const FORMAT_LABELS: Record<Format, string> = {
   'vivado-bd-tcl': 'Vivado block design script',
+  'vivado-bd': 'Vivado block design',
   qsys: 'Platform Designer system',
   'qsys-tcl': 'Platform Designer script',
 };
@@ -26,7 +27,9 @@ export function formatLabel(format: Format): string {
 
 /** Eyebrow of the design summary: what kind of design the file describes. */
 export function designEyebrow(format: Format): string {
-  return format === 'vivado-bd-tcl' ? 'Block design' : 'Platform Designer system';
+  return format === 'vivado-bd-tcl' || format === 'vivado-bd'
+    ? 'Block design'
+    : 'Platform Designer system';
 }
 
 export function capabilityRows(
