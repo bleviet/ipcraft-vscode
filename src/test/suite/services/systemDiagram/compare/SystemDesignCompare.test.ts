@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SystemGraph } from '../../../../../domain/systemGraph';
+import * as diffFindings from '../../../../../services/systemDiagram/diff/diffFindings';
 import {
   SystemDesignCompare,
   type CurrentSide,
@@ -148,6 +149,86 @@ describe('SystemDesignCompare', () => {
       compare.start(text('zynq_gpio_base.bd'), ...START);
       await compare.diffEnriched(side({ fellBack: true }), '/ws/system.bd');
       expect(enrich).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('findings', () => {
+    const led = { kind: 'undriven', level: '/', instance: null, pin: 'led_o', label: 'led_o' };
+
+    it('carries the findings that differ from the base as read', () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const result = compare.diffRead(current)!;
+      expect(result.findings).toEqual({ new: [], resolved: [led] });
+    });
+
+    it('carries the findings that differ from the enriched base', async () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const result = (await compare.diffEnriched(side(), '/ws/system.bd'))!;
+      expect(result.findings).toEqual({ new: [], resolved: [led] });
+    });
+
+    it('compares read with read, and enriched with enriched, for the findings too', async () => {
+      const { compare, enrich } = setup();
+      // The definitions give a block with a known pin list one more pin that no net touches.
+      const withExtraPin = (graph: SystemGraph): SystemGraph => {
+        const [path, block] = Object.entries(graph.instances).find(
+          ([, instance]) => instance.kind === 'hier'
+        )!;
+        const pin = { ...block.pins[0], name: 'extra_pin' };
+        return {
+          ...graph,
+          instances: { ...graph.instances, [path]: { ...block, pins: [...block.pins, pin] } },
+        };
+      };
+      enrich.mockImplementation((graph) => Promise.resolve(withExtraPin(graph)));
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const names = (result: { findings: { resolved: { kind: string }[] } }) =>
+        JSON.stringify(result.findings.resolved);
+      const read = compare.diffRead(current)!;
+      expect(names(read)).not.toContain('extra_pin');
+      // The extra pin is in the enriched base only: the current side without it resolves it.
+      const unequal = (await compare.diffEnriched(side(), '/ws/system.bd'))!;
+      expect(names(unequal)).toContain('extra_pin');
+      // Both sides enriched alike: the definitions are no difference.
+      const enrichedCurrent = withExtraPin(current);
+      const equal = (await compare.diffEnriched(
+        side({ read: current, enriched: enrichedCurrent }),
+        '/ws/system.bd'
+      ))!;
+      expect(equal.findings).toEqual(read.findings);
+    });
+
+    it('analyses the base once for several edits, and the current side for each', async () => {
+      const { compare } = setup();
+      const analyse = jest.spyOn(diffFindings, 'findingsOf');
+      try {
+        compare.start(text('zynq_gpio_base.bd'), ...START);
+        const first = (await compare.diffEnriched(side(), '/ws/system.bd'))!;
+        expect(analyse).toHaveBeenCalledTimes(2);
+        const edited = { ...current };
+        const second = (await compare.diffEnriched(
+          side({ read: edited, enriched: edited }),
+          '/ws/system.bd'
+        ))!;
+        expect(analyse).toHaveBeenCalledTimes(3);
+        expect(second.findings).toEqual(first.findings);
+        // The same graphs again are not analysed again.
+        await compare.diffEnriched(side({ read: edited, enriched: edited }), '/ws/system.bd');
+        expect(analyse).toHaveBeenCalledTimes(3);
+      } finally {
+        analyse.mockRestore();
+      }
+    });
+
+    it('analyses the base again for a new base', () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const before = compare.diffRead(current)!;
+      expect(compare.diffRead(current)!.findings.resolved[0]).toBe(before.findings.resolved[0]);
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      expect(compare.diffRead(current)!.findings.resolved[0]).not.toBe(before.findings.resolved[0]);
     });
   });
 

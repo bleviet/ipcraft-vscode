@@ -1,7 +1,8 @@
 /** Markdown report of a {@link SystemGraphDiff}, made for a pull request comment. Pure. */
 
-import type { Finding, FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
+import type { FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
 import { changeRows, type Cell, type CellPart, type ChangeRow } from './changeRows';
+import { findingRows } from './findingRows';
 import { withoutVersionOnly } from './ignoreVersionOnly';
 
 export interface DiffLabels {
@@ -71,33 +72,13 @@ function levelSections(rows: ChangeRow[]): string[] {
   });
 }
 
-const FINDING_NAMES: Record<Finding['kind'], string> = {
-  undriven: 'undriven pin',
-  unused: 'unused pin',
-  dataCrossing: 'data crossing',
-  resetCrossing: 'reset crossing',
-};
-
-function findingRow(sign: string, finding: Finding): Row {
-  const onLevel = finding.level === '/' ? '' : ` on level ${code(finding.level)}`;
-  if ('label' in finding) {
-    return [sign, FINDING_NAMES[finding.kind], `${code(finding.label)}${onLevel}`, ''];
-  }
-  const clock = (label: string | undefined) =>
-    label === undefined ? 'unknown clock' : code(label);
-  return [
-    sign,
-    FINDING_NAMES[finding.kind],
-    `${code(finding.from)} → ${code(finding.to)}${onLevel}`,
-    `${clock(finding.fromClock)} → ${clock(finding.toClock)} · ${finding.reason}`,
-  ];
-}
-
-function findingsSection({ new: added, resolved }: FindingsDiff): string {
-  const rows = [
-    ...added.map((finding) => findingRow('New', finding)),
-    ...resolved.map((finding) => findingRow('Resolved', finding)),
-  ];
+function findingsSection(findings: FindingsDiff): string {
+  const rows = findingRows(findings).map((row) => [
+    row.sign,
+    row.kind,
+    render(row.where),
+    render(row.detail),
+  ]);
   return `### Findings\n${table(['', 'Finding', 'Where', 'Detail'], rows)}\n\nFindings are computed from the design files alone; workspace definitions are not used, so pins of blocks without a known pin list are not checked.`;
 }
 

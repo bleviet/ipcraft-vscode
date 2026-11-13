@@ -2,6 +2,7 @@
 
 import type { AddressSegment, SystemGraph } from '../../domain/systemGraph';
 import { cellText, type ChangeRow } from '../../services/systemDiagram/diff/changeRows';
+import type { FindingRow } from '../../services/systemDiagram/diff/findingRows';
 import { formatRange, groupHex } from './addressFormat';
 import { addressChangeWord, changeWhere, SIGN_LABELS } from './changeSummary';
 import type { ClockDomain, PinCrossing, ResetSource } from './clocks/clockTypes';
@@ -89,4 +90,8 @@ export function changeTexts(row: ChangeRow): RowTexts {
     cellText(row.base),
     cellText(row.current),
   ];
+}
+
+export function comparedFindingTexts(row: FindingRow): RowTexts {
+  return [row.sign, row.kind, cellText(row.where), cellText(row.detail)];
 }

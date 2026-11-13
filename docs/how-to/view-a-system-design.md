@@ -474,6 +474,28 @@ workspace or change a definition, so a definition never shows up as a change. If
 definitions cannot be read for one of the sides, both sides are compared without them.
 **Exit compare** ends the comparison; it also ends when you close the diagram.
 
+### Findings of the comparison
+
+The **Findings** tab, right after **Changes**, lists what the review of the viewer
+reports in one revision and not in the other: **New** for a finding only the current
+revision has, **Resolved** for one only the base has. A finding is a pin that no net
+touches or a data connection or reset that crosses into another clock domain without a
+known synchronizer; the
+[command-line reference](../reference/command-line.md#compare-two-revisions-of-a-system-design)
+defines them. The tab shows the number of findings that differ and does not open by
+itself. Unlike `ipcraft diff`, which reads the design files alone, the viewer checks both
+revisions with the workspace definitions of your workspace, so pins of blocks with a
+known definition are checked on both sides. The columns are the sign (the word `New` or
+`Resolved`, also colored), the kind of finding, where it is, and a detail (for a
+crossing, the two clocks and the reason). The chips **New** and **Resolved** and the
+filter box narrow the list.
+
+Click a row (or focus it and press Enter) to select the block it is about: the block of
+an unconnected pin, the hierarchy block of a hierarchy pin, the external port, or, for a
+crossing, the block that receives the signal (the one it comes from when that one is
+gone, else the external port it ends at, else the one it starts at). A finding of a block that no longer exists cannot be selected; its row is dimmed
+and says "Not in this revision" on hover.
+
 ### Changes on the diagram
 
 While a comparison is on, the diagram shows the current design with the changes
@@ -537,7 +559,7 @@ and counted in the legend. Blocks and wires that did not change are not dimmed.
 Exported images, and the image of `ipcraft render`, do not carry the marks yet.
 
 The current side is always the file you have open: you cannot choose a revision for
-it. The comparison covers the design only, not the findings or the address map tab.
+it. The comparison covers the design only, not the address map tab.
 
 ## Export an image
 

@@ -1,11 +1,13 @@
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
 import type { PinCrossing } from '../../../../webview/systemDiagram/clocks/clockTypes';
 import { changeRows } from '../../../../services/systemDiagram/diff/changeRows';
+import { findingRows } from '../../../../services/systemDiagram/diff/findingRows';
 import {
   changeTexts,
   crossingTexts,
   domainTexts,
   filterRows,
+  comparedFindingTexts,
   findingTexts,
   resetTexts,
 } from '../../../../webview/systemDiagram/panelFilter';
@@ -114,5 +116,34 @@ describe('changeTexts of a renamed block', () => {
     expect(matching('renamed')).toHaveLength(1);
     expect(matching('Renamed')).toHaveLength(1);
     expect(matching('axi_gpio_1')).toHaveLength(0);
+  });
+});
+
+describe('comparedFindingTexts', () => {
+  const rows = findingRows({
+    new: [
+      {
+        kind: 'dataCrossing',
+        level: '/h',
+        from: 'a/M',
+        to: 'b/S',
+        fromInstance: '/h/a',
+        toInstance: '/h/b',
+        fromClock: 'clkA',
+        reason: 'no synchronizer',
+      },
+    ],
+    resolved: [{ kind: 'unused', level: '/', instance: null, pin: 'led', label: 'led' }],
+  });
+  const matching = (text: string) => filterRows(rows, filter(text), comparedFindingTexts);
+
+  it('matches the sign, the kind, the where and the detail', () => {
+    expect(matching('Resolved')).toHaveLength(1);
+    expect(matching('data crossing')).toHaveLength(1);
+    expect(matching('a/M → b/S on level /h')).toHaveLength(1);
+    expect(matching('unknown clock')).toHaveLength(1);
+    expect(matching('no synchronizer')).toHaveLength(1);
+    expect(matching('led')).toHaveLength(1);
+    expect(matching('nothing')).toHaveLength(0);
   });
 });

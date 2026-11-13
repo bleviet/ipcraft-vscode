@@ -10,7 +10,8 @@
  */
 
 import type { SystemGraph } from '../../../domain/systemGraph';
-import type { SystemGraphDiff } from '../../../domain/systemGraphDiff';
+import type { Finding, FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
+import { compareFindings, findingsBase, findingsOf } from '../diff/diffFindings';
 import { diffSystemGraphs } from '../diff/diffSystemGraphs';
 import { readSystemDesign } from '../readSystemDesign';
 
@@ -24,6 +25,8 @@ export interface GraphEnricher {
 export interface CompareResult {
   baseLabel: string;
   diff: SystemGraphDiff;
+  /** The findings that differ, for the same two graphs as `diff`. */
+  findings: FindingsDiff;
 }
 
 /** The current side: the graph as read, as enriched, and whether its enrichment failed (then both are the read graph). */
@@ -44,6 +47,8 @@ export class SystemDesignCompare {
         enriched: Promise<SystemGraph>;
       }
     | undefined;
+  /** The findings of the graphs analysed so far: the base is analysed once, not for each edit. */
+  private readonly analysed = new WeakMap<SystemGraph, ReadonlyMap<string, Finding>>();
 
   constructor(
     private readonly enricher: GraphEnricher,
@@ -134,6 +139,23 @@ export class SystemDesignCompare {
     baseGraph: SystemGraph,
     current: SystemGraph
   ): CompareResult {
-    return { baseLabel: base.label, diff: diffSystemGraphs(baseGraph, current) };
+    const diff = diffSystemGraphs(baseGraph, current);
+    return {
+      baseLabel: base.label,
+      diff,
+      findings: compareFindings(
+        this.findingsOf(findingsBase(baseGraph, diff)),
+        this.findingsOf(current)
+      ),
+    };
+  }
+
+  private findingsOf(graph: SystemGraph): ReadonlyMap<string, Finding> {
+    let found = this.analysed.get(graph);
+    if (!found) {
+      found = findingsOf(graph);
+      this.analysed.set(graph, found);
+    }
+    return found;
   }
 }

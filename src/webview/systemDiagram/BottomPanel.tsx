@@ -2,19 +2,21 @@ import React, { useMemo, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { DiagramCompare } from '../../shared/messages/systemDiagram';
 import { changeRows } from '../../services/systemDiagram/diff/changeRows';
+import { findingRows } from '../../services/systemDiagram/diff/findingRows';
 import { AddressMapTable } from './AddressMapTable';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { clocksInView } from './clocks/viewScope';
 import { ChangesTable } from './ChangesTable';
 import { ClocksTable } from './ClocksTable';
 import { shownLevels } from './expansion';
+import { FindingsTable } from './FindingsTable';
 import { ResetsTable } from './ResetsTable';
 import type { Selection } from './model';
 import { compileSearch, DEFAULT_SEARCH_OPTIONS } from './searchMatcher';
 import { UnconnectedPinsTable } from './UnconnectedPinsTable';
 import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
-export type BottomTab = 'changes' | 'address' | 'clocks' | 'resets' | 'unconnected';
+export type BottomTab = 'changes' | 'findings' | 'address' | 'clocks' | 'resets' | 'unconnected';
 
 interface BottomPanelProps {
   graph: SystemGraph;
@@ -32,7 +34,7 @@ interface BottomPanelProps {
   /** Opens a net of the Clocks or Resets tab; a crossing row also haloes its sink pin. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
   onReveal: (line: number, uri?: string) => void;
-  /** While a comparison is on: its changes, listed in the first tab, and the way to select an external port. */
+  /** While a comparison is on: its changes and findings, listed in the first two tabs, and the way to select an external port. */
   changes?: {
     compare: DiagramCompare;
     onSelectPort: (name: string) => void;
@@ -60,12 +62,17 @@ export function BottomPanel({
     () => (changes ? changeRows(changes.compare.diff, { ignoreVersionOnly: false }) : []),
     [changes?.compare.diff]
   );
+  const findingList = useMemo(
+    () => (changes ? findingRows(changes.compare.findings) : []),
+    [changes?.compare.findings]
+  );
   const view = useMemo(
     () => clocksInView(graph, clocks, shownLevels(graph, levelPath, expanded)),
     [graph, clocks, levelPath, expanded]
   );
   const tabs: { id: BottomTab; label: string; count: number }[] = [
     ...(changes ? [{ id: 'changes' as const, label: 'Changes', count: rows.length }] : []),
+    ...(changes ? [{ id: 'findings' as const, label: 'Findings', count: findingList.length }] : []),
     { id: 'address', label: 'Address map', count: graph.addressSegments.length },
     { id: 'clocks', label: 'Clocks', count: view.domains.length },
     { id: 'resets', label: 'Resets', count: view.resets.length },
@@ -74,6 +81,7 @@ export function BottomPanel({
   // One filter box for the tab on show; each tab keeps its own text.
   const [filters, setFilters] = useState<Record<BottomTab, string>>({
     changes: '',
+    findings: '',
     address: '',
     clocks: '',
     resets: '',
@@ -131,6 +139,15 @@ export function BottomPanel({
             onSelectInstance={onSelectInstance}
             onSelectPort={changes.onSelectPort}
             onSwapCompare={changes.onSwapCompare}
+          />
+        ) : tab === 'findings' && changes ? (
+          <FindingsTable
+            graph={graph}
+            rows={findingList}
+            filter={filter}
+            selection={selection}
+            onSelectInstance={onSelectInstance}
+            onSelectPort={changes.onSelectPort}
           />
         ) : tab === 'address' ? (
           <AddressMapTable

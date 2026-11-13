@@ -58,6 +58,8 @@ function crossingFinding(crossing: PinCrossing): Keyed {
     level: crossing.level,
     from: from.label,
     to: to.label,
+    fromInstance: from.instance,
+    toInstance: to.instance,
     ...(from.domain && { fromClock: from.domain.label }),
     ...(to.domain && { toClock: to.domain.label }),
     reason: crossing.reason,
@@ -65,8 +67,8 @@ function crossingFinding(crossing: PinCrossing): Keyed {
   return { key: `${crossing.kind}|${fromKey}>${endKey(to)}`, finding };
 }
 
-/** One entry per key; the first one wins. */
-function findingsOf(graph: SystemGraph): Map<string, Finding> {
+/** The findings of one graph by key, analysed on the design alone; one entry per key, the first one wins. */
+export function findingsOf(graph: SystemGraph): ReadonlyMap<string, Finding> {
   const found = new Map<string, Finding>();
   const crossings = analyzeClocks(graph).crossings.flatMap((crossing) =>
     crossing.kind !== 'block' && crossing.status === 'cross' ? [crossingFinding(crossing)] : []
@@ -82,7 +84,7 @@ function findingsOf(graph: SystemGraph): Map<string, Finding> {
 const what = (finding: Finding): [string, string] =>
   'label' in finding ? [finding.label, ''] : [finding.from, finding.to];
 
-function compareFindings(x: [string, Finding], y: [string, Finding]): number {
+function compareEntries(x: [string, Finding], y: [string, Finding]): number {
   const [a, b] = [x[1], y[1]];
   const [[aFirst, aSecond], [bFirst, bSecond]] = [what(a), what(b)];
   return (
@@ -94,11 +96,40 @@ function compareFindings(x: [string, Finding], y: [string, Finding]): number {
   );
 }
 
-function only(source: Map<string, Finding>, other: Map<string, Finding>): Finding[] {
+function only(
+  source: ReadonlyMap<string, Finding>,
+  other: ReadonlyMap<string, Finding>
+): Finding[] {
   return [...source]
     .filter(([key]) => !other.has(key))
-    .sort(compareFindings)
+    .sort(compareEntries)
     .map(([, finding]) => finding);
+}
+
+/**
+ * The base with the renames of `diff` applied (see `diffFindings`): the base itself, the same
+ * object, when the diff has no renamed block.
+ */
+export function findingsBase(base: SystemGraph, diff: SystemGraphDiff): SystemGraph {
+  const renames = new Map(
+    diff.instances.flatMap((change) =>
+      change.status === 'renamed' && change.basePath !== undefined
+        ? [[change.basePath, change.path] as const]
+        : []
+    )
+  );
+  return renames.size > 0 ? renameInstances(base, renames) : base;
+}
+
+/** The findings of `current` that `base` does not have (new) and the other way round (resolved). */
+export function compareFindings(
+  baseFindings: ReadonlyMap<string, Finding>,
+  currentFindings: ReadonlyMap<string, Finding>
+): FindingsDiff {
+  return {
+    new: only(currentFindings, baseFindings),
+    resolved: only(baseFindings, currentFindings),
+  };
 }
 
 /**
@@ -109,21 +140,13 @@ function only(source: Map<string, Finding>, other: Map<string, Finding>): Findin
  * design alone: a pin of a block without a known pin list is not checked.
  *
  * A renamed block (see `diff`) keeps its findings: the base's are computed with the block under
- * its new name, so they are neither new nor resolved, and resolved findings carry the new names.
+ * its new name (`findingsBase`), so they are neither new nor resolved, and resolved findings
+ * carry the new names.
  */
 export function diffFindings(
   base: SystemGraph,
   current: SystemGraph,
   diff: SystemGraphDiff
 ): FindingsDiff {
-  const renames = new Map(
-    diff.instances.flatMap((change) =>
-      change.status === 'renamed' && change.basePath !== undefined
-        ? [[change.basePath, change.path] as const]
-        : []
-    )
-  );
-  const before = findingsOf(renames.size > 0 ? renameInstances(base, renames) : base);
-  const now = findingsOf(current);
-  return { new: only(now, before), resolved: only(before, now) };
+  return compareFindings(findingsOf(findingsBase(base, diff)), findingsOf(current));
 }

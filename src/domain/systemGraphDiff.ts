@@ -129,6 +129,9 @@ export interface CrossingFinding {
   /** Labels of the two ends: `instanceName/pin`, or the port name of a root external port. */
   from: string;
   to: string;
+  /** Instance path of each end; null for an external port or a reset whose source is not known. */
+  fromInstance: string | null;
+  toInstance: string | null;
   /** Labels of the clock domains of the ends; absent when the end's clock is not known. */
   fromClock?: string;
   toClock?: string;

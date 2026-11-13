@@ -7,7 +7,12 @@ import { compareOf, zynqDiff } from './compareFixtures';
 import { loadFixtureGraph } from './fixtureGraph';
 
 const graph = loadFixtureGraph();
-const compare = compareOf(zynqDiff());
+const compare = compareOf(zynqDiff(), 'HEAD', {
+  findings: {
+    new: [],
+    resolved: [{ kind: 'undriven', level: '/', instance: null, pin: 'led_o', label: 'led_o' }],
+  },
+});
 
 function Panel({ initial = 'address', on = true }: { initial?: BottomTab; on?: boolean }) {
   const [tab, setTab] = React.useState<BottomTab>(initial);
@@ -36,13 +41,31 @@ describe('BottomPanel Changes tab', () => {
     render(<Panel on={false} />);
     expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).not.toContain('Changes');
     expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.queryByRole('tab', { name: /^Findings/ })).not.toBeInTheDocument();
   });
 
   it('puts the tab first during a comparison, with the number of rows', () => {
     render(<Panel />);
     const tabs = screen.getAllByRole('tab');
-    expect(tabs).toHaveLength(5);
+    expect(tabs).toHaveLength(6);
     expect(tabs[0]).toHaveAccessibleName('Changes 12');
+  });
+
+  it('puts the Findings tab right after Changes, with the number of new and resolved findings', () => {
+    render(<Panel />);
+    expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Findings 1');
+  });
+
+  it('lists the findings in the tab and filters them with the filter box', () => {
+    render(<Panel initial="findings" />);
+    expect(screen.getByText(/^Both revisions are checked/)).toBeVisible();
+    expect(screen.getAllByRole('row')).toHaveLength(2);
+    fireEvent.change(screen.getByRole('searchbox', { name: 'Filter Findings' }), {
+      target: { value: 'nothing like this' },
+    });
+    expect(screen.getByText('No rows match the filter.')).toBeVisible();
+    // The tab counts what differs, not what the filter leaves.
+    expect(screen.getByRole('tab', { name: 'Findings 1' })).toBeVisible();
   });
 
   it('lists the changes in the tab and filters them with the filter box', () => {
@@ -110,6 +133,21 @@ describe('useBottomTab', () => {
     expect(result.current.tab).toBe('address');
     rerender({ label: undefined });
     expect(result.current.tab).toBe('address');
+  });
+
+  it('falls back to the Address map when the comparison ends on the Findings tab', () => {
+    const { result, rerender } = hook('HEAD');
+    act(() => result.current.setTab('findings'));
+    expect(result.current.tab).toBe('findings');
+    rerender({ label: undefined });
+    expect(result.current.tab).toBe('address');
+  });
+
+  it('does not open the Findings tab by itself', () => {
+    const { result, rerender } = hook(undefined);
+    rerender({ label: 'HEAD' });
+    rerender({ label: 'main' });
+    expect(result.current.tab).toBe('changes');
   });
 
   it('leaves another tab alone when the comparison ends', () => {
