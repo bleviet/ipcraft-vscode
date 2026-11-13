@@ -1146,6 +1146,12 @@ input:focus-visible {
   .sd-changes td:nth-child(-n + 3) {
     white-space: nowrap;
   }
+
+  /* Change wraps at spaces; a single word wider than the column breaks instead of pushing
+     Current out of view. */
+  .sd-changes td:nth-child(4) {
+    overflow-wrap: anywhere;
+  }
 }
 
 @media (max-width: 1199px) {
