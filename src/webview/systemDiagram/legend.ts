@@ -3,6 +3,7 @@
 import type { NetCategory } from '../../domain/systemGraph';
 import type { ClockDomain } from './clocks/clockTypes';
 import { UNRELEASED_RESET_COLOR } from './clocks/domainView';
+import { markName, markSign, type MarkStatus } from './changeMarks';
 import { nameWithFrequency } from './clocks/frequency';
 
 export interface LegendEntry {
@@ -95,3 +96,13 @@ export function domainLegend(domains: readonly ClockDomain[]): DomainLegendEntry
     },
   ];
 }
+
+export interface ChangeLegendEntry {
+  status: MarkStatus;
+  sign: string;
+  label: string;
+}
+
+/** The legend entries of the kinds of change among `kinds` (see `changeDecor`). */
+export const changeLegendEntries = (kinds: readonly MarkStatus[]): ChangeLegendEntry[] =>
+  kinds.map((status) => ({ status, sign: markSign(status), label: markName(status) }));

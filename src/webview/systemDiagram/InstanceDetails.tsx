@@ -1,7 +1,10 @@
 import React from 'react';
 import type { SystemGraph, SystemInstance } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
+import { shownInside } from './changeMarks';
+import { InstanceChanges } from './InstanceChanges';
 import { InstanceClockDetails } from './InstanceClockDetails';
+import type { ComparisonDetails } from './hooks/useCompareView';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
 import { endpointKey, netsByEndpoint, shortVlnv, type Selection } from './model';
@@ -13,6 +16,8 @@ interface InstanceDetailsProps {
   instance: SystemInstance;
   /** Name of the pin to highlight, set from the Unconnected list. */
   focusedPin?: string;
+  /** The comparison, when one is on: marked blocks show a Changes section. */
+  comparison?: ComparisonDetails;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
@@ -24,6 +29,7 @@ export function InstanceDetails({
   clocks,
   instance,
   focusedPin,
+  comparison,
   onSelect,
   onEnterHierarchy,
   onReveal,
@@ -59,6 +65,15 @@ export function InstanceDetails({
           {instance.kind === 'blackbox' ? 'Black box' : instance.kind} · {identity}
         </p>
       </header>
+      {comparison && (
+        <InstanceChanges
+          graph={graph}
+          owners={comparison.marks.owners}
+          rows={comparison.rows}
+          target={{ kind: 'instance', path: instance.path }}
+          inside={shownInside(comparison.marks.blocks.get(instance.path))}
+        />
+      )}
       <p>
         {instance.kind === 'blackbox' ? 'First referenced at' : 'Created at'}{' '}
         <LineLink source={source} line={instance.line} onReveal={onReveal} />

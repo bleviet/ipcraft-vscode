@@ -7,6 +7,7 @@ import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
 import { PinMarker } from './PinMarker';
 import { PinFrequency, PinHalo, PinStub } from './PinDecor';
+import { pinChangeAttributes, type PinChangeMark } from './changeMarks';
 import { unconnectedClass } from './unconnectedPins';
 
 export type InstanceFlowNode = Node<InstanceNodeData, 'instance'>;
@@ -19,10 +20,20 @@ interface PinRowViewProps {
   focused: boolean;
   /** Domain colors, frequency label and crossing end of the pin, when it has any. */
   mark?: PinMark;
+  /** The comparison mark of the pin, when it has one. */
+  change?: PinChangeMark;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
 }
 
-function PinRowView({ row, highlighted, review, focused, mark, onHoverPin }: PinRowViewProps) {
+function PinRowView({
+  row,
+  highlighted,
+  review,
+  focused,
+  mark,
+  change,
+  onHoverPin,
+}: PinRowViewProps) {
   const east = row.side === 'east';
   const reviewClass = review && row.unconnected ? unconnectedClass(row, false) : undefined;
   return (
@@ -61,6 +72,7 @@ function PinRowView({ row, highlighted, review, focused, mark, onHoverPin }: Pin
         data-class={reviewClass}
         data-highlight={highlighted}
         data-crossing={mark?.crossing}
+        {...pinChangeAttributes(change)}
       >
         {row.label}
       </span>
@@ -89,6 +101,7 @@ function InstanceNodeBase({ data, selected }: NodeProps<InstanceFlowNode>) {
       review={review !== undefined}
       focused={data.focusedPin === row.name}
       mark={data.pinMarks?.[row.name]}
+      change={data.change?.pins?.[row.name]}
       onHoverPin={data.onHoverPin}
     />
   );
@@ -98,6 +111,7 @@ function InstanceNodeBase({ data, selected }: NodeProps<InstanceFlowNode>) {
       data-kind={instance.kind}
       data-selected={selected}
       data-highlighted={data.highlightColor !== undefined || undefined}
+      data-change={data.change?.status}
       {...(review && {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
@@ -123,6 +137,7 @@ function InstanceNodeBase({ data, selected }: NodeProps<InstanceFlowNode>) {
         instance={instance}
         cellCount={data.cellCount}
         review={review}
+        change={data.change}
         domains={data.domains}
         expanded={false}
         onToggleExpand={data.onToggleExpand}

@@ -1,4 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import type { SystemGraph } from '../../domain/systemGraph';
+import type { DiagramCompare } from '../../shared/messages/systemDiagram';
 import fs from 'fs';
 import path from 'path';
 import type { SystemGraphDiff } from '../../domain/systemGraphDiff';
@@ -97,6 +99,251 @@ test.describe('System diagram comparison', () => {
       'aria-pressed',
       'true'
     );
+  });
+
+  async function openComparing(
+    page: Page,
+    pair: [string, string],
+    edit: (diff: SystemGraphDiff) => SystemGraphDiff = (diff) => diff
+  ) {
+    const graph = read(pair[1]);
+    const compare = {
+      baseLabel: 'HEAD',
+      currentLabel: 'sys/system.bd',
+      canSwap: false,
+      diff: edit(diffSystemGraphs(read(pair[0]), graph)),
+    };
+    await page.setViewportSize({ width: 1500, height: 900 });
+    await page.goto(harnessPath);
+    await page.waitForFunction(() =>
+      (window as unknown as { __vscodeMessages: Array<{ type: string }> }).__vscodeMessages.some(
+        (message) => message.type === 'ready'
+      )
+    );
+    await page.evaluate((data) => window.postMessage({ type: 'graph', ...data }, '*'), {
+      graph,
+      compare,
+    });
+    await expect(page.locator('.sd-node').first()).toBeVisible();
+  }
+
+  const block = (page: Page, name: string) =>
+    page.locator('.sd-node', { has: page.locator('.sd-node-name', { hasText: name }) });
+
+  test('marks an added and a changed block, and a new wire, on the diagram', async ({ page }) => {
+    await openComparing(page, ['zynq_gpio_base.bd', 'zynq_gpio_current.bd']);
+
+    const added = block(page, 'axis_data_fifo_0');
+    await expect(added).toHaveAttribute('data-change', 'added');
+    await expect(added.getByRole('img', { name: 'Added' })).toBeVisible();
+    await expect(added.getByRole('img', { name: 'Added' })).toHaveText('+');
+    const changed = block(page, 'sys_ps7');
+    await expect(changed).toHaveAttribute('data-change', 'changed');
+    await expect(changed.getByRole('img', { name: /^Changed/ })).toHaveText('~');
+    await expect(block(page, 'axi_periph')).not.toHaveAttribute('data-change');
+    await expect(
+      block(page, 'gpio_block').getByRole('img', { name: '1 change inside' })
+    ).toHaveText('~ 1 inside');
+    // As drawn, with the space before the word.
+    expect(await block(page, 'gpio_block').locator('.sd-change-inside').innerText()).toBe(
+      '~ 1 inside'
+    );
+    await expect(page.locator('path.sd-edge-new').first()).toBeAttached();
+    await expect(page.getByLabel('Legend')).toContainText('New wire');
+    await expect(page.getByLabel('Legend')).toContainText('2 removed, see Changes');
+  });
+
+  test('marks a renamed block with an arrow', async ({ page }) => {
+    await openComparing(page, ['zynq_gpio_rename_base.bd', 'zynq_gpio_rename_current.bd']);
+    const renamed = block(page, 'axi_gpio_main');
+    await expect(renamed).toHaveAttribute('data-change', 'renamed');
+    await expect(renamed.getByRole('img', { name: 'Renamed from axi_gpio_0' })).toHaveText('→');
+    await expect(page.locator('path.sd-edge-new')).toHaveCount(0);
+  });
+
+  test('marks a changed pin in its color with a title', async ({ page }) => {
+    await openComparing(page, ['zynq_gpio_base.bd', 'zynq_gpio_current.bd'], (diff) => ({
+      ...diff,
+      instances: diff.instances.map((i) =>
+        i.path === '/sys_ps7'
+          ? {
+              ...i,
+              pins: [
+                {
+                  pin: 'FCLK_CLK0',
+                  status: 'changed' as const,
+                  basePeers: [],
+                  currentPeers: ['axi_periph/ACLK'],
+                  gained: ['axi_periph/ACLK'],
+                },
+              ],
+            }
+          : i
+      ),
+    }));
+    const pin = block(page, 'sys_ps7').locator('.sd-pin-label', { hasText: 'FCLK_CLK0' });
+    await expect(pin).toHaveAttribute('data-change', 'changed');
+    await expect(pin).toHaveAttribute('title', 'Connection changed');
+    await expect(pin).toHaveCSS('font-weight', '600');
+  });
+
+  test('takes every mark away with Marks, and Changes only isolates and Show All restores', async ({
+    page,
+  }) => {
+    await openComparing(page, ['zynq_gpio_base.bd', 'zynq_gpio_current.bd']);
+    const marks = page.getByRole('button', { name: 'Marks' });
+    await expect(marks).toHaveAttribute('aria-pressed', 'true');
+    await marks.click();
+    await expect(page.locator('[data-change]')).toHaveCount(0);
+    await expect(page.locator('.sd-change-sign, .sd-change-inside, path.sd-edge-new')).toHaveCount(
+      0
+    );
+    // The Changes tab stays.
+    await expect(page.getByRole('tab', { name: /^Changes/ })).toBeVisible();
+    await marks.click();
+    await expect(block(page, 'sys_ps7')).toHaveAttribute('data-change', 'changed');
+
+    const before = await page.locator('.sd-node').count();
+    await page.getByRole('button', { name: 'Changes only' }).click();
+    await expect(page.getByText(/^Isolated · /)).toBeVisible();
+    await expect(page.locator('.sd-node')).not.toHaveCount(before);
+    await expect(block(page, 'axis_data_fifo_0')).toBeVisible();
+    await page.getByRole('button', { name: 'Show All' }).click();
+    await expect(page.getByText(/^Isolated · /)).toHaveCount(0);
+    await expect(page.locator('.sd-node')).toHaveCount(before);
+  });
+
+  /** The fixture design of the other tests with one more pin on the net `fclk` (a new branch of its tree). */
+  function clockBranchPair() {
+    const text = fs.readFileSync(
+      path.resolve(__dirname, '../fixtures/system-design/zynq_gpio_system.bd'),
+      'utf8'
+    );
+    const edit = (add: boolean) => {
+      const root = JSON.parse(text) as { design: { nets: { fclk: { ports: string[] } } } };
+      if (add) {
+        root.design.nets.fclk.ports.push('axi_gpio_0/new_clk');
+      }
+      return readSystemDesign('x.bd', 'x.bd', JSON.stringify(root))!;
+    };
+    return [edit(false), edit(true)] as const;
+  }
+
+  async function post(page: Page, graph: SystemGraph, compare?: DiagramCompare) {
+    await page.evaluate((data) => window.postMessage({ type: 'graph', ...data }, '*'), {
+      graph,
+      compare,
+    });
+  }
+
+  async function openHarness(page: Page) {
+    await page.setViewportSize({ width: 1500, height: 900 });
+    await page.goto(harnessPath);
+    await page.waitForFunction(() =>
+      (window as unknown as { __vscodeMessages: Array<{ type: string }> }).__vscodeMessages.some(
+        (message) => message.type === 'ready'
+      )
+    );
+  }
+
+  test('draws the shared trunk of a new clock branch as without the mark', async ({ page }) => {
+    const [base, current] = clockBranchPair();
+    await openHarness(page);
+    await post(page, current, {
+      baseLabel: 'HEAD',
+      currentLabel: 'sys/system.bd',
+      canSwap: false,
+      diff: diffSystemGraphs(base, current),
+    });
+    await expect(page.locator('.sd-node').first()).toBeVisible();
+    const overlay = page.locator('path.sd-edge-new:not(.react-flow__edge-path)');
+    await expect(overlay.first()).toBeAttached();
+    const strokes = await overlay.evaluateAll((paths) =>
+      paths.map((own) => ({
+        own: own.getAttribute('stroke'),
+        trunk: getComputedStyle(
+          own.parentElement!.querySelector('.react-flow__edge-path') as Element
+        ).stroke,
+      }))
+    );
+    for (const { own, trunk } of strokes) {
+      expect(own).toBe('var(--sd-change-added)');
+      expect(trunk).not.toContain('sd-change-added');
+    }
+  });
+
+  test('keeps the header of a hierarchy within its height with marks and the review on', async ({
+    page,
+  }) => {
+    const graph = read('zynq_gpio_current.bd');
+    await openHarness(page);
+    const measure = () =>
+      block(page, 'gpio_block').evaluate((node) => {
+        const head = node.querySelector('.sd-node-head') as HTMLElement;
+        const title = node.querySelector('.sd-node-title') as HTMLElement;
+        const row = node.querySelector('.sd-pin-label') as HTMLElement;
+        const box = node.getBoundingClientRect();
+        return {
+          box: [box.width, box.height],
+          headH: head.getBoundingClientRect().height,
+          scrollH: head.scrollHeight,
+          titleBottom: title.getBoundingClientRect().bottom,
+          rowTop: (row.closest('[aria-label],div') as HTMLElement).getBoundingClientRect().top,
+        };
+      });
+    await post(page, graph);
+    await page.getByRole('button', { name: /^Unconnected pins/ }).click();
+    await expect(block(page, 'gpio_block')).toBeVisible();
+    const plain = await measure();
+    await post(page, graph, {
+      baseLabel: 'HEAD',
+      currentLabel: 'sys/system.bd',
+      canSwap: false,
+      diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
+    });
+    await expect(
+      block(page, 'gpio_block').getByRole('img', { name: '1 change inside' })
+    ).toBeVisible();
+    const marked = await measure();
+    expect(marked.scrollH).toBeLessThanOrEqual(Math.ceil(marked.headH));
+    expect(marked.titleBottom).toBeLessThanOrEqual(marked.rowTop);
+    expect(marked.box).toEqual(plain.box);
+    // The name stays on one line.
+    const name = block(page, 'gpio_block').locator('.sd-node-name');
+    expect((await name.boundingBox())!.height).toBeLessThan(20);
+  });
+
+  test('keeps the marks findable at a far zoom', async ({ page }) => {
+    const graph = read('zynq_gpio_current.bd');
+    await openHarness(page);
+    await post(page, graph, {
+      baseLabel: 'HEAD',
+      currentLabel: 'sys/system.bd',
+      canSwap: false,
+      diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
+    });
+    await expect(page.locator('.sd-node').first()).toBeVisible();
+    const canvas = page.locator('.sd-canvas');
+    for (let i = 0; i < 12 && (await canvas.getAttribute('data-far')) !== 'true'; i++) {
+      await page.getByRole('button', { name: 'Zoom out' }).click();
+      await page.waitForTimeout(150);
+    }
+    await expect(canvas).toHaveAttribute('data-far', 'true');
+    await page.waitForTimeout(300);
+    const far = await page.evaluate(() => {
+      const viewport = document.querySelector('.react-flow__viewport') as HTMLElement;
+      const zoom = new DOMMatrix(getComputedStyle(viewport).transform).a;
+      const node = document.querySelector('.sd-node[data-change="added"]') as HTMLElement;
+      const shadow = getComputedStyle(node).boxShadow;
+      const px = [...shadow.split('),')[0].matchAll(/(-?[\d.]+)px/g)].map((m) => Number(m[1]));
+      const sign = node.querySelector('.sd-change-sign') as HTMLElement;
+      return { zoom, spread: px[3], signHeight: sign.getBoundingClientRect().height };
+    });
+    expect(far.zoom).toBeLessThan(0.42);
+    expect(far.spread * far.zoom).toBeGreaterThanOrEqual(1.99);
+    expect(far.signHeight).toBeGreaterThanOrEqual(8);
+    // Far out the count keeps its number and drops the word.
+    expect(await block(page, 'gpio_block').locator('.sd-change-inside').innerText()).toBe('~ 1');
   });
 
   for (const size of [

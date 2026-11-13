@@ -24,6 +24,7 @@ import type { SystemGraph } from '../../domain/systemGraph';
 import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
 import type { InstanceNodeData } from './layout/diagramTypes';
 import type { SearchFlash } from './hooks/useSearchStepper';
+import type { ChangeContext } from './changeDecor';
 import type { ClockContext } from './clockDecor';
 import { useCanvasElements } from './hooks/useCanvasElements';
 import { HIGHLIGHT_COLORS, hasAnyHighlight, highlightCount } from './highlights';
@@ -54,6 +55,10 @@ interface DiagramCanvasProps {
   onHopStep?: (delta: 1 | -1) => void;
   review: ReviewContext | null;
   clocks: ClockContext;
+  /** The marks of a comparison; null while Marks is off or without a comparison. */
+  changes?: ChangeContext | null;
+  /** Opens the Changes tab (the legend's removed entry). */
+  onOpenChanges?: () => void;
   focusedPin: FocusedPin | null;
   /** The compiled search, or null without one. */
   matcher: TextMatcher | null;
@@ -98,6 +103,8 @@ export function DiagramCanvas({
   onHopStep,
   review,
   clocks,
+  changes = null,
+  onOpenChanges,
   focusedPin,
   matcher,
   autoDetail,
@@ -176,7 +183,7 @@ export function DiagramCanvas({
   const { hover, onHoverPin } = usePinHover(layout);
 
   const selectedIds = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
-  const { nodes, edges, decor } = useCanvasElements({
+  const { nodes, edges, decor, changeLegend } = useCanvasElements({
     layout,
     selection,
     selectedIds,
@@ -184,6 +191,7 @@ export function DiagramCanvas({
     highlights,
     review,
     clocks,
+    changes,
     focusedPin,
     matcher,
     flash,
@@ -338,8 +346,10 @@ export function DiagramCanvas({
           nodes={layout?.nodes ?? []}
           review={review !== null}
           domains={decor.legend}
+          changes={changeLegend}
+          onOpenChanges={onOpenChanges}
         />
-        <AutoDetail target={containerRef} enabled={autoDetail ?? false} />
+        <AutoDetail target={containerRef} enabled={autoDetail ?? false} marks={changes !== null} />
         {minimap && <DiagramMinimap matcher={matcher} />}
       </ReactFlow>
       {hover && <PinHoverCard hover={hover} />}

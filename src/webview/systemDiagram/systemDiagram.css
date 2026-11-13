@@ -9,6 +9,20 @@ body,
   margin: 0;
 }
 
+/* The color of each kind of change (issue #302): the badges of the Changes tab, the borders,
+   signs and wires the marks draw on the diagram, the minimap and the legend. */
+:root {
+  --sd-change-added: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+  --sd-change-removed: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+  --sd-change-changed: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+  /* Purple: a renamed block is told from an added one by its color as well as its sign, and is
+     not mistaken for a selected block, which is drawn in the focus blue. */
+  --sd-change-renamed: var(--vscode-charts-purple, #b180d7);
+  /* Muted in every theme; a block with only a version change differs from an unchanged one by a
+     dotted border. Dashed is left to black boxes. */
+  --sd-change-version: var(--vscode-gitDecoration-ignoredResourceForeground, #8c8c8c);
+}
+
 /* VS Code's default webview styles pad the body by 20px each side; the viewer fills the editor. */
 body {
   padding: 0;
@@ -118,6 +132,18 @@ input:focus-visible {
   color: var(--vscode-descriptionForeground);
 }
 
+.sd-pin-label[data-change] {
+  font-weight: 600;
+}
+
+.sd-pin-label[data-change='added'] {
+  color: var(--sd-change-added);
+}
+
+.sd-pin-label[data-change='changed'] {
+  color: var(--sd-change-changed);
+}
+
 .sd-pin-label[data-highlight='true'] {
   font-weight: 700;
 }
@@ -133,6 +159,33 @@ input:focus-visible {
   fill: var(--sd-node-head-fill);
   stroke: var(--sd-node-line);
   stroke-width: 1;
+}
+
+.sd-port[data-change='added']:not([data-selected='true']):not([data-highlighted='true'])
+  .sd-port-shape {
+  stroke: var(--sd-change-added);
+  stroke-width: 1.5;
+}
+
+.sd-port[data-change='changed']:not([data-selected='true']):not([data-highlighted='true'])
+  .sd-port-shape {
+  stroke: var(--sd-change-changed);
+  stroke-width: 1.5;
+}
+
+/* The sign sits at the end of the tag away from the pin marker, in the 12 px the label leaves free. */
+.sd-port-sign {
+  position: absolute;
+  top: 0;
+  left: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 26px;
+}
+
+.sd-port-sign[data-side='west'] {
+  left: auto;
+  right: 6px;
 }
 
 .sd-port[data-highlighted='true'] .sd-port-shape {
@@ -362,6 +415,170 @@ input:focus-visible {
 
 .sd-legend-bar-thin {
   height: 1.5px;
+}
+
+.sd-legend-bar-new {
+  height: 3.75px;
+  background: var(--sd-change-added);
+}
+
+.sd-legend-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 8px;
+  border: 1.5px solid var(--vscode-foreground);
+  border-radius: 2px;
+}
+
+.sd-legend-swatch[data-change='added'] {
+  border-color: var(--sd-change-added);
+}
+
+.sd-legend-swatch[data-change='changed'] {
+  border-color: var(--sd-change-changed);
+}
+
+.sd-legend-swatch[data-change='renamed'] {
+  border-color: var(--sd-change-renamed);
+}
+
+.sd-legend-swatch[data-change='version'] {
+  border-style: dotted;
+  border-color: var(--sd-change-version);
+}
+
+/* Marks of a comparison. A block takes the color of its kind of change as its border and as a
+   ring around it (a box-shadow, so the box keeps its size). The ring is 1 px at normal zoom; under
+   the far-zoom rules it grows with the zoom (`--sd-ring-scale`, see AutoDetail) to stay at least 2
+   screen pixels wide. A selected or highlighted block keeps its own style. */
+.sd-node[data-change='added'],
+.sd-frame[data-change='added'] {
+  --sd-change-color: var(--sd-change-added);
+}
+
+.sd-node[data-change='changed'],
+.sd-frame[data-change='changed'] {
+  --sd-change-color: var(--sd-change-changed);
+}
+
+.sd-node[data-change='renamed'],
+.sd-frame[data-change='renamed'] {
+  --sd-change-color: var(--sd-change-renamed);
+}
+
+.sd-node[data-change='version'],
+.sd-frame[data-change='version'] {
+  --sd-change-color: var(--sd-change-version);
+}
+
+.sd-node[data-change]:not([data-selected='true']):not([data-highlighted='true']) {
+  border-color: var(--sd-change-color);
+  box-shadow:
+    0 0 0 1px var(--sd-change-color),
+    var(--sd-node-shadow);
+}
+
+.sd-frame[data-change]:not([data-selected='true']):not([data-highlighted='true']) {
+  border-color: var(--sd-change-color);
+  box-shadow: 0 0 0 1px var(--sd-change-color);
+}
+
+/* Version only: a dotted border, and a ring only when the zoom is far. */
+.sd-node[data-change='version']:not([data-selected='true']):not([data-highlighted='true']) {
+  border-style: dotted;
+  box-shadow: var(--sd-node-shadow);
+}
+
+.sd-frame[data-change='version']:not([data-selected='true']):not([data-highlighted='true']) {
+  border-style: dotted;
+  box-shadow: none;
+}
+
+[data-far='true'] .sd-node[data-change]:not([data-selected='true']):not([data-highlighted='true']) {
+  box-shadow:
+    0 0 0 calc(2px * var(--sd-ring-scale, 1)) var(--sd-change-color),
+    var(--sd-node-shadow);
+}
+
+[data-far='true']
+  .sd-frame[data-change]:not([data-selected='true']):not([data-highlighted='true']) {
+  box-shadow: 0 0 0 calc(2px * var(--sd-ring-scale, 1)) var(--sd-change-color);
+}
+
+[data-far='true']
+  .sd-port[data-change]:not([data-selected='true']):not([data-highlighted='true'])
+  .sd-port-shape {
+  stroke-width: calc(2px * var(--sd-ring-scale, 1));
+}
+
+/* Far out the sign and the count grow with the block names, so they can still be found. */
+[data-far='true'] .sd-node-title .sd-change-sign {
+  font-size: calc(12px * var(--sd-name-scale, 1));
+  line-height: 1.1;
+}
+
+[data-far='true'] .sd-node-title .sd-change-inside {
+  font-size: calc(10px * var(--sd-name-scale, 1));
+  line-height: 1.1;
+}
+
+/* Far out the count keeps its number and drops the word, to leave the name room. */
+[data-far='true'] .sd-inside-word {
+  display: none;
+}
+
+/* A name in a header with a sign or a count is one line, cut by its ellipsis, so the header never
+   overflows. The soft breaks after an underscore stay where the name is simplified far out. */
+.sd-node-title:has(.sd-change-sign, .sd-change-inside) wbr {
+  display: none;
+}
+
+[data-far='true'] .sd-node-title:has(.sd-change-sign, .sd-change-inside) wbr {
+  display: inline;
+}
+
+/* Forced colors drop the colors above: each kind keeps an outline of its own style. */
+@media (forced-colors: active) {
+  .sd-node[data-change],
+  .sd-frame[data-change] {
+    outline: 2px solid Highlight;
+  }
+
+  .sd-node[data-change='renamed'],
+  .sd-frame[data-change='renamed'] {
+    outline: 3px double Highlight;
+  }
+
+  .sd-node[data-change='version'],
+  .sd-frame[data-change='version'] {
+    outline-style: dotted;
+  }
+}
+
+.sd-change-sign[data-change='added'] {
+  color: var(--sd-change-added);
+}
+
+.sd-change-sign[data-change='changed'] {
+  color: var(--sd-change-changed);
+}
+
+.sd-change-sign[data-change='renamed'] {
+  color: var(--sd-change-renamed);
+}
+
+.sd-change-sign[data-change='version'] {
+  color: var(--sd-change-version);
+}
+
+.sd-change-sign {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.sd-change-inside {
+  color: var(--sd-change-changed);
 }
 
 .sd-node[data-highlighted='true'] {
@@ -1107,27 +1324,27 @@ input:focus-visible {
 
 .sd-delta[data-sign='+'],
 .sd-sign[data-sign='+'] {
-  color: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+  color: var(--sd-change-added);
 }
 
 .sd-delta[data-sign='−'],
 .sd-sign[data-sign='−'] {
-  color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+  color: var(--sd-change-removed);
 }
 
 .sd-delta[data-sign='~'],
 .sd-sign[data-sign='~'] {
-  color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+  color: var(--sd-change-changed);
 }
 
 .sd-delta[data-sign='→'],
 .sd-sign[data-sign='→'] {
-  color: var(--vscode-gitDecoration-renamedResourceForeground, #73c991);
+  color: var(--sd-change-renamed);
 }
 
 .sd-delta[data-sign='v'],
 .sd-sign[data-sign='v'] {
-  color: var(--vscode-descriptionForeground);
+  color: var(--sd-change-version);
 }
 
 .sd-delta[data-zero='true'] {
@@ -1153,8 +1370,10 @@ input:focus-visible {
   }
 
   /* Change wraps at spaces; a single word wider than the column breaks instead of pushing
-     Current out of view. */
+     Current out of view. The floor keeps a long Current value from squeezing it to a few
+     characters per line. */
   .sd-changes td:nth-child(4) {
+    min-width: 24ch;
     overflow-wrap: anywhere;
   }
 }

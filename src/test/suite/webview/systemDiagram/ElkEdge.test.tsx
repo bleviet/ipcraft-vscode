@@ -91,3 +91,78 @@ describe('ElkEdge junction dot', () => {
     expect(dot.style.pointerEvents).toBe('none');
   });
 });
+
+describe('ElkEdge new wire', () => {
+  const ADDED = 'var(--sd-change-added)';
+
+  it('draws a new wire in the added color, a little thicker', () => {
+    const plain = drawn({}).wire.style;
+    const { wire, container } = drawn({ changeNew: true });
+    expect(wire.style.stroke).toBe(ADDED);
+    expect(Number(wire.style.strokeWidth)).toBeGreaterThan(Number(plain.strokeWidth));
+    expect(wire).toHaveClass('sd-edge-new');
+    expect(container.querySelector('path.react-flow__edge-path.sd-edge-new')).not.toBeNull();
+  });
+
+  it('draws an ordinary wire as before', () => {
+    expect(drawn({}).wire.style.stroke).not.toBe(ADDED);
+    expect(drawn({}).wire).not.toHaveClass('sd-edge-new');
+  });
+
+  it('lets a selected or highlighted wire keep its own style', () => {
+    expect(drawn({ changeNew: true }, true).wire.style.stroke).toBe('var(--vscode-charts-green)');
+    expect(drawn({ changeNew: true, highlightColor: RED }).wire.style.stroke).toBe(RED);
+  });
+
+  it('draws the junction dot in the wire color', () => {
+    const { container } = drawn({ changeNew: true, junction: true });
+    expect(container.querySelector('circle')!.getAttribute('fill')).toBe(ADDED);
+  });
+});
+
+describe('ElkEdge new branch of a tree', () => {
+  const ADDED = 'var(--sd-change-added)';
+  const lead = [
+    { x: -20, y: 5 },
+    { x: -20, y: 0 },
+    { x: 0, y: 0 },
+  ];
+  const overlay = (container: Element) =>
+    container.querySelector<SVGPathElement>('path.sd-edge-new:not(.react-flow__edge-path)');
+
+  it('marks only the own points of a branch, and draws the shared trunk as it would without the mark', () => {
+    const plain = drawn({ lead });
+    const { wire, container } = drawn({ lead, changeNew: true, junction: true });
+    expect(wire.getAttribute('d')).toBe('M -20 5 L -20 0 L 0 0 L 10 0');
+    expect(wire.style.stroke).toBe(plain.wire.style.stroke);
+    expect(wire.style.strokeWidth).toBe(plain.wire.style.strokeWidth);
+    expect(wire).not.toHaveClass('sd-edge-new');
+    const own = overlay(container)!;
+    expect(own.getAttribute('d')).toBe('M 0 0 L 10 0');
+    expect(own.getAttribute('stroke')).toBe(ADDED);
+    expect(Number(own.getAttribute('stroke-width'))).toBeGreaterThan(
+      Number(plain.wire.style.strokeWidth)
+    );
+    expect(container.querySelector('circle')!.getAttribute('fill')).toBe(ADDED);
+  });
+
+  it('has no overlay for a wire without a lead, or one that is not new', () => {
+    expect(overlay(drawn({ changeNew: true }).container)).toBeNull();
+    expect(overlay(drawn({ lead }).container)).toBeNull();
+  });
+
+  it('keeps the selection style on both parts of a selected branch', () => {
+    const { wire, container } = drawn({ lead, changeNew: true }, true);
+    expect(wire.style.stroke).toBe('var(--vscode-charts-green)');
+    expect(overlay(container)!.getAttribute('stroke')).toBe('var(--vscode-charts-green)');
+  });
+
+  it('keeps the domain color of a new clock wire and only widens it', () => {
+    const plain = drawn({ domainColor: 'blue' });
+    const marked = drawn({ domainColor: 'blue', changeNew: true });
+    expect(marked.wire.style.stroke).toBe(plain.wire.style.stroke);
+    expect(Number(marked.wire.style.strokeWidth)).toBeGreaterThan(
+      Number(plain.wire.style.strokeWidth)
+    );
+  });
+});

@@ -9,10 +9,23 @@ export interface CompareControlProps {
   onStop: () => void;
   /** Open the Changes tab of the bottom panel. */
   onOpenChanges: () => void;
+  /** Marks the changes on the diagram; on by default when a comparison starts. */
+  marksOn: boolean;
+  onMarksChange: (on: boolean) => void;
+  /** Isolates the marked blocks of the level on show; absent when the level has none or Marks is off. */
+  onChangesOnly?: () => void;
 }
 
 /** The Compare button of the Design group; while a comparison is on, also its base, summary and exit. */
-export function CompareControl({ compare, onStart, onStop, onOpenChanges }: CompareControlProps) {
+export function CompareControl({
+  compare,
+  onStart,
+  onStop,
+  onOpenChanges,
+  marksOn,
+  onMarksChange,
+  onChangesOnly,
+}: CompareControlProps) {
   return (
     <span className="sd-tool-group">
       <button
@@ -56,6 +69,32 @@ export function CompareControl({ compare, onStart, onStop, onOpenChanges }: Comp
                 </span>
               );
             })}
+          </button>
+          <button
+            type="button"
+            className={`canvas-view-toggle${marksOn ? ' canvas-view-toggle--active' : ''}`}
+            aria-label="Marks"
+            aria-pressed={marksOn}
+            title="Mark the changes on the diagram"
+            onClick={() => onMarksChange(!marksOn)}
+          >
+            <span aria-hidden="true" className="codicon codicon-diff" />
+          </button>
+          <button
+            type="button"
+            className="canvas-view-toggle"
+            aria-label="Changes only"
+            disabled={onChangesOnly === undefined}
+            title={
+              onChangesOnly
+                ? 'Show only the changed blocks of this level and what they connect to'
+                : marksOn
+                  ? 'No changed blocks on this level'
+                  : 'Turn on Marks to show only the changes'
+            }
+            onClick={onChangesOnly}
+          >
+            <span aria-hidden="true" className="codicon codicon-filter" />
           </button>
           <button
             type="button"

@@ -9,11 +9,16 @@ export const MINIMAP_COLORS = {
   hierarchy: 'color-mix(in srgb, var(--vscode-charts-green) 55%, transparent)',
   selected: 'var(--vscode-focusBorder)',
   match: 'var(--vscode-editorWarning-foreground)',
+  /** A block marked by a comparison, by kind (the colors of the Changes tab). */
+  added: 'var(--sd-change-added)',
+  changed: 'var(--sd-change-changed)',
+  renamed: 'var(--sd-change-renamed)',
+  version: 'var(--sd-change-version)',
 };
 
 type MinimapNode = DiagramFlowNode & { selected?: boolean };
 
-/** Fill of a block on the minimap: selected, else a search match, else a hierarchy tint, else plain. */
+/** Fill of a block on the minimap: selected, else a search match, else its kind of change, else a hierarchy tint, else plain. */
 export function minimapColor(node: MinimapNode, matcher: TextMatcher | null): string {
   if (node.selected) {
     return MINIMAP_COLORS.selected;
@@ -26,6 +31,10 @@ export function minimapColor(node: MinimapNode, matcher: TextMatcher | null): st
     if (matches) {
       return MINIMAP_COLORS.match;
     }
+  }
+  const status = node.data.change?.status;
+  if (status) {
+    return MINIMAP_COLORS[status];
   }
   const hierarchy =
     node.type === 'frame' || (node.type === 'instance' && node.data.instance.kind === 'hier');

@@ -324,7 +324,9 @@ interface, width) and parameters of external ports and of the pins of a
 hierarchy block are compared too, one row per difference; a direction is
 compared only when both revisions declare it. For the pins of other blocks only
 the connections are compared. The JSON report is the same
-change list as data.
+change list as data; a `changed` pin or port also carries `gained` and `lost`, the
+sorted peers (written like `currentPeers` and `basePeers`) that only the current
+revision or only the base has, left out when empty, so a renamed block is neither.
 
 A block is identified by its path, so a renamed block would be one removed and one
 added block. In every format (Vivado `.bd` and `write_bd_tcl` script, Platform Designer

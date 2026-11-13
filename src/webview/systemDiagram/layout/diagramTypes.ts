@@ -8,6 +8,7 @@ import type {
   SystemInstance,
   SystemPin,
 } from '../../../domain/systemGraph';
+import type { NodeChange } from '../changeMarks';
 import type { NodeDomains } from '../clocks/domainView';
 import type { EdgeMarks } from '../clocks/edgeView';
 import type { PinMarks } from '../clocks/nodeView';
@@ -44,6 +45,8 @@ export interface InstanceUiData {
   highlightedPins?: ReadonlySet<string>;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
+  /** Present only on a marked block while the marks of a comparison are on. */
+  change?: NodeChange;
   /** Present only while the domain decorations are on (Clocks and resets on, review off). */
   domains?: NodeDomains;
   /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */
@@ -97,6 +100,8 @@ export interface BoundaryNodeData extends Record<string, unknown> {
   badge?: NetBadge;
   /** Present only while the unconnected-pin review is on. */
   review?: NodeReview;
+  /** Present only on a marked port while the marks of a comparison are on. */
+  change?: NodeChange;
   /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */
   pinMarks?: PinMarks;
   /** Nets of the selected clock or reset tree; the badge is drawn selected when it holds one. */
@@ -148,6 +153,8 @@ export interface ElkEdgeData extends Record<string, unknown>, EdgeMarks {
   lead?: { x: number; y: number }[];
   /** User-assigned highlight color CSS value, when highlights are active on the canvas. */
   highlightColor?: string;
+  /** The wire is new in the current revision (comparison marks on): drawn in the added color. */
+  changeNew?: true;
 }
 
 export interface DiagramFlowEdge {

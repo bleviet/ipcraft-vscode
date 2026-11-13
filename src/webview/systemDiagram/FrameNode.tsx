@@ -7,6 +7,7 @@ import { NetBadgeView } from './NetBadgeView';
 import { NodeHeader } from './NodeHeader';
 import { PinFrequency, PinHalo, PinStub } from './PinDecor';
 import { PinMarker } from './PinMarker';
+import { pinChangeAttributes, type PinChangeMark } from './changeMarks';
 import { unconnectedClass } from './unconnectedPins';
 
 export type FrameFlowNode = Node<FrameNodeData, 'frame'>;
@@ -25,11 +26,13 @@ interface FramePinProps {
   focused: boolean;
   /** Domain colors and frequency label of the pin, when it has any. */
   mark?: PinMark;
+  /** The comparison mark of the pin, when it has one. */
+  change?: PinChangeMark;
   onHoverPin?: (target: PinHoverTarget | null, anchor?: DOMRect) => void;
 }
 
 /** One pin of the frame: marker on the border, label inside just above the inner wire. */
-function FramePin({ row, highlighted, review, focused, mark, onHoverPin }: FramePinProps) {
+function FramePin({ row, highlighted, review, focused, mark, change, onHoverPin }: FramePinProps) {
   const east = row.side === 'east';
   const reviewClass = review && row.unconnected ? unconnectedClass(row, false) : undefined;
   const place = { inset: FRAME_BORDER, top: PIN_BOX_TOP };
@@ -73,6 +76,7 @@ function FramePin({ row, highlighted, review, focused, mark, onHoverPin }: Frame
           data-class={reviewClass}
           data-highlight={highlighted}
           data-crossing={mark?.crossing}
+          {...pinChangeAttributes(change)}
         >
           {row.label}
         </span>
@@ -101,6 +105,7 @@ function FrameNodeBase({ data, selected, width, height }: NodeProps<FrameFlowNod
       className="sd-frame"
       data-selected={selected}
       data-highlighted={data.highlightColor !== undefined || undefined}
+      data-change={data.change?.status}
       {...(review && {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
@@ -123,6 +128,7 @@ function FrameNodeBase({ data, selected, width, height }: NodeProps<FrameFlowNod
         instance={instance}
         cellCount={data.cellCount}
         review={review}
+        change={data.change}
         domains={data.domains}
         expanded
         onToggleExpand={data.onToggleExpand}
@@ -147,6 +153,7 @@ function FrameNodeBase({ data, selected, width, height }: NodeProps<FrameFlowNod
           review={review !== undefined}
           focused={data.focusedPin === row.name}
           mark={data.pinMarks?.[row.name]}
+          change={data.change?.pins?.[row.name]}
           onHoverPin={data.onHoverPin}
         />
       ))}

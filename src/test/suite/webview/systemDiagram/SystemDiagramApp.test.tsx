@@ -3046,6 +3046,41 @@ describe('SystemDiagramApp', () => {
       expect(mockPostMessage).toHaveBeenCalledWith({ type: 'swapCompare' });
     });
 
+    it('marks the changed block, takes the mark away with Marks, and a row still selects it', async () => {
+      await renderComparing();
+      const marked = () => document.querySelector<HTMLElement>('[data-change]');
+      expect(marked()).toHaveAttribute('data-change', 'version');
+      expect(within(marked()!).getByRole('img', { name: /^Version only: / })).toHaveTextContent(
+        'v'
+      );
+      const marks = screen.getByRole('button', { name: 'Marks' });
+      expect(marks).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(marks);
+      expect(marks).toHaveAttribute('aria-pressed', 'false');
+      expect(marked()).toBeNull();
+      // The Changes tab stays, and its rows still select the block.
+      fireEvent.click(screen.getByRole('button', { name: 'Toggle Details' }));
+      fireEvent.click(
+        within(screen.getByRole('region', { name: 'Bottom panel' })).getByText('version')
+      );
+      expect(details().getByRole('heading', { name: 'axi_dma_0' })).toBeVisible();
+      // The Details of a changed block list the change, whether or not Marks is on.
+      expect(details().getByRole('heading', { name: 'Changes' })).toBeVisible();
+      fireEvent.click(marks);
+      expect(marked()).toHaveAttribute('data-change', 'version');
+    });
+
+    it('isolates the changed blocks with Changes only, and Show All restores the level', async () => {
+      await renderComparing();
+      expect(screen.queryByText(/^Isolated · /)).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Changes only' }));
+      expect(screen.getByText(/^Isolated · 1 selected/)).toBeInTheDocument();
+      expect(screen.queryByTestId('node:/sync_0')).not.toBeInTheDocument();
+      expect(screen.getByTestId('node:/axi_dma_0')).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
+      expect(screen.queryByText(/^Isolated · /)).not.toBeInTheDocument();
+    });
+
     it('opens the Changes tab from the counts and expands a hidden panel', async () => {
       await renderComparing();
       fireEvent.click(screen.getByRole('button', { name: 'Toggle Bottom Panel' }));

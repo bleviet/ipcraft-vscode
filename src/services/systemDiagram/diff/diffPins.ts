@@ -140,11 +140,23 @@ export function classifyPin(
   }
   // Equal peers (the pin changed by an attribute) are written alike on both sides.
   const samePeers = baseKeys.size === currentKeys.size && kept.length === baseKeys.size;
+  // Gained and lost are decided by peer identity: a renamed block is the same peer.
+  const gained = peerLabels(
+    current.filter((p) => !baseKeys.has(pinKey(p))),
+    id.level
+  );
+  const lost = peerLabels(
+    base.filter((p) => !currentKeys.has(pinKey(p))),
+    id.level,
+    ctx.base.baseName
+  );
   return {
     pin,
     status: 'changed',
     basePeers: peerLabels(base, id.level, samePeers ? undefined : ctx.base.baseName),
     currentPeers: peerLabels(current, id.level),
+    ...(gained.length > 0 && { gained }),
+    ...(lost.length > 0 && { lost }),
   };
 }
 

@@ -474,9 +474,68 @@ workspace or change a definition, so a definition never shows up as a change. If
 definitions cannot be read for one of the sides, both sides are compared without them.
 **Exit compare** ends the comparison; it also ends when you close the diagram.
 
-This version does not yet mark the changes on the diagram, and the current side is
-always the file you have open: you cannot choose a revision for it. It compares the
-design only, not the findings or the address map tab.
+### Changes on the diagram
+
+While a comparison is on, the diagram shows the current design with the changes
+marked, on every level and inside blocks expanded in place. A block or an external
+port never depends on color alone: its mark has a sign as well as a color. Pins and
+wires use color and weight (a bold name, a thicker wire):
+
+| Mark | Meaning | Drawing |
+|---|---|---|
+| `+` | Added block or external port | Border in the added color (green) |
+| `~` | Changed block or external port | Border in the changed color (yellow) |
+| `→` | Renamed block; the tooltip names the old name | Border in the renamed color (purple) |
+| `v` | Only the IP version differs; the tooltip shows both | Dotted border in the version-only color (muted gray) |
+
+A block whose address segment was added, removed or changed counts as changed, and its
+tooltip says so (`Address changed`); the segment is listed in its Details. A removed
+segment is attributed to the block its name starts with, when that block still exists.
+The border has a ring of the same color, one pixel wide (a version-only block has none, its border is dotted instead). A selected block keeps the focus color, so it is never mistaken for a renamed one. When you zoom out far enough
+for the simplified view (**Simplify zoomed out**, on by default), the ring and the signs
+grow as the zoom shrinks, so a changed block can still be found on a large design; with
+that button off they stay thin.
+
+The sign sits in the header of the block, before the other badges, and its tooltip
+says what changed (`Changed: 1 parameter, 2 pins`). A changed pin has its name in the
+changed color, in bold (`Connection changed`), a new pin in the added color (`New pin`);
+on a block expanded in place, a pin whose connections inside the hierarchy changed is
+marked the same way (`Connection inside changed`, or `New pin inside`), and when you enter
+a hierarchy, its own boundary pins that changed inside are marked like external ports. A wire that is new in the current
+design is drawn in the added color and a little thicker; a selected or highlighted
+wire keeps its selection or highlight style. A hierarchy block with changes below it
+shows `~ 2 inside` in its header, whether or not it changed itself (not when it is
+added: everything inside is new, and the `+` says it); the count adds
+up the changed, added, renamed and version-only blocks at any depth and the removed
+ones. The **Outline** shows the same: the sign after the name of a changed block or
+port, and `~2` on a hierarchy, also in the search results. On the minimap a marked
+block takes its color unless it is selected or matches the search. The legend lists
+the kinds present on the level and `New wire` when it has one. When the level (or a
+block expanded in it) lost blocks or ports, it also has an entry `− 2 removed, see
+Changes` that opens the Changes tab.
+
+Select a marked block or port and the **Details** panel starts with a **Changes**
+section: the changes of that block, with the base and the current value, and for a
+hierarchy the number of changes inside with an **Open hierarchy** button. It shows
+whether or not the marks are drawn.
+
+Two buttons sit between the numbers and the exit button:
+
+- **Marks** (the diff icon) draws or hides the marks. It is on whenever a comparison
+  starts or its base changes. With Marks off the diagram looks exactly as without a
+  comparison; the Changes tab stays.
+- **Changes only** (the filter icon) isolates the changed blocks and external ports of
+  the level on show, with the blocks they connect to, using the same isolated view as
+  **Isolate Selection**: the `Isolated · …` chip with its `+` and `−` and **Show All**
+  bring the rest back. It is disabled on a level without changed blocks, and while
+  Marks is off.
+
+Removed blocks, ports and wires are not drawn yet; they are listed in the Changes tab
+and counted in the legend. Blocks and wires that did not change are not dimmed.
+Exported images, and the image of `ipcraft render`, do not carry the marks yet.
+
+The current side is always the file you have open: you cannot choose a revision for
+it. The comparison covers the design only, not the findings or the address map tab.
 
 ## Export an image
 
