@@ -97,6 +97,8 @@ Options:
   --format <markdown|json>           [diff only] Report format (default: markdown)
   --ignore-version-only              [diff only] Leave out blocks whose only change is the
                                       version of their IP
+  --fail-on <changes|new-findings>   [diff only] Exit with 1 on any change (changes) or on new
+                                      findings (new-findings); the report is still written
   --root <dir>                       [vhdl-ls only] Workspace root (default: current directory)
   --dry-run                          [vhdl-ls only] Print the vhdl_ls.toml instead of writing it
   --force                            [vhdl-ls only] Replace a vhdl_ls.toml that IPCraft did not
@@ -126,6 +128,7 @@ Examples:
   ipcraft diff bd/system.bd --base HEAD
   ipcraft diff bd/system.bd --base main --head feature/fifo --format json --out diff.json
   ipcraft diff old/system.qsys new/system.qsys --ignore-version-only
+  ipcraft diff bd/system.bd --base origin/main --fail-on new-findings
   ipcraft vhdl-ls --root . --dry-run
 `;
 }

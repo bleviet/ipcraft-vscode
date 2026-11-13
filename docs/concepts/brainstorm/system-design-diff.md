@@ -12,7 +12,8 @@ A block that is only renamed is reported as one change (see
 unconnected pins and clock or reset crossings) is implemented in the engine and
 in `ipcraft diff`, and the **Findings** tab of the viewer lists them; the viewer
 checks both revisions with the workspace definitions, `ipcraft diff` with the
-design files alone. The overlay on the
+design files alone. `ipcraft diff --fail-on changes|new-findings` exits with 1
+for use in CI. The overlay on the
 diagram and the later phases are open. The marks of everything that exists in the current revision
 (blocks, pins, new wires, counts on hierarchies, the outline, the legend, Details, the
 **Marks** and **Changes only** buttons) are implemented; ghosts for what was removed,

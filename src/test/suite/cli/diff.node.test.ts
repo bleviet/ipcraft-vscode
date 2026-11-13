@@ -4,8 +4,8 @@ import { spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import type { SystemGraphDiff } from '../../../domain/systemGraphDiff';
-import { runCliDiff } from '../../../cli/diff';
+import type { Finding, FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
+import { failOnReason, runCliDiff } from '../../../cli/diff';
 import { main } from '../../../cli/index';
 
 const fixtures = path.resolve(__dirname, '../../fixtures/system-design/diff');
@@ -170,6 +170,152 @@ describe('ipcraft diff command', () => {
     } finally {
       error.mockRestore();
     }
+  });
+});
+
+describe('ipcraft diff --fail-on', () => {
+  const finding: Finding = {
+    kind: 'undriven',
+    level: '/',
+    instance: null,
+    pin: 'led_o',
+    label: 'led_o',
+  };
+  const diffOf = (summary: Partial<SystemGraphDiff['summary']>) =>
+    ({
+      instances: [],
+      summary: { added: 0, removed: 0, changed: 0, version: 0, renamed: 0, ...summary },
+    }) as unknown as SystemGraphDiff;
+  const noFindings: FindingsDiff = { new: [], resolved: [] };
+
+  it('fails changes with the total of all change kinds, singular and plural', () => {
+    expect(failOnReason(diffOf({ added: 1 }), noFindings, 'changes', false)).toBe(
+      '1 change (--fail-on changes)'
+    );
+    expect(
+      failOnReason(
+        diffOf({ added: 1, removed: 1, changed: 1, renamed: 1, version: 1 }),
+        noFindings,
+        'changes',
+        false
+      )
+    ).toBe('5 changes (--fail-on changes)');
+    expect(failOnReason(diffOf({}), noFindings, 'changes', false)).toBeUndefined();
+  });
+
+  it('does not count a version-only change with --ignore-version-only', () => {
+    const versionOnly = diffOf({ version: 2 });
+    expect(failOnReason(versionOnly, noFindings, 'changes', false)).toBe(
+      '2 changes (--fail-on changes)'
+    );
+    expect(failOnReason(versionOnly, noFindings, 'changes', true)).toBeUndefined();
+    expect(failOnReason(diffOf({ version: 2, added: 1 }), noFindings, 'changes', true)).toBe(
+      '1 change (--fail-on changes)'
+    );
+  });
+
+  it('fails new-findings on new findings only, singular and plural', () => {
+    const one: FindingsDiff = { new: [finding], resolved: [] };
+    const two: FindingsDiff = {
+      new: [finding, { ...finding, pin: 'x', label: 'x' }],
+      resolved: [],
+    };
+    expect(failOnReason(diffOf({}), one, 'new-findings', false)).toBe(
+      '1 new finding (--fail-on new-findings)'
+    );
+    expect(failOnReason(diffOf({}), two, 'new-findings', false)).toBe(
+      '2 new findings (--fail-on new-findings)'
+    );
+    expect(
+      failOnReason(diffOf({ added: 3 }), { new: [], resolved: [finding] }, 'new-findings', false)
+    ).toBeUndefined();
+  });
+
+  it('does not treat finding differences as changes, nor changes as findings', () => {
+    expect(
+      failOnReason(diffOf({}), { new: [finding], resolved: [] }, 'changes', false)
+    ).toBeUndefined();
+    expect(failOnReason(diffOf({ added: 1 }), noFindings, 'new-findings', false)).toBeUndefined();
+  });
+
+  it('passes without --fail-on', () => {
+    expect(
+      failOnReason(diffOf({ added: 1 }), { new: [finding], resolved: [] }, undefined, false)
+    ).toBeUndefined();
+  });
+
+  describe('through main', () => {
+    const run = async (...args: string[]) => {
+      const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+      const error = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        const code = await main(['diff', ...args]);
+        return {
+          code,
+          stdout: write.mock.calls.map((c) => String(c[0])).join(''),
+          log: log.mock.calls.map((c) => String(c[0])),
+          stderr: error.mock.calls.map((c) => String(c[0])),
+        };
+      } finally {
+        write.mockRestore();
+        log.mockRestore();
+        error.mockRestore();
+      }
+    };
+
+    it('exits 1 on changes, still printing the report', async () => {
+      const result = await run(BASE, CURRENT, '--fail-on', 'changes');
+      expect(result.code).toBe(1);
+      expect(result.stdout).toContain('## System design changes: zynq_gpio_system');
+      expect(result.stderr).toEqual(['Diff check failed: 8 changes (--fail-on changes)']);
+    });
+
+    it('exits 0 for new-findings when only a finding was resolved', async () => {
+      const result = await run(BASE, CURRENT, '--fail-on', 'new-findings');
+      expect(result.code).toBe(0);
+      expect(result.stderr).toEqual([]);
+    });
+
+    it('exits 1 for new-findings when the resolved finding becomes new', async () => {
+      const result = await run(CURRENT, BASE, '--fail-on', 'new-findings');
+      expect(result.code).toBe(1);
+      expect(result.stderr).toEqual(['Diff check failed: 1 new finding (--fail-on new-findings)']);
+    });
+
+    it('exits 0 for a file against itself', async () => {
+      const result = await run(BASE, BASE, '--fail-on', 'changes');
+      expect(result.code).toBe(0);
+      expect(result.stderr).toEqual([]);
+    });
+
+    it('writes the report to --out before failing', async () => {
+      const out = path.join(tmp, 'failed-report.md');
+      const result = await run(BASE, CURRENT, '--out', out, '--fail-on', 'changes');
+      expect(result.code).toBe(1);
+      expect(fs.readFileSync(out, 'utf8')).toContain('## System design changes: zynq_gpio_system');
+      expect(result.stdout).toBe('');
+      expect(result.log).toEqual([`Wrote ${out}`]);
+      expect(result.stderr).toEqual(['Diff check failed: 8 changes (--fail-on changes)']);
+    });
+
+    it('fails the same way with the JSON report', async () => {
+      const result = await run(BASE, CURRENT, '--format', 'json', '--fail-on', 'changes');
+      expect(result.code).toBe(1);
+      expect(JSON.parse(result.stdout)).toHaveProperty('findings');
+      expect(result.stderr).toEqual(['Diff check failed: 8 changes (--fail-on changes)']);
+    });
+
+    it('counts a rename as one change', async () => {
+      const result = await run(
+        path.join(fixtures, 'zynq_gpio_rename_base.bd'),
+        path.join(fixtures, 'zynq_gpio_rename_current.bd'),
+        '--fail-on',
+        'changes'
+      );
+      expect(result.code).toBe(1);
+      expect(result.stderr).toEqual(['Diff check failed: 2 changes (--fail-on changes)']);
+    });
   });
 });
 
