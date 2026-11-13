@@ -56,6 +56,11 @@
   --vscode-errorForeground: #F85149;
   --vscode-focusBorder: #0078D4;
   --vscode-foreground: #CCCCCC;
+  /* git decoration colors: values from the bundled git extension, not the core color registry */
+  --vscode-gitDecoration-addedResourceForeground: #81b88b;
+  --vscode-gitDecoration-deletedResourceForeground: #c74e39;
+  --vscode-gitDecoration-ignoredResourceForeground: #8C8C8C;
+  --vscode-gitDecoration-modifiedResourceForeground: #E2C08D;
   --vscode-icon-foreground: #CCCCCC;
   --vscode-input-background: #313131;
   --vscode-input-border: #3C3C3C;

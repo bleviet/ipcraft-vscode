@@ -10,12 +10,15 @@ import {
 import { BOUNDARY_HEIGHT } from '../../webview/systemDiagram/layout/elkLayout';
 import { CIRCLE_MARKER, SQUARE_MARKER } from '../../webview/systemDiagram/layout/pinRows';
 import { portShapePath } from '../../webview/systemDiagram/layout/portShape';
+import { changeBorder, portSignSvg } from './changeSvg';
 import { frequencySvg, markColor } from './decorSvg';
 import type { Palette } from './palette';
 import { element } from './svg';
 import { drawText } from './textSvg';
 
 const HOLLOW_STROKE = 1.5;
+/** `.sd-port[data-change] .sd-port-shape`: the outline of a marked external port. */
+const CHANGED_STROKE = 1.5;
 
 export interface MarkerSpec {
   isInterface: boolean;
@@ -80,11 +83,14 @@ export function boundarySvg(data: BoundaryNodeData, palette: Palette, selected =
   const east = data.side === 'east';
   const cy = BOUNDARY_HEIGHT / 2;
   const mark = data.pinMarks?.[data.pin.name];
+  const marked = changeBorder(data.change, selected, palette);
   const outline = selected
     ? { color: palette.focusBorder, opacity: 1, width: 2 }
-    : mark?.crossing
-      ? { color: palette.warning, opacity: 1, width: 1 }
-      : { ...palette.nodeLine, width: 1 };
+    : marked
+      ? { color: marked.color, opacity: 1, width: CHANGED_STROKE }
+      : mark?.crossing
+        ? { color: palette.warning, opacity: 1, width: 1 }
+        : { ...palette.nodeLine, width: 1 };
   return [
     element('path', {
       d: portShapePath(data.width, BOUNDARY_HEIGHT, data.pin.direction === 'inout'),
@@ -114,6 +120,7 @@ export function boundarySvg(data: BoundaryNodeData, palette: Palette, selected =
       },
       palette
     ),
+    portSignSvg(data.change, { side: data.side, width: data.width, centerY: cy }, palette),
     drawText(12, cy, data.label, {
       face: 'sans600',
       sizePx: 11.5,

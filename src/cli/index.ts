@@ -36,7 +36,12 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   }
 
   if (parsed.kind === 'diff') {
-    const result = await runCliDiff(parsed.args);
+    // Only the image needs the installation's resources (fonts, rasterizer); without them the
+    // report is still produced and the image fails with the reason.
+    const result = await runCliDiff(parsed.args, () =>
+      // dist/cli.js lives one level under the package root.
+      resolveResourceRoots(path.resolve(__dirname, '..'))
+    );
     if (!result.success) {
       console.error(`Diff failed: ${result.error}`);
       return 1;
@@ -46,23 +51,25 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     } else {
       process.stdout.write(result.report ?? '');
     }
+    if (result.imagePath) {
+      // With the report on standard output, the line must not mix into it.
+      (result.outputPath ? console.log : console.error)(`Wrote ${result.imagePath}`);
+    }
+    if (result.imageError !== undefined) {
+      console.error(`Image failed: ${result.imageError}`);
+    }
     if (result.failed !== undefined) {
       console.error(`Diff check failed: ${result.failed}`);
-      return 1;
     }
-    return 0;
+    return result.imageError !== undefined || result.failed !== undefined ? 1 : 0;
   }
 
   if (parsed.kind === 'vhdl-ls') {
     return runCliVhdlLs(parsed.args);
   }
 
-  let resourceRoots;
-  try {
-    // dist/cli.js lives one level under the package root.
-    resourceRoots = resolveResourceRoots(path.resolve(__dirname, '..'));
-  } catch (err) {
-    console.error(err instanceof Error ? err.message : String(err));
+  const resourceRoots = loadResourceRoots();
+  if (resourceRoots === null) {
     return 1;
   }
 
@@ -121,6 +128,17 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     console.log(`  ${f}`);
   }
   return 0;
+}
+
+/** The resource roots of the installation, or null after printing why they cannot be found. */
+function loadResourceRoots(): ReturnType<typeof resolveResourceRoots> | null {
+  try {
+    // dist/cli.js lives one level under the package root.
+    return resolveResourceRoots(path.resolve(__dirname, '..'));
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    return null;
+  }
 }
 
 /** Runs `ipcraft migrate`, printing one line per file; exit 1 on errors or (--check) pending upgrades. */

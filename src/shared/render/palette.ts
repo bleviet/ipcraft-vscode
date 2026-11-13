@@ -4,12 +4,14 @@
  * theme, so the same tokens are pinned here to the VS Code Light Modern and Dark Modern values.
  *
  * Token values are copied from scripts/docs-screenshots/theme/light.css and dark.css (the charts
- * blue, orange and yellow are the VS Code color registry defaults). Roles the
+ * blue, orange and yellow are the VS Code color registry defaults; the gitDecoration colors are the
+ * bundled git extension's). Roles the
  * webview derives with `color-mix(in srgb, ...)` (systemDiagram.css `--sd-node-*`, colors.ts
  * `restingWireColor`) are computed with {@link mixSrgb} using the same formulas.
  */
 
 import type { NetCategory } from '../../domain/systemGraph';
+import type { MarkStatus } from '../../webview/systemDiagram/changeMarks';
 
 export type RenderTheme = 'light' | 'dark';
 
@@ -92,6 +94,8 @@ export interface Palette {
    * domainView.ts `UNRELEASED_RESET_COLOR`), by name without `var()`; see {@link resolveColor}.
    */
   tokens: Readonly<Record<string, string>>;
+  /** The marks of a comparison (systemDiagram.css `--sd-change-*`): a color per kind of change, and the new wires. */
+  change: Readonly<Record<MarkStatus | 'newWire', string>>;
   /** IP core symbol roles. */
   ip: IpSymbolPalette;
 }
@@ -136,6 +140,10 @@ interface Tokens {
   warning: string;
   ansiCyan: string;
   ansiMagenta: string;
+  /** `--vscode-gitDecoration-addedResourceForeground`, `-modifiedResourceForeground`, `-ignoredResourceForeground`. */
+  gitAdded: string;
+  gitModified: string;
+  gitIgnored: string;
 }
 
 // Light Modern, from scripts/docs-screenshots/theme/light.css.
@@ -156,6 +164,9 @@ const LIGHT_TOKENS: Tokens = {
   warning: '#bf8803',
   ansiCyan: '#0598bc',
   ansiMagenta: '#bc05bc',
+  gitAdded: '#587c0c',
+  gitModified: '#895503',
+  gitIgnored: '#8e8e90',
 };
 
 // Dark Modern, from scripts/docs-screenshots/theme/dark.css.
@@ -176,6 +187,9 @@ const DARK_TOKENS: Tokens = {
   warning: '#cca700',
   ansiCyan: '#11a8cd',
   ansiMagenta: '#bc3fbc',
+  gitAdded: '#81b88b',
+  gitModified: '#e2c08d',
+  gitIgnored: '#8c8c8c',
 };
 
 /** The colors of colors.ts `CATEGORY_COLORS`, by token. */
@@ -245,6 +259,13 @@ function buildPalette(t: Tokens): Palette {
       '--vscode-terminal-ansiMagenta': t.ansiMagenta,
       '--vscode-descriptionForeground': t.descriptionForeground,
       '--vscode-editorWarning-foreground': t.warning,
+    },
+    change: {
+      added: t.gitAdded,
+      changed: t.gitModified,
+      renamed: t.purple,
+      version: t.gitIgnored,
+      newWire: t.gitAdded,
     },
     ip: buildIpSymbolPalette(t),
   };

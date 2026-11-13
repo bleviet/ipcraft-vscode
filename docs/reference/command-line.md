@@ -268,12 +268,35 @@ ipcraft diff bd/system.bd --base origin/main --fail-on new-findings
 | `--out <file>` | Write the report to this file instead of standard output. The folder is created if needed |
 | `--ignore-version-only` | Leave out blocks whose only change is the version of their IP. The JSON report then has no instance with status `version` and `summary.version` is 0 |
 | `--fail-on <changes\|new-findings>` | Exit with 1 when the check fails: `changes` on any change (the total of the summary, after `--ignore-version-only`; a difference of findings alone is not a change), `new-findings` on at least one new finding (resolved findings never fail) |
+| `--image <file.svg\|png\|jpg>` | Also draw the top level of the current revision with the changes marked, to this file; the extension picks the format. The folder is created if needed |
+
+`--image` draws what the viewer shows with **Marks** on, at the top level `/` of the
+current revision with nothing expanded, in the look `ipcraft render` has by
+default (light theme, grid, legend, editor background, scale 2). Added blocks,
+blocks with changed parameters or pins, renamed blocks, blocks with only a new
+version and added or changed external ports have a border in the color of their
+kind and a sign in the header (`+`, `~`, `→`, `v`); a hierarchy with changes inside
+has a `~ N inside` count; the pins that gained or changed a connection have
+their name in color; new wires are drawn in the added color, a little wider. The
+legend names the kinds present and counts the removed blocks and ports as
+`− N removed`: they are not drawn. With `--ignore-version-only`, blocks with only
+a version change are not marked. For another level, an expanded hierarchy or
+another look, use the viewer. The command prints `Wrote <file>` on its own line
+after the report: to standard output when the report is written with `--out`, to
+standard error when the report is on standard output, so the report stays clean.
+`--fail-on` still decides the exit code, after the image is written. An image that cannot be drawn or written also exits with 1 and prints `Image failed: <reason>`; the report is still written.
+
+```bash
+ipcraft diff bd/system.bd --base main --image docs/img/changes.png
+```
 
 Without `--fail-on`, the exit code is 0 when the report is written, whether or
 not the designs differ. It is 1 on an error (an option error, a file or
 revision that cannot be read, or a file that is not a system design) or when
-`--fail-on` fails the check. The report is written or printed first in every case, so a CI job can
-fail and still keep it. A failed check prints one line to standard error, for
+`--fail-on` fails the check, and when `--image` cannot be drawn or written.
+The report is written or printed first in every case, so a CI job can fail and
+still keep it. A failed image prints `Image failed: <reason>` to standard error,
+before any failed check. A failed check prints one line to standard error, for
 example `Diff check failed: 3 changes (--fail-on changes)` or
 `Diff check failed: 1 new finding (--fail-on new-findings)`. In a CI job:
 

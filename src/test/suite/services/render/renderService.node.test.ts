@@ -15,7 +15,10 @@ import { RenderAssets } from '../../../../services/render/renderResources';
 import { renderSystemLevelImage } from '../../../../services/render/systemLevelImage';
 import { readSystemDesign } from '../../../../services/systemDiagram/readSystemDesign';
 import { FONT_FILES } from '../../../../shared/render/fontFaces';
+import { paletteFor } from '../../../../shared/render/palette';
 import { plexTextMeasure } from '../../../../shared/render/textMetrics';
+import { buildChangeMarks, type ChangeMarks } from '../../../../webview/systemDiagram/changeMarks';
+import { zynqDiff, zynqGraph } from '../../webview/systemDiagram/compareFixtures';
 import { nodeBounds } from '../../../../webview/systemDiagram/layout/diagramBounds';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
@@ -133,6 +136,36 @@ describe('renderSystemLevelImage', () => {
       Math.ceil(width + 2 * MARGIN),
       Math.ceil(height + 2 * MARGIN),
     ]);
+  });
+
+  it('draws the marks of a comparison on the nodes and wires of the current revision', async () => {
+    const current = zynqGraph('current');
+    const request = { level: '/', expanded: [], selectedNodeIds: [], clocks: false } as const;
+    const draw = async (changes?: ChangeMarks) =>
+      text(
+        await renderSystemLevelImage(
+          current,
+          { ...request, changes },
+          { ...look, legend: true },
+          svg,
+          assets,
+          roots
+        )
+      );
+    const plain = await draw();
+    const marked = await draw(buildChangeMarks(zynqDiff(), current));
+    const { added, changed } = paletteFor('light').change;
+    const body = (image: string, id: string) =>
+      new RegExp(`<g [^>]*data-node="${id}"[^>]*>(.*?)</g>`).exec(image)![1];
+    expect(plain).not.toContain(added);
+    // axis_data_fifo_0 is new, sys_ps7 has a changed parameter, gpio_block has a change inside.
+    expect(body(marked, '/axis_data_fifo_0')).toContain(`stroke="${added}"`);
+    expect(body(marked, '/axis_data_fifo_0')).toContain('>+</text>');
+    expect(body(marked, '/sys_ps7')).toContain(`stroke="${changed}"`);
+    expect(body(marked, '/gpio_block')).toContain('>~ 1 inside</text>');
+    expect(body(marked, '/sync_0')).toBe(body(plain, '/sync_0'));
+    expect(marked).toContain('>− 2 removed</text>');
+    expect(marked).toContain('>New wire</text>');
   });
 
   it('rejects an isolation of nodes that are not on the level', async () => {

@@ -5,8 +5,15 @@ import type {
   DiagramFlowNode,
 } from '../../webview/systemDiagram/layout/elkLayout';
 import { nodeBadges } from '../../webview/systemDiagram/layout/diagramBounds';
-import { legendEntries, type DomainLegendEntry } from '../../webview/systemDiagram/legend';
+import type { ChangeLegend } from '../../webview/systemDiagram/changeDecor';
+import type { MarkStatus } from '../../webview/systemDiagram/changeMarks';
+import {
+  changeLegendEntries,
+  legendEntries,
+  type DomainLegendEntry,
+} from '../../webview/systemDiagram/legend';
 import type { NetCategory } from '../../domain/systemGraph';
+import { dottedDash } from './changeSvg';
 import { resolveColor, type Palette } from './palette';
 import { element, num } from './svg';
 import { measureText } from './textMetrics';
@@ -20,6 +27,19 @@ const ITEM_HEIGHT = 16;
 const BAR_WIDTH = 16;
 const BAR_GAP = 5;
 const FONT_SIZE = 11;
+/** `.sd-legend-swatch`: the box of a kind of change, 12 x 8 with a 1.5 px border. */
+const SWATCH_WIDTH = 12;
+const SWATCH_HEIGHT = 8;
+const SWATCH_BORDER = 1.5;
+const SIGN_FONT_SIZE = 12;
+/** `.sd-legend-bar-new`. */
+const NEW_WIRE_BAR_HEIGHT = 3.75;
+
+/** What a legend entry of the marks of a comparison draws in place of the wire bar. */
+export type LegendChange =
+  | { kind: 'status'; status: MarkStatus; sign: string }
+  | { kind: 'newWire' }
+  | { kind: 'removed' };
 
 export interface LegendLayout {
   width: number;
@@ -34,16 +54,57 @@ export interface LegendLayout {
     category?: NetCategory;
     color?: string;
     dashed?: boolean;
+    change?: LegendChange;
+    /** Distance from `x` to the label: the bar (or swatch and sign) and its gap. */
+    labelOffset: number;
   }[];
+}
+
+/** The entries of the marks of a comparison: the kinds of change, the new wire, the count of removed blocks. */
+function changeEntries(changes: ChangeLegend | undefined) {
+  if (!changes) {
+    return [];
+  }
+  return [
+    ...changeLegendEntries(changes.kinds).map((entry) => ({
+      label: entry.label,
+      thick: false,
+      change: { kind: 'status', status: entry.status, sign: entry.sign } as const,
+    })),
+    ...(changes.newWire
+      ? [{ label: 'New wire', thick: false, change: { kind: 'newWire' } as const }]
+      : []),
+    ...(changes.removed > 0
+      ? [
+          {
+            label: `− ${changes.removed} removed`,
+            thick: false,
+            change: { kind: 'removed' } as const,
+          },
+        ]
+      : []),
+  ];
+}
+
+/** Distance from an entry's left edge to its label: a status swatch, its sign and gaps; a bar; nothing for the count of removed blocks. */
+function labelOffsetOf(change: LegendChange | undefined): number {
+  if (change?.kind === 'removed') {
+    return 0;
+  }
+  if (change?.kind === 'status') {
+    return SWATCH_WIDTH + BAR_GAP + measureText(change.sign, 'sans600', SIGN_FONT_SIZE) + BAR_GAP;
+  }
+  return BAR_WIDTH + BAR_GAP;
 }
 
 /** Lays the legend entries of the drawn level out in rows that wrap at `maxWidth`; null when there are none. */
 export function layoutLegend(
   layout: { nodes: readonly DiagramFlowNode[]; edges: readonly DiagramFlowEdge[] },
   maxWidth: number,
-  domains: readonly DomainLegendEntry[] = []
+  domains: readonly DomainLegendEntry[] = [],
+  changes?: ChangeLegend
 ): LegendLayout | null {
-  const entries: Omit<LegendLayout['items'][number], 'x' | 'y'>[] = [
+  const entries: Omit<LegendLayout['items'][number], 'x' | 'y' | 'labelOffset'>[] = [
     ...legendEntries(
       layout.edges.map((edge) => edge.data),
       layout.nodes.flatMap((node) => nodeBadges(node).flatMap((badge) => badge.nets))
@@ -54,6 +115,7 @@ export function layoutLegend(
       color: entry.color,
       dashed: entry.line === 'dashed',
     })),
+    ...changeEntries(changes),
   ];
   if (entries.length === 0) {
     return null;
@@ -64,7 +126,8 @@ export function layoutLegend(
   let row = 0;
   let widest = 0;
   for (const entry of entries) {
-    const width = BAR_WIDTH + BAR_GAP + measureText(entry.label, 'sans400', FONT_SIZE);
+    const labelOffset = labelOffsetOf(entry.change);
+    const width = labelOffset + measureText(entry.label, 'sans400', FONT_SIZE);
     if (x > 0 && x + width > inner) {
       x = 0;
       row += 1;
@@ -77,6 +140,8 @@ export function layoutLegend(
       category: entry.category,
       color: entry.color,
       dashed: entry.dashed,
+      change: entry.change,
+      labelOffset,
     });
     widest = Math.max(widest, x + width);
     x += width + ITEM_GAP_X;
@@ -86,6 +151,66 @@ export function layoutLegend(
     height: (row + 1) * ITEM_HEIGHT + row * ITEM_GAP_Y + 2 * PADDING_Y + 2,
     items,
   };
+}
+
+/** A round-ended color bar of the legend. */
+function barSvg(x: number, centerY: number, height: number, color: string): string {
+  return element('rect', {
+    x,
+    y: centerY - height / 2,
+    width: BAR_WIDTH,
+    height,
+    rx: height / 2,
+    fill: color,
+  });
+}
+
+/** What leads an entry: the swatch and sign of a kind of change, a wire bar, or nothing for the removed count. */
+function itemMarkSvg(item: LegendLayout['items'][number], palette: Palette): string {
+  const cy = item.y + ITEM_HEIGHT / 2;
+  const { change } = item;
+  if (change?.kind === 'removed') {
+    return '';
+  }
+  if (change?.kind === 'newWire') {
+    return barSvg(item.x, cy, NEW_WIRE_BAR_HEIGHT, palette.change.newWire);
+  }
+  if (change?.kind === 'status') {
+    const color = palette.change[change.status];
+    return [
+      element('rect', {
+        x: item.x + SWATCH_BORDER / 2,
+        y: cy - SWATCH_HEIGHT / 2 + SWATCH_BORDER / 2,
+        width: SWATCH_WIDTH - SWATCH_BORDER,
+        height: SWATCH_HEIGHT - SWATCH_BORDER,
+        rx: 1.5,
+        fill: 'none',
+        stroke: color,
+        'stroke-width': SWATCH_BORDER,
+        'stroke-dasharray': change.status === 'version' ? dottedDash(SWATCH_BORDER) : undefined,
+      }),
+      drawText(item.x + SWATCH_WIDTH + BAR_GAP, cy, change.sign, {
+        face: 'sans600',
+        sizePx: SIGN_FONT_SIZE,
+        fill: color,
+      }),
+    ].join('');
+  }
+  const color =
+    item.color === undefined
+      ? palette.category[item.category ?? 'signal']
+      : resolveColor(palette, item.color);
+  return item.dashed
+    ? element('line', {
+        x1: item.x,
+        y1: cy,
+        x2: item.x + BAR_WIDTH,
+        y2: cy,
+        stroke: color,
+        'stroke-width': 2,
+        'stroke-dasharray': '6 4',
+      })
+    : barSvg(item.x, cy, item.thick ? 3 : 1.5, color);
 }
 
 /** The legend panel with its top-left corner at `(x, y)`. */
@@ -102,31 +227,9 @@ export function legendSvg(legend: LegendLayout, x: number, y: number, palette: P
     }),
   ];
   for (const item of legend.items) {
-    const barHeight = item.thick ? 3 : 1.5;
-    const color =
-      item.color === undefined
-        ? palette.category[item.category ?? 'signal']
-        : resolveColor(palette, item.color);
     parts.push(
-      item.dashed
-        ? element('line', {
-            x1: item.x,
-            y1: item.y + ITEM_HEIGHT / 2,
-            x2: item.x + BAR_WIDTH,
-            y2: item.y + ITEM_HEIGHT / 2,
-            stroke: color,
-            'stroke-width': 2,
-            'stroke-dasharray': '6 4',
-          })
-        : element('rect', {
-            x: item.x,
-            y: item.y + ITEM_HEIGHT / 2 - barHeight / 2,
-            width: BAR_WIDTH,
-            height: barHeight,
-            rx: barHeight / 2,
-            fill: color,
-          }),
-      drawText(item.x + BAR_WIDTH + BAR_GAP, item.y + ITEM_HEIGHT / 2, item.label, {
+      itemMarkSvg(item, palette),
+      drawText(item.x + item.labelOffset, item.y + ITEM_HEIGHT / 2, item.label, {
         face: 'sans400',
         sizePx: FONT_SIZE,
         fill: palette.descriptionForeground,
