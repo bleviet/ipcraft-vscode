@@ -1,13 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
-import { BottomPanel, type BottomTab } from './BottomPanel';
+import type {
+  DiagramCompare,
+  HighlightColor,
+  HighlightMap,
+} from '../../shared/messages/systemDiagram';
+import { BottomPanel } from './BottomPanel';
 import { analyzeClocks } from './clocks/analyzeClocks';
 import { toolbarSummary } from './clocks/crossingSummary';
 import { DetailsPanel } from './DetailsPanel';
 import { DiagramCanvas } from './DiagramCanvas';
 import { DiagramToolbar, type PanelName } from './DiagramToolbar';
 import { applyHighlight, highlightCount } from './highlights';
+import { useBottomTab } from './hooks/useBottomTab';
 import { useDiagramExport, type ImageExportChannel } from './hooks/useDiagramExport';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
@@ -20,7 +25,7 @@ import { useMouseNavigationButtons } from './hooks/useMouseNavigationButtons';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import type { DiagramProblem } from './messageState';
-import { nodeSelection, type Selection } from './model';
+import { boundaryId, nodeSelection, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
@@ -36,6 +41,11 @@ interface WorkbenchLayoutProps {
   openDefinition: (instance: string) => void;
   onChangeHighlights?: (highlights: HighlightMap) => void;
   imageExport?: ImageExportChannel;
+  /** The comparison that is on, and the gestures that start and end one. */
+  compare?: DiagramCompare;
+  onStartCompare: () => void;
+  onStopCompare: () => void;
+  onSwapCompare: () => void;
 }
 
 const EMPTY_HIGHLIGHTS: HighlightMap = {};
@@ -49,6 +59,10 @@ export function WorkbenchLayout({
   openDefinition,
   onChangeHighlights,
   imageExport,
+  compare,
+  onStartCompare,
+  onStopCompare,
+  onSwapCompare,
 }: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
   const levelHistory = useLevelHistory(graph, nav.levelPath, nav.navigate);
@@ -81,7 +95,6 @@ export function WorkbenchLayout({
     onQueryChange: setQuery,
     onStep: stepSearch,
   });
-  const [tab, setTab] = useState<BottomTab>('address');
   const [reviewUnconnected, setReviewUnconnected] = useState(false);
   const [focusedPin, setFocusedPin] = useState<FocusedPin | null>(null);
   const findings = useMemo(() => unconnectedPins(graph), [graph]);
@@ -128,12 +141,9 @@ export function WorkbenchLayout({
     }
   }, [searching]);
 
-  const openBottomTab = (next: BottomTab) => {
-    setTab(next);
-    if (panels.bottom.collapsed) {
-      panels.bottom.toggle();
-    }
-  };
+  const { tab, setTab, openTab: openBottomTab } = useBottomTab(compare?.baseLabel, panels.bottom);
+  const selectPort = (name: string) =>
+    view.selectAndReveal({ kind: 'boundary', id: boundaryId('/', name) }, '/');
   // Zoom in to a readable size: on a large design the pin is unreadable at the fitted zoom.
   const selectFinding = (finding: UnconnectedPin) => {
     view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
@@ -216,6 +226,12 @@ export function WorkbenchLayout({
         }}
         onFit={fit}
         imageExport={exporter}
+        compare={{
+          compare,
+          onStart: onStartCompare,
+          onStop: onStopCompare,
+          onOpenChanges: () => openBottomTab('changes'),
+        }}
         panelsVisible={panelsVisible}
         onTogglePanel={(panel) => panels[panel].toggle()}
       />
@@ -313,6 +329,7 @@ export function WorkbenchLayout({
                 onSelectPin={selectFinding}
                 onSelectNet={selectNet}
                 onReveal={revealSource}
+                changes={compare && { compare, onSelectPort: selectPort, onSwapCompare }}
               />
             </div>
           </>

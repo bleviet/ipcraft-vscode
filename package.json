@@ -379,6 +379,12 @@
         "icon": "$(device-camera)"
       },
       {
+        "command": "fpga-ip-core.compareSystemDesign",
+        "title": "Compare System Design with...",
+        "category": "IPCraft",
+        "icon": "$(git-compare)"
+      },
+      {
         "command": "fpga-ip-core.copyComponentInstance",
         "title": "Copy Component Instance",
         "category": "IPCraft",
@@ -766,6 +772,10 @@
         {
           "command": "fpga-ip-core.exportDiagramImage",
           "when": "activeCustomEditorId == 'fpgaIpCore.editor' || activeCustomEditorId == 'ipcraft.systemDiagram'"
+        },
+        {
+          "command": "fpga-ip-core.compareSystemDesign",
+          "when": "activeCustomEditorId == 'ipcraft.systemDiagram'"
         },
         {
           "command": "fpga-ip-core.vivadoNotConfigured",

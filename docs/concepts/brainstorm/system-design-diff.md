@@ -3,12 +3,13 @@
 ## Status
 
 Partly implemented. The diff engine (`diffSystemGraphs`) and the `ipcraft diff`
-command with its Markdown and JSON report, the first part of phase 1, work; see
+command with its Markdown and JSON report work; see
 the [command line reference](../../reference/command-line.md#compare-two-revisions-of-a-system-design).
-The viewer part (the **Changes** tab, the overlay, the base picker) and the later
-phases are open. This document describes how the
-[system viewer](../../how-to/view-a-system-design.md) could show what changed
-between two revisions of a block design or Platform Designer system.
+In the viewer, the compare command, the base picker (a git revision or a file)
+and the **Changes** tab of phase 1 also work. The current side is the open file.
+The overlay on the diagram and the later phases are open. This document describes
+how the [system viewer](../../how-to/view-a-system-design.md) could show what
+changed between two revisions of a block design or Platform Designer system.
 
 It turns the "graph diff between two revisions" of phase 4 in
 [Offline System Viewer](offline-system-viewer.md) into a feature of its own.

@@ -5,6 +5,7 @@ import type { ToolbarSummary } from './clocks/crossingSummary';
 import type { ExportImageOptions } from '../../shared/messages/imageExport';
 import { ExportImageButton } from '../shared/components/ExportImageButton';
 import { ToolbarGroup, ToolbarSeparator } from '../shared/components/Toolbar';
+import { CompareControl, type CompareControlProps } from './CompareControl';
 import { breadcrumbs } from './model';
 import { SearchBox, type SearchBoxProps } from './SearchBox';
 
@@ -49,6 +50,8 @@ interface DiagramToolbarProps {
     openToken: number;
     exportImage: (options: ExportImageOptions) => void;
   };
+  /** The Compare button, and the base and summary of the comparison that is on. */
+  compare: CompareControlProps;
   panelsVisible: Record<PanelName, boolean>;
   onTogglePanel: (panel: PanelName) => void;
 }
@@ -84,6 +87,7 @@ export function DiagramToolbar({
   onMinimapChange,
   onFit,
   imageExport,
+  compare,
   panelsVisible,
   onTogglePanel,
 }: DiagramToolbarProps) {
@@ -202,6 +206,7 @@ export function DiagramToolbar({
             {unconnected.count}
           </span>
         </button>
+        <CompareControl {...compare} />
       </ToolbarGroup>
       <ToolbarSeparator />
       <ToolbarGroup label="View">

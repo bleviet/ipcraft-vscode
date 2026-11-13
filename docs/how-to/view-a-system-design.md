@@ -36,7 +36,7 @@ diagram keeps the last valid design and shows a banner with the reason.
 
 The diagram shows one hierarchy level at a time.
 
-The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Unconnected pins), **View** (Simplify zoomed out, Minimap, zoom out, Fit, zoom in) and **Panels**. Hover a button to see its name.
+The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Unconnected pins, Compare), **View** (Simplify zoomed out, Minimap, zoom out, Fit, zoom in) and **Panels**. Hover a button to see its name.
 
 - **Levels.** Double-click a hierarchy block to enter it. Use the breadcrumb at
   the top left, or the mouse back button, to go up one level. The mouse forward
@@ -352,6 +352,114 @@ listed in either tab.
 - **Minimap** (off by default) shows the whole level in the bottom right corner with the current view as a rectangle; selected blocks, search matches and hierarchy blocks stand out. Click or drag on it to pan, and use the wheel over it to zoom. It only changes what is drawn: blocks never move.
 - Each level remembers its own zoom and position while the diagram is open.
 - **Simplify zoomed out**, on by default, hides pin and port names, block subtitles, clock frequencies and badge text when you zoom out below about 42%, and enlarges the block names so that they stay readable. It only changes what is drawn: blocks never move. Turn it off to show everything at every zoom.
+
+## Compare with another revision
+
+The file you have open is the **current** side of the comparison; what you pick is
+the **base**. Changes read from the base to the current side, so to see what a commit
+changed, open the newer file and pick the older one. To see what you changed, or what a
+pull request changed, click **Compare** (the git-compare icon in the Design group), or
+run **IPCraft: Compare System Design with...** from the command palette while a
+diagram is open. The picker lists, in groups:
+
+- **Open designs**: the other system designs (`.bd`, `.tcl`, `.qsys`) open in an
+  editor tab as files on disk, with their folder. The text of the tab is used, so
+  unsaved edits count. It is taken as it is at the moment you pick it and does not
+  follow later edits of that file; pick it again to refresh.
+- **Git**: **HEAD** (the last commit) and **Merge base with main** (or `master`), the
+  commit where your branch left the default branch; it is offered when it differs from
+  HEAD.
+- **Commits that changed this file**: the last 20 commits that touched the open file,
+  with their message, short hash, date and author. Type a hash or an author to find one.
+- **Branches** and **Tags**, by name. The branch you are on is not listed.
+- **Enter a revision...**: any branch, tag or commit.
+- **Compare with File...**: another system design file (`.bd`, `.tcl` or `.qsys`),
+  for example a copy outside git.
+
+The base may be in another format than the open file. A script written by
+`write_bd_tcl` and the `.bd` of the same design can be compared, as can a `.qsys` and
+its script, when you pick the other file (an open design or **Compare with File...**).
+A file is read in its own format, a git revision in the format of the open file. The
+Changes bar then adds "Different formats: only what both describe is comparable.",
+because what one format leaves out cannot show up as a difference.
+
+Without a git repository, only the open designs and **Compare with File...** are
+offered. Cancel the picker at any step to leave things as they were. If the revision
+or file cannot be read, or is not a system design, a message says so and a comparison
+that was already on stays on.
+
+While a comparison is on, the toolbar shows a chip with the base (`vs HEAD`), the
+numbers of added, removed, changed and version-only changes (`+1 −4 ~2 v1`; a zero is
+dimmed), and an **Exit compare** button. Click the chip or the numbers to open the
+**Changes** tab, the first tab of the bottom panel. The tab also opens by itself when
+a comparison starts.
+
+The Changes tab lists one row per change:
+
+| Sign | Meaning |
+|---|---|
+| `+ Added` | The block, external port, pin or address segment is new |
+| `− Removed` | It is gone |
+| `~ Changed` | A parameter, a type, an address or a connection differs |
+| `v Version` | Only the version of the block's IP differs |
+
+Each row names where it is (the **Address map**, the **External ports**, or the
+level of the block), what it is about, the change, and the value in the base and in
+the current design. Long values in Base and Current wrap and are shown in full; the
+other columns stay on one line, so the table scrolls sideways inside the panel when
+it is wider than the panel. An address row reads
+`address space → segment` under **What**, and **Change** says `added`, `removed` or
+`address changed`. A renamed block shows as one removed and one added block for now.
+
+The bar at the top of the tab stays in view while the table scrolls. It is one line
+(it wraps when the panel is narrow) and says which side is which, for example
+`Base nontrivial_mips.1.bd → Current nontrivial_mips.3.bd`. Files are shown by
+name, or by the shortest trailing path that tells them apart when the names are
+equal; a revision or commit is shown as it is. Hover a name to see its full label;
+the **Base** and **Current** column headers show them on hover as well. After the
+direction come a sentence that sums up the differences, for example "3 blocks, 1 port
+and 2 address segments differ.", and the four chips.
+Hover a chip for its meaning: **+ Added** is only in the current design, **−
+Removed** only in the base, **~ Changed** is in both but different, and **v Version
+only** differs only in the IP version. With no difference the sentence says "No
+changes." and there is no table.
+
+When the base is a file (an open design or **Compare with File...**), the bar has
+a **Swap** button after the direction. It opens the base as a diagram, or, when a
+diagram of it is already open (also in another editor group), shows that one, and
+starts a comparison there with the first file as the base, so the changes read the
+other way round. The comparison on the first diagram stays as it is. The first file
+is taken as it is when you click **Swap** and does not follow later edits of it; click
+**Swap** again to refresh. A git revision as the base has no Swap, because a revision
+cannot be opened as a diagram yet.
+
+Order, net names, line numbers and tool metadata are not changes. When a connection
+moves, only the pin that moved is listed, not every pin on the net. A hierarchy pin
+has an outside view in the parent level and an inside view in the hierarchy's own
+level; a row for the inside view says `inside`. The full rules are in
+[`ipcraft diff`](../reference/command-line.md#compare-two-revisions-of-a-system-design),
+which produces the same changes on the command line.
+
+The chips **Added**, **Removed**, **Changed** and **Version only** hide the rows of
+that kind; they are all on at first. The filter box above the table works on every
+column, as in the other tabs.
+
+Click a row (or focus it and press Enter) to go to its block: the diagram shows the
+level, selects the block and centres it. A row of an external port selects the port,
+and a row of an address segment selects the block the segment belongs to. What no
+longer exists in the current design cannot be selected; its row is dimmed and says
+"Not in this revision" on hover.
+
+The list follows your edits: change the file and the Changes tab updates. The
+workspace definitions (`.ip.yml` and HDL files) come from your working tree for both
+sides. Both sides always use the same definitions, also after you grant trust to the
+workspace or change a definition, so a definition never shows up as a change. If the
+definitions cannot be read for one of the sides, both sides are compared without them.
+**Exit compare** ends the comparison; it also ends when you close the diagram.
+
+This version does not yet mark the changes on the diagram, and the current side is
+always the file you have open: you cannot choose a revision for it. It compares the
+design only, not the findings or the address map tab.
 
 ## Export an image
 

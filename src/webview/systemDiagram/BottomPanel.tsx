@@ -1,8 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
+import type { DiagramCompare } from '../../shared/messages/systemDiagram';
+import { changeRows } from '../../services/systemDiagram/diff/changeRows';
 import { AddressMapTable } from './AddressMapTable';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { clocksInView } from './clocks/viewScope';
+import { ChangesTable } from './ChangesTable';
 import { ClocksTable } from './ClocksTable';
 import { shownLevels } from './expansion';
 import { ResetsTable } from './ResetsTable';
@@ -11,7 +14,7 @@ import { compileSearch, DEFAULT_SEARCH_OPTIONS } from './searchMatcher';
 import { UnconnectedPinsTable } from './UnconnectedPinsTable';
 import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
-export type BottomTab = 'address' | 'clocks' | 'resets' | 'unconnected';
+export type BottomTab = 'changes' | 'address' | 'clocks' | 'resets' | 'unconnected';
 
 interface BottomPanelProps {
   graph: SystemGraph;
@@ -29,6 +32,12 @@ interface BottomPanelProps {
   /** Opens a net of the Clocks or Resets tab; a crossing row also haloes its sink pin. */
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
   onReveal: (line: number, uri?: string) => void;
+  /** While a comparison is on: its changes, listed in the first tab, and the way to select an external port. */
+  changes?: {
+    compare: DiagramCompare;
+    onSelectPort: (name: string) => void;
+    onSwapCompare: () => void;
+  };
 }
 
 export function BottomPanel({
@@ -45,12 +54,18 @@ export function BottomPanel({
   onSelectPin,
   onSelectNet,
   onReveal,
+  changes,
 }: BottomPanelProps) {
+  const rows = useMemo(
+    () => (changes ? changeRows(changes.compare.diff, { ignoreVersionOnly: false }) : []),
+    [changes?.compare.diff]
+  );
   const view = useMemo(
     () => clocksInView(graph, clocks, shownLevels(graph, levelPath, expanded)),
     [graph, clocks, levelPath, expanded]
   );
   const tabs: { id: BottomTab; label: string; count: number }[] = [
+    ...(changes ? [{ id: 'changes' as const, label: 'Changes', count: rows.length }] : []),
     { id: 'address', label: 'Address map', count: graph.addressSegments.length },
     { id: 'clocks', label: 'Clocks', count: view.domains.length },
     { id: 'resets', label: 'Resets', count: view.resets.length },
@@ -58,6 +73,7 @@ export function BottomPanel({
   ];
   // One filter box for the tab on show; each tab keeps its own text.
   const [filters, setFilters] = useState<Record<BottomTab, string>>({
+    changes: '',
     address: '',
     clocks: '',
     resets: '',
@@ -105,7 +121,18 @@ export function BottomPanel({
         />
       </div>
       <div className="min-h-0 flex-1 overflow-auto px-2.5 pb-2.5">
-        {tab === 'address' ? (
+        {tab === 'changes' && changes ? (
+          <ChangesTable
+            graph={graph}
+            compare={changes.compare}
+            rows={rows}
+            filter={filter}
+            selection={selection}
+            onSelectInstance={onSelectInstance}
+            onSelectPort={changes.onSelectPort}
+            onSwapCompare={changes.onSwapCompare}
+          />
+        ) : tab === 'address' ? (
           <AddressMapTable
             graph={graph}
             filter={filter}

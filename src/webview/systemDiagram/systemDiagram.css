@@ -852,6 +852,10 @@ input:focus-visible {
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 
+.sd-label {
+  white-space: nowrap;
+}
+
 .sd-chip {
   padding: 1px 9px;
   font-size: 12px;
@@ -1085,4 +1089,93 @@ input:focus-visible {
   overflow-wrap: break-word;
   font-size: calc(12px * var(--sd-name-scale, 1));
   line-height: 1.1;
+}
+
+/* Comparison with another revision (issue #302): the toolbar counts and the Changes tab. */
+.sd-compare-base {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sd-tool-group > .sd-compare-counts {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.sd-delta[data-sign='+'],
+.sd-sign[data-sign='+'] {
+  color: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+}
+
+.sd-delta[data-sign='−'],
+.sd-sign[data-sign='−'] {
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+}
+
+.sd-delta[data-sign='~'],
+.sd-sign[data-sign='~'] {
+  color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+}
+
+.sd-delta[data-sign='v'],
+.sd-sign[data-sign='v'] {
+  color: var(--vscode-descriptionForeground);
+}
+
+.sd-delta[data-zero='true'] {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+}
+
+.sd-sign {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Where stays on one line, and What too when the viewer is wide. When it is narrow, What and
+   Change wrap, inside a long name if they must, so that Base and Current stay in view. Long
+   values break anywhere in Base and Current. */
+.sd-changes td:nth-child(2) {
+  white-space: nowrap;
+}
+
+@media (min-width: 1200px) {
+  .sd-changes td:nth-child(-n + 3) {
+    white-space: nowrap;
+  }
+
+  /* Change wraps at spaces; a single word wider than the column breaks instead of pushing
+     Current out of view. */
+  .sd-changes td:nth-child(4) {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 1199px) {
+  .sd-changes td:nth-child(3),
+  .sd-changes td:nth-child(4) {
+    overflow-wrap: anywhere;
+  }
+
+  /* Without a share of its own, the long values of Base and Current squeeze What to its floor. */
+  .sd-changes td:nth-child(3) {
+    width: 34%;
+    min-width: 32ch;
+  }
+
+  .sd-changes td:nth-child(4) {
+    min-width: 18ch;
+  }
+}
+
+.sd-changes .sd-wrap {
+  min-width: 16ch;
+  overflow-wrap: anywhere;
+}
+
+.sd-changes .sd-code {
+  font-family: var(--vscode-editor-font-family, monospace);
 }

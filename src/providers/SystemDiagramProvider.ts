@@ -2,6 +2,10 @@ import * as vscode from 'vscode';
 import { HtmlGenerator } from '../services/HtmlGenerator';
 import { readSystemDesign } from '../services/systemDiagram/readSystemDesign';
 import { SystemDesignEnricher } from '../services/systemDiagram/SystemDesignEnricher';
+import type {
+  CompareResult,
+  CurrentSide,
+} from '../services/systemDiagram/compare/SystemDesignCompare';
 import type { SystemGraph } from '../domain/systemGraph';
 import { WebviewRouter } from '../services/WebviewRouter';
 import type {
@@ -15,6 +19,8 @@ import { Logger } from '../utils/Logger';
 import { settleWithin, STILL_PENDING } from './settleWithin';
 import { ExportTargets } from './imageExport/ExportTargets';
 import { ImageExportHost } from './imageExport/ImageExportHost';
+import { DiagramPanels } from './systemDiagram/DiagramPanels';
+import { PanelCompare } from './systemDiagram/PanelCompare';
 
 /** How long to wait for workspace enrichment before showing the parsed graph. */
 export const ENRICHMENT_GRACE_MS = 100;
@@ -27,6 +33,8 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
   private readonly enricher = new SystemDesignEnricher();
 
   private readonly imageExport: ImageExportHost;
+
+  private readonly panels = new DiagramPanels();
 
   constructor(
     private readonly context: vscode.ExtensionContext,
@@ -42,6 +50,15 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       roots: resourceRoots,
       logger: this.logger,
     });
+  }
+
+  /** Starts the comparison of the active diagram panel; false when none is active. */
+  compareActive(): boolean {
+    const active = this.panels.active();
+    if (active) {
+      void active.pickBase();
+    }
+    return active !== undefined;
   }
 
   resolveCustomTextEditor(
@@ -63,10 +80,22 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     let lastGraph: SystemGraph | undefined;
     /** False while `lastGraph` is the early, not yet enriched graph. */
     let lastGraphFinal = true;
+    /** The sides of `lastGraph` while it is final. */
+    let lastSides: CurrentSide | undefined;
+    const compare = new PanelCompare({
+      document,
+      webviewPanel,
+      panels: this.panels,
+      enricher: this.enricher,
+      logError: (message, error) => this.logger.error(message, error),
+      republish: () => republish(),
+    });
+    /** Set when the panel is gone: nothing is published or stored after that. */
+    let disposed = false;
     const storageKey = `ipcraft.systemDiagram.highlights:${document.uri.toString()}`;
 
     /** Posts a graph with its remembered highlights; only `persist` prunes workspaceState. */
-    const publish = (graph: SystemGraph, persist: boolean) => {
+    const publish = (graph: SystemGraph, persist: boolean, changes?: CompareResult) => {
       lastGraph = graph;
       lastGraphFinal = persist;
       const raw = this.context.workspaceState?.get<unknown>(storageKey);
@@ -87,26 +116,32 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
         type: 'graph',
         graph,
         ...(Object.keys(highlights).length > 0 && { highlights }),
+        ...(changes && { compare: compare.describe(changes) }),
       });
     };
 
     const postGraph = async () => {
       const current = ++sequence;
-      const fileName = vscode.workspace.asRelativePath(document.uri, false);
+      const fileName = compare.currentLabel;
       try {
         const read = readSystemDesign(document.fileName, fileName, document.getText());
         if (!read) {
           post({ type: 'notRecognized', fileName });
           return;
         }
+        let fellBack = false;
         const enrichment = this.enricher.enrich(read, document.fileName).catch((error: unknown) => {
           this.logger.error('Failed to enrich system design', error as Error);
+          fellBack = true;
           return read;
         });
         const quick = await settleWithin(enrichment, ENRICHMENT_GRACE_MS);
         if (quick !== STILL_PENDING) {
+          const sides = { read, enriched: quick, fellBack };
+          const changes = compare.active ? await compare.diffEnriched(sides) : undefined;
           if (current === sequence) {
-            publish(quick, true);
+            lastSides = sides;
+            publish(quick, true, changes);
           }
           return;
         }
@@ -120,12 +155,16 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
                 { severity: 'info', message: 'Resolving workspace definitions…' },
               ],
             },
-            false
+            false,
+            compare.diffRead(read)
           );
         }
         const graph = await enrichment;
+        const sides = { read, enriched: graph, fellBack };
+        const changes = compare.active ? await compare.diffEnriched(sides) : undefined;
         if (current === sequence) {
-          publish(graph, true);
+          lastSides = sides;
+          publish(graph, true, changes);
         }
       } catch (error) {
         if (current !== sequence) {
@@ -136,11 +175,28 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       }
     };
 
+    /** Publishes the graph on show again, with the comparison as it is now. */
+    const republish = async () => {
+      const graph = lastGraph;
+      if (!graph) {
+        return;
+      }
+      const final = lastGraphFinal;
+      const sides = lastSides;
+      const changes = final && sides ? await compare.diffEnriched(sides) : compare.diffRead(graph);
+      // A newer graph replaced this one meanwhile and carries the comparison itself.
+      if (!disposed && graph === lastGraph) {
+        publish(graph, final, changes);
+      }
+    };
+
     const router = new WebviewRouter<SystemDiagramToExtensionMessage>({
       webviewPanel,
       document,
       logger: this.logger,
       onReady: () => {
+        // A swap from another panel waits for this one: its comparison goes out with the first graph.
+        compare.onReady();
         const remembered = this.imageExport.rememberedOptions('systemDiagram');
         if (remembered) {
           post({ type: 'exportOptions', options: remembered });
@@ -212,6 +268,10 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       await this.imageExport.exportSystem(document, lastGraph, message);
     });
 
+    router.on('startCompare', () => compare.pick());
+    router.on('stopCompare', () => compare.stop());
+    router.on('swapCompare', () => compare.swap());
+
     const documentChanges = vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.uri.toString() === document.uri.toString()) {
         void postGraph();
@@ -222,6 +282,8 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       void postGraph();
     });
     webviewPanel.onDidDispose(() => {
+      disposed = true;
+      compare.dispose();
       documentChanges.dispose();
       trustGranted.dispose();
       exportTarget.dispose();

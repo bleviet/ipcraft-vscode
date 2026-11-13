@@ -34,4 +34,18 @@ describe('useSystemDiagramMessages export', () => {
       view,
     });
   });
+
+  it('posts swapCompare', () => {
+    const { result } = renderHook(() => useSystemDiagramMessages());
+    act(() => result.current.swapCompare());
+    expect(vscode?.postMessage).toHaveBeenCalledWith({ type: 'swapCompare' });
+  });
+
+  it('posts startCompare and stopCompare', () => {
+    const { result } = renderHook(() => useSystemDiagramMessages());
+    act(() => result.current.startCompare());
+    expect(vscode?.postMessage).toHaveBeenCalledWith({ type: 'startCompare' });
+    act(() => result.current.stopCompare());
+    expect(vscode?.postMessage).toHaveBeenCalledWith({ type: 'stopCompare' });
+  });
 });

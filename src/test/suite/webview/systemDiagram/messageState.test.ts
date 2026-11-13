@@ -2,6 +2,7 @@ import {
   reduceDiagramMessage,
   type SystemDiagramState,
 } from '../../../../webview/systemDiagram/messageState';
+import { compareOf, zynqDiff } from './compareFixtures';
 import { loadFixtureGraph } from './fixtureGraph';
 
 const graph = loadFixtureGraph();
@@ -40,6 +41,28 @@ describe('reduceDiagramMessage', () => {
     expect(reduceDiagramMessage(broken, { type: 'graph', graph: next })).toEqual({
       status: 'graph',
       graph: next,
+    });
+  });
+
+  it('carries the comparison of a graph message and drops it with the next one that has none', () => {
+    const compare = compareOf(zynqDiff());
+    const on = reduceDiagramMessage(loading, { type: 'graph', graph, compare });
+    expect(on).toEqual({ status: 'graph', graph, compare });
+    const edited = reduceDiagramMessage(on, {
+      type: 'graph',
+      graph,
+      compare: { ...compare, baseLabel: 'v1' },
+    });
+    expect(edited).toMatchObject({ compare: { baseLabel: 'v1' } });
+    expect(reduceDiagramMessage(on, { type: 'graph', graph })).toEqual({ status: 'graph', graph });
+  });
+
+  it('keeps the comparison while a problem is recorded', () => {
+    const compare = compareOf(zynqDiff());
+    const on = reduceDiagramMessage(loading, { type: 'graph', graph, compare });
+    expect(reduceDiagramMessage(on, { type: 'error', message: 'boom' })).toMatchObject({
+      compare,
+      problem: { kind: 'error', message: 'boom' },
     });
   });
 });

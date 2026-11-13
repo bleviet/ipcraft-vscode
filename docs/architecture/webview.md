@@ -125,7 +125,27 @@ fragments. Generated files, declarative data, and templates are excluded.
 
 The `systemDiagram` bundle is read-only. It receives a `SystemGraph` from the
 host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
-`revealSource`, and `openDefinition`.
+`revealSource`, `openDefinition`, the export and highlight messages, and
+`startCompare`, `stopCompare` and `swapCompare`.
+
+While a comparison is on, the `graph` message also carries `compare`
+(`{ baseLabel, currentLabel, canSwap, diff }`, `DiagramCompare` in
+`shared/messages/systemDiagram.ts`; `canSwap` is true when the base is a file).
+The host owns the comparison; the webview only lists it. `swapCompare` asks the host
+to open the base file as a diagram and compare it with this document; the webview
+reaches it as `onSwapCompare` (`useSystemDiagramMessages` to `BottomPanel`). On the
+host, `providers/systemDiagram/DiagramPanels.ts` finds the panel of a document and
+holds a swap request until the new panel registers; `PanelCompare.ts` is the
+comparison of one panel (base, base file, start, stop, swap).
+
+- `CompareControl.tsx` is the toolbar control.
+- `ChangesTable.tsx` is the **Changes** tab, with one sticky bar (`Base … →
+  Current …` by `compareLabels.ts`, **Swap**, the summary and the chips). It renders an address row as `space → segment`
+  itself; `ChangeRow` and the Markdown report keep the one shared layout. Its rows
+  are `changeRows` of the diff, with structured cells (`CellPart`, plain or code). `changeTargets.ts` resolves an
+  address segment row to its slave block in the current graph. `changeSummary.ts`
+  and `panelFilter.ts` hold the texts.
+- `hooks/useBottomTab.ts` decides when the tab opens and when it falls back.
 
 | Layer | Owner |
 |---|---|

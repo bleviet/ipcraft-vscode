@@ -1,0 +1,40 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import type { SystemGraphDiff } from '../../../../domain/systemGraphDiff';
+import type { DiagramCompare } from '../../../../shared/messages/systemDiagram';
+import { diffSystemGraphs } from '../../../../services/systemDiagram/diff/diffSystemGraphs';
+import { readSystemDesign } from '../../../../services/systemDiagram/readSystemDesign';
+
+const FIXTURES = path.resolve(__dirname, '../../../fixtures/system-design/diff');
+
+function read(file: string) {
+  return readSystemDesign(file, 'system.bd', fs.readFileSync(path.join(FIXTURES, file), 'utf8'))!;
+}
+
+/** The graph of one side of the .bd pair. */
+export const zynqGraph = (side: 'base' | 'current') => read(`zynq_gpio_${side}.bd`);
+
+/** Base to current of the Vivado .bd pair: a removed and an added block, a changed one, a version bump, a removed port. */
+export function zynqDiff(): SystemGraphDiff {
+  return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_current.bd'));
+}
+
+/** The same pair the other way round: the port is added, the removed block is added. */
+export function zynqReverseDiff(): SystemGraphDiff {
+  return diffSystemGraphs(read('zynq_gpio_current.bd'), read('zynq_gpio_base.bd'));
+}
+
+export function emptyDiff(): SystemGraphDiff {
+  return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_base.bd'));
+}
+
+export const compareOf = (
+  diff: SystemGraphDiff,
+  baseLabel = 'HEAD',
+  options: { currentLabel?: string; canSwap?: boolean } = {}
+): DiagramCompare => ({
+  baseLabel,
+  currentLabel: options.currentLabel ?? 'sys/current.bd',
+  canSwap: options.canSwap ?? false,
+  diff,
+});

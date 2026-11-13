@@ -1,6 +1,8 @@
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
 import type { PinCrossing } from '../../../../webview/systemDiagram/clocks/clockTypes';
+import { changeRows } from '../../../../services/systemDiagram/diff/changeRows';
 import {
+  changeTexts,
   crossingTexts,
   domainTexts,
   filterRows,
@@ -12,6 +14,7 @@ import {
   DEFAULT_SEARCH_OPTIONS,
 } from '../../../../webview/systemDiagram/searchMatcher';
 import type { UnconnectedPin } from '../../../../webview/systemDiagram/unconnectedPins';
+import { zynqDiff } from './compareFixtures';
 import { loadClockFixtureGraph } from './fixtureGraph';
 
 const filter = (text: string) => compileSearch(text, DEFAULT_SEARCH_OPTIONS);
@@ -66,5 +69,36 @@ describe('row texts', () => {
     expect(findingTexts(graph, finding)).toEqual(
       expect.arrayContaining([finding.pin.name, instance.name, 'undriven'])
     );
+  });
+});
+
+describe('changeTexts', () => {
+  const rows = changeRows(zynqDiff(), { ignoreVersionOnly: false });
+  const matching = (text: string) => filterRows(rows, filter(text), changeTexts);
+
+  it('matches the kind of change, where, what, change and both values', () => {
+    expect(matching('Removed')).toHaveLength(rows.filter((row) => row.sign === '−').length);
+    expect(matching('External ports')).toHaveLength(1);
+    expect(matching('/gpio_block')).toHaveLength(1);
+    expect(matching('led_o')).toHaveLength(1);
+    expect(matching('parameter CONFIG.*')).toHaveLength(1);
+    expect(matching('0x41220000')).toHaveLength(1);
+    expect(matching('FCLK_CLK1')).toHaveLength(1);
+  });
+
+  it('matches an address row by the change word the tab shows', () => {
+    const words = (word: string) => matching(word).map((row) => row.section);
+    expect(words('address changed')).toEqual(['address']);
+    expect(words('removed')).toContain('address');
+    expect(matching('added').some((row) => row.section === 'address')).toBe(false);
+  });
+
+  it('matches an address row by its address space and by its segment', () => {
+    const address = rows.filter((row) => row.section === 'address');
+    expect(address.length).toBeGreaterThan(0);
+    expect(matching('sys_ps7/Data')).toHaveLength(address.length);
+    expect(matching('gpio_block/axi_gpio_1/S_AXI/Reg').map((row) => row.section)).toEqual([
+      'address',
+    ]);
   });
 });

@@ -11,8 +11,16 @@ function EmptyState({ message }: { message: string }) {
 }
 
 export function SystemDiagramApp() {
-  const { state, revealSource, openDefinition, setHighlights, imageExport } =
-    useSystemDiagramMessages();
+  const {
+    state,
+    revealSource,
+    openDefinition,
+    setHighlights,
+    imageExport,
+    startCompare,
+    stopCompare,
+    swapCompare,
+  } = useSystemDiagramMessages();
   switch (state.status) {
     case 'loading':
       return <EmptyState message="Reading the design..." />;
@@ -32,6 +40,10 @@ export function SystemDiagramApp() {
           openDefinition={openDefinition}
           onChangeHighlights={setHighlights}
           imageExport={imageExport}
+          compare={state.compare}
+          onStartCompare={startCompare}
+          onStopCompare={stopCompare}
+          onSwapCompare={swapCompare}
         />
       );
   }

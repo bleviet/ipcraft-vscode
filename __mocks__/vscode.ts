@@ -17,6 +17,7 @@ export const window = {
   showInformationMessage: jest.fn(),
   showOpenDialog: jest.fn(),
   showQuickPick: jest.fn(),
+  showInputBox: jest.fn(),
   // `resetMocks: true` (config/jest.config.js) wipes any default implementation
   // before every test, so this is a bare stub — tests that need withProgress to
   // actually invoke its task must call `.mockImplementation(...)` themselves.
@@ -39,9 +40,20 @@ export enum ViewColumn {
   One = 1,
 }
 
+export class TabInputText {
+  constructor(public uri: { fsPath: string; toString(): string }) {}
+}
+
+export class TabInputTextDiff {
+  constructor(
+    public original: { fsPath: string },
+    public modified: { fsPath: string }
+  ) {}
+}
+
 export class TabInputCustom {
   constructor(
-    public uri: { fsPath: string },
+    public uri: { fsPath: string; toString(): string },
     public viewType: string
   ) {}
 }
@@ -63,6 +75,7 @@ export const workspace = {
   onDidChangeConfiguration: jest.fn(() => ({ dispose: jest.fn() })),
   onDidCloseTextDocument: jest.fn(),
   findFiles: jest.fn(),
+  openTextDocument: jest.fn(),
   getWorkspaceFolder: jest.fn(),
   createFileSystemWatcher: jest.fn(),
   applyEdit: jest.fn(),
@@ -104,6 +117,10 @@ export enum QuickPickItemKind {
 
 export const env = {
   clipboard: { writeText: jest.fn() },
+};
+
+export const extensions = {
+  getExtension: jest.fn(),
 };
 
 export const commands = {
