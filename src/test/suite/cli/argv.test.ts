@@ -346,6 +346,23 @@ describe('ipcraft CLI argv parsing', () => {
       expect(parseArgs(['vhdl-ls', '--root', '--force']).kind).toBe('error');
     });
 
+    it.each(['x.svg', 'x.PNG', 'out/x.jpg', 'x.jpeg'])('accepts --image %s', (image) => {
+      expect(parseArgs(['diff', 'a.bd', 'b.bd', '--image', image])).toEqual({
+        kind: 'diff',
+        args: { files: ['a.bd', 'b.bd'], format: 'markdown', ignoreVersionOnly: false, image },
+      });
+    });
+
+    it('rejects an --image file with an unsupported extension, and a missing value', () => {
+      const bad = parseArgs(['diff', 'a.bd', 'b.bd', '--image', 'x.gif']);
+      expect(bad.kind).toBe('error');
+      expect((bad as { message: string }).message).toContain(
+        "Unsupported image file 'x.gif': the extension must be .svg, .png, .jpg or .jpeg"
+      );
+      expect(parseArgs(['diff', 'a.bd', 'b.bd', '--image']).kind).toBe('error');
+      expect(parseArgs(['diff', 'a.bd', 'b.bd', '--image', '--format', 'json']).kind).toBe('error');
+    });
+
     it('is listed in the usage text and the unknown-command message', () => {
       expect(usageText()).toContain('ipcraft vhdl-ls');
       const result = parseArgs(['bogus']);
@@ -439,7 +456,7 @@ describe('ipcraft CLI argv parsing', () => {
 
     it('rejects a third file, unknown options, a bad --format and missing values', () => {
       expect(parseArgs(['diff', 'a.bd', 'b.bd', 'c.bd']).kind).toBe('error');
-      expect(parseArgs(['diff', 'a.bd', '--base', 'HEAD', '--image', 'x.svg']).kind).toBe('error');
+      expect(parseArgs(['diff', 'a.bd', '--base', 'HEAD', '--bogus', 'x.svg']).kind).toBe('error');
       const format = parseArgs(['diff', 'a.bd', '--base', 'HEAD', '--format', 'xml']);
       expect((format as { message: string }).message).toContain("Invalid --format 'xml'");
       expect(parseArgs(['diff', 'a.bd', '--base']).kind).toBe('error');
@@ -451,6 +468,7 @@ describe('ipcraft CLI argv parsing', () => {
       expect(usageText()).toContain('ipcraft diff <design> --base');
       expect(usageText()).toContain('--ignore-version-only');
       expect(usageText()).toContain('--fail-on <changes|new-findings>');
+      expect(usageText()).toContain('--image <file.svg|png|jpg>');
       const result = parseArgs(['bogus']);
       expect((result as { message: string }).message).toContain("'diff'");
     });

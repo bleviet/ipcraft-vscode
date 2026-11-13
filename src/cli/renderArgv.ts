@@ -17,6 +17,16 @@ export function renderOutputFormat(out: string): 'svg' | 'png' | 'jpg' | undefin
   return /\.jpe?g$/i.test(out) ? 'jpg' : undefined;
 }
 
+/** The look and encoding `ipcraft render` draws with unless an option says otherwise; `diff --image` uses them as they are. */
+export const RENDER_DEFAULTS = {
+  theme: 'light',
+  grid: true,
+  legend: true,
+  background: 'editor',
+  scale: 2,
+  quality: 90,
+} as const;
+
 const VALUE_OPTIONS: ReadonlySet<string> = new Set([
   '--out',
   '--level',
@@ -75,12 +85,7 @@ export function parseRenderArgs(rest: string[]): ParsedArgv {
     select: [],
     highlight: [],
     clocks: false,
-    theme: 'light',
-    grid: true,
-    legend: true,
-    background: 'editor',
-    scale: 2,
-    quality: 90,
+    ...RENDER_DEFAULTS,
   };
   let scaleGiven = false;
   let qualityGiven = false;

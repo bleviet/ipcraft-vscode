@@ -1,6 +1,7 @@
 /** Instance blocks and expanded hierarchy frames as native SVG, mirroring InstanceNode, FrameNode and NodeHeader. */
 
 import type { SystemInstance } from '../../domain/systemGraph';
+import type { NodeChange, PinChangeMark } from '../../webview/systemDiagram/changeMarks';
 import type { NodeDomains } from '../../webview/systemDiagram/clocks/domainView';
 import { hasCrossingEnd, type PinMark } from '../../webview/systemDiagram/clocks/nodeView';
 import type {
@@ -20,6 +21,13 @@ import {
   markColor,
   selectionRing,
 } from './decorSvg';
+import {
+  changeBorder,
+  changeHeaderItems,
+  dottedDash,
+  pinChangeColor,
+  type HeaderItem,
+} from './changeSvg';
 import type { Palette } from './palette';
 import { badgeSvg, markerSvg } from './pinSvg';
 import { element } from './svg';
@@ -93,6 +101,26 @@ function toggleSvg(x: number, centerY: number, expanded: boolean, palette: Palet
   ].join('');
 }
 
+/** The items ending the title row, left to right: the marks of a comparison, then the domain count. */
+function headerItems(
+  change: NodeChange | undefined,
+  domains: NodeDomains | undefined,
+  palette: Palette
+): HeaderItem[] {
+  const count = headerBadge(domains);
+  return [
+    ...changeHeaderItems(change, palette),
+    ...(count
+      ? [
+          {
+            width: count.width,
+            svg: (right: number, centerY: number) => headerBadgeSvg(count, right, centerY, palette),
+          },
+        ]
+      : []),
+  ];
+}
+
 /** Title (with the expand toggle of a hierarchy block) and subtitle of the header. */
 function headerText(
   instance: SystemInstance,
@@ -100,7 +128,7 @@ function headerText(
   box: BlockBox,
   expanded: boolean,
   palette: Palette,
-  domains?: NodeDomains
+  data: { domains?: NodeDomains; change?: NodeChange }
 ): string {
   const top = box.border + HEADER_PADDING_Y;
   const left = box.border + HEADER_PADDING_X;
@@ -108,24 +136,23 @@ function headerText(
   const nameX = left + (isHier ? TOGGLE_SIZE + TOGGLE_GAP : 0);
   const textWidth = box.width - 2 * (box.border + HEADER_PADDING_X);
   const subtitle = instanceSubtitle(instance, cellCount);
-  const count = headerBadge(domains);
-  const countWidth = count ? count.width + BADGE_GAP : 0;
+  const items = headerItems(data.change, data.domains, palette);
+  const itemsWidth = items.reduce((sum, item) => sum + item.width + BADGE_GAP, 0);
+  let right = box.width - box.border - HEADER_PADDING_X;
+  const itemsSvg = [...items].reverse().map((item) => {
+    const drawn = item.svg(right, top + TITLE_CENTER);
+    right -= item.width + BADGE_GAP;
+    return drawn;
+  });
   return [
     isHier ? toggleSvg(left, top + TITLE_CENTER, expanded, palette) : '',
     drawText(
       nameX,
       top + TITLE_CENTER,
-      truncateEnd(instance.name, textWidth - (nameX - left) - countWidth, WEIGHT_FACES.semibold),
+      truncateEnd(instance.name, textWidth - (nameX - left) - itemsWidth, WEIGHT_FACES.semibold),
       { ...WEIGHT_FACES.semibold, fill: palette.foreground }
     ),
-    count
-      ? headerBadgeSvg(
-          count,
-          box.width - box.border - HEADER_PADDING_X,
-          top + TITLE_CENTER,
-          palette
-        )
-      : '',
+    ...itemsSvg,
     subtitle === ''
       ? ''
       : drawText(
@@ -143,17 +170,17 @@ function pinLabel(
   row: PinRow,
   east: boolean,
   palette: Palette,
-  mark?: PinMark
+  mark?: PinMark,
+  change?: PinChangeMark
 ): string {
   const crossing = mark?.crossing === true;
+  const changeColor = pinChangeColor(change, palette);
   return drawText(x, centerY, row.label, {
     ...WEIGHT_FACES.normal,
-    ...(crossing && { face: 'sans600' as const }),
+    ...((crossing || changeColor !== undefined) && { face: 'sans600' as const }),
     fill: crossing
       ? palette.warning
-      : row.unconnected
-        ? palette.descriptionForeground
-        : palette.foreground,
+      : (changeColor ?? (row.unconnected ? palette.descriptionForeground : palette.foreground)),
     italic: row.unconnected,
     anchor: east ? 'end' : 'start',
   });
@@ -163,9 +190,10 @@ function pinLabel(
 function pinParts(
   row: PinRow,
   place: { edgeX: number; border: number; labelX: number; cy: number; labelCy: number },
-  mark: PinMark | undefined,
+  marks: { mark?: PinMark; change?: PinChangeMark },
   palette: Palette
 ): string[] {
+  const { mark, change } = marks;
   const east = row.side === 'east';
   return [
     markerSvg(
@@ -185,9 +213,14 @@ function pinParts(
       },
       palette
     ),
-    pinLabel(place.labelX, place.labelCy, row, east, palette, mark),
+    pinLabel(place.labelX, place.labelCy, row, east, palette, mark, change),
     row.badge ? badgeSvg(row.badge, palette) : '',
   ];
+}
+
+/** The domain mark and the comparison mark of the pin `row` of a block. */
+function pinMarks(data: InstanceNodeData | FrameNodeData, row: PinRow) {
+  return { mark: data.pinMarks?.[row.name], change: data.change?.pins?.[row.name] };
 }
 
 /** An instance block, drawn in its own coordinates (origin at the node's top-left). */
@@ -199,9 +232,13 @@ export function instanceSvg(
 ): string {
   const { width } = data;
   const box: BlockBox = { width, border: NODE_BORDER, headRadius: 3 };
-  const border = blockBorder(palette, selected, hasCrossingEnd(data.pinMarks));
+  const marked = changeBorder(data.change, selected, palette);
+  const border = marked
+    ? { color: marked.color, opacity: 1 }
+    : blockBorder(palette, selected, hasCrossingEnd(data.pinMarks));
   const parts = [
     selected ? selectionRing({ width, height }, 1, 3.5, palette) : '',
+    marked && !marked.dotted ? selectionRing({ width, height }, 1, 3.5, palette, marked.color) : '',
     element('rect', {
       x: 0.5,
       y: 0.5,
@@ -211,11 +248,15 @@ export function instanceSvg(
       fill: palette.nodeFill,
       stroke: border.color,
       'stroke-opacity': border.opacity,
-      'stroke-dasharray': data.instance.kind === 'blackbox' ? '4 3' : undefined,
+      'stroke-dasharray': marked?.dotted
+        ? dottedDash(NODE_BORDER)
+        : data.instance.kind === 'blackbox'
+          ? '4 3'
+          : undefined,
     }),
     headerBand(box, palette),
     data.domains ? domainStripSvg(data.domains.segments, box, palette) : '',
-    headerText(data.instance, data.cellCount, box, false, palette, data.domains),
+    headerText(data.instance, data.cellCount, box, false, palette, data),
   ];
   if (data.instance.kind === 'hier') {
     parts.push(
@@ -243,7 +284,7 @@ export function instanceSvg(
         cy,
         labelCy: cy,
       };
-      parts.push(...pinParts(row, place, data.pinMarks?.[row.name], palette));
+      parts.push(...pinParts(row, place, pinMarks(data, row), palette));
     });
   }
   return parts.join('');
@@ -258,9 +299,13 @@ export function frameSvg(
 ): string {
   const { width, height } = size;
   const box: BlockBox = { width, border: FRAME_BORDER, headRadius: 4 };
-  const border = blockBorder(palette, selected, false);
+  const marked = changeBorder(data.change, selected, palette);
+  const border = marked
+    ? { color: marked.color, opacity: 1 }
+    : blockBorder(palette, selected, false);
   const parts = [
     selected ? selectionRing(size, 0.5, 6, palette) : '',
+    marked && !marked.dotted ? selectionRing(size, 1, 6, palette, marked.color) : '',
     element('rect', {
       x: 1,
       y: 1,
@@ -272,10 +317,11 @@ export function frameSvg(
       stroke: border.color,
       'stroke-opacity': border.opacity,
       'stroke-width': FRAME_BORDER,
+      'stroke-dasharray': marked?.dotted ? dottedDash(FRAME_BORDER) : undefined,
     }),
     headerBand(box, palette),
     data.domains ? domainStripSvg(data.domains.segments, box, palette) : '',
-    headerText(data.instance, data.cellCount, box, true, palette, data.domains),
+    headerText(data.instance, data.cellCount, box, true, palette, data),
   ];
   for (const rows of [data.west, data.east]) {
     for (const row of rows) {
@@ -287,7 +333,7 @@ export function frameSvg(
         cy: row.y,
         labelCy: row.y - FRAME_LABEL_CENTER_ABOVE_PIN,
       };
-      parts.push(...pinParts(row, place, data.pinMarks?.[row.name], palette));
+      parts.push(...pinParts(row, place, pinMarks(data, row), palette));
     }
   }
   return parts.join('');

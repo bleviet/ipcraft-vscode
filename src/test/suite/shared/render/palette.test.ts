@@ -66,6 +66,33 @@ describe('paletteFor', () => {
   });
 });
 
+describe('change colors', () => {
+  it('pins the colors of the comparison marks per theme', () => {
+    // The gitDecoration values of the bundled git extension, as scripts/docs-screenshots/theme/*.css have them.
+    expect(paletteFor('light').change).toEqual({
+      added: '#587c0c',
+      changed: '#895503',
+      renamed: '#652d90',
+      version: '#8e8e90',
+      newWire: '#587c0c',
+    });
+    expect(paletteFor('dark').change).toEqual({
+      added: '#81b88b',
+      changed: '#e2c08d',
+      renamed: '#b180d7',
+      version: '#8c8c8c',
+      newWire: '#81b88b',
+    });
+  });
+
+  it('takes the renamed color from charts-purple', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const palette = paletteFor(theme);
+      expect(palette.change.renamed).toBe(palette.tokens['--vscode-charts-purple']);
+    }
+  });
+});
+
 describe('IP symbol roles', () => {
   it('derives the header and badge fills with the canvas color-mix formulas', () => {
     const light = paletteFor('light');

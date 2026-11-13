@@ -1,5 +1,6 @@
 import type { ParsedArgv } from './argv';
 import type { CliDiffArgs } from './diff';
+import { renderOutputFormat } from './renderArgv';
 
 const VALUE_OPTIONS: ReadonlySet<string> = new Set([
   '--base',
@@ -7,9 +8,10 @@ const VALUE_OPTIONS: ReadonlySet<string> = new Set([
   '--format',
   '--out',
   '--fail-on',
+  '--image',
 ]);
 
-/** Parses `diff` argv: `<design> --base <ref> [--head <ref>]` or `<base file> <current file>`, with `[--format markdown|json] [--out <file>] [--ignore-version-only] [--fail-on changes|new-findings]`. */
+/** Parses `diff` argv: `<design> --base <ref> [--head <ref>]` or `<base file> <current file>`, with `[--format markdown|json] [--out <file>] [--ignore-version-only] [--fail-on changes|new-findings] [--image <file.svg|png|jpg>]`. */
 export function parseDiffArgs(rest: string[]): ParsedArgv {
   const positional: string[] = [];
   const args: Omit<CliDiffArgs, 'files'> = { format: 'markdown', ignoreVersionOnly: false };
@@ -29,6 +31,17 @@ export function parseDiffArgs(rest: string[]): ParsedArgv {
       case '--out':
         args.out = value();
         break;
+      case '--image': {
+        const image = value();
+        if (!renderOutputFormat(image)) {
+          return {
+            kind: 'error',
+            message: `Unsupported image file '${image}': the extension must be .svg, .png, .jpg or .jpeg`,
+          };
+        }
+        args.image = image;
+        break;
+      }
       case '--format': {
         const format = value();
         if (format !== 'markdown' && format !== 'json') {

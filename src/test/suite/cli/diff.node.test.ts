@@ -7,6 +7,18 @@ import * as path from 'path';
 import type { Finding, FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
 import { failOnReason, runCliDiff } from '../../../cli/diff';
 import { main } from '../../../cli/index';
+import { devResourceRoots } from '../../../services/ResourceRoots';
+import { FONT_FILES } from '../../../shared/render/fontFaces';
+import { paletteFor } from '../../../shared/render/palette';
+
+// `main` finds the installation's resources through this; the test points it at the sources.
+let mockRoots: ReturnType<typeof devResourceRoots>;
+jest.mock('../../../services/ResourceRoots', () => ({
+  ...jest.requireActual<typeof import('../../../services/ResourceRoots')>(
+    '../../../services/ResourceRoots'
+  ),
+  resolveResourceRoots: () => mockRoots,
+}));
 
 const fixtures = path.resolve(__dirname, '../../fixtures/system-design/diff');
 const BASE = path.join(fixtures, 'zynq_gpio_base.bd');
@@ -15,6 +27,7 @@ const golden = (file: string) => fs.readFileSync(path.join(fixtures, file), 'utf
 const GOLDEN_LABELS = 'Comparing `HEAD` (base) with `working tree`.';
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const gitAvailable = spawnSync('git', ['--version']).status === 0;
+const repoRoot = path.resolve(__dirname, '../../../..');
 
 let tmp: string;
 
@@ -30,6 +43,16 @@ beforeAll(() => {
   process.env.GIT_CONFIG_GLOBAL = '/dev/null';
   process.env.GIT_CONFIG_NOSYSTEM = '1';
   process.env.GIT_CEILING_DIRECTORIES = tmp;
+  const fontsDir = path.join(tmp, 'fonts');
+  fs.mkdirSync(fontsDir);
+  for (const file of Object.values(FONT_FILES)) {
+    const family = file.startsWith('ibm-plex-mono') ? 'ibm-plex-mono' : 'ibm-plex-sans';
+    fs.copyFileSync(
+      path.join(repoRoot, 'node_modules/@fontsource', family, 'files', file),
+      path.join(fontsDir, file)
+    );
+  }
+  mockRoots = { ...devResourceRoots(repoRoot), fontsDir };
 });
 
 afterAll(() => {
@@ -316,6 +339,129 @@ describe('ipcraft diff --fail-on', () => {
       expect(result.code).toBe(1);
       expect(result.stderr).toEqual(['Diff check failed: 2 changes (--fail-on changes)']);
     });
+  });
+});
+
+describe('ipcraft diff --image', () => {
+  jest.setTimeout(30000);
+  const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  const { change } = paletteFor('light');
+
+  const run = async (...args: string[]) => {
+    const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    const error = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const code = await main(['diff', BASE, CURRENT, ...args]);
+      return {
+        code,
+        stdout: write.mock.calls.map((c) => String(c[0])).join(''),
+        log: log.mock.calls.map((c) => String(c[0])),
+        stderr: error.mock.calls.map((c) => String(c[0])),
+      };
+    } finally {
+      write.mockRestore();
+      log.mockRestore();
+      error.mockRestore();
+    }
+  };
+
+  it('writes an SVG of the top level with the marks, and leaves the report as it is', async () => {
+    const image = path.join(tmp, 'img', 'changes.svg');
+    const withImage = await run('--image', image);
+    const without = await run();
+    expect(withImage.code).toBe(0);
+    expect(withImage.stdout).toBe(without.stdout);
+    expect(withImage.stdout).toContain('## System design changes: zynq_gpio_system');
+    // The report is on standard output, so the line goes to standard error.
+    expect(withImage.log).toEqual([]);
+    expect(withImage.stderr).toEqual([`Wrote ${image}`]);
+    const svg = fs.readFileSync(image, 'utf8');
+    expect(svg).toContain('<svg');
+    expect(svg).toContain(change.added);
+    expect(svg).toContain(change.changed);
+    expect(svg).toContain('>+</text>');
+    expect(svg).toContain('>New wire</text>');
+    expect(svg).toContain('>− 2 removed</text>');
+    expect(svg).not.toContain('see Changes');
+    // The default look of `ipcraft render`: the light theme.
+    expect(svg).toContain(`fill="${paletteFor('light').background}"`);
+  });
+
+  it('prints the image line after the one of --out on standard output', async () => {
+    const out = path.join(tmp, 'both.md');
+    const image = path.join(tmp, 'both.svg');
+    const result = await run('--out', out, '--image', image);
+    expect(result.code).toBe(0);
+    expect(result.log).toEqual([`Wrote ${out}`, `Wrote ${image}`]);
+    expect(fs.existsSync(image)).toBe(true);
+  });
+
+  it('writes a PNG for a .png file', async () => {
+    const image = path.join(tmp, 'changes.png');
+    expect((await run('--image', image)).code).toBe(0);
+    expect(fs.readFileSync(image).subarray(0, 8)).toEqual(PNG_SIGNATURE);
+  });
+
+  it('rejects an unsupported extension before reading any file', async () => {
+    const image = path.join(tmp, 'changes.gif');
+    const result = await run('--image', image);
+    expect(result.code).toBe(1);
+    expect(result.stderr[0]).toContain(`Unsupported image file '${image}'`);
+    expect(fs.existsSync(image)).toBe(false);
+  });
+
+  it('still fails --fail-on changes, after writing the image', async () => {
+    const image = path.join(tmp, 'failed.svg');
+    const result = await run('--image', image, '--fail-on', 'changes');
+    expect(result.code).toBe(1);
+    expect(fs.existsSync(image)).toBe(true);
+    expect(result.stderr).toEqual([
+      `Wrote ${image}`,
+      'Diff check failed: 8 changes (--fail-on changes)',
+    ]);
+  });
+
+  it('keeps the report when the image cannot be written, and fails with the reason', async () => {
+    const blocker = path.join(tmp, 'blocker.txt');
+    fs.writeFileSync(blocker, 'a file, not a folder');
+    const image = path.join(blocker, 'changes.svg');
+    const result = await run('--image', image);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toBe((await run()).stdout);
+    expect(result.stdout).toContain('## System design changes: zynq_gpio_system');
+    expect(result.stderr).toHaveLength(1);
+    expect(result.stderr[0]).toMatch(/^Image failed: /);
+    expect(result.log).toEqual([]);
+  });
+
+  it('writes the --out report and names both failures when the image and --fail-on fail', async () => {
+    const out = path.join(tmp, 'kept.md');
+    const blocker = path.join(tmp, 'blocker.txt');
+    fs.writeFileSync(blocker, 'a file, not a folder');
+    const image = path.join(blocker, 'x.png');
+    const result = await run('--out', out, '--image', image, '--fail-on', 'changes');
+    expect(result.code).toBe(1);
+    expect(fs.readFileSync(out, 'utf8')).toContain('## System design changes: zynq_gpio_system');
+    expect(result.stderr).toHaveLength(2);
+    expect(result.stderr[0]).toMatch(/^Image failed: /);
+    expect(result.stderr[1]).toBe('Diff check failed: 8 changes (--fail-on changes)');
+  });
+
+  it('marks nothing for a design against itself', async () => {
+    const image = path.join(tmp, 'same.svg');
+    const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const error = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      expect(await main(['diff', BASE, BASE, '--image', image])).toBe(0);
+    } finally {
+      write.mockRestore();
+      error.mockRestore();
+    }
+    const svg = fs.readFileSync(image, 'utf8');
+    for (const color of [change.added, change.changed, change.newWire]) {
+      expect(svg).not.toContain(color);
+    }
   });
 });
 

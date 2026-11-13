@@ -8,6 +8,8 @@ import type { SystemGraph } from '../../domain/systemGraph';
 import { paletteFor } from '../../shared/render/palette';
 import { plexTextMeasure } from '../../shared/render/textMetrics';
 import { renderSystemLevelSvg } from '../../shared/render/systemLevelSvg';
+import type { ChangeMarks } from '../../webview/systemDiagram/changeMarks';
+import { changeDecor } from '../../webview/systemDiagram/changeDecor';
 import { analyzeClocks } from '../../webview/systemDiagram/clocks/analyzeClocks';
 import { applyClockDecor, clockDecor } from '../../webview/systemDiagram/clockDecor';
 import { hopDistances, isolationSubset, maxRadius } from '../../webview/systemDiagram/isolation';
@@ -37,6 +39,8 @@ export interface SystemLevelRequest {
   clocks: boolean;
   /** Crop the image to these nodes (and the renderer's margin); absent: the whole drawing. */
   cropNodeIds?: readonly string[];
+  /** The marks of a comparison of the whole design (`buildChangeMarks`); absent: no marks are drawn. */
+  changes?: ChangeMarks;
 }
 
 /** The viewer's isolation of `nodeIds` at `hops`, clamped to what the selection reaches like the + button. */
@@ -91,10 +95,13 @@ async function drawSystemLevel(
       )
     : undefined;
   const layout = decor ? applyClockDecor(flow, decor) : flow;
+  const changes =
+    request.changes && changeDecor(layout, { marks: request.changes, graph, levelPath: level });
   return renderSystemLevelSvg(layout, {
     selectedNodeIds: new Set(request.selectedNodeIds),
     cropNodeIds: request.cropNodeIds && new Set(request.cropNodeIds),
     domainLegend: decor?.legend,
+    changes,
     palette: paletteFor(look.theme),
     grid: look.grid,
     legend: look.legend,

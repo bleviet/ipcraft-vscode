@@ -18,8 +18,8 @@ import { drawText } from './textSvg';
 
 const STRIP_HEIGHT = 3;
 const STRIP_RADIUS = 3;
-const BADGE_FONT_SIZE = 9.5;
-const BADGE_LETTER_SPACING = 0.06 * BADGE_FONT_SIZE;
+export const BADGE_FONT_SIZE = 9.5;
+export const BADGE_LETTER_SPACING = 0.06 * BADGE_FONT_SIZE;
 /** Gap between the block name and the domain count in the header title. */
 export const BADGE_GAP = 6;
 const FREQUENCY_FONT_SIZE = 10;
@@ -41,12 +41,13 @@ export function blockBorder(palette: Palette, selected: boolean, crossingEnd: bo
   return crossingEnd ? { color: palette.warning, opacity: 1 } : palette.nodeLine;
 }
 
-/** The ring outside a selected block (`box-shadow: 0 0 0 <width> focusBorder`). */
+/** The ring outside a selected block (`box-shadow: 0 0 0 <width> focusBorder`), or in `color` for a changed block. */
 export function selectionRing(
   size: { width: number; height: number },
   width: number,
   radius: number,
-  palette: Palette
+  palette: Palette,
+  color: string = palette.focusBorder
 ): string {
   return element('rect', {
     x: -width / 2,
@@ -55,7 +56,7 @@ export function selectionRing(
     height: size.height + width,
     rx: radius + width / 2,
     fill: 'none',
-    stroke: palette.focusBorder,
+    stroke: color,
     'stroke-width': width,
   });
 }

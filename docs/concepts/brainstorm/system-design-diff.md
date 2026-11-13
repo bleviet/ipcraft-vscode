@@ -17,7 +17,9 @@ for use in CI. The **Address map** tab marks added, changed and removed segments
 diagram and the later phases are open. The marks of everything that exists in the current revision
 (blocks, pins, new wires, counts on hierarchies, the outline, the legend, Details, the
 **Marks** and **Changes only** buttons) are implemented; ghosts for what was removed,
-the union layout and marks in exported images are open. This document describes
+the union layout and marks in the viewer's exported images are open.
+`ipcraft diff --image <file.svg|png|jpg>` draws the top level of the current revision
+with those marks. This document describes
 how the [system viewer](../../how-to/view-a-system-design.md) could show what
 changed between two revisions of a block design or Platform Designer system.
 
@@ -327,7 +329,7 @@ ipcraft diff <base file> <current file>                   compare two files
 |---|---|
 | `--format markdown\|json` | Report format; Markdown is the default |
 | `--out <file>` | Write the report to a file instead of standard output |
-| `--image <file.svg\|png>` | Also render the overlay of the top level |
+| `--image <file.svg\|png\|jpg>` | Also render the overlay of the top level |
 | `--ignore-version-only` | Leave version-only changes out |
 | `--fail-on new-findings\|changes` | Exit with 1 when there are new findings, or any change |
 

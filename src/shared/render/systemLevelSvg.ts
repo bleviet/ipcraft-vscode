@@ -7,13 +7,16 @@
  * styles live in systemDiagram.css; the colors in palette.ts). Deliberate simplifications:
  * - no node shadow, user highlight colors, search dimming, review or selected clock tree;
  *   the selection outline (`selectedNodeIds`) and the Clocks and resets domain decorations
- *   (already merged into the layout by `applyClockDecor`, plus `domainLegend`) are drawn;
+ *   (already merged into the layout by `applyClockDecor`, plus `domainLegend`) and the marks of a
+ *   comparison (`changes`, merged into the nodes and wires here, as the canvas does) are drawn;
+ * - the signs of a comparison are drawn at weight 600: no 700 face is embedded, the canvas uses 700;
  * - the legend sits below the drawing instead of floating over the canvas corner;
  * - grid dots are 1.5 px across (the canvas draws 1 px) so they survive printing;
  * - an unconnected pin label is italic through the browser's synthesized slant (no italic face);
  * - frame pin markers sit on the ELK port height, so they meet the wire ends exactly.
  */
 
+import type { ChangeDecor } from '../../webview/systemDiagram/changeDecor';
 import type { DomainLegendEntry } from '../../webview/systemDiagram/legend';
 import type {
   DiagramFlowEdge,
@@ -40,6 +43,8 @@ export interface SystemLevelOptions {
   cropNodeIds?: ReadonlySet<string>;
   /** Domain entries appended to the legend (see `clockDecor`); null or absent outside the domain mode. */
   domainLegend?: readonly DomainLegendEntry[] | null;
+  /** The marks of a comparison on this layout (see `changeDecor`); absent: none are drawn. */
+  changes?: ChangeDecor;
 }
 
 export interface SystemLevelLayout {
@@ -58,23 +63,31 @@ const SIGNAL_WIDTH = 1;
 /** ElkEdge: a crossing is dashed `6 4`; a dimmed wire keeps the full color at this opacity. */
 const CROSSING_DASH = '6 4';
 const DIMMED_OPACITY = 0.2;
+/** ElkEdge: a new wire is this much wider than it would be. */
+const NEW_WIRE_WIDTH = 0.75;
 
 function edgeSvg(edge: DiagramFlowEdge, palette: Palette): string {
   const d = edge.data.points
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${num(point.x)} ${num(point.y)}`)
     .join(' ');
-  const { crossing, dimmed, category } = edge.data;
-  const stroke = crossing
+  const { crossing, dimmed, category, changeNew } = edge.data;
+  const plainStroke = crossing
     ? palette.warning
     : dimmed
       ? palette.category[category]
       : palette.wire[category];
+  // ElkEdge `markedStroke`: a new wire takes the added color unless a crossing or a domain color says something already.
+  const stroke =
+    changeNew && !crossing && edge.data.domainColor === undefined
+      ? palette.change.newWire
+      : plainStroke;
   const opacity = dimmed && !crossing ? DIMMED_OPACITY : undefined;
   const wire = element('path', {
     d,
     fill: 'none',
     stroke,
-    'stroke-width': edge.data.isInterface ? INTERFACE_WIDTH : SIGNAL_WIDTH,
+    'stroke-width':
+      (edge.data.isInterface ? INTERFACE_WIDTH : SIGNAL_WIDTH) + (changeNew ? NEW_WIRE_WIDTH : 0),
     'stroke-dasharray': crossing ? CROSSING_DASH : undefined,
     opacity,
   });
@@ -105,6 +118,21 @@ function nodeSvg(node: DiagramFlowNode, palette: Palette, selected: boolean): st
     transform: `translate(${num(node.position.x)} ${num(node.position.y)})`,
   });
   return `<g ${attrs}>${inner}</g>`;
+}
+
+/** `layout` with the marks of `decor` in the data of its nodes and wires, where the canvas puts them. */
+function withChanges(layout: SystemLevelLayout, decor: ChangeDecor): SystemLevelLayout {
+  return {
+    nodes: layout.nodes.map((node) => {
+      const change = decor.nodes.get(node.id);
+      return change ? ({ ...node, data: { ...node.data, change } } as DiagramFlowNode) : node;
+    }),
+    edges: layout.edges.map((edge) =>
+      decor.newEdgeIds.has(edge.id)
+        ? { ...edge, data: { ...edge.data, changeNew: true as const } }
+        : edge
+    ),
+  };
 }
 
 function gridSvg(box: { x: number; y: number; width: number; height: number }, palette: Palette) {
@@ -141,14 +169,20 @@ function cropBounds(layout: SystemLevelLayout, ids: ReadonlySet<string>) {
 }
 
 export function renderSystemLevelSvg(
-  layout: SystemLevelLayout,
+  plainLayout: SystemLevelLayout,
   options: SystemLevelOptions
 ): string {
   const { palette } = options;
+  const layout = options.changes ? withChanges(plainLayout, options.changes) : plainLayout;
   const content = (options.cropNodeIds && cropBounds(layout, options.cropNodeIds)) ??
     diagramBounds(layout) ?? { x: 0, y: 0, ...EMPTY_SIZE };
   const legend = options.legend
-    ? layoutLegend(layout, Math.max(content.width, MIN_LEGEND_WIDTH), options.domainLegend ?? [])
+    ? layoutLegend(
+        layout,
+        Math.max(content.width, MIN_LEGEND_WIDTH),
+        options.domainLegend ?? [],
+        options.changes?.legend
+      )
     : null;
   const drawNode = (node: DiagramFlowNode) =>
     nodeSvg(node, palette, options.selectedNodeIds?.has(node.id) ?? false);
