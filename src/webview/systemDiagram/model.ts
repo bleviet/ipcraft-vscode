@@ -260,7 +260,7 @@ export function isPlatformDesigner(format: SystemGraph['source']['format']): boo
 
 /** Range cell of the address map: unknown (not tool-assigned) for Platform Designer, `auto` otherwise. */
 export function segmentRangeText(
-  segment: AddressSegment,
+  segment: Pick<AddressSegment, 'range'>,
   format: SystemGraph['source']['format']
 ): string {
   if (segment.range !== undefined) {
@@ -272,7 +272,7 @@ export function segmentRangeText(
 const HEX = /^0x[0-9a-f]+$/i;
 
 /** Last address of a segment as '0x...' when offset and range are both hex; else undefined. */
-export function segmentHigh(segment: AddressSegment): string | undefined {
+export function segmentHigh(segment: Pick<AddressSegment, 'offset' | 'range'>): string | undefined {
   if (!segment.offset || !segment.range || !HEX.test(segment.offset) || !HEX.test(segment.range)) {
     return undefined;
   }

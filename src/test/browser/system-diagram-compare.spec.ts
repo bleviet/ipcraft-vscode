@@ -192,6 +192,21 @@ test.describe('System diagram comparison', () => {
     await expect(page.getByLabel('Legend')).toContainText('2 removed, see Changes');
   });
 
+  test('marks the changed and removed segments in the Address map tab', async ({ page }) => {
+    await openComparing(page, ['zynq_gpio_base.bd', 'zynq_gpio_current.bd']);
+    await page.getByRole('tab', { name: /^Address map/ }).click();
+
+    const changed = page.getByRole('row').filter({ hasText: 'gpio_block/axi_gpio_1/S_AXI/Reg' });
+    await expect(changed.getByRole('cell').first()).toHaveText('~');
+    await expect(changed.locator('td[data-changed="true"]').first()).toHaveAttribute(
+      'title',
+      'Base: 0x4121_0000'
+    );
+    const removed = page.getByRole('row').filter({ hasText: 'axi_gpio_0/S_AXI/Reg' });
+    await expect(removed.getByRole('cell').first()).toHaveText('−');
+    await expect(removed).toHaveAttribute('title', 'Not in this revision');
+  });
+
   test('marks a renamed block with an arrow', async ({ page }) => {
     await openComparing(page, ['zynq_gpio_rename_base.bd', 'zynq_gpio_rename_current.bd']);
     const renamed = block(page, 'axi_gpio_main');

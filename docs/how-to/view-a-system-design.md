@@ -496,6 +496,16 @@ crossing, the block that receives the signal (the one it comes from when that on
 gone, else the external port it ends at, else the one it starts at). A finding of a block that no longer exists cannot be selected; its row is dimmed
 and says "Not in this revision" on hover.
 
+### Address map of the comparison
+
+The **Address map** tab marks the segments the comparison changed. A first column shows
+`+` for an added segment, `~` for one whose base address or range differs (the changed
+values are colored and bold, and hovering one shows `Base:` and the value in the base;
+High is marked when either changes) and `−` for a removed one. Removed segments are listed
+at the end, dimmed, and cannot be selected; their row says "Not in this revision" on
+hover. The tab count and the other rows are as without a comparison, and the filter box
+matches the removed rows too.
+
 ### Changes on the diagram
 
 While a comparison is on, the diagram shows the current design with the changes

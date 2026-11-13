@@ -12,6 +12,9 @@ export function levelSource(graph: SystemGraph, level: string): LevelSource {
 }
 
 /** The level whose file an address segment's line refers to: the master instance's parent. */
-export function segmentLevel(graph: SystemGraph, segment: AddressSegment): string {
+export function segmentLevel(
+  graph: SystemGraph,
+  segment: Pick<AddressSegment, 'masterInstance'>
+): string {
   return graph.instances[segment.masterInstance]?.parent ?? '/';
 }
