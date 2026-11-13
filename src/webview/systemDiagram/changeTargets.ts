@@ -1,10 +1,27 @@
-/** What a row of the Changes tab selects in the current graph. */
+/** What a row of the Changes tab or the Findings tab selects in the current graph. */
 
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { SystemGraphDiff } from '../../domain/systemGraphDiff';
+import type { Finding, SystemGraphDiff } from '../../domain/systemGraphDiff';
 import type { ChangeRow } from '../../services/systemDiagram/diff/changeRows';
+import { boundaryId, type Selection } from './model';
 
 export type ResolvedTarget = { kind: 'instance'; path: string } | { kind: 'port'; name: string };
+
+/** The title of a row whose block or port is not in the current graph. */
+export const NOT_IN_REVISION = 'Not in this revision';
+
+/** Whether the diagram's selection is the block or external port a row selects. */
+export function isTargetSelected(
+  target: ResolvedTarget | undefined,
+  selection: Selection | null
+): boolean {
+  if (!target || !selection) {
+    return false;
+  }
+  return target.kind === 'instance'
+    ? selection.kind === 'instance' && selection.id === target.path
+    : selection.kind === 'boundary' && selection.id === boundaryId('/', target.name);
+}
 
 /** The slave block of the segment of `graph` with this address space and name, when the graph has both. */
 export function segmentSlave(
@@ -97,4 +114,33 @@ export function blockOfRow(
   const text = row.change[0]?.[0]?.text;
   const owner = text === undefined ? undefined : segmentTextOwner(owners, text);
   return owner ? { kind: 'instance', path: owner } : undefined;
+}
+
+/**
+ * The block or external port a finding is about, when the current graph has it. An unconnected
+ * pin selects its block, or the external port, or the hierarchy block whose boundary pin it is;
+ * a crossing selects its sink block, else its source block, else the external port it ends at,
+ * else the one it starts at.
+ * Undefined for a finding of a block that is gone (a resolved one).
+ */
+export function findingTarget(graph: SystemGraph, finding: Finding): ResolvedTarget | undefined {
+  const block = (path: string | null): ResolvedTarget | undefined =>
+    path !== null && graph.instances[path] ? { kind: 'instance', path } : undefined;
+  const port = (name: string): ResolvedTarget | undefined =>
+    graph.levels['/']?.boundaryPins.some((pin) => pin.name === name)
+      ? { kind: 'port', name }
+      : undefined;
+  if ('label' in finding) {
+    if (finding.instance !== null) {
+      return block(finding.instance);
+    }
+    return finding.level === '/' ? port(finding.pin) : block(finding.level);
+  }
+  return (
+    block(finding.toInstance) ??
+    block(finding.fromInstance) ??
+    (finding.toInstance === null ? port(finding.to) : undefined) ??
+    // `from` is a port here: a reset of unknown source (`from` = net name) is never a finding.
+    (finding.fromInstance === null ? port(finding.from) : undefined)
+  );
 }

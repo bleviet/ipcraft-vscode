@@ -338,7 +338,9 @@ checked (the note under the table says so). The JSON report has the same lists i
 `findings` field, `{ "new": [...], "resolved": [...] }`, empty when nothing differs; each
 entry has `kind` (`undriven`, `unused`, `dataCrossing`, `resetCrossing`), `level`, and for a
 pin `instance` (null for a boundary pin), `pin` and `label`, for a crossing `from`, `to`,
-`fromClock`, `toClock` (left out when the clock is not known) and `reason`, sorted by kind,
+`fromInstance` and `toInstance` (the instance path of each end, null for an external port or a
+reset whose source is not known), `fromClock`, `toClock` (left out when the clock is not known)
+and `reason`, sorted by kind,
 level and label.
 
 Each sign has a meaning: `+` added, `−` removed, `~` changed, `→` renamed,

@@ -716,7 +716,10 @@ describe('SystemDiagramProvider export image', () => {
     const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
     const pick = pickCompareBase as jest.Mock;
     const editedText = (text: string) => text.split('axi_dma:7.1').join('axi_dma:7.2');
-    type Posted = { type: string; compare?: { baseLabel: string; diff: { summary: unknown } } };
+    type Posted = {
+      type: string;
+      compare?: { baseLabel: string; diff: { summary: unknown }; findings: unknown };
+    };
 
     async function ready() {
       const context = setup(fixtureText);
@@ -741,6 +744,8 @@ describe('SystemDiagramProvider export image', () => {
         renamed: 0,
         version: 1,
       });
+      // The findings of the two revisions travel with the changes.
+      expect(message.compare?.findings).toEqual({ new: [], resolved: [] });
     });
 
     it('updates the changes when the document is edited', async () => {

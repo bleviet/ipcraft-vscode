@@ -4,7 +4,12 @@ import * as path from 'path';
 import type { SystemGraph } from '../../../../../domain/systemGraph';
 import type { Finding, FindingsDiff } from '../../../../../domain/systemGraphDiff';
 import { readBdTcl } from '../../../../../parser/system/BdTclReader';
-import { diffFindings } from '../../../../../services/systemDiagram/diff/diffFindings';
+import {
+  compareFindings,
+  diffFindings,
+  findingsBase,
+  findingsOf,
+} from '../../../../../services/systemDiagram/diff/diffFindings';
 import { diffSystemGraphs } from '../../../../../services/systemDiagram/diff/diffSystemGraphs';
 import { readSystemDesign } from '../../../../../services/systemDiagram/readSystemDesign';
 
@@ -140,6 +145,8 @@ describe('diffFindings: crossings', () => {
         level: '/',
         from: 'a/M_AXIS',
         to: 'b/S_AXIS',
+        fromInstance: '/a',
+        toInstance: '/b',
         fromClock: 'ca/clk_out1',
         toClock: 'cb/clk_out1',
         reason:
@@ -150,6 +157,8 @@ describe('diffFindings: crossings', () => {
         level: '/',
         from: 'rst/peripheral_aresetn',
         to: 'b/rst_n',
+        fromInstance: '/rst',
+        toInstance: '/b',
         fromClock: 'ca/clk_out1',
         toClock: 'cb/clk_out1',
         reason:
@@ -171,6 +180,45 @@ describe('diffFindings: crossings', () => {
   it('keeps a reset crossing when only the name of its net changes', () => {
     const result = compare(twoClocks('b', 'rst_n'), twoClocks('b', 'reset_net'));
     expect(result).toEqual({ new: [], resolved: [] });
+  });
+});
+
+describe('findingsBase, findingsOf and compareFindings', () => {
+  const renamed = () => {
+    const base = bd();
+    const current = bd((design) => {
+      design.components.sync_main = design.components.sync_0;
+      delete design.components.sync_0;
+      for (const net of Object.values<any>(design.nets)) {
+        net.ports = net.ports.map((p: string) => p.replace(/^sync_0\//, 'sync_main/'));
+      }
+    });
+    return { base, current, diff: diffSystemGraphs(base, current) };
+  };
+
+  it('returns the base itself when the diff has no renamed block', () => {
+    const base = twoClocks('b');
+    expect(findingsBase(base, diffSystemGraphs(base, twoClocks('a')))).toBe(base);
+  });
+
+  it('returns the base with the new names of the renamed blocks', () => {
+    const { base, diff } = renamed();
+    const named = findingsBase(base, diff);
+    expect(named).not.toBe(base);
+    expect(Object.keys(named.instances)).toContain('/sync_main');
+    expect(Object.keys(named.instances)).not.toContain('/sync_0');
+  });
+
+  it('is what diffFindings composes', () => {
+    const { base, current, diff } = renamed();
+    expect(compareFindings(findingsOf(findingsBase(base, diff)), findingsOf(current))).toEqual(
+      diffFindings(base, current, diff)
+    );
+  });
+
+  it('gives crossings the instances of their two ends', () => {
+    const [crossing] = compare(twoClocks('a'), twoClocks('b')).new;
+    expect(crossing).toMatchObject({ fromInstance: '/a', toInstance: '/b' });
   });
 });
 

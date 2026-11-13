@@ -4,6 +4,7 @@ import type { DiagramCompare } from '../../shared/messages/systemDiagram';
 import fs from 'fs';
 import path from 'path';
 import type { SystemGraphDiff } from '../../domain/systemGraphDiff';
+import { diffFindings } from '../../services/systemDiagram/diff/diffFindings';
 import { diffSystemGraphs } from '../../services/systemDiagram/diff/diffSystemGraphs';
 import { readSystemDesign } from '../../services/systemDiagram/readSystemDesign';
 
@@ -37,6 +38,7 @@ test.describe('System diagram comparison', () => {
       currentLabel: 'sys/system.bd',
       canSwap: true,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
+      findings: { new: [], resolved: [] },
     };
     await page.goto(harnessPath);
     await page.waitForFunction(() =>
@@ -70,6 +72,41 @@ test.describe('System diagram comparison', () => {
     ).toBeVisible();
   });
 
+  test('lists the findings that differ in the Findings tab', async ({ page }) => {
+    const [base, graph] = [read('zynq_gpio_base.bd'), read('zynq_gpio_current.bd')];
+    const diff = diffSystemGraphs(base, graph);
+    const compare = {
+      baseLabel: 'HEAD',
+      currentLabel: 'sys/system.bd',
+      canSwap: false,
+      diff,
+      findings: diffFindings(base, graph, diff),
+    };
+    await page.goto(harnessPath);
+    await page.waitForFunction(() =>
+      (window as unknown as { __vscodeMessages: Array<{ type: string }> }).__vscodeMessages.some(
+        (message) => message.type === 'ready'
+      )
+    );
+    await page.evaluate((data) => window.postMessage({ type: 'graph', ...data }, '*'), {
+      graph,
+      compare,
+    });
+
+    const tab = page.getByRole('tab', { name: /^Findings/ });
+    await expect(tab).toHaveAccessibleName('Findings 1');
+    // The Findings tab does not open by itself.
+    await expect(page.getByRole('tab', { name: /^Changes/ })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await tab.click();
+    await expect(page.getByText(/^Both revisions are checked/)).toBeVisible();
+    const row = page.getByRole('row').filter({ hasText: 'undriven pin' });
+    await expect(row).toContainText('Resolved');
+    await expect(row).toContainText('led_o');
+  });
+
   test('lists a renamed block as one row with the differing characters marked', async ({
     page,
   }) => {
@@ -79,6 +116,7 @@ test.describe('System diagram comparison', () => {
       currentLabel: 'sys/system.bd',
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_rename_base.bd'), graph),
+      findings: { new: [], resolved: [] },
     };
     await page.goto(harnessPath);
     await page.waitForFunction(() =>
@@ -112,6 +150,7 @@ test.describe('System diagram comparison', () => {
       currentLabel: 'sys/system.bd',
       canSwap: false,
       diff: edit(diffSystemGraphs(read(pair[0]), graph)),
+      findings: { new: [], resolved: [] },
     };
     await page.setViewportSize({ width: 1500, height: 900 });
     await page.goto(harnessPath);
@@ -254,6 +293,7 @@ test.describe('System diagram comparison', () => {
       currentLabel: 'sys/system.bd',
       canSwap: false,
       diff: diffSystemGraphs(base, current),
+      findings: { new: [], resolved: [] },
     });
     await expect(page.locator('.sd-node').first()).toBeVisible();
     const overlay = page.locator('path.sd-edge-new:not(.react-flow__edge-path)');
@@ -300,6 +340,7 @@ test.describe('System diagram comparison', () => {
       currentLabel: 'sys/system.bd',
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
+      findings: { new: [], resolved: [] },
     });
     await expect(
       block(page, 'gpio_block').getByRole('img', { name: '1 change inside' })
@@ -321,6 +362,7 @@ test.describe('System diagram comparison', () => {
       currentLabel: 'sys/system.bd',
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
+      findings: { new: [], resolved: [] },
     });
     await expect(page.locator('.sd-node').first()).toBeVisible();
     const canvas = page.locator('.sd-canvas');
@@ -361,6 +403,7 @@ test.describe('System diagram comparison', () => {
         currentLabel: `${dir}/nontrivial_mips/nontrivial_mips.3.bd`,
         canSwap: true,
         diff: realisticNames(diffSystemGraphs(read('zynq_gpio_base.bd'), graph)),
+        findings: { new: [], resolved: [] },
       };
       await page.setViewportSize({ width: size.width, height: size.height });
       await page.goto(harnessPath);

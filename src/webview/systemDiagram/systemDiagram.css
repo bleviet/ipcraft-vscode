@@ -1357,6 +1357,20 @@ input:focus-visible {
   white-space: nowrap;
 }
 
+/* The word New or Resolved is always written; the color only adds to it. */
+.sd-sign[data-finding='New'] {
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.sd-sign[data-finding='Resolved'] {
+  color: var(--sd-change-added);
+}
+
+.sd-findings td:nth-child(3),
+.sd-findings td:nth-child(4) {
+  overflow-wrap: anywhere;
+}
+
 /* Where stays on one line, and What too when the viewer is wide. When it is narrow, What and
    Change wrap, inside a long name if they must, so that Base and Current stay in view. Long
    values break anywhere in Base and Current. */

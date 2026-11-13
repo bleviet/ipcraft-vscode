@@ -12,10 +12,11 @@ import {
   FORMATS_DIFFER_NOTE,
   SIGN_LABELS,
 } from './changeSummary';
-import { resolveTarget, type ResolvedTarget } from './changeTargets';
-import { boundaryId, type Selection } from './model';
+import { NOT_IN_REVISION, resolveTarget, type ResolvedTarget } from './changeTargets';
+import type { Selection } from './model';
 import { changeTexts, filterRows, NO_FILTER_MATCH } from './panelFilter';
 import type { TextMatcher } from './searchMatcher';
+import { TargetRow } from './TargetRow';
 
 interface ChangesTableProps {
   /** The current graph: it knows the slave block of an address segment. */
@@ -31,17 +32,6 @@ interface ChangesTableProps {
   onSelectPort: (name: string) => void;
   /** Opens the base file as a diagram and compares it with this document; offered when `compare.canSwap`. */
   onSwapCompare: () => void;
-}
-
-const NOT_IN_REVISION = 'Not in this revision';
-
-function isSelected(target: ResolvedTarget | undefined, selection: Selection | null): boolean {
-  if (!target || !selection) {
-    return false;
-  }
-  return target.kind === 'instance'
-    ? selection.kind === 'instance' && selection.id === target.path
-    : selection.kind === 'boundary' && selection.id === boundaryId('/', target.name);
 }
 
 function rowTitle(row: ChangeRow, target: ResolvedTarget | undefined): string | undefined {
@@ -122,13 +112,6 @@ export function ChangesTable({
   }
   const listed = rows.filter((row) => shown[row.sign]);
   const visible = filterRows(listed, filter, changeTexts);
-  const open = (target: ResolvedTarget) => {
-    if (target.kind === 'instance') {
-      onSelectInstance(target.path);
-    } else {
-      onSelectPort(target.name);
-    }
-  };
   return (
     <div>
       {bar}
@@ -151,26 +134,14 @@ export function ChangesTable({
           <tbody>
             {visible.map((row, index) => {
               const target = resolveTarget(graph, row);
-              const clickable = target !== undefined;
               return (
-                <tr
+                <TargetRow
                   key={index}
-                  className={`${clickable ? 'sd-clickable cursor-pointer' : 'opacity-70'}${
-                    isSelected(target, selection) ? ' sd-row-selected' : ''
-                  }`}
+                  target={target}
+                  selection={selection}
+                  onSelectInstance={onSelectInstance}
+                  onSelectPort={onSelectPort}
                   title={rowTitle(row, target)}
-                  tabIndex={clickable ? 0 : undefined}
-                  onClick={clickable ? () => open(target) : undefined}
-                  onKeyDown={
-                    clickable
-                      ? (event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            open(target);
-                          }
-                        }
-                      : undefined
-                  }
                 >
                   <td>
                     <span className="sd-sign" data-sign={row.sign}>
@@ -201,7 +172,7 @@ export function ChangesTable({
                   <td className="sd-wrap">
                     <CellView cell={row.current} />
                   </td>
-                </tr>
+                </TargetRow>
               );
             })}
           </tbody>

@@ -2995,6 +2995,7 @@ describe('SystemDiagramApp', () => {
       currentLabel: 'sys/zynq.tcl',
       canSwap: true,
       diff: diffSystemGraphs(base, graph),
+      findings: { new: [], resolved: [] },
     };
     const changesTab = () => screen.getByRole('tab', { name: /^Changes/ });
 

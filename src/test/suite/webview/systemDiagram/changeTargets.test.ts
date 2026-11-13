@@ -1,7 +1,9 @@
 import { changeRows } from '../../../../services/systemDiagram/diff/changeRows';
 import type { SystemGraph } from '../../../../domain/systemGraph';
-import type { SystemGraphDiff } from '../../../../domain/systemGraphDiff';
+import type { CrossingFinding, Finding, SystemGraphDiff } from '../../../../domain/systemGraphDiff';
 import {
+  findingTarget,
+  isTargetSelected,
   resolveTarget,
   segmentOwners,
   segmentTextOwner,
@@ -62,5 +64,77 @@ describe('segmentTextOwner', () => {
     expect(segmentTextOwner(owners, 'old/S/Reg')).toBe('/new');
     expect(segmentTextOwner(owners, 'old/c/S/Reg')).toBe('/new/c');
     expect(segmentTextOwner(owners, 'nowhere/S')).toBeUndefined();
+  });
+});
+
+describe('findingTarget', () => {
+  const graph = {
+    instances: { '/a': {}, '/b': {}, '/h': {} },
+    levels: { '/': { boundaryPins: [{ name: 'led_o' }] } },
+  } as unknown as SystemGraph;
+  const pin = (level: string, instance: string | null, name: string): Finding => ({
+    kind: 'undriven',
+    level,
+    instance,
+    pin: name,
+    label: instance === null ? name : `${instance.slice(1)}/${name}`,
+  });
+  const crossing = (fromInstance: string | null, toInstance: string | null): CrossingFinding => ({
+    kind: 'dataCrossing',
+    level: '/',
+    from: 'a/x',
+    to: toInstance === null ? 'led_o' : 'b/y',
+    fromInstance,
+    toInstance,
+    reason: 'r',
+  });
+
+  it('selects the block of an unconnected pin when the graph has it', () => {
+    expect(findingTarget(graph, pin('/', '/a', 'clk'))).toEqual({ kind: 'instance', path: '/a' });
+    expect(findingTarget(graph, pin('/', '/gone', 'clk'))).toBeUndefined();
+  });
+
+  it('selects the external port of a boundary pin of the root level', () => {
+    expect(findingTarget(graph, pin('/', null, 'led_o'))).toEqual({ kind: 'port', name: 'led_o' });
+    expect(findingTarget(graph, pin('/', null, 'gone'))).toBeUndefined();
+  });
+
+  it('selects the hierarchy block of a boundary pin of a level', () => {
+    expect(findingTarget(graph, pin('/h', null, 'p'))).toEqual({ kind: 'instance', path: '/h' });
+    expect(findingTarget(graph, pin('/gone', null, 'p'))).toBeUndefined();
+  });
+
+  it('selects the sink block of a crossing, else its source block', () => {
+    expect(findingTarget(graph, crossing('/a', '/b'))).toEqual({ kind: 'instance', path: '/b' });
+    expect(findingTarget(graph, crossing('/a', '/gone'))).toEqual({ kind: 'instance', path: '/a' });
+    expect(findingTarget(graph, crossing(null, '/b'))).toEqual({ kind: 'instance', path: '/b' });
+  });
+
+  it('selects the external port a crossing ends at, when no block is there', () => {
+    expect(findingTarget(graph, crossing('/gone', null))).toEqual({ kind: 'port', name: 'led_o' });
+    expect(findingTarget(graph, { ...crossing(null, null), to: 'gone' })).toBeUndefined();
+  });
+
+  it('selects the external port a crossing starts at when its sink block is gone', () => {
+    const fromPort = { ...crossing(null, '/gone'), from: 'led_o' };
+    expect(findingTarget(graph, fromPort)).toEqual({ kind: 'port', name: 'led_o' });
+    expect(findingTarget(graph, { ...fromPort, from: 'gone' })).toBeUndefined();
+  });
+
+  it('gives nothing when the blocks of a crossing are gone', () => {
+    expect(findingTarget(graph, crossing('/gone', '/gone2'))).toBeUndefined();
+  });
+});
+
+describe('isTargetSelected', () => {
+  it('matches a block by its path and a port by its boundary id', () => {
+    expect(isTargetSelected({ kind: 'instance', path: '/a' }, { kind: 'instance', id: '/a' })).toBe(
+      true
+    );
+    expect(isTargetSelected({ kind: 'instance', path: '/a' }, { kind: 'instance', id: '/b' })).toBe(
+      false
+    );
+    expect(isTargetSelected(undefined, { kind: 'instance', id: '/a' })).toBe(false);
+    expect(isTargetSelected({ kind: 'port', name: 'p' }, null)).toBe(false);
   });
 });

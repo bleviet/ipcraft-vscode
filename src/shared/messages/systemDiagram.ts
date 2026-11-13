@@ -1,5 +1,5 @@
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { SystemGraphDiff } from '../../domain/systemGraphDiff';
+import type { FindingsDiff, SystemGraphDiff } from '../../domain/systemGraphDiff';
 import type { ExportImageOptions, SystemExportView } from './imageExport';
 
 export type HighlightColor = 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'magenta';
@@ -14,6 +14,8 @@ export interface DiagramCompare {
   /** True when the base is a file, which can be opened as a diagram and compared the other way round. */
   canSwap: boolean;
   diff: SystemGraphDiff;
+  /** The unconnected pins and the clock and reset crossings that differ, for the same two graphs as `diff`. */
+  findings: FindingsDiff;
 }
 
 export type SystemDiagramToWebviewMessage =
