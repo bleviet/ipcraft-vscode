@@ -3,7 +3,7 @@
 import type { FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
 import { changeRows, type Cell, type CellPart, type ChangeRow } from './changeRows';
 import { findingRows } from './findingRows';
-import { withoutVersionOnly } from './ignoreVersionOnly';
+import { changeCount, withoutVersionOnly } from './ignoreVersionOnly';
 
 export interface DiffLabels {
   base: string;
@@ -89,9 +89,8 @@ export function diffToMarkdown(
   options: DiffReportOptions
 ): string {
   const rows = changeRows(diff, options);
-  const { added, removed, changed, version, renamed } = (
-    options.ignoreVersionOnly ? withoutVersionOnly(diff) : diff
-  ).summary;
+  const summary = (options.ignoreVersionOnly ? withoutVersionOnly(diff) : diff).summary;
+  const { added, removed, changed, version, renamed } = summary;
   const parts = [
     `## System design changes: ${diff.current.name}`,
     `Comparing ${code(labels.base)} (base) with ${code(labels.current)}.`,
@@ -103,7 +102,7 @@ export function diffToMarkdown(
   }
   const found = options.findings;
   const [foundNew, foundResolved] = [found?.new.length ?? 0, found?.resolved.length ?? 0];
-  if (added + removed + changed + version + renamed + foundNew + foundResolved === 0) {
+  if (changeCount(summary) + foundNew + foundResolved === 0) {
     parts.push('No changes.');
     return `${parts.join('\n\n')}\n`;
   }

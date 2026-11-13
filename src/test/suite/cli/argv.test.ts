@@ -393,6 +393,27 @@ describe('ipcraft CLI argv parsing', () => {
       });
     });
 
+    it('parses --fail-on changes and new-findings', () => {
+      for (const failOn of ['changes', 'new-findings']) {
+        expect(parseArgs(['diff', 'a.bd', 'b.bd', '--fail-on', failOn])).toEqual({
+          kind: 'diff',
+          args: { files: ['a.bd', 'b.bd'], format: 'markdown', ignoreVersionOnly: false, failOn },
+        });
+      }
+    });
+
+    it('rejects a bad --fail-on value and a missing one', () => {
+      const bad = parseArgs(['diff', 'a.bd', 'b.bd', '--fail-on', 'findings']);
+      expect((bad as { message: string }).message).toBe(
+        "Invalid --fail-on 'findings': expected 'changes' or 'new-findings'"
+      );
+      const missing = parseArgs(['diff', 'a.bd', 'b.bd', '--fail-on']);
+      expect((missing as { message: string }).message).toBe('Missing value for --fail-on');
+      expect(parseArgs(['diff', 'a.bd', 'b.bd', '--fail-on', '--format', 'json']).kind).toBe(
+        'error'
+      );
+    });
+
     it('parses two files', () => {
       expect(parseArgs(['diff', 'old.qsys', 'new.qsys'])).toEqual({
         kind: 'diff',
@@ -429,6 +450,7 @@ describe('ipcraft CLI argv parsing', () => {
     it('is listed in the usage text and the unknown-command message', () => {
       expect(usageText()).toContain('ipcraft diff <design> --base');
       expect(usageText()).toContain('--ignore-version-only');
+      expect(usageText()).toContain('--fail-on <changes|new-findings>');
       const result = parseArgs(['bogus']);
       expect((result as { message: string }).message).toContain("'diff'");
     });

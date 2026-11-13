@@ -46,6 +46,10 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     } else {
       process.stdout.write(result.report ?? '');
     }
+    if (result.failed !== undefined) {
+      console.error(`Diff check failed: ${result.failed}`);
+      return 1;
+    }
     return 0;
   }
 

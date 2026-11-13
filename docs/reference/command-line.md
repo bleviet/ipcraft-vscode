@@ -255,6 +255,9 @@ ipcraft diff bd/system.bd --base main --head feature/fifo
 
 # two files on disk
 ipcraft diff old/system.qsys new/system.qsys
+
+# fail a CI job when a pull request adds findings
+ipcraft diff bd/system.bd --base origin/main --fail-on new-findings
 ```
 
 | Option | Meaning |
@@ -264,10 +267,19 @@ ipcraft diff old/system.qsys new/system.qsys
 | `--format <markdown\|json>` | Report format (default `markdown`) |
 | `--out <file>` | Write the report to this file instead of standard output. The folder is created if needed |
 | `--ignore-version-only` | Leave out blocks whose only change is the version of their IP. The JSON report then has no instance with status `version` and `summary.version` is 0 |
+| `--fail-on <changes\|new-findings>` | Exit with 1 when the check fails: `changes` on any change (the total of the summary, after `--ignore-version-only`; a difference of findings alone is not a change), `new-findings` on at least one new finding (resolved findings never fail) |
 
-The exit code is 0 when the report is written, whether or not the designs
-differ, and 1 on an error (an option error, a file or revision that cannot be
-read, or a file that is not a system design).
+Without `--fail-on`, the exit code is 0 when the report is written, whether or
+not the designs differ. It is 1 on an error (an option error, a file or
+revision that cannot be read, or a file that is not a system design) or when
+`--fail-on` fails the check. The report is written or printed first in every case, so a CI job can
+fail and still keep it. A failed check prints one line to standard error, for
+example `Diff check failed: 3 changes (--fail-on changes)` or
+`Diff check failed: 1 new finding (--fail-on new-findings)`. In a CI job:
+
+```bash
+ipcraft diff bd/system.bd --base origin/main --out diff.md --fail-on new-findings
+```
 
 The Markdown report is made for a pull request comment:
 

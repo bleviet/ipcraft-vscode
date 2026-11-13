@@ -1,9 +1,15 @@
 import type { ParsedArgv } from './argv';
 import type { CliDiffArgs } from './diff';
 
-const VALUE_OPTIONS: ReadonlySet<string> = new Set(['--base', '--head', '--format', '--out']);
+const VALUE_OPTIONS: ReadonlySet<string> = new Set([
+  '--base',
+  '--head',
+  '--format',
+  '--out',
+  '--fail-on',
+]);
 
-/** Parses `diff` argv: `<design> --base <ref> [--head <ref>]` or `<base file> <current file>`, with `[--format markdown|json] [--out <file>] [--ignore-version-only]`. */
+/** Parses `diff` argv: `<design> --base <ref> [--head <ref>]` or `<base file> <current file>`, with `[--format markdown|json] [--out <file>] [--ignore-version-only] [--fail-on changes|new-findings]`. */
 export function parseDiffArgs(rest: string[]): ParsedArgv {
   const positional: string[] = [];
   const args: Omit<CliDiffArgs, 'files'> = { format: 'markdown', ignoreVersionOnly: false };
@@ -32,6 +38,17 @@ export function parseDiffArgs(rest: string[]): ParsedArgv {
           };
         }
         args.format = format;
+        break;
+      }
+      case '--fail-on': {
+        const failOn = value();
+        if (failOn !== 'changes' && failOn !== 'new-findings') {
+          return {
+            kind: 'error',
+            message: `Invalid --fail-on '${failOn}': expected 'changes' or 'new-findings'`,
+          };
+        }
+        args.failOn = failOn;
         break;
       }
       case '--ignore-version-only':
