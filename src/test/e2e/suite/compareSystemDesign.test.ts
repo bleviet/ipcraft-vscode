@@ -242,6 +242,77 @@ suite('Compare a system design (real git extension, tabs and quick pick)', funct
     );
   });
 
+  test('lists and reads designs of a workspace that is not on the local disk', async () => {
+    // Remote and virtual workspaces use another URI scheme than `file:`. A file system
+    // provider registered here stands in for one.
+    const files = new Map<string, Uint8Array>([
+      ['/ws/remote_current.bd', Buffer.from(CURRENT)],
+      ['/ws/remote_base.bd', Buffer.from(BASE)],
+    ]);
+    const changed = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+    const provider: vscode.FileSystemProvider = {
+      onDidChangeFile: changed.event,
+      watch: () => new vscode.Disposable(() => undefined),
+      stat: (uri) => {
+        const data = files.get(uri.path);
+        if (data) {
+          return { type: vscode.FileType.File, ctime: 0, mtime: 0, size: data.byteLength };
+        }
+        if (uri.path === '/' || uri.path === '/ws') {
+          return { type: vscode.FileType.Directory, ctime: 0, mtime: 0, size: 0 };
+        }
+        throw vscode.FileSystemError.FileNotFound(uri);
+      },
+      readDirectory: () =>
+        [...files.keys()].map((p) => [path.posix.basename(p), vscode.FileType.File]),
+      createDirectory: () => undefined,
+      readFile: (uri) => {
+        const data = files.get(uri.path);
+        if (!data) {
+          throw vscode.FileSystemError.FileNotFound(uri);
+        }
+        return data;
+      },
+      writeFile: (uri, content) => void files.set(uri.path, content),
+      delete: (uri) => void files.delete(uri.path),
+      rename: () => undefined,
+    };
+    const registration = vscode.workspace.registerFileSystemProvider('ipcrafte2e', provider, {
+      isCaseSensitive: true,
+    });
+    try {
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      const current = vscode.Uri.parse('ipcrafte2e:/ws/remote_current.bd');
+      const base = vscode.Uri.parse('ipcrafte2e:/ws/remote_base.bd');
+      // A design on the local disk is open too; it is not offered next to a remote document.
+      await vscode.window.showTextDocument(other, { preview: false });
+      await vscode.window.showTextDocument(base, { preview: false });
+      const document = await vscode.workspace.openTextDocument(current);
+      await vscode.window.showTextDocument(document, { preview: false });
+
+      assert.deepStrictEqual(
+        openDesignTabs(document).map((uri) => uri.toString()),
+        [base.toString()]
+      );
+
+      const picked = await answerQuickPick(pickCompareBase(document), ACCEPT);
+      assert.strictEqual(picked?.file?.toString(), base.toString());
+      assert.strictEqual(picked?.text, BASE);
+
+      // The diagram editor opens on that scheme as well.
+      await vscode.commands.executeCommand('vscode.openWith', current, SYSTEM_DIAGRAM);
+      const active = await until(() => {
+        const input = vscode.window.tabGroups.activeTabGroup.activeTab?.input;
+        return input instanceof vscode.TabInputCustom ? input : undefined;
+      }, 'the system diagram of the remote design');
+      assert.strictEqual(active.uri.toString(), current.toString());
+    } finally {
+      await vscode.commands.executeCommand('workbench.action.closeAllEditors');
+      registration.dispose();
+      changed.dispose();
+    }
+  });
+
   test('the command finds the active system diagram', async () => {
     await vscode.commands.executeCommand('workbench.action.closeAllEditors');
     // Without a diagram the command reports that none is active.
