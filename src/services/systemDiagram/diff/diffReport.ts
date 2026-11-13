@@ -1,6 +1,6 @@
 /** Markdown report of a {@link SystemGraphDiff}, made for a pull request comment. Pure. */
 
-import type { SystemGraphDiff } from '../../../domain/systemGraphDiff';
+import type { Finding, FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
 import { changeRows, type Cell, type CellPart, type ChangeRow } from './changeRows';
 import { withoutVersionOnly } from './ignoreVersionOnly';
 
@@ -11,6 +11,8 @@ export interface DiffLabels {
 
 export interface DiffReportOptions {
   ignoreVersionOnly: boolean;
+  /** The findings that differ (see `diffFindings`); the report has a Findings section when there are any. */
+  findings?: FindingsDiff;
 }
 
 type Row = string[];
@@ -69,6 +71,36 @@ function levelSections(rows: ChangeRow[]): string[] {
   });
 }
 
+const FINDING_NAMES: Record<Finding['kind'], string> = {
+  undriven: 'undriven pin',
+  unused: 'unused pin',
+  dataCrossing: 'data crossing',
+  resetCrossing: 'reset crossing',
+};
+
+function findingRow(sign: string, finding: Finding): Row {
+  const onLevel = finding.level === '/' ? '' : ` on level ${code(finding.level)}`;
+  if ('label' in finding) {
+    return [sign, FINDING_NAMES[finding.kind], `${code(finding.label)}${onLevel}`, ''];
+  }
+  const clock = (label: string | undefined) =>
+    label === undefined ? 'unknown clock' : code(label);
+  return [
+    sign,
+    FINDING_NAMES[finding.kind],
+    `${code(finding.from)} → ${code(finding.to)}${onLevel}`,
+    `${clock(finding.fromClock)} → ${clock(finding.toClock)} · ${finding.reason}`,
+  ];
+}
+
+function findingsSection({ new: added, resolved }: FindingsDiff): string {
+  const rows = [
+    ...added.map((finding) => findingRow('New', finding)),
+    ...resolved.map((finding) => findingRow('Resolved', finding)),
+  ];
+  return `### Findings\n${table(['', 'Finding', 'Where', 'Detail'], rows)}\n\nFindings are computed from the design files alone; workspace definitions are not used, so pins of blocks without a known pin list are not checked.`;
+}
+
 /** Markdown for a diff; the layout is stable, because the tests compare it with golden text. */
 export function diffToMarkdown(
   diff: SystemGraphDiff,
@@ -88,15 +120,24 @@ export function diffToMarkdown(
       `The two revisions use different formats (${diff.base.format} and ${diff.current.format}).`
     );
   }
-  if (added + removed + changed + version + renamed === 0) {
+  const found = options.findings;
+  const [foundNew, foundResolved] = [found?.new.length ?? 0, found?.resolved.length ?? 0];
+  if (added + removed + changed + version + renamed + foundNew + foundResolved === 0) {
     parts.push('No changes.');
     return `${parts.join('\n\n')}\n`;
   }
+  const findingsSummary =
+    foundNew + foundResolved === 0
+      ? ''
+      : ` · ${foundNew} new finding${foundNew === 1 ? '' : 's'} · ${foundResolved} resolved finding${foundResolved === 1 ? '' : 's'}`;
   parts.push(
     `**+${added} added · −${removed} removed · ~${changed} changed${renamed > 0 ? ` · →${renamed} renamed` : ''}${
       options.ignoreVersionOnly ? '' : ` · v${version} version only`
-    }**`
+    }${findingsSummary}**`
   );
+  if (found && foundNew + foundResolved > 0) {
+    parts.push(findingsSection(found));
+  }
   const section = (name: ChangeRow['section']) =>
     rows.filter((r) => r.section === name).map(markdownRow);
   const [address, ports] = [section('address'), section('port')];

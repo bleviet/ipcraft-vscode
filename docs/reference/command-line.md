@@ -276,7 +276,14 @@ The Markdown report is made for a pull request comment:
 
 Comparing `HEAD` (base) with `working tree`.
 
-**+1 added · −4 removed · ~2 changed · v1 version only**
+**+1 added · −4 removed · ~2 changed · v1 version only · 0 new findings · 1 resolved finding**
+
+### Findings
+| | Finding | Where | Detail |
+|---|---|---|---|
+| Resolved | undriven pin | `led_o` | |
+
+Findings are computed from the design files alone; workspace definitions are not used, so pins of blocks without a known pin list are not checked.
 
 ### Address map
 | | Address space | Segment | Base | Current |
@@ -301,6 +308,38 @@ Comparing `HEAD` (base) with `working tree`.
 |---|---|---|---|---|
 | v | `axi_gpio_1` | version | `xilinx.com:ip:axi_gpio:2.0` | `xilinx.com:ip:axi_gpio:2.1` |
 ```
+
+The **Findings** section lists what the review of the viewer (the **Unconnected** and
+**Clocks** tabs) reports in one revision and not in the other: `New` for a finding only the
+current revision has, `Resolved` for one only the base has. A finding is one of
+
+- an `undriven pin` or an `unused pin`, a pin that no net touches on its level. An undriven
+  pin is one that something should drive: an input of a block, or an output of the design or
+  of a hierarchy, seen from inside. An unused pin is any other pin that no net touches: an
+  output of a block, an input of the design or of a hierarchy, or an `inout` or a pin
+  without a direction. Its Where is `instanceName/pin` for a block, or the pin name for a
+  pin of the design or of a hierarchy;
+- a `data crossing` or a `reset crossing`: a connection or a reset whose two ends are on
+  different clock domains with no known synchronizer; its Where is `from → to`, and its
+  Detail the two clocks and the reason. Crossings that Vivado times (related clocks), crossings
+  that are unchecked because a clock is not known, blocks that span domains, and crossings
+  that are fine are not findings. A Platform Designer system (`.qsys`, qsys-script) has no
+  crossing findings, because Platform Designer inserts the clock crossing adapters itself.
+
+A finding is the same in both revisions when it is the same pin (or the same two ends), so a
+renamed net does not make a new finding. A renamed block keeps its findings: they are neither
+new nor resolved, and a resolved finding that mentions it uses the new name. The
+section is written when at least one finding differs, and the summary line then ends with
+`N new findings · M resolved findings`; when only findings differ the report is the summary and this
+section rather than `No changes.` `--ignore-version-only` does not filter findings. As in
+the viewer, a pin is checked only when the design files list the pins of its block, and
+workspace definitions are not used, so pins of blocks without a known pin list are not
+checked (the note under the table says so). The JSON report has the same lists in a
+`findings` field, `{ "new": [...], "resolved": [...] }`, empty when nothing differs; each
+entry has `kind` (`undriven`, `unused`, `dataCrossing`, `resetCrossing`), `level`, and for a
+pin `instance` (null for a boundary pin), `pin` and `label`, for a crossing `from`, `to`,
+`fromClock`, `toClock` (left out when the clock is not known) and `reason`, sorted by kind,
+level and label.
 
 Each sign has a meaning: `+` added, `−` removed, `~` changed, `→` renamed,
 `v` version only. A section without changes is left out, and a report without any change reads

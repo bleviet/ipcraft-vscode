@@ -2,7 +2,14 @@
 
 Comparing `HEAD` (base) with `working tree`.
 
-**+1 added · −4 removed · ~2 changed · v1 version only**
+**+1 added · −4 removed · ~2 changed · v1 version only · 0 new findings · 1 resolved finding**
+
+### Findings
+| | Finding | Where | Detail |
+|---|---|---|---|
+| Resolved | undriven pin | `led_o` | |
+
+Findings are computed from the design files alone; workspace definitions are not used, so pins of blocks without a known pin list are not checked.
 
 ### Address map
 | | Address space | Segment | Base | Current |
