@@ -146,6 +146,24 @@ comparison of one panel (base, base file, start, stop, swap).
   address segment row to its slave block in the current graph. `changeSummary.ts`
   and `panelFilter.ts` hold the texts.
 - `hooks/useBottomTab.ts` decides when the tab opens and when it falls back.
+- The marks on the diagram (issue #302) follow the clock decoration pattern.
+  `changeMarks.ts` is the pure model of a diff and the current graph: per block its
+  status, title, marked pins and count of changes inside, per external port its status,
+  per level the number of removed blocks and ports, and `isNewWire`, which decides from
+  the `gained` peers of the diff whether a drawn wire is new (the labels come from
+  `peerLabel` of the diff engine, so there is one spelling). `changeDecor.ts` computes
+  from the layout and that model, once per layout and comparison, the `NodeChange` of
+  each node, the ids of the new wires and the legend entries. `useCanvasElements.ts`
+  merges them into the node data (`change`) and the edge data (`changeNew`); the
+  per-node objects come from one memo, so a selection keeps them and `useStableElements`
+  keeps the elements. `NodeHeader` draws the badges (`ChangeBadges.tsx`), the pins
+  carry `data-change` and a title, and `ElkEdge` the new-wire stroke. The colors are the
+  `--sd-change-*` custom properties at the top of `systemDiagram.css`, which the Changes
+  tab uses too. `hooks/useCompareView.ts` owns the **Marks** toggle (on again when the
+  base changes) and **Changes only**, which calls `useIsolation`'s `isolate` with
+  `markedNodeIds`; `InstanceChanges.tsx` is the **Changes** section of the Details
+  (cells from `ChangeCell.tsx`, shared with the Changes tab). With Marks off the canvas
+  gets no `changes` context and every one of these paths adds nothing.
 
 | Layer | Owner |
 |---|---|

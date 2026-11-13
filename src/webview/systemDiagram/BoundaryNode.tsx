@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
+import { markSign } from './changeMarks';
 import { NetBadgeView } from './NetBadgeView';
 import { PinMarker } from './PinMarker';
 import { PinFrequency, PinHalo, PinStub } from './PinDecor';
@@ -22,6 +23,7 @@ function BoundaryNodeBase({ data, selected }: NodeProps<BoundaryFlowNode>) {
       className="sd-port"
       data-selected={selected}
       data-highlighted={data.highlightColor !== undefined || undefined}
+      data-change={data.change?.status}
       {...(review && {
         'data-has-unc': review.all > 0,
         'data-has-undriven': review.undriven > 0,
@@ -60,6 +62,18 @@ function BoundaryNodeBase({ data, selected }: NodeProps<BoundaryFlowNode>) {
           side={data.side}
           hasBadge={data.badge !== undefined}
         />
+      )}
+      {data.change?.status && (
+        <span
+          className="sd-port-sign sd-change-sign"
+          data-side={data.side}
+          data-change={data.change.status}
+          role="img"
+          title={data.change.title}
+          aria-label={data.change.title}
+        >
+          {markSign(data.change.status)}
+        </span>
       )}
       <span
         className="sd-port-label"

@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
+import { insideLabel } from './ChangeBadges';
+import { markSign, shownInside, type ChangeMarks, type NodeChange } from './changeMarks';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { outlineDomains, type OutlineDomains } from './clocks/domainView';
 import { boundaryId, cellCount, instanceTypeLabel, type Selection } from './model';
@@ -16,6 +18,8 @@ interface OutlineTreeProps {
   review: readonly UnconnectedPin[] | null;
   /** The analysis to show domain dots and crossing counts from while the domain decorations are on, else null. */
   clocks: ClockAnalysis | null;
+  /** The marks of a comparison to show on rows while Marks is on, else null. */
+  changes?: ChangeMarks | null;
   onSelect: (selection: Selection | null, levelPath?: string) => void;
 }
 
@@ -32,6 +36,8 @@ interface RowProps {
   unconnected?: { all: number; undriven: number };
   /** Domain mode: dots for the clock domains of the block, and the crossings inside a hierarchy. */
   domains?: OutlineDomains;
+  /** Comparison marks on: the sign of the row's kind of change, and the count of changes below a hierarchy. */
+  change?: Pick<NodeChange, 'status' | 'title' | 'inside'>;
   /** A row a search keeps only for the matches below it. */
   muted?: boolean;
   current: boolean;
@@ -48,6 +54,7 @@ function OutlineRow({
   count,
   unconnected,
   domains,
+  change,
   muted,
   current,
   expanded,
@@ -56,7 +63,8 @@ function OutlineRow({
 }: RowProps) {
   const dots = domains !== undefined && domains.colors.length > 0;
   const crossings = domains !== undefined && domains.crossings > 0;
-  const trailing = (unconnected?.all ?? 0) > 0 || dots || crossings;
+  const inside = change?.inside ?? 0;
+  const trailing = (unconnected?.all ?? 0) > 0 || dots || crossings || inside > 0;
   return (
     <div
       className="sd-row flex items-center"
@@ -83,6 +91,17 @@ function OutlineRow({
       >
         {icon && <span aria-hidden="true" className={`sd-ico sd-ico-${icon}`} />}
         <span className="min-w-0 truncate">{label}</span>
+        {change?.status && (
+          <span
+            className="sd-change-sign shrink-0"
+            data-change={change.status}
+            role="img"
+            title={change.title}
+            aria-label={change.title}
+          >
+            {markSign(change.status)}
+          </span>
+        )}
         {detail && (
           <span className="min-w-0 flex-1 basis-0 truncate text-xs opacity-60">{detail}</span>
         )}
@@ -117,6 +136,16 @@ function OutlineRow({
             {unconnected.all}
           </span>
         )}
+        {inside > 0 && (
+          <span
+            className={`${dots || crossings || (unconnected?.all ?? 0) > 0 ? 'ml-1.5' : 'ml-auto'} shrink-0 text-[11px] text-[var(--sd-change-changed)]`}
+            role="img"
+            title={insideLabel(inside)}
+            aria-label={insideLabel(inside)}
+          >
+            <span className="sr-only"> </span>~{inside}
+          </span>
+        )}
         {count !== undefined && (
           <span
             className={`${trailing ? 'ml-1.5' : 'ml-auto'} shrink-0 text-[11px] text-[var(--vscode-descriptionForeground)]`}
@@ -130,6 +159,12 @@ function OutlineRow({
   );
 }
 
+/** The marks of an instance row: its status and title, and the changes below it unless it is added. */
+function blockChange(marks: ChangeMarks | null | undefined, path: string): NodeChange | undefined {
+  const block = marks?.blocks.get(path);
+  return block && { status: block.status, title: block.title, inside: shownInside(block) };
+}
+
 export function OutlineTree({
   graph,
   levelPath,
@@ -137,6 +172,7 @@ export function OutlineTree({
   searchMatches,
   review,
   clocks,
+  changes,
   onSelect,
 }: OutlineTreeProps) {
   // While a search is on, the tree is its result list: the matches and the hierarchies above them, all open.
@@ -175,6 +211,7 @@ export function OutlineTree({
             count={isHier ? cellCount(graph, instancePath) : undefined}
             unconnected={unconnectedOf(instancePath)}
             domains={clocks ? outlineDomains(clocks, graph, instancePath) : undefined}
+            change={blockChange(changes, instancePath)}
             muted={matched !== null && !matched.has(instancePath)}
             current={selection?.kind === 'instance' && selection.id === instancePath}
             expanded={isHier ? open : undefined}
@@ -234,6 +271,7 @@ export function OutlineTree({
                 icon="port"
                 detail={pin.direction}
                 unconnected={unconnectedOf(boundaryId('/', pin.name))}
+                change={changes?.ports.get(pin.name)}
                 current={
                   selection?.kind === 'boundary' && selection.id === boundaryId('/', pin.name)
                 }

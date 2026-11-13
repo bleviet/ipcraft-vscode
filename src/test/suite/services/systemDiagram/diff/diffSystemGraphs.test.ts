@@ -309,7 +309,13 @@ describe('diffSystemGraphs', () => {
         { pin: 'M00_AXI', status: 'removed', basePeers: ['axi_gpio_0/S_AXI'] },
       ]);
       expect(instance(diff, '/axi_gpio_0')?.pins).toEqual([
-        { pin: 'S_AXI', status: 'changed', basePeers: ['axi_periph/M00_AXI'], currentPeers: [] },
+        {
+          pin: 'S_AXI',
+          status: 'changed',
+          basePeers: ['axi_periph/M00_AXI'],
+          currentPeers: [],
+          lost: ['axi_periph/M00_AXI'],
+        },
       ]);
     });
 
@@ -336,6 +342,34 @@ describe('diffSystemGraphs', () => {
           status: 'changed',
           basePeers: ['axi_periph/ACLK', 'gpio_block/clk', 'sys_ps7/FCLK_CLK0'],
           currentPeers: ['sys_ps7/FCLK_CLK1'],
+          gained: ['sys_ps7/FCLK_CLK1'],
+          lost: ['axi_periph/ACLK', 'gpio_block/clk', 'sys_ps7/FCLK_CLK0'],
+        },
+      ]);
+    });
+
+    it('mirrors gained and lost when base and current are swapped', () => {
+      const rewired = (d: any) => {
+        d.nets.fclk.ports = d.nets.fclk.ports.filter((p: string) => p !== 'axi_gpio_0/s_axi_aclk');
+        d.nets.other = { ports: ['axi_gpio_0/s_axi_aclk', 'sys_ps7/FCLK_CLK1'] };
+      };
+      const [a, b] = [bd(), bd(rewired)];
+      const pinOf = (diff: SystemGraphDiff) => instance(diff, '/axi_gpio_0')?.pins[0];
+      const [forward, back] = [pinOf(diffSystemGraphs(a, b)), pinOf(diffSystemGraphs(b, a))];
+      expect(forward?.gained).toEqual(back?.lost);
+      expect(forward?.lost).toEqual(back?.gained);
+      expect(forward?.gained).toEqual(['sys_ps7/FCLK_CLK1']);
+    });
+
+    it('lists a pin that joined a net as gained only', () => {
+      const diff = diffSystemGraphs(bd(withoutGpio0Net), bd());
+      expect(instance(diff, '/axi_gpio_0')?.pins).toEqual([
+        {
+          pin: 'S_AXI',
+          status: 'changed',
+          basePeers: [],
+          currentPeers: ['axi_periph/M00_AXI'],
+          gained: ['axi_periph/M00_AXI'],
         },
       ]);
     });
@@ -437,6 +471,8 @@ describe('diffSystemGraphs', () => {
           status: 'changed',
           basePeers: ['ghost_ctrl/rst_n', 'sync_0/rst_n_in'],
           currentPeers: ['sys_ps7/FCLK_CLK1'],
+          gained: ['sys_ps7/FCLK_CLK1'],
+          lost: ['ghost_ctrl/rst_n', 'sync_0/rst_n_in'],
           attributes: [],
         },
       ]);
@@ -668,6 +704,7 @@ create_root_design ""
           status: 'changed',
           basePeers: ['b/y', 'c/y'],
           currentPeers: ['/h2:k', 'b/y', 'c/y'],
+          gained: ['/h2:k'],
         },
       ]);
       expect(pinsOf(diffSystemGraphs(current, base))).toEqual(['/a x changed']);
@@ -695,6 +732,8 @@ create_root_design ""
         inside: true,
         basePeers: ['axi_gpio_1/s_axi_aclk', 'axi_gpio_2/s_axi_aclk'],
         currentPeers: ['axi_gpio_3/s_axi_aclk', 'axi_gpio_4/s_axi_aclk'],
+        gained: ['axi_gpio_3/s_axi_aclk', 'axi_gpio_4/s_axi_aclk'],
+        lost: ['axi_gpio_1/s_axi_aclk', 'axi_gpio_2/s_axi_aclk'],
       });
     });
 
@@ -823,6 +862,7 @@ create_root_design ""
                 inside: true,
                 basePeers: ['axi_gpio_1/s_axi_aresetn'],
                 currentPeers: [],
+                lost: ['axi_gpio_1/s_axi_aresetn'],
               },
             ],
           ],
@@ -851,6 +891,8 @@ create_root_design ""
             inside: true,
             basePeers: ['p/S_AXI'],
             currentPeers: ['q/M_AXI'],
+            gained: ['q/M_AXI'],
+            lost: ['p/S_AXI'],
           },
         ]);
       });

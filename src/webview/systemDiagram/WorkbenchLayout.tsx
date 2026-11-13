@@ -13,6 +13,7 @@ import { DiagramCanvas } from './DiagramCanvas';
 import { DiagramToolbar, type PanelName } from './DiagramToolbar';
 import { applyHighlight, highlightCount } from './highlights';
 import { useBottomTab } from './hooks/useBottomTab';
+import { useCompareView } from './hooks/useCompareView';
 import { useDiagramExport, type ImageExportChannel } from './hooks/useDiagramExport';
 import { useDiagramNavigation } from './hooks/useDiagramNavigation';
 import { useDiagramViewport } from './hooks/useDiagramViewport';
@@ -78,6 +79,7 @@ export function WorkbenchLayout({
   const matcher = useMemo(() => compileSearch(query, searchOptions), [query, searchOptions]);
   const view = useIsolation(graph, nav);
   const { isolation } = view;
+  const compareView = useCompareView(graph, compare, nav.levelPath, view.isolate);
   const search = useSearchStepper(graph, matcher, nav.selection, view.revealMatch);
   const { remember, browse } = useSearchHistory(query, setQuery);
   const stepSearch = useCallback(
@@ -231,6 +233,9 @@ export function WorkbenchLayout({
           onStart: onStartCompare,
           onStop: onStopCompare,
           onOpenChanges: () => openBottomTab('changes'),
+          marksOn: compareView.marksOn,
+          onMarksChange: compareView.setMarksOn,
+          onChangesOnly: compareView.changesOnly,
         }}
         panelsVisible={panelsVisible}
         onTogglePanel={(panel) => panels[panel].toggle()}
@@ -250,6 +255,7 @@ export function WorkbenchLayout({
                   searchMatches={searching ? search.matches : null}
                   review={reviewUnconnected ? findings : null}
                   clocks={domainsShown ? clocks : null}
+                  changes={compareView.changes?.marks ?? null}
                   onSelect={view.selectAndReveal}
                 />
               </div>
@@ -269,6 +275,8 @@ export function WorkbenchLayout({
               onHopStep={isolation ? (delta) => view.setHops(isolation.hops + delta) : undefined}
               review={reviewContext}
               clocks={clockContext}
+              changes={compareView.changes}
+              onOpenChanges={() => openBottomTab('changes')}
               focusedPin={focusedPin}
               matcher={matcher}
               autoDetail={autoDetail}
@@ -302,6 +310,7 @@ export function WorkbenchLayout({
                   selectedNodeIds={nav.selectedNodeIds}
                   selectedItems={nav.selectedItems}
                   focusedPin={focusedPin}
+                  comparison={compareView.details}
                   onSelect={view.selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
                   onReveal={revealSource}

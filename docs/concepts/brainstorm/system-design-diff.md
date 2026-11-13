@@ -9,7 +9,10 @@ In the viewer, the compare command, the base picker (a git revision or a file)
 and the **Changes** tab of phase 1 also work. The current side is the open file.
 A block that is only renamed is reported as one change (see
 [Renames and Moves](#renames-and-moves)). The overlay on the diagram and the
-later phases are open. This document describes
+later phases are open. The marks of everything that exists in the current revision
+(blocks, pins, new wires, counts on hierarchies, the outline, the legend, Details, the
+**Marks** and **Changes only** buttons) are implemented; ghosts for what was removed,
+the union layout and marks in exported images are open. This document describes
 how the [system viewer](../../how-to/view-a-system-design.md) could show what
 changed between two revisions of a block design or Platform Designer system.
 

@@ -1,5 +1,7 @@
 import React from 'react';
 import type { SystemInstance } from '../../domain/systemGraph';
+import type { NodeChange } from './changeMarks';
+import { ChangeBadges } from './ChangeBadges';
 import { domainBadge, type NodeDomains } from './clocks/domainView';
 import { HEADER_HEIGHT } from './layout/elkLayout';
 import { instanceSubtitle } from './model';
@@ -46,6 +48,8 @@ function unconnectedLabel(review: NodeReview): string {
 interface NodeHeaderProps extends ExpandToggleProps {
   cellCount: number;
   review?: NodeReview;
+  /** Comparison marks on: the sign of the block's kind of change and the count of changes inside. */
+  change?: NodeChange;
   /** Clock domain mode: a strip with one segment per domain, and the crossing or domain count. */
   domains?: NodeDomains;
 }
@@ -55,6 +59,7 @@ export function NodeHeader({
   instance,
   cellCount,
   review,
+  change,
   domains,
   expanded,
   onToggleExpand,
@@ -82,6 +87,7 @@ export function NodeHeader({
             </React.Fragment>
           ))}
         </span>
+        <ChangeBadges change={change} />
         {review && review.all > 0 ? (
           <span
             className="sd-node-open sd-node-unc"

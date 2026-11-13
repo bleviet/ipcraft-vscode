@@ -596,7 +596,22 @@ describe('base names in the base peers', () => {
       expect.arrayContaining(['axi_gpio_0/s_axi_aclk', 'gpio_block/clk'])
     );
     expect(pin?.currentPeers).toEqual([]);
+    expect(pin?.lost).toEqual(['axi_gpio_0/s_axi_aclk', 'gpio_block/clk', 'sys_ps7/FCLK_CLK0']);
+    expect(pin?.gained).toBeUndefined();
     expect(renames(diff).map((r) => r.path)).toEqual(['/axi_gpio_main']);
+  });
+
+  it('lists a renamed neighbour that stays connected as neither gained nor lost', () => {
+    const diff = diffSystemGraphs(
+      bd(),
+      bd(
+        (t) => renamed(t, 'sync_0', 'sync_main'),
+        (d) => (d.ports.sys_rst_n.type = 'data')
+      )
+    );
+    expect(diff.ports[0].currentPeers).toContain('sync_main/rst_n_in');
+    expect(diff.ports[0].gained).toBeUndefined();
+    expect(diff.ports[0].lost).toBeUndefined();
   });
 
   it('writes the base name for a removed block that was connected to the renamed one', () => {

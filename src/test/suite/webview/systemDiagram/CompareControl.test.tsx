@@ -3,11 +3,29 @@ import React from 'react';
 import { CompareControl } from '../../../../webview/systemDiagram/CompareControl';
 import { compareOf, renameDiff, zynqDiff } from './compareFixtures';
 
-function renderControl(on: boolean) {
-  const handlers = { onStart: jest.fn(), onStop: jest.fn(), onOpenChanges: jest.fn() };
+const noop = {
+  onStart: jest.fn(),
+  onStop: jest.fn(),
+  onOpenChanges: jest.fn(),
+  marksOn: true,
+  onMarksChange: jest.fn(),
+};
+
+function renderControl(
+  on: boolean,
+  options: { marksOn?: boolean; onChangesOnly?: () => void } = {}
+) {
+  const handlers = {
+    onStart: jest.fn(),
+    onStop: jest.fn(),
+    onOpenChanges: jest.fn(),
+    onMarksChange: jest.fn(),
+  };
   render(
     <CompareControl
       compare={on ? compareOf(zynqDiff(), 'main (merge base 1234567)') : undefined}
+      marksOn={options.marksOn ?? true}
+      onChangesOnly={options.onChangesOnly}
       {...handlers}
     />
   );
@@ -43,14 +61,7 @@ describe('CompareControl', () => {
   });
 
   it('shows the renamed count, fourth of five, only when a block was renamed', () => {
-    render(
-      <CompareControl
-        compare={compareOf(renameDiff())}
-        onStart={jest.fn()}
-        onStop={jest.fn()}
-        onOpenChanges={jest.fn()}
-      />
-    );
+    render(<CompareControl compare={compareOf(renameDiff())} {...noop} />);
     const counts = screen.getAllByRole('img').map((item) => item.getAttribute('aria-label'));
     expect(counts).toEqual(['0 added', '0 removed', '1 changed', '1 renamed', '0 version only']);
     expect(screen.getByLabelText('1 renamed')).toHaveAttribute('data-zero', 'false');
@@ -61,9 +72,7 @@ describe('CompareControl', () => {
     render(
       <CompareControl
         compare={compareOf({ ...diff, summary: { ...diff.summary, added: 0 } })}
-        onStart={jest.fn()}
-        onStop={jest.fn()}
-        onOpenChanges={jest.fn()}
+        {...noop}
       />
     );
     expect(screen.getByLabelText('0 added')).toHaveAttribute('data-zero', 'true');
@@ -81,5 +90,56 @@ describe('CompareControl', () => {
     const { onStop } = renderControl(true);
     fireEvent.click(screen.getByRole('button', { name: 'Exit compare' }));
     expect(onStop).toHaveBeenCalledTimes(1);
+  });
+
+  it('has a Marks toggle that is pressed while the marks are on', () => {
+    const { onMarksChange } = renderControl(true);
+    const marks = screen.getByRole('button', { name: 'Marks' });
+    expect(marks).toHaveAttribute('aria-pressed', 'true');
+    expect(marks).toHaveAttribute('title', 'Mark the changes on the diagram');
+    expect(marks.querySelector('.codicon-diff')).not.toBeNull();
+    fireEvent.click(marks);
+    expect(onMarksChange).toHaveBeenCalledWith(false);
+  });
+
+  it('turns the marks on again from the pressed-off state', () => {
+    const { onMarksChange } = renderControl(true, { marksOn: false });
+    const marks = screen.getByRole('button', { name: 'Marks' });
+    expect(marks).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(marks);
+    expect(onMarksChange).toHaveBeenCalledWith(true);
+  });
+
+  it('starts Changes only, or is disabled with a reason when the level has no changed block', () => {
+    const onChangesOnly = jest.fn();
+    renderControl(true, { onChangesOnly });
+    const button = screen.getByRole('button', { name: 'Changes only' });
+    expect(button).toHaveAttribute(
+      'title',
+      'Show only the changed blocks of this level and what they connect to'
+    );
+    expect(button.querySelector('.codicon-filter')).not.toBeNull();
+    fireEvent.click(button);
+    expect(onChangesOnly).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Changes only on a level without changed blocks', () => {
+    renderControl(true);
+    const button = screen.getByRole('button', { name: 'Changes only' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('title', 'No changed blocks on this level');
+  });
+
+  it('disables Changes only while Marks is off, and says why', () => {
+    renderControl(true, { marksOn: false });
+    const button = screen.getByRole('button', { name: 'Changes only' });
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute('title', 'Turn on Marks to show only the changes');
+  });
+
+  it('has neither control without a comparison', () => {
+    renderControl(false);
+    expect(screen.queryByRole('button', { name: 'Marks' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Changes only' })).not.toBeInTheDocument();
   });
 });

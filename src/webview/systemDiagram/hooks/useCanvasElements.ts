@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import type { HighlightMap } from '../../../shared/messages/systemDiagram';
 import { selectedTree } from '../clocks/treeSelection';
+import { changeDecor, type ChangeContext } from '../changeDecor';
 import { clockDecor, clockNodeData, type ClockContext } from '../clockDecor';
 import {
   highlightedEdgesLast,
@@ -30,6 +31,8 @@ interface CanvasElementsInput {
   highlights?: HighlightMap;
   review: { graph: SystemGraph; findings: readonly UnconnectedPin[] } | null;
   clocks: ClockContext;
+  /** The marks of a comparison; null while Marks is off or without a comparison. */
+  changes: ChangeContext | null;
   focusedPin: FocusedPin | null;
   matcher: TextMatcher | null;
   flash?: SearchFlash | null;
@@ -52,6 +55,7 @@ export function useCanvasElements({
   highlights,
   review,
   clocks,
+  changes,
   focusedPin,
   matcher,
   flash,
@@ -75,6 +79,8 @@ export function useCanvasElements({
     [layout, clocks, decorSelection]
   );
   const { tree } = decor;
+  // The marks depend on the layout and the comparison only, so a selection keeps the same objects.
+  const look = useMemo(() => (changes ? changeDecor(layout, changes) : null), [layout, changes]);
 
   const selectedAndTreeNetIds = useMemo(
     () => (tree ? new Set([...activeSelectedNetIds, ...tree.netIds]) : activeSelectedNetIds),
@@ -144,6 +150,7 @@ export function useCanvasElements({
           ...node.data,
           ...(reviews && { review: reviews.get(node.id) }),
           ...clockNodeData(decor, node.id),
+          ...(look?.nodes.has(node.id) && { change: look.nodes.get(node.id) }),
           ...(badgedNodes?.has(node.id) && { selectedNetIds: selectedAndTreeNetIds }),
           ...(highlightBadgedNodes?.has(node.id) && { highlightColors }),
           ...(highlightColor !== undefined && { highlightColor }),
@@ -172,6 +179,7 @@ export function useCanvasElements({
     highlights,
     reviews,
     decor,
+    look,
     tree,
     focusedPin,
     onSelectNet,
@@ -185,6 +193,7 @@ export function useCanvasElements({
       highlightedEdgesLast(
         (layout?.edges ?? []).map((edge) => {
           const marks = decor.edges.get(edge.id);
+          const changeNew = look?.newEdgeIds.has(edge.id) ? (true as const) : undefined;
           const highlightColor =
             showHighlights && highlights
               ? netHighlightColor(highlights, edge.data.netId)
@@ -195,19 +204,20 @@ export function useCanvasElements({
               activeSelectedNetIds.has(edge.data.netId) ||
               (selection?.kind === 'net' &&
                 (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId)),
-            ...((marks !== undefined || highlightColor !== undefined) && {
+            ...((marks !== undefined || highlightColor !== undefined || changeNew) && {
               data: {
                 ...edge.data,
                 ...marks,
+                ...(changeNew && { changeNew }),
                 ...(highlightColor !== undefined && { highlightColor }),
               },
             }),
           };
         })
       ),
-    [layout, selection, activeSelectedNetIds, decor, tree, showHighlights, highlights]
+    [layout, selection, activeSelectedNetIds, decor, look, tree, showHighlights, highlights]
   );
   const edges = useStableElements(builtEdges);
 
-  return { nodes, edges, decor };
+  return { nodes, edges, decor, changeLegend: look?.legend ?? null };
 }

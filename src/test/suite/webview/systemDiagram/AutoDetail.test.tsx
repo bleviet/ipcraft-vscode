@@ -40,14 +40,14 @@ function Probe() {
   return null;
 }
 
-function Harness({ enabled }: { enabled: boolean }) {
+function Harness({ enabled, marks = false }: { enabled: boolean; marks?: boolean }) {
   const target = useRef<HTMLDivElement>(null);
   return (
     <ReactFlowProvider>
       <Probe />
       <div ref={target} data-testid="canvas" />
       <Profiler id="auto" onRender={() => (commits += 1)}>
-        <AutoDetail target={target} enabled={enabled} />
+        <AutoDetail target={target} enabled={enabled} marks={marks} />
       </Profiler>
     </ReactFlowProvider>
   );
@@ -85,15 +85,51 @@ it('writes the name scale only when its quantized value changes', () => {
   render(<Harness enabled />);
   const element = canvas();
   const setProperty = jest.spyOn(element.style, 'setProperty');
+  const nameWrites = () => setProperty.mock.calls.filter(([name]) => name === '--sd-name-scale');
   zoomTo(0.41);
-  expect(setProperty).toHaveBeenCalledTimes(1);
+  expect(nameWrites()).toHaveLength(1);
   expect(setProperty).toHaveBeenLastCalledWith('--sd-name-scale', '2.5');
   zoomTo(0.405);
   zoomTo(0.4);
-  expect(setProperty).toHaveBeenCalledTimes(1);
+  expect(nameWrites()).toHaveLength(1);
   zoomTo(0.36);
-  expect(setProperty).toHaveBeenCalledTimes(2);
+  expect(nameWrites()).toHaveLength(2);
   expect(setProperty).toHaveBeenLastCalledWith('--sd-name-scale', '2.75');
+});
+
+it('keeps a ring scale, a power of two, that is at least 2 screen pixels wide', () => {
+  render(<Harness enabled marks />);
+  zoomTo(0.1);
+  expect(canvas().style.getPropertyValue('--sd-name-scale')).toBe('3');
+  expect(canvas().style.getPropertyValue('--sd-ring-scale')).toBe('16');
+  zoomTo(0.3);
+  expect(canvas().style.getPropertyValue('--sd-ring-scale')).toBe('4');
+  zoomTo(0.8);
+  expect(canvas().style.getPropertyValue('--sd-ring-scale')).toBe('');
+});
+
+it('writes the ring scale a few times across the whole zoom range with marks, never without', () => {
+  const sweep = (marks: boolean) => {
+    const { unmount } = render(<Harness enabled marks={marks} />);
+    const setProperty = jest.spyOn(canvas().style, 'setProperty');
+    for (let zoom = 1; zoom >= 0.05; zoom -= 0.005) {
+      zoomTo(zoom);
+    }
+    const names = setProperty.mock.calls.map(([name]) => name);
+    unmount();
+    return [
+      names.filter((name) => name === '--sd-ring-scale').length,
+      names.filter((name) => name === '--sd-name-scale').length,
+    ];
+  };
+  const [ringWithMarks, namesWithMarks] = sweep(true);
+  const [ringWithout, namesWithout] = sweep(false);
+  expect(ringWithMarks).toBeGreaterThan(0);
+  expect(ringWithMarks).toBeLessThanOrEqual(6);
+  expect(ringWithout).toBe(0);
+  // The name scale is written as before.
+  expect(namesWithout).toBe(namesWithMarks);
+  expect(namesWithout).toBeGreaterThan(0);
 });
 
 it('holds one subscription: released when switched off or unmounted, not leaked on re-runs', () => {

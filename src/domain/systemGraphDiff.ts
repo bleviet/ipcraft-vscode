@@ -24,6 +24,13 @@ export interface PinChange {
   basePeers?: string[];
   currentPeers?: string[];
   /**
+   * `changed` pins and ports: the peers only the current revision has (written as `currentPeers`)
+   * and only the base has (written as `basePeers`, with the base's own names), sorted, omitted when
+   * empty. Decided by peer identity: a renamed block is the same peer, so it is neither.
+   */
+  gained?: string[];
+  lost?: string[];
+  /**
    * Declared attributes (direction, signalType, vlnv, interfaceType, width) and then
    * parameters that differ; present for external ports and for pins that exist on both
    * sides of a hierarchy, where a difference makes the pin `changed`.

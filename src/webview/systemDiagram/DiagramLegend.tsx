@@ -1,7 +1,13 @@
 import React from 'react';
 import { Panel } from '@xyflow/react';
 import { categoryColor } from './colors';
-import { legendEntries, REVIEW_LEGEND, type DomainLegendEntry } from './legend';
+import type { ChangeLegend } from './changeDecor';
+import {
+  changeLegendEntries,
+  legendEntries,
+  REVIEW_LEGEND,
+  type DomainLegendEntry,
+} from './legend';
 import { nodeBadges } from './layout/diagramBounds';
 import type { DiagramFlowEdge, DiagramFlowNode } from './layout/elkLayout';
 
@@ -11,6 +17,8 @@ export function DiagramLegend({
   nodes,
   review,
   domains,
+  changes,
+  onOpenChanges,
 }: {
   edges: readonly DiagramFlowEdge[];
   nodes: readonly DiagramFlowNode[];
@@ -18,13 +26,26 @@ export function DiagramLegend({
   review: boolean;
   /** Entries to append while the domain decorations are on. */
   domains?: readonly DomainLegendEntry[] | null;
+  /** Entries to append while the marks of a comparison are on. */
+  changes?: ChangeLegend | null;
+  /** Opens the Changes tab: the removed entry is a button for it. */
+  onOpenChanges?: () => void;
 }) {
   const badges = nodes.flatMap((node) => nodeBadges(node).flatMap((badge) => badge.nets));
   const entries = legendEntries(
     edges.map((edge) => edge.data),
     badges
   );
-  if (entries.length === 0 && !review && !domains) {
+  const changeEntries = changes ? changeLegendEntries(changes.kinds) : [];
+  const removed = changes?.removed ?? 0;
+  if (
+    entries.length === 0 &&
+    !review &&
+    !domains &&
+    changeEntries.length === 0 &&
+    !changes?.newWire &&
+    removed === 0
+  ) {
     return null;
   }
   return (
@@ -60,6 +81,26 @@ export function DiagramLegend({
           {entry.label}
         </span>
       ))}
+      {changeEntries.map((entry) => (
+        <span key={entry.status} className="sd-legend-item">
+          <i aria-hidden="true" className="sd-legend-swatch" data-change={entry.status} />
+          <span className="sd-change-sign" data-change={entry.status} aria-hidden="true">
+            {entry.sign}
+          </span>{' '}
+          {entry.label}
+        </span>
+      ))}
+      {changes?.newWire && (
+        <span className="sd-legend-item">
+          <i aria-hidden="true" className="sd-legend-bar sd-legend-bar-new" />
+          New wire
+        </span>
+      )}
+      {removed > 0 && (
+        <button type="button" className="sd-legend-item sd-link" onClick={onOpenChanges}>
+          − {removed} removed, see Changes
+        </button>
+      )}
     </Panel>
   );
 }

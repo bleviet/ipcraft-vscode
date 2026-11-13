@@ -6,6 +6,8 @@ import { netCrossings } from './clocks/treeChecks';
 import { ClockTreeDetails, ResetTreeDetails } from './ClockTreeDetails';
 import { CrossingNote } from './CrossingNote';
 import { capabilityRows, designEyebrow, formatLabel } from './detailsLabels';
+import type { ComparisonDetails } from './hooks/useCompareView';
+import { InstanceChanges } from './InstanceChanges';
 import { InstanceDetails } from './InstanceDetails';
 import { PortClockDetails } from './InstanceClockDetails';
 import { MultiSelectionDetails } from './MultiSelectionDetails';
@@ -28,6 +30,8 @@ interface DetailsPanelProps {
   selectedNodeIds: readonly string[];
   selectedItems?: readonly Selection[];
   focusedPin: FocusedPin | null;
+  /** The comparison, when one is on, whether or not its marks are drawn. */
+  comparison?: ComparisonDetails;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
@@ -131,6 +135,7 @@ function BoundaryDetails({
   clocks,
   level,
   pin,
+  comparison,
   onSelect,
   onReveal,
 }: {
@@ -138,6 +143,7 @@ function BoundaryDetails({
   clocks: ClockAnalysis;
   level: string;
   pin: SystemPin;
+  comparison?: ComparisonDetails;
   onSelect: DetailsPanelProps['onSelect'];
   onReveal: (line: number, uri?: string) => void;
 }) {
@@ -155,6 +161,14 @@ function BoundaryDetails({
           {pin.vlnv ?? pin.interfaceType ?? pin.signalType ?? 'scalar'}
         </p>
       </header>
+      {comparison && level === '/' && (
+        <InstanceChanges
+          graph={graph}
+          owners={comparison.marks.owners}
+          rows={comparison.rows}
+          target={{ kind: 'port', name: pin.name }}
+        />
+      )}
       {unconnected && (
         <p className="text-xs opacity-70">
           {unconnectedClass(pin, true) === 'undriven'
@@ -190,6 +204,7 @@ export function DetailsPanel({
   selectedNodeIds,
   selectedItems,
   focusedPin,
+  comparison,
   onSelect,
   onEnterHierarchy,
   onReveal,
@@ -206,6 +221,7 @@ export function DetailsPanel({
         clocks={clocks}
         instance={graph.instances[selection.id]}
         focusedPin={focusedPinOf(focusedPin, selection, selection.id)}
+        comparison={comparison}
         onSelect={onSelect}
         onEnterHierarchy={onEnterHierarchy}
         onReveal={onReveal}
@@ -242,6 +258,7 @@ export function DetailsPanel({
           clocks={clocks}
           level={level}
           pin={pin}
+          comparison={comparison}
           onSelect={onSelect}
           onReveal={onReveal}
         />

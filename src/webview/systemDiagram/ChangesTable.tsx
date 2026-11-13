@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import type { DiagramCompare } from '../../shared/messages/systemDiagram';
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { Cell, ChangeRow, ChangeSign } from '../../services/systemDiagram/diff/changeRows';
+import type { ChangeRow, ChangeSign } from '../../services/systemDiagram/diff/changeRows';
+import { CellView } from './ChangeCell';
 import { middleTruncate, shortLabels } from './compareLabels';
 import {
   addressChangeWord,
@@ -33,27 +34,6 @@ interface ChangesTableProps {
 }
 
 const NOT_IN_REVISION = 'Not in this revision';
-
-function CellView({ cell }: { cell: Cell }) {
-  return (
-    <>
-      {cell.map((item, index) => (
-        <React.Fragment key={index}>
-          {index > 0 && ' · '}
-          {item.map((part, at) =>
-            part.code ? (
-              <span key={at} className={part.mark ? 'sd-code sd-mark' : 'sd-code'}>
-                {part.text}
-              </span>
-            ) : (
-              part.text
-            )
-          )}
-        </React.Fragment>
-      ))}
-    </>
-  );
-}
 
 function isSelected(target: ResolvedTarget | undefined, selection: Selection | null): boolean {
   if (!target || !selection) {
