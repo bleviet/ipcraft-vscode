@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { CompareControl } from '../../../../webview/systemDiagram/CompareControl';
-import { compareOf, zynqDiff } from './compareFixtures';
+import { compareOf, renameDiff, zynqDiff } from './compareFixtures';
 
 function renderControl(on: boolean) {
   const handlers = { onStart: jest.fn(), onStop: jest.fn(), onOpenChanges: jest.fn() };
@@ -37,7 +37,23 @@ describe('CompareControl', () => {
     expect(screen.getByLabelText('1 added')).toHaveTextContent('+1');
     expect(screen.getByLabelText('4 removed')).toHaveTextContent('−4');
     expect(screen.getByLabelText('2 changed')).toHaveTextContent('~2');
+    expect(screen.queryByLabelText(/renamed/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('img')).toHaveLength(4);
     expect(screen.getByLabelText('1 version only')).toHaveTextContent('v1');
+  });
+
+  it('shows the renamed count, fourth of five, only when a block was renamed', () => {
+    render(
+      <CompareControl
+        compare={compareOf(renameDiff())}
+        onStart={jest.fn()}
+        onStop={jest.fn()}
+        onOpenChanges={jest.fn()}
+      />
+    );
+    const counts = screen.getAllByRole('img').map((item) => item.getAttribute('aria-label'));
+    expect(counts).toEqual(['0 added', '0 removed', '1 changed', '1 renamed', '0 version only']);
+    expect(screen.getByLabelText('1 renamed')).toHaveAttribute('data-zero', 'false');
   });
 
   it('mutes a count of zero', () => {

@@ -8,7 +8,15 @@ import {
   compileSearch,
   DEFAULT_SEARCH_OPTIONS,
 } from '../../../../webview/systemDiagram/searchMatcher';
-import { compareOf, emptyDiff, zynqDiff, zynqGraph, zynqReverseDiff } from './compareFixtures';
+import {
+  compareOf,
+  emptyDiff,
+  renameDiff,
+  renameGraph,
+  zynqDiff,
+  zynqGraph,
+  zynqReverseDiff,
+} from './compareFixtures';
 
 function renderTable(
   diff = zynqDiff(),
@@ -327,6 +335,64 @@ describe('ChangesTable', () => {
       expect(segmentRow()).not.toHaveAttribute('tabindex');
       fireEvent.click(segmentRow());
       expect(onSelectInstance).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('a renamed block', () => {
+    it('is one row with the characters that differ marked in the names', () => {
+      renderTable(renameDiff(), { graph: renameGraph() });
+      expect(screen.getByText('2 blocks differ.')).toBeVisible();
+      const row = rowOf('axi_gpio_main', 'renamed');
+      expect(
+        within(row)
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent)
+      ).toEqual(['→ Renamed', '/', 'axi_gpio_main', 'renamed', 'axi_gpio_0', 'axi_gpio_main']);
+      const marks = [...row.querySelectorAll('.sd-mark')];
+      expect(marks.map((mark) => mark.textContent)).toEqual(['0', 'main']);
+      expect(marks.every((mark) => mark.classList.contains('sd-code'))).toBe(true);
+      expect(row.querySelectorAll('.sd-code')).toHaveLength(5);
+    });
+
+    it('adds the Renamed chip to the four others only when a block was renamed', () => {
+      renderTable(renameDiff(), { graph: renameGraph() });
+      const chips = screen
+        .getAllByRole('button')
+        .filter((button) => button.hasAttribute('aria-pressed'));
+      expect(chips.map((chip) => [chip.textContent, chip.getAttribute('title')])).toEqual([
+        ['+ Added', 'Only in current'],
+        ['− Removed', 'Only in base'],
+        ['~ Changed', 'In both, but different'],
+        ['→ Renamed', 'Same block under a new name'],
+        ['v Version only', 'Only the IP version differs'],
+      ]);
+      cleanup();
+      renderTable();
+      expect(screen.queryByRole('button', { name: 'Renamed' })).not.toBeInTheDocument();
+    });
+
+    it('is hidden and shown with its chip', () => {
+      renderTable(renameDiff(), { graph: renameGraph() });
+      expect(dataRows()).toHaveLength(2);
+      const chip = screen.getByRole('button', { name: 'Renamed' });
+      expect(chip).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(chip);
+      expect(dataRows()).toHaveLength(1);
+      expect(screen.queryByText('axi_gpio_main')).not.toBeInTheDocument();
+      fireEvent.click(chip);
+      expect(dataRows()).toHaveLength(2);
+    });
+
+    it('selects the block at its new path on a click, and shows the selection', () => {
+      const { onSelectInstance } = renderTable(renameDiff(), { graph: renameGraph() });
+      fireEvent.click(rowOf('axi_gpio_main', 'renamed'));
+      expect(onSelectInstance).toHaveBeenCalledWith('/axi_gpio_main');
+      cleanup();
+      renderTable(renameDiff(), {
+        graph: renameGraph(),
+        selection: { kind: 'instance', id: '/axi_gpio_main' },
+      });
+      expect(rowOf('axi_gpio_main', 'renamed')).toHaveClass('sd-row-selected');
     });
   });
 });

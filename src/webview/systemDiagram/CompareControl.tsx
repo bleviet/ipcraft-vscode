@@ -1,6 +1,6 @@
 import React from 'react';
 import type { DiagramCompare } from '../../shared/messages/systemDiagram';
-import { CHANGE_KINDS } from './changeSummary';
+import { shownKinds } from './changeSummary';
 
 export interface CompareControlProps {
   /** The comparison that is on, else undefined. */
@@ -40,7 +40,7 @@ export function CompareControl({ compare, onStart, onStop, onOpenChanges }: Comp
             title="Open the Changes tab"
             onClick={onOpenChanges}
           >
-            {CHANGE_KINDS.map(({ key, sign, chip }) => {
+            {shownKinds(compare.diff.summary).map(({ key, sign, chip }) => {
               const count = compare.diff.summary[key];
               return (
                 <span

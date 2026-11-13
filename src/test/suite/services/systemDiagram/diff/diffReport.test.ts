@@ -30,6 +30,63 @@ describe('diffToMarkdown', () => {
     expect(diffToMarkdown(diff, LABELS, KEEP)).toBe(golden('nios.expected.md'));
   });
 
+  it('matches the golden report of a pair with a renamed block', () => {
+    const diff = fixtureDiff(
+      'zynq_gpio_rename_base.bd',
+      'zynq_gpio_rename_current.bd',
+      'system.bd'
+    );
+    expect(diffToMarkdown(diff, LABELS, KEEP)).toBe(golden('zynq_gpio_rename.expected.md'));
+  });
+
+  it('writes a renamed block as one row with the differing characters in bold, and counts it', () => {
+    const diff = fixtureDiff(
+      'zynq_gpio_rename_base.bd',
+      'zynq_gpio_rename_current.bd',
+      'system.bd'
+    );
+    const text = diffToMarkdown(diff, LABELS, KEEP);
+    expect(text).toContain(
+      '| → | `axi_gpio_main` | renamed | `axi_gpio_`**`0`** | `axi_gpio_`**`main`** |'
+    );
+    expect(text).toContain('~1 changed · →1 renamed · v0 version only**');
+    expect(text).not.toContain('Address map');
+  });
+
+  it('merges the unmarked parts of a name into one code span', () => {
+    const diff = fixtureDiff('zynq_gpio_base.bd', 'zynq_gpio_base.bd', 'system.bd');
+    diff.instances.push({
+      path: '/framebuffer_reader',
+      basePath: '/frambuffer_reader',
+      level: '/',
+      status: 'renamed',
+      baseType: 't',
+      currentType: 't',
+      parameters: [],
+      pins: [],
+    });
+    diff.summary.renamed = 1;
+    expect(diffToMarkdown(diff, LABELS, KEEP)).toContain(
+      '| → | `framebuffer_reader` | renamed | `frambuffer_reader` | `fram`**`e`**`buffer_reader` |'
+    );
+  });
+
+  it('keeps renamed blocks, and counts them, with ignoreVersionOnly', () => {
+    const diff = fixtureDiff(
+      'zynq_gpio_rename_base.bd',
+      'zynq_gpio_rename_current.bd',
+      'system.bd'
+    );
+    const text = diffToMarkdown(diff, LABELS, { ignoreVersionOnly: true });
+    expect(text).toContain('**+0 added · −0 removed · ~1 changed · →1 renamed**');
+    expect(text).toContain('| → | `axi_gpio_main` | renamed |');
+  });
+
+  it('leaves the renamed count out of the summary when there is none', () => {
+    const diff = fixtureDiff('zynq_gpio_base.bd', 'zynq_gpio_current.bd', 'system.bd');
+    expect(diffToMarkdown(diff, LABELS, KEEP)).not.toContain('renamed');
+  });
+
   it('says No changes. when nothing differs', () => {
     const g = read('nios_base.qsys', 'nios_system.qsys');
     expect(diffToMarkdown(diffSystemGraphs(g, g), LABELS, KEEP)).toBe(

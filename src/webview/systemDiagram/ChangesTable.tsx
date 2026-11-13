@@ -5,7 +5,7 @@ import type { Cell, ChangeRow, ChangeSign } from '../../services/systemDiagram/d
 import { middleTruncate, shortLabels } from './compareLabels';
 import {
   addressChangeWord,
-  CHANGE_KINDS,
+  shownKinds,
   changeSummaryText,
   changeWhere,
   FORMATS_DIFFER_NOTE,
@@ -42,7 +42,7 @@ function CellView({ cell }: { cell: Cell }) {
           {index > 0 && ' · '}
           {item.map((part, at) =>
             part.code ? (
-              <span key={at} className="sd-code">
+              <span key={at} className={part.mark ? 'sd-code sd-mark' : 'sd-code'}>
                 {part.text}
               </span>
             ) : (
@@ -88,6 +88,7 @@ export function ChangesTable({
     '+': true,
     '−': true,
     '~': true,
+    '→': true,
     v: true,
   });
   const [shortBase, shortCurrent] = shortLabels(
@@ -121,7 +122,7 @@ export function ChangesTable({
       <span>{changeSummaryText(compare.diff)}</span>
       {compare.diff.formatsDiffer && <span className="opacity-70">{FORMATS_DIFFER_NOTE}</span>}
       {rows.length > 0 &&
-        CHANGE_KINDS.map(({ sign, chip, meaning }) => (
+        shownKinds(compare.diff.summary).map(({ sign, chip, meaning }) => (
           <button
             key={sign}
             type="button"

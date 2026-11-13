@@ -68,9 +68,41 @@ test.describe('System diagram comparison', () => {
     ).toBeVisible();
   });
 
+  test('lists a renamed block as one row with the differing characters marked', async ({
+    page,
+  }) => {
+    const graph = read('zynq_gpio_rename_current.bd');
+    const compare = {
+      baseLabel: 'HEAD',
+      currentLabel: 'sys/system.bd',
+      canSwap: false,
+      diff: diffSystemGraphs(read('zynq_gpio_rename_base.bd'), graph),
+    };
+    await page.goto(harnessPath);
+    await page.waitForFunction(() =>
+      (window as unknown as { __vscodeMessages: Array<{ type: string }> }).__vscodeMessages.some(
+        (message) => message.type === 'ready'
+      )
+    );
+    await page.evaluate((data) => window.postMessage({ type: 'graph', ...data }, '*'), {
+      graph,
+      compare,
+    });
+
+    const row = page.getByRole('row').filter({ hasText: '→ Renamed' });
+    await expect(row).toHaveCount(1);
+    await expect(row).toContainText('axi_gpio_0');
+    await expect(row.locator('.sd-mark')).toHaveText(['0', 'main']);
+    await expect(page.getByRole('button', { name: 'Renamed', exact: true })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+  });
+
   for (const size of [
     { width: 1500, height: 900, rows: 3 },
     { width: 900, height: 700, rows: 1 },
+    { width: 700, height: 700, rows: 0 },
   ]) {
     test(`shows table rows under a sticky bar at ${size.width}x${size.height}`, async ({
       page,
@@ -124,7 +156,9 @@ test.describe('System diagram comparison', () => {
           };
         });
       const before = await measure();
-      expect(before.rows).toBeGreaterThanOrEqual(size.rows);
+      if (size.rows > 0) {
+        expect(before.rows).toBeGreaterThanOrEqual(size.rows);
+      }
       expect(before.pageScrolls).toBe(false);
       // Base and Current must be in view without scrolling the table sideways.
       expect(before.tableScrolls).toBe(false);

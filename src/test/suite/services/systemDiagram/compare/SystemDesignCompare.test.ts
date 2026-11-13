@@ -41,7 +41,13 @@ describe('SystemDesignCompare', () => {
     const result = compare.diffRead(current)!;
     expect(compare.active).toBe(true);
     expect(result.baseLabel).toBe('HEAD');
-    expect(result.diff.summary).toEqual({ added: 1, removed: 4, changed: 2, version: 1 });
+    expect(result.diff.summary).toEqual({
+      added: 1,
+      removed: 4,
+      changed: 2,
+      version: 1,
+      renamed: 0,
+    });
     expect(enrich).not.toHaveBeenCalled();
   });
 
@@ -61,7 +67,13 @@ describe('SystemDesignCompare', () => {
     compare.start(text('zynq_gpio_base.bd'), ...START);
     const result = (await compare.diffEnriched(side(), '/ws/system.bd'))!;
     expect(result.diff.base.name).toBe('enriched');
-    expect(result.diff.summary).toEqual({ added: 1, removed: 4, changed: 2, version: 1 });
+    expect(result.diff.summary).toEqual({
+      added: 1,
+      removed: 4,
+      changed: 2,
+      version: 1,
+      renamed: 0,
+    });
   });
 
   it('compares a base that fails to enrich as read, and logs it', async () => {

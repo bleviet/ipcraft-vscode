@@ -16,7 +16,11 @@ export interface PinId {
   pin: string;
 }
 
-export type PeerLookup = (id: PinId) => PinId[];
+/**
+ * `baseName`: set on the lookup of the base graph after renamed blocks were applied to it; it
+ * gives the path a block had in the base revision, for labels only (identity uses the renamed paths).
+ */
+export type PeerLookup = ((id: PinId) => PinId[]) & { baseName?: (path: string) => string };
 
 /** The level that contains the instance at `path`. */
 export function parentLevel(path: string): string {
@@ -38,21 +42,26 @@ export function pinKey(id: PinId): string {
  * of that level, `pin` for its boundary pin, otherwise the absolute `/instance/path/pin`, or for a boundary
  * pin of another level `/level/path:pin` (a root port is `/pin`).
  */
-export function peerLabel(peer: PinId, view: string): string {
+export function peerLabel(peer: PinId, view: string, name = (path: string) => path): string {
   if (peer.instance !== null) {
+    const path = name(peer.instance);
     return peer.level === view
-      ? `${peer.instance.slice(peer.instance.lastIndexOf('/') + 1)}/${peer.pin}`
-      : `${peer.instance}/${peer.pin}`;
+      ? `${path.slice(path.lastIndexOf('/') + 1)}/${peer.pin}`
+      : `${path}/${peer.pin}`;
   }
   if (peer.level === view) {
     return peer.pin;
   }
-  return peer.level === ROOT ? `/${peer.pin}` : `${peer.level}:${peer.pin}`;
+  return peer.level === ROOT ? `/${peer.pin}` : `${name(peer.level)}:${peer.pin}`;
 }
 
-/** The labels of `peers` as seen from `view`, sorted. */
-export function peerLabels(peers: PinId[], view: string): string[] {
-  return peers.map((p) => peerLabel(p, view)).sort(compareText);
+/** The labels of `peers` as seen from `view`, sorted; `name` gives the path to write for an instance or level. */
+export function peerLabels(
+  peers: PinId[],
+  view: string,
+  name?: (path: string) => string
+): string[] {
+  return peers.map((p) => peerLabel(p, view, name)).sort(compareText);
 }
 
 /**

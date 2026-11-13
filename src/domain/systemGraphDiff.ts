@@ -20,7 +20,7 @@ export interface ValueChange {
 export interface PinChange {
   pin: string;
   status: ChangeStatus;
-  /** Pins on the same nets (on any level), sorted: `instanceName/pin` for an instance of the pin's level, `pin` for a boundary pin of it, otherwise absolute (`/path/to/instance/pin`, `/level/pin`; the root level is `/pin`); present when the pin exists in that revision. */
+  /** Pins on the same nets (on any level), sorted: `instanceName/pin` for an instance of the pin's level, `pin` for a boundary pin of it, otherwise absolute (`/path/to/instance/pin`, `/level/pin`; the root level is `/pin`); present when the pin exists in that revision. `basePeers` are written with the base's own names (a renamed block appears under its old name); for a pin or port that changed only in an attribute, both lists use the current names. */
   basePeers?: string[];
   currentPeers?: string[];
   /**
@@ -38,8 +38,10 @@ export interface InstanceChange {
   path: string;
   /** Level that contains the instance. */
   level: string;
-  /** `version`: only the version of the type differs. */
-  status: ChangeStatus | 'version';
+  /** `version`: only the version of the type differs. `renamed`: the same block under a new name (see `basePath`). */
+  status: ChangeStatus | 'version' | 'renamed';
+  /** `renamed`: the path of the block in the base revision; `path` is its path in the current one. */
+  basePath?: string;
   /** Type as shown to the user in each revision; absent when the instance does not exist there. */
   baseType?: string;
   currentType?: string;
@@ -49,7 +51,7 @@ export interface InstanceChange {
    * as `added` (with `currentPeers`) or `removed` (with `basePeers`). Otherwise the pins
    * that moved; a pin is not listed when it only joined or left a net of pins that kept
    * their connections, or when its peers differ only by pins of added or removed blocks.
-   * Sorted by pin name.
+   * Sorted by pin name. A `renamed` block has no parameters and no pins.
    */
   pins: PinChange[];
 }
@@ -83,6 +85,7 @@ export interface DiffSummary {
   removed: number;
   changed: number;
   version: number;
+  renamed: number;
 }
 
 export interface SystemGraphDiff {

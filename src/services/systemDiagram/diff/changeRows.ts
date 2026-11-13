@@ -13,14 +13,17 @@ import type {
 } from '../../../domain/systemGraphDiff';
 import { compareText } from './compareText';
 import { withoutVersionOnly } from './ignoreVersionOnly';
+import { nameDifference } from './nameDifference';
 import { FIXED_ATTRIBUTES } from './pinAttributes';
 
-export type ChangeSign = '+' | '−' | '~' | 'v';
+export type ChangeSign = '+' | '−' | '~' | 'v' | '→';
 
 /** A piece of a cell; `code`: an identifier or value as written in the design (monospace in the tab, a code span in Markdown). */
 export interface CellPart {
   text: string;
   code?: true;
+  /** The part of a name that differs from the other side. */
+  mark?: true;
 }
 
 /** Items of a cell; the renderers join the items with ` · `. Each item is a sequence of parts written one after the other. */
@@ -60,7 +63,7 @@ export interface ChangeRow {
     | { kind: 'segment'; addressSpace: string; segment: string };
 }
 
-const SIGNS = { added: '+', removed: '−', changed: '~', version: 'v' } as const;
+const SIGNS = { added: '+', removed: '−', changed: '~', version: 'v', renamed: '→' } as const;
 
 const plain = (text: string): CellPart => ({ text });
 const code = (text: string): CellPart => ({ text, code: true });
@@ -171,13 +174,33 @@ function pinRows(change: InstanceChange, block: BlockRow): ChangeRow[] {
   });
 }
 
+const blockName = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
+
+/** The one row of a renamed block: the old and the new name with the differing characters marked. */
+function renamedRow(change: InstanceChange, block: BlockRow): ChangeRow {
+  const names = nameDifference(blockName(change.basePath as string), blockName(change.path));
+  const cell = (parts: typeof names.base): Cell => [
+    parts.map((part) => ({ ...code(part.text), ...(part.mark && { mark: true as const }) })),
+  ];
+  return {
+    ...block,
+    sign: '→',
+    change: [[plain('renamed')]],
+    base: cell(names.base),
+    current: cell(names.current),
+  };
+}
+
 function instanceRows(change: InstanceChange): ChangeRow[] {
   const block: BlockRow = {
     section: 'level',
     level: change.level,
-    subject: [[code(change.path.slice(change.path.lastIndexOf('/') + 1))]],
+    subject: [[code(blockName(change.path))]],
     ...(change.status !== 'removed' && { target: { kind: 'instance', path: change.path } }),
   };
+  if (change.status === 'renamed') {
+    return [renamedRow(change, block)];
+  }
   const [baseType, currentType] = [value(change.baseType), value(change.currentType)];
   if (change.status !== 'changed') {
     return [

@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { readBdJson } from '../../../../../parser/system/BdJsonReader';
+import { diffAndCheck } from './renameReference';
 import { diffSystemGraphs } from '../../../../../services/systemDiagram/diff/diffSystemGraphs';
 
 // Run against real Vivado files with: IPCRAFT_BD_SAMPLES=<dir with *.bd files> npx jest --config config/jest.config.js <this file>
@@ -32,7 +33,7 @@ describeSamples('diffSystemGraphs: real .bd files', () => {
     const g = graphs.get(file)!;
     const diff = diffSystemGraphs(g, g);
     expect([diff.instances, diff.ports, diff.segments]).toEqual([[], [], []]);
-    expect(diff.summary).toEqual({ added: 0, removed: 0, changed: 0, version: 0 });
+    expect(diff.summary).toEqual({ added: 0, removed: 0, changed: 0, version: 0, renamed: 0 });
   });
 
   it.each(pairs)('mirrors the diff of %s and %s', (a, b) => {
@@ -44,5 +45,20 @@ describeSamples('diffSystemGraphs: real .bd files', () => {
     expect(forward.summary.removed).toBe(backward.summary.added);
     expect(forward.summary.changed).toBe(backward.summary.changed);
     expect(forward.summary.version).toBe(backward.summary.version);
+    expect(forward.summary.renamed).toBe(backward.summary.renamed);
+    const pathsOf = (diff: ReturnType<typeof diffSystemGraphs>, side: 'path' | 'basePath') =>
+      diff.instances
+        .filter((i) => i.status === 'renamed')
+        .map((i) => i[side])
+        .sort();
+    expect(pathsOf(forward, 'path')).toEqual(pathsOf(backward, 'basePath'));
+    expect(pathsOf(forward, 'basePath')).toEqual(pathsOf(backward, 'path'));
   });
+
+  it.each(pairs)(
+    'checks the renames of %s and %s against the plain diff of the renamed base',
+    (a, b) => {
+      diffAndCheck(graphs.get(a)!, graphs.get(b)!);
+    }
+  );
 });

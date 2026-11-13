@@ -728,6 +728,7 @@ describe('SystemDiagramProvider export image', () => {
         added: 0,
         removed: 0,
         changed: 0,
+        renamed: 0,
         version: 1,
       });
     });

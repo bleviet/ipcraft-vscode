@@ -6,7 +6,7 @@ import type { ChangeRow, ChangeSign } from '../../services/systemDiagram/diff/ch
 const plural = (count: number, one: string, many = `${one}s`): string =>
   `${count} ${count === 1 ? one : many}`;
 
-/** `3 blocks, 1 port and 2 address segments differ.`; the empty diff says so. */
+/** `3 blocks, 1 port and 2 address segments differ.`; the empty diff says so. A renamed block counts as a block that differs. */
 export function changeSummaryText(diff: SystemGraphDiff): string {
   const parts = [
     diff.instances.length > 0 && plural(diff.instances.length, 'block'),
@@ -44,6 +44,13 @@ export const CHANGE_KINDS: readonly {
     meaning: 'In both, but different',
   },
   {
+    sign: '→',
+    key: 'renamed',
+    badge: 'Renamed',
+    chip: 'Renamed',
+    meaning: 'Same block under a new name',
+  },
+  {
     sign: 'v',
     key: 'version',
     badge: 'Version',
@@ -51,6 +58,10 @@ export const CHANGE_KINDS: readonly {
     meaning: 'Only the IP version differs',
   },
 ];
+
+/** The kinds to offer for a diff: the renamed kind only when a block was renamed. */
+export const shownKinds = (summary: DiffSummary): typeof CHANGE_KINDS =>
+  CHANGE_KINDS.filter(({ key }) => key !== 'renamed' || summary.renamed > 0);
 
 /** The word of the badge of a change row's sign. */
 export const SIGN_LABELS = Object.fromEntries(
