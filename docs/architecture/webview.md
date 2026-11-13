@@ -125,7 +125,19 @@ fragments. Generated files, declarative data, and templates are excluded.
 
 The `systemDiagram` bundle is read-only. It receives a `SystemGraph` from the
 host (`graph`, `notRecognized`, or `error` messages) and sends only `ready`,
-`revealSource`, and `openDefinition`.
+`revealSource`, `openDefinition`, the export and highlight messages, and
+`startCompare` and `stopCompare`.
+
+While a comparison is on, the `graph` message also carries `compare`
+(`{ baseLabel, diff }`, `DiagramCompare` in `shared/messages/systemDiagram.ts`).
+The host owns the comparison; the webview only lists it:
+
+- `CompareControl.tsx` is the toolbar control.
+- `ChangesTable.tsx` is the **Changes** tab. Its rows are `changeRows` of the diff,
+  with structured cells (`CellPart`, plain or code). `changeTargets.ts` resolves an
+  address segment row to its slave block in the current graph. `changeSummary.ts`
+  and `panelFilter.ts` hold the texts.
+- `hooks/useBottomTab.ts` decides when the tab opens and when it falls back.
 
 | Layer | Owner |
 |---|---|

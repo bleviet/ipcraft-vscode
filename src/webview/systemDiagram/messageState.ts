@@ -1,5 +1,6 @@
 import type { SystemGraph } from '../../domain/systemGraph';
 import type {
+  DiagramCompare,
   HighlightMap,
   SystemDiagramToWebviewMessage,
 } from '../../shared/messages/systemDiagram';
@@ -10,7 +11,14 @@ export type DiagramProblem = { kind: 'error'; message: string } | { kind: 'notRe
 
 export type SystemDiagramState =
   | { status: 'loading' }
-  | { status: 'graph'; graph: SystemGraph; highlights?: HighlightMap; problem?: DiagramProblem }
+  | {
+      status: 'graph';
+      graph: SystemGraph;
+      highlights?: HighlightMap;
+      /** Present while a comparison is on; each graph message replaces it. */
+      compare?: DiagramCompare;
+      problem?: DiagramProblem;
+    }
   | { status: 'notRecognized'; fileName: string }
   | { status: 'error'; message: string };
 
@@ -41,6 +49,7 @@ export function reduceDiagramMessage(
         status: 'graph',
         graph: message.graph,
         ...(Object.keys(highlights).length > 0 && { highlights }),
+        ...(message.compare && { compare: message.compare }),
       };
     }
     case 'notRecognized':

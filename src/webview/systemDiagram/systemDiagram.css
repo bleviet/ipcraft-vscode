@@ -1086,3 +1086,57 @@ input:focus-visible {
   font-size: calc(12px * var(--sd-name-scale, 1));
   line-height: 1.1;
 }
+
+/* Comparison with another revision (issue #302): the toolbar counts and the Changes tab. */
+.sd-compare-base {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sd-tool-group > .sd-compare-counts {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.sd-delta[data-sign='+'],
+.sd-sign[data-sign='+'] {
+  color: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
+}
+
+.sd-delta[data-sign='−'],
+.sd-sign[data-sign='−'] {
+  color: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
+}
+
+.sd-delta[data-sign='~'],
+.sd-sign[data-sign='~'] {
+  color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
+}
+
+.sd-delta[data-sign='v'],
+.sd-sign[data-sign='v'] {
+  color: var(--vscode-descriptionForeground);
+}
+
+.sd-delta[data-zero='true'] {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.6;
+}
+
+.sd-sign {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Long values break anywhere in Base and Current; the other columns keep whole words. */
+.sd-changes .sd-wrap {
+  min-width: 16ch;
+  overflow-wrap: anywhere;
+}
+
+.sd-changes .sd-code {
+  font-family: var(--vscode-editor-font-family, monospace);
+}

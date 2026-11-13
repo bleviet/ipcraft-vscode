@@ -1,7 +1,7 @@
 import React from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { HighlightMap } from '../../shared/messages/systemDiagram';
+import type { DiagramCompare, HighlightMap } from '../../shared/messages/systemDiagram';
 import type { DiagramProblem } from './messageState';
 import type { ImageExportChannel } from './hooks/useDiagramExport';
 import { WorkbenchLayout } from './WorkbenchLayout';
@@ -14,6 +14,9 @@ interface DiagramWorkbenchProps {
   openDefinition: (instance: string) => void;
   onChangeHighlights?: (highlights: HighlightMap) => void;
   imageExport?: ImageExportChannel;
+  compare?: DiagramCompare;
+  onStartCompare: () => void;
+  onStopCompare: () => void;
 }
 
 export function DiagramWorkbench({
@@ -24,6 +27,9 @@ export function DiagramWorkbench({
   openDefinition,
   onChangeHighlights,
   imageExport,
+  compare,
+  onStartCompare,
+  onStopCompare,
 }: DiagramWorkbenchProps) {
   return (
     <ReactFlowProvider>
@@ -35,6 +41,9 @@ export function DiagramWorkbench({
         openDefinition={openDefinition}
         onChangeHighlights={onChangeHighlights}
         imageExport={imageExport}
+        compare={compare}
+        onStartCompare={onStartCompare}
+        onStopCompare={onStopCompare}
       />
     </ReactFlowProvider>
   );

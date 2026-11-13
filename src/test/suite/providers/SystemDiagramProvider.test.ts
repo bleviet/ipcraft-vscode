@@ -6,6 +6,7 @@ import {
   ENRICHMENT_GRACE_MS,
   SystemDiagramProvider,
 } from '../../../providers/SystemDiagramProvider';
+import { pickCompareBase } from '../../../providers/systemDiagram/pickCompareBase';
 import { renderSystemLevelImage } from '../../../services/render/systemLevelImage';
 import type { RenderRoots } from '../../../services/render/imageEncoding';
 import { fixtureText, qsysFixtureText } from '../webview/systemDiagram/fixtureGraph';
@@ -20,6 +21,10 @@ jest.mock('../../../services/HtmlGenerator', () => ({
 
 jest.mock('../../../services/render/systemLevelImage', () => ({
   renderSystemLevelImage: jest.fn().mockResolvedValue(new Uint8Array([1])),
+}));
+
+jest.mock('../../../providers/systemDiagram/pickCompareBase', () => ({
+  pickCompareBase: jest.fn(),
 }));
 
 const mockEnrich = jest.fn();
@@ -74,6 +79,7 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
     getText: () => documentState.text,
   } as unknown as vscode.TextDocument;
   const webviewPanel = {
+    active: true,
     webview: {
       options: {} as vscode.WebviewOptions,
       html: '',
@@ -105,7 +111,7 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
     }),
   };
 
-  new SystemDiagramProvider(
+  const provider = new SystemDiagramProvider(
     {
       extensionUri: { fsPath: '/ext' },
       subscriptions,
@@ -114,9 +120,11 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
     {} as RenderRoots,
     new ExportTargets(),
     new RenderAssets()
-  ).resolveCustomTextEditor(document, webviewPanel, {} as vscode.CancellationToken);
+  );
+  provider.resolveCustomTextEditor(document, webviewPanel, {} as vscode.CancellationToken);
 
   return {
+    provider,
     posted,
     subscriptions,
     workspaceState,
@@ -687,5 +695,242 @@ describe('SystemDiagramProvider export image', () => {
       expect.anything(),
       expect.anything()
     );
+  });
+
+  describe('comparison', () => {
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const pick = pickCompareBase as jest.Mock;
+    const editedText = (text: string) => text.split('axi_dma:7.1').join('axi_dma:7.2');
+    type Posted = { type: string; compare?: { baseLabel: string; diff: { summary: unknown } } };
+
+    async function ready() {
+      const context = setup(fixtureText);
+      await context.send({ type: 'ready' });
+      await flush();
+      context.posted.length = 0;
+      return context;
+    }
+
+    it('publishes the graph again with the changes when a picked revision is read', async () => {
+      const { posted, send } = await ready();
+      pick.mockResolvedValue({ text: editedText(fixtureText), label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      expect(posted).toHaveLength(1);
+      const message = posted[0] as Posted;
+      expect(message.type).toBe('graph');
+      expect(message.compare?.baseLabel).toBe('HEAD');
+      expect(message.compare?.diff.summary).toEqual({
+        added: 0,
+        removed: 0,
+        changed: 0,
+        version: 1,
+      });
+    });
+
+    it('updates the changes when the document is edited', async () => {
+      const { posted, send, change, document } = await ready();
+      pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      expect((posted[0] as Posted).compare?.diff.summary).toMatchObject({ version: 0 });
+      document.text = editedText(fixtureText);
+      change();
+      await flush();
+      expect(posted).toHaveLength(2);
+      expect((posted[1] as Posted).compare).toMatchObject({
+        baseLabel: 'HEAD',
+        diff: { summary: { version: 1 } },
+      });
+    });
+
+    it('publishes without the changes after stopCompare', async () => {
+      const { posted, send } = await ready();
+      pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      await send({ type: 'stopCompare' });
+      expect(posted).toHaveLength(2);
+      expect(posted[1]).not.toHaveProperty('compare');
+      expect(posted[1]).toMatchObject({ type: 'graph' });
+    });
+
+    it('shows the error and keeps the running comparison when a read fails', async () => {
+      const { posted, send, change } = await ready();
+      pick.mockResolvedValueOnce({ text: fixtureText, label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      posted.length = 0;
+      pick.mockRejectedValueOnce(new Error("Cannot read zynq.tcl at 'nope': bad object"));
+      await send({ type: 'startCompare' });
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Compare failed: Cannot read zynq.tcl at 'nope': bad object"
+      );
+      expect(posted).toEqual([]);
+      pick.mockResolvedValueOnce({ text: 'puts hi', label: 'main' });
+      await send({ type: 'startCompare' });
+      expect(vscode.window.showErrorMessage).toHaveBeenLastCalledWith(
+        "Compare failed: 'main' is not a recognized system design"
+      );
+      change();
+      await flush();
+      expect((posted[0] as Posted).compare?.baseLabel).toBe('HEAD');
+    });
+
+    it('posts nothing when the picker is cancelled', async () => {
+      const { posted, send } = await ready();
+      pick.mockResolvedValue(undefined);
+      await send({ type: 'startCompare' });
+      expect(posted).toEqual([]);
+      expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    describe('with workspace definitions', () => {
+      type Graph = { instances: Record<string, { pins: object[] }> };
+      /** What an enricher with a definition for the DMA does: it adds a pin the file does not list. */
+      const withDefinition = (graph: unknown): Graph => {
+        const copy = JSON.parse(JSON.stringify(graph)) as Graph;
+        copy.instances['/axi_dma_0'].pins.push({
+          name: 'M_ST',
+          isInterface: false,
+          direction: 'out',
+          directionSource: 'declared',
+          parameters: {},
+        });
+        return copy;
+      };
+      const noChanges = (message: unknown) =>
+        expect((message as Posted).compare?.diff).toMatchObject({
+          instances: [],
+          ports: [],
+          segments: [],
+        });
+
+      it('shows no phantom pin once trust is granted and both sides get the definition', async () => {
+        const { posted, send, grantTrust } = await ready();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+        await send({ type: 'startCompare' });
+        posted.length = 0;
+        mockEnrich.mockImplementation((graph: unknown) => Promise.resolve(withDefinition(graph)));
+        grantTrust();
+        await flush();
+        expect(posted).toHaveLength(1);
+        expect(posted[0]).toMatchObject({ graph: { instances: { '/axi_dma_0': {} } } });
+        noChanges(posted[0]);
+      });
+
+      it('compares read against read while enriching, then enriched against enriched', async () => {
+        const { posted, send, change } = await ready();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+        await send({ type: 'startCompare' });
+        posted.length = 0;
+        let calls = 0;
+        let release: () => void = () => undefined;
+        mockEnrich.mockImplementation((graph: unknown) => {
+          calls += 1;
+          return calls === 1
+            ? new Promise((resolve) => (release = () => resolve(withDefinition(graph))))
+            : Promise.resolve(withDefinition(graph));
+        });
+        change();
+        await new Promise((resolve) => setTimeout(resolve, ENRICHMENT_GRACE_MS + 50));
+        expect(posted).toHaveLength(1);
+        expect(calls).toBe(1);
+        noChanges(posted[0]);
+        release();
+        await flush();
+        expect(posted).toHaveLength(2);
+        expect(calls).toBe(2);
+        noChanges(posted[1]);
+        expect(posted[1]).toMatchObject({ graph: { instances: { '/axi_dma_0': {} } } });
+      });
+
+      it('enriches both sides again when the document is edited', async () => {
+        const { posted, send, change, document } = await ready();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+        await send({ type: 'startCompare' });
+        posted.length = 0;
+        mockEnrich.mockClear();
+        document.text = editedText(fixtureText);
+        change();
+        await flush();
+        expect(mockEnrich).toHaveBeenCalledTimes(2);
+        expect((posted[0] as Posted).compare?.diff.summary).toMatchObject({ version: 1 });
+      });
+    });
+
+    it('keeps the comparison when the base is replaced while a publish waits for the old base', async () => {
+      const { posted, send, change, document } = await ready();
+      pick.mockResolvedValueOnce({ text: fixtureText, label: 'A' });
+      await send({ type: 'startCompare' });
+      posted.length = 0;
+      let calls = 0;
+      let release: () => void = () => undefined;
+      mockEnrich.mockImplementation((graph: unknown) => {
+        calls += 1;
+        // The 1st call is the current side, the 2nd the base of the edit's publish.
+        return calls === 2
+          ? new Promise((resolve) => (release = () => resolve(graph)))
+          : Promise.resolve(graph);
+      });
+      document.text = editedText(fixtureText);
+      change();
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(calls).toBe(2);
+      pick.mockResolvedValueOnce({ text: editedText(fixtureText), label: 'B' });
+      await send({ type: 'startCompare' });
+      release();
+      await flush();
+      await flush();
+      const last = posted.at(-1) as Posted;
+      expect(last.type).toBe('graph');
+      expect(last.compare?.baseLabel).toBe('B');
+      expect(last.compare?.diff.summary).toMatchObject({ version: 0 });
+    });
+
+    it('compares as read when the current enrichment fails and the base would succeed', async () => {
+      const { posted, send, grantTrust } = await ready();
+      pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      posted.length = 0;
+      let calls = 0;
+      mockEnrich.mockImplementation((graph: unknown) => {
+        calls += 1;
+        return calls === 1 ? Promise.reject(new Error('boom')) : Promise.resolve(graph);
+      });
+      grantTrust();
+      await flush();
+      expect(calls).toBe(1);
+      expect(posted).toHaveLength(1);
+      expect((posted[0] as Posted).compare?.diff).toMatchObject({ instances: [] });
+    });
+
+    it('publishes nothing when the panel is disposed while the picker is open', async () => {
+      const { posted, send, dispose } = await ready();
+      let choose: (base: unknown) => void = () => undefined;
+      pick.mockReturnValue(new Promise((resolve) => (choose = resolve)));
+      const started = send({ type: 'startCompare' });
+      dispose();
+      choose({ text: fixtureText, label: 'HEAD' });
+      await started;
+      await flush();
+      expect(posted).toEqual([]);
+      expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    });
+
+    it('starts the comparison of the active panel for the command', async () => {
+      const { provider, posted } = await ready();
+      pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+      expect(provider.compareActive()).toBe(true);
+      await flush();
+      expect((posted[0] as Posted).compare?.baseLabel).toBe('HEAD');
+    });
+
+    it('has no active panel when the panel is hidden or disposed', async () => {
+      const { provider, webviewPanel, dispose } = await ready();
+      (webviewPanel as { active: boolean }).active = false;
+      expect(provider.compareActive()).toBe(false);
+      (webviewPanel as { active: boolean }).active = true;
+      expect(provider.compareActive()).toBe(true);
+      await flush();
+      dispose();
+      expect(provider.compareActive()).toBe(false);
+    });
   });
 });

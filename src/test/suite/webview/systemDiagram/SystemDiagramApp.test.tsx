@@ -8,7 +8,10 @@ import { diagramBounds, nodeBounds } from '../../../../webview/systemDiagram/lay
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { createTextMeasurer } from '../../../../webview/systemDiagram/layout/textMeasure';
 import { searchMatches } from '../../../../webview/systemDiagram/search';
+import { readBdTcl } from '../../../../parser/system/BdTclReader';
+import { diffSystemGraphs } from '../../../../services/systemDiagram/diff/diffSystemGraphs';
 import {
+  fixtureText,
   loadClockFixtureGraph,
   loadFixtureGraph,
   loadReviewFixtureGraph,
@@ -2978,6 +2981,65 @@ describe('SystemDiagramApp', () => {
       // The wire carries both marks; ElkEdge draws a crossing in the warning color over a highlight.
       expect(edgeForNet(crossingNet)).toHaveAttribute('data-crossing', 'true');
       expect(edgeForNet(crossingNet)).toHaveAttribute('data-highlighted', 'true');
+    });
+  });
+
+  describe('comparison with another revision', () => {
+    // The base has an older axi_dma, so the one change is its version.
+    const base = readBdTcl(
+      fixtureText.split('axi_dma:7.1').join('axi_dma:7.2'),
+      'zynq_dma_system.tcl'
+    );
+    const compare = { baseLabel: 'v1.0', diff: diffSystemGraphs(base, graph) };
+    const changesTab = () => screen.getByRole('tab', { name: /^Changes/ });
+
+    async function renderComparing() {
+      render(<SystemDiagramApp />);
+      send({ type: 'graph', graph, compare });
+      await screen.findByTestId('node:/axi_dma_0');
+    }
+
+    it('opens the bottom panel on Changes, and a row selects the block', async () => {
+      await renderComparing();
+      expect(changesTab()).toHaveAttribute('aria-selected', 'true');
+      fireEvent.click(screen.getByRole('button', { name: 'Toggle Details' }));
+      expect(screen.getByRole('button', { name: 'vs v1.0' })).toBeVisible();
+      fireEvent.click(
+        within(screen.getByRole('region', { name: 'Bottom panel' })).getByText('version')
+      );
+      expect(details().getByRole('heading', { name: 'axi_dma_0' })).toBeVisible();
+    });
+
+    it('leaves the panel to the user afterwards and falls back to the Address map when it ends', async () => {
+      await renderComparing();
+      fireEvent.click(screen.getByRole('tab', { name: /^Clocks/ }));
+      send({ type: 'graph', graph, compare });
+      expect(screen.getByRole('tab', { name: /^Clocks/ })).toHaveAttribute('aria-selected', 'true');
+      fireEvent.click(changesTab());
+      send({ type: 'graph', graph });
+      expect(screen.queryByRole('tab', { name: /^Changes/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /^Address map/ })).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.queryByRole('button', { name: 'Exit compare' })).not.toBeInTheDocument();
+    });
+
+    it('posts startCompare and stopCompare from the toolbar', async () => {
+      await renderComparing();
+      mockPostMessage.mockClear();
+      fireEvent.click(screen.getByRole('button', { name: 'Compare' }));
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'startCompare' });
+      fireEvent.click(screen.getByRole('button', { name: 'Exit compare' }));
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'stopCompare' });
+    });
+
+    it('opens the Changes tab from the counts and expands a hidden panel', async () => {
+      await renderComparing();
+      fireEvent.click(screen.getByRole('button', { name: 'Toggle Bottom Panel' }));
+      expect(screen.queryByRole('region', { name: 'Bottom panel' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByLabelText('1 version only'));
+      expect(changesTab()).toHaveAttribute('aria-selected', 'true');
     });
   });
 });

@@ -1,7 +1,9 @@
 /** Pure row texts of the bottom-panel tables: what the panel's filter box matches a row against. */
 
 import type { AddressSegment, SystemGraph } from '../../domain/systemGraph';
+import { cellText, type ChangeRow } from '../../services/systemDiagram/diff/changeRows';
 import { formatRange, groupHex } from './addressFormat';
+import { changeWhere, SIGN_LABELS } from './changeSummary';
 import type { ClockDomain, PinCrossing, ResetSource } from './clocks/clockTypes';
 import { crossingKind, crossingProblem } from './clocks/crossingRows';
 import { formatHz } from './clocks/frequency';
@@ -74,5 +76,16 @@ export function findingTexts(graph: SystemGraph, finding: UnconnectedPin): RowTe
     row.type,
     row.knownFrom,
     finding.cls,
+  ];
+}
+
+export function changeTexts(row: ChangeRow): RowTexts {
+  return [
+    SIGN_LABELS[row.sign],
+    changeWhere(row),
+    cellText(row.subject),
+    cellText(row.change),
+    cellText(row.base),
+    cellText(row.current),
   ];
 }

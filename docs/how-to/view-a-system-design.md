@@ -36,7 +36,7 @@ diagram keeps the last valid design and shows a banner with the reason.
 
 The diagram shows one hierarchy level at a time.
 
-The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Unconnected pins), **View** (Simplify zoomed out, Minimap, zoom out, Fit, zoom in) and **Panels**. Hover a button to see its name.
+The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Unconnected pins, Compare), **View** (Simplify zoomed out, Minimap, zoom out, Fit, zoom in) and **Panels**. Hover a button to see its name.
 
 - **Levels.** Double-click a hierarchy block to enter it. Use the breadcrumb at
   the top left, or the mouse back button, to go up one level. The mouse forward
@@ -352,6 +352,77 @@ listed in either tab.
 - **Minimap** (off by default) shows the whole level in the bottom right corner with the current view as a rectangle; selected blocks, search matches and hierarchy blocks stand out. Click or drag on it to pan, and use the wheel over it to zoom. It only changes what is drawn: blocks never move.
 - Each level remembers its own zoom and position while the diagram is open.
 - **Simplify zoomed out**, on by default, hides pin and port names, block subtitles, clock frequencies and badge text when you zoom out below about 42%, and enlarges the block names so that they stay readable. It only changes what is drawn: blocks never move. Turn it off to show everything at every zoom.
+
+## Compare with another revision
+
+To see what you changed, or what a pull request changed, compare the open design
+with an earlier revision or with another file. Click **Compare** (the
+git-compare icon in the Design group), or run **IPCraft: Compare System Design
+with...** from the command palette while a diagram is open. Pick what to compare
+with:
+
+- **HEAD**: the last commit.
+- **Merge base with main** (or `master`): the commit where your branch left the
+  default branch. It is offered when it differs from HEAD.
+- A local branch or a tag by name. The branch you are on is not listed.
+- **Enter a revision...**: any branch, tag or commit.
+- **Compare with File...**: another system design file of the same kind, for example a
+  copy outside git.
+
+Without a git repository, only **Compare with File...** is offered. Cancel the
+picker at any step to leave things as they were. If the revision or file cannot be
+read, or is not a system design, a message says so and a comparison that was already
+on stays on.
+
+While a comparison is on, the toolbar shows a chip with the base (`vs HEAD`), the
+numbers of added, removed, changed and version-only changes (`+1 −4 ~2 v1`; a zero is
+dimmed), and an **Exit compare** button. Click the chip or the numbers to open the
+**Changes** tab, the first tab of the bottom panel. The tab also opens by itself when
+a comparison starts.
+
+The Changes tab lists one row per change:
+
+| Sign | Meaning |
+|---|---|
+| `+ Added` | The block, external port, pin or address segment is new |
+| `− Removed` | It is gone |
+| `~ Changed` | A parameter, a type, an address or a connection differs |
+| `v Version` | Only the version of the block's IP differs |
+
+Each row names where it is (the **Address map**, the **External ports**, or the
+level of the block), what it is about, the change, and the value in the base and in
+the current design. Long values wrap and are shown in full. A line above the table
+sums up the differences, for example "3 blocks, 1 port and 2 address segments differ
+from HEAD."; with no difference it says "No changes compared with HEAD." and shows
+no table.
+
+Order, net names, line numbers and tool metadata are not changes. When a connection
+moves, only the pin that moved is listed, not every pin on the net. A hierarchy pin
+has an outside view in the parent level and an inside view in the hierarchy's own
+level; a row for the inside view says `inside`. The full rules are in
+[`ipcraft diff`](../reference/command-line.md#compare-two-revisions-of-a-system-design),
+which produces the same changes on the command line.
+
+The chips **Added**, **Removed**, **Changed** and **Version only** hide the rows of
+that kind; they are all on at first. The filter box above the table works on every
+column, as in the other tabs.
+
+Click a row (or focus it and press Enter) to go to its block: the diagram shows the
+level, selects the block and centres it. A row of an external port selects the port,
+and a row of an address segment selects the block the segment belongs to. What no
+longer exists in the current design cannot be selected; its row is dimmed and says
+"Not in this revision" on hover.
+
+The list follows your edits: change the file and the Changes tab updates. The
+workspace definitions (`.ip.yml` and HDL files) come from your working tree for both
+sides. Both sides always use the same definitions, also after you grant trust to the
+workspace or change a definition, so a definition never shows up as a change. If the
+definitions cannot be read for one of the sides, both sides are compared without them.
+**Exit compare** ends the comparison; it also ends when you close the diagram.
+
+This version does not yet mark the changes on the diagram, and the current side is
+always the file you have open: you cannot choose a revision for it. It compares the
+design only, not the findings or the address map tab.
 
 ## Export an image
 

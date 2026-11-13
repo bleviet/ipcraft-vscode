@@ -19,6 +19,8 @@ export function useSystemDiagramMessages(): {
   openDefinition: (instance: string) => void;
   setHighlights: (highlights: HighlightMap) => void;
   imageExport: ImageExportChannel;
+  startCompare: () => void;
+  stopCompare: () => void;
 } {
   const [state, setState] = useState<SystemDiagramState>({ status: 'loading' });
 
@@ -53,6 +55,8 @@ export function useSystemDiagramMessages(): {
     setState((state) => (state.status === 'graph' ? { ...state, highlights } : state));
     post({ type: 'setHighlights', highlights });
   }, []);
+  const startCompare = useCallback(() => post({ type: 'startCompare' }), []);
+  const stopCompare = useCallback(() => post({ type: 'stopCompare' }), []);
   const imageExport = useMemo<ImageExportChannel>(
     () => ({
       saved: savedExport,
@@ -62,5 +66,13 @@ export function useSystemDiagramMessages(): {
     }),
     [savedExport, openToken]
   );
-  return { state, revealSource, openDefinition, setHighlights, imageExport };
+  return {
+    state,
+    revealSource,
+    openDefinition,
+    setHighlights,
+    imageExport,
+    startCompare,
+    stopCompare,
+  };
 }
