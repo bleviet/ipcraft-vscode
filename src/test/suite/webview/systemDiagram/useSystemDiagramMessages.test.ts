@@ -35,6 +35,12 @@ describe('useSystemDiagramMessages export', () => {
     });
   });
 
+  it('posts swapCompare', () => {
+    const { result } = renderHook(() => useSystemDiagramMessages());
+    act(() => result.current.swapCompare());
+    expect(vscode?.postMessage).toHaveBeenCalledWith({ type: 'swapCompare' });
+  });
+
   it('posts startCompare and stopCompare', () => {
     const { result } = renderHook(() => useSystemDiagramMessages());
     act(() => result.current.startCompare());

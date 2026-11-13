@@ -6,9 +6,13 @@ export type HighlightColor = 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'm
 
 export type HighlightMap = Record<string, HighlightColor>;
 
-/** A comparison of the open design with another revision or file: its label and the changes. */
+/** A comparison of the open design (current) with another revision or file (base): the labels and the changes. */
 export interface DiagramCompare {
   baseLabel: string;
+  /** The workspace-relative path of the open design. */
+  currentLabel: string;
+  /** True when the base is a file, which can be opened as a diagram and compared the other way round. */
+  canSwap: boolean;
   diff: SystemGraphDiff;
 }
 
@@ -30,4 +34,6 @@ export type SystemDiagramToExtensionMessage =
   | { type: 'exportImage'; options: ExportImageOptions; view: SystemExportView }
   /** Pick a revision or file to compare the open design with. */
   | { type: 'startCompare' }
-  | { type: 'stopCompare' };
+  | { type: 'stopCompare' }
+  /** Open the base file as a diagram and compare it with this document. */
+  | { type: 'swapCompare' };

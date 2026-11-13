@@ -1,7 +1,10 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { DEFAULT_EXPORT_OPTIONS } from '../../../shared/messages/imageExport';
 import { RenderAssets } from '../../../services/render/renderResources';
 import { ExportTargets } from '../../../providers/imageExport/ExportTargets';
+import { SWAP_GRACE_MS } from '../../../providers/systemDiagram/DiagramPanels';
 import {
   ENRICHMENT_GRACE_MS,
   SystemDiagramProvider,
@@ -9,6 +12,7 @@ import {
 import { pickCompareBase } from '../../../providers/systemDiagram/pickCompareBase';
 import { renderSystemLevelImage } from '../../../services/render/systemLevelImage';
 import type { RenderRoots } from '../../../services/render/imageEncoding';
+import { changeRows, cellText } from '../../../services/systemDiagram/diff/changeRows';
 import { fixtureText, qsysFixtureText } from '../webview/systemDiagram/fixtureGraph';
 
 jest.mock('../../../services/HtmlGenerator', () => ({
@@ -698,6 +702,7 @@ describe('SystemDiagramProvider export image', () => {
   });
 
   describe('comparison', () => {
+    const oldUri = { fsPath: '/ws/old.tcl', toString: () => 'file:///ws/old.tcl' };
     const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
     const pick = pickCompareBase as jest.Mock;
     const editedText = (text: string) => text.split('axi_dma:7.1').join('axi_dma:7.2');
@@ -931,6 +936,302 @@ describe('SystemDiagramProvider export image', () => {
       await flush();
       dispose();
       expect(provider.compareActive()).toBe(false);
+    });
+
+    it('reads a picked file in its own format, and a revision in the format of the document', async () => {
+      const bd = fs.readFileSync(
+        path.resolve(__dirname, '../../fixtures/system-design/diff/zynq_gpio_base.bd'),
+        'utf8'
+      );
+      const { posted, send } = await ready();
+      pick.mockResolvedValue({ text: bd, label: 'other.bd', file: { fsPath: '/ws/other.bd' } });
+      await send({ type: 'startCompare' });
+      expect(posted).toHaveLength(1);
+      expect(posted[0]).toMatchObject({ compare: { baseLabel: 'other.bd' } });
+      expect(
+        (posted[0] as { compare: { diff: { formatsDiffer: boolean } } }).compare.diff.formatsDiffer
+      ).toBe(true);
+      pick.mockResolvedValue({ text: bd, label: 'main' });
+      await send({ type: 'startCompare' });
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Compare failed: 'main' is not a recognized system design"
+      );
+    });
+
+    it('names the open document as the current side and tells whether the base can be swapped', async () => {
+      const { posted, send } = await ready();
+      pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      expect((posted[0] as Posted).compare).toMatchObject({
+        baseLabel: 'HEAD',
+        currentLabel: 'zynq.tcl',
+        canSwap: false,
+      });
+      pick.mockResolvedValue({ text: fixtureText, label: 'old.tcl', file: oldUri });
+      await send({ type: 'startCompare' });
+      expect((posted[1] as Posted).compare).toMatchObject({
+        baseLabel: 'old.tcl',
+        currentLabel: 'zynq.tcl',
+        canSwap: true,
+      });
+      await send({ type: 'stopCompare' });
+      expect(posted[2]).not.toHaveProperty('compare');
+    });
+
+    describe('swapCompare', () => {
+      type Compared = {
+        type: string;
+        compare?: { baseLabel: string; currentLabel: string; canSwap: boolean; diff: never };
+      };
+      const versionOf = (message: unknown, side: 'base' | 'current') => {
+        const diff = (message as Compared).compare!.diff;
+        const row = changeRows(diff, { ignoreVersionOnly: false }).find((r) => r.sign === 'v');
+        return cellText(row![side]);
+      };
+      const executeCommand = vscode.commands.executeCommand as jest.Mock;
+      const showError = vscode.window.showErrorMessage as jest.Mock;
+      const OPEN_WITH = ['vscode.openWith', oldUri, 'ipcraft.systemDiagram'];
+
+      /** Opens another panel of the same provider, as the custom editor does for a file. */
+      function openPanel(
+        provider: SystemDiagramProvider,
+        text: string,
+        fsPath: string,
+        visible = true
+      ) {
+        const posted: unknown[] = [];
+        let handler: WebviewHandler | undefined;
+        let dispose: () => void = () => undefined;
+        const document = {
+          uri: { fsPath, toString: () => `file://${fsPath}` },
+          fileName: fsPath,
+          getText: () => text,
+        } as unknown as vscode.TextDocument;
+        const panel = {
+          active: false,
+          visible,
+          viewColumn: 2,
+          reveal: jest.fn(),
+          webview: {
+            options: {},
+            html: '',
+            postMessage: jest.fn((message: unknown) => {
+              posted.push(message);
+              return Promise.resolve(true);
+            }),
+            onDidReceiveMessage: jest.fn((h: WebviewHandler) => {
+              handler = h;
+              return { dispose: jest.fn() };
+            }),
+          },
+          onDidDispose: jest.fn((h: () => void) => {
+            dispose = h;
+            return { dispose: jest.fn() };
+          }),
+        } as unknown as vscode.WebviewPanel;
+        provider.resolveCustomTextEditor(document, panel, {} as vscode.CancellationToken);
+        return {
+          posted,
+          panel,
+          dispose: () => dispose(),
+          send: (message: unknown) => handler!(message),
+        };
+      }
+      const baseText = () => editedText(fixtureText);
+      type Opened = ReturnType<typeof openPanel>;
+
+      /** The first document compares with the second file. */
+      async function comparing(base: Record<string, unknown> = { file: oldUri }) {
+        const context = await ready();
+        (vscode.workspace.asRelativePath as jest.Mock).mockImplementation(
+          (file: { fsPath: string }) => file.fsPath.replace('/ws/', '')
+        );
+        pick.mockResolvedValue({ text: baseText(), label: 'old.tcl', ...base });
+        await context.send({ type: 'startCompare' });
+        context.posted.length = 0;
+        return context;
+      }
+
+      /** openWith creates the panel of the base file, as VS Code does before the command resolves. */
+      function openWithCreatesPanel(provider: SystemDiagramProvider): { opened?: Opened } {
+        const result: { opened?: Opened } = {};
+        executeCommand.mockImplementation(() => {
+          result.opened = openPanel(provider, baseText(), '/ws/old.tcl');
+          return Promise.resolve();
+        });
+        return result;
+      }
+
+      it('opens the base as a diagram and compares it with the first document once it is ready', async () => {
+        const { provider, send, posted } = await comparing();
+        const created = openWithCreatesPanel(provider);
+        await send({ type: 'swapCompare' });
+        expect(executeCommand).toHaveBeenCalledWith(...OPEN_WITH);
+        expect(posted).toEqual([]);
+
+        const second = created.opened!;
+        await second.send({ type: 'ready' });
+        await flush();
+        const message = second.posted.at(-1) as Compared;
+        expect(message.compare).toMatchObject({
+          baseLabel: 'zynq.tcl',
+          currentLabel: 'old.tcl',
+          canSwap: true,
+        });
+        // The first document has 7.1 and the base 7.2: from the second panel it is the other way round.
+        expect(versionOf(message, 'base')).toContain('7.1');
+        expect(versionOf(message, 'current')).toContain('7.2');
+        expect(posted).toEqual([]);
+      });
+
+      it('reveals the open diagram of the base instead of opening another, and compares there', async () => {
+        const { provider, send } = await comparing();
+        const second = openPanel(provider, baseText(), '/ws/old.tcl');
+        await second.send({ type: 'ready' });
+        await flush();
+        second.posted.length = 0;
+        await send({ type: 'swapCompare' });
+        await flush();
+        expect(executeCommand).not.toHaveBeenCalled();
+        expect(second.panel.reveal).toHaveBeenCalledWith(2);
+        expect((second.posted.at(-1) as Compared).compare).toMatchObject({
+          baseLabel: 'zynq.tcl',
+          canSwap: true,
+        });
+      });
+
+      it('prefers the visible panel when several show the base', async () => {
+        const { provider, send } = await comparing();
+        const hidden = openPanel(provider, baseText(), '/ws/old.tcl', false);
+        const shown = openPanel(provider, baseText(), '/ws/old.tcl', true);
+        for (const panel of [hidden, shown]) {
+          await panel.send({ type: 'ready' });
+        }
+        await flush();
+        hidden.posted.length = 0;
+        shown.posted.length = 0;
+        await send({ type: 'swapCompare' });
+        await flush();
+        expect(shown.panel.reveal).toHaveBeenCalled();
+        expect(hidden.panel.reveal).not.toHaveBeenCalled();
+        expect(shown.posted.at(-1)).toHaveProperty('compare');
+        expect(hidden.posted).toEqual([]);
+      });
+
+      it('replaces a comparison that runs on the diagram of the base', async () => {
+        const { provider, send } = await comparing();
+        const second = openPanel(provider, baseText(), '/ws/old.tcl');
+        await second.send({ type: 'ready' });
+        await flush();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+        await second.send({ type: 'startCompare' });
+        expect((second.posted.at(-1) as Compared).compare?.baseLabel).toBe('HEAD');
+        await send({ type: 'swapCompare' });
+        await flush();
+        expect((second.posted.at(-1) as Compared).compare?.baseLabel).toBe('zynq.tcl');
+      });
+
+      it('does nothing for a revision as the base, or without a comparison', async () => {
+        const { send } = await comparing({ file: undefined, label: 'HEAD' });
+        await send({ type: 'swapCompare' });
+        await send({ type: 'stopCompare' });
+        await send({ type: 'swapCompare' });
+        expect(executeCommand).not.toHaveBeenCalled();
+      });
+
+      it('drops the request and reports the failure when the base cannot be opened', async () => {
+        const { provider, send } = await comparing();
+        executeCommand.mockRejectedValue(new Error('no such file'));
+        await send({ type: 'swapCompare' });
+        expect(showError).toHaveBeenCalledWith('Cannot open old.tcl: no such file');
+        const second = openPanel(provider, baseText(), '/ws/old.tcl');
+        await second.send({ type: 'ready' });
+        await flush();
+        expect(second.posted.at(-1)).not.toHaveProperty('compare');
+      });
+
+      it('drops the request when the requesting panel is disposed before the base opens', async () => {
+        const { provider, send, dispose } = await comparing();
+        let opened: () => void = () => undefined;
+        executeCommand.mockReturnValue(new Promise<void>((resolve) => (opened = resolve)));
+        const swapping = send({ type: 'swapCompare' });
+        dispose();
+        opened();
+        await swapping;
+        const second = openPanel(provider, baseText(), '/ws/old.tcl');
+        await second.send({ type: 'ready' });
+        await flush();
+        expect(second.posted.at(-1)).not.toHaveProperty('compare');
+      });
+
+      it('keeps a newer base when one is chosen before the panel that waited for a swap is ready', async () => {
+        const { provider, send } = await comparing();
+        const created = openWithCreatesPanel(provider);
+        await send({ type: 'swapCompare' });
+        const second = created.opened!;
+        pick.mockResolvedValue({ text: baseText(), label: 'HEAD' });
+        await second.send({ type: 'startCompare' });
+        await second.send({ type: 'ready' });
+        await flush();
+        expect((second.posted.at(-1) as Compared).compare).toMatchObject({
+          baseLabel: 'HEAD',
+          canSwap: false,
+        });
+      });
+
+      it('does not start a stale comparison on a later panel when the target closed before it was ready', async () => {
+        const { provider, send } = await comparing();
+        const created = openWithCreatesPanel(provider);
+        await send({ type: 'swapCompare' });
+        created.opened!.dispose();
+        const later = openPanel(provider, baseText(), '/ws/old.tcl');
+        await later.send({ type: 'ready' });
+        await flush();
+        expect(later.posted.at(-1)).not.toHaveProperty('compare');
+      });
+
+      describe('when openWith resolved before the panel registered', () => {
+        afterEach(() => jest.useRealTimers());
+
+        /** Swaps with fake timers; the target panel does not exist when openWith resolves. */
+        async function swappedWithoutPanel() {
+          const context = await comparing();
+          jest.useFakeTimers();
+          executeCommand.mockResolvedValue(undefined);
+          await context.send({ type: 'swapCompare' });
+          return context;
+        }
+        const readyPanel = async (provider: SystemDiagramProvider) => {
+          const panel = openPanel(provider, baseText(), '/ws/old.tcl');
+          await panel.send({ type: 'ready' });
+          await jest.advanceTimersByTimeAsync(ENRICHMENT_GRACE_MS + 1);
+          return panel;
+        };
+
+        it('starts the comparison on a panel that registers within the grace period', async () => {
+          const { provider } = await swappedWithoutPanel();
+          await jest.advanceTimersByTimeAsync(SWAP_GRACE_MS - 1);
+          const later = await readyPanel(provider);
+          expect((later.posted.at(-1) as Compared).compare?.baseLabel).toBe('zynq.tcl');
+          expect(jest.getTimerCount()).toBe(0);
+        });
+
+        it('starts a panel that registers after the grace period without a comparison', async () => {
+          const { provider } = await swappedWithoutPanel();
+          await jest.advanceTimersByTimeAsync(SWAP_GRACE_MS);
+          const later = await readyPanel(provider);
+          expect(later.posted.at(-1)).not.toHaveProperty('compare');
+        });
+
+        it('cancels the request and clears the timer when the requesting panel is disposed', async () => {
+          const { provider, dispose } = await swappedWithoutPanel();
+          expect(jest.getTimerCount()).toBe(1);
+          dispose();
+          expect(jest.getTimerCount()).toBe(0);
+          const later = await readyPanel(provider);
+          expect(later.posted.at(-1)).not.toHaveProperty('compare');
+        });
+      });
     });
   });
 });

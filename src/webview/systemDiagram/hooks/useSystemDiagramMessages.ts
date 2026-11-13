@@ -21,6 +21,7 @@ export function useSystemDiagramMessages(): {
   imageExport: ImageExportChannel;
   startCompare: () => void;
   stopCompare: () => void;
+  swapCompare: () => void;
 } {
   const [state, setState] = useState<SystemDiagramState>({ status: 'loading' });
 
@@ -57,6 +58,7 @@ export function useSystemDiagramMessages(): {
   }, []);
   const startCompare = useCallback(() => post({ type: 'startCompare' }), []);
   const stopCompare = useCallback(() => post({ type: 'stopCompare' }), []);
+  const swapCompare = useCallback(() => post({ type: 'swapCompare' }), []);
   const imageExport = useMemo<ImageExportChannel>(
     () => ({
       saved: savedExport,
@@ -74,5 +76,6 @@ export function useSystemDiagramMessages(): {
     imageExport,
     startCompare,
     stopCompare,
+    swapCompare,
   };
 }

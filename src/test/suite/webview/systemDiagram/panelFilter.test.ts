@@ -85,4 +85,20 @@ describe('changeTexts', () => {
     expect(matching('0x41220000')).toHaveLength(1);
     expect(matching('FCLK_CLK1')).toHaveLength(1);
   });
+
+  it('matches an address row by the change word the tab shows', () => {
+    const words = (word: string) => matching(word).map((row) => row.section);
+    expect(words('address changed')).toEqual(['address']);
+    expect(words('removed')).toContain('address');
+    expect(matching('added').some((row) => row.section === 'address')).toBe(false);
+  });
+
+  it('matches an address row by its address space and by its segment', () => {
+    const address = rows.filter((row) => row.section === 'address');
+    expect(address.length).toBeGreaterThan(0);
+    expect(matching('sys_ps7/Data')).toHaveLength(address.length);
+    expect(matching('gpio_block/axi_gpio_1/S_AXI/Reg').map((row) => row.section)).toEqual([
+      'address',
+    ]);
+  });
 });

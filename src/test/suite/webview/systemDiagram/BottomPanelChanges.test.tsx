@@ -26,7 +26,7 @@ function Panel({ initial = 'address', on = true }: { initial?: BottomTab; on?: b
       onSelectPin={jest.fn()}
       onSelectNet={jest.fn()}
       onReveal={jest.fn()}
-      changes={on ? { compare, onSelectPort: jest.fn() } : undefined}
+      changes={on ? { compare, onSelectPort: jest.fn(), onSwapCompare: jest.fn() } : undefined}
     />
   );
 }
@@ -47,7 +47,7 @@ describe('BottomPanel Changes tab', () => {
 
   it('lists the changes in the tab and filters them with the filter box', () => {
     render(<Panel initial="changes" />);
-    expect(screen.getByText(/differ from HEAD\.$/)).toBeVisible();
+    expect(screen.getByText(/differ\.$/)).toBeVisible();
     fireEvent.change(screen.getByRole('searchbox', { name: 'Filter Changes' }), {
       target: { value: 'led_o' },
     });

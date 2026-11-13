@@ -18,6 +18,15 @@ interface GitRepository {
   getMergeBase(ref1: string, ref2: string): Promise<string | undefined>;
   /** Missing in older versions of VS Code; `state.refs` is the fallback. */
   getRefs?(query: object): Promise<GitRef[]>;
+  /** The commits that changed `path`, newest first. */
+  log(options: { path: string; maxEntries: number }): Promise<GitCommit[]>;
+}
+
+interface GitCommit {
+  hash: string;
+  message: string;
+  authorDate?: Date;
+  authorName?: string;
 }
 
 interface GitApi {
@@ -36,6 +45,8 @@ export interface RevisionChoice {
   ref: string;
   /** How the comparison names this base. */
   baseLabel: string;
+  /** The picker's group of the entry. */
+  group: 'git' | 'commit' | 'branch' | 'tag';
 }
 
 const HEAD_BRANCH = 0;
@@ -137,6 +148,7 @@ async function mergeBaseChoice(
     description: base.slice(0, 7),
     ref: base,
     baseLabel: `${branch} (merge base ${base.slice(0, 7)})`,
+    group: 'git',
   };
 }
 
@@ -151,18 +163,25 @@ export async function listRevisions(
   try {
     const refs = await refsOf(repo);
     const current = repo.state.HEAD?.name;
-    const named = (type: number, description: string): RevisionChoice[] =>
+    const named = (type: number, group: 'branch' | 'tag'): RevisionChoice[] =>
       refs
         .filter((r) => r.type === type && r.name && r.name !== current)
         .map((r) => ({
           label: r.name as string,
-          description,
+          description: group,
           ref: r.name as string,
           baseLabel: r.name as string,
+          group,
         }));
     const mergeBase = await mergeBaseChoice(repo, refs);
     return [
-      { label: 'HEAD', description: 'last commit', ref: 'HEAD', baseLabel: 'HEAD' },
+      {
+        label: 'HEAD',
+        description: 'last commit',
+        ref: 'HEAD',
+        baseLabel: 'HEAD',
+        group: 'git',
+      },
       ...(mergeBase ? [mergeBase] : []),
       ...named(HEAD_BRANCH, 'branch'),
       ...named(TAG, 'tag'),
@@ -172,6 +191,44 @@ export async function listRevisions(
       `Cannot list the revisions of ${vscode.workspace.asRelativePath(uri, false)}: ${messageOf(error)}`
     );
   }
+}
+
+const two = (n: number): string => String(n).padStart(2, '0');
+
+/** The calendar day of `date` where the user is: `2026-03-04`. */
+const localDay = (date: Date): string =>
+  `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}`;
+
+const MAX_FILE_COMMITS = 20;
+const LABEL_MAX = 60;
+const NO_MESSAGE = '(no message)';
+
+/** The commits that changed the file, newest first; none when the git extension cannot list them. */
+export async function listFileCommits(
+  repo: GitRepository,
+  uri: vscode.Uri
+): Promise<RevisionChoice[]> {
+  let commits: GitCommit[];
+  try {
+    commits = await repo.log({ path: uri.fsPath, maxEntries: MAX_FILE_COMMITS });
+  } catch {
+    return [];
+  }
+  return commits.map((commit) => {
+    const short = commit.hash.slice(0, 7);
+    const subject = commit.message.split('\n')[0].trim() || NO_MESSAGE;
+    const chars = [...subject];
+    const cut = chars.length > LABEL_MAX ? `${chars.slice(0, LABEL_MAX).join('')}…` : subject;
+    return {
+      label: subject,
+      description: [short, commit.authorDate && localDay(commit.authorDate), commit.authorName]
+        .filter(Boolean)
+        .join(' · '),
+      ref: commit.hash,
+      baseLabel: `${short} ${cut}`,
+      group: 'commit',
+    };
+  });
 }
 
 /** The text of the file at `ref`. */

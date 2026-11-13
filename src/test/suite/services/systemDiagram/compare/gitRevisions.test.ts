@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import {
+  listFileCommits,
   listRevisions,
   openRepository,
   readRevision,
@@ -15,6 +16,7 @@ function repo(overrides: Record<string, unknown> = {}): Repo {
   return {
     state: { HEAD: { name: 'feature', commit: TIP }, refs: [] },
     show: jest.fn().mockResolvedValue('text'),
+    log: jest.fn().mockResolvedValue([]),
     getMergeBase: jest.fn().mockResolvedValue(BASE),
     getRefs: jest.fn().mockResolvedValue([
       { name: 'feature', type: 0 },
@@ -131,6 +133,7 @@ describe('listRevisions', () => {
       ['dev', 'branch', 'dev', 'dev'],
       ['v1.0', 'tag', 'v1.0', 'v1.0'],
     ]);
+    expect(choices.map((c) => c.group)).toEqual(['git', 'git', 'branch', 'branch', 'tag']);
   });
 
   it('asks for the merge base of HEAD and the default branch', async () => {
@@ -189,6 +192,109 @@ describe('listRevisions', () => {
     await expect(listRevisions(r, uri)).rejects.toThrow(
       'Cannot list the revisions of system.bd: boom'
     );
+  });
+});
+
+describe('listFileCommits', () => {
+  const commit = (overrides: Record<string, unknown> = {}) => ({
+    hash: 'abcdef0123456789',
+    message: 'Add the DMA\n\nlong body',
+    authorDate: new Date(2026, 2, 4, 23, 30),
+    authorName: 'Ada',
+    ...overrides,
+  });
+
+  it('asks for the commits of the file, at most 20', async () => {
+    const log = jest.fn().mockResolvedValue([]);
+    await listFileCommits(repo({ log }), uri);
+    expect(log).toHaveBeenCalledWith({ path: '/ws/system.bd', maxEntries: 20 });
+  });
+
+  it('lists the first line of the message, the short hash, the day and the author', async () => {
+    const choices = await listFileCommits(
+      repo({ log: jest.fn().mockResolvedValue([commit(), commit({ hash: '1234567890' })]) }),
+      uri
+    );
+    expect(choices[0]).toEqual({
+      label: 'Add the DMA',
+      description: 'abcdef0 · 2026-03-04 · Ada',
+      ref: 'abcdef0123456789',
+      baseLabel: 'abcdef0 Add the DMA',
+      group: 'commit',
+    });
+    expect(choices[1].description).toBe('1234567 · 2026-03-04 · Ada');
+  });
+
+  it('writes the day where the user is, also just before midnight and after it', async () => {
+    const days = async (...dates: Date[]) =>
+      (
+        await listFileCommits(
+          repo({
+            log: jest.fn().mockResolvedValue(dates.map((authorDate) => commit({ authorDate }))),
+          }),
+          uri
+        )
+      ).map((c) => c.description);
+    expect(await days(new Date(2026, 0, 9, 23, 59), new Date(2026, 11, 31, 0, 1))).toEqual([
+      'abcdef0 · 2026-01-09 · Ada',
+      'abcdef0 · 2026-12-31 · Ada',
+    ]);
+  });
+
+  it('leaves out the date and the author when the commit has none', async () => {
+    const choices = await listFileCommits(
+      repo({
+        log: jest
+          .fn()
+          .mockResolvedValue([commit({ authorDate: undefined, authorName: undefined })]),
+      }),
+      uri
+    );
+    expect(choices[0].description).toBe('abcdef0');
+  });
+
+  it('cuts the subject by code points, not in the middle of a surrogate pair', async () => {
+    const subject = '😀'.repeat(61);
+    const choices = await listFileCommits(
+      repo({ log: jest.fn().mockResolvedValue([commit({ message: subject })]) }),
+      uri
+    );
+    expect(choices[0].baseLabel).toBe(`abcdef0 ${'😀'.repeat(60)}…`);
+    const exact = await listFileCommits(
+      repo({ log: jest.fn().mockResolvedValue([commit({ message: '😀'.repeat(60) })]) }),
+      uri
+    );
+    expect(exact[0].baseLabel).toBe(`abcdef0 ${'😀'.repeat(60)}`);
+  });
+
+  it('names a commit without a message', async () => {
+    const choices = await listFileCommits(
+      repo({ log: jest.fn().mockResolvedValue([commit({ message: '' })]) }),
+      uri
+    );
+    expect(choices[0]).toMatchObject({ label: '(no message)', baseLabel: 'abcdef0 (no message)' });
+  });
+
+  it('cuts a long first line to 60 characters in the label of the comparison only', async () => {
+    const long = 'x'.repeat(61);
+    const choices = await listFileCommits(
+      repo({ log: jest.fn().mockResolvedValue([commit({ message: long })]) }),
+      uri
+    );
+    expect(choices[0].label).toBe(long);
+    expect(choices[0].baseLabel).toBe(`abcdef0 ${'x'.repeat(60)}…`);
+    const exact = await listFileCommits(
+      repo({ log: jest.fn().mockResolvedValue([commit({ message: 'y'.repeat(60) })]) }),
+      uri
+    );
+    expect(exact[0].baseLabel).toBe(`abcdef0 ${'y'.repeat(60)}`);
+  });
+
+  it('lists nothing when log is not callable or fails', async () => {
+    expect(await listFileCommits(repo({ log: undefined }), uri)).toEqual([]);
+    expect(
+      await listFileCommits(repo({ log: jest.fn().mockRejectedValue(new Error('boom')) }), uri)
+    ).toEqual([]);
   });
 });
 

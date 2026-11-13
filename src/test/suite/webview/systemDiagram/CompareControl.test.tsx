@@ -30,7 +30,10 @@ describe('CompareControl', () => {
   it('shows the base, the counts and an exit while a comparison is on', () => {
     renderControl(true);
     const chip = screen.getByRole('button', { name: 'vs main (merge base 1234567)' });
-    expect(chip).toHaveAttribute('title', expect.stringContaining('main (merge base 1234567)'));
+    expect(chip).toHaveAttribute(
+      'title',
+      'Base: main (merge base 1234567). Current: sys/current.bd. Click to show the changes.'
+    );
     expect(screen.getByLabelText('1 added')).toHaveTextContent('+1');
     expect(screen.getByLabelText('4 removed')).toHaveTextContent('−4');
     expect(screen.getByLabelText('2 changed')).toHaveTextContent('~2');

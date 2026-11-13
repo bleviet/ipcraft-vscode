@@ -29,7 +29,7 @@ export function CompareControl({ compare, onStart, onStop, onOpenChanges }: Comp
           <button
             type="button"
             className="sd-tool-count sd-compare-base"
-            title={`Compared with ${compare.baseLabel}. Open the Changes tab`}
+            title={`Base: ${compare.baseLabel}. Current: ${compare.currentLabel}. Click to show the changes.`}
             onClick={onOpenChanges}
           >
             vs {compare.baseLabel}

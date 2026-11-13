@@ -3,7 +3,7 @@
 import type { AddressSegment, SystemGraph } from '../../domain/systemGraph';
 import { cellText, type ChangeRow } from '../../services/systemDiagram/diff/changeRows';
 import { formatRange, groupHex } from './addressFormat';
-import { changeWhere, SIGN_LABELS } from './changeSummary';
+import { addressChangeWord, changeWhere, SIGN_LABELS } from './changeSummary';
 import type { ClockDomain, PinCrossing, ResetSource } from './clocks/clockTypes';
 import { crossingKind, crossingProblem } from './clocks/crossingRows';
 import { formatHz } from './clocks/frequency';
@@ -85,6 +85,7 @@ export function changeTexts(row: ChangeRow): RowTexts {
     changeWhere(row),
     cellText(row.subject),
     cellText(row.change),
+    row.section === 'address' ? addressChangeWord(row.sign) : undefined,
     cellText(row.base),
     cellText(row.current),
   ];

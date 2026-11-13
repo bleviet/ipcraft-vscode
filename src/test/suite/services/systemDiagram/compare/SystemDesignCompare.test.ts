@@ -5,6 +5,7 @@ import {
   SystemDesignCompare,
   type CurrentSide,
 } from '../../../../../services/systemDiagram/compare/SystemDesignCompare';
+import { fixtureText as tclText } from '../../../webview/systemDiagram/fixtureGraph';
 import { readSystemDesign } from '../../../../../services/systemDiagram/readSystemDesign';
 
 const fixtures = path.resolve(__dirname, '../../../../fixtures/system-design/diff');
@@ -133,6 +134,21 @@ describe('SystemDesignCompare', () => {
     const { compare } = setup();
     compare.start(text('nios_base.qsys'), 'n.qsys', 'v1', '/ws/n.qsys');
     expect(compare.diffRead(current)!.diff.base.format).toBe('qsys');
+  });
+
+  it('reads the base in the format of the path it is given, also when it differs from the current side', () => {
+    const { compare } = setup();
+    compare.start(tclText, 'system.bd', 'scripts/d.tcl', '/ws/scripts/d.tcl');
+    const { diff } = compare.diffRead(current)!;
+    expect(diff.base.format).not.toBe(diff.current.format);
+    expect(diff.formatsDiffer).toBe(true);
+  });
+
+  it('rejects a script as the base when it is read as a block design file', () => {
+    const { compare } = setup();
+    expect(() => compare.start(tclText, 'system.bd', 'HEAD', '/ws/system.bd')).toThrow(
+      "'HEAD' is not a recognized system design"
+    );
   });
 
   it('rejects text that is not a system design and keeps the running comparison', () => {

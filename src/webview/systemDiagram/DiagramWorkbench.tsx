@@ -17,6 +17,7 @@ interface DiagramWorkbenchProps {
   compare?: DiagramCompare;
   onStartCompare: () => void;
   onStopCompare: () => void;
+  onSwapCompare: () => void;
 }
 
 export function DiagramWorkbench({
@@ -30,6 +31,7 @@ export function DiagramWorkbench({
   compare,
   onStartCompare,
   onStopCompare,
+  onSwapCompare,
 }: DiagramWorkbenchProps) {
   return (
     <ReactFlowProvider>
@@ -44,6 +46,7 @@ export function DiagramWorkbench({
         compare={compare}
         onStartCompare={onStartCompare}
         onStopCompare={onStopCompare}
+        onSwapCompare={onSwapCompare}
       />
     </ReactFlowProvider>
   );

@@ -28,7 +28,13 @@ export function emptyDiff(): SystemGraphDiff {
   return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_base.bd'));
 }
 
-export const compareOf = (diff: SystemGraphDiff, baseLabel = 'HEAD'): DiagramCompare => ({
+export const compareOf = (
+  diff: SystemGraphDiff,
+  baseLabel = 'HEAD',
+  options: { currentLabel?: string; canSwap?: boolean } = {}
+): DiagramCompare => ({
   baseLabel,
+  currentLabel: options.currentLabel ?? 'sys/current.bd',
+  canSwap: options.canSwap ?? false,
   diff,
 });

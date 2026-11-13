@@ -3,6 +3,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import {
+  listFileCommits,
   listRevisions,
   openRepository,
   REVISION_DASH,
@@ -10,29 +11,81 @@ import {
   type GitRepository,
   type RevisionChoice,
 } from '../../services/systemDiagram/compare/gitRevisions';
+import { openDesignTabs } from './openDesignTabs';
 
-/** The text of the chosen base and how the comparison names it. */
+/** The text of the chosen base and how the comparison names it; `file` is set when the base is a file. */
 export interface CompareBase {
   text: string;
   label: string;
+  file?: vscode.Uri;
 }
 
-type Choice = RevisionChoice | { action: 'enter' | 'file' };
+type Choice = RevisionChoice | { action: 'enter' | 'file' } | { action: 'open'; uri: vscode.Uri };
 
-type PickItem = vscode.QuickPickItem & { choice: Choice };
+type PickItem = vscode.QuickPickItem & { choice?: Choice };
+
+const separator = (label: string): PickItem => ({
+  label,
+  kind: vscode.QuickPickItemKind.Separator,
+});
+
+const DESIGN_EXTENSIONS = ['bd', 'tcl', 'qsys'];
 
 const ENTER_ITEM: PickItem = { label: 'Enter a revision…', choice: { action: 'enter' } };
 const FILE_ITEM: PickItem = { label: 'Compare with File…', choice: { action: 'file' } };
 
-/** The picker's items: the revisions, then the free entries; only the file without a repository. */
-export function compareItems(revisions: readonly RevisionChoice[] | undefined): PickItem[] {
-  const entries = revisions ? [...revisions.map(toItem), ENTER_ITEM] : [];
-  return [...entries, FILE_ITEM];
+/**
+ * The picker's items in groups, each under a separator: the open designs, git, the commits
+ * of the file, the branches, the tags, then the free entries (only the file without a repository).
+ */
+export function compareItems(
+  designs: readonly vscode.Uri[],
+  revisions: readonly RevisionChoice[],
+  commits: readonly RevisionChoice[],
+  inRepository: boolean
+): PickItem[] {
+  const of = (group: RevisionChoice['group']) =>
+    revisions.filter((r) => r.group === group).map(toItem);
+  const groups: [string, PickItem[]][] = [
+    ['Open designs', designs.map(designItem)],
+    ['Git', of('git')],
+    ['Commits that changed this file', commits.map(toItem)],
+    ['Branches', of('branch')],
+    ['Tags', of('tag')],
+    ['Other', [...(inRepository ? [ENTER_ITEM] : []), FILE_ITEM]],
+  ];
+  const listed = groups.filter(([, items]) => items.length > 0);
+  return listed.flatMap(([label, items]) =>
+    listed.length === 1 ? items : [separator(label), ...items]
+  );
+}
+
+/** The picker reads `$(name)` as an icon: user data must not. */
+export const escapeIcons = (text: string): string => text.replace(/\$\(/g, '\\$(');
+
+/** The folder of a design: relative to the workspace, empty at its root, absolute outside it. */
+function folderOf(uri: vscode.Uri): string {
+  const folder = path.dirname(uri.fsPath);
+  if (vscode.workspace.getWorkspaceFolder(uri)?.uri.fsPath === folder) {
+    return '';
+  }
+  return vscode.workspace.asRelativePath(folder, false);
+}
+
+const designItem = (uri: vscode.Uri): PickItem => ({
+  label: escapeIcons(path.basename(uri.fsPath)),
+  description: escapeIcons(folderOf(uri)),
+  choice: { action: 'open', uri },
+});
+
+async function openBase(uri: vscode.Uri): Promise<CompareBase> {
+  const opened = await vscode.workspace.openTextDocument(uri);
+  return { text: opened.getText(), label: vscode.workspace.asRelativePath(uri, false), file: uri };
 }
 
 const toItem = (revision: RevisionChoice): PickItem => ({
-  label: revision.label,
-  description: revision.description,
+  label: escapeIcons(revision.label),
+  description: escapeIcons(revision.description),
   choice: revision,
 });
 
@@ -46,11 +99,14 @@ async function revisionBase(
 }
 
 async function fileBase(document: vscode.TextDocument): Promise<CompareBase | undefined> {
-  const extension = path.extname(document.fileName).slice(1);
+  const own = path.extname(document.fileName).slice(1);
+  const extensions = DESIGN_EXTENSIONS.includes(own)
+    ? [own, ...DESIGN_EXTENSIONS.filter((extension) => extension !== own)]
+    : DESIGN_EXTENSIONS;
   const picked = await vscode.window.showOpenDialog({
     canSelectMany: false,
     defaultUri: vscode.Uri.joinPath(document.uri, '..'),
-    ...(extension && { filters: { 'System design': [extension] } }),
+    filters: { 'System designs': extensions },
   });
   const file = picked?.[0];
   if (!file) {
@@ -59,6 +115,7 @@ async function fileBase(document: vscode.TextDocument): Promise<CompareBase | un
   return {
     text: new TextDecoder().decode(await vscode.workspace.fs.readFile(file)),
     label: vscode.workspace.asRelativePath(file, false),
+    file,
   };
 }
 
@@ -67,15 +124,24 @@ export async function pickCompareBase(
   document: vscode.TextDocument
 ): Promise<CompareBase | undefined> {
   const repo = await openRepository(document.uri);
-  // Without the list the picker still offers the file.
-  const revisions = repo && (await listRevisions(repo, document.uri).catch(() => undefined));
-  const picked = await vscode.window.showQuickPick(compareItems(revisions), {
-    title: `Compare ${path.basename(document.fileName)} with`,
-  });
-  if (!picked) {
+  // Without the lists the picker still offers a typed revision and the file.
+  const [revisions, commits] = repo
+    ? await Promise.all([
+        listRevisions(repo, document.uri).catch(() => []),
+        listFileCommits(repo, document.uri),
+      ])
+    : [[], []];
+  const picked = await vscode.window.showQuickPick(
+    compareItems(openDesignTabs(document), revisions, commits, repo !== undefined),
+    { title: `Compare ${path.basename(document.fileName)} with`, matchOnDescription: true }
+  );
+  const choice = picked?.choice;
+  if (!choice) {
     return undefined;
   }
-  const { choice } = picked;
+  if ('uri' in choice) {
+    return openBase(choice.uri);
+  }
   if ('ref' in choice) {
     return revisionBase(repo as GitRepository, choice.ref, choice.baseLabel, document.uri);
   }

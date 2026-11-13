@@ -8,19 +8,17 @@ const only = (key: 'instances' | 'ports' | 'segments', count: number): SystemGra
 };
 
 describe('changeSummaryText', () => {
-  it('names what differs, from the base', () => {
-    expect(changeSummaryText(zynqDiff(), 'HEAD')).toBe(
-      '4 blocks, 1 port and 3 address segments differ from HEAD.'
-    );
+  it('names what differs', () => {
+    expect(changeSummaryText(zynqDiff())).toBe('4 blocks, 1 port and 3 address segments differ.');
   });
 
   it('leaves out what has no change and counts a single thing', () => {
-    expect(changeSummaryText(only('instances', 1), 'v1')).toBe('1 block differs from v1.');
-    expect(changeSummaryText(only('segments', 2), 'v1')).toBe('2 address segments differ from v1.');
-    expect(changeSummaryText(only('ports', 1), 'v1')).toBe('1 port differs from v1.');
+    expect(changeSummaryText(only('instances', 1))).toBe('1 block differs.');
+    expect(changeSummaryText(only('segments', 2))).toBe('2 address segments differ.');
+    expect(changeSummaryText(only('ports', 1))).toBe('1 port differs.');
   });
 
   it('says so when nothing differs', () => {
-    expect(changeSummaryText(emptyDiff(), 'main')).toBe('No changes compared with main.');
+    expect(changeSummaryText(emptyDiff())).toBe('No changes.');
   });
 });

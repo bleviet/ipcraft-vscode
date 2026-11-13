@@ -2990,7 +2990,12 @@ describe('SystemDiagramApp', () => {
       fixtureText.split('axi_dma:7.1').join('axi_dma:7.2'),
       'zynq_dma_system.tcl'
     );
-    const compare = { baseLabel: 'v1.0', diff: diffSystemGraphs(base, graph) };
+    const compare = {
+      baseLabel: 'v1.0',
+      currentLabel: 'sys/zynq.tcl',
+      canSwap: true,
+      diff: diffSystemGraphs(base, graph),
+    };
     const changesTab = () => screen.getByRole('tab', { name: /^Changes/ });
 
     async function renderComparing() {
@@ -3032,6 +3037,13 @@ describe('SystemDiagramApp', () => {
       expect(mockPostMessage).toHaveBeenCalledWith({ type: 'startCompare' });
       fireEvent.click(screen.getByRole('button', { name: 'Exit compare' }));
       expect(mockPostMessage).toHaveBeenCalledWith({ type: 'stopCompare' });
+    });
+
+    it('posts swapCompare from the Swap button of the Changes tab', async () => {
+      await renderComparing();
+      mockPostMessage.mockClear();
+      fireEvent.click(screen.getByRole('button', { name: 'Swap' }));
+      expect(mockPostMessage).toHaveBeenCalledWith({ type: 'swapCompare' });
     });
 
     it('opens the Changes tab from the counts and expands a hidden panel', async () => {

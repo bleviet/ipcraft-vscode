@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
 import { changeRows } from '../../../../services/systemDiagram/diff/changeRows';
 import { ChangesTable } from '../../../../webview/systemDiagram/ChangesTable';
@@ -12,11 +12,17 @@ import { compareOf, emptyDiff, zynqDiff, zynqGraph, zynqReverseDiff } from './co
 
 function renderTable(
   diff = zynqDiff(),
-  options: { filter?: string; selection?: Selection | null; graph?: SystemGraph } = {}
+  options: {
+    filter?: string;
+    selection?: Selection | null;
+    graph?: SystemGraph;
+    canSwap?: boolean;
+  } = {}
 ) {
   const onSelectInstance = jest.fn();
   const onSelectPort = jest.fn();
-  const compare = compareOf(diff);
+  const onSwapCompare = jest.fn();
+  const compare = compareOf(diff, 'HEAD', { canSwap: options.canSwap });
   render(
     <ChangesTable
       graph={options.graph ?? zynqGraph('current')}
@@ -26,13 +32,19 @@ function renderTable(
       selection={options.selection ?? null}
       onSelectInstance={onSelectInstance}
       onSelectPort={onSelectPort}
+      onSwapCompare={onSwapCompare}
     />
   );
-  return { onSelectInstance, onSelectPort };
+  return { onSelectInstance, onSelectPort, onSwapCompare };
 }
 
 const dataRows = () =>
   screen.queryAllByRole('row').filter((row) => within(row).queryAllByRole('cell').length > 0);
+/** The address row of the segment `segment` of the space sys_ps7/Data. */
+const addressRow = (segment: string) =>
+  dataRows().find(
+    (row) => within(row).getAllByRole('cell')[2].textContent === `sys_ps7/Data → ${segment}`
+  )!;
 /** The row about `what` (its What column), the first one or the one whose Change contains `change`. */
 const rowOf = (what: string, change = '') =>
   dataRows().find((row) => {
@@ -43,9 +55,7 @@ const rowOf = (what: string, change = '') =>
 describe('ChangesTable', () => {
   it('summarizes the diff and lists a row per change with its columns', () => {
     renderTable();
-    expect(
-      screen.getByText('4 blocks, 1 port and 3 address segments differ from HEAD.')
-    ).toBeVisible();
+    expect(screen.getByText('4 blocks, 1 port and 3 address segments differ.')).toBeVisible();
     expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
       'Kind of change',
       'Where',
@@ -66,9 +76,90 @@ describe('ChangesTable', () => {
     ]);
     expect(within(rowOf('led_o')).getAllByRole('cell')[1]).toHaveTextContent('External ports');
     expect(
-      within(rowOf('sys_ps7/Data', 'gpio_block/axi_gpio_1/S_AXI/Reg')).getAllByRole('cell')[1]
+      within(addressRow('gpio_block/axi_gpio_1/S_AXI/Reg')).getAllByRole('cell')[1]
     ).toHaveTextContent('Address map');
     expect(within(rowOf('axi_gpio_1')).getAllByRole('cell')[0]).toHaveTextContent('v Version');
+  });
+
+  it('says which side is which, with the file names short and the full labels as titles', () => {
+    renderTable();
+    const direction = screen.getByRole('group', { name: 'Direction of the comparison' });
+    expect(direction).toHaveTextContent('Base HEAD → Current current.bd');
+    expect(within(direction).getByText('HEAD')).toHaveAttribute('title', 'HEAD');
+    expect(within(direction).getByText('current.bd')).toHaveAttribute('title', 'sys/current.bd');
+    expect(screen.getByRole('columnheader', { name: 'Base' })).toHaveAttribute('title', 'HEAD');
+    expect(screen.getByRole('columnheader', { name: 'Current' })).toHaveAttribute(
+      'title',
+      'sys/current.bd'
+    );
+  });
+
+  it('keeps the direction, the summary and the chips in one bar, the chips saying what they mean', () => {
+    renderTable(zynqDiff(), { canSwap: true });
+    const bar = screen.getByRole('group', { name: 'Direction of the comparison' }).parentElement!;
+    expect(bar).toHaveClass('sd-ubar');
+    expect(within(bar).getByRole('button', { name: 'Swap' })).toBeVisible();
+    expect(within(bar).getByText('4 blocks, 1 port and 3 address segments differ.')).toBeVisible();
+    const chips = within(bar)
+      .getAllByRole('button')
+      .filter((button) => button.hasAttribute('aria-pressed'));
+    expect(chips.map((chip) => [chip.textContent, chip.getAttribute('title')])).toEqual([
+      ['+ Added', 'Only in current'],
+      ['− Removed', 'Only in base'],
+      ['~ Changed', 'In both, but different'],
+      ['v Version only', 'Only the IP version differs'],
+    ]);
+    expect(screen.queryByText(/only in current ·/)).not.toBeInTheDocument();
+  });
+
+  it('cuts a long label in the middle and keeps the full one as the title', () => {
+    const long = `${'a'.repeat(40)}.1.bd`;
+    const diff = zynqDiff();
+    render(
+      <ChangesTable
+        graph={zynqGraph('current')}
+        compare={{ ...compareOf(diff, 'HEAD'), currentLabel: `sys/${long}` }}
+        rows={changeRows(diff, { ignoreVersionOnly: false })}
+        filter={null}
+        selection={null}
+        onSelectInstance={jest.fn()}
+        onSelectPort={jest.fn()}
+        onSwapCompare={jest.fn()}
+      />
+    );
+    const label = screen
+      .getByRole('group', { name: 'Direction of the comparison' })
+      .querySelector<HTMLElement>(`[title="sys/${long}"]`)!;
+    expect(label).toHaveTextContent(/^a{15}….*\.1\.bd$/);
+    expect([...label.textContent]).toHaveLength(32);
+  });
+
+  it('notes that the two sides are in different formats, also without changes', () => {
+    renderTable();
+    expect(screen.queryByText(/Different formats/)).not.toBeInTheDocument();
+    cleanup();
+    renderTable({ ...zynqDiff(), formatsDiffer: true });
+    expect(
+      screen.getByText('Different formats: only what both describe is comparable.')
+    ).toBeVisible();
+    cleanup();
+    renderTable({ ...emptyDiff(), formatsDiffer: true });
+    expect(screen.getByText('No changes.')).toBeVisible();
+    expect(screen.getByText(/Different formats/)).toBeVisible();
+  });
+
+  it('offers Swap only when the base is a file, and posts swapCompare', () => {
+    renderTable();
+    expect(screen.queryByRole('button', { name: 'Swap' })).not.toBeInTheDocument();
+    cleanup();
+    const { onSwapCompare } = renderTable(zynqDiff(), { canSwap: true });
+    const swap = screen.getByRole('button', { name: 'Swap' });
+    expect(swap).toHaveAttribute(
+      'title',
+      'Open the base as a diagram and compare it with this file'
+    );
+    fireEvent.click(swap);
+    expect(onSwapCompare).toHaveBeenCalledTimes(1);
   });
 
   it('keeps long values whole', () => {
@@ -79,7 +170,10 @@ describe('ChangesTable', () => {
 
   it('says so, with no table, when nothing differs', () => {
     renderTable(emptyDiff());
-    expect(screen.getByText('No changes compared with HEAD.')).toBeVisible();
+    expect(screen.getByText('No changes.')).toBeVisible();
+    expect(screen.getByRole('group', { name: 'Direction of the comparison' })).toHaveTextContent(
+      'Base HEAD → Current current.bd'
+    );
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Added' })).not.toBeInTheDocument();
   });
@@ -144,8 +238,7 @@ describe('ChangesTable', () => {
 
   it('does not select anything for what is not in this revision', () => {
     const { onSelectInstance, onSelectPort } = renderTable();
-    for (const text of ['axi_gpio_0', 'led_o', 'sys_ps7/Data']) {
-      const row = rowOf(text);
+    for (const row of [rowOf('axi_gpio_0'), rowOf('led_o'), addressRow('axi_gpio_0/S_AXI/Reg')]) {
       expect(row).toHaveAttribute('title', 'Not in this revision');
       expect(row).not.toHaveAttribute('tabindex');
       fireEvent.click(row);
@@ -169,15 +262,46 @@ describe('ChangesTable', () => {
   });
 
   describe('address segment rows', () => {
-    const segmentRow = () => rowOf('sys_ps7/Data', 'gpio_block/axi_gpio_1/S_AXI/Reg');
+    const segmentRow = () => addressRow('gpio_block/axi_gpio_1/S_AXI/Reg');
     const slave = () =>
       zynqGraph('current').addressSegments.find(
         (s) => s.segment === 'gpio_block/axi_gpio_1/S_AXI/Reg'
       )!.slaveInstance;
 
+    const changeWords = () =>
+      dataRows()
+        .filter((row) => within(row).getAllByRole('cell')[1].textContent === 'Address map')
+        .map((row) => within(row).getAllByRole('cell')[3].textContent)
+        .sort();
+
+    it('reads space → segment, with the change in words and the values as before', () => {
+      renderTable();
+      expect(
+        within(segmentRow())
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent)
+      ).toEqual([
+        '~ Changed',
+        'Address map',
+        'sys_ps7/Data → gpio_block/axi_gpio_1/S_AXI/Reg',
+        'address changed',
+        '0x41210000 · 0x00010000',
+        '0x41220000 · 0x00010000',
+      ]);
+      expect(
+        within(segmentRow()).getAllByRole('cell')[2].querySelectorAll('.sd-code')
+      ).toHaveLength(2);
+      expect(changeWords()).toEqual(['address changed', 'removed', 'removed']);
+    });
+
+    it('says added for a segment that only the current revision has', () => {
+      renderTable(zynqReverseDiff(), { graph: zynqGraph('base') });
+      expect(changeWords()).toEqual(['added', 'added', 'address changed']);
+    });
+
     it('selects the slave block of a segment that exists in the current revision', () => {
       const { onSelectInstance } = renderTable();
-      expect(segmentRow()).not.toHaveAttribute('title');
+      expect(segmentRow()).toHaveAttribute('title', `Selects ${slave()}`);
       fireEvent.click(segmentRow());
       expect(onSelectInstance).toHaveBeenCalledWith(slave());
     });
@@ -189,7 +313,7 @@ describe('ChangesTable', () => {
 
     it('does not select a removed segment, and says it is not in this revision', () => {
       const { onSelectInstance } = renderTable();
-      const removed = rowOf('sys_ps7/Data', 'axi_gpio_0/S_AXI/Reg');
+      const removed = addressRow('axi_gpio_0/S_AXI/Reg');
       expect(removed).toHaveAttribute('title', 'Not in this revision');
       fireEvent.click(removed);
       expect(onSelectInstance).not.toHaveBeenCalled();

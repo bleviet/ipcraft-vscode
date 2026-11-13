@@ -6,19 +6,19 @@ import type { ChangeRow, ChangeSign } from '../../services/systemDiagram/diff/ch
 const plural = (count: number, one: string, many = `${one}s`): string =>
   `${count} ${count === 1 ? one : many}`;
 
-/** `3 blocks, 1 port and 2 address segments differ from main.`; the empty diff says so. */
-export function changeSummaryText(diff: SystemGraphDiff, baseLabel: string): string {
+/** `3 blocks, 1 port and 2 address segments differ.`; the empty diff says so. */
+export function changeSummaryText(diff: SystemGraphDiff): string {
   const parts = [
     diff.instances.length > 0 && plural(diff.instances.length, 'block'),
     diff.ports.length > 0 && plural(diff.ports.length, 'port'),
     diff.segments.length > 0 && plural(diff.segments.length, 'address segment'),
   ].filter((part): part is string => part !== false);
   if (parts.length === 0) {
-    return `No changes compared with ${baseLabel}.`;
+    return 'No changes.';
   }
   const list =
     parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`;
-  return `${list} ${parts.length === 1 && diff.instances.length + diff.ports.length + diff.segments.length === 1 ? 'differs' : 'differ'} from ${baseLabel}.`;
+  return `${list} ${parts.length === 1 && diff.instances.length + diff.ports.length + diff.segments.length === 1 ? 'differs' : 'differ'}.`;
 }
 
 /**
@@ -31,11 +31,25 @@ export const CHANGE_KINDS: readonly {
   key: keyof DiffSummary;
   badge: string;
   chip: string;
+  /** What the kind means; the title of its chip. */
+  meaning: string;
 }[] = [
-  { sign: '+', key: 'added', badge: 'Added', chip: 'Added' },
-  { sign: '−', key: 'removed', badge: 'Removed', chip: 'Removed' },
-  { sign: '~', key: 'changed', badge: 'Changed', chip: 'Changed' },
-  { sign: 'v', key: 'version', badge: 'Version', chip: 'Version only' },
+  { sign: '+', key: 'added', badge: 'Added', chip: 'Added', meaning: 'Only in current' },
+  { sign: '−', key: 'removed', badge: 'Removed', chip: 'Removed', meaning: 'Only in base' },
+  {
+    sign: '~',
+    key: 'changed',
+    badge: 'Changed',
+    chip: 'Changed',
+    meaning: 'In both, but different',
+  },
+  {
+    sign: 'v',
+    key: 'version',
+    badge: 'Version',
+    chip: 'Version only',
+    meaning: 'Only the IP version differs',
+  },
 ];
 
 /** The word of the badge of a change row's sign. */
@@ -51,3 +65,10 @@ export function changeWhere(row: ChangeRow): string {
       ? 'External ports'
       : (row.level ?? '');
 }
+
+/** What an address row says about its segment, from the sign. */
+export const addressChangeWord = (sign: ChangeSign): string =>
+  sign === '+' ? 'added' : sign === '−' ? 'removed' : 'address changed';
+
+/** Shown in the Changes tab when the two sides are files of different formats. */
+export const FORMATS_DIFFER_NOTE = 'Different formats: only what both describe is comparable.';

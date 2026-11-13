@@ -45,6 +45,7 @@ interface WorkbenchLayoutProps {
   compare?: DiagramCompare;
   onStartCompare: () => void;
   onStopCompare: () => void;
+  onSwapCompare: () => void;
 }
 
 const EMPTY_HIGHLIGHTS: HighlightMap = {};
@@ -61,6 +62,7 @@ export function WorkbenchLayout({
   compare,
   onStartCompare,
   onStopCompare,
+  onSwapCompare,
 }: WorkbenchLayoutProps) {
   const nav = useDiagramNavigation(graph);
   const levelHistory = useLevelHistory(graph, nav.levelPath, nav.navigate);
@@ -327,7 +329,7 @@ export function WorkbenchLayout({
                 onSelectPin={selectFinding}
                 onSelectNet={selectNet}
                 onReveal={revealSource}
-                changes={compare && { compare, onSelectPort: selectPort }}
+                changes={compare && { compare, onSelectPort: selectPort, onSwapCompare }}
               />
             </div>
           </>

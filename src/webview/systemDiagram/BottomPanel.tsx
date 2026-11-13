@@ -33,7 +33,11 @@ interface BottomPanelProps {
   onSelectNet: (netId: string, focus?: { nodeId: string; pin: string }) => void;
   onReveal: (line: number, uri?: string) => void;
   /** While a comparison is on: its changes, listed in the first tab, and the way to select an external port. */
-  changes?: { compare: DiagramCompare; onSelectPort: (name: string) => void };
+  changes?: {
+    compare: DiagramCompare;
+    onSelectPort: (name: string) => void;
+    onSwapCompare: () => void;
+  };
 }
 
 export function BottomPanel({
@@ -126,6 +130,7 @@ export function BottomPanel({
             selection={selection}
             onSelectInstance={onSelectInstance}
             onSelectPort={changes.onSelectPort}
+            onSwapCompare={changes.onSwapCompare}
           />
         ) : tab === 'address' ? (
           <AddressMapTable

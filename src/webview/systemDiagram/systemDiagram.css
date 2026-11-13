@@ -852,6 +852,10 @@ input:focus-visible {
   border-bottom: 1px solid var(--vscode-panel-border);
 }
 
+.sd-label {
+  white-space: nowrap;
+}
+
 .sd-chip {
   padding: 1px 9px;
   font-size: 12px;
@@ -1131,7 +1135,36 @@ input:focus-visible {
   white-space: nowrap;
 }
 
-/* Long values break anywhere in Base and Current; the other columns keep whole words. */
+/* Where stays on one line, and What too when the viewer is wide. When it is narrow, What and
+   Change wrap, inside a long name if they must, so that Base and Current stay in view. Long
+   values break anywhere in Base and Current. */
+.sd-changes td:nth-child(2) {
+  white-space: nowrap;
+}
+
+@media (min-width: 1200px) {
+  .sd-changes td:nth-child(-n + 3) {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1199px) {
+  .sd-changes td:nth-child(3),
+  .sd-changes td:nth-child(4) {
+    overflow-wrap: anywhere;
+  }
+
+  /* Without a share of its own, the long values of Base and Current squeeze What to its floor. */
+  .sd-changes td:nth-child(3) {
+    width: 34%;
+    min-width: 32ch;
+  }
+
+  .sd-changes td:nth-child(4) {
+    min-width: 18ch;
+  }
+}
+
 .sd-changes .sd-wrap {
   min-width: 16ch;
   overflow-wrap: anywhere;

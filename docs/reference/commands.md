@@ -267,7 +267,7 @@ Available build targets:
 
 **Preview in IPCraft** — Opens a `_hw.tcl`, `component.xml`, VHDL, Verilog, or SystemVerilog file as a read-only IP core preview, from which you can save an `.ip.yml`. The same as `Ctrl+Shift+V` (`Cmd+Shift+V`) on those files. Experimental.
 
-**Compare System Design with...** — Asks what to compare the open system diagram with (HEAD, the merge base with the default branch, a branch or tag, a typed revision, or another file) and lists the differences in the **Changes** tab of the bottom panel. The same as the **Compare** button in the toolbar. See [Viewing a System Design](../how-to/view-a-system-design.md#compare-with-another-revision).
+**Compare System Design with...** — Asks what to compare the open system diagram (the current side) with, as the base: another open design, HEAD, the merge base with the default branch, a commit that changed the file, a branch or tag, a typed revision, or another file, and lists the differences in the **Changes** tab of the bottom panel. The same as the **Compare** button in the toolbar. See [Viewing a System Design](../how-to/view-a-system-design.md#compare-with-another-revision).
 
 **Export Diagram as Image** — Opens the export options of the active IP core editor or system diagram (the same popover as the camera button in the toolbar) to save the diagram as an SVG, PNG or JPG file. See [Viewing a System Design](../how-to/view-a-system-design.md#export-an-image).
 
