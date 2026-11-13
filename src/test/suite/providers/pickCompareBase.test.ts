@@ -156,6 +156,10 @@ describe('escapeIcons', () => {
 
 describe('pickCompareBase', () => {
   beforeEach(() => {
+    (vscode.window.withProgress as jest.Mock).mockImplementation(
+      (_options: unknown, task: () => Promise<unknown>) => task()
+    );
+    (vscode.workspace as { textDocuments: unknown }).textDocuments = [];
     (vscode.Uri.joinPath as jest.Mock).mockReturnValue({ fsPath: '/ws/sys' });
     (vscode.workspace.asRelativePath as jest.Mock).mockImplementation(
       (file: { fsPath: string } | string) =>
@@ -250,6 +254,37 @@ describe('pickCompareBase', () => {
       defaultUri: { fsPath: '/ws/sys' },
       filters: { 'System designs': ['bd', 'tcl', 'qsys'] },
     });
+  });
+
+  it('shows progress in the status bar while the git repository is read', async () => {
+    inRepository(true);
+    quickPick.mockResolvedValue(undefined);
+    await pickCompareBase(document);
+    expect(vscode.window.withProgress).toHaveBeenCalledWith(
+      { location: vscode.ProgressLocation.Window, title: 'Reading the git repository…' },
+      expect.any(Function)
+    );
+    expect(git.openRepository).toHaveBeenCalledWith(document.uri);
+  });
+
+  it('reads the text of the picked file from its open tab, not from the disk', async () => {
+    inRepository(false);
+    pickLabel('Compare with File…');
+    const picked = uriOf('/ws/old/other.bd');
+    (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([picked]);
+    (vscode.workspace as { textDocuments: unknown }).textDocuments = [
+      { uri: uriOf('/ws/old/else.bd'), getText: () => 'wrong tab' },
+      { uri: uriOf('/ws/old/other.bd'), getText: () => 'unsaved text' },
+    ];
+    (vscode.workspace.fs.readFile as jest.Mock).mockResolvedValue(
+      new TextEncoder().encode('disk text')
+    );
+    expect(await pickCompareBase(document)).toEqual({
+      text: 'unsaved text',
+      label: 'old/other.bd',
+      file: picked,
+    });
+    expect(vscode.workspace.fs.readFile).not.toHaveBeenCalled();
   });
 
   it('does nothing when the open dialog is cancelled', async () => {

@@ -112,8 +112,10 @@ async function fileBase(document: vscode.TextDocument): Promise<CompareBase | un
   if (!file) {
     return undefined;
   }
+  // An open tab holds the text the user sees, which may differ from the file on disk.
+  const open = vscode.workspace.textDocuments.find((d) => d.uri.toString() === file.toString());
   return {
-    text: new TextDecoder().decode(await vscode.workspace.fs.readFile(file)),
+    text: open?.getText() ?? new TextDecoder().decode(await vscode.workspace.fs.readFile(file)),
     label: vscode.workspace.asRelativePath(file, false),
     file,
   };
@@ -123,7 +125,11 @@ async function fileBase(document: vscode.TextDocument): Promise<CompareBase | un
 export async function pickCompareBase(
   document: vscode.TextDocument
 ): Promise<CompareBase | undefined> {
-  const repo = await openRepository(document.uri);
+  // The git extension can take a few seconds to find its repositories.
+  const repo = await vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Window, title: 'Reading the git repository…' },
+    () => openRepository(document.uri)
+  );
   // Without the lists the picker still offers a typed revision and the file.
   const [revisions, commits] = repo
     ? await Promise.all([

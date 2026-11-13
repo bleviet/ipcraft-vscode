@@ -153,6 +153,25 @@ describe('listRevisions', () => {
     expect(remote.getMergeBase).toHaveBeenCalledWith('HEAD', 'origin/main');
   });
 
+  it('does not take a remote branch below a folder for the default branch', async () => {
+    const nested = repo({
+      getRefs: jest.fn().mockResolvedValue([
+        { name: 'origin/feature/main', type: 1 },
+        { name: 'origin/master', type: 1 },
+      ]),
+    });
+    await listRevisions(nested, uri);
+    expect(nested.getMergeBase).toHaveBeenCalledWith('HEAD', 'origin/master');
+    const named = repo({
+      getRefs: jest.fn().mockResolvedValue([
+        { name: 'up/stream/main', type: 1, remote: 'up/stream' },
+        { name: 'origin/feature/main', type: 1, remote: 'origin' },
+      ]),
+    });
+    await listRevisions(named, uri);
+    expect(named.getMergeBase).toHaveBeenCalledWith('HEAD', 'up/stream/main');
+  });
+
   it('reads state.refs when getRefs does not exist', async () => {
     const r = repo({
       getRefs: undefined,

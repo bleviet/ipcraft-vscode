@@ -69,6 +69,14 @@ const plain = (text: string): CellPart => ({ text });
 const code = (text: string): CellPart => ({ text, code: true });
 const NOT_CONNECTED: CellPart = plain('not connected');
 
+/** Element-wise equality: a label with a comma cannot make two different lists equal. */
+function samePeers(a: string[] | undefined, b: string[] | undefined): boolean {
+  if (a === undefined || b === undefined) {
+    return a === b;
+  }
+  return a.length === b.length && a.every((peer, i) => peer === b[i]);
+}
+
 /** One item of code parts, or no item for a value that does not exist. */
 const value = (text: string | undefined): Cell => (text === undefined ? [] : [[code(text)]]);
 
@@ -106,8 +114,7 @@ function portCell(port: PortChange, side: 'base' | 'current'): Cell {
   const items: Cell = port.attributes
     .filter((a) => a[side] !== undefined)
     .map((a) => [plain(`${a.key} `), code(a[side] as string)]);
-  const peersDiffer =
-    port.status !== 'changed' || port.basePeers?.join() !== port.currentPeers?.join();
+  const peersDiffer = port.status !== 'changed' || !samePeers(port.basePeers, port.currentPeers);
   if (peersDiffer || items.length === 0) {
     items.push(
       peers.length === 0 ? [NOT_CONNECTED] : [plain('connects to '), code(peers.join(', '))]
@@ -146,7 +153,7 @@ function pinRows(change: InstanceChange, block: BlockRow): ChangeRow[] {
   const sign = whole ? SIGNS[change.status as 'added' | 'removed'] : '~';
   return change.pins.flatMap((pin) => {
     const rows: ChangeRow[] = [];
-    const peersDiffer = pin.basePeers?.join('\u0000') !== pin.currentPeers?.join('\u0000');
+    const peersDiffer = !samePeers(pin.basePeers, pin.currentPeers);
     if (pin.status !== 'changed' || peersDiffer) {
       const what = whole || pin.status === 'changed' ? 'connects to' : pin.status;
       rows.push({

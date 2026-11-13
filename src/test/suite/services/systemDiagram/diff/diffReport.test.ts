@@ -140,6 +140,48 @@ describe('diffToMarkdown', () => {
     );
   });
 
+  describe('values with line breaks and backticks', () => {
+    const reportOf = (key: string, base: string, current: string) => {
+      const diff = diffSystemGraphs(
+        read('nios_base.qsys', 'nios_system.qsys'),
+        read('nios_base.qsys', 'nios_system.qsys')
+      );
+      diff.instances.push({
+        path: '/a',
+        level: '/',
+        status: 'changed',
+        baseType: 't',
+        currentType: 't',
+        parameters: [{ key, base, current }],
+        pins: [],
+      });
+      diff.summary.changed = 1;
+      return diffToMarkdown(diff, LABELS, KEEP);
+    };
+
+    it('writes a line break in a value as a space, so the row stays one line', () => {
+      expect(reportOf('K', 'set a 1\r\nset b 2\n\n', 'z')).toContain(
+        '| ~ | `a` | parameter `K` | `set a 1 set b 2 ` | `z` |'
+      );
+    });
+
+    it('writes a lone carriage return as a space too', () => {
+      expect(reportOf('K', 'a\rb', 'z')).toContain('| ~ | `a` | parameter `K` | `a b` | `z` |');
+    });
+
+    it('fences a value that contains backticks with a longer run', () => {
+      expect(reportOf('K', 'a`b', 'x``y')).toContain(
+        '| ~ | `a` | parameter `K` | ``a`b`` | ```x``y``` |'
+      );
+    });
+
+    it('pads a value that starts or ends with a backtick', () => {
+      expect(reportOf('K', '`a', 'b`')).toContain(
+        '| ~ | `a` | parameter `K` | `` `a `` | `` b` `` |'
+      );
+    });
+  });
+
   it('notes that the revisions use different formats', () => {
     const diff = diffSystemGraphs(
       read('nios_base.qsys', 'nios_system.qsys'),

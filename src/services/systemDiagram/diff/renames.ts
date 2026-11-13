@@ -20,14 +20,33 @@ import { diffWithoutRenames } from './diffWithoutRenames';
 const lastName = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
 
 /**
- * A copy of `graph` in which the block at `from`, and everything below it when it is a
- * hierarchy, has the path `to` (the same parent level, another name). Instance and level
- * keys, paths, names and child lists, net endpoints and the levels and ids of the nets of
- * a renamed level, and address segments follow; nothing else changes.
+ * A copy of `graph` in which every block that is a key of `renames` (from path -> to path), and
+ * everything below it when it is a hierarchy, has its new path (the same parent level, another
+ * name). Instance and level keys, paths, names and child lists, net endpoints and the levels
+ * and ids of the nets of a renamed level, and address segments follow; nothing else changes.
+ * One pass over the graph, whatever the number of renames. The keys must not lie below each
+ * other (a path is renamed by its nearest renamed ancestor-or-self); `findRenames` pairs only
+ * the topmost block of a renamed subtree, so its keys never do.
  */
-export function renameInstance(graph: SystemGraph, from: string, to: string): SystemGraph {
-  const affected = (path: string): boolean => path === from || path.startsWith(`${from}/`);
-  const mapPath = (path: string): string => (affected(path) ? to + path.slice(from.length) : path);
+export function renameInstances(
+  graph: SystemGraph,
+  renames: ReadonlyMap<string, string>
+): SystemGraph {
+  // The renamed block that `path` is or lies below: the nearest of its prefixes cut at a `/`.
+  const renamedRoot = (path: string): string | undefined => {
+    for (let end = path.length; end > 0; end = path.lastIndexOf('/', end - 1)) {
+      const from = path.slice(0, end);
+      if (renames.has(from)) {
+        return from;
+      }
+    }
+    return undefined;
+  };
+  const affected = (path: string): boolean => renamedRoot(path) !== undefined;
+  const mapPath = (path: string): string => {
+    const from = renamedRoot(path);
+    return from === undefined ? path : (renames.get(from) as string) + path.slice(from.length);
+  };
   // The text of an address space or segment starts with the spelling of its owning instance
   // (the path without the leading slash) and a separator: `/` in a Vivado design (`a/b/S_AXI/Reg`),
   // `.` in a Platform Designer one (`cpu.data_master`), with a subsystem prefix `sub/` when grafted.
@@ -43,7 +62,10 @@ export function renameInstance(graph: SystemGraph, from: string, to: string): Sy
       ? text.slice(0, lead) + mapPath(owner).slice(1) + text.slice(lead + spelled.length)
       : text;
   };
-  const mapName = (path: string, name: string): string => (path === from ? lastName(to) : name);
+  const mapName = (path: string, name: string): string => {
+    const to = renames.get(path);
+    return to === undefined ? name : lastName(to);
+  };
 
   const instances = Object.fromEntries(
     Object.entries(graph.instances).map(([key, i]): [string, SystemInstance] => [
@@ -134,11 +156,17 @@ export function findRenames(
 ): { renames: InstanceChange[]; diff: SystemGraphDiff } {
   let pairs = candidatePairs(base, current, plain);
   while (pairs.length > 0) {
-    const renamedBase = pairs.reduce((g, [from, to]) => renameInstance(g, from, to), base);
+    const renamedBase = renameInstances(base, new Map(pairs));
     const diff = diffWithoutRenames(renamedBase, current, new Map(pairs.map(([f, t]) => [t, f])));
-    const kept = pairs.filter(
-      ([, to]) => !diff.instances.some((i) => i.path === to || i.path.startsWith(`${to}/`))
-    );
+    // The changed blocks and all their ancestors: a pair is dropped when its added block is one.
+    const touched = new Set<string>();
+    for (const { path } of diff.instances) {
+      for (let end = path.length; end > 0 && !touched.has(path.slice(0, end)); ) {
+        touched.add(path.slice(0, end));
+        end = path.lastIndexOf('/', end - 1);
+      }
+    }
+    const kept = pairs.filter(([, to]) => !touched.has(to));
     if (kept.length === pairs.length) {
       const renames = pairs.map(([from, to]): InstanceChange => {
         const type = instanceType(current.instances[to]);

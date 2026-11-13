@@ -17,6 +17,20 @@ const NEW_WIRE_COLOR = 'var(--sd-change-added)';
 const HALO_EXTRA_WIDTH = 4;
 const HALO_OPACITY = 0.3;
 
+/**
+ * The color of a wire with the new-wire mark: a new wire takes the added color unless the
+ * selection, a highlight, a crossing or a clock domain color already says something with it.
+ */
+function markedStroke(data: ElkEdgeData, selected: boolean | undefined, plainStroke: string) {
+  const takesAddedColor =
+    data.changeNew &&
+    selected !== true &&
+    plainStroke !== data.highlightColor &&
+    !data.crossing &&
+    data.domainColor === undefined;
+  return takesAddedColor ? NEW_WIRE_COLOR : plainStroke;
+}
+
 export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
   if (!data) {
     return null;
@@ -38,18 +52,10 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
   const plainStroke = data.crossing
     ? CROSSING_COLOR
     : (data.highlightColor ?? (fullColor ? baseColor : restingWireColor(baseColor)));
-  // A new wire is wider; it takes the added color unless the selection, a highlight, a crossing or
-  // a clock domain color already says something with it.
-  const markedColor =
-    data.changeNew && selected !== true && plainStroke !== data.highlightColor && !data.crossing
-      ? data.domainColor === undefined
-        ? NEW_WIRE_COLOR
-        : plainStroke
-      : plainStroke;
+  const stroke = markedStroke(data, selected, plainStroke);
   const ownWidth = width + (data.changeNew ? NEW_WIRE_WIDTH : 0);
-  const stroke = markedColor;
   // Only the wire's own points are marked: the lead is drawn over by them.
-  const split = data.lead !== undefined && (stroke !== plainStroke || ownWidth !== width);
+  const split = data.lead !== undefined && data.changeNew === true;
   const dash = data.crossing ? DASHED : undefined;
   const faded = data.dimmed && !selected;
   return (

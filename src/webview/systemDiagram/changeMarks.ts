@@ -92,9 +92,13 @@ export function pinChangeAttributes(mark: PinChangeMark | undefined): {
 export const markSign = (status: MarkStatus): string => KINDS[status].sign;
 /** The name of a status (`Added`, `Changed`, `Renamed`, `Version only`). */
 export const markName = (status: MarkStatus): string => KINDS[status].chip;
+/** The label of the count of changes below a hierarchy block. */
+export const insideLabel = (count: number): string =>
+  `${count} ${count === 1 ? 'change' : 'changes'} inside`;
 
 const plural = (count: number, one: string): string => `${count} ${one}${count === 1 ? '' : 's'}`;
 const lastName = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
+const lowerFirst = (text: string): string => text.charAt(0).toLowerCase() + text.slice(1);
 
 /** The key of the gained peers of a pin: an instance pin by path, a boundary pin by its level. */
 export function gainKey(level: string, end: { instance: string | null; pin: string }): string {
@@ -199,6 +203,8 @@ function pinMarks(pins: readonly PinChange[], inside: boolean): Record<string, P
 /** The marks of the whole design for `diff`, which `graph` is the current side of. */
 export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): ChangeMarks {
   const statuses = new Map<string, Omit<BlockMarks, 'inside'>>();
+  /** The title a version-only or renamed block takes when an address change promotes it. */
+  const promotedTitles = new Map<string, string>();
   const inside = new Map<string, number>();
   const removed = new Map<string, number>();
   const gained = new Map<string, Set<string>>();
@@ -221,6 +227,9 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
         pins: withPins ? pinMarks(change.pins, false) : {},
         ...(withPins && Object.keys(insidePins).length > 0 && { insidePins }),
       });
+      if (change.status === 'version' || change.status === 'renamed') {
+        promotedTitles.set(change.path, promotedTitle(change));
+      }
     }
     for (const pin of change.pins) {
       gain(
@@ -254,20 +263,19 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
   }
   for (const [slave, titles] of segmentTitles) {
     const known = statuses.get(slave);
-    const text = titles.join(', ');
+    // Only the first text of a title is capitalized: `Address changed, address segment removed`.
+    const [first = '', ...rest] = titles;
+    const text = [first, ...rest.map(lowerFirst)].join(', ');
     // An address change makes a version-only or renamed block a changed one.
-    const promoted =
-      known?.status === 'version' || known?.status === 'renamed'
-        ? diff.instances.find((change) => change.path === slave)
-        : undefined;
-    const lead = promoted ? promotedTitle(promoted) : (known?.title ?? '');
+    const promoted = promotedTitles.get(slave);
+    const lead = promoted ?? known?.title ?? '';
     statuses.set(
       slave,
       known
         ? {
             ...known,
-            ...(promoted && { status: 'changed' as const }),
-            title: `${lead}, ${text.charAt(0).toLowerCase()}${text.slice(1)}`,
+            ...(promoted !== undefined && { status: 'changed' as const }),
+            title: `${lead}, ${lowerFirst(text)}`,
           }
         : { status: 'changed', title: text, pins: {} }
     );

@@ -26,6 +26,12 @@ function git(cwd: string, args: string[]): Promise<GitResult> {
   });
 }
 
+/** `: <first line of git's message>`, or nothing when git said nothing. */
+function reason(result: GitResult): string {
+  const first = result.stderr.trim().split('\n')[0].trim();
+  return first ? `: ${first}` : '';
+}
+
 /** The text of `filePath` at the git revision `ref`, read from the repository that contains the file. */
 export async function readGitFile(filePath: string, ref: string): Promise<string> {
   if (ref.startsWith('-')) {
@@ -41,7 +47,7 @@ export async function readGitFile(filePath: string, ref: string): Promise<string
     throw new Error(`git could not be started in '${cwd}' (is git installed?)`);
   }
   if (prefix.failure !== undefined) {
-    throw new Error(`'${filePath}' is not in a git repository`);
+    throw new Error(`'${filePath}' is not in a git repository${reason(prefix)}`);
   }
   const revision = await git(cwd, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
   if (revision.failure !== undefined) {
@@ -52,7 +58,7 @@ export async function readGitFile(filePath: string, ref: string): Promise<string
     `${ref}:${prefix.stdout.replace(/\n$/, '')}${path.basename(absolute)}`,
   ]);
   if (shown.failure !== undefined) {
-    throw new Error(`'${filePath}' does not exist at ${ref}`);
+    throw new Error(`'${filePath}' does not exist at ${ref}${reason(shown)}`);
   }
   return shown.stdout;
 }

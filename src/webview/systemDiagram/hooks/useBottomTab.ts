@@ -3,9 +3,11 @@ import type { BottomTab } from '../BottomPanel';
 
 /**
  * The bottom panel's tab. The Changes tab exists while a comparison is on (`baseLabel` is set):
- * starting one, or picking another base, opens the panel on it; a new diff of the same base
- * (a document edit) leaves the tab alone. Ending the comparison while it is selected falls back
- * to the Address map. `openTab` selects a tab and expands the panel when it is hidden.
+ * starting one, or picking a base with another label, opens the panel on it; a new diff of the
+ * same base (a document edit) leaves the tab alone, and so does picking a base with the same
+ * label again: the messages carry nothing else that tells the two apart. Ending the
+ * comparison while it is selected falls back to the Address map. `openTab` selects a tab and
+ * expands the panel when it is hidden.
  */
 export function useBottomTab(
   baseLabel: string | undefined,

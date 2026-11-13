@@ -363,9 +363,13 @@ network access and nothing is checked out.
 
 Limits for now: workspace definitions (`.ip.yml`, HDL, `.qsys`) are not used, so
 only the pins the design files list are compared. A file that does not exist at
-the base revision is an error (`'<file>' does not exist at <ref>`), not a design
-with everything added, and a file that was renamed or moved between the
-revisions is not followed. The concept is in
+the base revision is an error (`'<file>' does not exist at <ref>`, followed by
+git's own reason), not a design with everything added, and a file that was
+renamed or moved between the revisions is not followed. The path given to
+`git show` is the spelling on the command line, so on a case-insensitive file
+system a path with the wrong case is found on disk but not at the revision. A
+file stored with Git LFS is read as its pointer text and reported as not a
+recognized system design. The concept is in
 [System Design Diff](../concepts/brainstorm/system-design-diff.md).
 
 ## Upgrade files to the latest format

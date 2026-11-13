@@ -28,9 +28,7 @@ export function useCompareView(
   const rows = useMemo(() => (diff ? changeRows(diff, { ignoreVersionOnly: false }) : []), [diff]);
   const [offFor, setOffFor] = useState<string | null>(null);
   useEffect(() => {
-    if (baseLabel === undefined) {
-      setOffFor(null);
-    }
+    setOffFor(null);
   }, [baseLabel]);
   const marksOn = baseLabel !== undefined && offFor !== baseLabel;
   const setMarksOn = useCallback(

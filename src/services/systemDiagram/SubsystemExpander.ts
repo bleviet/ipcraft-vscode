@@ -30,6 +30,11 @@ export class SubsystemExpander {
     this.logger
   );
 
+  /** Changes whenever the files or their content may have changed. */
+  get revision(): number {
+    return this.index.revision;
+  }
+
   files(): Promise<QsysEntry<vscode.Uri>[]> {
     return this.index.get();
   }

@@ -13,6 +13,7 @@ const BASE = path.join(fixtures, 'zynq_gpio_base.bd');
 const CURRENT = path.join(fixtures, 'zynq_gpio_current.bd');
 const golden = (file: string) => fs.readFileSync(path.join(fixtures, file), 'utf8');
 const GOLDEN_LABELS = 'Comparing `HEAD` (base) with `working tree`.';
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const gitAvailable = spawnSync('git', ['--version']).status === 0;
 
 let tmp: string;
@@ -132,12 +133,15 @@ describe('ipcraft diff command', () => {
   });
 
   it('exits with 1 and names the problem on an error', async () => {
-    const error = jest.spyOn(console, 'error');
-    expect(await main(['diff', BASE, path.join(tmp, 'gone.bd')])).toBe(1);
-    expect(error).toHaveBeenCalledWith(
-      expect.stringContaining('Diff failed: Input file not found')
-    );
-    error.mockClear();
+    const error = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      expect(await main(['diff', BASE, path.join(tmp, 'gone.bd')])).toBe(1);
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining('Diff failed: Input file not found')
+      );
+    } finally {
+      error.mockRestore();
+    }
   });
 });
 
@@ -185,10 +189,11 @@ describeGit('ipcraft diff against a git revision', () => {
   it('fails outside a git repository', async () => {
     const lonely = path.join(tmp, 'lonely.qsys');
     fs.copyFileSync(path.join(fixtures, 'nios_base.qsys'), lonely);
-    expect(await runCliDiff(files({ files: [lonely], baseRef: 'HEAD' }))).toEqual({
-      success: false,
-      error: `'${lonely}' is not in a git repository`,
-    });
+    const result = await runCliDiff(files({ files: [lonely], baseRef: 'HEAD' }));
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(
+      new RegExp(`^'${escapeRegExp(lonely)}' is not in a git repository: .*not a git repository`)
+    );
   });
 
   it('fails for a revision that does not exist', async () => {
@@ -201,9 +206,32 @@ describeGit('ipcraft diff against a git revision', () => {
   it('fails for a file that does not exist at the revision', async () => {
     const added = path.join(repo, 'bd/new.qsys');
     fs.copyFileSync(path.join(fixtures, 'nios_base.qsys'), added);
-    expect(await runCliDiff(gitArgs({ files: [added], baseRef: 'HEAD' }))).toEqual({
+    const result = await runCliDiff(gitArgs({ files: [added], baseRef: 'HEAD' }));
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(
+      new RegExp(`^'${escapeRegExp(added)}' does not exist at HEAD: .*bd/new\\.qsys`)
+    );
+  });
+
+  it('names the file and the revision of the current side in a parse error', async () => {
+    const own = fs.mkdtempSync(path.join(tmp, 'repo-'));
+    const run = (...args: string[]) =>
+      expect(spawnSync('git', ['-c', 'commit.gpgsign=false', ...args], { cwd: own }).status).toBe(
+        0
+      );
+    const file = path.join(own, 'x.qsys');
+    run('init', '-q');
+    run('config', 'user.email', 'test@example.com');
+    run('config', 'user.name', 'Test');
+    fs.copyFileSync(path.join(fixtures, 'nios_base.qsys'), file);
+    run('add', '.');
+    run('commit', '-q', '-m', 'valid');
+    fs.writeFileSync(file, '{}');
+    run('commit', '-q', '-a', '-m', 'broken');
+    const result = await runCliDiff(files({ files: [file], baseRef: 'HEAD~1', headRef: 'HEAD' }));
+    expect(result).toEqual({
       success: false,
-      error: `'${added}' does not exist at HEAD`,
+      error: `'${file} at HEAD' is not a recognized system design`,
     });
   });
 

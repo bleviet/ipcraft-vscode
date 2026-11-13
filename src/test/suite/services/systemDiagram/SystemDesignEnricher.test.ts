@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { readQsys } from '../../../../parser/system/QsysReader';
+import { SubsystemExpander } from '../../../../services/systemDiagram/SubsystemExpander';
 import { SystemDesignEnricher } from '../../../../services/systemDiagram/SystemDesignEnricher';
 import { readFileSync } from 'fs';
 import * as path from 'path';
@@ -180,6 +181,40 @@ describe('SystemDesignEnricher', () => {
     expect((workspace.findFiles.mock.calls as string[][]).map((call) => call[0])).toEqual([
       IP_GLOB,
     ]);
+  });
+
+  it('changes its revision with a definition file or the trust of the workspace', async () => {
+    const { workspace, fire } = setup({
+      '/ws/my_core.ip.yml': IP_YML,
+      '/ws/rtl/pulse_gen.vhd': PULSE_VHDL,
+    });
+    const enricher = new SystemDesignEnricher();
+    await enricher.enrich(bdGraph, DESIGN);
+    const built = enricher.revision;
+    expect(enricher.revision).toBe(built);
+    await fire(IP_GLOB, 'change', '/ws/my_core.ip.yml');
+    const afterIp = enricher.revision;
+    expect(afterIp).not.toBe(built);
+    await fire(HDL_GLOB, 'change', '/ws/rtl/pulse_gen.vhd');
+    const afterHdl = enricher.revision;
+    expect(afterHdl).not.toBe(afterIp);
+    workspace.isTrusted = false;
+    expect(enricher.revision).not.toBe(afterHdl);
+  });
+
+  it('changes its revision with the subsystem index and on dispose', () => {
+    setup({});
+    const enricher = new SystemDesignEnricher();
+    const before = enricher.revision;
+    const qsys = jest.spyOn(SubsystemExpander.prototype, 'revision', 'get').mockReturnValue(7);
+    try {
+      expect(enricher.revision).not.toBe(before);
+    } finally {
+      qsys.mockRestore();
+    }
+    const restored = enricher.revision;
+    enricher.dispose();
+    expect(enricher.revision).not.toBe(restored);
   });
 
   it('creates each watcher once, however often files change', async () => {

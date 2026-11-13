@@ -2,7 +2,7 @@ import React from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ChangeRow } from '../../services/systemDiagram/diff/changeRows';
 import { CellView } from './ChangeCell';
-import { insideLabel } from './ChangeBadges';
+import { insideLabel } from './changeMarks';
 import { blockOfRow, type ResolvedTarget, type SegmentOwners } from './changeTargets';
 
 interface InstanceChangesProps {

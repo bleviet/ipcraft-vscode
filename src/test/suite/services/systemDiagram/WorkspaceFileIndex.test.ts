@@ -149,6 +149,65 @@ describe('WorkspaceFileIndex', () => {
     expect(skipWarnings).toHaveLength(1);
   });
 
+  describe('revision', () => {
+    const onChange = (workspace: ReturnType<typeof setup>['workspace']) =>
+      (
+        workspace.createFileSystemWatcher.mock.results[0].value as {
+          onDidChange: jest.Mock;
+        }
+      ).onDidChange.mock.calls[0][0] as (u: vscode.Uri) => void;
+
+    it('stays the same while nothing changes, also when the index is built', async () => {
+      const { read, logger } = setup(['/ws/a.vhd']);
+      const index = new WorkspaceFileIndex('**/*.vhd', 10, read, logger);
+      const before = index.revision;
+      await index.get();
+      await index.get();
+      expect(index.revision).toBe(before);
+    });
+
+    it('increases when a watcher event arrives and again when its update has finished', async () => {
+      const { workspace, read, logger } = setup(['/ws/a.vhd']);
+      workspace.getWorkspaceFolder.mockReturnValue(undefined);
+      const index = new WorkspaceFileIndex('**/*.vhd', 10, read, logger);
+      await index.get();
+      const built = index.revision;
+      let finish: (text: string) => void = () => undefined;
+      read.mockImplementation(() => new Promise<string>((resolve) => (finish = resolve)));
+      onChange(workspace)(uri('/ws/a.vhd'));
+      expect(index.revision).toBe(built + 1);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(index.revision).toBe(built + 1);
+      finish('new text');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(index.revision).toBe(built + 2);
+      expect(await index.get()).toEqual(['new text']);
+    });
+
+    it('does not change for an ignored path', async () => {
+      const { workspace, read, logger } = setup(['/ws/a.vhd']);
+      const index = new WorkspaceFileIndex('**/*.vhd', 10, read, logger);
+      await index.get();
+      const built = index.revision;
+      onChange(workspace)(uri('/ws/node_modules/b.vhd'));
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(index.revision).toBe(built);
+    });
+
+    it('increases when the cache is dropped for a changed exclude, not for another setting', async () => {
+      const { read, logger, changeConfig } = setup(['/ws/a.vhd']);
+      const index = new WorkspaceFileIndex('**/*.vhd', 10, read, logger);
+      await index.get();
+      const built = index.revision;
+      changeConfig('editor.fontSize');
+      expect(index.revision).toBe(built);
+      changeConfig('files.exclude');
+      expect(index.revision).toBe(built + 1);
+      changeConfig('search.exclude');
+      expect(index.revision).toBe(built + 2);
+    });
+  });
+
   describe('watched file visibility', () => {
     const watcherHandlers = (workspace: ReturnType<typeof setup>['workspace']) =>
       (
