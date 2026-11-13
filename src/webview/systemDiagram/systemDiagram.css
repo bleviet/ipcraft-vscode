@@ -1357,6 +1357,12 @@ input:focus-visible {
   white-space: nowrap;
 }
 
+/* An address of the Address map that differs from the base; bold, so it does not depend on color alone. */
+.sd-table td[data-changed='true'] {
+  color: var(--sd-change-changed);
+  font-weight: 600;
+}
+
 /* The word New or Resolved is always written; the color only adds to it. */
 .sd-sign[data-finding='New'] {
   color: var(--vscode-editorWarning-foreground);

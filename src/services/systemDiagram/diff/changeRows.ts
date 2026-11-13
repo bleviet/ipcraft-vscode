@@ -63,7 +63,14 @@ export interface ChangeRow {
     | { kind: 'segment'; addressSpace: string; segment: string };
 }
 
-const SIGNS = { added: '+', removed: '−', changed: '~', version: 'v', renamed: '→' } as const;
+/** The sign of each kind of change, as the report and the viewer write it. */
+export const CHANGE_SIGNS = {
+  added: '+',
+  removed: '−',
+  changed: '~',
+  version: 'v',
+  renamed: '→',
+} as const;
 
 const plain = (text: string): CellPart => ({ text });
 const code = (text: string): CellPart => ({ text, code: true });
@@ -93,7 +100,7 @@ function segmentCell(values: SegmentValues | undefined): Cell {
 
 function segmentRow(change: SegmentChange): ChangeRow {
   return {
-    sign: SIGNS[change.status],
+    sign: CHANGE_SIGNS[change.status],
     section: 'address',
     subject: [[code(change.addressSpace)]],
     change: [[code(change.segment)]],
@@ -125,7 +132,7 @@ function portCell(port: PortChange, side: 'base' | 'current'): Cell {
 
 function portRow(port: PortChange): ChangeRow {
   return {
-    sign: SIGNS[port.status],
+    sign: CHANGE_SIGNS[port.status],
     section: 'port',
     subject: [[code(port.pin)]],
     change: [],
@@ -150,7 +157,7 @@ function parameterRow(block: BlockRow, change: ValueChange): ChangeRow {
 
 function pinRows(change: InstanceChange, block: BlockRow): ChangeRow[] {
   const whole = change.status === 'added' || change.status === 'removed';
-  const sign = whole ? SIGNS[change.status as 'added' | 'removed'] : '~';
+  const sign = whole ? CHANGE_SIGNS[change.status as 'added' | 'removed'] : '~';
   return change.pins.flatMap((pin) => {
     const rows: ChangeRow[] = [];
     const peersDiffer = !samePeers(pin.basePeers, pin.currentPeers);
@@ -213,7 +220,7 @@ function instanceRows(change: InstanceChange): ChangeRow[] {
     return [
       {
         ...block,
-        sign: SIGNS[change.status],
+        sign: CHANGE_SIGNS[change.status],
         change: [[plain(change.status)]],
         base: baseType,
         current: currentType,

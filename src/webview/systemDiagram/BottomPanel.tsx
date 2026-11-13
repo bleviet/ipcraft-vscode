@@ -152,6 +152,7 @@ export function BottomPanel({
         ) : tab === 'address' ? (
           <AddressMapTable
             graph={graph}
+            diff={changes?.compare.diff}
             filter={filter}
             onSelectInstance={onSelectInstance}
             onReveal={onReveal}

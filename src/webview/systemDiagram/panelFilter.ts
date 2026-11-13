@@ -29,8 +29,11 @@ export function filterRows<T>(
 }
 
 /** Addresses match as written in the design and as the table groups them. */
-export function segmentTexts(graph: SystemGraph, segment: AddressSegment): RowTexts {
-  const range = segmentRangeText(segment, graph.source.format);
+export function segmentTexts(
+  segment: Pick<AddressSegment, 'addressSpace' | 'segment' | 'offset' | 'range'>,
+  format: SystemGraph['source']['format']
+): RowTexts {
+  const range = segmentRangeText(segment, format);
   const high = segmentHigh(segment);
   return [
     segment.addressSpace,

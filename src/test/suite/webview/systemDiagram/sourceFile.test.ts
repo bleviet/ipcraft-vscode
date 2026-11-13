@@ -37,6 +37,6 @@ describe('sourceFile', () => {
   it('resolves a segment to the parent of its master instance, or the root', () => {
     const segment = { masterInstance: '/sub/m' } as AddressSegment;
     expect(segmentLevel(graph, segment)).toBe('/sub');
-    expect(segmentLevel(graph, { masterInstance: '/nope' } as AddressSegment)).toBe('/');
+    expect(segmentLevel(graph, { masterInstance: '/nope' })).toBe('/');
   });
 });
