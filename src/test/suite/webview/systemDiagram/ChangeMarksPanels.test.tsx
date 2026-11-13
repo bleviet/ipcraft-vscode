@@ -83,7 +83,8 @@ describe('outline with the marks of a comparison', () => {
   it('shows the same marks in the search results', () => {
     outline(marks, ['/sys_ps7', '/gpio_block/axi_gpio_1']);
     expect(within(row(/^sys_ps7/)).getByRole('img')).toHaveTextContent('~');
-    expect(within(row(/^axi_gpio_1/)).getByRole('img')).toHaveTextContent('v');
+    // Its address changed as well, so it is drawn as changed, not as a version only.
+    expect(within(row(/^axi_gpio_1/)).getByRole('img')).toHaveTextContent('~');
     expect(within(row(/^gpio_block/)).getByTitle('1 change inside')).toBeInTheDocument();
   });
 

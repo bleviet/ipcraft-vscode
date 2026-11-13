@@ -50,10 +50,10 @@ describe('buildChangeMarks: blocks', () => {
       status: 'changed',
       title: 'Changed: 1 parameter',
     });
-    expect(marks.blocks.get('/gpio_block/axi_gpio_1')?.status).toBe('version');
-    // Its address segment changed too: the text is appended, the status stays.
+    // Its address segment changed too: the block is promoted to changed, the text is appended.
+    expect(marks.blocks.get('/gpio_block/axi_gpio_1')?.status).toBe('changed');
     expect(marks.blocks.get('/gpio_block/axi_gpio_1')?.title).toMatch(
-      /^Version only: xilinx\.com:ip:axi_gpio:\S+ → xilinx\.com:ip:axi_gpio:\S+, address changed$/
+      /^Changed: xilinx\.com:ip:axi_gpio:\S+ → xilinx\.com:ip:axi_gpio:\S+, address changed$/
     );
   });
 
@@ -427,7 +427,7 @@ describe('buildChangeMarks: address segments', () => {
     ).toBe(0);
   });
 
-  it('keeps the status of a marked block, appends the text and counts it once', () => {
+  it('promotes a version-only block to changed and keeps the version in the title', () => {
     const graph = zynqGraph('current');
     const marks = buildChangeMarks(
       diffOf(
@@ -436,9 +436,30 @@ describe('buildChangeMarks: address segments', () => {
       ),
       graph
     );
-    expect(marks.blocks.get('/gpio_block/axi_gpio_1')?.status).toBe('version');
-    expect(marks.blocks.get('/gpio_block/axi_gpio_1')?.title).toMatch(/, address changed$/);
+    expect(marks.blocks.get('/gpio_block/axi_gpio_1')).toMatchObject({
+      status: 'changed',
+      pins: {},
+    });
+    expect(marks.blocks.get('/gpio_block/axi_gpio_1')?.title).toMatch(
+      /^Changed: xilinx\.com:ip:axi_gpio:\S+ → xilinx\.com:ip:axi_gpio:\S+, address changed$/
+    );
     expect(marks.blocks.get('/gpio_block')?.inside).toBe(1);
+  });
+
+  it('promotes a renamed block to changed and keeps the old name in the title', () => {
+    const graph = renameGraph();
+    const marks = buildChangeMarks(
+      diffOf(
+        [segment('changed', 'axi_gpio_main/S_AXI/Reg')],
+        renameDiff().instances.filter((i) => i.path === '/axi_gpio_main')
+      ),
+      graph
+    );
+    expect(marks.blocks.get('/axi_gpio_main')).toMatchObject({
+      status: 'changed',
+      title: 'Changed: renamed from axi_gpio_0, address changed',
+      pins: {},
+    });
   });
 });
 
@@ -488,9 +509,9 @@ describe('buildChangeMarks: a removed segment and its owner', () => {
     // The diff writes a removed segment of a renamed block under its new name.
     expect(removed?.segment).toBe('axi_gpio_main/S_AXI/Mem');
     const marks = buildChangeMarks(diff, current);
-    expect(marks.blocks.get('/axi_gpio_main')).toMatchObject({ status: 'renamed' });
+    expect(marks.blocks.get('/axi_gpio_main')).toMatchObject({ status: 'changed' });
     expect(marks.blocks.get('/axi_gpio_main')?.title).toBe(
-      'Renamed from axi_gpio_0, address segment removed'
+      'Changed: renamed from axi_gpio_0, address segment removed'
     );
   });
 });
