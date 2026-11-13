@@ -12,6 +12,7 @@ that committed files are current.
 | `ipcraft package <ip.yml> --out <path>` | Bundle a core with every file it references |
 | `ipcraft migrate <file>...` | Upgrade `.ip.yml` and `.mm.yml` files to the latest format |
 | `ipcraft render <design> --out <image>` | Draw a system design or an IP core symbol as SVG, PNG, or JPG |
+| `ipcraft diff <design> --base <ref>` | Report what changed between two revisions of a system design |
 | `ipcraft vhdl-ls` | Write a `vhdl_ls.toml` for the VHDL language server |
 
 Run `ipcraft --help` for every option.
@@ -234,6 +235,112 @@ failed, 0 otherwise. A problem with the manifest as a whole (unreadable file,
 invalid YAML, unknown top-level key) renders nothing and exits with 1. Output
 folders are created. An image from a manifest is byte for byte the image the
 same options give on the command line.
+
+## Compare two revisions of a system design
+
+`diff` reports what changed between two revisions of a system design, in terms
+of blocks, parameters, connections, external ports and the address map. It reads
+a Vivado block design `.tcl` or `.bd`, a Platform Designer `.qsys` or a
+`qsys-script` `.tcl`, and needs no VS Code window. The text of the files is not
+compared; the two designs are read into the viewer's graph and the graphs are
+compared, so the order of blocks and nets, net names, line numbers and tool
+metadata do not show up as changes.
+
+There are two forms:
+
+```bash
+# one file: the working tree (or --head) against a git revision
+ipcraft diff bd/system.bd --base HEAD
+ipcraft diff bd/system.bd --base main --head feature/fifo
+
+# two files on disk
+ipcraft diff old/system.qsys new/system.qsys
+```
+
+| Option | Meaning |
+|---|---|
+| `--base <git ref>` | One-file form. The revision to compare with: a branch, tag, commit or `HEAD~1`. The file is read at the same path in the repository that contains it |
+| `--head <git ref>` | One-file form, with `--base`. Compare with this revision instead of the working tree |
+| `--format <markdown\|json>` | Report format (default `markdown`) |
+| `--out <file>` | Write the report to this file instead of standard output. The folder is created if needed |
+| `--ignore-version-only` | Leave out blocks whose only change is the version of their IP. The JSON report then has no instance with status `version` and `summary.version` is 0 |
+
+The exit code is 0 when the report is written, whether or not the designs
+differ, and 1 on an error (an option error, a file or revision that cannot be
+read, or a file that is not a system design).
+
+The Markdown report is made for a pull request comment:
+
+```markdown
+## System design changes: zynq_gpio_system
+
+Comparing `HEAD` (base) with `working tree`.
+
+**+1 added · −4 removed · ~2 changed · v1 version only**
+
+### Address map
+| | Address space | Segment | Base | Current |
+|---|---|---|---|---|
+| − | `sys_ps7/Data` | `axi_gpio_0/S_AXI/Reg` | `0x41200000` · `0x00010000` | |
+| ~ | `sys_ps7/Data` | `gpio_block/axi_gpio_1/S_AXI/Reg` | `0x41210000` · `0x00010000` | `0x41220000` · `0x00010000` |
+
+### External ports
+| | Port | Base | Current |
+|---|---|---|---|
+| − | `led_o` | direction `out` · width `7:0` · not connected | |
+
+### Level `/`
+| | Block | Change | Base | Current |
+|---|---|---|---|---|
+| + | `axis_data_fifo_0` | added | | `xilinx.com:ip:axis_data_fifo:2.0` |
+| + | `axis_data_fifo_0` | pin `s_axis_aclk` connects to | | `sys_ps7/FCLK_CLK1` |
+| ~ | `sys_ps7` | parameter `CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ` | `100` | `150` |
+
+### Level `/gpio_block`
+| | Block | Change | Base | Current |
+|---|---|---|---|---|
+| v | `axi_gpio_1` | version | `xilinx.com:ip:axi_gpio:2.0` | `xilinx.com:ip:axi_gpio:2.1` |
+```
+
+Each sign has a meaning: `+` added, `−` removed, `~` changed, `v` version only.
+A section without changes is left out, and a report without any change reads
+`No changes.` Connections are compared per pin: a pin whose set of connected pins
+changed is listed with the old and the new set (`not connected` for an empty
+set), however the nets are named. Only the pin that moved is listed: a pin whose
+net gained or lost a neighbour is not reported when the neighbour is a pin of an
+added or removed block, and not when its other connections stayed and the
+neighbour is the pin that joined or left (a new signal on an existing net lists
+the new pin, not every pin on that net). A new or removed block lists its own
+connected pins. A pin that is connected to a pin on another level of the
+hierarchy (a net of the top level can name a pin of a block inside a hierarchy)
+is written with its absolute path, such as `/a/x`. For a hierarchy block
+`/h/g1`, `/h/g1/z` is its pin `z` seen from outside and `/h/g1:z` is the same
+pin seen from inside. The pins of a hierarchy block are compared from the
+outside and from the inside: a row such as ``pin `fin` inside connects to``
+lists what the pin is connected to within the hierarchy, with the names relative
+to that hierarchy (`fifo/s_axis` there is the block `fifo` inside it), and only
+the pin that moved is listed there too. The attributes (direction, signal type,
+interface, width) and parameters of external ports and of the pins of a
+hierarchy block are compared too, one row per difference; a direction is
+compared only when both revisions declare it. For the pins of other blocks only
+the connections are compared. The JSON report is the same
+change list as data.
+
+If the two files are of different formats, for example a `write_bd_tcl` script
+and a `.bd` of the same design, the report says so, because each format knows
+different things about the design (a `.bd` declares the pins of module
+references, a script lists only the pins it connects).
+
+Both revisions are read as text and nothing is executed, as in the viewer. The
+revision is read from the local git object store with `git show`; there is no
+network access and nothing is checked out.
+
+Limits for now: workspace definitions (`.ip.yml`, HDL, `.qsys`) are not used, so
+only the pins the design files list are compared. A file that does not exist at
+the base revision is an error (`'<file>' does not exist at <ref>`), not a design
+with everything added, and a file that was renamed or moved between the
+revisions is not followed. The concept is in
+[System Design Diff](../concepts/brainstorm/system-design-diff.md).
 
 ## Upgrade files to the latest format
 

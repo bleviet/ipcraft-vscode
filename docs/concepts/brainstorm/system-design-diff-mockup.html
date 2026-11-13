@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Static mockup for docs/concepts/brainstorm/system-design-diff.md. Self-contained: open directly in a browser. Sample data only. Blocks are placed by hand; the real viewer lays them out with ELK. -->
+<title>System Design Diff</title>
+<style>
+/* Layout: a VS Code editor frame hosting the read-only system viewer in diff mode: diagram | details, changes below. */
+:root {
+  --bg: #ffffff; --side: #f8f8f8; --border: #e5e5e5; --fg: #3b3b3b; --muted: #6f6f6f;
+  --accent: #005fb8; --sel: #dfe9f7; --hover: #f0f0f0; --input: #ffffff;
+  --node: #ffffff; --node-head: #f3f3f3; --node-line: #c8c8c8; --dot: #d9d9d9;
+  --k-mm: #1a6fd8; --k-s: #2f8a3a; --k-irq: #8a3fbf; --k-sig: #8a8a8a;
+  --add: #1f7a34; --add-bg: #e6f4ea; --del: #b3261e; --del-bg: #fbe9e7;
+  --chg: #9a6a00; --chg-bg: #fdf3d7; --ver: #5f6b7a; --ver-bg: #eceff3;
+  --chip: #ececec; --shadow: rgba(0,0,0,.08);
+  --ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Ubuntu, "Helvetica Neue", sans-serif;
+  --mono: "SF Mono", Menlo, Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1f1f1f; --side: #181818; --border: #2b2b2b; --fg: #cccccc; --muted: #9d9d9d;
+  --accent: #3794ff; --sel: #04395e; --hover: #2a2d2e; --input: #313131;
+  --node: #252526; --node-head: #2d2d30; --node-line: #454545; --dot: #2e2e2e;
+  --k-mm: #4fa6ff; --k-s: #73c991; --k-irq: #c39af0; --k-sig: #8b8b8b;
+  --add: #73c991; --add-bg: #1e3325; --del: #f48771; --del-bg: #3a2320;
+  --chg: #cca700; --chg-bg: #3a3113; --ver: #9aa7b8; --ver-bg: #2a2f36;
+  --chip: #333333; --shadow: rgba(0,0,0,.4); color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #1f1f1f; --side: #181818; --border: #2b2b2b; --fg: #cccccc; --muted: #9d9d9d;
+  --accent: #3794ff; --sel: #04395e; --hover: #2a2d2e; --input: #313131;
+  --node: #252526; --node-head: #2d2d30; --node-line: #454545; --dot: #2e2e2e;
+  --k-mm: #4fa6ff; --k-s: #73c991; --k-irq: #c39af0; --k-sig: #8b8b8b;
+  --add: #73c991; --add-bg: #1e3325; --del: #f48771; --del-bg: #3a2320;
+  --chg: #cca700; --chg-bg: #3a3113; --ver: #9aa7b8; --ver-bg: #2a2f36;
+  --chip: #333333; --shadow: rgba(0,0,0,.4); color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--side); color: var(--fg); font: 13px/1.4 var(--ui);
+  padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 10px;
+}
+button, select { font: inherit; color: inherit; }
+code, .mono { font-family: var(--mono); font-size: 12px; }
+:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
+
+/* Review bar (outside the mocked editor) */
+.review { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.review h1 { font-size: 15px; font-weight: 600; margin: 0; }
+.review .sub { color: var(--muted); flex: 1; min-width: 200px; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
+.seg button { background: transparent; border: 0; padding: 3px 10px; cursor: pointer; font-size: 12px; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+
+/* Mocked editor frame */
+.frame {
+  flex: 1; min-height: 720px; display: grid; grid-template-rows: 35px auto minmax(0, 1fr) 230px 22px;
+  border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--bg);
+  box-shadow: 0 6px 24px var(--shadow);
+}
+.tabs { display: flex; background: var(--side); border-bottom: 1px solid var(--border); overflow: hidden; }
+.tab { display: flex; align-items: center; gap: 6px; padding: 0 14px; border-right: 1px solid var(--border); white-space: nowrap; background: var(--bg); box-shadow: inset 0 1px 0 var(--accent); }
+.tab .ext { font-family: var(--mono); font-size: 10px; color: var(--chg); }
+.tab .ro { font-size: 11px; color: var(--muted); }
+
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 10px; border-bottom: 1px solid var(--border); min-width: 0; }
+.cmp { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.cmp select { background: var(--input); border: 1px solid var(--border); border-radius: 3px; padding: 2px 6px; }
+.spacer { flex: 1; }
+.ubtn { display: inline-flex; align-items: center; gap: 6px; background: none; border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; cursor: pointer; white-space: nowrap; }
+.ubtn:hover { background: var(--hover); }
+.ubtn[aria-pressed="true"] { background: var(--sel); border-color: var(--accent); }
+.sum { display: inline-flex; gap: 6px; }
+.badge { display: inline-flex; align-items: center; gap: 3px; border-radius: 9px; padding: 0 7px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.badge.added { background: var(--add-bg); color: var(--add); }
+.badge.removed { background: var(--del-bg); color: var(--del); }
+.badge.changed { background: var(--chg-bg); color: var(--chg); }
+.badge.version { background: var(--ver-bg); color: var(--ver); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; }
+.canvas { position: relative; overflow: auto; background-color: var(--bg); background-image: radial-gradient(var(--dot) 1.2px, transparent 1.3px); background-size: 20px 20px; }
+.canvas svg { display: block; min-width: 1000px; width: 100%; height: 100%; min-height: 400px; }
+.legend { position: sticky; left: 10px; bottom: 10px; margin: -44px 0 10px 10px; width: max-content; max-width: calc(100% - 20px); background: var(--side); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 11px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 5px; }
+.legend i { width: 14px; height: 10px; border-radius: 2px; display: inline-block; border: 1.5px solid; }
+.legend i.added { border-color: var(--add); background: var(--add-bg); }
+.legend i.removed { border-color: var(--del); border-style: dashed; background: var(--del-bg); }
+.legend i.changed { border-color: var(--chg); background: var(--chg-bg); }
+.legend i.version { border-color: var(--ver); background: var(--ver-bg); }
+
+/* Diagram */
+.node { cursor: pointer; }
+.node rect.body { fill: var(--node); stroke: var(--node-line); stroke-width: 1.2; }
+.node rect.head { fill: var(--node-head); }
+.node text { fill: var(--fg); font: 12px var(--ui); }
+.node text.name { font-weight: 600; font-size: 13px; }
+.node text.type { fill: var(--muted); font: 11px var(--mono); }
+.node text.pin { font-size: 11.5px; }
+.node text.mark { font-weight: 700; font-size: 12px; }
+.node.added rect.body { stroke: var(--add); stroke-width: 2; }
+.node.added rect.head { fill: var(--add-bg); }
+.node.added text.mark { fill: var(--add); }
+.node.removed rect.body { stroke: var(--del); stroke-width: 1.6; stroke-dasharray: 6 4; fill: var(--del-bg); }
+.node.removed rect.head { fill: var(--del-bg); }
+.node.removed text.mark { fill: var(--del); }
+.node.removed text.name, .node.removed text.pin { text-decoration: line-through; }
+.node.changed rect.body { stroke: var(--chg); stroke-width: 2; }
+.node.changed rect.head { fill: var(--chg-bg); }
+.node.changed text.mark { fill: var(--chg); }
+.node.version rect.body { stroke: var(--ver); stroke-width: 1.6; }
+.node.version rect.head { fill: var(--ver-bg); }
+.node.version text.mark { fill: var(--ver); }
+.node.same { opacity: .6; }
+.node.sel rect.body { stroke: var(--accent); stroke-width: 2.5; stroke-dasharray: none; }
+.node text.pin.padded { fill: var(--add); font-weight: 600; }
+.node text.pin.premoved { fill: var(--del); text-decoration: line-through; }
+.node text.pin.pchanged { fill: var(--chg); font-weight: 600; }
+.wire { fill: none; stroke-width: 2.4; }
+.wire.aximm { stroke: var(--k-mm); }
+.wire.axis { stroke: var(--k-s); }
+.wire.interrupt { stroke: var(--k-irq); stroke-width: 1.5; }
+.wire.signal { stroke: var(--k-sig); stroke-width: 1.5; }
+.wire.same { opacity: .45; }
+.wire.added { stroke: var(--add); stroke-width: 3; }
+.wire.removed { stroke: var(--del); stroke-width: 2; stroke-dasharray: 6 5; }
+.pinbox { stroke: none; }
+.hidden { display: none; }
+
+/* Details */
+.details { background: var(--side); border-left: 1px solid var(--border); padding: 12px 14px 20px; overflow: auto; min-width: 0; }
+.details h2 { font-size: 14px; margin: 0 0 2px; overflow-wrap: anywhere; }
+.details .eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.details h3 { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 16px 0 6px; }
+.details p { margin: 6px 0; }
+.details table, .panel table { border-collapse: collapse; width: 100%; }
+.details td, .details th { text-align: left; padding: 3px 6px 3px 0; vertical-align: top; border-bottom: 1px solid var(--border); overflow-wrap: anywhere; }
+.details td:first-child { overflow-wrap: normal; }
+.details th { font-weight: 600; color: var(--muted); font-size: 11px; }
+.old { color: var(--del); text-decoration: line-through; }
+.new { color: var(--add); font-weight: 600; }
+.arrow { color: var(--muted); padding: 0 3px; }
+.note { color: var(--muted); font-size: 12px; }
+
+/* Bottom panel */
+.bottom { border-top: 1px solid var(--border); display: grid; grid-template-rows: 30px minmax(0, 1fr); min-height: 0; }
+.btabs { display: flex; align-items: center; gap: 2px; padding: 0 8px; border-bottom: 1px solid var(--border); background: var(--side); overflow-x: auto; }
+.btabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 5px 10px; cursor: pointer; white-space: nowrap; text-transform: uppercase; font-size: 11px; letter-spacing: .04em; color: var(--muted); }
+.btabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+.panel { overflow: auto; }
+.panel th { position: sticky; top: 0; background: var(--bg); text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; padding: 4px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.panel td { padding: 3px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.panel tr.row { cursor: pointer; }
+.panel tr.row:hover { background: var(--hover); }
+.panel tr.row.sel { background: var(--sel); }
+.status { display: flex; align-items: center; gap: 14px; padding: 0 10px; background: var(--accent); color: #fff; font-size: 11px; white-space: nowrap; overflow: hidden; }
+@media (max-width: 860px) {
+  .main { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(300px, 1fr) auto; }
+  .details { border-left: 0; border-top: 1px solid var(--border); max-height: 260px; }
+  .frame { min-height: 900px; }
+}
+</style>
+</head>
+<body>
+
+<div class="review">
+  <h1>System design diff: overlay on the diagram</h1>
+  <span class="sub">Mockup with sample data. Click a block or a row. Blocks are placed by hand here.</span>
+  <div class="seg" role="group" aria-label="Theme">
+    <button type="button" data-theme-btn="auto" aria-pressed="true">Auto</button>
+    <button type="button" data-theme-btn="light" aria-pressed="false">Light</button>
+    <button type="button" data-theme-btn="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+
+<div class="frame">
+  <div class="tabs">
+    <div class="tab"><span class="ext">BD</span> zynq_dma_system.bd <span class="ro">(System Diagram · changes)</span></div>
+  </div>
+
+  <div class="toolbar">
+    <label class="cmp">Compare
+      <select id="head" aria-label="Current revision">
+        <option value="wt">working tree</option>
+        <option value="branch">feature/fifo</option>
+        <option value="tag">v1.5.0</option>
+      </select>
+    </label>
+    <label class="cmp">with
+      <select id="base" aria-label="Base revision">
+        <option value="main">main (merge base a1b2c3d)</option>
+        <option value="head">HEAD</option>
+        <option value="tag">v1.4.0</option>
+      </select>
+    </label>
+    <span class="sum" id="summary" aria-label="Summary of changes"></span>
+    <span class="spacer"></span>
+    <button type="button" class="ubtn" id="t-only" aria-pressed="false" title="Hide blocks and wires that did not change">Changes only</button>
+    <button type="button" class="ubtn" id="t-removed" aria-pressed="true" title="Draw removed blocks and wires as ghosts">Removed</button>
+    <button type="button" class="ubtn" id="t-version" aria-pressed="true" title="Mark blocks whose only change is the IP version">Version only</button>
+    <button type="button" class="ubtn" id="t-exit" title="Return to the plain diagram">Exit compare</button>
+  </div>
+
+  <div class="main">
+    <div class="canvas" id="canvas">
+      <svg id="svg" viewBox="0 0 1330 470" preserveAspectRatio="xMidYMid meet" role="img" aria-label="System diagram with changes marked"></svg>
+      <div class="legend">
+        <span><i class="added"></i>+ Added</span>
+        <span><i class="removed"></i>&minus; Removed</span>
+        <span><i class="changed"></i>~ Changed</span>
+        <span><i class="version"></i>v Version only</span>
+        <span>Unchanged blocks are dimmed</span>
+      </div>
+    </div>
+    <aside class="details" id="details" aria-live="polite"></aside>
+  </div>
+
+  <div class="bottom">
+    <div class="btabs" role="tablist">
+      <button type="button" role="tab" data-tab="changes" aria-selected="true">Changes <span id="n-changes"></span></button>
+      <button type="button" role="tab" data-tab="address" aria-selected="false">Address map <span id="n-address"></span></button>
+      <button type="button" role="tab" data-tab="findings" aria-selected="false">Findings <span id="n-findings"></span></button>
+    </div>
+    <div class="panel" id="panel"></div>
+  </div>
+
+  <div class="status"><span>IPCraft</span><span id="status-text"></span></div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const MARK = { added: '+', removed: '−', changed: '~', version: 'v', same: '' };
+  const LABEL = { added: 'Added', removed: 'Removed', changed: 'Changed', version: 'Version only', same: 'Unchanged' };
+
+  // status: added | removed | changed | version | same. Pins: [name, pinStatus?].
+  const NODES = [
+    { id: 'adc_in', port: true, x: 10, y: 75, w: 110, status: 'same' },
+    { id: 'processing_system7_0', type: 'processing_system7:5.5', x: 140, y: 250, w: 190, status: 'same',
+      left: [], right: [['M_AXI_GP0'], ['FCLK_CLK0']] },
+    { id: 'dsp_pipeline', type: 'Hierarchy · 4 cells', x: 390, y: 40, w: 190, status: 'changed', inside: 2,
+      left: [['adc_data']], right: [['M_AXIS']] },
+    { id: 'ps7_0_axi_periph', type: 'smartconnect:1.0', x: 390, y: 250, w: 190, status: 'changed',
+      left: [['S00_AXI']], right: [['M00_AXI'], ['M01_AXI', 'premoved']] },
+    { id: 'axis_data_fifo_0', type: 'axis_data_fifo:2.0', x: 640, y: 40, w: 190, status: 'added',
+      left: [['S_AXIS'], ['s_axis_aresetn']], right: [['M_AXIS']] },
+    { id: 'axi_gpio_0', type: 'axi_gpio:2.0', x: 640, y: 400, w: 190, status: 'removed',
+      left: [['S_AXI']], right: [['GPIO']] },
+    { id: 'axi_dma_0', type: 'axi_dma:7.1', x: 890, y: 110, w: 205, status: 'changed',
+      left: [['S_AXIS_S2MM', 'pchanged'], ['S_AXI_LITE']], right: [['M_AXI_S2MM'], ['s2mm_introut']] },
+    { id: 'leds_4bits', port: true, x: 890, y: 435, w: 110, status: 'removed' },
+    { id: 'xlconcat_0', type: 'xlconcat:2.2', x: 1155, y: 110, w: 160, status: 'version',
+      left: [['In0']], right: [['dout']] },
+  ];
+  // from/to: [node, pin]; mid: x of the vertical segment.
+  const EDGES = [
+    { from: ['adc_in'], to: ['dsp_pipeline', 'adc_data'], kind: 'signal', status: 'same', mid: 350 },
+    { from: ['processing_system7_0', 'M_AXI_GP0'], to: ['ps7_0_axi_periph', 'S00_AXI'], kind: 'aximm', status: 'same', mid: 360 },
+    { from: ['ps7_0_axi_periph', 'M00_AXI'], to: ['axi_dma_0', 'S_AXI_LITE'], kind: 'aximm', status: 'same', mid: 850 },
+    { from: ['ps7_0_axi_periph', 'M01_AXI'], to: ['axi_gpio_0', 'S_AXI'], kind: 'aximm', status: 'removed', mid: 610, owner: 'axi_gpio_0' },
+    { from: ['axi_gpio_0', 'GPIO'], to: ['leds_4bits'], kind: 'signal', status: 'removed', mid: 860, owner: 'axi_gpio_0' },
+    { from: ['dsp_pipeline', 'M_AXIS'], to: ['axi_dma_0', 'S_AXIS_S2MM'], kind: 'axis', status: 'removed', mid: 600, dy: 6, owner: 'axi_dma_0' },
+    { from: ['dsp_pipeline', 'M_AXIS'], to: ['axis_data_fifo_0', 'S_AXIS'], kind: 'axis', status: 'added', mid: 612, owner: 'axis_data_fifo_0' },
+    { from: ['axis_data_fifo_0', 'M_AXIS'], to: ['axi_dma_0', 'S_AXIS_S2MM'], kind: 'axis', status: 'added', mid: 868, owner: 'axis_data_fifo_0' },
+    { from: ['axi_dma_0', 's2mm_introut'], to: ['xlconcat_0', 'In0'], kind: 'interrupt', status: 'same', mid: 1125 },
+  ];
+
+  const DETAILS = {
+    axi_dma_0: {
+      was: 'axi_dma:7.1',
+      params: [['CONFIG.c_s2mm_burst_size', '64', '256']],
+      pins: [['S_AXIS_S2MM', 'dsp_pipeline/M_AXIS', 'axis_data_fifo_0/M_AXIS']],
+      note: '3 parameters and 9 pins are unchanged.',
+    },
+    ps7_0_axi_periph: {
+      was: 'smartconnect:1.0',
+      params: [['CONFIG.NUM_MI', '2', '1']],
+      pins: [['M01_AXI', 'axi_gpio_0/S_AXI', null]],
+      note: '1 parameter and 4 pins are unchanged.',
+    },
+    axis_data_fifo_0: {
+      params: [['CONFIG.FIFO_DEPTH', null, '4096'], ['CONFIG.IS_ACLK_ASYNC', null, '1']],
+      pins: [['S_AXIS', null, 'dsp_pipeline/M_AXIS'], ['M_AXIS', null, 'axi_dma_0/S_AXIS_S2MM'], ['s_axis_aresetn', null, null]],
+      note: 'New block. It brings 1 new finding: s_axis_aresetn is undriven.',
+    },
+    axi_gpio_0: {
+      was: 'axi_gpio:2.0',
+      params: [['CONFIG.C_GPIO_WIDTH', '4', null]],
+      pins: [['S_AXI', 'ps7_0_axi_periph/M01_AXI', null], ['GPIO', 'leds_4bits', null]],
+      note: 'Removed together with its address segment at 0x4120_0000 and the external port leds_4bits.',
+    },
+    leds_4bits: { note: 'External port removed together with axi_gpio_0.' },
+    xlconcat_0: {
+      was: 'xlconcat:2.1',
+      note: 'Only the IP version changed (2.1 to 2.2). Parameters and connections are the same.',
+    },
+    dsp_pipeline: {
+      note: '2 changes inside this hierarchy. Open it to see them on its own level.',
+      inner: [['~', 'fir_0', 'CONFIG.CoefficientVector changed'], ['+', 'decimator_0', 'cic_compiler:4.0 added']],
+    },
+  };
+
+  const CHANGES = [
+    ['added', 'Block', 'axis_data_fifo_0', '/', '', 'axis_data_fifo:2.0', 'axis_data_fifo_0'],
+    ['removed', 'Block', 'axi_gpio_0', '/', 'axi_gpio:2.0', '', 'axi_gpio_0'],
+    ['removed', 'External port', 'leds_4bits', '/', 'out, gpio_rtl', '', 'leds_4bits'],
+    ['changed', 'Parameter', 'axi_dma_0 · c_s2mm_burst_size', '/', '64', '256', 'axi_dma_0'],
+    ['changed', 'Connection', 'axi_dma_0/S_AXIS_S2MM', '/', 'dsp_pipeline/M_AXIS', 'axis_data_fifo_0/M_AXIS', 'axi_dma_0'],
+    ['changed', 'Parameter', 'ps7_0_axi_periph · NUM_MI', '/', '2', '1', 'ps7_0_axi_periph'],
+    ['removed', 'Pin', 'ps7_0_axi_periph/M01_AXI', '/', 'axi_gpio_0/S_AXI', '', 'ps7_0_axi_periph'],
+    ['changed', 'Parameter', 'fir_0 · CoefficientVector', '/dsp_pipeline', '6,0,-4,-3,5,6 …', '4,0,-2,-3,7,9 …', 'dsp_pipeline'],
+    ['added', 'Block', 'decimator_0', '/dsp_pipeline', '', 'cic_compiler:4.0', 'dsp_pipeline'],
+    ['version', 'IP version', 'xlconcat_0', '/', 'xlconcat:2.1', 'xlconcat:2.2', 'xlconcat_0'],
+  ];
+  const ADDRESS = [
+    ['removed', 'processing_system7_0/Data', 'axi_gpio_0/S_AXI/Reg', '0x4120_0000 · 64K', '', 'axi_gpio_0'],
+    ['same', 'processing_system7_0/Data', 'axi_dma_0/S_AXI_LITE/Reg', '0x4040_0000 · 64K', '0x4040_0000 · 64K', 'axi_dma_0'],
+  ];
+  const FINDINGS = [
+    ['added', 'Undriven pin', 'axis_data_fifo_0/s_axis_aresetn', 'New: nothing drives this input', 'axis_data_fifo_0'],
+    ['removed', 'Clock domain crossing', 'dsp_pipeline/M_AXIS → axi_dma_0/S_AXIS_S2MM', 'Resolved: the new FIFO spans adc_clk and FCLK_CLK0', 'axi_dma_0'],
+    ['removed', 'Unused pin', 'axi_gpio_0/ip2intc_irpt', 'Gone: its block was removed', 'axi_gpio_0'],
+  ];
+
+  const svg = document.getElementById('svg');
+  const NS = 'http://www.w3.org/2000/svg';
+  const HEAD = 40, ROW = 22;
+  const state = { selected: 'axi_dma_0', only: false, removed: true, version: true, tab: 'changes' };
+  const byId = Object.fromEntries(NODES.map((n) => [n.id, n]));
+
+  const el = (name, attrs = {}, text) => {
+    const node = document.createElementNS(NS, name);
+    for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+    if (text !== undefined) node.textContent = text;
+    return node;
+  };
+  const rows = (n) => Math.max(n.left.length, n.right.length);
+  const height = (n) => (n.port ? 32 : HEAD + rows(n) * ROW + 6);
+  const pinY = (n, i) => n.y + HEAD + i * ROW + 11;
+  function anchor(ref, side) {
+    const n = byId[ref[0]];
+    if (n.port) return [side === 'out' ? n.x + n.w : n.x, n.y + 16];
+    const list = side === 'out' ? n.right : n.left;
+    const i = list.findIndex((p) => p[0] === ref[1]);
+    return [side === 'out' ? n.x + n.w : n.x, pinY(n, i)];
+  }
+  // The status shown for a node: "version" falls back to "same" when the toggle is off.
+  const shown = (status) => (status === 'version' && !state.version ? 'same' : status);
+  const visible = (status) => {
+    const s = shown(status);
+    if (s === 'removed') return state.removed;
+    return !(state.only && s === 'same');
+  };
+
+  function drawEdges() {
+    for (const e of EDGES) {
+      if (!visible(e.status)) continue;
+      const [x1, y1] = anchor(e.from, 'out');
+      const [x2, y2raw] = anchor(e.to, 'in');
+      const y2 = y2raw + (e.dy ?? 0);
+      const d = `M${x1},${y1} H${e.mid} V${y2} H${x2}`;
+      svg.append(el('path', { class: `wire ${e.kind} ${e.status}`, d }));
+    }
+  }
+
+  function drawNode(n) {
+    const status = shown(n.status);
+    if (!visible(n.status)) return;
+    const g = el('g', {
+      class: `node ${status}${state.selected === n.id ? ' sel' : ''}`,
+      tabindex: 0, role: 'button', 'data-id': n.id,
+      'aria-label': `${n.id}, ${LABEL[status]}`,
+    });
+    const h = height(n);
+    if (n.port) {
+      const pts = `${n.x},${n.y} ${n.x + n.w - 14},${n.y} ${n.x + n.w},${n.y + 16} ${n.x + n.w - 14},${n.y + 32} ${n.x},${n.y + 32}`;
+      const body = el('polygon', { class: 'body', points: pts });
+      // Reuse the rect styles for the port shape.
+      body.setAttribute('style', portStyle(status, state.selected === n.id));
+      g.append(body);
+      g.append(el('text', { class: 'name', x: n.x + 10, y: n.y + 21 }, n.id));
+      if (MARK[status]) g.append(el('text', { class: 'mark', x: n.x + n.w - 30, y: n.y + 21 }, MARK[status]));
+    } else {
+      g.append(el('rect', { class: 'body', x: n.x, y: n.y, width: n.w, height: h, rx: 4 }));
+      g.append(el('rect', { class: 'head', x: n.x + 1.5, y: n.y + 1.5, width: n.w - 3, height: HEAD - 3, rx: 3 }));
+      g.append(el('text', { class: 'name', x: n.x + 10, y: n.y + 17 }, n.id));
+      g.append(el('text', { class: 'type', x: n.x + 10, y: n.y + 32 }, n.type));
+      const mark = n.inside ? `~ ${n.inside} inside` : MARK[status];
+      if (mark) g.append(el('text', { class: 'mark', x: n.x + n.w - 8, y: n.y + 17, 'text-anchor': 'end' }, mark));
+      n.left.forEach((p, i) => {
+        g.append(el('text', { class: `pin ${p[1] ?? ''}`, x: n.x + 10, y: pinY(n, i) + 4 }, p[0]));
+      });
+      n.right.forEach((p, i) => {
+        g.append(el('text', { class: `pin ${p[1] ?? ''}`, x: n.x + n.w - 10, y: pinY(n, i) + 4, 'text-anchor': 'end' }, p[0]));
+      });
+    }
+    g.addEventListener('click', () => select(n.id));
+    g.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n.id); }
+    });
+    svg.append(g);
+  }
+  function portStyle(status, selected) {
+    const color = { added: 'var(--add)', removed: 'var(--del)', changed: 'var(--chg)', version: 'var(--ver)', same: 'var(--node-line)' }[status];
+    const fill = status === 'removed' ? 'var(--del-bg)' : 'var(--node-head)';
+    const dash = status === 'removed' && !selected ? 'stroke-dasharray:6 4;' : '';
+    return `fill:${fill};stroke:${selected ? 'var(--accent)' : color};stroke-width:${selected ? 2.5 : 1.6};${dash}`;
+  }
+
+  function drawDiagram() {
+    svg.replaceChildren();
+    drawEdges();
+    NODES.forEach(drawNode);
+  }
+
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const oldNew = (a, b) => {
+    const o = a ? `<span class="old">${esc(a)}</span>` : '';
+    const n = b ? `<span class="new">${esc(b)}</span>` : '';
+    return o && n ? `${o}<span class="arrow">→</span>${n}` : o || n;
+  };
+  const badge = (status) => `<span class="badge ${status}">${MARK[status]} ${LABEL[status]}</span>`;
+
+  function drawDetails() {
+    const n = byId[state.selected];
+    const d = DETAILS[n.id] ?? {};
+    const status = shown(n.status);
+    let html = `<div class="eyebrow">${n.port ? 'External port' : n.inside ? 'Hierarchy' : 'Block'}</div>
+      <h2>${esc(n.id)}</h2><p>${status === 'same' ? '<span class="note">No changes.</span>' : badge(status)}</p>`;
+    if (!n.port && status !== 'same') {
+      html += `<p class="mono">${status === 'version' ? oldNew(d.was, n.type) : esc(status === 'removed' ? d.was : n.type)}</p>`;
+    }
+    if (d.params?.length) {
+      html += `<h3>Parameters</h3><table><tr><th>Name</th><th>Base → current</th></tr>${d.params
+        .map((p) => `<tr><td class="mono">${esc(p[0])}</td><td class="mono">${oldNew(p[1], p[2])}</td></tr>`).join('')}</table>`;
+    }
+    if (d.pins?.length) {
+      html += `<h3>Connections</h3><table><tr><th>Pin</th><th>Connected to</th></tr>${d.pins
+        .map((p) => `<tr><td class="mono">${esc(p[0])}</td><td class="mono">${oldNew(p[1], p[2]) || '<span class="note">not connected</span>'}</td></tr>`).join('')}</table>`;
+    }
+    if (d.inner?.length) {
+      html += `<h3>Inside</h3><table>${d.inner
+        .map((r) => `<tr><td><b>${esc(r[0])}</b></td><td class="mono">${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join('')}</table>`;
+    }
+    if (d.note) html += `<p class="note">${esc(d.note)}</p>`;
+    document.getElementById('details').innerHTML = html;
+  }
+
+  const TABLES = {
+    changes: {
+      head: ['', 'Kind', 'What', 'Level', 'Base', 'Current'],
+      rows: () => CHANGES.filter((r) => state.version || r[0] !== 'version')
+        .map((r) => ({ target: r[6], cells: [badge(r[0]), esc(r[1]), `<span class="mono">${esc(r[2])}</span>`, `<span class="mono">${esc(r[3])}</span>`, r[4] ? `<span class="mono old">${esc(r[4])}</span>` : '', r[5] ? `<span class="mono new">${esc(r[5])}</span>` : ''] })),
+    },
+    address: {
+      head: ['', 'Address space', 'Segment', 'Base', 'Current'],
+      rows: () => ADDRESS.filter((r) => !(state.only && r[0] === 'same'))
+        .map((r) => ({ target: r[5], cells: [r[0] === 'same' ? '<span class="note">unchanged</span>' : badge(r[0]), `<span class="mono">${esc(r[1])}</span>`, `<span class="mono">${esc(r[2])}</span>`, `<span class="mono${r[0] === 'removed' ? ' old' : ''}">${esc(r[3])}</span>`, `<span class="mono">${esc(r[4])}</span>`] })),
+    },
+    findings: {
+      head: ['', 'Finding', 'Where', 'Why'],
+      rows: () => FINDINGS.map((r) => ({ target: r[4], cells: [`<span class="badge ${r[0]}">${r[0] === 'added' ? '+ New' : '− Resolved'}</span>`, esc(r[1]), `<span class="mono">${esc(r[2])}</span>`, esc(r[3])] })),
+    },
+  };
+
+  function drawPanel() {
+    const table = TABLES[state.tab];
+    const rows = table.rows();
+    document.getElementById('panel').innerHTML = `<table><thead><tr>${table.head.map((h) => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows
+      .map((r) => `<tr class="row${r.target === state.selected ? ' sel' : ''}" data-target="${r.target}" tabindex="0">${r.cells.map((c) => `<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    document.querySelectorAll('.btabs button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
+  }
+
+  function drawSummary() {
+    const count = (s) => CHANGES.filter((r) => r[0] === s).length;
+    const parts = ['added', 'removed', 'changed'].map((s) => `<span class="badge ${s}">${MARK[s]}${count(s)}</span>`);
+    if (state.version) parts.push(`<span class="badge version">v${count('version')}</span>`);
+    document.getElementById('summary').innerHTML = parts.join('');
+    const total = CHANGES.filter((r) => state.version || r[0] !== 'version').length;
+    document.getElementById('n-changes').textContent = total;
+    document.getElementById('n-address').textContent = ADDRESS.filter((r) => r[0] !== 'same').length;
+    document.getElementById('n-findings').textContent = FINDINGS.length;
+    const base = document.getElementById('base').selectedOptions[0].textContent;
+    const head = document.getElementById('head').selectedOptions[0].textContent;
+    document.getElementById('status-text').textContent = `Comparing ${head} with ${base} · ${total} changes · 1 new finding, 2 resolved`;
+  }
+
+  function render() { drawDiagram(); drawDetails(); drawPanel(); drawSummary(); }
+  function select(id) {
+    const n = byId[id];
+    // Selecting something hidden turns the hiding toggle off, as a jump from a row would.
+    if (shown(n.status) === 'removed') state.removed = true;
+    if (shown(n.status) === 'same') state.only = false;
+    state.selected = id;
+    syncToggles();
+    render();
+  }
+  function syncToggles() {
+    document.getElementById('t-only').setAttribute('aria-pressed', String(state.only));
+    document.getElementById('t-removed').setAttribute('aria-pressed', String(state.removed));
+    document.getElementById('t-version').setAttribute('aria-pressed', String(state.version));
+  }
+
+  for (const [id, key] of [['t-only', 'only'], ['t-removed', 'removed'], ['t-version', 'version']]) {
+    document.getElementById(id).addEventListener('click', () => { state[key] = !state[key]; syncToggles(); render(); });
+  }
+  document.getElementById('t-exit').addEventListener('click', () => {
+    document.getElementById('status-text').textContent = 'Exit compare returns to the plain diagram (not part of this mockup).';
+  });
+  document.getElementById('base').addEventListener('change', drawSummary);
+  document.getElementById('head').addEventListener('change', drawSummary);
+  document.querySelectorAll('.btabs button').forEach((b) => b.addEventListener('click', () => { state.tab = b.dataset.tab; drawPanel(); }));
+  const panel = document.getElementById('panel');
+  const rowOf = (ev) => ev.target.closest('tr.row');
+  panel.addEventListener('click', (ev) => { const r = rowOf(ev); if (r) select(r.dataset.target); });
+  panel.addEventListener('keydown', (ev) => { const r = rowOf(ev); if (r && ev.key === 'Enter') select(r.dataset.target); });
+  document.querySelectorAll('[data-theme-btn]').forEach((b) => b.addEventListener('click', () => {
+    const v = b.dataset.themeBtn;
+    if (v === 'auto') document.documentElement.removeAttribute('data-theme');
+    else document.documentElement.setAttribute('data-theme', v);
+    document.querySelectorAll('[data-theme-btn]').forEach((o) => o.setAttribute('aria-pressed', String(o === b)));
+  }));
+
+  render();
+})();
+</script>
+</body>
+</html>
