@@ -23,6 +23,8 @@ export interface PinContext {
   added: Set<string>;
   /** The same for the base graph only. */
   removed: Set<string>;
+  /** Paths of the instances that exist in at least one of the two graphs. */
+  instances: Set<string>;
   /** Keys (`pinKey`) of the inside views of hierarchy pins that the diff classifies. */
   inside: Set<string>;
 }
@@ -62,6 +64,7 @@ export function createPinContext(
     current: buildPeerLookup(current),
     added: only(currentOwners, baseOwners),
     removed: only(baseOwners, currentOwners),
+    instances: new Set([...Object.keys(base.instances), ...Object.keys(current.instances)]),
     inside: new Set(
       insidePins(base, current).flatMap(({ owner, pins }) =>
         pins.map((pin) => pinKey({ instance: null, level: owner, pin }))
@@ -79,12 +82,16 @@ function isOwnedBy(owners: Set<string>, peer: PinId): boolean {
 }
 
 /**
- * Whether the diff classifies the pin: an instance pin, an external port, or the inside view
- * of a pin of a hierarchy. The remaining endpoints (a boundary pin of a level that is not a
- * hierarchy on either side) are not classified and never suppress a pin.
+ * Whether the diff classifies the pin: a pin of an instance of either graph, an external
+ * port, or the inside view of a pin of a hierarchy. The remaining endpoints (a pin of an
+ * unknown block, a boundary pin of a level that is not a hierarchy on either side) are not
+ * classified and never suppress a pin.
  */
 function isClassified(ctx: PinContext, peer: PinId): boolean {
-  return peer.instance !== null || peer.level === ROOT || ctx.inside.has(pinKey(peer));
+  if (peer.instance !== null) {
+    return ctx.instances.has(peer.instance);
+  }
+  return peer.level === ROOT || ctx.inside.has(pinKey(peer));
 }
 
 const isPort = (id: PinId): boolean => id.instance === null && id.level === ROOT;
@@ -126,11 +133,12 @@ export function classifyPin(
     ...base.filter((p) => !currentKeys.has(pinKey(p)) && !isOwnedBy(ctx.removed, p)),
   ];
   // Host rule. P is a host that merely gained or lost a neighbour when it kept connections
-  // and every pin Q that joined or left kept fewer of its own. Every net endpoint is a
-  // classified pin (an instance pin, an external port, or the inside view of a hierarchy
-  // pin), so two pins on opposite sides of a change are never both suppressed: each
-  // suppression needs the other side to be classified with a smaller kept set. An endpoint
-  // that is not classified never suppresses.
+  // and every pin Q that joined or left kept fewer of its own. A classified endpoint (a pin
+  // of an instance of either graph, an external port, or the inside view of a hierarchy
+  // pin) is reported by some caller, so two pins on opposite sides of a change are never
+  // both suppressed: each suppression needs the other side to be classified with a smaller
+  // kept set. An endpoint that is not classified (e.g. a pin of an unknown block) never
+  // suppresses.
   const suppressed =
     remaining.length === 0 ||
     (kept.length > 0 &&

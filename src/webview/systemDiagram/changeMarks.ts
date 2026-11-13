@@ -142,6 +142,15 @@ function blockTitle(change: SystemGraphDiff['instances'][number]): string {
   }
 }
 
+/** The title of a version-only or renamed block that an address change promoted to `changed`. */
+function promotedTitle(change: SystemGraphDiff['instances'][number]): string {
+  const what =
+    change.status === 'renamed'
+      ? `renamed from ${lastName(change.basePath ?? change.path)}`
+      : `${change.baseType} → ${change.currentType}`;
+  return `${markName('changed')}: ${what}`;
+}
+
 function portTitle(port: PortChange): string {
   if (port.status === 'added') {
     return markName('added');
@@ -246,12 +255,19 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
   for (const [slave, titles] of segmentTitles) {
     const known = statuses.get(slave);
     const text = titles.join(', ');
+    // An address change makes a version-only or renamed block a changed one.
+    const promoted =
+      known?.status === 'version' || known?.status === 'renamed'
+        ? diff.instances.find((change) => change.path === slave)
+        : undefined;
+    const lead = promoted ? promotedTitle(promoted) : (known?.title ?? '');
     statuses.set(
       slave,
       known
         ? {
             ...known,
-            title: `${known.title ?? ''}, ${text.charAt(0).toLowerCase()}${text.slice(1)}`,
+            ...(promoted && { status: 'changed' as const }),
+            title: `${lead}, ${text.charAt(0).toLowerCase()}${text.slice(1)}`,
           }
         : { status: 'changed', title: text, pins: {} }
     );

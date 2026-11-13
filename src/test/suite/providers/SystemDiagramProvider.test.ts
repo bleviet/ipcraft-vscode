@@ -758,6 +758,85 @@ describe('SystemDiagramProvider export image', () => {
       expect(posted[1]).toMatchObject({ type: 'graph' });
     });
 
+    describe('when the document stopped reading as a design', () => {
+      const storageKey = 'ipcraft.systemDiagram.highlights:file:///ws/zynq.tcl';
+      type Problem = { type: 'notRecognized' | 'error' };
+
+      /** Starts a comparison, then lets `breakIt` make the next read fail; it may return an undo. */
+      async function comparingWithProblem(
+        breakIt: (document: { text: string }) => (() => void) | void,
+        problem: Problem
+      ) {
+        const context = await ready();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+        await context.send({ type: 'startCompare' });
+        context.workspaceStateStore.set(storageKey, {
+          'instance:/axi_dma_0': 'red',
+          'instance:/vanished_ip': 'yellow',
+        });
+        context.posted.length = 0;
+        const undo = breakIt(context.document);
+        context.change();
+        await flush();
+        undo?.();
+        expect(context.posted).toMatchObject([problem]);
+        context.posted.length = 0;
+        context.workspaceState.update.mockClear();
+        return context;
+      }
+
+      const expectGraphThenProblem = (posted: unknown[], problem: Problem) => {
+        expect(posted).toHaveLength(2);
+        expect(posted[0]).toMatchObject({ type: 'graph' });
+        expect(posted[0]).not.toHaveProperty('compare');
+        expect(posted[1]).toMatchObject(problem);
+      };
+
+      it('keeps the problem when the comparison is stopped after the document was not recognized', async () => {
+        const { posted, send } = await comparingWithProblem(
+          (document) => {
+            document.text = 'puts hello\n';
+          },
+          { type: 'notRecognized' }
+        );
+        await send({ type: 'stopCompare' });
+        expectGraphThenProblem(posted, { type: 'notRecognized' });
+      });
+
+      it('keeps the problem when the comparison is stopped after a read threw', async () => {
+        const original = jest.requireActual<typeof import('../../../parser/system/BdTclReader')>(
+          '../../../parser/system/BdTclReader'
+        );
+        const { posted, send } = await comparingWithProblem(
+          () => {
+            const spy = jest.spyOn(original, 'readBdTcl').mockImplementation(() => {
+              throw new Error('bad script');
+            });
+            return () => spy.mockRestore();
+          },
+          { type: 'error' }
+        );
+        await send({ type: 'stopCompare' });
+        expectGraphThenProblem(posted, { type: 'error' });
+        expect(posted[1]).toEqual({ type: 'error', message: 'bad script' });
+      });
+
+      it('does not prune the stored highlights against the outdated graph', async () => {
+        const { send, workspaceState, workspaceStateStore } = await comparingWithProblem(
+          (document) => {
+            document.text = 'puts hello\n';
+          },
+          { type: 'notRecognized' }
+        );
+        await send({ type: 'stopCompare' });
+        expect(workspaceState.update).not.toHaveBeenCalled();
+        expect(workspaceStateStore.get(storageKey)).toEqual({
+          'instance:/axi_dma_0': 'red',
+          'instance:/vanished_ip': 'yellow',
+        });
+      });
+    });
+
     it('shows the error and keeps the running comparison when a read fails', async () => {
       const { posted, send, change } = await ready();
       pick.mockResolvedValueOnce({ text: fixtureText, label: 'HEAD' });

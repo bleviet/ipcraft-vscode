@@ -999,6 +999,47 @@ create_root_design ""
       );
       expect(diff.instances).toEqual([]);
     });
+
+    describe('a pin of a block that is in neither graph', () => {
+      // `sub` comes from a hierarchy proc that is not in the file, so `sub/inner/clk` is a
+      // net endpoint whose owner no caller reports: it must not suppress the pins on the net.
+      const withSub = (...pins: string[]) =>
+        readSystemDesign(
+          't.tcl',
+          't.tcl',
+          `create_bd_design "t"
+proc create_root_design { parentCell } {
+  set parentObj [get_bd_cells /]
+  current_bd_instance $parentObj
+${ip('a')}
+${ip('b')}
+  create_hier_cell_sub [current_bd_instance .] sub
+${net('clk', ...pins)}
+}
+create_root_design ""
+`
+        ) as SystemGraph;
+      const [without, withInner] = [
+        withSub('a/clk', 'b/clk'),
+        withSub('a/clk', 'b/clk', 'sub/inner/clk'),
+      ];
+
+      it('reports the pins it joins', () => {
+        const diff = diffSystemGraphs(without, withInner);
+        expect(diff.instances.map((i) => `${i.path} ${i.status}`)).toEqual([
+          '/a changed',
+          '/b changed',
+        ]);
+        expect(pinsOf(diff)).toEqual(['/a clk changed', '/b clk changed']);
+      });
+
+      it('reports the pins it leaves', () => {
+        expect(pinsOf(diffSystemGraphs(withInner, without))).toEqual([
+          '/a clk changed',
+          '/b clk changed',
+        ]);
+      });
+    });
   });
 
   describe('address segments', () => {

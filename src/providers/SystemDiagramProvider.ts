@@ -82,6 +82,10 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     let lastGraphFinal = true;
     /** The sides of `lastGraph` while it is final. */
     let lastSides: CurrentSide | undefined;
+    /** The problem the webview shows over `lastGraph`; a published graph clears it. */
+    let lastProblem:
+      | Extract<SystemDiagramToWebviewMessage, { type: 'notRecognized' | 'error' }>
+      | undefined;
     const compare = new PanelCompare({
       document,
       webviewPanel,
@@ -97,6 +101,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     /** Posts a graph with its remembered highlights; only `persist` prunes workspaceState. */
     const publish = (graph: SystemGraph, persist: boolean, changes?: CompareResult) => {
       lastGraph = graph;
+      lastProblem = undefined;
       lastGraphFinal = persist;
       const raw = this.context.workspaceState?.get<unknown>(storageKey);
       const highlights = pruneHighlights(graph, raw);
@@ -120,13 +125,18 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       });
     };
 
+    const postProblem = (message: NonNullable<typeof lastProblem>) => {
+      lastProblem = message;
+      post(message);
+    };
+
     const postGraph = async () => {
       const current = ++sequence;
       const fileName = compare.currentLabel;
       try {
         const read = readSystemDesign(document.fileName, fileName, document.getText());
         if (!read) {
-          post({ type: 'notRecognized', fileName });
+          postProblem({ type: 'notRecognized', fileName });
           return;
         }
         let fellBack = false;
@@ -171,7 +181,10 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
           return;
         }
         this.logger.error('Failed to read system design', error as Error);
-        post({ type: 'error', message: error instanceof Error ? error.message : String(error) });
+        postProblem({
+          type: 'error',
+          message: error instanceof Error ? error.message : String(error),
+        });
       }
     };
 
@@ -186,7 +199,13 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       const changes = final && sides ? await compare.diffEnriched(sides) : compare.diffRead(graph);
       // A newer graph replaced this one meanwhile and carries the comparison itself.
       if (!disposed && graph === lastGraph) {
-        publish(graph, final, changes);
+        // The webview keeps this graph under a problem banner; a graph message would clear it.
+        const problem = lastProblem;
+        publish(graph, final && !problem, changes);
+        if (problem) {
+          lastGraphFinal = final;
+          postProblem(problem);
+        }
       }
     };
 

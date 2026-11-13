@@ -422,7 +422,7 @@ characters that differ are emphasised (bold on a highlight), so a one-letter typ
 can be seen. The address segments and the connections of other blocks that differed only
 by the name are not listed, and the **Base** column shows the names the base had. A
 block whose address changed is still a rename; its segment is listed as changed under
-the new name. The rule prefers to miss a rename over a wrong one: a block
+the new name, and the diagram draws the block as changed (`~`). The rule prefers to miss a rename over a wrong one: a block
 that is renamed and also changed (a parameter, a version, a connection) stays a removed
 and an added block, a block moved to another level is not a rename, and two identical
 blocks on each side are not guessed at.
@@ -489,7 +489,9 @@ wires use color and weight (a bold name, a thicker wire):
 | `v` | Only the IP version differs; the tooltip shows both | Dotted border in the version-only color (muted gray) |
 
 A block whose address segment was added, removed or changed counts as changed, and its
-tooltip says so (`Address changed`); the segment is listed in its Details. A removed
+tooltip says so (`Address changed`); the segment is listed in its Details. This includes
+a renamed or version-only block: it is drawn `~`, and its tooltip keeps the old name or
+the two versions (`Changed: renamed from axi_gpio_0, address changed`). A removed
 segment is attributed to the block its name starts with, when that block still exists.
 The border has a ring of the same color, one pixel wide (a version-only block has none, its border is dotted instead). A selected block keeps the focus color, so it is never mistaken for a renamed one. When you zoom out far enough
 for the simplified view (**Simplify zoomed out**, on by default), the ring and the signs
