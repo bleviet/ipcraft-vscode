@@ -108,3 +108,43 @@ export interface SystemGraphDiff {
   segments: SegmentChange[];
   summary: DiffSummary;
 }
+
+/** A pin that no net touches on its level: `undriven` is a sink, `unused` a source or a pin without a role. */
+export interface UnconnectedFinding {
+  kind: 'undriven' | 'unused';
+  /** Level that holds the pin. */
+  level: string;
+  /** Instance path; null for a boundary pin of `level`. */
+  instance: string | null;
+  pin: string;
+  /** `instanceName/pin` (the last segment of the instance path) for an instance pin, the pin name for a boundary pin. */
+  label: string;
+}
+
+/** A data connection or a reset that goes to a sink in another clock domain, without a known synchronizer. */
+export interface CrossingFinding {
+  kind: 'dataCrossing' | 'resetCrossing';
+  /** Level the crossing belongs to. */
+  level: string;
+  /** Labels of the two ends: `instanceName/pin`, or the port name of a root external port. */
+  from: string;
+  to: string;
+  /** Labels of the clock domains of the ends; absent when the end's clock is not known. */
+  fromClock?: string;
+  toClock?: string;
+  /** The analysis's explanation of the crossing. */
+  reason: string;
+}
+
+export type Finding = UnconnectedFinding | CrossingFinding;
+
+/**
+ * The findings that differ between two revisions, each list sorted by kind (undriven, unused,
+ * data crossing, reset crossing), then level, then label.
+ */
+export interface FindingsDiff {
+  /** Findings only the current revision has. */
+  new: Finding[];
+  /** Findings only the base has, written with the current names of renamed blocks. */
+  resolved: Finding[];
+}

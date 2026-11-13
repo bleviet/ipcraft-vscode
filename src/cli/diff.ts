@@ -1,6 +1,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { SystemGraph } from '../domain/systemGraph';
+import { diffFindings } from '../services/systemDiagram/diff/diffFindings';
 import { diffToMarkdown } from '../services/systemDiagram/diff/diffReport';
 import { diffSystemGraphs } from '../services/systemDiagram/diff/diffSystemGraphs';
 import { withoutVersionOnly } from '../services/systemDiagram/diff/ignoreVersionOnly';
@@ -55,14 +56,14 @@ export async function runCliDiff(args: CliDiffArgs): Promise<CliDiffResult> {
     const currentText = await readSide(currentFile, args.headRef);
     const named = (file: string, ref: string | undefined) =>
       ref === undefined ? file : `${file} at ${ref}`;
-    const diff = diffSystemGraphs(
-      parseDesign(baseFile, named(baseFile, args.baseRef), baseText),
-      parseDesign(currentFile, named(currentFile, args.headRef), currentText)
-    );
+    const base = parseDesign(baseFile, named(baseFile, args.baseRef), baseText);
+    const current = parseDesign(currentFile, named(currentFile, args.headRef), currentText);
+    const diff = diffSystemGraphs(base, current);
+    const findings = diffFindings(base, current, diff);
     const report =
       args.format === 'json'
-        ? `${JSON.stringify(args.ignoreVersionOnly ? withoutVersionOnly(diff) : diff, null, 2)}\n`
-        : diffToMarkdown(diff, labels, { ignoreVersionOnly: args.ignoreVersionOnly });
+        ? `${JSON.stringify({ ...(args.ignoreVersionOnly ? withoutVersionOnly(diff) : diff), findings }, null, 2)}\n`
+        : diffToMarkdown(diff, labels, { ignoreVersionOnly: args.ignoreVersionOnly, findings });
     if (args.out === undefined) {
       return { success: true, report };
     }

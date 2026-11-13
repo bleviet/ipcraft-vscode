@@ -79,6 +79,34 @@ describe('ipcraft diff of two files', () => {
     expect(text).toBe(`${JSON.stringify(diff, null, 2)}\n`);
   });
 
+  it('writes the findings that differ in the JSON, and an empty list for none', async () => {
+    const json = JSON.parse((await runCliDiff(files({ format: 'json' }))).report as string);
+    expect(json.findings).toEqual({
+      new: [],
+      resolved: [{ kind: 'undriven', level: '/', instance: null, pin: 'led_o', label: 'led_o' }],
+    });
+    const renamePair = {
+      files: [
+        path.join(fixtures, 'zynq_gpio_rename_base.bd'),
+        path.join(fixtures, 'zynq_gpio_rename_current.bd'),
+      ],
+      format: 'json' as const,
+    };
+    const none = JSON.parse((await runCliDiff(files(renamePair))).report as string);
+    expect(none.findings).toEqual({ new: [], resolved: [] });
+  });
+
+  it('keeps the findings with --ignore-version-only', async () => {
+    const result = await runCliDiff(files({ format: 'json', ignoreVersionOnly: true }));
+    expect(JSON.parse(result.report as string).findings.resolved).toHaveLength(1);
+  });
+
+  it('writes the Findings section in the Markdown when the findings differ', async () => {
+    const markdown = (await runCliDiff(files())).report as string;
+    expect(markdown).toContain('1 resolved finding**\n\n### Findings\n');
+    expect(markdown).toContain('| Resolved | undriven pin | `led_o` | |');
+  });
+
   it('reports a renamed block in the JSON with its base path, and as one row in the Markdown', async () => {
     const pair = {
       files: [

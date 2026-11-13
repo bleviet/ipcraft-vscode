@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { SystemGraphDiff } from '../../../../../domain/systemGraphDiff';
+import type { FindingsDiff, SystemGraphDiff } from '../../../../../domain/systemGraphDiff';
+import { diffFindings } from '../../../../../services/systemDiagram/diff/diffFindings';
 import { diffToMarkdown } from '../../../../../services/systemDiagram/diff/diffReport';
 import { diffSystemGraphs } from '../../../../../services/systemDiagram/diff/diffSystemGraphs';
 import { readSystemDesign } from '../../../../../services/systemDiagram/readSystemDesign';
@@ -17,26 +18,32 @@ function fixtureDiff(base: string, current: string, displayName: string): System
   return diffSystemGraphs(read(base, displayName), read(current, displayName));
 }
 
+/** The report of a fixture pair, with the findings that differ between its two designs. */
+function fixtureReport(base: string, current: string, displayName: string): string {
+  const [from, to] = [read(base, displayName), read(current, displayName)];
+  const diff = diffSystemGraphs(from, to);
+  return diffToMarkdown(diff, LABELS, { ...KEEP, findings: diffFindings(from, to, diff) });
+}
+
 const golden = (file: string) => fs.readFileSync(path.join(fixtures, file), 'utf8');
 
 describe('diffToMarkdown', () => {
   it('matches the golden report of the Vivado .bd pair', () => {
-    const diff = fixtureDiff('zynq_gpio_base.bd', 'zynq_gpio_current.bd', 'system.bd');
-    expect(diffToMarkdown(diff, LABELS, KEEP)).toBe(golden('zynq_gpio.expected.md'));
+    expect(fixtureReport('zynq_gpio_base.bd', 'zynq_gpio_current.bd', 'system.bd')).toBe(
+      golden('zynq_gpio.expected.md')
+    );
   });
 
   it('matches the golden report of the Platform Designer pair', () => {
-    const diff = fixtureDiff('nios_base.qsys', 'nios_current.qsys', 'nios_system.qsys');
-    expect(diffToMarkdown(diff, LABELS, KEEP)).toBe(golden('nios.expected.md'));
+    expect(fixtureReport('nios_base.qsys', 'nios_current.qsys', 'nios_system.qsys')).toBe(
+      golden('nios.expected.md')
+    );
   });
 
   it('matches the golden report of a pair with a renamed block', () => {
-    const diff = fixtureDiff(
-      'zynq_gpio_rename_base.bd',
-      'zynq_gpio_rename_current.bd',
-      'system.bd'
-    );
-    expect(diffToMarkdown(diff, LABELS, KEEP)).toBe(golden('zynq_gpio_rename.expected.md'));
+    expect(
+      fixtureReport('zynq_gpio_rename_base.bd', 'zynq_gpio_rename_current.bd', 'system.bd')
+    ).toBe(golden('zynq_gpio_rename.expected.md'));
   });
 
   it('writes a renamed block as one row with the differing characters in bold, and counts it', () => {
@@ -204,5 +211,84 @@ describe('diffToMarkdown', () => {
     expect(text).toContain('| ~ | `gpio_block` | pin `rst_n` direction | `in` | `out` |');
     expect(text).toContain('| ~ | `gpio_block` | pin `clk` parameter `CONFIG.FREQ_HZ` | | `5` |');
     expect(text).toContain('| ~ | `sys_clk` | CONFIG.FREQ_HZ `125000000` | CONFIG.FREQ_HZ `1` |');
+  });
+
+  describe('findings', () => {
+    const FINDINGS: FindingsDiff = {
+      new: [
+        {
+          kind: 'undriven',
+          level: '/',
+          instance: '/axi_gpio_0',
+          pin: 's_axi_aclk',
+          label: 'axi_gpio_0/s_axi_aclk',
+        },
+        { kind: 'unused', level: '/h', instance: null, pin: 'led', label: 'led' },
+        {
+          kind: 'dataCrossing',
+          level: '/',
+          from: 'a/M_AXIS',
+          to: 'b/S_AXIS',
+          fromClock: 'clkA',
+          toClock: 'clkB',
+          reason: 'no synchronizer is known | between them',
+        },
+      ],
+      resolved: [
+        {
+          kind: 'resetCrossing',
+          level: '/dsp',
+          from: 'rst/out',
+          to: 'b/rst_n',
+          toClock: 'clkB',
+          reason: 'released on clkA',
+        },
+      ],
+    };
+    const NOTE =
+      'Findings are computed from the design files alone; workspace definitions are not used, so pins of blocks without a known pin list are not checked.';
+    const withFindings = (diff: SystemGraphDiff, findings: FindingsDiff) =>
+      diffToMarkdown(diff, LABELS, { ...KEEP, findings });
+    const nios = () => fixtureDiff('nios_base.qsys', 'nios_current.qsys', 'nios_system.qsys');
+
+    it('writes the Findings table, new rows first, between the summary and the address map', () => {
+      const text = withFindings(nios(), FINDINGS);
+      expect(text).toContain(
+        '~4 changed · v1 version only · 3 new findings · 1 resolved finding**\n\n' +
+          '### Findings\n' +
+          '| | Finding | Where | Detail |\n' +
+          '|---|---|---|---|\n' +
+          '| New | undriven pin | `axi_gpio_0/s_axi_aclk` | |\n' +
+          '| New | unused pin | `led` on level `/h` | |\n' +
+          '| New | data crossing | `a/M_AXIS` → `b/S_AXIS` | `clkA` → `clkB` · no synchronizer is known \\| between them |\n' +
+          '| Resolved | reset crossing | `rst/out` → `b/rst_n` on level `/dsp` | unknown clock → `clkB` · released on clkA |\n\n' +
+          `${NOTE}\n\n### Address map`
+      );
+    });
+
+    it('uses the singular for one new finding', () => {
+      const text = withFindings(nios(), { new: [FINDINGS.new[0]], resolved: [] });
+      expect(text).toContain('v1 version only · 1 new finding · 0 resolved findings**');
+    });
+
+    it('prints the summary and the section when only the findings differ', () => {
+      const g = read('nios_base.qsys', 'nios_system.qsys');
+      const text = withFindings(diffSystemGraphs(g, g), { new: [], resolved: FINDINGS.resolved });
+      expect(text).not.toContain('No changes.');
+      expect(text).toContain(
+        '**+0 added · −0 removed · ~0 changed · v0 version only · 0 new findings · 1 resolved finding**\n\n### Findings\n'
+      );
+      expect(text.endsWith(`${NOTE}\n`)).toBe(true);
+    });
+
+    it('writes no section and keeps No changes. when there are no findings', () => {
+      const g = read('nios_base.qsys', 'nios_system.qsys');
+      const text = withFindings(diffSystemGraphs(g, g), { new: [], resolved: [] });
+      expect(text).toContain('\nNo changes.\n');
+      expect(text).not.toContain('Findings');
+      expect(withFindings(nios(), { new: [], resolved: [] })).toBe(
+        diffToMarkdown(nios(), LABELS, KEEP)
+      );
+    });
   });
 });
