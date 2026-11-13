@@ -7,7 +7,9 @@ command with its Markdown and JSON report work; see
 the [command line reference](../../reference/command-line.md#compare-two-revisions-of-a-system-design).
 In the viewer, the compare command, the base picker (a git revision or a file)
 and the **Changes** tab of phase 1 also work. The current side is the open file.
-The overlay on the diagram and the later phases are open. This document describes
+A block that is only renamed is reported as one change (see
+[Renames and Moves](#renames-and-moves)). The overlay on the diagram and the
+later phases are open. This document describes
 how the [system viewer](../../how-to/view-a-system-design.md) could show what
 changed between two revisions of a block design or Platform Designer system.
 
@@ -131,19 +133,37 @@ still see that they are there.
 
 ### Renames and Moves
 
-An instance that is renamed, or moved to another hierarchy, has a new path. By
-identity it is one removed and one added instance.
+An instance is identified by its path, so a renamed instance, or one moved to
+another hierarchy, has a new path. By identity it is one removed and one added
+instance, and everything that carries its name changes with it: its address
+segments (their texts start with the path), and the peers of the pins it is
+connected to. One typo fixed in a block name gave 22 rows in the Markdown report.
 
 The diff pairs a removed and an added instance as a rename only when all of
 these hold:
 
-- same type and version;
-- same parameters;
-- the same peers on every pin, after applying the renames found so far;
-- exactly one candidate on each side.
+- they are in the same level (a rename in place; a move to another level is not
+  paired), and that level exists in both revisions, so only the topmost block of
+  a renamed hierarchy is a candidate;
+- same kind, same type with its version, same parameters, same pin names;
+- they are the only removed and the only added instance with these properties in
+  that level (two identical candidates on a side are ambiguous, and not guessed);
+- with the removed instance renamed, the diff has no change left at or below
+  the added instance: after applying the rename the diff reports no change on
+  the block, and for a hierarchy nor inside it (connections to added or removed
+  blocks, and neighbours that only joined or left one of its nets, do not count).
 
-Otherwise it stays removed plus added. A wrong rename hides a real change, so
-the rule prefers to miss a rename.
+The candidate pairs are verified together, not one after another, so the result
+does not depend on the names or on any order: all pairs are applied to the base
+at once and the diff is taken once; every pair with a change at or below its
+added instance is dropped, and the rest starts again from the original base,
+until no pair is dropped. The address segments and the connections of other
+blocks that differed only by the name are then no longer reported, and the Base
+column shows the names the base had. A renamed hierarchy is one change; its children are not
+listed. A block that is renamed and also changed, or moved to another level,
+stays removed plus added. A wrong rename hides a real change, so the rule
+prefers to miss a rename. Detection never hides a change. It can show a connection
+change that the diff without it attributed to the removed and the added block. A block that only lost or gained a neighbour may no longer be listed; the change then shows on that neighbour.
 
 ### Two Different Formats
 

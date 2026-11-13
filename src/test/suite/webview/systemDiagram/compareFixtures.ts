@@ -24,6 +24,14 @@ export function zynqReverseDiff(): SystemGraphDiff {
   return diffSystemGraphs(read('zynq_gpio_current.bd'), read('zynq_gpio_base.bd'));
 }
 
+/** Base to current of the pair with a renamed block (`axi_gpio_0` to `axi_gpio_main`) and one changed parameter. */
+export function renameDiff(): SystemGraphDiff {
+  return diffSystemGraphs(read('zynq_gpio_rename_base.bd'), read('zynq_gpio_rename_current.bd'));
+}
+
+/** The current graph of that pair. */
+export const renameGraph = () => read('zynq_gpio_rename_current.bd');
+
 export function emptyDiff(): SystemGraphDiff {
   return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_base.bd'));
 }

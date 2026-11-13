@@ -302,8 +302,8 @@ Comparing `HEAD` (base) with `working tree`.
 | v | `axi_gpio_1` | version | `xilinx.com:ip:axi_gpio:2.0` | `xilinx.com:ip:axi_gpio:2.1` |
 ```
 
-Each sign has a meaning: `+` added, `−` removed, `~` changed, `v` version only.
-A section without changes is left out, and a report without any change reads
+Each sign has a meaning: `+` added, `−` removed, `~` changed, `→` renamed,
+`v` version only. A section without changes is left out, and a report without any change reads
 `No changes.` Connections are compared per pin: a pin whose set of connected pins
 changed is listed with the old and the new set (`not connected` for an empty
 set), however the nets are named. Only the pin that moved is listed: a pin whose
@@ -325,6 +325,30 @@ hierarchy block are compared too, one row per difference; a direction is
 compared only when both revisions declare it. For the pins of other blocks only
 the connections are compared. The JSON report is the same
 change list as data.
+
+A block is identified by its path, so a renamed block would be one removed and one
+added block. In every format (Vivado `.bd` and `write_bd_tcl` script, Platform Designer
+`.qsys` and `qsys-script`), the diff pairs them as a rename only when they are the same
+block under a new name: the same level, kind, type (version included), parameters and
+pin names, and, after the rename is applied to the base, the diff reports no change on
+the block (for a hierarchy: nor on anything inside it). Connections to blocks that were
+added or removed, and neighbours that only joined or left one of its nets, do not count
+as a change of the block. There must be exactly one such removed and one such added
+block in the level, so identical candidates are not guessed at, and the pairs are
+checked together, so the result does not depend on names. A renamed block is one row,
+with the characters that differ in bold, and the address segments and the connections
+of other blocks that only differed by the name are not reported; the Base column
+shows the names the base had. A block whose address changed is still a rename, and its
+segment is shown as changed under the new name. A block that is renamed and also
+changed stays removed plus added, and a block moved to another level is not a rename.
+In JSON, a rename is an instance with `status` `renamed`, `path` (the new path),
+`basePath` (the old one), empty `parameters` and `pins`, and is counted in
+`summary.renamed`. The summary line of the Markdown report adds `→N renamed` when N is
+not 0:
+
+```markdown
+| → | `framebuffer_reader` | renamed | `frambuffer_reader` | `fram`**`e`**`buffer_reader` |
+```
 
 If the two files are of different formats, for example a `write_bd_tcl` script
 and a `.bd` of the same design, the report says so, because each format knows

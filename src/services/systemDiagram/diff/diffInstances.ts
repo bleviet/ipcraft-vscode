@@ -6,7 +6,7 @@ import { diffPinAttributes } from './pinAttributes';
 import { diffValues } from './valueChanges';
 
 /** The type as shown to the user: VLNV, Platform Designer `kind:version`, module reference, or the instance kind. */
-function instanceType(instance: SystemInstance): string {
+export function instanceType(instance: SystemInstance): string {
   if (instance.kind === 'hier') {
     return 'Hierarchy';
   }

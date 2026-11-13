@@ -74,8 +74,30 @@ describe('ipcraft diff of two files', () => {
     const text = fs.readFileSync(out, 'utf8');
     expect(text.endsWith('}\n')).toBe(true);
     const diff = JSON.parse(text);
-    expect(diff.summary).toEqual({ added: 1, removed: 4, changed: 2, version: 1 });
+    expect(diff.summary).toEqual({ added: 1, removed: 4, changed: 2, version: 1, renamed: 0 });
     expect(text).toBe(`${JSON.stringify(diff, null, 2)}\n`);
+  });
+
+  it('reports a renamed block in the JSON with its base path, and as one row in the Markdown', async () => {
+    const pair = {
+      files: [
+        path.join(fixtures, 'zynq_gpio_rename_base.bd'),
+        path.join(fixtures, 'zynq_gpio_rename_current.bd'),
+      ],
+    };
+    const json = JSON.parse(
+      (await runCliDiff(files({ ...pair, format: 'json' }))).report as string
+    ) as SystemGraphDiff;
+    expect(json.summary).toEqual({ added: 0, removed: 0, changed: 1, version: 0, renamed: 1 });
+    expect(json.instances.find((i) => i.status === 'renamed')).toMatchObject({
+      path: '/axi_gpio_main',
+      basePath: '/axi_gpio_0',
+      level: '/',
+      parameters: [],
+      pins: [],
+    });
+    const markdown = (await runCliDiff(files(pair))).report as string;
+    expect(markdown).toContain('| → | `axi_gpio_main` | renamed | `axi_gpio_`**`0`** |');
   });
 
   it('leaves version-only instances out of the JSON with --ignore-version-only', async () => {

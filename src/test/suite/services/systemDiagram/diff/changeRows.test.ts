@@ -282,4 +282,42 @@ describe('changeRows', () => {
       ]);
     });
   });
+
+  describe('renamed blocks', () => {
+    const renameDiff = bd('zynq_gpio_rename_base.bd', 'zynq_gpio_rename_current.bd');
+
+    it('gives a renamed block one row in its level, with the differing characters marked', () => {
+      const rows = changeRows(renameDiff, KEEP).filter((r) => r.sign === '→');
+      expect(rows).toEqual([
+        {
+          sign: '→',
+          section: 'level',
+          level: '/',
+          subject: [[{ text: 'axi_gpio_main', code: true }]],
+          change: [[{ text: 'renamed' }]],
+          base: [
+            [
+              { text: 'axi_gpio_', code: true },
+              { text: '0', code: true, mark: true },
+            ],
+          ],
+          current: [
+            [
+              { text: 'axi_gpio_', code: true },
+              { text: 'main', code: true, mark: true },
+            ],
+          ],
+          target: { kind: 'instance', path: '/axi_gpio_main' },
+        },
+      ]);
+    });
+
+    it('lists it with the other changes of its level and keeps it with ignoreVersionOnly', () => {
+      const rows = changeRows(renameDiff, { ignoreVersionOnly: true });
+      expect(rows.map((r) => [r.sign, cellText(r.subject)])).toEqual([
+        ['→', 'axi_gpio_main'],
+        ['~', 'sys_ps7'],
+      ]);
+    });
+  });
 });

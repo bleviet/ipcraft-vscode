@@ -1,7 +1,7 @@
 /** Markdown report of a {@link SystemGraphDiff}, made for a pull request comment. Pure. */
 
 import type { SystemGraphDiff } from '../../../domain/systemGraphDiff';
-import { changeRows, type Cell, type ChangeRow } from './changeRows';
+import { changeRows, type Cell, type CellPart, type ChangeRow } from './changeRows';
 import { withoutVersionOnly } from './ignoreVersionOnly';
 
 export interface DiffLabels {
@@ -23,10 +23,27 @@ const table = (header: string[], rows: Row[]): string =>
   [line(header), `|${header.map(() => '---').join('|')}|`, ...rows.map(line)].join('\n');
 
 /** A cell with its code parts in code spans and its items joined with ` · `. */
-const render = (value: Cell): string =>
-  value
-    .map((item) => item.map((part) => (part.code ? code(part.text) : part.text)).join(''))
-    .join(' · ');
+const render = (value: Cell): string => value.map((item) => renderItem(item)).join(' · ');
+
+/** A marked part is a code span in `**`; code parts with no marked part between them share one span. */
+function renderItem(item: CellPart[]): string {
+  let text = '';
+  let run = '';
+  const flush = () => {
+    text += run === '' ? '' : code(run);
+    run = '';
+  };
+  for (const part of item) {
+    if (part.code && !part.mark) {
+      run += part.text;
+    } else {
+      flush();
+      text += part.mark ? `**${code(part.text)}**` : part.text;
+    }
+  }
+  flush();
+  return text;
+}
 
 function markdownRow(row: ChangeRow): Row {
   const [subject, base, current] = [row.subject, row.base, row.current].map(render);
@@ -53,7 +70,7 @@ export function diffToMarkdown(
   options: DiffReportOptions
 ): string {
   const rows = changeRows(diff, options);
-  const { added, removed, changed, version } = (
+  const { added, removed, changed, version, renamed } = (
     options.ignoreVersionOnly ? withoutVersionOnly(diff) : diff
   ).summary;
   const parts = [
@@ -65,12 +82,12 @@ export function diffToMarkdown(
       `The two revisions use different formats (${diff.base.format} and ${diff.current.format}).`
     );
   }
-  if (added + removed + changed + version === 0) {
+  if (added + removed + changed + version + renamed === 0) {
     parts.push('No changes.');
     return `${parts.join('\n\n')}\n`;
   }
   parts.push(
-    `**+${added} added · −${removed} removed · ~${changed} changed${
+    `**+${added} added · −${removed} removed · ~${changed} changed${renamed > 0 ? ` · →${renamed} renamed` : ''}${
       options.ignoreVersionOnly ? '' : ` · v${version} version only`
     }**`
   );

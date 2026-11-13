@@ -37,7 +37,7 @@ const FCLK_PEERS = [
   'sys_ps7/FCLK_CLK0',
 ];
 
-const EMPTY = { added: 0, removed: 0, changed: 0, version: 0 };
+const EMPTY = { added: 0, removed: 0, changed: 0, version: 0, renamed: 0 };
 
 const AXI_GPIO = 'xilinx.com:ip:axi_gpio:2.0';
 
@@ -594,6 +594,7 @@ describe('diffSystemGraphs', () => {
           removed: forward.summary.added,
           changed: forward.summary.changed,
           version: forward.summary.version,
+          renamed: forward.summary.renamed,
         });
         expect(reported(backward).length).toBe(reported(forward).length);
       }
@@ -1044,6 +1045,7 @@ create_root_design ""
         removed: count('removed'),
         changed: count('changed'),
         version: count('version'),
+        renamed: count('renamed'),
       });
       expect(diff.summary.removed).toBeGreaterThan(0);
     });

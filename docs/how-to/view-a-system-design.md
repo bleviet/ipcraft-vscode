@@ -389,8 +389,8 @@ or file cannot be read, or is not a system design, a message says so and a compa
 that was already on stays on.
 
 While a comparison is on, the toolbar shows a chip with the base (`vs HEAD`), the
-numbers of added, removed, changed and version-only changes (`+1 −4 ~2 v1`; a zero is
-dimmed), and an **Exit compare** button. Click the chip or the numbers to open the
+numbers of added, removed, changed, renamed and version-only changes (`+1 −4 ~2 →1 v1`;
+a zero is dimmed), and an **Exit compare** button. Click the chip or the numbers to open the
 **Changes** tab, the first tab of the bottom panel. The tab also opens by itself when
 a comparison starts.
 
@@ -401,6 +401,7 @@ The Changes tab lists one row per change:
 | `+ Added` | The block, external port, pin or address segment is new |
 | `− Removed` | It is gone |
 | `~ Changed` | A parameter, a type, an address or a connection differs |
+| `→ Renamed` | The same block under a new name |
 | `v Version` | Only the version of the block's IP differs |
 
 Each row names where it is (the **Address map**, the **External ports**, or the
@@ -409,7 +410,22 @@ the current design. Long values in Base and Current wrap and are shown in full; 
 other columns stay on one line, so the table scrolls sideways inside the panel when
 it is wider than the panel. An address row reads
 `address space → segment` under **What**, and **Change** says `added`, `removed` or
-`address changed`. A renamed block shows as one removed and one added block for now.
+`address changed`.
+
+A block is a **rename** when it is the same block under a new name: the same level,
+kind, type with its version, parameters and pin names. After the rename is applied there
+must be no other difference in the block (for a hierarchy: nor inside it). Connections to
+blocks that were added or removed, and neighbours that only joined or left one of its
+nets, do not count. A rename gets one
+row, with the old name under **Base** and the new name under **Current**, and the
+characters that differ are emphasised (bold on a highlight), so a one-letter typo fix
+can be seen. The address segments and the connections of other blocks that differed only
+by the name are not listed, and the **Base** column shows the names the base had. A
+block whose address changed is still a rename; its segment is listed as changed under
+the new name. The rule prefers to miss a rename over a wrong one: a block
+that is renamed and also changed (a parameter, a version, a connection) stays a removed
+and an added block, a block moved to another level is not a rename, and two identical
+blocks on each side are not guessed at.
 
 The bar at the top of the tab stays in view while the table scrolls. It is one line
 (it wraps when the panel is narrow) and says which side is which, for example
@@ -418,10 +434,11 @@ name, or by the shortest trailing path that tells them apart when the names are
 equal; a revision or commit is shown as it is. Hover a name to see its full label;
 the **Base** and **Current** column headers show them on hover as well. After the
 direction come a sentence that sums up the differences, for example "3 blocks, 1 port
-and 2 address segments differ.", and the four chips.
+and 2 address segments differ.", and the chips.
 Hover a chip for its meaning: **+ Added** is only in the current design, **−
-Removed** only in the base, **~ Changed** is in both but different, and **v Version
-only** differs only in the IP version. With no difference the sentence says "No
+Removed** only in the base, **~ Changed** is in both but different, **→ Renamed** (offered
+only when a block was renamed, and counted in the toolbar then) is the
+same block under a new name, and **v Version only** differs only in the IP version. With no difference the sentence says "No
 changes." and there is no table.
 
 When the base is a file (an open design or **Compare with File...**), the bar has
@@ -440,7 +457,7 @@ level; a row for the inside view says `inside`. The full rules are in
 [`ipcraft diff`](../reference/command-line.md#compare-two-revisions-of-a-system-design),
 which produces the same changes on the command line.
 
-The chips **Added**, **Removed**, **Changed** and **Version only** hide the rows of
+The chips **Added**, **Removed**, **Changed**, **Renamed** and **Version only** hide the rows of
 that kind; they are all on at first. The filter box above the table works on every
 column, as in the other tabs.
 

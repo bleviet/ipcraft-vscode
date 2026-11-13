@@ -1120,6 +1120,11 @@ input:focus-visible {
   color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
 }
 
+.sd-delta[data-sign='→'],
+.sd-sign[data-sign='→'] {
+  color: var(--vscode-gitDecoration-renamedResourceForeground, #73c991);
+}
+
 .sd-delta[data-sign='v'],
 .sd-sign[data-sign='v'] {
   color: var(--vscode-descriptionForeground);
@@ -1176,6 +1181,28 @@ input:focus-visible {
   overflow-wrap: anywhere;
 }
 
+/* In a narrow editor the minimums above add up to more than the panel. */
+@media (max-width: 799px) {
+  .sd-changes td:nth-child(3) {
+    min-width: 22ch;
+  }
+
+  .sd-changes td:nth-child(4) {
+    min-width: 10ch;
+  }
+
+  .sd-changes .sd-wrap {
+    min-width: 10ch;
+  }
+}
+
 .sd-changes .sd-code {
   font-family: var(--vscode-editor-font-family, monospace);
+}
+
+/* The characters of a renamed block's name that differ from the other name; bold, so it does
+   not depend on color alone. */
+.sd-changes .sd-mark {
+  background: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33));
+  font-weight: 600;
 }

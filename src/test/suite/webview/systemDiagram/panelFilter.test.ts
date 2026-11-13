@@ -14,7 +14,7 @@ import {
   DEFAULT_SEARCH_OPTIONS,
 } from '../../../../webview/systemDiagram/searchMatcher';
 import type { UnconnectedPin } from '../../../../webview/systemDiagram/unconnectedPins';
-import { zynqDiff } from './compareFixtures';
+import { renameDiff, zynqDiff } from './compareFixtures';
 import { loadClockFixtureGraph } from './fixtureGraph';
 
 const filter = (text: string) => compileSearch(text, DEFAULT_SEARCH_OPTIONS);
@@ -100,5 +100,19 @@ describe('changeTexts', () => {
     expect(matching('gpio_block/axi_gpio_1/S_AXI/Reg').map((row) => row.section)).toEqual([
       'address',
     ]);
+  });
+});
+
+describe('changeTexts of a renamed block', () => {
+  const rows = changeRows(renameDiff(), { ignoreVersionOnly: false });
+  const matching = (text: string) =>
+    filterRows(rows, filter(text), changeTexts).filter((row) => row.sign === '→');
+
+  it('matches the old and the new name and the word renamed', () => {
+    expect(matching('axi_gpio_0')).toHaveLength(1);
+    expect(matching('axi_gpio_main')).toHaveLength(1);
+    expect(matching('renamed')).toHaveLength(1);
+    expect(matching('Renamed')).toHaveLength(1);
+    expect(matching('axi_gpio_1')).toHaveLength(0);
   });
 });

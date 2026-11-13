@@ -50,11 +50,15 @@ function ownerKeys(graph: SystemGraph): Set<string> {
   ]);
 }
 
-export function createPinContext(base: SystemGraph, current: SystemGraph): PinContext {
+export function createPinContext(
+  base: SystemGraph,
+  current: SystemGraph,
+  baseName?: (path: string) => string
+): PinContext {
   const [baseOwners, currentOwners] = [ownerKeys(base), ownerKeys(current)];
   const only = (a: Set<string>, b: Set<string>) => new Set([...a].filter((k) => !b.has(k)));
   return {
-    base: buildPeerLookup(base),
+    base: Object.assign(buildPeerLookup(base), { baseName }),
     current: buildPeerLookup(current),
     added: only(currentOwners, baseOwners),
     removed: only(baseOwners, currentOwners),
@@ -113,7 +117,7 @@ export function classifyPin(
     }
     return current
       ? { pin, status: 'added', currentPeers: peerLabels(current, id.level) }
-      : { pin, status: 'removed', basePeers: peerLabels(base ?? [], id.level) };
+      : { pin, status: 'removed', basePeers: peerLabels(base ?? [], id.level, ctx.base.baseName) };
   }
   const [baseKeys, currentKeys] = [new Set(base.map(pinKey)), new Set(current.map(pinKey))];
   const kept = base.filter((p) => currentKeys.has(pinKey(p)));
@@ -134,10 +138,12 @@ export function classifyPin(
   if (suppressed && !differs) {
     return undefined;
   }
+  // Equal peers (the pin changed by an attribute) are written alike on both sides.
+  const samePeers = baseKeys.size === currentKeys.size && kept.length === baseKeys.size;
   return {
     pin,
     status: 'changed',
-    basePeers: peerLabels(base, id.level),
+    basePeers: peerLabels(base, id.level, samePeers ? undefined : ctx.base.baseName),
     currentPeers: peerLabels(current, id.level),
   };
 }
@@ -212,7 +218,7 @@ export function connectedPins(
   const changes: PinChange[] = [];
   for (const pin of [...new Set(pinNames)].sort(compareText)) {
     const id = instancePin(owner, pin);
-    const peers = peerLabels(lookup(id), id.level);
+    const peers = peerLabels(lookup(id), id.level, lookup.baseName);
     if (peers.length > 0) {
       changes.push(
         status === 'added'
