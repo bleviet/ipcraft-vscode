@@ -283,6 +283,49 @@ describe('changeRows', () => {
     });
   });
 
+  describe('peer lists with commas in their labels', () => {
+    // 'a,b' as one peer and 'a' and 'b' as two peers are different lists, though both join with a comma.
+    const [one, two] = [['a,b'], ['a', 'b']];
+
+    it('reports a port whose peers differ only in where the commas are', () => {
+      const diff: SystemGraphDiff = {
+        ...nios,
+        instances: [],
+        segments: [],
+        ports: [
+          {
+            pin: 'p',
+            status: 'changed',
+            basePeers: one,
+            currentPeers: two,
+            attributes: [{ key: 'direction', base: 'in', current: 'in' }],
+          },
+        ],
+      };
+      const [row] = changeRows(diff, KEEP).map(plain);
+      expect(row.base).toBe('direction in · connects to a,b');
+      expect(row.current).toBe('direction in · connects to a, b');
+    });
+
+    it('reports a pin whose peers differ only in where the commas are', () => {
+      const diff: SystemGraphDiff = {
+        ...nios,
+        ports: [],
+        segments: [],
+        instances: [
+          {
+            path: '/blk',
+            level: '/',
+            status: 'changed',
+            parameters: [],
+            pins: [{ pin: 'M', status: 'changed', basePeers: one, currentPeers: two }],
+          },
+        ],
+      };
+      expect(changeRows(diff, KEEP).map(plain)).toHaveLength(1);
+    });
+  });
+
   describe('renamed blocks', () => {
     const renameDiff = bd('zynq_gpio_rename_base.bd', 'zynq_gpio_rename_current.bd');
 

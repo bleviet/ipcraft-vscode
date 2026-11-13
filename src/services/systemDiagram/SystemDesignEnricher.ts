@@ -73,6 +73,23 @@ export class SystemDesignEnricher {
     readText,
   };
 
+  /**
+   * Changes whenever what `enrich` reads may have changed: the definition files (the HDL and
+   * `.qsys` files it reads are the files of their indexes, so the indexes cover their content
+   * too) and whether the workspace is trusted. An enrichment is current while this is unchanged.
+   * The HDL and `.qsys` contents are read from disk when `enrich` runs, but this changes only
+   * when the file watcher reports the save: an enrichment between the two can read the new
+   * content under the old revision, until the next change of the revision.
+   */
+  get revision(): string {
+    return [
+      this.ipIndex.revision,
+      this.hdlIndex.revision,
+      this.subsystems.revision,
+      vscode.workspace.isTrusted,
+    ].join('.');
+  }
+
   /** `designFile` is the path of the design: the nearest definition wins a tie. */
   async enrich(read: SystemGraph, designFile: string): Promise<SystemGraph> {
     if (hasOnlyHierarchies(read)) {

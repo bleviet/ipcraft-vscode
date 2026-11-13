@@ -53,9 +53,11 @@ export async function runCliDiff(args: CliDiffArgs): Promise<CliDiffResult> {
       : { base: baseFile, current: currentFile };
     const baseText = await readSide(baseFile, args.baseRef);
     const currentText = await readSide(currentFile, args.headRef);
+    const named = (file: string, ref: string | undefined) =>
+      ref === undefined ? file : `${file} at ${ref}`;
     const diff = diffSystemGraphs(
-      parseDesign(baseFile, gitMode ? `${baseFile} at ${labels.base}` : baseFile, baseText),
-      parseDesign(currentFile, currentFile, currentText)
+      parseDesign(baseFile, named(baseFile, args.baseRef), baseText),
+      parseDesign(currentFile, named(currentFile, args.headRef), currentText)
     );
     const report =
       args.format === 'json'

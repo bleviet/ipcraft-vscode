@@ -66,6 +66,14 @@ describe('useCompareView', () => {
     expect(result.current.marksOn).toBe(true);
   });
 
+  it('has Marks on again when the base it was turned off for comes back', () => {
+    const { result, rerender } = setup();
+    act(() => result.current.setMarksOn(false));
+    rerender({ label: 'main', level: '/' });
+    rerender({ label: 'HEAD', level: '/' });
+    expect(result.current.marksOn).toBe(true);
+  });
+
   it('restarts the toggle when the comparison ends and starts again', () => {
     const { result, rerender } = setup();
     act(() => result.current.setMarksOn(false));

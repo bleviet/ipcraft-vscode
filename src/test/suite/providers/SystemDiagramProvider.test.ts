@@ -32,9 +32,14 @@ jest.mock('../../../providers/systemDiagram/pickCompareBase', () => ({
 }));
 
 const mockEnrich = jest.fn();
+/** The revision of the workspace definitions the mocked enricher reports; a test bumps it. */
+let mockEnrichRevision = 1;
 
 jest.mock('../../../services/systemDiagram/SystemDesignEnricher', () => ({
   SystemDesignEnricher: class {
+    get revision() {
+      return String(mockEnrichRevision);
+    }
     enrich = (graph: unknown) => mockEnrich(graph) as Promise<unknown>;
     dispose = jest.fn();
   },
@@ -53,6 +58,7 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
   const changeSubscription = { dispose: jest.fn() };
   const subscriptions: unknown[] = [];
   mockEnrich.mockImplementation((graph: unknown) => Promise.resolve(graph));
+  mockEnrichRevision = 1;
   (vscode.Uri.file as jest.Mock).mockImplementation((fsPath: string) => ({ fsPath }));
 
   (vscode.workspace.asRelativePath as jest.Mock).mockReturnValue(relativeName);
@@ -135,7 +141,11 @@ function setup(text: string, fileName = '/ws/zynq.tcl', relativeName = 'zynq.tcl
     workspaceStateStore,
     document: documentState,
     trustSubscription,
-    grantTrust: () => trustHandler!(),
+    grantTrust: () => {
+      // The enricher's revision includes whether the workspace is trusted.
+      mockEnrichRevision += 1;
+      trustHandler!();
+    },
     webviewPanel,
     changeSubscription,
     send: (message: unknown) => webviewHandler!(message),
@@ -821,6 +831,44 @@ describe('SystemDiagramProvider export image', () => {
         expect(posted[1]).toEqual({ type: 'error', message: 'bad script' });
       });
 
+      it('keeps the problem when another comparison is started', async () => {
+        const { posted, send } = await comparingWithProblem(
+          (document) => {
+            document.text = 'puts hello\n';
+          },
+          { type: 'notRecognized' }
+        );
+        pick.mockResolvedValue({ text: editedText(fixtureText), label: 'B' });
+        await send({ type: 'startCompare' });
+        expect(posted).toHaveLength(2);
+        expect((posted[0] as Posted).compare?.baseLabel).toBe('B');
+        expect(posted[1]).toMatchObject({ type: 'notRecognized' });
+      });
+
+      it('posts the problem again when it arrives while the comparison waits for its base', async () => {
+        const { posted, send, change, document } = await ready();
+        pick.mockResolvedValue({ text: fixtureText, label: 'A' });
+        await send({ type: 'startCompare' });
+        posted.length = 0;
+        let release: () => void = () => undefined;
+        // The base of the next comparison is enriched only when released.
+        mockEnrich.mockImplementationOnce(
+          (graph: unknown) => new Promise((resolve) => (release = () => resolve(graph)))
+        );
+        pick.mockResolvedValue({ text: editedText(fixtureText), label: 'B' });
+        const started = send({ type: 'startCompare' });
+        await flush();
+        document.text = 'puts hello\n';
+        change();
+        await flush();
+        expect(posted).toMatchObject([{ type: 'notRecognized' }]);
+        release();
+        await started;
+        expect(posted).toHaveLength(3);
+        expect((posted[1] as Posted).compare?.baseLabel).toBe('B');
+        expect(posted[2]).toMatchObject({ type: 'notRecognized' });
+      });
+
       it('does not prune the stored highlights against the outdated graph', async () => {
         const { send, workspaceState, workspaceStateStore } = await comparingWithProblem(
           (document) => {
@@ -913,6 +961,8 @@ describe('SystemDiagramProvider export image', () => {
             ? new Promise((resolve) => (release = () => resolve(withDefinition(graph))))
             : Promise.resolve(withDefinition(graph));
         });
+        // A definition changed, so the base is enriched anew too.
+        mockEnrichRevision += 1;
         change();
         await new Promise((resolve) => setTimeout(resolve, ENRICHMENT_GRACE_MS + 50));
         expect(posted).toHaveLength(1);
@@ -926,12 +976,26 @@ describe('SystemDiagramProvider export image', () => {
         expect(posted[1]).toMatchObject({ graph: { instances: { '/axi_dma_0': {} } } });
       });
 
-      it('enriches both sides again when the document is edited', async () => {
+      it('enriches the current side again when the document is edited, the base only once', async () => {
         const { posted, send, change, document } = await ready();
         pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
         await send({ type: 'startCompare' });
         posted.length = 0;
         mockEnrich.mockClear();
+        document.text = editedText(fixtureText);
+        change();
+        await flush();
+        expect(mockEnrich).toHaveBeenCalledTimes(1);
+        expect((posted[0] as Posted).compare?.diff.summary).toMatchObject({ version: 1 });
+      });
+
+      it('enriches both sides again when a definition changed and the document is edited', async () => {
+        const { posted, send, change, document } = await ready();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD' });
+        await send({ type: 'startCompare' });
+        posted.length = 0;
+        mockEnrich.mockClear();
+        mockEnrichRevision += 1;
         document.text = editedText(fixtureText);
         change();
         await flush();
@@ -954,6 +1018,8 @@ describe('SystemDiagramProvider export image', () => {
           ? new Promise((resolve) => (release = () => resolve(graph)))
           : Promise.resolve(graph);
       });
+      // A definition changed, so the edit's publish enriches the base anew.
+      mockEnrichRevision += 1;
       document.text = editedText(fixtureText);
       change();
       await new Promise((resolve) => setTimeout(resolve, 20));

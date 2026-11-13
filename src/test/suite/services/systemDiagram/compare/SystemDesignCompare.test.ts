@@ -15,7 +15,9 @@ const current = readSystemDesign('/ws/system.bd', 'system.bd', text('zynq_gpio_c
 function setup() {
   const enrich = jest.fn((graph: SystemGraph, _file: string) => Promise.resolve(graph));
   const logError = jest.fn();
-  return { enrich, logError, compare: new SystemDesignCompare({ enrich }, logError) };
+  // The revision of the definitions: a test bumps it to change them.
+  const enricher = { revision: '1', enrich };
+  return { enrich, enricher, logError, compare: new SystemDesignCompare(enricher, logError) };
 }
 
 const side = (overrides: Partial<CurrentSide> = {}): CurrentSide => ({
@@ -51,14 +53,102 @@ describe('SystemDesignCompare', () => {
     expect(enrich).not.toHaveBeenCalled();
   });
 
-  it('enriches the base with the document path for each enriched diff', async () => {
+  it('enriches the base with the document path', async () => {
     const { compare, enrich } = setup();
     compare.start(text('zynq_gpio_base.bd'), ...START);
     await compare.diffEnriched(side(), '/ws/system.bd');
-    await compare.diffEnriched(side(), '/ws/system.bd');
-    expect(enrich).toHaveBeenCalledTimes(2);
+    expect(enrich).toHaveBeenCalledTimes(1);
     expect(enrich.mock.calls[0][1]).toBe('/ws/system.bd');
     expect(enrich.mock.calls[0][0].name).toBe('zynq_gpio_system');
+  });
+
+  describe('the enriched base', () => {
+    it('is enriched once for several diffs while the definitions are unchanged', async () => {
+      const { compare, enrich } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const first = await compare.diffEnriched(side(), '/ws/system.bd');
+      const again = await compare.diffEnriched(side(), '/ws/system.bd');
+      const [parallel] = await Promise.all([
+        compare.diffEnriched(side(), '/ws/system.bd'),
+        compare.diffEnriched(side(), '/ws/system.bd'),
+      ]);
+      expect(enrich).toHaveBeenCalledTimes(1);
+      expect(again).toEqual(first);
+      expect(parallel).toEqual(first);
+    });
+
+    it('is enriched again after the definitions changed', async () => {
+      const { compare, enrich, enricher } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      enricher.revision = '2';
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich).toHaveBeenCalledTimes(2);
+    });
+
+    it('is enriched again for another design file', async () => {
+      const { compare, enrich } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      await compare.diffEnriched(side(), '/ws/other/system.bd');
+      expect(enrich).toHaveBeenCalledTimes(2);
+    });
+
+    it('is enriched again when the definitions changed while it was enriched', async () => {
+      const { compare, enrich, enricher } = setup();
+      const releases: (() => void)[] = [];
+      enrich.mockImplementation(
+        (graph) => new Promise((resolve) => releases.push(() => resolve(graph)))
+      );
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const pending = compare.diffEnriched(side(), '/ws/system.bd');
+      // A definition changes while the first enrichment is running.
+      enricher.revision = '2';
+      releases[0]();
+      await pending;
+      const next = compare.diffEnriched(side(), '/ws/system.bd');
+      releases[1]();
+      await next;
+      expect(enrich).toHaveBeenCalledTimes(2);
+      // The second enrichment ran under the new revision, so it is reused.
+      enrich.mockImplementation((graph) => Promise.resolve(graph));
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich).toHaveBeenCalledTimes(2);
+    });
+
+    it('is not kept when its enrichment failed', async () => {
+      const { compare, enrich, logError } = setup();
+      enrich.mockRejectedValueOnce(new Error('boom'));
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const failed = (await compare.diffEnriched(side(), '/ws/system.bd'))!;
+      expect(failed.diff.base.name).toBe('zynq_gpio_system');
+      expect(logError).toHaveBeenCalledTimes(1);
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich).toHaveBeenCalledTimes(2);
+      expect(logError).toHaveBeenCalledTimes(1);
+    });
+
+    it('is enriched for a new base after another start, and again after stop and start', async () => {
+      const { compare, enrich } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      compare.start(text('zynq_gpio_base.bd'), 'system.bd', 'main', '/ws/system.bd');
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich).toHaveBeenCalledTimes(2);
+      compare.stop();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich).toHaveBeenCalledTimes(3);
+    });
+
+    it('is not enriched when the current side fell back', async () => {
+      const { compare, enrich } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      await compare.diffEnriched(side({ fellBack: true }), '/ws/system.bd');
+      expect(enrich).not.toHaveBeenCalled();
+    });
   });
 
   it('diffs the enriched base against the graph given', async () => {

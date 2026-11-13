@@ -105,8 +105,9 @@ Options:
 
 diff reports a block as renamed (→) when it is the same block under a new name: the
 same level, type, parameters and pin names, with no other difference once the rename
-is applied, and the only such pair. A block that is renamed and also changed stays
-removed plus added; a move to another level is not a rename. Example row:
+is applied (its address segments may still differ), and the only such pair. A block
+that is renamed and also changed stays removed plus added; a move to another level is
+not a rename. Example row:
   | → | \`framebuffer_reader\` | renamed | \`frambuffer_reader\` | \`fram\`**\`e\`**\`buffer_reader\` |
 
 Examples:

@@ -1,9 +1,5 @@
 import React from 'react';
-import { markSign, type NodeChange } from './changeMarks';
-
-/** The label of the count of changes below a hierarchy block. */
-export const insideLabel = (count: number): string =>
-  `${count} ${count === 1 ? 'change' : 'changes'} inside`;
+import { insideLabel, markSign, type NodeChange } from './changeMarks';
 
 /**
  * The marks of a comparison in a block header: the sign of its kind of change and, for a

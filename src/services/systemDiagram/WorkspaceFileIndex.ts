@@ -18,6 +18,7 @@ export class WorkspaceFileIndex<T> {
   private disposables: vscode.Disposable[] = [];
   private queue: Promise<void> = Promise.resolve();
   private readonly warnedPatterns = new Set<string>();
+  private changes = 0;
 
   constructor(
     private readonly glob: string,
@@ -26,6 +27,14 @@ export class WorkspaceFileIndex<T> {
     private readonly read: (uri: vscode.Uri) => Promise<T | undefined>,
     private readonly logger: Logger
   ) {}
+
+  /**
+   * Counts the moments the content may change: a watcher event, the end of its update, and a
+   * dropped cache. A result read from the index while this changed is not current.
+   */
+  get revision(): number {
+    return this.changes;
+  }
 
   async get(): Promise<T[]> {
     if (!this.entries) {
@@ -49,6 +58,7 @@ export class WorkspaceFileIndex<T> {
     this.disposables = [];
     this.watching = false;
     this.entries = undefined;
+    this.changes++;
   }
 
   private async build(): Promise<Map<string, T>> {
@@ -99,6 +109,7 @@ export class WorkspaceFileIndex<T> {
           event.affectsConfiguration('search.exclude')
         ) {
           this.entries = undefined;
+          this.changes++;
         }
       }),
       watcher.onDidCreate(refresh),
@@ -112,6 +123,8 @@ export class WorkspaceFileIndex<T> {
     if (isIgnoredWorkspacePath(uri.fsPath)) {
       return;
     }
+    // Before the update is queued, so an enrichment that runs meanwhile is not taken as current.
+    this.changes++;
     this.queue = this.queue
       .then(async () => {
         const entries = await this.entries?.catch(() => undefined);
@@ -129,6 +142,9 @@ export class WorkspaceFileIndex<T> {
       // A failing update must not stop the later ones.
       .catch((error: unknown) => {
         this.logger.warn(`Could not update the index for ${uri.fsPath}: ${String(error)}`);
+      })
+      .then(() => {
+        this.changes++;
       });
   }
 

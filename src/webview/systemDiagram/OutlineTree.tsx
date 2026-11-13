@@ -1,7 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
-import { insideLabel } from './ChangeBadges';
-import { markSign, shownInside, type ChangeMarks, type NodeChange } from './changeMarks';
+import {
+  insideLabel,
+  markSign,
+  shownInside,
+  type ChangeMarks,
+  type NodeChange,
+} from './changeMarks';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { outlineDomains, type OutlineDomains } from './clocks/domainView';
 import { boundaryId, cellCount, instanceTypeLabel, type Selection } from './model';

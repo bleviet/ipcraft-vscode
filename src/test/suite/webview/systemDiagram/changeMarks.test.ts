@@ -461,6 +461,46 @@ describe('buildChangeMarks: address segments', () => {
       pins: {},
     });
   });
+
+  it('joins the texts of several segment changes on a promoted block and counts it once', () => {
+    const graph = zynqGraph('current');
+    const renamed = {
+      path: '/gpio_block/axi_gpio_1',
+      basePath: '/gpio_block/axi_gpio_old',
+      level: '/gpio_block',
+      status: 'renamed',
+      parameters: [],
+      pins: [],
+    } as unknown as SystemGraphDiff['instances'][number];
+    const marks = buildChangeMarks(
+      diffOf(
+        [
+          segment('changed', 'gpio_block/axi_gpio_1/S_AXI/Reg'),
+          segment('removed', 'gpio_block/axi_gpio_1/S_AXI/Mem'),
+        ],
+        [renamed]
+      ),
+      graph
+    );
+    expect(marks.blocks.get('/gpio_block/axi_gpio_1')).toMatchObject({
+      status: 'changed',
+      title: 'Changed: renamed from axi_gpio_old, address changed, address segment removed',
+    });
+    expect(marks.blocks.get('/gpio_block')?.inside).toBe(1);
+  });
+
+  it('capitalizes only the first of several segment texts on an otherwise unchanged block', () => {
+    const marks = buildChangeMarks(
+      diffOf([
+        segment('changed', 'gpio_block/axi_gpio_1/S_AXI/Reg'),
+        segment('removed', 'gpio_block/axi_gpio_1/S_AXI/Mem'),
+      ]),
+      zynqGraph('current')
+    );
+    expect(marks.blocks.get('/gpio_block/axi_gpio_1')?.title).toBe(
+      'Address changed, address segment removed'
+    );
+  });
 });
 
 describe('buildChangeMarks: a removed segment and its owner', () => {

@@ -98,15 +98,23 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     let disposed = false;
     const storageKey = `ipcraft.systemDiagram.highlights:${document.uri.toString()}`;
 
-    /** Posts a graph with its remembered highlights; only `persist` prunes workspaceState. */
-    const publish = (graph: SystemGraph, persist: boolean, changes?: CompareResult) => {
+    /**
+     * Posts a graph with its remembered highlights; only `prune` (by default `final`) prunes
+     * workspaceState.
+     */
+    const publish = (
+      graph: SystemGraph,
+      final: boolean,
+      changes?: CompareResult,
+      prune = final
+    ) => {
       lastGraph = graph;
       lastProblem = undefined;
-      lastGraphFinal = persist;
+      lastGraphFinal = final;
       const raw = this.context.workspaceState?.get<unknown>(storageKey);
       const highlights = pruneHighlights(graph, raw);
       if (
-        persist &&
+        prune &&
         raw !== undefined &&
         (typeof raw !== 'object' ||
           raw === null ||
@@ -201,9 +209,8 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       if (!disposed && graph === lastGraph) {
         // The webview keeps this graph under a problem banner; a graph message would clear it.
         const problem = lastProblem;
-        publish(graph, final && !problem, changes);
+        publish(graph, final, changes, final && !problem);
         if (problem) {
-          lastGraphFinal = final;
           postProblem(problem);
         }
       }

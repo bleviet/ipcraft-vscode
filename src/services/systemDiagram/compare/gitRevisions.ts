@@ -10,6 +10,8 @@ import * as vscode from 'vscode';
 interface GitRef {
   name?: string;
   type: number;
+  /** Remote branches: the name of the remote, when the git extension tells it. */
+  remote?: string;
 }
 
 interface GitRepository {
@@ -112,12 +114,24 @@ async function refsOf(repo: GitRepository): Promise<GitRef[]> {
   return repo.getRefs ? await repo.getRefs({}) : (repo.state.refs ?? []);
 }
 
+/**
+ * Whether a remote branch is `<remote>/<branch>`; `origin/feature/main` is not `main` of
+ * `origin`.
+ */
+function isRemoteBranch(ref: GitRef, branch: string): boolean {
+  if (ref.type !== REMOTE_BRANCH || ref.name === undefined) {
+    return false;
+  }
+  const remote = ref.remote ?? ref.name.slice(0, Math.max(ref.name.indexOf('/'), 0));
+  return ref.name === `${remote}/${branch}`;
+}
+
 /** The remote branches (`origin/main`) count as a place where the default branch can live. */
 function defaultBranch(refs: readonly GitRef[]): string | undefined {
   for (const branch of DEFAULT_BRANCHES) {
     const found =
       refs.find((r) => r.type === HEAD_BRANCH && r.name === branch) ??
-      refs.find((r) => r.type === REMOTE_BRANCH && r.name?.endsWith(`/${branch}`));
+      refs.find((r) => isRemoteBranch(r, branch));
     if (found?.name) {
       return found.name;
     }

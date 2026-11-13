@@ -15,8 +15,14 @@ export interface DiffReportOptions {
 
 type Row = string[];
 
-const code = (text: string): string => `\`${text}\``;
-const cell = (text: string): string => text.replace(/\|/g, '\\|');
+/** A code span; the fence is one backtick longer than the longest run in the text (CommonMark). */
+function code(text: string): string {
+  const fence = '`'.repeat(Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length)) + 1);
+  const pad = text.startsWith('`') || text.endsWith('`') ? ' ' : '';
+  return `${fence}${pad}${text}${pad}${fence}`;
+}
+/** Text for a table cell: a line break would split the row, a pipe the cell. */
+const cell = (text: string): string => text.replace(/[\r\n]+/g, ' ').replace(/\|/g, '\\|');
 const line = (cells: string[]): string =>
   `|${cells.map((c) => (c === '' ? ' ' : ` ${cell(c)} `)).join('|')}|`;
 const table = (header: string[], rows: Row[]): string =>

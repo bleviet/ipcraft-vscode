@@ -422,7 +422,7 @@ characters that differ are emphasised (bold on a highlight), so a one-letter typ
 can be seen. The address segments and the connections of other blocks that differed only
 by the name are not listed, and the **Base** column shows the names the base had. A
 block whose address changed is still a rename; its segment is listed as changed under
-the new name, and the diagram draws the block as changed (`~`). The rule prefers to miss a rename over a wrong one: a block
+the new name (a segment that was removed is listed under the new name too), and the diagram draws the block as changed (`~`). The rule prefers to miss a rename over a wrong one: a block
 that is renamed and also changed (a parameter, a version, a connection) stays a removed
 and an added block, a block moved to another level is not a rename, and two identical
 blocks on each side are not guessed at.
@@ -445,9 +445,9 @@ When the base is a file (an open design or **Compare with File...**), the bar ha
 a **Swap** button after the direction. It opens the base as a diagram, or, when a
 diagram of it is already open (also in another editor group), shows that one, and
 starts a comparison there with the first file as the base, so the changes read the
-other way round. The comparison on the first diagram stays as it is. The first file
-is taken as it is when you click **Swap** and does not follow later edits of it; click
-**Swap** again to refresh. A git revision as the base has no Swap, because a revision
+other way round. The comparison on the first diagram stays as it is. After a swap, the
+base (the file you came from) is a snapshot of its text at the time of the swap and
+does not follow later edits of that file; click **Swap** again to refresh. A git revision as the base has no Swap, because a revision
 cannot be opened as a diagram yet.
 
 Order, net names, line numbers and tool metadata are not changes. When a connection
