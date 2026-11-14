@@ -61,6 +61,32 @@ describe('SystemDesignCompare', () => {
     expect(enrich).not.toHaveBeenCalled();
   });
 
+  describe('the union of both graphs for the layout', () => {
+    it('carries what only the base has, as read and as enriched, from the same base as the diff', async () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const read = compare.diffRead(current)!;
+      const enriched = (await compare.diffEnriched(side(), '/ws/system.bd'))!;
+      for (const result of [read, enriched]) {
+        expect(result.union?.instances.map((i) => i.path)).toEqual(['/axi_gpio_0']);
+        expect(result.union?.boundaryPins.map(({ pin }) => pin.name)).toEqual(['led_o']);
+        expect(result.union?.nets.map((net) => net.id)).toEqual(['ghost:/::periph_gpio0']);
+      }
+    });
+
+    it('is absent when the base has nothing the current side lacks', () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_current.bd'), ...START);
+      expect(compare.diffRead(current)).not.toHaveProperty('union');
+    });
+
+    it('is absent for a base that did not exist, which has nothing to draw', () => {
+      const { compare } = setup();
+      compare.start('', 'system.bd', 'HEAD~3', '/ws/system.bd', { missing: true });
+      expect(compare.diffRead(current)).not.toHaveProperty('union');
+    });
+  });
+
   it('enriches the base with the document path', async () => {
     const { compare, enrich } = setup();
     compare.start(text('zynq_gpio_base.bd'), ...START);

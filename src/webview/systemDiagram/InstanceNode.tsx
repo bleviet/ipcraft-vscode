@@ -35,6 +35,10 @@ function PinRowView({
   onHoverPin,
 }: PinRowViewProps) {
   const east = row.side === 'east';
+  // A pin only the base has keeps its row while its ghost is hidden, so no block moves.
+  if (row.ghost && change?.kind !== 'removed') {
+    return <div aria-hidden="true" style={{ height: PIN_ROW_HEIGHT }} />;
+  }
   const reviewClass = review && row.unconnected ? unconnectedClass(row, false) : undefined;
   return (
     <div

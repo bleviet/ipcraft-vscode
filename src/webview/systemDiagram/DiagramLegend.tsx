@@ -37,13 +37,15 @@ export function DiagramLegend({
     badges
   );
   const changeEntries = changes ? changeLegendEntries(changes.kinds) : [];
-  const removed = changes?.removed ?? 0;
+  // While the ghosts are drawn the kind has its own entry; otherwise the removed things are only counted.
+  const removed = changes?.kinds.includes('removed') ? 0 : (changes?.removed ?? 0);
   if (
     entries.length === 0 &&
     !review &&
     !domains &&
     changeEntries.length === 0 &&
     !changes?.newWire &&
+    !changes?.removedWire &&
     removed === 0
   ) {
     return null;
@@ -94,6 +96,12 @@ export function DiagramLegend({
         <span className="sd-legend-item">
           <i aria-hidden="true" className="sd-legend-bar sd-legend-bar-new" />
           New wire
+        </span>
+      )}
+      {changes?.removedWire && (
+        <span className="sd-legend-item">
+          <i aria-hidden="true" className="sd-legend-bar sd-legend-bar-removed" />
+          Removed wire
         </span>
       )}
       {removed > 0 && (

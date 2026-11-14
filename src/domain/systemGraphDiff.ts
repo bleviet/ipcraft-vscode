@@ -5,7 +5,7 @@
  * command line writes it as the JSON report.
  */
 
-import type { SystemGraph } from './systemGraph';
+import type { SystemGraph, SystemInstance, SystemNet, SystemPin } from './systemGraph';
 
 export type ChangeStatus = 'added' | 'removed' | 'changed';
 
@@ -159,4 +159,19 @@ export interface FindingsDiff {
   new: Finding[];
   /** Findings only the base has, written with the current names of renamed blocks. */
   resolved: Finding[];
+}
+
+/**
+ * What only the base has, to draw as ghosts next to the current graph (see `unionAdditions`):
+ * the layout of a comparison is made from the current graph plus these.
+ */
+export interface UnionAdditions {
+  /** Blocks only the base has, as the base wrote them, on a level the current graph has. */
+  instances: SystemInstance[];
+  /** Pins only the base has, on blocks the current graph has: the ends of the wires of `nets`. */
+  pins: { instance: string; pin: SystemPin }[];
+  /** External ports only the base has: `level` is always the root (`/`). */
+  boundaryPins: { level: string; pin: SystemPin }[];
+  /** Connections only the base has, one net per base net. */
+  nets: SystemNet[];
 }

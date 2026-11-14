@@ -148,7 +148,11 @@ export function useCanvasElements({
         selected: selectedIds.has(node.id),
         data: {
           ...node.data,
-          ...(reviews && { review: reviews.get(node.id) }),
+          // A ghost (what only the base has) is not part of the design the review checks.
+          ...(reviews &&
+            look?.nodes.get(node.id)?.status !== 'removed' && {
+              review: reviews.get(node.id),
+            }),
           ...clockNodeData(decor, node.id),
           ...(look?.nodes.has(node.id) && { change: look.nodes.get(node.id) }),
           ...(badgedNodes?.has(node.id) && { selectedNetIds: selectedAndTreeNetIds }),
@@ -194,6 +198,7 @@ export function useCanvasElements({
         (layout?.edges ?? []).map((edge) => {
           const marks = decor.edges.get(edge.id);
           const changeNew = look?.newEdgeIds.has(edge.id) ? (true as const) : undefined;
+          const changeRemoved = look?.removedEdgeIds?.has(edge.id) ? (true as const) : undefined;
           const highlightColor =
             showHighlights && highlights
               ? netHighlightColor(highlights, edge.data.netId)
@@ -204,11 +209,15 @@ export function useCanvasElements({
               activeSelectedNetIds.has(edge.data.netId) ||
               (selection?.kind === 'net' &&
                 (tree ? tree.netIds.has(edge.data.netId) : selection.id === edge.data.netId)),
-            ...((marks !== undefined || highlightColor !== undefined || changeNew) && {
+            ...((marks !== undefined ||
+              highlightColor !== undefined ||
+              changeNew !== undefined ||
+              changeRemoved !== undefined) && {
               data: {
                 ...edge.data,
                 ...marks,
                 ...(changeNew && { changeNew }),
+                ...(changeRemoved && { changeRemoved }),
                 ...(highlightColor !== undefined && { highlightColor }),
               },
             }),

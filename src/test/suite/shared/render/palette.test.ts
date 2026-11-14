@@ -71,6 +71,7 @@ describe('change colors', () => {
     // The gitDecoration values of the bundled git extension, as scripts/docs-screenshots/theme/*.css have them.
     expect(paletteFor('light').change).toEqual({
       added: '#587c0c',
+      removed: '#ad0707',
       changed: '#895503',
       renamed: '#652d90',
       moved: '#652d90',
@@ -79,6 +80,7 @@ describe('change colors', () => {
     });
     expect(paletteFor('dark').change).toEqual({
       added: '#81b88b',
+      removed: '#c74e39',
       changed: '#e2c08d',
       renamed: '#b180d7',
       moved: '#b180d7',

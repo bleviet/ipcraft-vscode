@@ -1,6 +1,6 @@
 /**
  * What the marks of a comparison add to the drawn level (issue #302): per node its status, pin
- * marks and count of changes inside, the ids of the new wires, and the legend. Pure; the canvas
+ * marks and count of changes inside, the ids of the new and the removed wires, and the legend. Pure; the canvas
  * merges the result into its React Flow nodes and edges, as it does for {@link clockDecor}.
  */
 
@@ -30,6 +30,8 @@ export interface ChangeLegend {
   /** The kinds among the drawn nodes, in display order. */
   kinds: readonly MarkStatus[];
   newWire: boolean;
+  /** A wire only the base has is drawn (its ghost is shown); absent otherwise. */
+  removedWire?: true;
   /** Instances and ports only the base has, on the level and in the hierarchies expanded in it. */
   removed: number;
 }
@@ -39,10 +41,19 @@ export interface ChangeDecor {
   nodes: ReadonlyMap<string, NodeChange>;
   /** Ids of the drawn wires that are new. */
   newEdgeIds: ReadonlySet<string>;
+  /** Ids of the drawn wires that only the base has. */
+  removedEdgeIds?: ReadonlySet<string>;
   legend: ChangeLegend;
 }
 
-const KIND_ORDER: readonly MarkStatus[] = ['added', 'changed', 'renamed', 'moved', 'version'];
+const KIND_ORDER: readonly MarkStatus[] = [
+  'added',
+  'removed',
+  'changed',
+  'renamed',
+  'moved',
+  'version',
+];
 
 /** The mark of an instance node or a frame. */
 function blockChange(marks: ChangeMarks, id: string, frame: boolean): NodeChange | undefined {
@@ -106,7 +117,12 @@ export function changeDecor(
   }
   const nets = new Map(graph.nets.map((net) => [net.id, net]));
   const newEdgeIds = new Set<string>();
+  const removedEdgeIds = new Set<string>();
   for (const edge of layout?.edges ?? []) {
+    if (marks.removedNets.has(edge.data.netId)) {
+      removedEdgeIds.add(edge.id);
+      continue;
+    }
     const wire = wireEnds(context, nets, edge);
     if (wire && isNewWire(marks, wire.level, ...wire.ends)) {
       newEdgeIds.add(edge.id);
@@ -115,9 +131,11 @@ export function changeDecor(
   return {
     nodes,
     newEdgeIds,
+    removedEdgeIds,
     legend: {
       kinds: KIND_ORDER.filter((kind) => kinds.has(kind)),
       newWire: newEdgeIds.size > 0,
+      ...(removedEdgeIds.size > 0 && { removedWire: true }),
       removed: [...shownLevels].reduce((sum, level) => sum + (marks.removed.get(level) ?? 0), 0),
     },
   };

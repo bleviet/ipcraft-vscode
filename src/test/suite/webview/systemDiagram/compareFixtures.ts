@@ -1,8 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { FindingsDiff, SystemGraphDiff } from '../../../../domain/systemGraphDiff';
+import type {
+  FindingsDiff,
+  SystemGraphDiff,
+  UnionAdditions,
+} from '../../../../domain/systemGraphDiff';
 import type { DiagramCompare } from '../../../../shared/messages/systemDiagram';
 import { diffSystemGraphs } from '../../../../services/systemDiagram/diff/diffSystemGraphs';
+import { unionAdditions } from '../../../../services/systemDiagram/diff/unionAdditions';
 import { readSystemDesign } from '../../../../services/systemDiagram/readSystemDesign';
 
 const FIXTURES = path.resolve(__dirname, '../../../fixtures/system-design/diff');
@@ -40,6 +45,10 @@ export function moveDiff(): SystemGraphDiff {
 /** The current graph of that pair. */
 export const moveGraph = () => read('zynq_gpio_move_current.bd');
 
+/** What only the base has in the .bd pair: a removed block, its pin on the interconnect, a removed port and a wire. */
+export const zynqUnion = (): UnionAdditions =>
+  unionAdditions(zynqGraph('base'), zynqGraph('current'), zynqDiff());
+
 export function emptyDiff(): SystemGraphDiff {
   return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_base.bd'));
 }
@@ -52,6 +61,7 @@ export const compareOf = (
     canSwap?: boolean;
     findings?: FindingsDiff;
     baseDefinitions?: DiagramCompare['baseDefinitions'];
+    union?: UnionAdditions;
   } = {}
 ): DiagramCompare => ({
   baseLabel,
@@ -60,4 +70,5 @@ export const compareOf = (
   diff,
   findings: options.findings ?? { new: [], resolved: [] },
   baseDefinitions: options.baseDefinitions ?? 'workspace',
+  ...(options.union && { union: options.union }),
 });

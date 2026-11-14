@@ -65,6 +65,8 @@ export function NodeHeader({
   onToggleExpand,
 }: NodeHeaderProps) {
   const isHier = instance.kind === 'hier';
+  // The ghost of a removed hierarchy is one block: it cannot be expanded or entered.
+  const ghost = change?.status === 'removed';
   const badge = domains && domainBadge(domains);
   return (
     <div className="sd-node-head" style={{ height: HEADER_HEIGHT }}>
@@ -76,7 +78,7 @@ export function NodeHeader({
         </div>
       )}
       <div className="sd-node-title">
-        {isHier && (
+        {isHier && !ghost && (
           <ExpandToggle instance={instance} expanded={expanded} onToggleExpand={onToggleExpand} />
         )}
         <span className="sd-node-name" title={instance.name}>
@@ -114,7 +116,9 @@ export function NodeHeader({
           </span>
         )}
       </div>
-      <div className="sd-node-subtitle">{instanceSubtitle(instance, cellCount)}</div>
+      <div className="sd-node-subtitle">
+        {ghost && isHier ? 'Hierarchy' : instanceSubtitle(instance, cellCount)}
+      </div>
     </div>
   );
 }

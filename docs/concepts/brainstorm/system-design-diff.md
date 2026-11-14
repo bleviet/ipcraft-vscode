@@ -14,14 +14,14 @@ in `ipcraft diff`, and the **Findings** tab of the viewer lists them; the viewer
 checks the current side with the workspace definitions and a base that is a git
 revision with the definitions as they were at that revision, `ipcraft diff` with the
 design files alone. `ipcraft diff --fail-on changes|new-findings` exits with 1
-for use in CI. The **Address map** tab marks added, changed and removed segments. The overlay on the
-diagram and the later phases are open. The marks of everything that exists in the current revision
+for use in CI. The **Address map** tab marks added, changed and removed segments. On the
+diagram, the marks of everything that exists in the current revision
 (blocks, pins, new wires, counts on hierarchies, the outline, the legend, Details, the
 **Marks**, **Changes only** and **Show version-only changes** buttons) are implemented, and the viewer's
-exported images carry them while Marks is on; ghosts for what was removed, the **Removed**
-toggle that comes with them, and the union layout are open.
-`ipcraft diff --image <file.svg|png|jpg>` draws the top level of the current revision
-with those marks. A file that was renamed since the base revision is read under its
+exported images carry them while Marks is on. What was removed is drawn as ghosts, laid out
+with the union of both revisions, with the **Show removed** toggle (see [Layout](#layout) for
+the decision and its measurement); exported images and `ipcraft diff --image <file.svg|png|jpg>`
+draw the top level of the current revision with the marks and without ghosts. A file that was renamed since the base revision is read under its
 old path, and one that did not exist there is compared as all added, in `ipcraft diff`
 and in the viewer. This document describes
 how the [system viewer](../../how-to/view-a-system-design.md) could show what
@@ -287,7 +287,7 @@ and a sign, so it does not depend on color alone.
 - A summary: `+2 −3 ~4 v1`.
 - **Changes only**: hides what did not change, using the isolate view (the
   changed blocks and one connection around them).
-- **Removed**: shows or hides the ghosts.
+- **Show removed**: shows or hides the ghosts. Offered when the base has something the current design lacks; **Marks** off hides them too.
 - **Version only**: marks or ignores version-only changes.
 - **Exit compare**: back to the plain diagram.
 
@@ -351,19 +351,45 @@ compare works, without workspace definitions, as the plain viewer does.
 The removed blocks need positions, and the diagram should not jump when the
 compare is turned on.
 
-Proposed: lay out the **union** of both graphs (the current graph plus the
+Decided: lay out the **union** of both graphs (the current graph plus the
 removed instances, pins and wires) with ELK. Ghosts then sit where their
-neighbours pull them, and wires to them are routed like any other wire.
+neighbours pull them, and wires to them are routed like any other wire. The union
+is computed with the diff (`unionAdditions`, see [Architecture](#architecture)): the
+removed blocks, the removed external ports, the connections of the base that the
+current graph does not have (one ghost net per base net, cut to the pins that exist in
+the union and grouped by what the current graph still connects, so a lost connection is
+drawn once and a kept one is not repeated) and the pins a block that stays lost (the
+interconnect port of a removed slave), which the ghost wires need as ends. A removed
+hierarchy is one ghost block. Clock and reset nets are left out of the ghosts: the viewer
+draws them as badges and routes them apart, and the Changes tab lists them.
 
 The union layout differs from the plain layout of the current revision. So
 entering compare mode moves blocks once. That is acceptable: it is a different
-view, and it stays stable while toggles change (**Removed** and **Version
+view, and it stays stable while toggles change (**Show removed**, **Marks** and **Version
 only** only change what is drawn; blocks never move, as with the other toggles
-of the viewer).
+of the viewer). Hiding the ghosts leaves their space free.
 
-To measure before deciding: how much the union layout differs from the plain
-one on real pull requests, and whether pinning the positions of unchanged
-blocks is worth the extra code.
+**Measurement.** Before the decision, the real ELK pipeline laid out the plain graph
+and the union graph of each pair, and compared the places of the blocks that both have
+(the unchanged ones). Displacement is a fraction of the diagonal of the plain
+layout.
+
+| Pairs | Median displacement | Order |
+|---|---|---|
+| The fixture pairs of the diff with a removal: the Vivado `.bd` pair (a block and a port removed) and the Platform Designer pair (a port and a wire); the rename and move pairs have no ghost, so no block moves | 0.07 in both (mean 0.07 and 0.10, largest 0.17 and 0.16) | Left to right order kept; no block changes column |
+| 7 small designs (3 to 14 blocks) with 1 or 3 blocks removed, spread over the design | 0.02 to 0.18 | Columns kept, except one design (3 of 8 removed: 40% of the pairs of blocks change columns) |
+| The same, removing the most connected blocks (13 cases) | 0.04 to 0.80; above 0.25 in 4 of 13, where the hub gone changes the whole design | At most 11% of the pairs change columns |
+| Generated designs of 60 and 400 blocks, 1, 3 and 10 removed (12 cases) | 0.12 to 0.40 | At most 11% of the pairs change columns; the order inside a column differs for 29% to 66% of the pairs |
+
+What decided it: on a pull request that removes one or two blocks, an unchanged block moves by
+a tenth of the diagram, stays in its column and keeps its neighbours. Larger numbers
+come from designs where ELK reshuffles the order inside the columns for any edit:
+laying out the **base** and the **current** graphs plain, with no ghost at all, moves the unchanged
+blocks of the generated designs by the same amount (median 0.20 to 0.40), so the union adds no
+instability of its own. Inserting the ghosts at their place in the base order instead of at the end
+of their level was no consistent improvement. Pinning the positions of the unchanged blocks
+was not needed, and was not built. The measurement is on fixtures and on designs edited by removing
+blocks; real pull requests are still to be measured.
 
 ## Command Line
 
@@ -444,7 +470,7 @@ are. No move is needed first.
 
 | Question | Notes |
 |---|---|
-| Union layout, or the plain layout with ghosts placed afterwards? | Measure on real pull requests first. See [Layout](#layout) |
+| Union layout, or the plain layout with ghosts placed afterwards? | Resolved: the union layout. Measured on the fixture pairs and on edited and generated designs, see [Layout](#layout). Real pull requests are still to be measured |
 | Should a change inside a non-descended IP (for example an `axi_interconnect` in a `.bd`) be reported? | The graph does not hold its inside, so today it cannot be |
 | How are grafted Platform Designer subsystems compared when the subsystem file changed but the top file did not? | The compare is per design file; the subsystem files of the base revision must be read from the same revision. Done in the viewer for a base that is a git revision |
 | Should definitions (`.ip.yml`, HDL) be read from the base revision too? | Resolved for the viewer: the base revision reads the definitions the design matches from git and the Findings tab says so. `ipcraft diff` reads none |

@@ -7,6 +7,7 @@ import {
 } from '../../../../webview/systemDiagram/hooks/useDiagramExport';
 import type { DiagramLayout } from '../../../../webview/systemDiagram/hooks/useElkLayout';
 import type { DiagramFlowNode } from '../../../../webview/systemDiagram/layout/elkLayout';
+import { NO_GHOSTS, type Ghosts } from '../../../../webview/systemDiagram/layout/unionGraph';
 import { DEFAULT_EXPORT_OPTIONS } from '../../../../shared/messages/imageExport';
 
 function node(id: string, x: number, y: number) {
@@ -35,7 +36,7 @@ const state = {
   marksOn: false,
 };
 
-function setup(channel: ImageExportChannel) {
+function setup(channel: ImageExportChannel, shown: DiagramLayout = layout, ghosts?: Ghosts) {
   // The viewport the canvas has: pan (0, 0), zoom 1, 400 x 300 pixels.
   let setViewport: () => void = () => {};
   const Wrapper = ({ children }: { children: React.ReactNode }) => {
@@ -51,7 +52,9 @@ function setup(channel: ImageExportChannel) {
       </ReactFlowProvider>
     );
   };
-  const hook = renderHook(() => useDiagramExport(channel, layout, state), { wrapper: Wrapper });
+  const hook = renderHook(() => useDiagramExport(channel, shown, state, ghosts), {
+    wrapper: Wrapper,
+  });
   act(() => setViewport());
   return hook;
 }
@@ -88,6 +91,20 @@ describe('useDiagramExport', () => {
     const { result } = setup({ openToken: 0, send });
     act(() => result.current.exportImage({ ...DEFAULT_EXPORT_OPTIONS, area: 'view' }));
     expect(send.mock.calls[0][1]).toMatchObject({ visibleNodeIds: ['a'] });
+  });
+
+  it('leaves the ghosts of a comparison out of the nodes in view, which the image does not draw', () => {
+    const send = jest.fn();
+    // `ghost` is on screen with `a`; the image shows the open design only.
+    const withGhost = { ...layout, nodes: [node('a', 0, 0), node('ghost', 150, 0)] };
+    const ghosts: Ghosts = { ...NO_GHOSTS, instances: new Set(['ghost']) };
+    const { result } = setup({ openToken: 0, send }, withGhost, ghosts);
+    act(() => result.current.exportImage({ ...DEFAULT_EXPORT_OPTIONS, area: 'view' }));
+    expect(send.mock.calls[0][1]).toMatchObject({ visibleNodeIds: ['a'] });
+    // Without the filter both are in view.
+    const plain = setup({ openToken: 0, send }, withGhost);
+    act(() => plain.result.current.exportImage({ ...DEFAULT_EXPORT_OPTIONS, area: 'view' }));
+    expect(send.mock.calls[1][1]).toMatchObject({ visibleNodeIds: ['a', 'ghost'] });
   });
 
   it('takes the remembered options when the host sends them', () => {

@@ -37,6 +37,8 @@ export interface PinRow {
   label: string;
   /** No net touches the pin (a clock or reset net hidden behind a badge still counts). */
   unconnected: boolean;
+  /** The pin only the base has, on a block the current graph has (a comparison's union layout). */
+  ghost?: true;
 }
 
 /** Display state the canvas adds to the nodes of a hierarchy-capable block (instance or frame). */
@@ -155,6 +157,8 @@ export interface ElkEdgeData extends Record<string, unknown>, EdgeMarks {
   highlightColor?: string;
   /** The wire is new in the current revision (comparison marks on): drawn in the added color. */
   changeNew?: true;
+  /** The wire only the base has (comparison marks on, Removed on): drawn dashed in the removed color. */
+  changeRemoved?: true;
 }
 
 export interface DiagramFlowEdge {

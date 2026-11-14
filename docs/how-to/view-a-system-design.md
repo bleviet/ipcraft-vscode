@@ -557,6 +557,7 @@ wires use color and weight (a bold name, a thicker wire):
 | Mark | Meaning | Drawing |
 |---|---|---|
 | `+` | Added block or external port | Border in the added color (green) |
+| `−` | Removed block or external port, only in the base: a **ghost** | Dashed border in the removed color (red), name struck through, body dimmed |
 | `~` | Changed block or external port | Border in the changed color (yellow) |
 | `→` | Renamed block; the tooltip names the old name | Border in the renamed color (purple) |
 | `»` | Moved block; the tooltip names the level it came from | Border in the renamed color (purple), as a rename is the same block in a new place |
@@ -586,9 +587,10 @@ up the changed, added, renamed, moved and version-only blocks at any depth and t
 ones. The **Outline** shows the same: the sign after the name of a changed block or
 port, and `~2` on a hierarchy, also in the search results. On the minimap a marked
 block takes its color unless it is selected or matches the search. The legend lists
-the kinds present on the level and `New wire` when it has one. When the level (or a
-block expanded in it) lost blocks or ports, it also has an entry `− 2 removed, see
-Changes` that opens the Changes tab.
+the kinds present on the level and `New wire` when it has one. While the ghosts of what
+was removed are drawn it lists `− Removed` and `Removed wire`; when the level (or a
+block expanded in it) lost blocks or ports that are not drawn as ghosts, it has an
+entry `− 2 removed, see Changes` that opens the Changes tab.
 
 Select a marked block or port and the **Details** panel starts with a **Changes**
 section: the changes of that block, with the base and the current value, and for a
@@ -598,8 +600,12 @@ whether or not the marks are drawn.
 These buttons sit between the numbers and the exit button:
 
 - **Marks** (the diff icon) draws or hides the marks. It is on whenever a comparison
-  starts or its base changes. With Marks off the diagram looks exactly as without a
-  comparison; the Changes tab stays.
+  starts or its base changes. With Marks off the diagram looks as without a
+  comparison, ghosts included; the Changes tab stays.
+- **Show removed** (the `−`) is shown when the base has something the current design
+  lacks. Pressed (the default), the [ghosts](#removed-blocks-ports-and-wires-ghosts) are
+  drawn; release it to hide them. It is on whenever a comparison starts or its base
+  changes, like Marks. Neither button moves a block.
 - **Show version-only changes** (the `v`) is shown when the comparison has a block whose
   only change is the IP version. Pressed (the default), those blocks are marked and listed
   like any other change. Release it to hide them, the same as
@@ -616,10 +622,52 @@ These buttons sit between the numbers and the exit button:
   bring the rest back. It is disabled on a level without changed blocks, and while
   Marks is off.
 
-Removed blocks, ports and wires are not drawn yet; they are listed in the Changes tab
-and counted in the legend. Blocks and wires that did not change are not dimmed.
-An [exported image](#export-an-image) carries the marks while Marks is on, without the
-version-only blocks when Show version-only changes is released.
+Blocks and wires that did not change are not dimmed. An
+[exported image](#export-an-image) carries the marks while Marks is on, without the
+version-only blocks when Show version-only changes is released; it does not draw the
+ghosts.
+
+### Removed blocks, ports and wires (ghosts)
+
+What only the base has is drawn on the diagram as **ghosts**, so you can see where
+it was and what it was connected to:
+
+- A removed **block** has a dashed border in the removed color, its name struck
+  through, a `−` in its header and a dimmed body. A removed hierarchy is one ghost
+  block: it cannot be expanded or entered, and what was inside it is not drawn.
+- A removed **external port** is drawn the same way, as a dashed tag.
+- A **wire** the current design no longer has is dashed in the removed color. It joins
+  what is still there to a ghost, or two blocks that stay when a pin was rewired, so
+  the old connection of a rewired pin is drawn next to its new one. A pin that only the
+  base has on a block that stays (the interconnect port of a removed slave) is drawn
+  with its name struck through, in the removed color, to give the wire an end. A
+  wire is drawn once: the connections the current design keeps are not drawn a second
+  time. Clock and reset wires are not drawn as ghosts; the Changes tab lists them.
+- A renamed or moved block is the same block under its new name or level, so it
+  has no ghost.
+
+A ghost can be selected, searched and listed in the **Outline**, which marks it with
+the `−` under its level. Its **Details** say `Only in the base` and show its type,
+parameters and pins as the base had them. It has no source line, no definition to
+open and no level to enter, because it is not in the design you have open. The
+unconnected pins and the clock and reset domains are those of the open design: a
+ghost creates no finding or crossing, and the Details of a pin whose wire was lost say
+it is unconnected, with the lost wire listed apart and marked `−`. While ghosts are
+shown, a search finds them; with **Show removed** or **Marks** off they are neither
+selectable nor found. An isolated view is worked out with the ghost wires whether or
+not they are shown, so that pressing a toggle moves nothing: a block that only a ghost
+wire connects to the isolated blocks can be in the view. The counts of the `Isolated · …`
+chip and of a hierarchy in the **Outline** are those of the design as opened, without
+ghosts, except that a removed block you isolated counts as selected. One thing does change an
+isolation: a removed block you isolated is dropped from it when you hide removed blocks. **Changes only** does not include removed blocks: they are not marked blocks of
+the design, so they are not among the blocks it isolates.
+
+The diagram is laid out from both designs together, the open one and its ghosts, so a ghost
+sits where the blocks it was connected to pull it and its wires are routed like any
+other. That layout differs from the plain one of the open design, so **blocks can move
+once when a comparison starts, and when its base changes** (and back when it ends).
+They never move when you press **Marks**, **Show removed** or **Show version-only
+changes**: hiding the ghosts keeps their space free.
 
 The current side is always the file you have open: you cannot choose a revision for
 it.

@@ -10,6 +10,7 @@ import { analyzeClocks } from './clocks/analyzeClocks';
 import { toolbarSummary } from './clocks/crossingSummary';
 import { DetailsPanel } from './DetailsPanel';
 import { DiagramCanvas } from './DiagramCanvas';
+import { compareControlProps } from './compareToolbar';
 import { DiagramToolbar, type PanelName } from './DiagramToolbar';
 import { applyHighlight, highlightCount } from './highlights';
 import { useBottomTab } from './hooks/useBottomTab';
@@ -25,6 +26,7 @@ import { useSearchHistory } from './hooks/useSearchHistory';
 import { useMouseNavigationButtons } from './hooks/useMouseNavigationButtons';
 import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
+import { useUnionGraph } from './hooks/useUnionGraph';
 import type { DiagramProblem } from './messageState';
 import { boundaryId, nodeSelection, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
@@ -65,7 +67,17 @@ export function WorkbenchLayout({
   onStopCompare,
   onSwapCompare,
 }: WorkbenchLayoutProps) {
-  const nav = useDiagramNavigation(graph);
+  // `graph` is the open design: the analyses and the exports read it. While a comparison shows its
+  // ghosts (what only the base has), the user selects and searches in `viewGraph`, which has them.
+  // The layout and the isolation are always made from the union (`layoutGraph`), so toggles move no block.
+  const {
+    toggles,
+    layoutGraph,
+    viewGraph,
+    ghosts,
+    shown: shownGhosts,
+  } = useUnionGraph(graph, compare);
+  const nav = useDiagramNavigation(viewGraph, shownGhosts);
   const levelHistory = useLevelHistory(graph, nav.levelPath, nav.navigate);
   useMouseNavigationButtons(levelHistory.up, levelHistory.forward);
   // Clocks and resets only decorates the layout: no toggle moves a block.
@@ -77,10 +89,10 @@ export function WorkbenchLayout({
   const [query, setQuery] = useState('');
   const [searchOptions, setSearchOptions] = useState(DEFAULT_SEARCH_OPTIONS);
   const matcher = useMemo(() => compileSearch(query, searchOptions), [query, searchOptions]);
-  const view = useIsolation(graph, nav);
+  const view = useIsolation(layoutGraph, nav, ghosts, toggles.ghostsShown);
   const { isolation } = view;
-  const compareView = useCompareView(graph, compare, nav.levelPath, view.isolate);
-  const search = useSearchStepper(graph, matcher, nav.selection, view.revealMatch);
+  const compareView = useCompareView(graph, toggles, nav.levelPath, view.isolate, shownGhosts);
+  const search = useSearchStepper(viewGraph, matcher, nav.selection, view.revealMatch);
   const { remember, browse } = useSearchHistory(query, setQuery);
   const stepSearch = useCallback(
     (direction: 1 | -1) => {
@@ -93,7 +105,7 @@ export function WorkbenchLayout({
   useFindShortcuts({
     inputRef: searchInputRef,
     query,
-    seed: findSeed(graph, matcher, nav.selection),
+    seed: findSeed(viewGraph, matcher, nav.selection),
     onQueryChange: setQuery,
     onStep: stepSearch,
   });
@@ -113,17 +125,29 @@ export function WorkbenchLayout({
     [reviewUnconnected, graph, findings]
   );
   const anyUndriven = findings.some((finding) => finding.cls === 'undriven');
-  const { layout, error } = useElkLayout(graph, nav.levelPath, isolation, nav.expanded);
-
-  const exporter = useDiagramExport(imageExport, layout, {
-    levelPath: nav.levelPath,
-    expanded: nav.expanded,
+  const { layout, error } = useElkLayout(
+    layoutGraph,
+    nav.levelPath,
     isolation,
-    clocksOn,
-    selectedNodeIds: nav.selectedNodeIds,
-    marksOn: compareView.marksOn,
-    ignoreVersionOnly: compareView.hidingVersionOnly,
-  });
+    nav.expanded,
+    ghosts,
+    toggles.ghostsShown
+  );
+
+  const exporter = useDiagramExport(
+    imageExport,
+    layout,
+    {
+      levelPath: nav.levelPath,
+      expanded: nav.expanded,
+      isolation,
+      clocksOn,
+      selectedNodeIds: nav.selectedNodeIds,
+      marksOn: compareView.marksOn,
+      ignoreVersionOnly: compareView.hidingVersionOnly,
+    },
+    shownGhosts
+  );
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -185,7 +209,7 @@ export function WorkbenchLayout({
     <div className="flex h-full flex-col">
       {problem && <ProblemBanner problem={problem} />}
       <DiagramToolbar
-        graph={graph}
+        graph={viewGraph}
         levelPath={nav.levelPath}
         search={{
           query,
@@ -209,7 +233,7 @@ export function WorkbenchLayout({
         isolated={
           isolation && {
             selected: isolation.selectedCount,
-            shown: isolation.nodeIds.size,
+            shown: isolation.openNodeCount,
             total: isolation.levelNodeCount,
             hops: isolation.hops,
             maxRadius: isolation.maxRadius,
@@ -230,19 +254,11 @@ export function WorkbenchLayout({
         }}
         onFit={fit}
         imageExport={exporter}
-        compare={{
-          compare: compareView.shown,
+        compare={compareControlProps(compareView, {
           onStart: onStartCompare,
           onStop: onStopCompare,
           onOpenChanges: () => openBottomTab('changes'),
-          marksOn: compareView.marksOn,
-          onMarksChange: compareView.setMarksOn,
-          onChangesOnly: compareView.changesOnly,
-          showVersion: !compareView.hidingVersionOnly,
-          versionOnly: compareView.hasVersionOnly
-            ? { on: compareView.versionOnly, onChange: compareView.setVersionOnly }
-            : undefined,
-        }}
+        })}
         panelsVisible={panelsVisible}
         onTogglePanel={(panel) => panels[panel].toggle()}
       />
@@ -255,7 +271,7 @@ export function WorkbenchLayout({
                 style={{ width: panels.outline.size }}
               >
                 <OutlineTree
-                  graph={graph}
+                  graph={viewGraph}
                   levelPath={nav.levelPath}
                   selection={nav.selection}
                   searchMatches={searching ? search.matches : null}
@@ -310,7 +326,7 @@ export function WorkbenchLayout({
                 style={{ width: panels.details.size }}
               >
                 <DetailsPanel
-                  graph={graph}
+                  graph={viewGraph}
                   clocks={clocks}
                   selection={nav.selection}
                   selectedNodeIds={nav.selectedNodeIds}

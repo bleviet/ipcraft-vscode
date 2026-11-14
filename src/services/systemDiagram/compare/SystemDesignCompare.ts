@@ -14,9 +14,15 @@
 import { emptySystemGraph } from '../../../domain/emptySystemGraph';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import type { BaseDefinitions } from '../../../shared/messages/systemDiagram';
-import type { Finding, FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
+import type {
+  Finding,
+  FindingsDiff,
+  SystemGraphDiff,
+  UnionAdditions,
+} from '../../../domain/systemGraphDiff';
 import { compareFindings, findingsBase, findingsOf } from '../diff/diffFindings';
 import { diffSystemGraphs } from '../diff/diffSystemGraphs';
+import { hasAdditions, unionAdditions } from '../diff/unionAdditions';
 import type { ReadAt } from '../enrichment/revisionIo';
 import { readSystemDesign } from '../readSystemDesign';
 
@@ -33,6 +39,8 @@ export interface CompareResult {
   /** The findings that differ, for the same two graphs as `diff`. */
   findings: FindingsDiff;
   baseDefinitions: BaseDefinitions;
+  /** What only the base has, for the diagram to draw as ghosts; absent when there is none. */
+  union?: UnionAdditions;
 }
 
 /** The current side: the graph as read, as enriched, and whether its enrichment failed (then both are the read graph). */
@@ -199,6 +207,8 @@ export class SystemDesignCompare<R> {
     } else if (base.renamedFrom !== undefined) {
       diff.base.path = base.renamedFrom;
     }
+    const renamedBase = findingsBase(from, diff);
+    const union = unionAdditions(from, current, diff, renamedBase);
     return {
       baseLabel: base.label,
       baseDefinitions: withoutDefinitions
@@ -207,10 +217,8 @@ export class SystemDesignCompare<R> {
           ? 'revision'
           : 'workspace',
       diff,
-      findings: compareFindings(
-        this.findingsOf(findingsBase(from, diff)),
-        this.findingsOf(current)
-      ),
+      findings: compareFindings(this.findingsOf(renamedBase), this.findingsOf(current)),
+      ...(hasAdditions(union) && { union }),
     };
   }
 

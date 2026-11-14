@@ -33,6 +33,10 @@ interface FramePinProps {
 
 /** One pin of the frame: marker on the border, label inside just above the inner wire. */
 function FramePin({ row, highlighted, review, focused, mark, change, onHoverPin }: FramePinProps) {
+  // A pin only the base has is drawn only while its ghost is shown.
+  if (row.ghost && change?.kind !== 'removed') {
+    return null;
+  }
   const east = row.side === 'east';
   const reviewClass = review && row.unconnected ? unconnectedClass(row, false) : undefined;
   const place = { inset: FRAME_BORDER, top: PIN_BOX_TOP };

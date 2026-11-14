@@ -66,6 +66,7 @@ describe('changeDecor details', () => {
       ports: new Map(),
       removed: new Map(),
       gained: new Map(),
+      removedNets: new Set(),
     } as unknown as ChangeMarks;
     const decor = changeDecor(await layoutOf(graph), { marks, graph, levelPath: '/' });
     expect(decor.nodes.get('/gpio_block')).toEqual({ status: 'added', title: 'Added' });

@@ -14,6 +14,8 @@ const EMPHASIS_WIDTH = 1.5;
 /** Extra width of a new wire (comparison marks on). */
 const NEW_WIRE_WIDTH = 0.75;
 const NEW_WIRE_COLOR = 'var(--sd-change-added)';
+/** A wire only the base has (a ghost): dashed, in the removed color. */
+const REMOVED_WIRE_COLOR = 'var(--sd-change-removed)';
 const HALO_EXTRA_WIDTH = 4;
 const HALO_OPACITY = 0.3;
 
@@ -52,11 +54,14 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
   const plainStroke = data.crossing
     ? CROSSING_COLOR
     : (data.highlightColor ?? (fullColor ? baseColor : restingWireColor(baseColor)));
-  const stroke = markedStroke(data, selected, plainStroke);
+  const stroke =
+    data.changeRemoved && selected !== true && data.highlightColor === undefined
+      ? REMOVED_WIRE_COLOR
+      : markedStroke(data, selected, plainStroke);
   const ownWidth = width + (data.changeNew ? NEW_WIRE_WIDTH : 0);
   // Only the wire's own points are marked: the lead is drawn over by them.
   const split = data.lead !== undefined && data.changeNew === true;
-  const dash = data.crossing ? DASHED : undefined;
+  const dash = data.crossing || data.changeRemoved ? DASHED : undefined;
   const faded = data.dimmed && !selected;
   return (
     <>
@@ -77,7 +82,13 @@ export function ElkEdge({ id, data, selected }: EdgeProps<ElkFlowEdge>) {
         id={id}
         path={wirePath}
         interactionWidth={12}
-        className={data.changeNew && !split ? 'sd-edge-new' : undefined}
+        className={
+          data.changeNew && !split
+            ? 'sd-edge-new'
+            : data.changeRemoved
+              ? 'sd-edge-removed'
+              : undefined
+        }
         style={{
           stroke: split ? plainStroke : stroke,
           strokeWidth: split ? width : ownWidth,

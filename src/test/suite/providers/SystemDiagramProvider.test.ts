@@ -724,6 +724,7 @@ describe('SystemDiagramProvider export image', () => {
         baseDefinitions: string;
         diff: { summary: unknown };
         findings: unknown;
+        union?: { instances: { path: string }[] };
       };
     };
 
@@ -753,6 +754,23 @@ describe('SystemDiagramProvider export image', () => {
       });
       // The findings of the two revisions travel with the changes.
       expect(message.compare?.findings).toEqual({ new: [], resolved: [] });
+    });
+
+    it('sends what only the base has with the changes, for the diagram to draw as ghosts', async () => {
+      const { posted, send } = await ready();
+      const withExtra = `${fixtureText}\nset extra_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 extra_0 ]\n`;
+      pick.mockResolvedValue({ text: withExtra, label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      expect((posted[0] as Posted).compare?.union?.instances.map((i) => i.path)).toEqual([
+        '/extra_0',
+      ]);
+    });
+
+    it('sends no union when the base has nothing the document lacks', async () => {
+      const { posted, send } = await ready();
+      pick.mockResolvedValue({ text: editedText(fixtureText), label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      expect((posted[0] as Posted).compare).not.toHaveProperty('union');
     });
 
     it('updates the changes when the document is edited', async () => {

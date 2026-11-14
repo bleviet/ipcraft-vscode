@@ -7,6 +7,7 @@ import { InstanceClockDetails } from './InstanceClockDetails';
 import type { ComparisonDetails } from './hooks/useCompareView';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
+import { openNetsByEndpoint } from './layout/unionGraph';
 import { endpointKey, netsByEndpoint, shortVlnv, type Selection } from './model';
 import { isPinListKnown, unconnectedClass } from './unconnectedPins';
 
@@ -24,6 +25,8 @@ interface InstanceDetailsProps {
   onOpenDefinition: (instance: string) => void;
 }
 
+const NO_NETS: ReadonlySet<string> = new Set();
+
 export function InstanceDetails({
   graph,
   clocks,
@@ -36,13 +39,19 @@ export function InstanceDetails({
   onOpenDefinition,
 }: InstanceDetailsProps) {
   const source = levelSource(graph, instance.parent);
-  const nets = netsByEndpoint(graph, instance.parent);
+  // Connected or not is a fact of the open design: a wire only the base has does not connect a pin.
+  const ghostNets = comparison?.marks.removedNets ?? NO_NETS;
+  const nets = openNetsByEndpoint(graph, instance.parent, ghostNets);
+  const allNets = netsByEndpoint(graph, instance.parent);
   const parameters = Object.entries(instance.parameters);
   const pinListKnown = isPinListKnown(instance);
+  // Only the pins of the open design: a pin only the base has (a ghost) is not undriven there.
+  const removedPins = comparison?.marks.blocks.get(instance.path)?.pins;
   const hasUndriven =
     pinListKnown &&
     instance.pins.some(
       (pin) =>
+        removedPins?.[pin.name] !== 'removed' &&
         !nets.has(endpointKey({ instance: instance.path, pin: pin.name })) &&
         unconnectedClass(pin, false) === 'undriven'
     );
@@ -139,15 +148,35 @@ export function InstanceDetails({
           </thead>
           <tbody>
             {instance.pins.map((pin) => {
-              const pinNets =
-                nets.get(endpointKey({ instance: instance.path, pin: pin.name })) ?? [];
-              const cls = pinNets.length === 0 ? unconnectedClass(pin, false) : undefined;
+              const key = endpointKey({ instance: instance.path, pin: pin.name });
+              const pinNets = nets.get(key) ?? [];
+              const lostNets = (allNets.get(key) ?? []).filter((net) => ghostNets.has(net.id));
+              const onlyInBase =
+                comparison?.marks.blocks.get(instance.path)?.pins[pin.name] === 'removed';
+              const cls =
+                pinNets.length === 0 && !onlyInBase ? unconnectedClass(pin, false) : undefined;
               return (
                 <tr
                   key={pin.name}
                   className={focusedPin === pin.name ? 'sd-row-selected' : undefined}
                 >
-                  <td>{pin.name}</td>
+                  <td>
+                    {pin.name}
+                    {onlyInBase && (
+                      <>
+                        {' '}
+                        <span
+                          className="sd-change-sign"
+                          data-change="removed"
+                          role="img"
+                          title="Only in the base"
+                          aria-label="Only in the base"
+                        >
+                          −
+                        </span>
+                      </>
+                    )}
+                  </td>
                   <td>
                     {pinNets.length > 0 ? (
                       pinNets.map((net) => (
@@ -161,7 +190,7 @@ export function InstanceDetails({
                           </button>
                         </div>
                       ))
-                    ) : !pinListKnown ? (
+                    ) : onlyInBase ? null : !pinListKnown ? (
                       '-'
                     ) : (
                       <span
@@ -176,6 +205,21 @@ export function InstanceDetails({
                         {cls}
                       </span>
                     )}
+                    {lostNets.map((net) => (
+                      <div key={net.id}>
+                        <button
+                          type="button"
+                          className="sd-link"
+                          title="Only in the base"
+                          onClick={() => onSelect({ kind: 'net', id: net.id })}
+                        >
+                          <span className="sd-change-sign" data-change="removed" aria-hidden="true">
+                            −
+                          </span>{' '}
+                          {net.name}
+                        </button>
+                      </div>
+                    ))}
                   </td>
                   <td>
                     {pin.direction} <span className="opacity-60">({pin.directionSource})</span>

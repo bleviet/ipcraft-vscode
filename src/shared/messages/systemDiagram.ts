@@ -1,5 +1,5 @@
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { FindingsDiff, SystemGraphDiff } from '../../domain/systemGraphDiff';
+import type { FindingsDiff, SystemGraphDiff, UnionAdditions } from '../../domain/systemGraphDiff';
 import type { ExportImageOptions, SystemExportView } from './imageExport';
 
 export type HighlightColor = 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'magenta';
@@ -24,6 +24,8 @@ export interface DiagramCompare {
   /** The unconnected pins and the clock and reset crossings that differ, for the same two graphs as `diff`. */
   findings: FindingsDiff;
   baseDefinitions: BaseDefinitions;
+  /** What only the base has (blocks, pins, ports, wires), drawn as ghosts; absent when there is none. */
+  union?: UnionAdditions;
 }
 
 export type SystemDiagramToWebviewMessage =
