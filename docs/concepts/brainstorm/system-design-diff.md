@@ -2,7 +2,9 @@
 
 ## Status
 
-Partly implemented. The diff engine (`diffSystemGraphs`) and the `ipcraft diff`
+Implemented: every task of [#302](https://github.com/bleviet/ipcraft-vscode/issues/302) is done; the
+[Open Questions](#open-questions) remain, and in the viewer the current side is always the open file
+(a revision as the current side is available in `ipcraft diff --head` only). The diff engine (`diffSystemGraphs`) and the `ipcraft diff`
 command with its Markdown and JSON report work; see
 the [command line reference](../../reference/command-line.md#compare-two-revisions-of-a-system-design).
 In the viewer, the compare command, the base picker (a git revision or a file)
