@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import type { SystemGraph } from '../../domain/systemGraph';
+import type { SystemGraphDiff } from '../../domain/systemGraphDiff';
 import type { NormalizedBusLibrary } from '../../shared/busContracts';
 import {
   DEFAULT_JPEG_QUALITY,
@@ -58,11 +59,16 @@ export class ImageExportHost {
     return raw === undefined ? undefined : sanitizeExportOptions(raw);
   }
 
-  /** Exports the level the system viewer shows; `graph` is what the viewer got (unsaved edits included). */
+  /**
+   * Exports the level the system viewer shows; `graph` is what the viewer got (unsaved edits
+   * included) and `diff` the comparison it was published with, whose marks the image draws when
+   * the view says they are on the canvas.
+   */
   async exportSystem(
     document: vscode.TextDocument,
     graph: SystemGraph | undefined,
-    message: { options?: unknown; view?: unknown }
+    message: { options?: unknown; view?: unknown },
+    diff?: SystemGraphDiff
   ): Promise<void> {
     const options = sanitizeExportOptions(message.options);
     const view = parseSystemExportView(message.view);
@@ -80,6 +86,11 @@ export class ImageExportHost {
       const [look, encoding] = lookAndEncoding(options);
       // Loaded on first use: the layout engine is not needed to activate the extension.
       const { renderSystemLevelImage } = await import('../../services/render/systemLevelImage');
+      // The marks too: the renderer above already evaluates this module, so it costs no extra load.
+      const changes =
+        view.marks && diff
+          ? (await import('../../webview/systemDiagram/changeMarks')).buildChangeMarks(diff, graph)
+          : undefined;
       const bytes = await renderSystemLevelImage(
         graph,
         {
@@ -89,6 +100,7 @@ export class ImageExportHost {
           selectedNodeIds: view.selectedNodeIds,
           clocks: view.clocks,
           cropNodeIds: crop,
+          ...(changes && { changes }),
         },
         look,
         encoding,

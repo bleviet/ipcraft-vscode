@@ -60,6 +60,14 @@ describe('message parsers', () => {
     expect(parseSystemExportView(null)).toBeUndefined();
   });
 
+  it('keeps a boolean marks flag and drops any other value', () => {
+    expect(parseSystemExportView({ ...view, marks: true })).toEqual({ ...view, marks: true });
+    expect(parseSystemExportView({ ...view, marks: false })).toEqual({ ...view, marks: false });
+    for (const marks of ['yes', 1, null, {}]) {
+      expect(parseSystemExportView({ ...view, marks })).toEqual(view);
+    }
+  });
+
   it('accepts only a finite, non-empty rectangle', () => {
     expect(parseExportRect({ x: 1, y: 2, width: 3, height: 4 })).toEqual({
       x: 1,

@@ -16,8 +16,9 @@ design files alone. `ipcraft diff --fail-on changes|new-findings` exits with 1
 for use in CI. The **Address map** tab marks added, changed and removed segments. The overlay on the
 diagram and the later phases are open. The marks of everything that exists in the current revision
 (blocks, pins, new wires, counts on hierarchies, the outline, the legend, Details, the
-**Marks** and **Changes only** buttons) are implemented; ghosts for what was removed,
-the union layout and marks in the viewer's exported images are open.
+**Marks** and **Changes only** buttons) are implemented, and the viewer's exported
+images carry them while Marks is on; ghosts for what was removed and the union layout
+are open.
 `ipcraft diff --image <file.svg|png|jpg>` draws the top level of the current revision
 with those marks. This document describes
 how the [system viewer](../../how-to/view-a-system-design.md) could show what

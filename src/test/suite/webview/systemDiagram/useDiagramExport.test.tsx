@@ -32,6 +32,7 @@ const state = {
   isolation: { seedIds: ['a'], hops: 2 },
   clocksOn: true,
   selectedNodeIds: ['a'],
+  marksOn: false,
 };
 
 function setup(channel: ImageExportChannel) {
@@ -70,6 +71,16 @@ describe('useDiagramExport', () => {
         selectedNodeIds: ['a'],
       }
     );
+  });
+
+  it('sends marks while the comparison marks are on the canvas', () => {
+    const send = jest.fn();
+    const { result } = renderHook(
+      () => useDiagramExport({ openToken: 0, send }, layout, { ...state, marksOn: true }),
+      { wrapper: ({ children }) => <ReactFlowProvider>{children}</ReactFlowProvider> }
+    );
+    act(() => result.current.exportImage({ ...DEFAULT_EXPORT_OPTIONS, area: 'whole' }));
+    expect(send.mock.calls[0][1]).toMatchObject({ marks: true });
   });
 
   it('sends the ids of the nodes in the viewport for Current view', () => {

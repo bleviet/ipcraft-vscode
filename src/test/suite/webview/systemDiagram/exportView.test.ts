@@ -68,7 +68,13 @@ describe('buildSystemExportView', () => {
     isolation: null,
     clocksOn: true,
     selectedNodeIds: ['/dsp/mix'],
+    marksOn: false,
   };
+
+  it('carries marks only while they are on the canvas', () => {
+    expect(buildSystemExportView(base)).not.toHaveProperty('marks');
+    expect(buildSystemExportView({ ...base, marksOn: true })).toMatchObject({ marks: true });
+  });
 
   it('carries the level, expanded blocks, clocks and selection', () => {
     expect(buildSystemExportView(base)).toEqual({

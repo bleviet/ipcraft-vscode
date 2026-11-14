@@ -3071,6 +3071,35 @@ describe('SystemDiagramApp', () => {
       expect(marked()).toHaveAttribute('data-change', 'version');
     });
 
+    describe('Export image', () => {
+      const exported = () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Export image' }));
+        // The viewport is not measured in jsdom, so export the whole level.
+        fireEvent.change(screen.getByLabelText('Area'), { target: { value: 'whole' } });
+        mockPostMessage.mockClear();
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Export' }));
+        const message = mockPostMessage.mock.calls.find(
+          ([posted]) => (posted as { type?: string }).type === 'exportImage'
+        )?.[0] as { view: { marks?: boolean } };
+        expect(message).toBeDefined();
+        return message.view;
+      };
+
+      it('carries marks while comparing with Marks on, and not with Marks off', async () => {
+        await renderComparing();
+        expect(exported().marks).toBe(true);
+        fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
+        expect(exported().marks).toBeUndefined();
+      });
+
+      it('carries no marks without a comparison', async () => {
+        render(<SystemDiagramApp />);
+        send({ type: 'graph', graph });
+        await screen.findByTestId('node:/axi_dma_0');
+        expect(exported().marks).toBeUndefined();
+      });
+    });
+
     it('isolates the changed blocks with Changes only, and Show All restores the level', async () => {
       await renderComparing();
       expect(screen.queryByText(/^Isolated · /)).not.toBeInTheDocument();

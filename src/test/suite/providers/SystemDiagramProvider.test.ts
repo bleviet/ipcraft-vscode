@@ -773,6 +773,29 @@ describe('SystemDiagramProvider export image', () => {
       expect(posted[1]).toMatchObject({ type: 'graph' });
     });
 
+    describe('Export image', () => {
+      const exportMessage = {
+        type: 'exportImage',
+        options: { ...DEFAULT_EXPORT_OPTIONS, area: 'whole' },
+        view: { levelPath: '/', expanded: [], clocks: false, selectedNodeIds: [], marks: true },
+      };
+      const exportedDiff = (index: number) =>
+        (renderSystemLevelImage as jest.Mock).mock.calls[index][1] as { changes?: unknown };
+
+      it('draws the marks of the comparison the last graph was published with, none after stopCompare', async () => {
+        (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue(undefined);
+        (renderSystemLevelImage as jest.Mock).mockClear();
+        const { send } = await ready();
+        pick.mockResolvedValue({ text: editedText(fixtureText), label: 'HEAD' });
+        await send({ type: 'startCompare' });
+        await send(exportMessage);
+        expect(exportedDiff(0).changes).toMatchObject({ blocks: expect.any(Map) });
+        await send({ type: 'stopCompare' });
+        await send(exportMessage);
+        expect(exportedDiff(1)).not.toHaveProperty('changes');
+      });
+    });
+
     describe('when the document stopped reading as a design', () => {
       const storageKey = 'ipcraft.systemDiagram.highlights:file:///ws/zynq.tcl';
       type Problem = { type: 'notRecognized' | 'error' };

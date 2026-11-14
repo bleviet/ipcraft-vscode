@@ -53,6 +53,8 @@ export interface SystemExportView {
   selectedNodeIds: string[];
   /** Area `view`: the nodes inside the canvas viewport. */
   visibleNodeIds?: string[];
+  /** The comparison marks are drawn on the canvas: a comparison is on and Marks is pressed. */
+  marks?: boolean;
 }
 
 /** JPEG quality of an exported JPG. */
@@ -123,7 +125,8 @@ export function parseSystemExportView(raw: unknown): SystemExportView | undefine
   if (view.visibleNodeIds !== undefined && !isStringArray(view.visibleNodeIds)) {
     return undefined;
   }
-  return view as unknown as SystemExportView;
+  const { marks, ...rest } = view;
+  return (typeof marks === 'boolean' ? view : rest) as unknown as SystemExportView;
 }
 
 /** The visible rectangle in `raw`, or undefined when it is missing or not finite and non-empty. */

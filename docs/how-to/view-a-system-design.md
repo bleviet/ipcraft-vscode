@@ -566,10 +566,10 @@ Two buttons sit between the numbers and the exit button:
 
 Removed blocks, ports and wires are not drawn yet; they are listed in the Changes tab
 and counted in the legend. Blocks and wires that did not change are not dimmed.
-Exported images, and the image of `ipcraft render`, do not carry the marks yet.
+An [exported image](#export-an-image) carries the marks while Marks is on.
 
 The current side is always the file you have open: you cannot choose a revision for
-it. The comparison covers the design only, not the address map tab.
+it.
 
 ## Export an image
 
@@ -593,6 +593,10 @@ expanded in place, the isolated view and its number of hops, Clocks and resets
 when it is on, and your selection outlined. Highlight colors, search dimming, the
 toolbar, panels, the minimap and hover cards are not drawn. Exporting never moves
 or zooms the diagram. Your last options are remembered for this workspace.
+
+While you compare with another revision and **Marks** is on, the image draws the
+marks of the comparison and, with **Legend**, the change entries of the legend. With
+Marks off, or without a comparison, it is the plain diagram.
 
 A save dialog opens with a default name such as `soc-dsp_fir.png` (the level path
 with `/` as `_`; the top level is just `soc.png`). Afterwards you can **Open** the
