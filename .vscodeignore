@@ -20,6 +20,7 @@ package-lock.json
 **/*.map
 CMakeLists.txt
 .github/**
+actions/**
 .husky/**
 coverage/**
 test-results/**
