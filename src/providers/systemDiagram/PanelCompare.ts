@@ -21,14 +21,14 @@ export interface PanelCompareOptions {
   document: vscode.TextDocument;
   webviewPanel: vscode.WebviewPanel;
   panels: DiagramPanels;
-  enricher: GraphEnricher;
+  enricher: GraphEnricher<vscode.Uri>;
   logError: (message: string, error: Error) => void;
   /** Publishes the current graph again with the comparison as it is now. */
   republish: () => Promise<void>;
 }
 
 export class PanelCompare {
-  private readonly compare: SystemDesignCompare;
+  private readonly compare: SystemDesignCompare<vscode.Uri>;
   private readonly document: vscode.TextDocument;
   private readonly webviewPanel: vscode.WebviewPanel;
   private readonly panels: DiagramPanels;
@@ -74,7 +74,13 @@ export class PanelCompare {
 
   /** The `compare` part of a `graph` message. */
   describe(changes: CompareResult): DiagramCompare {
-    return { ...changes, currentLabel: this.currentLabel, canSwap: this.baseFile !== undefined };
+    return {
+      ...changes,
+      // An untrusted workspace's definitions are not read, for either side.
+      baseDefinitions: vscode.workspace.isTrusted ? changes.baseDefinitions : 'none',
+      currentLabel: this.currentLabel,
+      canSwap: this.baseFile !== undefined,
+    };
   }
 
   /** Called when the webview is ready: a swap that waited for this panel starts before the first graph. */
@@ -161,6 +167,7 @@ export class PanelCompare {
     this.compare.start(base.text, this.currentLabel, base.label, formatPath, {
       missing: base.missing,
       renamedFrom: base.renamedFrom,
+      readDefinitionAt: base.readDefinitionAt,
     });
     this.baseFile = base.file;
   }

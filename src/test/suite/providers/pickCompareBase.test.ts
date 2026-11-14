@@ -48,10 +48,22 @@ const inGroups = (...groups: unknown[][]) => {
   (vscode.window.tabGroups as { all: unknown }).all = groups.map((tabs) => ({ tabs }));
 };
 
+/** The commit a ref names in these tests: it starts with the short hash `1a2b3c4`. */
+const hashOf = (ref: string) => `1a2b3c4${Buffer.from(ref).toString('hex')}`;
+
+/** The reader of one commit: a stand-in that names the commit it reads at. */
+const readerAt = (hash: string) => jest.fn(async () => `definition at ${hash}`);
+
 function inRepository(inside: boolean) {
   (git.openRepository as jest.Mock).mockResolvedValue(inside ? repo : undefined);
   (git.listRevisions as jest.Mock).mockResolvedValue(revisions);
   (git.listFileCommits as jest.Mock).mockResolvedValue(commits);
+  (git.resolveCommit as jest.Mock).mockImplementation(async (_repo: unknown, ref: string) =>
+    hashOf(ref)
+  );
+  (git.revisionFileReader as jest.Mock).mockImplementation((_repo: unknown, hash: string) =>
+    readerAt(hash)
+  );
   (git.readRevision as jest.Mock).mockResolvedValue({ text: 'revision text' });
 }
 
@@ -182,9 +194,67 @@ describe('pickCompareBase', () => {
     inRepository(true);
     pickLabel('v1.0');
     const base = await pickCompareBase(document);
-    expect(base).toEqual({ text: 'revision text', label: 'v1.0' });
+    expect(base).toEqual({
+      text: 'revision text',
+      label: 'v1.0 (1a2b3c4)',
+      readDefinitionAt: expect.any(Function),
+    });
     expect(base).not.toHaveProperty('file');
-    expect(git.readRevision).toHaveBeenCalledWith(repo, 'v1.0', document.uri);
+    expect(git.readRevision).toHaveBeenCalledWith(repo, hashOf('v1.0'), document.uri);
+  });
+
+  describe('the definitions of a revision', () => {
+    const definition = uriOf('/ws/ip/core.ip.yml');
+
+    async function pickedBase() {
+      inRepository(true);
+      pickLabel('v1.0');
+      return (await pickCompareBase(document))!;
+    }
+
+    it('reads the design and the definitions at the commit the ref named when it was picked', async () => {
+      const base = await pickedBase();
+      expect(git.resolveCommit).toHaveBeenCalledTimes(1);
+      expect(git.resolveCommit).toHaveBeenCalledWith(repo, 'v1.0');
+      expect(git.readRevision).toHaveBeenCalledWith(repo, hashOf('v1.0'), document.uri);
+      expect(git.revisionFileReader).toHaveBeenCalledWith(repo, hashOf('v1.0'));
+      // A later commit moves the ref, not the hash: the reader never sees the ref again.
+      (git.resolveCommit as jest.Mock).mockResolvedValue('hash-after-a-commit');
+      expect(await base.readDefinitionAt!(definition)).toBe(`definition at ${hashOf('v1.0')}`);
+      expect(git.resolveCommit).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets a git failure reject, so the comparison is made without definitions', async () => {
+      inRepository(true);
+      (git.revisionFileReader as jest.Mock).mockReturnValue(
+        jest.fn().mockRejectedValue(new Error('Cannot read core at v1.0: offline'))
+      );
+      pickLabel('v1.0');
+      const base = (await pickCompareBase(document))!;
+      await expect(base.readDefinitionAt!(definition)).rejects.toThrow('offline');
+    });
+
+    it('does not pick a revision that cannot be resolved', async () => {
+      inRepository(true);
+      (git.resolveCommit as jest.Mock).mockRejectedValue(new Error("Cannot resolve 'v1.0'"));
+      pickLabel('v1.0');
+      await expect(pickCompareBase(document)).rejects.toThrow("Cannot resolve 'v1.0'");
+    });
+
+    it('has none for a file, which uses the definitions of the workspace', async () => {
+      inRepository(false);
+      pickLabel('Compare with File…');
+      (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue([{ fsPath: '/ws/old/o.bd' }]);
+      (vscode.workspace.fs.readFile as jest.Mock).mockResolvedValue(new TextEncoder().encode('t'));
+      expect(await pickCompareBase(document)).not.toHaveProperty('readDefinitionAt');
+    });
+
+    it('has none when the design is not at the revision: a missing base is never enriched', async () => {
+      inRepository(true);
+      (git.readRevision as jest.Mock).mockResolvedValue({ missing: true });
+      pickLabel('v1.0');
+      expect(await pickCompareBase(document)).not.toHaveProperty('readDefinitionAt');
+    });
   });
 
   it('carries the old path of a file that was renamed since the revision', async () => {
@@ -196,8 +266,9 @@ describe('pickCompareBase', () => {
     pickLabel('v1.0');
     expect(await pickCompareBase(document)).toEqual({
       text: 'revision text',
-      label: 'v1.0',
+      label: 'v1.0 (1a2b3c4)',
       renamedFrom: 'old/system.bd',
+      readDefinitionAt: expect.any(Function),
     });
   });
 
@@ -205,7 +276,11 @@ describe('pickCompareBase', () => {
     inRepository(true);
     (git.readRevision as jest.Mock).mockResolvedValue({ missing: true });
     pickLabel('v1.0');
-    expect(await pickCompareBase(document)).toEqual({ text: '', label: 'v1.0', missing: true });
+    expect(await pickCompareBase(document)).toEqual({
+      text: '',
+      label: 'v1.0 (1a2b3c4)',
+      missing: true,
+    });
   });
 
   it('labels the merge base with the default branch and the short hash', async () => {
@@ -214,15 +289,38 @@ describe('pickCompareBase', () => {
     expect(await pickCompareBase(document)).toEqual({
       text: 'revision text',
       label: 'main (merge base bbbbbbb)',
+      readDefinitionAt: expect.any(Function),
     });
-    expect(git.readRevision).toHaveBeenCalledWith(repo, 'bbbbbbb2222', document.uri);
+    expect(git.readRevision).toHaveBeenCalledWith(repo, hashOf('bbbbbbb2222'), document.uri);
+  });
+
+  it('shows the commit a moving name pinned: HEAD, a branch or a typed ref, not a commit entry', async () => {
+    inRepository(true);
+    pickLabel('HEAD');
+    expect((await pickCompareBase(document))?.label).toBe('HEAD (1a2b3c4)');
+    pickLabel('dev');
+    expect((await pickCompareBase(document))?.label).toBe('dev (1a2b3c4)');
+    // A commit and the merge base already show their hash.
+    pickLabel('Add the DMA');
+    expect((await pickCompareBase(document))?.label).toBe('ccccccc Add the DMA');
+    pickLabel('Merge base with main');
+    expect((await pickCompareBase(document))?.label).toBe('main (merge base bbbbbbb)');
+    // A typed hash is its own label.
+    pickLabel('Enter a revision…');
+    (vscode.window.showInputBox as jest.Mock).mockResolvedValue('1a2b3c4');
+    (git.resolveCommit as jest.Mock).mockResolvedValue('1a2b3c4deadbeef');
+    expect((await pickCompareBase(document))?.label).toBe('1a2b3c4');
   });
 
   it('reads a revision typed in', async () => {
     inRepository(true);
     pickLabel('Enter a revision…');
     (vscode.window.showInputBox as jest.Mock).mockResolvedValue(' abc1234 ');
-    expect(await pickCompareBase(document)).toEqual({ text: 'revision text', label: 'abc1234' });
+    expect(await pickCompareBase(document)).toEqual({
+      text: 'revision text',
+      label: 'abc1234 (1a2b3c4)',
+      readDefinitionAt: expect.any(Function),
+    });
     expect(vscode.window.showInputBox).toHaveBeenCalledWith(
       expect.objectContaining({ prompt: 'Git revision (branch, tag or commit)' })
     );
@@ -319,9 +417,13 @@ describe('pickCompareBase', () => {
     inRepository(true);
     pickLabel('Add the DMA');
     const base = await pickCompareBase(document);
-    expect(base).toEqual({ text: 'revision text', label: 'ccccccc Add the DMA' });
+    expect(base).toEqual({
+      text: 'revision text',
+      label: 'ccccccc Add the DMA',
+      readDefinitionAt: expect.any(Function),
+    });
     expect(base).not.toHaveProperty('file');
-    expect(git.readRevision).toHaveBeenCalledWith(repo, 'ccccccc3333', document.uri);
+    expect(git.readRevision).toHaveBeenCalledWith(repo, hashOf('ccccccc3333'), document.uri);
   });
 
   it('shows the revisions in a repository without other tabs and commits', async () => {

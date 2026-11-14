@@ -47,11 +47,17 @@ export function emptyDiff(): SystemGraphDiff {
 export const compareOf = (
   diff: SystemGraphDiff,
   baseLabel = 'HEAD',
-  options: { currentLabel?: string; canSwap?: boolean; findings?: FindingsDiff } = {}
+  options: {
+    currentLabel?: string;
+    canSwap?: boolean;
+    findings?: FindingsDiff;
+    baseDefinitions?: DiagramCompare['baseDefinitions'];
+  } = {}
 ): DiagramCompare => ({
   baseLabel,
   currentLabel: options.currentLabel ?? 'sys/current.bd',
   canSwap: options.canSwap ?? false,
   diff,
   findings: options.findings ?? { new: [], resolved: [] },
+  baseDefinitions: options.baseDefinitions ?? 'workspace',
 });

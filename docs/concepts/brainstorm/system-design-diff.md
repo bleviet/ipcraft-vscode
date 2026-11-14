@@ -11,7 +11,8 @@ A block that is only renamed, and one that is only moved to another level, is re
 [Renames and Moves](#renames-and-moves)). The findings diff (new and resolved
 unconnected pins and clock or reset crossings) is implemented in the engine and
 in `ipcraft diff`, and the **Findings** tab of the viewer lists them; the viewer
-checks both revisions with the workspace definitions, `ipcraft diff` with the
+checks the current side with the workspace definitions and a base that is a git
+revision with the definitions as they were at that revision, `ipcraft diff` with the
 design files alone. `ipcraft diff --fail-on changes|new-findings` exits with 1
 for use in CI. The **Address map** tab marks added, changed and removed segments. The overlay on the
 diagram and the later phases are open. The marks of everything that exists in the current revision
@@ -233,10 +234,15 @@ results by their pins:
 
 This is the line a reviewer most needs, and no text diff can give it.
 
-Workspace definitions (`.ip.yml`, HDL) are read from the working tree for both
-revisions, also when both sides are git revisions. A finding can therefore
-change because a definition changed, not the design, and it can differ from
-what either revision had. The report says where the definitions come from.
+In `ipcraft diff` no workspace definitions are read: findings come from the design
+files alone. In the viewer the current side uses the definitions of the workspace
+(`.ip.yml`, HDL, `.qsys`), and a base that is a git revision uses them as they were at
+that revision, so a finding can appear because a definition changed, not the design.
+The Findings tab says where the definitions come from. Only the definitions the design
+matches (by the working tree's index) are read from git, so a definition that exists
+only at the revision, or whose VLNV or name changed since, is not found; a base that is
+a file, or a design that did not exist at the revision, uses the working tree's
+definitions or none.
 
 ## Viewer Experience
 
@@ -440,6 +446,6 @@ are. No move is needed first.
 |---|---|
 | Union layout, or the plain layout with ghosts placed afterwards? | Measure on real pull requests first. See [Layout](#layout) |
 | Should a change inside a non-descended IP (for example an `axi_interconnect` in a `.bd`) be reported? | The graph does not hold its inside, so today it cannot be |
-| How are grafted Platform Designer subsystems compared when the subsystem file changed but the top file did not? | The compare is per design file; the subsystem files of the base revision must be read from the same revision |
-| Should definitions (`.ip.yml`, HDL) be read from the base revision too? | More correct findings diff, more git reads. Start with the working tree and say so in the report |
+| How are grafted Platform Designer subsystems compared when the subsystem file changed but the top file did not? | The compare is per design file; the subsystem files of the base revision must be read from the same revision. Done in the viewer for a base that is a git revision |
+| Should definitions (`.ip.yml`, HDL) be read from the base revision too? | Resolved for the viewer: the base revision reads the definitions the design matches from git and the Findings tab says so. `ipcraft diff` reads none |
 | Is three-way compare (base, ours, theirs) needed for merge conflicts? | Out of scope until asked for |

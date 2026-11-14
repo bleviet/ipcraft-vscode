@@ -6,6 +6,13 @@ export type HighlightColor = 'red' | 'orange' | 'yellow' | 'green' | 'cyan' | 'm
 
 export type HighlightMap = Record<string, HighlightColor>;
 
+/**
+ * Where the definitions of the blocks that a comparison used come from: the base revision for the
+ * base and the workspace for the current side, the workspace for both, or none (not read: an
+ * untrusted workspace, or an enrichment that failed).
+ */
+export type BaseDefinitions = 'revision' | 'workspace' | 'none';
+
 /** A comparison of the open design (current) with another revision or file (base): the labels and the changes. */
 export interface DiagramCompare {
   baseLabel: string;
@@ -16,6 +23,7 @@ export interface DiagramCompare {
   diff: SystemGraphDiff;
   /** The unconnected pins and the clock and reset crossings that differ, for the same two graphs as `diff`. */
   findings: FindingsDiff;
+  baseDefinitions: BaseDefinitions;
 }
 
 export type SystemDiagramToWebviewMessage =

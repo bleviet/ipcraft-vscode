@@ -494,7 +494,8 @@ git's own reason, also a path that is in the base revision whose content git can
 read (a partial clone without its remote, say).
 
 Limits for now: workspace definitions (`.ip.yml`, HDL, `.qsys`) are not used, so
-only the pins the design files list are compared. The path given to
+only the pins the design files list are compared; the viewer's comparison reads the
+definitions of a base revision from git, `ipcraft diff` does not. The path given to
 `git show` is the spelling on the command line, so on a case-insensitive file
 system a path with the wrong case is found on disk but not at the revision, so
 the file is reported as new, with everything added, rather than as an error. A

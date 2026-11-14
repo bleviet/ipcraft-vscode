@@ -395,7 +395,7 @@ offered. Cancel the picker at any step to leave things as they were. If the revi
 or file cannot be read, or is not a system design, a message says so and a comparison
 that was already on stays on.
 
-While a comparison is on, the toolbar shows a chip with the base (`vs HEAD`), the
+While a comparison is on, the toolbar shows a chip with the base (`vs HEAD (1a2b3c4)`: a branch, `HEAD` or a typed revision is followed by the short hash of the commit it named), the
 numbers of added, removed, changed, renamed, moved and version-only changes (`+1 −4 ~2 →1 »1 v1`;
 a zero is dimmed; the renamed and the moved count appear only when there is one), and an **Exit compare** button. Click the chip or the numbers to open the
 **Changes** tab, the first tab of the bottom panel. The tab also opens by itself when
@@ -491,10 +491,25 @@ longer exists in the current design cannot be selected; its row is dimmed and sa
 "Not in this revision" on hover.
 
 The list follows your edits: change the file and the Changes tab updates. The
-workspace definitions (`.ip.yml` and HDL files) come from your working tree for both
-sides. Both sides always use the same definitions, also after you grant trust to the
-workspace or change a definition, so a definition never shows up as a change. If the
-definitions cannot be read for one of the sides, both sides are compared without them.
+definitions of the blocks (`.ip.yml`, HDL and `.qsys` files) come from your working
+tree for the current side. When the base is a git revision, the base reads them as they
+were at that revision, so a pin that a definition gained or lost since shows up as a
+difference, and the **Findings** tab says which definitions each side uses. Only the
+definitions the design uses are read from git, at the commit the revision named when you
+picked it (a branch or `HEAD` that moves later does not change the base, and the base's
+name in the toolbar and the tab carries that commit, for example `HEAD (1a2b3c4)`), and
+each definition file is read from git once per comparison. A definition
+file that was moved since is read under its old path, when the move is committed or staged
+at the start of the comparison and git's rename detection finds it; an untracked file, a move
+made later in the session, or a move combined with edits that git no longer sees as a rename
+is not followed, so its block is shown without the definition. A definition that exists only at
+the revision (it was deleted since) or whose name changed since is not found; that block
+is then shown without it. When the base is a file or an open tab, both sides use the
+definitions of your workspace, so a definition never shows up as a change. After you
+grant trust or change a definition file, the base is matched with the definitions again;
+the files already read from git are not read again. If git cannot read the revision's definitions (an offline partial clone, say), or
+the definitions cannot be read for one of the sides, both sides are compared without
+them, the note says so, and the error is in the IPCraft output.
 **Exit compare** ends the comparison; it also ends when you close the diagram.
 
 ### Findings of the comparison
@@ -506,9 +521,12 @@ touches or a data connection or reset that crosses into another clock domain wit
 known synchronizer; the
 [command-line reference](../reference/command-line.md#compare-two-revisions-of-a-system-design)
 defines them. The tab shows the number of findings that differ and does not open by
-itself. Unlike `ipcraft diff`, which reads the design files alone, the viewer checks both
-revisions with the workspace definitions of your workspace, so pins of blocks with a
-known definition are checked on both sides. The columns are the sign (the word `New` or
+itself. Unlike `ipcraft diff`, which reads the design files alone, the viewer checks pins of
+blocks with a known definition on both sides: the current side with the definitions of
+your workspace, and a base that is a git revision with the definitions as they were at
+that revision (the note above the list says so; with a file as base, both sides use
+your workspace's definitions). A finding can therefore appear because a definition
+changed, not the design. The columns are the sign (the word `New` or
 `Resolved`, also colored), the kind of finding, where it is, and a detail (for a
 crossing, the two clocks and the reason). The chips **New** and **Resolved** and the
 filter box narrow the list.

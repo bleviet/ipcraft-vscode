@@ -39,6 +39,7 @@ test.describe('System diagram comparison', () => {
       canSwap: true,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     };
     await page.goto(harnessPath);
     await page.waitForFunction(() =>
@@ -81,6 +82,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff,
       findings: diffFindings(base, graph, diff),
+      baseDefinitions: 'workspace',
     };
     await page.goto(harnessPath);
     await page.waitForFunction(() =>
@@ -101,7 +103,7 @@ test.describe('System diagram comparison', () => {
       'true'
     );
     await tab.click();
-    await expect(page.getByText(/^Both revisions are checked/)).toBeVisible();
+    await expect(page.getByText(/^Both sides are checked/)).toBeVisible();
     const row = page.getByRole('row').filter({ hasText: 'undriven pin' });
     await expect(row).toContainText('Resolved');
     await expect(row).toContainText('led_o');
@@ -117,6 +119,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_rename_base.bd'), graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     };
     await page.goto(harnessPath);
     await page.waitForFunction(() =>
@@ -151,6 +154,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: edit(diffSystemGraphs(read(pair[0]), graph)),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     };
     await page.setViewportSize({ width: 1500, height: 900 });
     await page.goto(harnessPath);
@@ -309,6 +313,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: diffSystemGraphs(base, current),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     });
     await expect(page.locator('.sd-node').first()).toBeVisible();
     const overlay = page.locator('path.sd-edge-new:not(.react-flow__edge-path)');
@@ -356,6 +361,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     });
     await expect(
       block(page, 'gpio_block').getByRole('img', { name: '1 change inside' })
@@ -378,6 +384,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     });
     await expect(page.locator('.sd-node').first()).toBeVisible();
     const canvas = page.locator('.sd-canvas');
@@ -419,6 +426,7 @@ test.describe('System diagram comparison', () => {
         canSwap: true,
         diff: realisticNames(diffSystemGraphs(read('zynq_gpio_base.bd'), graph)),
         findings: { new: [], resolved: [] },
+        baseDefinitions: 'workspace',
       };
       await page.setViewportSize({ width: size.width, height: size.height });
       await page.goto(harnessPath);

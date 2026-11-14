@@ -9,7 +9,12 @@ import type { SystemDiagnostic, SystemGraph } from '../../../domain/systemGraph'
 import { extractVerilogInterface } from '../../../parser/VerilogParser';
 import { extractVhdlInterface, type ParsedPort } from '../../../parser/VhdlParser';
 import { applyDefinitions } from './applyDefinitions';
-import type { EnrichmentIo, EnrichmentLog } from './enrichmentIo';
+import {
+  FileAbsentError,
+  SourceFailedError,
+  type EnrichmentIo,
+  type EnrichmentLog,
+} from './enrichmentIo';
 import { applyExportDirections } from './exportDirections';
 import { expandSubsystems } from './expandSubsystems';
 import type { HdlEntry } from './fileEntries';
@@ -69,7 +74,7 @@ export async function enrichSystemGraph<R>(
   if (typed.length === 0) {
     return graph;
   }
-  const ipFiles = await io.listIpFiles();
+  const ipFiles = await io.listIpFiles(graph, designFile);
   const hdlFiles = typed.some((instance) => instance.kind === 'module')
     ? await io.listHdlFiles()
     : [];
@@ -99,7 +104,13 @@ export async function enrichSystemGraph<R>(
         });
       }
     } catch (error) {
-      log?.error(`Failed to read ${entry.displayName}`, error as Error);
+      if (error instanceof SourceFailedError) {
+        throw error;
+      }
+      // A file that is not there (at a revision, say) is a normal state, not a failure.
+      if (!(error instanceof FileAbsentError)) {
+        log?.error(`Failed to read ${entry.displayName}`, error as Error);
+      }
     }
   }
   const enriched = applyExportDirections(applyDefinitions(graph, definitions));

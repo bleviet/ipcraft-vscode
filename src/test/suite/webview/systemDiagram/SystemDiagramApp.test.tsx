@@ -2996,6 +2996,7 @@ describe('SystemDiagramApp', () => {
       canSwap: true,
       diff: diffSystemGraphs(base, graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace' as const,
     };
     const changesTab = () => screen.getByRole('tab', { name: /^Changes/ });
     const versionOnlyToggle = () =>

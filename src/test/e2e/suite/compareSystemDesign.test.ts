@@ -11,8 +11,11 @@ import {
   listFileCommits,
   listRevisions,
   openRepository,
+  readFileAt,
   readRevision,
+  resolveCommit,
   REVISION_DASH,
+  revisionFileReader,
   type GitRepository,
 } from '../../../services/systemDiagram/compare/gitRevisions';
 
@@ -24,6 +27,13 @@ const SYSTEM_DIAGRAM = 'ipcraft.systemDiagram';
 const FIXTURES = path.resolve(__dirname, '../../../../src/test/fixtures/system-design/diff');
 const BASE = fs.readFileSync(path.join(FIXTURES, 'zynq_gpio_base.bd'), 'utf8');
 const CURRENT = fs.readFileSync(path.join(FIXTURES, 'zynq_gpio_current.bd'), 'utf8');
+// A definition whose ports change between the two commits.
+const CORE_BASE =
+  'vlnv: { vendor: acme, library: ip, name: core, version: "1.0" }\nports:\n  - { name: old_flag, direction: in }\n';
+const CORE_CURRENT = CORE_BASE.replace('old_flag', 'flag');
+// A definition file that is moved between the two commits, unchanged.
+const MOVED =
+  'vlnv: { vendor: acme, library: ip, name: moved, version: "1.0" }\nports:\n  - { name: led, direction: out }\n';
 const SUBJECT = 'Rework the GPIO block $(flame)';
 
 const ACCEPT = 'workbench.action.acceptSelectedQuickOpenItem';
@@ -120,14 +130,18 @@ suite('Compare a system design (real git extension, tabs and quick pick)', funct
     fs.writeFileSync(path.join(root, 'notes.txt'), 'notes\n');
     fs.writeFileSync(path.join(root, 'diffed.bd'), BASE);
     fs.writeFileSync(path.join(root, 'to_rename.bd'), BASE);
+    fs.writeFileSync(path.join(root, 'core.ip.yml'), CORE_BASE);
+    fs.writeFileSync(path.join(root, 'old_moved.ip.yml'), MOVED);
     git('add', '.');
     git('commit', '-m', 'Add the base design');
     baseCommit = git('rev-parse', 'HEAD');
     git('tag', 'v1');
     git('branch', 'feature/gpio');
     fs.writeFileSync(path.join(root, 'system.bd'), CURRENT);
+    fs.writeFileSync(path.join(root, 'core.ip.yml'), CORE_CURRENT);
     // A file renamed since the base commit, and one that did not exist then.
     git('mv', 'to_rename.bd', 'renamed.bd');
+    git('mv', 'old_moved.ip.yml', 'new_moved.ip.yml');
     fs.writeFileSync(path.join(root, 'added.bd'), CURRENT);
     git('add', 'added.bd');
     git('commit', '-am', SUBJECT);
@@ -216,6 +230,49 @@ suite('Compare a system design (real git extension, tabs and quick pick)', funct
     await assert.rejects(readRevision(repo, 'no-such-revision', added), /no-such-revision/);
   });
 
+  test('reads a definition file at a revision, which is not the one on disk', async () => {
+    const core = vscode.Uri.file(path.join(root, 'core.ip.yml'));
+    assert.strictEqual(await readFileAt(repo, 'v1', core), CORE_BASE);
+    assert.strictEqual(await readFileAt(repo, 'HEAD~1', core), CORE_BASE);
+    assert.strictEqual(await readFileAt(repo, 'HEAD', core), CORE_CURRENT);
+    assert.strictEqual(fs.readFileSync(core.fsPath, 'utf8'), CORE_CURRENT);
+    // A file that did not exist at the revision is not an error; a revision that does not exist is.
+    const added = vscode.Uri.file(path.join(root, 'added.bd'));
+    assert.strictEqual(await readFileAt(repo, 'v1', added), undefined);
+    await assert.rejects(readFileAt(repo, 'no-such-revision', core), /no-such-revision/);
+  });
+
+  test('reads definitions at one commit, also after the branch moved, and follows moved files', async () => {
+    const core = vscode.Uri.file(path.join(root, 'core.ip.yml'));
+    const moved = vscode.Uri.file(path.join(root, 'new_moved.ip.yml'));
+    git('branch', 'moving', 'v1');
+    try {
+      const hash = await resolveCommit(repo, 'moving');
+      assert.strictEqual(hash, baseCommit);
+      const read = revisionFileReader(repo, hash);
+      git('branch', '-f', 'moving', 'HEAD');
+      // The branch now names the later commit; the reader still reads the first one.
+      assert.strictEqual(await resolveCommit(repo, 'moving'), git('rev-parse', 'HEAD'));
+      assert.strictEqual(await read(core), CORE_BASE);
+      // A definition file moved since the commit is read under its old path.
+      assert.strictEqual(await read(moved), MOVED);
+      // A file that was not there is not an error.
+      assert.strictEqual(await read(vscode.Uri.file(path.join(root, 'never.ip.yml'))), undefined);
+    } finally {
+      git('branch', '-D', 'moving');
+    }
+    await assert.rejects(resolveCommit(repo, 'no-such-revision'), /no-such-revision/);
+  });
+
+  test('resolves an annotated tag to its commit, whatever its message quotes', async () => {
+    git('tag', '-a', 'v2', baseCommit, '-m', `Release, see ${'f'.repeat(40)}`);
+    try {
+      assert.strictEqual(await resolveCommit(repo, 'v2'), baseCommit);
+    } finally {
+      git('tag', '-d', 'v2');
+    }
+  });
+
   test('explains a revision that cannot be read', async () => {
     await assert.rejects(readRevision(repo, 'no-such-revision', design), (error: Error) => {
       assert.match(error.message, /no-such-revision/);
@@ -257,9 +314,17 @@ suite('Compare a system design (real git extension, tabs and quick pick)', funct
 
     // No other design is open, so the first entry is HEAD.
     const headBase = await answerQuickPick(pickCompareBase(document), ACCEPT);
-    assert.strictEqual(headBase?.label, 'HEAD');
+    // The label pins the commit HEAD named.
+    assert.strictEqual(headBase?.label, `HEAD (${git('rev-parse', '--short=7', 'HEAD')})`);
     assert.strictEqual(headBase?.text, CURRENT);
     assert.strictEqual(headBase?.file, undefined);
+    // A revision reads the definitions as they were at it.
+    const core = vscode.Uri.file(path.join(root, 'core.ip.yml'));
+    assert.strictEqual(await headBase?.readDefinitionAt?.(core), CORE_CURRENT);
+    assert.strictEqual(
+      await headBase?.readDefinitionAt?.(vscode.Uri.file(path.join(root, 'never.ip.yml'))),
+      undefined
+    );
 
     // With another design open, it comes first and is a file base with the tab's text.
     await vscode.window.showTextDocument(other, { preview: false });
@@ -267,6 +332,7 @@ suite('Compare a system design (real git extension, tabs and quick pick)', funct
     const tabBase = await answerQuickPick(pickCompareBase(document), ACCEPT);
     assert.strictEqual(tabBase?.file?.fsPath, other.fsPath);
     assert.strictEqual(tabBase?.text, BASE);
+    assert.strictEqual(tabBase?.readDefinitionAt, undefined);
 
     // Escape cancels.
     assert.strictEqual(

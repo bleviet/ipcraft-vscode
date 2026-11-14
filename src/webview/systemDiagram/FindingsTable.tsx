@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { SystemGraph } from '../../domain/systemGraph';
+import type { DiagramCompare } from '../../shared/messages/systemDiagram';
 import type { FindingRow } from '../../services/systemDiagram/diff/findingRows';
 import { CellView } from './ChangeCell';
 import { findingTarget, NOT_IN_REVISION } from './changeTargets';
@@ -11,6 +12,8 @@ import { TargetRow } from './TargetRow';
 interface FindingsTableProps {
   /** The current graph: a row selects its block or port when the graph has it. */
   graph: SystemGraph;
+  /** The comparison: its base and where the definitions of each side come from. */
+  compare: DiagramCompare;
   /** The rows of `compare.findings` (see `findingRows`). */
   rows: readonly FindingRow[];
   /** The panel's filter: only the rows it matches are listed. Null without one. */
@@ -21,12 +24,29 @@ interface FindingsTableProps {
   onSelectPort: (name: string) => void;
 }
 
-const NOTE = 'Both revisions are checked with the same workspace definitions.';
+/** A commit label is a short hash and the subject: the hash names it. */
+const shortLabel = (label: string) => /^([0-9a-f]{7}) /.exec(label)?.[1] ?? label;
+
+/** What the note above the list says about the definitions the two sides were checked with. */
+export function definitionsNote({ baseLabel, baseDefinitions, diff }: DiagramCompare) {
+  if (diff.base.missing) {
+    return 'The base did not exist: every finding of the file is new.';
+  }
+  switch (baseDefinitions) {
+    case 'revision':
+      return `The base is checked with the definitions at ${shortLabel(baseLabel)}; the current side with those of this workspace.`;
+    case 'workspace':
+      return 'Both sides are checked with the definitions of this workspace.';
+    case 'none':
+      return 'Definitions are not read, so neither side is checked with them.';
+  }
+}
 const SIGNS: readonly FindingRow['sign'][] = ['New', 'Resolved'];
 
 /** Bottom-panel list of the findings that differ from the base of the comparison, filterable by new and resolved. */
 export function FindingsTable({
   graph,
+  compare,
   rows,
   filter,
   selection,
@@ -39,7 +59,7 @@ export function FindingsTable({
   });
   const bar = (
     <div className="sd-ubar">
-      <span>{NOTE}</span>
+      <span>{definitionsNote(compare)}</span>
       {rows.length > 0 &&
         SIGNS.map((sign) => (
           <button

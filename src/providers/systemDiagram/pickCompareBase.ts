@@ -8,9 +8,12 @@ import {
   openRepository,
   REVISION_DASH,
   readRevision,
+  resolveCommit,
+  revisionFileReader,
   type GitRepository,
   type RevisionChoice,
 } from '../../services/systemDiagram/compare/gitRevisions';
+import type { ReadAt } from '../../services/systemDiagram/enrichment/revisionIo';
 import { openDesignTabs } from './openDesignTabs';
 
 /** The text of the chosen base and how the comparison names it; `file` is set when the base is a file. */
@@ -22,6 +25,8 @@ export interface CompareBase {
   missing?: true;
   /** The revision has the file under this (workspace-relative) path: it was renamed since. */
   renamedFrom?: string;
+  /** A git revision only: reads the workspace definitions as they were at that revision. */
+  readDefinitionAt?: ReadAt<vscode.Uri>;
 }
 
 type Choice = RevisionChoice | { action: 'enter' | 'file' } | { action: 'open'; uri: vscode.Uri };
@@ -99,8 +104,18 @@ async function revisionBase(
   label: string,
   uri: vscode.Uri
 ): Promise<CompareBase> {
-  const read = await readRevision(repo, ref, uri);
-  return 'missing' in read ? { text: '', label, missing: true } : { ...read, label };
+  // A branch or HEAD moves with the next commit: read the design and the definitions at one commit.
+  const hash = await resolveCommit(repo, ref);
+  // A name that moves (HEAD, a branch) is shown with the commit it named, so a later commit does not make the label look current.
+  const shown =
+    label === ref && !hash.toLowerCase().startsWith(ref.toLowerCase())
+      ? `${label} (${hash.slice(0, 7)})`
+      : label;
+  const read = await readRevision(repo, hash, uri);
+  if ('missing' in read) {
+    return { text: '', label: shown, missing: true };
+  }
+  return { ...read, label: shown, readDefinitionAt: revisionFileReader(repo, hash) };
 }
 
 async function fileBase(document: vscode.TextDocument): Promise<CompareBase | undefined> {

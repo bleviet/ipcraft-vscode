@@ -146,6 +146,7 @@ export function BottomPanel({
         ) : tab === 'findings' && changes ? (
           <FindingsTable
             graph={graph}
+            compare={changes.compare}
             rows={findingList}
             filter={filter}
             selection={selection}

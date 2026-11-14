@@ -3,7 +3,10 @@ import {
   listFileCommits,
   listRevisions,
   openRepository,
+  readFileAt,
   readRevision,
+  resolveCommit,
+  revisionFileReader,
 } from '../../../../../services/systemDiagram/compare/gitRevisions';
 
 const uri = { fsPath: '/ws/system.bd' } as vscode.Uri;
@@ -18,6 +21,7 @@ function repo(overrides: Record<string, unknown> = {}): Repo {
     show: jest.fn().mockResolvedValue('text'),
     diffWith: jest.fn().mockResolvedValue([]),
     getObjectDetails: jest.fn().mockResolvedValue({}),
+    getCommit: jest.fn().mockResolvedValue({ hash: BASE }),
     log: jest.fn().mockResolvedValue([]),
     getMergeBase: jest.fn().mockResolvedValue(BASE),
     getRefs: jest.fn().mockResolvedValue([
@@ -469,5 +473,201 @@ describe('readRevision', () => {
         "Cannot read system.bd at 'v1.0': gone"
       );
     });
+  });
+});
+
+describe('resolveCommit', () => {
+  it('gives the hash the ref names now', async () => {
+    const r = repo({ getCommit: jest.fn().mockResolvedValue({ hash: TIP }) });
+    expect(await resolveCommit(r, 'HEAD')).toBe(TIP);
+    // The ref is peeled to a commit: a tag message cannot put another hash in the output.
+    expect(r.getCommit).toHaveBeenCalledWith('HEAD^{commit}');
+  });
+
+  it('refuses a ref that git would take for an option, without running git', async () => {
+    const r = repo();
+    await expect(resolveCommit(r, ' --output=x')).rejects.toThrow('A revision cannot start with -');
+    expect(r.getCommit).not.toHaveBeenCalled();
+  });
+
+  it('explains a ref that git cannot resolve', async () => {
+    const r = repo({
+      getCommit: jest
+        .fn()
+        .mockRejectedValue(
+          Object.assign(new Error('git failed'), { stderr: 'fatal: bad revision\n' })
+        ),
+    });
+    await expect(resolveCommit(r, 'nope')).rejects.toThrow(
+      "Cannot resolve 'nope': git failed: fatal: bad revision"
+    );
+  });
+});
+
+describe('readFileAt', () => {
+  const unknownPath = Object.assign(new Error('Path not known by git'), {
+    gitErrorCode: 'UnknownPath',
+  });
+  const defined = { fsPath: '/ws/ip/core.ip.yml' } as vscode.Uri;
+
+  beforeEach(() => {
+    (vscode.workspace.asRelativePath as jest.Mock).mockImplementation((u: vscode.Uri) =>
+      u.fsPath.replace('/ws/', '')
+    );
+  });
+
+  it('reads the file at the ref with one git call', async () => {
+    const r = repo({ show: jest.fn().mockResolvedValue('vlnv: x') });
+    expect(await readFileAt(r, 'v1.0', defined)).toBe('vlnv: x');
+    expect(r.show).toHaveBeenCalledWith('v1.0', '/ws/ip/core.ip.yml');
+    expect(r.getObjectDetails).not.toHaveBeenCalled();
+  });
+
+  it('is undefined when git does not know the path at the ref', async () => {
+    const r = repo({
+      show: jest.fn().mockRejectedValue(new Error('Failed to execute git')),
+      getObjectDetails: jest.fn().mockRejectedValue(unknownPath),
+    });
+    expect(await readFileAt(r, 'v1.0', defined)).toBeUndefined();
+    expect(r.getObjectDetails).toHaveBeenCalledWith('v1.0', '/ws/ip/core.ip.yml');
+  });
+
+  it("fails with git's reason when the path is known or git fails for another reason", async () => {
+    const known = repo({ show: jest.fn().mockRejectedValue(new Error('bad object')) });
+    await expect(readFileAt(known, 'v1.0', defined)).rejects.toThrow(
+      "Cannot read ip/core.ip.yml at 'v1.0': bad object"
+    );
+    const unrelated = repo({
+      show: jest.fn().mockRejectedValue(new Error('bad object')),
+      getObjectDetails: jest.fn().mockRejectedValue(new Error('not a valid object name')),
+    });
+    await expect(readFileAt(unrelated, 'nope', defined)).rejects.toThrow(
+      "Cannot read ip/core.ip.yml at 'nope': bad object"
+    );
+  });
+
+  it('reads the old path that oldPathOf gives when the path is not at the ref', async () => {
+    const old = { fsPath: '/ws/old/core.ip.yml' } as vscode.Uri;
+    const r = repo({
+      show: jest
+        .fn()
+        .mockImplementation((_ref: string, p: string) =>
+          p === old.fsPath ? Promise.resolve('old text') : Promise.reject(new Error('nope'))
+        ),
+      getObjectDetails: jest.fn().mockRejectedValue(unknownPath),
+    });
+    expect(await readFileAt(r, 'v1.0', defined, async () => old)).toBe('old text');
+    expect(await readFileAt(r, 'v1.0', defined, async () => undefined)).toBeUndefined();
+  });
+
+  it('fails when the old path cannot be read either', async () => {
+    const old = { fsPath: '/ws/old/core.ip.yml' } as vscode.Uri;
+    const r = repo({
+      show: jest.fn().mockRejectedValue(new Error('gone')),
+      getObjectDetails: jest.fn().mockRejectedValue(unknownPath),
+    });
+    await expect(readFileAt(r, 'v1.0', defined, async () => old)).rejects.toThrow(
+      "Cannot read old/core.ip.yml at 'v1.0': gone"
+    );
+  });
+});
+
+describe('revisionFileReader', () => {
+  const unknownPath = Object.assign(new Error('Path not known by git'), {
+    gitErrorCode: 'UnknownPath',
+  });
+  const at = (fsPath: string) => ({ fsPath }) as vscode.Uri;
+  const moved = at('/ws/lib/core.ip.yml');
+  const renamed = { status: 3, uri: moved, originalUri: at('/ws/ip/core.ip.yml') };
+
+  beforeEach(() => {
+    (vscode.workspace.asRelativePath as jest.Mock).mockImplementation((u: vscode.Uri) =>
+      u.fsPath.replace('/ws/', '')
+    );
+  });
+
+  /** A tree with only `files` (path -> text) at the commit. */
+  const tree = (files: Record<string, string>, overrides: Record<string, unknown> = {}) =>
+    repo({
+      show: jest
+        .fn()
+        .mockImplementation((_ref: string, p: string) =>
+          p in files ? Promise.resolve(files[p]) : Promise.reject(new Error('not there'))
+        ),
+      getObjectDetails: jest.fn().mockRejectedValue(unknownPath),
+      diffWith: jest.fn().mockResolvedValue([renamed]),
+      ...overrides,
+    });
+
+  it('reads at the commit it was given, not at a ref', async () => {
+    const r = tree({ '/ws/a.ip.yml': 'text' });
+    expect(await revisionFileReader(r, BASE)(at('/ws/a.ip.yml'))).toBe('text');
+    expect(r.show).toHaveBeenCalledWith(BASE, '/ws/a.ip.yml');
+  });
+
+  it('reads a file that was moved since under its old path, with one diff for all files', async () => {
+    const r = tree({ '/ws/ip/core.ip.yml': 'old text' });
+    const read = revisionFileReader(r, BASE);
+    expect(await read(moved)).toBe('old text');
+    expect(await read(at('/ws/new.ip.yml'))).toBeUndefined();
+    expect(await read(at('/ws/other.ip.yml'))).toBeUndefined();
+    expect(r.diffWith).toHaveBeenCalledTimes(1);
+    expect(r.diffWith).toHaveBeenCalledWith(BASE);
+  });
+
+  it('reads a file once when it is asked for at the same time', async () => {
+    const r = tree({ '/ws/a.ip.yml': 'text' });
+    const read = revisionFileReader(r, BASE);
+    const results = await Promise.all([1, 2, 3].map(() => read(at('/ws/a.ip.yml'))));
+    expect(results).toEqual(['text', 'text', 'text']);
+    expect(r.show).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not keep a failed rename detection: the next absent file diffs again', async () => {
+    const diffWith = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('diff failed'))
+      .mockResolvedValue([renamed]);
+    const r = tree({ '/ws/ip/core.ip.yml': 'old text' }, { diffWith });
+    const read = revisionFileReader(r, BASE);
+    await expect(read(at('/ws/first.ip.yml'))).rejects.toThrow('diff failed');
+    expect(await read(moved)).toBe('old text');
+    expect(await read(at('/ws/second.ip.yml'))).toBeUndefined();
+    expect(diffWith).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not diff for files that are at the commit under their path', async () => {
+    const r = tree({ '/ws/a.ip.yml': 'text' });
+    await revisionFileReader(r, BASE)(at('/ws/a.ip.yml'));
+    expect(r.diffWith).not.toHaveBeenCalled();
+  });
+
+  it('ignores a change that is not a rename', async () => {
+    const r = tree({}, { diffWith: jest.fn().mockResolvedValue([{ ...renamed, status: 5 }]) });
+    expect(await revisionFileReader(r, BASE)(moved)).toBeUndefined();
+  });
+
+  it('reads each file once, and again after a failure', async () => {
+    const show = jest.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue('text');
+    const r = tree(
+      {},
+      { show, getObjectDetails: jest.fn().mockRejectedValue(new Error('offline')) }
+    );
+    const read = revisionFileReader(r, BASE);
+    await expect(read(at('/ws/a.ip.yml'))).rejects.toThrow('offline');
+    expect(await read(at('/ws/a.ip.yml'))).toBe('text');
+    expect(await read(at('/ws/a.ip.yml'))).toBe('text');
+    expect(show).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects when the rename detection fails, and tries it again', async () => {
+    const diffWith = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('diff failed'))
+      .mockResolvedValue([renamed]);
+    const r = tree({ '/ws/ip/core.ip.yml': 'old text' }, { diffWith });
+    const read = revisionFileReader(r, BASE);
+    await expect(read(moved)).rejects.toThrow('diff failed');
+    expect(await read(moved)).toBe('old text');
   });
 });
