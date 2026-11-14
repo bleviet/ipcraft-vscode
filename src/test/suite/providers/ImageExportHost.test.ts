@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import { ExportTargets } from '../../../providers/imageExport/ExportTargets';
 import { ImageExportHost } from '../../../providers/imageExport/ImageExportHost';
 import { renderIpSymbolImage } from '../../../services/render/ipSymbolImage';
+import { withoutVersionOnly } from '../../../services/systemDiagram/diff/ignoreVersionOnly';
 import { renderSystemLevelImage } from '../../../services/render/systemLevelImage';
 import { RenderAssets } from '../../../services/render/renderResources';
 import type { RenderRoots } from '../../../services/render/imageEncoding';
@@ -184,6 +185,23 @@ describe('ImageExportHost.exportSystem', () => {
       expect(requestOf().changes?.blocks.get('/axis_data_fifo_0')?.status).toBe('added');
       expect(requestOf().changes).toEqual(buildChangeMarks(diff, current));
       expect(vscode.workspace.fs.writeFile).toHaveBeenCalled();
+    });
+
+    it('draws the marks of the diff without its version-only blocks when the view ignores them', async () => {
+      const { host } = setup();
+      await host.exportSystem(
+        document,
+        current,
+        {
+          options: DEFAULT_EXPORT_OPTIONS,
+          view: { ...view, marks: true, ignoreVersionOnly: true },
+        },
+        diff
+      );
+      const expected = buildChangeMarks(withoutVersionOnly(diff), current);
+      expect(requestOf().changes).toEqual(expected);
+      expect(expected).not.toEqual(buildChangeMarks(diff, current));
+      expect(requestOf().changes?.blocks.get('/gpio_block/axi_gpio_1')?.status).not.toBe('version');
     });
 
     it.each([false, undefined])('draws no marks when marks is %s', async (marks) => {

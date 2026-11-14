@@ -13,7 +13,12 @@ const noop = {
 
 function renderControl(
   on: boolean,
-  options: { marksOn?: boolean; onChangesOnly?: () => void } = {}
+  options: {
+    marksOn?: boolean;
+    onChangesOnly?: () => void;
+    versionOnly?: { on: boolean; onChange: (on: boolean) => void };
+    showVersion?: boolean;
+  } = {}
 ) {
   const handlers = {
     onStart: jest.fn(),
@@ -26,6 +31,8 @@ function renderControl(
       compare={on ? compareOf(zynqDiff(), 'main (merge base 1234567)') : undefined}
       marksOn={options.marksOn ?? true}
       onChangesOnly={options.onChangesOnly}
+      versionOnly={options.versionOnly}
+      showVersion={options.showVersion}
       {...handlers}
     />
   );
@@ -135,6 +142,51 @@ describe('CompareControl', () => {
     const button = screen.getByRole('button', { name: 'Changes only' });
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute('title', 'Turn on Marks to show only the changes');
+  });
+
+  it('has a Version only toggle only when given one', () => {
+    renderControl(true);
+    expect(
+      screen.queryByRole('button', { name: 'Show version-only changes' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('has a pressed Version only toggle that hides the version-only blocks', () => {
+    const onChange = jest.fn();
+    renderControl(true, { versionOnly: { on: true, onChange } });
+    const toggle = screen.getByRole('button', { name: 'Show version-only changes' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'true');
+    expect(toggle).toHaveAttribute('title', 'Hide the blocks whose only change is the IP version');
+    expect(toggle).toHaveTextContent('v');
+    fireEvent.click(toggle);
+    expect(onChange).toHaveBeenCalledWith(false);
+  });
+
+  it('has a released Version only toggle that shows them again', () => {
+    const onChange = jest.fn();
+    renderControl(true, { versionOnly: { on: false, onChange } });
+    const toggle = screen.getByRole('button', { name: 'Show version-only changes' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    expect(toggle).toHaveAttribute('title', 'Show the blocks whose only change is the IP version');
+    fireEvent.click(toggle);
+    expect(onChange).toHaveBeenCalledWith(true);
+  });
+
+  it('lists no version-only count while the kind is not shown', () => {
+    renderControl(true, { showVersion: false });
+    expect(screen.queryByLabelText(/version only/)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('img').map((item) => item.getAttribute('aria-label'))).toEqual([
+      '1 added',
+      '4 removed',
+      '2 changed',
+    ]);
+  });
+
+  it('has no Version only toggle without a comparison', () => {
+    renderControl(false, { versionOnly: { on: true, onChange: jest.fn() } });
+    expect(
+      screen.queryByRole('button', { name: 'Show version-only changes' })
+    ).not.toBeInTheDocument();
   });
 
   it('has neither control without a comparison', () => {

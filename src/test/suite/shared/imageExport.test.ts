@@ -68,6 +68,20 @@ describe('message parsers', () => {
     }
   });
 
+  it('keeps a boolean ignoreVersionOnly flag and drops any other value', () => {
+    expect(parseSystemExportView({ ...view, ignoreVersionOnly: true })).toEqual({
+      ...view,
+      ignoreVersionOnly: true,
+    });
+    expect(parseSystemExportView({ ...view, ignoreVersionOnly: false })).toEqual({
+      ...view,
+      ignoreVersionOnly: false,
+    });
+    for (const ignoreVersionOnly of ['yes', 1, null, {}]) {
+      expect(parseSystemExportView({ ...view, ignoreVersionOnly })).toEqual(view);
+    }
+  });
+
   it('accepts only a finite, non-empty rectangle', () => {
     expect(parseExportRect({ x: 1, y: 2, width: 3, height: 4 })).toEqual({
       x: 1,

@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import React from 'react';
+import { withoutVersionOnly } from '../../../../services/systemDiagram/diff/ignoreVersionOnly';
 import { changeRows } from '../../../../services/systemDiagram/diff/changeRows';
 import { ChangesTable } from '../../../../webview/systemDiagram/ChangesTable';
 import type { SystemGraph } from '../../../../domain/systemGraph';
@@ -198,6 +199,54 @@ describe('ChangesTable', () => {
     expect(dataRows()).toHaveLength(5);
     fireEvent.click(removed);
     expect(dataRows()).toHaveLength(11);
+  });
+
+  it('offers no version-only chip while the kind is not shown, and lists the rows of the others', () => {
+    const diff = withoutVersionOnly(zynqDiff());
+    render(
+      <ChangesTable
+        graph={zynqGraph('current')}
+        compare={compareOf(diff)}
+        showVersion={false}
+        rows={changeRows(diff, { ignoreVersionOnly: false })}
+        filter={null}
+        selection={null}
+        onSelectInstance={jest.fn()}
+        onSelectPort={jest.fn()}
+        onSwapCompare={jest.fn()}
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Version only' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Added' })).toBeVisible();
+  });
+
+  it('lists the version-only rows again when the kind comes back, whatever its chip said', () => {
+    const full = zynqDiff();
+    const props = (showVersion: boolean) => {
+      const diff = showVersion ? full : withoutVersionOnly(full);
+      return {
+        graph: zynqGraph('current'),
+        compare: compareOf(diff),
+        showVersion,
+        rows: changeRows(diff, { ignoreVersionOnly: false }),
+        filter: null,
+        selection: null,
+        onSelectInstance: jest.fn(),
+        onSelectPort: jest.fn(),
+        onSwapCompare: jest.fn(),
+      };
+    };
+    const { rerender } = render(<ChangesTable {...props(true)} />);
+    const total = dataRows().length;
+    fireEvent.click(screen.getByRole('button', { name: 'Version only' }));
+    expect(dataRows()).toHaveLength(total - 1);
+    rerender(<ChangesTable {...props(false)} />);
+    rerender(<ChangesTable {...props(true)} />);
+    expect(screen.getByRole('button', { name: 'Version only' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
+    expect(dataRows()).toHaveLength(total);
   });
 
   it('shows the no-match text when the chips hide every row', () => {

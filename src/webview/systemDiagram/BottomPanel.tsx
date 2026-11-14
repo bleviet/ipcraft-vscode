@@ -37,6 +37,8 @@ interface BottomPanelProps {
   /** While a comparison is on: its changes and findings, listed in the first two tabs, and the way to select an external port. */
   changes?: {
     compare: DiagramCompare;
+    /** Whether the Changes tab offers the version-only kind; false while Version only is off. Default true. */
+    showVersion?: boolean;
     onSelectPort: (name: string) => void;
     onSwapCompare: () => void;
   };
@@ -133,6 +135,7 @@ export function BottomPanel({
           <ChangesTable
             graph={graph}
             compare={changes.compare}
+            showVersion={changes.showVersion}
             rows={rows}
             filter={filter}
             selection={selection}

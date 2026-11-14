@@ -553,11 +553,21 @@ section: the changes of that block, with the base and the current value, and for
 hierarchy the number of changes inside with an **Open hierarchy** button. It shows
 whether or not the marks are drawn.
 
-Two buttons sit between the numbers and the exit button:
+These buttons sit between the numbers and the exit button:
 
 - **Marks** (the diff icon) draws or hides the marks. It is on whenever a comparison
   starts or its base changes. With Marks off the diagram looks exactly as without a
   comparison; the Changes tab stays.
+- **Show version-only changes** (the `v`) is shown when the comparison has a block whose
+  only change is the IP version. Pressed (the default), those blocks are marked and listed
+  like any other change. Release it to hide them, the same as
+  [`ipcraft diff --ignore-version-only`](../reference/command-line.md#compare-two-revisions-of-a-system-design):
+  the marks on the diagram, the signs in the outline, the `v` entry of the legend, the
+  `v` count in the toolbar (the kind is not listed at all, as in the command's summary),
+  and the `v` rows and the **v Version only** chip of the Changes tab go. Turned on again,
+  the chip is back and lists its rows. A block whose address
+  segment changed too stays marked as changed. The choice is kept when you pick another
+  base, and exported images follow it.
 - **Changes only** (the filter icon) isolates the changed blocks and external ports of
   the level on show, with the blocks they connect to, using the same isolated view as
   **Isolate Selection**: the `Isolated · …` chip with its `+` and `−` and **Show All**
@@ -566,7 +576,8 @@ Two buttons sit between the numbers and the exit button:
 
 Removed blocks, ports and wires are not drawn yet; they are listed in the Changes tab
 and counted in the legend. Blocks and wires that did not change are not dimmed.
-An [exported image](#export-an-image) carries the marks while Marks is on.
+An [exported image](#export-an-image) carries the marks while Marks is on, without the
+version-only blocks when Show version-only changes is released.
 
 The current side is always the file you have open: you cannot choose a revision for
 it.
@@ -596,7 +607,8 @@ or zooms the diagram. Your last options are remembered for this workspace.
 
 While you compare with another revision and **Marks** is on, the image draws the
 marks of the comparison and, with **Legend**, the change entries of the legend. With
-Marks off, or without a comparison, it is the plain diagram.
+Marks off, or without a comparison, it is the plain diagram. With **Show version-only changes**
+released, the marks leave out the blocks whose only change is the IP version.
 
 A save dialog opens with a default name such as `soc-dsp_fir.png` (the level path
 with `/` as `_`; the top level is just `soc.png`). Afterwards you can **Open** the

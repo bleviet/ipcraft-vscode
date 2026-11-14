@@ -13,6 +13,7 @@ import {
   type ExportImageFormat,
   type ExportImageOptions,
 } from '../../shared/messages/imageExport';
+import { withoutVersionOnly } from '../../services/systemDiagram/diff/ignoreVersionOnly';
 import type { ImageEncoding, RenderLook, RenderRoots } from '../../services/render/imageEncoding';
 import type { RenderAssets } from '../../services/render/renderResources';
 import type { Logger } from '../../utils/Logger';
@@ -89,7 +90,10 @@ export class ImageExportHost {
       // The marks too: the renderer above already evaluates this module, so it costs no extra load.
       const changes =
         view.marks && diff
-          ? (await import('../../webview/systemDiagram/changeMarks')).buildChangeMarks(diff, graph)
+          ? (await import('../../webview/systemDiagram/changeMarks')).buildChangeMarks(
+              view.ignoreVersionOnly ? withoutVersionOnly(diff) : diff,
+              graph
+            )
           : undefined;
       const bytes = await renderSystemLevelImage(
         graph,

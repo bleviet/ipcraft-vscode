@@ -42,6 +42,8 @@ export interface SystemExportState {
   selectedNodeIds: readonly string[];
   /** A comparison is on and Marks is pressed. */
   marksOn: boolean;
+  /** Version only is off: the marks leave out the blocks whose only change is the version. */
+  ignoreVersionOnly?: boolean;
 }
 
 /** The message payload for the viewer's state; `visible` is set for the Current view area. */
@@ -57,7 +59,10 @@ export function buildSystemExportView(
     }),
     clocks: state.clocksOn,
     selectedNodeIds: [...state.selectedNodeIds],
-    ...(state.marksOn && { marks: true }),
+    ...(state.marksOn && {
+      marks: true,
+      ...(state.ignoreVersionOnly && { ignoreVersionOnly: true }),
+    }),
     ...(visible && { visibleNodeIds: [...visible] }),
   };
 }

@@ -76,6 +76,18 @@ describe('buildSystemExportView', () => {
     expect(buildSystemExportView({ ...base, marksOn: true })).toMatchObject({ marks: true });
   });
 
+  it('carries ignoreVersionOnly only with marks', () => {
+    expect(
+      buildSystemExportView({ ...base, marksOn: true, ignoreVersionOnly: true })
+    ).toMatchObject({ marks: true, ignoreVersionOnly: true });
+    expect(buildSystemExportView({ ...base, marksOn: true })).not.toHaveProperty(
+      'ignoreVersionOnly'
+    );
+    expect(buildSystemExportView({ ...base, ignoreVersionOnly: true })).not.toHaveProperty(
+      'ignoreVersionOnly'
+    );
+  });
+
   it('carries the level, expanded blocks, clocks and selection', () => {
     expect(buildSystemExportView(base)).toEqual({
       levelPath: '/dsp',

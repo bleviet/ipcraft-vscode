@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { DiagramCompare } from '../../shared/messages/systemDiagram';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { ChangeRow, ChangeSign } from '../../services/systemDiagram/diff/changeRows';
@@ -22,6 +22,8 @@ interface ChangesTableProps {
   /** The current graph: it knows the slave block of an address segment. */
   graph: SystemGraph;
   compare: DiagramCompare;
+  /** Whether the version-only kind (its chip) is offered; false while Version only is off. Default true. */
+  showVersion?: boolean;
   /** The rows of `compare.diff` (see `changeRows`). */
   rows: readonly ChangeRow[];
   /** The panel's filter: only the rows it matches are listed. Null without one. */
@@ -47,6 +49,7 @@ function rowTitle(row: ChangeRow, target: ResolvedTarget | undefined): string | 
 export function ChangesTable({
   graph,
   compare,
+  showVersion = true,
   rows,
   filter,
   selection,
@@ -61,6 +64,12 @@ export function ChangesTable({
     '→': true,
     v: true,
   });
+  // A kind that comes back is listed again, whatever its chip said when it went.
+  useEffect(() => {
+    if (showVersion) {
+      setShown((previous) => (previous.v ? previous : { ...previous, v: true }));
+    }
+  }, [showVersion]);
   const [shortBase, shortCurrent] = shortLabels(
     compare.baseLabel,
     compare.currentLabel,
@@ -92,19 +101,21 @@ export function ChangesTable({
       <span>{changeSummaryText(compare.diff)}</span>
       {compare.diff.formatsDiffer && <span className="opacity-70">{FORMATS_DIFFER_NOTE}</span>}
       {rows.length > 0 &&
-        shownKinds(compare.diff.summary).map(({ sign, chip, meaning }) => (
-          <button
-            key={sign}
-            type="button"
-            className="sd-chip"
-            aria-label={chip}
-            title={meaning}
-            aria-pressed={shown[sign]}
-            onClick={() => setShown((previous) => ({ ...previous, [sign]: !previous[sign] }))}
-          >
-            {sign} {chip}
-          </button>
-        ))}
+        shownKinds(compare.diff.summary, { version: showVersion }).map(
+          ({ sign, chip, meaning }) => (
+            <button
+              key={sign}
+              type="button"
+              className="sd-chip"
+              aria-label={chip}
+              title={meaning}
+              aria-pressed={shown[sign]}
+              onClick={() => setShown((previous) => ({ ...previous, [sign]: !previous[sign] }))}
+            >
+              {sign} {chip}
+            </button>
+          )
+        )}
     </div>
   );
   if (rows.length === 0) {
