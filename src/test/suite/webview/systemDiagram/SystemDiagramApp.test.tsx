@@ -2998,6 +2998,8 @@ describe('SystemDiagramApp', () => {
       findings: { new: [], resolved: [] },
     };
     const changesTab = () => screen.getByRole('tab', { name: /^Changes/ });
+    const versionOnlyToggle = () =>
+      screen.getByRole('button', { name: 'Show version-only changes' });
 
     async function renderComparing() {
       render(<SystemDiagramApp />);
@@ -3071,6 +3073,40 @@ describe('SystemDiagramApp', () => {
       expect(marked()).toHaveAttribute('data-change', 'version');
     });
 
+    it('takes the version-only change away with Version only: count, row and mark', async () => {
+      await renderComparing();
+      const toggle = versionOnlyToggle();
+      expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByLabelText('1 version only')).toHaveTextContent('v1');
+      expect(changesTab()).toHaveTextContent('1');
+      const bottom = () => within(screen.getByRole('region', { name: 'Bottom panel' }));
+      expect(bottom().getByText('version')).toBeVisible();
+      expect(document.querySelector('[data-change]')).not.toBeNull();
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute('aria-pressed', 'false');
+      // The kind is not listed at all, as `ipcraft diff --ignore-version-only` leaves it out.
+      expect(screen.queryByLabelText(/version only/)).not.toBeInTheDocument();
+      expect(bottom().queryByText('version')).not.toBeInTheDocument();
+      expect(document.querySelector('[data-change]')).toBeNull();
+      fireEvent.click(toggle);
+      expect(screen.getByLabelText('1 version only')).toBeVisible();
+      expect(document.querySelector('[data-change]')).toHaveAttribute('data-change', 'version');
+    });
+
+    it('has no Version only toggle when the comparison has no version-only change', async () => {
+      render(<SystemDiagramApp />);
+      send({
+        type: 'graph',
+        graph,
+        compare: { ...compare, diff: diffSystemGraphs(graph, graph) },
+      });
+      await screen.findByTestId('node:/axi_dma_0');
+      expect(screen.getByRole('button', { name: 'Marks' })).toBeVisible();
+      expect(
+        screen.queryByRole('button', { name: 'Show version-only changes' })
+      ).not.toBeInTheDocument();
+    });
+
     describe('Export image', () => {
       const exported = () => {
         fireEvent.click(screen.getByRole('button', { name: 'Export image' }));
@@ -3080,7 +3116,7 @@ describe('SystemDiagramApp', () => {
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Export' }));
         const message = mockPostMessage.mock.calls.find(
           ([posted]) => (posted as { type?: string }).type === 'exportImage'
-        )?.[0] as { view: { marks?: boolean } };
+        )?.[0] as { view: { marks?: boolean; ignoreVersionOnly?: boolean } };
         expect(message).toBeDefined();
         return message.view;
       };
@@ -3090,6 +3126,28 @@ describe('SystemDiagramApp', () => {
         expect(exported().marks).toBe(true);
         fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
         expect(exported().marks).toBeUndefined();
+      });
+
+      it('asks to ignore the version-only changes with Marks on and Version only off', async () => {
+        await renderComparing();
+        expect(exported().ignoreVersionOnly).toBeUndefined();
+        fireEvent.click(versionOnlyToggle());
+        expect(exported()).toMatchObject({ marks: true, ignoreVersionOnly: true });
+        fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
+        expect(exported().ignoreVersionOnly).toBeUndefined();
+      });
+
+      it('does not ask to ignore them for a comparison that has none, though the toggle is off', async () => {
+        await renderComparing();
+        fireEvent.click(versionOnlyToggle());
+        send({
+          type: 'graph',
+          graph,
+          compare: { ...compare, baseLabel: 'v2.0', diff: diffSystemGraphs(graph, graph) },
+        });
+        expect(await screen.findByRole('button', { name: 'vs v2.0' })).toBeVisible();
+        expect(exported().marks).toBe(true);
+        expect(exported().ignoreVersionOnly).toBeUndefined();
       });
 
       it('carries no marks without a comparison', async () => {

@@ -59,9 +59,18 @@ export const CHANGE_KINDS: readonly {
   },
 ];
 
-/** The kinds to offer for a diff: the renamed kind only when a block was renamed. */
-export const shownKinds = (summary: DiffSummary): typeof CHANGE_KINDS =>
-  CHANGE_KINDS.filter(({ key }) => key !== 'renamed' || summary.renamed > 0);
+/**
+ * The kinds to offer for a diff: the renamed kind only when a block was renamed, and the
+ * version-only kind only while version-only changes are shown (`ipcraft diff --ignore-version-only`
+ * leaves it out of its summary too).
+ */
+export const shownKinds = (
+  summary: DiffSummary,
+  { version = true }: { version?: boolean } = {}
+): typeof CHANGE_KINDS =>
+  CHANGE_KINDS.filter(
+    ({ key }) => (key !== 'renamed' || summary.renamed > 0) && (key !== 'version' || version)
+  );
 
 /** The word of the badge of a change row's sign. */
 export const SIGN_LABELS = Object.fromEntries(

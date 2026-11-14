@@ -55,6 +55,8 @@ export interface SystemExportView {
   visibleNodeIds?: string[];
   /** The comparison marks are drawn on the canvas: a comparison is on and Marks is pressed. */
   marks?: boolean;
+  /** With `marks`: Version only is off, so the blocks whose only change is the version are not marked. */
+  ignoreVersionOnly?: boolean;
 }
 
 /** JPEG quality of an exported JPG. */
@@ -125,8 +127,12 @@ export function parseSystemExportView(raw: unknown): SystemExportView | undefine
   if (view.visibleNodeIds !== undefined && !isStringArray(view.visibleNodeIds)) {
     return undefined;
   }
-  const { marks, ...rest } = view;
-  return (typeof marks === 'boolean' ? view : rest) as unknown as SystemExportView;
+  const { marks, ignoreVersionOnly, ...rest } = view;
+  return {
+    ...rest,
+    ...(typeof marks === 'boolean' && { marks }),
+    ...(typeof ignoreVersionOnly === 'boolean' && { ignoreVersionOnly }),
+  } as unknown as SystemExportView;
 }
 
 /** The visible rectangle in `raw`, or undefined when it is missing or not finite and non-empty. */

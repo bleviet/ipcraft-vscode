@@ -122,6 +122,7 @@ export function WorkbenchLayout({
     clocksOn,
     selectedNodeIds: nav.selectedNodeIds,
     marksOn: compareView.marksOn,
+    ignoreVersionOnly: compareView.hidingVersionOnly,
   });
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -230,13 +231,17 @@ export function WorkbenchLayout({
         onFit={fit}
         imageExport={exporter}
         compare={{
-          compare,
+          compare: compareView.shown,
           onStart: onStartCompare,
           onStop: onStopCompare,
           onOpenChanges: () => openBottomTab('changes'),
           marksOn: compareView.marksOn,
           onMarksChange: compareView.setMarksOn,
           onChangesOnly: compareView.changesOnly,
+          showVersion: !compareView.hidingVersionOnly,
+          versionOnly: compareView.hasVersionOnly
+            ? { on: compareView.versionOnly, onChange: compareView.setVersionOnly }
+            : undefined,
         }}
         panelsVisible={panelsVisible}
         onTogglePanel={(panel) => panels[panel].toggle()}
@@ -339,7 +344,14 @@ export function WorkbenchLayout({
                 onSelectPin={selectFinding}
                 onSelectNet={selectNet}
                 onReveal={revealSource}
-                changes={compare && { compare, onSelectPort: selectPort, onSwapCompare }}
+                changes={
+                  compareView.shown && {
+                    compare: compareView.shown,
+                    showVersion: !compareView.hidingVersionOnly,
+                    onSelectPort: selectPort,
+                    onSwapCompare,
+                  }
+                }
               />
             </div>
           </>

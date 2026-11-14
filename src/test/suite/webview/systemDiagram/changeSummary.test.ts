@@ -1,5 +1,9 @@
 import type { SystemGraphDiff } from '../../../../domain/systemGraphDiff';
-import { CHANGE_KINDS, changeSummaryText } from '../../../../webview/systemDiagram/changeSummary';
+import {
+  CHANGE_KINDS,
+  changeSummaryText,
+  shownKinds,
+} from '../../../../webview/systemDiagram/changeSummary';
 import { emptyDiff, renameDiff, zynqDiff } from './compareFixtures';
 
 const only = (key: 'instances' | 'ports' | 'segments', count: number): SystemGraphDiff => {
@@ -45,5 +49,33 @@ describe('CHANGE_KINDS', () => {
       badge: 'Renamed',
       meaning: 'Same block under a new name',
     });
+  });
+});
+
+describe('shownKinds', () => {
+  const keys = (kinds: typeof CHANGE_KINDS) => kinds.map(({ key }) => key);
+
+  it('lists the version kind by default, and the renamed kind only after a rename', () => {
+    expect(keys(shownKinds(zynqDiff().summary))).toEqual([
+      'added',
+      'removed',
+      'changed',
+      'version',
+    ]);
+    expect(keys(shownKinds(renameDiff().summary))).toContain('renamed');
+  });
+
+  it('leaves the version kind out when asked, whatever the count', () => {
+    expect(keys(shownKinds(zynqDiff().summary, { version: false }))).toEqual([
+      'added',
+      'removed',
+      'changed',
+    ]);
+    expect(keys(shownKinds(renameDiff().summary, { version: false }))).toEqual([
+      'added',
+      'removed',
+      'changed',
+      'renamed',
+    ]);
   });
 });
