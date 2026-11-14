@@ -124,6 +124,23 @@ describe('openRepository while git starts', () => {
 });
 
 describe('listRevisions', () => {
+  it('waits for the status when the git extension has not reported HEAD yet', async () => {
+    const state: Record<string, unknown> = { refs: [] };
+    const status = jest.fn(() => {
+      state.HEAD = { name: 'feature', commit: TIP };
+      return Promise.resolve();
+    });
+    const choices = await listRevisions(repo({ state, status }), uri);
+    expect(status).toHaveBeenCalledTimes(1);
+    expect(choices.filter((c) => c.group === 'branch').map((c) => c.ref)).toEqual(['main', 'dev']);
+  });
+
+  it('does not ask for the status when HEAD is known', async () => {
+    const status = jest.fn().mockResolvedValue(undefined);
+    await listRevisions(repo({ status }), uri);
+    expect(status).not.toHaveBeenCalled();
+  });
+
   it('lists HEAD, the merge base, the other branches and the tags in order', async () => {
     const choices = await listRevisions(repo(), uri);
     expect(choices.map((c) => [c.label, c.description, c.ref, c.baseLabel])).toEqual([

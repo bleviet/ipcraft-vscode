@@ -22,6 +22,8 @@ interface GitRepository {
   getRefs?(query: object): Promise<GitRef[]>;
   /** The commits that changed `path`, newest first. */
   log(options: { path: string; maxEntries: number }): Promise<GitCommit[]>;
+  /** Refreshes `state`; the git extension fills `state.HEAD` asynchronously after it opens a repository. */
+  status?(): Promise<void>;
 }
 
 interface GitCommit {
@@ -175,6 +177,10 @@ export async function listRevisions(
   uri: vscode.Uri
 ): Promise<RevisionChoice[]> {
   try {
+    // Without HEAD the current branch would be listed among the others.
+    if (!repo.state.HEAD && repo.status) {
+      await repo.status();
+    }
     const refs = await refsOf(repo);
     const current = repo.state.HEAD?.name;
     const named = (type: number, group: 'branch' | 'tag'): RevisionChoice[] =>
