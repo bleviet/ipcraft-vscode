@@ -1,0 +1,3554 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Visual editor for FPGA IP Core and Memory Map specifications">
+      
+      
+        <meta name="author" content="Le Viet Bach">
+      
+      
+        <link rel="canonical" href="https://bleviet.github.io/ipcraft-vscode/reference/command-line/">
+      
+      
+        <link rel="prev" href="../keyboard-shortcuts/">
+      
+      
+        <link rel="next" href="../generator/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../images/ipcraft-logo.svg">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Command line - IPCraft for VS Code</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Manrope:300,300i,400,400i,700,700i%7CIBM+Plex+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Manrope";--md-code-font:"IBM Plex Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/bahonavi.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#command-line" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="IPCraft for VS Code" class="md-header__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  <img src="../../images/ipcraft-logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            IPCraft for VS Code
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Command line
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to light theme"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light theme" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to dark theme"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark theme" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../introduction/what-is-ipcraft/" class="md-tabs__link">
+          
+  
+  
+  Get started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../ip-core-editor/" class="md-tabs__link">
+          
+  
+  
+  User guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../commands/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../getting-started/development/" class="md-tabs__link">
+          
+  
+  
+  Developers
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="IPCraft for VS Code" class="md-nav__button md-logo" aria-label="IPCraft for VS Code" data-md-component="logo">
+      
+  <img src="../../images/ipcraft-logo.svg" alt="logo">
+
+    </a>
+    IPCraft for VS Code
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/bleviet/ipcraft-vscode" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/what-is-ipcraft/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    What IPCraft does
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../introduction/install/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install and first steps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/create-your-first-ip-core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Creating your first IP core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The specification
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    The specification
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ip-core-editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IP Core editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/memory-mapped-registers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Memory-mapped registers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/defining-a-custom-interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom interfaces
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/vivado-interface-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vivado interface catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/using-arithmetic-functions-in-port-widths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Functions in port widths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/importing-an-existing-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Import existing designs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generate
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Generate
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generating-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/customizing-generated-files-with-scaffold-packs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scaffold packs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/build-and-verify-a-scaffold-pack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorial: build and verify a scaffold pack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/run-cocotb-simulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running a cocotb simulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/generate-vhdl-ls-config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generating a vhdl_ls.toml
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build and check
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Build and check
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/building-a-project/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a project
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/check-consistency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Checking consistency
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Viewer
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    System Viewer
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/view-a-system-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Viewing a system design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/render-documentation-images/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Rendering documentation images
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/review-system-design-changes-in-ci/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reviewing changes in CI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_6" id="__nav_3_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data Inspector
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/use-data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Using the Data Inspector
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/data-inspector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How values are decoded
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/de10-nano-case-study/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Case study: DE10-Nano
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Commands and settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../keyboard-shortcuts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Keyboard shortcuts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Command line
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generate-and-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generate and verify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#package-a-self-contained-ip-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package a self-contained IP core
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#render-a-diagram-as-an-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Render a diagram as an image
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Render a diagram as an image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workspace-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspace definitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#render-many-images-from-one-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Render many images from one manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compare-two-revisions-of-a-system-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compare two revisions of a system design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrade-files-to-the-latest-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrade files to the latest format
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrade files to the latest format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#convert-legacy-snake_case-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Convert legacy snake_case keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generate-a-vhdl_lstoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generate a vhdl_ls.toml
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-the-npm-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build the npm package
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../generator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/generator-feature-coverage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator feature coverage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../specification-schemas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Specification schemas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developers
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developers
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../getting-started/development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/guidelines/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing guidelines
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EDA integration tests
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EDA integration tests
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How they work
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/run-eda-integration-tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running them
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/docs-screenshots/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation screenshots
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to/build-vsix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Building a VSIX
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_7" id="__nav_5_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/extension-host/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Extension host
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/webview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Webviews
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/generator-backbone/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generator
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/bit-field-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit-field handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bitfield-interaction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bit-field developer reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/spatial-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spatial editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/responsive-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Responsive design
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/port-fields/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Port field metadata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/diagram-renderer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagram renderer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../concepts/clock-reset-wires/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clock and reset wires
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/vsix-packaging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VSIX packaging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/changelog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../images/codicons/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Codicon attribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#install" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Install
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generate-and-verify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generate and verify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#package-a-self-contained-ip-core" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Package a self-contained IP core
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#render-a-diagram-as-an-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Render a diagram as an image
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Render a diagram as an image">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workspace-definitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspace definitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#render-many-images-from-one-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Render many images from one manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compare-two-revisions-of-a-system-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compare two revisions of a system design
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#upgrade-files-to-the-latest-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Upgrade files to the latest format
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Upgrade files to the latest format">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#convert-legacy-snake_case-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Convert legacy snake_case keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generate-a-vhdl_lstoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generate a vhdl_ls.toml
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-the-npm-package" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build the npm package
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/bleviet/ipcraft-vscode/edit/main/docs/reference/command-line.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="command-line">Command Line<a class="headerlink" href="#command-line" title="Permanent link">&para;</a></h1>
+<p>The <code>ipcraft</code> command runs IPCraft's generator, packager, migration, and
+diagram renderer without the editor. It reads the same <code>.ip.yml</code> and <code>.mm.yml</code>
+files and gives the same output as the VS Code commands, so a CI job can check
+that committed files are current.</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ipcraft generate &lt;ip.yml&gt;</code></td>
+<td>Generate RTL, testbench, and vendor projects</td>
+</tr>
+<tr>
+<td><code>ipcraft verify &lt;ip.yml&gt; &lt;dir&gt;</code></td>
+<td>Check that a generated directory matches a fresh generation</td>
+</tr>
+<tr>
+<td><code>ipcraft package &lt;ip.yml&gt; --out &lt;path&gt;</code></td>
+<td>Bundle a core with every file it references</td>
+</tr>
+<tr>
+<td><code>ipcraft migrate &lt;file&gt;...</code></td>
+<td>Upgrade <code>.ip.yml</code> and <code>.mm.yml</code> files to the latest format</td>
+</tr>
+<tr>
+<td><code>ipcraft render &lt;design&gt; --out &lt;image&gt;</code></td>
+<td>Draw a system design or an IP core symbol as SVG, PNG, or JPG</td>
+</tr>
+<tr>
+<td><code>ipcraft diff &lt;design&gt; --base &lt;ref&gt;</code></td>
+<td>Report what changed between two revisions of a system design</td>
+</tr>
+<tr>
+<td><code>ipcraft vhdl-ls</code></td>
+<td>Write a <code>vhdl_ls.toml</code> for the VHDL language server</td>
+</tr>
+</tbody>
+</table>
+<p>Run <code>ipcraft --help</code> for every option.</p>
+<h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
+<p>The extension ships the <code>ipcraft</code> command-line tool for headless generation and
+CI checks. It runs on VS Code's own runtime, so no separate Node.js installation
+is required.</p>
+<ul>
+<li><strong>Integrated terminal:</strong> <code>ipcraft</code> is on <code>PATH</code> automatically in every VS Code
+  integrated terminal once the extension has started. Terminals opened before
+  the extension started need to be restarted.</li>
+<li><strong>External terminals on this machine:</strong> run <code>IPCraft: Install 'ipcraft' Command
+  in PATH</code> from the Command Palette. Scripts and Makefiles run in those terminals
+  work too. No sudo or administrator rights are needed. The installed command
+  needs VS Code with this extension installed on the same machine, so CI runners
+  without VS Code are not covered (the npm package remains separate and
+  unpublished).
+  <code>IPCraft: Uninstall 'ipcraft' Command from PATH</code> removes it again.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>OS</th>
+<th>Installed command</th>
+<th>PATH handling</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux</td>
+<td><code>~/.local/bin/ipcraft</code></td>
+<td>Offers to copy the <code>export PATH</code> line if <code>~/.local/bin</code> is not on <code>PATH</code></td>
+</tr>
+<tr>
+<td>macOS</td>
+<td><code>~/.local/bin/ipcraft</code></td>
+<td>Offers to append the <code>export PATH</code> line to <code>~/.zprofile</code> (only after you click) or copy it</td>
+</tr>
+<tr>
+<td>Windows</td>
+<td><code>%LOCALAPPDATA%\Programs\ipcraft\ipcraft.cmd</code></td>
+<td>Adds the directory to the user <code>PATH</code>; open a new terminal</td>
+</tr>
+</tbody>
+</table>
+<p>The installed command is a small shim that forwards to the copy bundled with the
+extension, so it follows extension updates without reinstalling. It refuses to
+overwrite an existing file that IPCraft did not create. In remote sessions
+(Remote-SSH, WSL, Dev Containers, Codespaces) the command is installed on the
+remote host.</p>
+<h2 id="generate-and-verify">Generate and verify<a class="headerlink" href="#generate-and-verify" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>ipcraft<span class="w"> </span>generate<span class="w"> </span>path/to/core.ip.yml<span class="w"> </span>--target<span class="w"> </span>quartus,vivado<span class="w"> </span>--lang<span class="w"> </span>vhdl<span class="w"> </span>--out<span class="w"> </span>gen/
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--target &lt;vendor&gt;</code></td>
+<td>Vendor output; repeat or use a comma-separated list</td>
+</tr>
+<tr>
+<td><code>--lang &lt;language&gt;</code></td>
+<td><code>vhdl</code> or <code>systemverilog</code></td>
+</tr>
+<tr>
+<td><code>--out &lt;directory&gt;</code></td>
+<td>Generated project directory</td>
+</tr>
+<tr>
+<td><code>--pack &lt;name&gt;</code></td>
+<td>Scaffold pack override</td>
+</tr>
+<tr>
+<td><code>--quartus-device &lt;part&gt;</code></td>
+<td>Quartus device</td>
+</tr>
+<tr>
+<td><code>--vivado-part &lt;part&gt;</code></td>
+<td>Vivado part</td>
+</tr>
+<tr>
+<td><code>--indent-style &lt;spaces\|tab&gt;</code></td>
+<td>Indentation style for generated HDL/TCL/XDC/SDC (default: <code>spaces</code>)</td>
+</tr>
+<tr>
+<td><code>--indent-size &lt;n&gt;</code></td>
+<td>Spaces per indentation level when <code>--indent-style</code> is <code>spaces</code> (default: <code>2</code>)</td>
+</tr>
+</tbody>
+</table>
+<p>Use <code>verify</code> to compare committed output with a fresh in-memory generation:</p>
+<div class="highlight"><pre><span></span><code>ipcraft<span class="w"> </span>verify<span class="w"> </span>path/to/core.ip.yml<span class="w"> </span>gen/<span class="w"> </span>--target<span class="w"> </span>quartus<span class="w"> </span>--lang<span class="w"> </span>vhdl
+</code></pre></div>
+<p>It exits with a non-zero status and lists stale or missing files when the
+directory differs. Pass the same <code>--indent-style</code>/<code>--indent-size</code> (and any
+other generation flags) used to produce the committed output, or affected
+generated source files will be reported stale against the default 2-space
+regeneration.</p>
+<h2 id="package-a-self-contained-ip-core">Package a self-contained IP core<a class="headerlink" href="#package-a-self-contained-ip-core" title="Permanent link">&para;</a></h2>
+<p><code>package</code> bundles an <code>.ip.yml</code> and every file it references into one folder or
+<code>.zip</code>, including files outside the IP directory:</p>
+<div class="highlight"><pre><span></span><code>ipcraft<span class="w"> </span>package<span class="w"> </span>path/to/core.ip.yml<span class="w"> </span>--out<span class="w"> </span>dist/core_1.0.0
+ipcraft<span class="w"> </span>package<span class="w"> </span>path/to/core.ip.yml<span class="w"> </span>--out<span class="w"> </span>dist/core_1.0.0.zip<span class="w"> </span>--zip
+</code></pre></div>
+<p>Referenced files are the memory map and file set imports, <code>fileSets[].files</code>,
+<code>useBusLibrary</code>, and subcores that have a <code>path:</code> (bundled transitively). Files
+inside the IP directory keep their relative paths; external files are copied
+under <code>deps/</code> and the references in the packaged <code>.ip.yml</code> are rewritten, with
+comments and hex literals preserved. Subcores given only as a VLNV are not
+bundled and produce a warning. The folder must not exist or must be empty; with
+<code>--zip</code> the file must not exist, and <code>.zip</code> is appended to <code>--out</code> if it is
+missing.</p>
+<p>Limits: all problems (missing paths, file references that are directories,
+symlink loops in the bus library, package-path conflicts) are reported together
+and nothing is written. A package-path conflict occurs when the IP already has
+its own <code>deps/</code> folder that collides with the copied externals, or when a file
+set lists a file that packaging rewrites, such as a subcore's own <code>.ip.yml</code>
+that has external references. Plain files inside a subcore folder are
+deduplicated. In VS Code the same service is available as
+<strong>IPCraft: Package IP Core (Self-Contained)</strong>.</p>
+<h2 id="render-a-diagram-as-an-image">Render a diagram as an image<a class="headerlink" href="#render-a-diagram-as-an-image" title="Permanent link">&para;</a></h2>
+<p><code>render</code> draws one level of a system design, or the symbol of an IP core, as an
+SVG, PNG or JPG image for documentation. It reads a Vivado block design <code>.tcl</code> or <code>.bd</code>, a
+Platform Designer <code>.qsys</code>, a <code>qsys-script</code> <code>.tcl</code> or an <code>.ip.yml</code>, and needs no
+VS Code window:</p>
+<div class="highlight"><pre><span></span><code>ipcraft<span class="w"> </span>render<span class="w"> </span>bd/system.tcl<span class="w"> </span>--out<span class="w"> </span>docs/img/system.svg
+ipcraft<span class="w"> </span>render<span class="w"> </span>path/to/uart.ip.yml<span class="w"> </span>--out<span class="w"> </span>docs/img/uart.svg<span class="w"> </span>--theme<span class="w"> </span>dark
+ipcraft<span class="w"> </span>render<span class="w"> </span>bd/system.tcl<span class="w"> </span>--out<span class="w"> </span>docs/img/dsp.svg<span class="w"> </span>--level<span class="w"> </span>/dsp_pipeline<span class="w"> </span>--theme<span class="w"> </span>dark
+ipcraft<span class="w"> </span>render<span class="w"> </span>bd/system.tcl<span class="w"> </span>--out<span class="w"> </span>docs/img/system.svg<span class="w"> </span>--expand<span class="w"> </span>/dsp_pipeline<span class="w"> </span>--no-grid
+ipcraft<span class="w"> </span>render<span class="w"> </span>bd/system.tcl<span class="w"> </span>--out<span class="w"> </span>docs/img/system.png<span class="w"> </span>--scale<span class="w"> </span><span class="m">3</span>
+ipcraft<span class="w"> </span>render<span class="w"> </span>bd/system.tcl<span class="w"> </span>--out<span class="w"> </span>docs/img/dma.png<span class="w"> </span>--select<span class="w"> </span>axi_dma_0<span class="w"> </span>--hops<span class="w"> </span><span class="m">2</span>
+ipcraft<span class="w"> </span>render<span class="w"> </span>bd/system.tcl<span class="w"> </span>--out<span class="w"> </span>docs/img/clocks.svg<span class="w"> </span>--clocks
+ipcraft<span class="w"> </span>render<span class="w"> </span>path/to/uart.ip.yml<span class="w"> </span>--out<span class="w"> </span>docs/img/uart.jpg<span class="w"> </span>--quality<span class="w"> </span><span class="m">80</span>
+ipcraft<span class="w"> </span>render<span class="w"> </span>bd/system.tcl<span class="w"> </span>--out<span class="w"> </span>docs/img/system.svg<span class="w"> </span>--workspace<span class="w"> </span>.
+ipcraft<span class="w"> </span>render<span class="w"> </span>--manifest<span class="w"> </span>docs/images.yml
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--out &lt;file&gt;</code></td>
+<td>Output file (required); the extension picks the format: <code>.svg</code>, <code>.png</code>, <code>.jpg</code> or <code>.jpeg</code>. The folder is created if needed</td>
+</tr>
+<tr>
+<td><code>--level &lt;path&gt;</code></td>
+<td>System designs only. Hierarchy level to draw (default <code>/</code>, the top level)</td>
+</tr>
+<tr>
+<td><code>--expand &lt;path&gt;[,...]</code></td>
+<td>System designs only. Hierarchy blocks drawn expanded in place, by instance path or name; repeat or comma-separate. A block of the level, or of a block that is itself expanded (<code>--expand /dsp_pipeline,/dsp_pipeline/coeff_bank</code>)</td>
+</tr>
+<tr>
+<td><code>--select &lt;name&gt;[,...]</code></td>
+<td>System designs only. Draw only these blocks (instance name or path on the level) or external ports (<code>port:&lt;name&gt;</code>) and the blocks around them, laid out compactly as the viewer's isolated view; repeat or comma-separate. The selected blocks get the viewer's selection outline. Names inside an expanded block cannot be selected</td>
+</tr>
+<tr>
+<td><code>--hops &lt;n&gt;</code></td>
+<td>System designs only, with <code>--select</code>. How many connections away from the selection to draw: an integer of at least 1 (default 1). A larger value is cut to the furthest block connected to the selection. Clock and reset nets do not count as connections</td>
+</tr>
+<tr>
+<td><code>--highlight &lt;name&gt;[,...]</code></td>
+<td>System designs only. Draw these blocks or ports (<code>port:&lt;name&gt;</code>) with the selection outline without hiding anything; with <code>--select</code> they must be in the isolated view, and they may be blocks inside an expanded block</td>
+</tr>
+<tr>
+<td><code>--clocks</code></td>
+<td>System designs only. Draw the viewer's Clocks and resets view: pins colored by clock domain, a domain strip and crossing count in block headers, clock frequencies, clock domain crossings as dashed wires in the warning color with other data wires faded, and the domains in the legend</td>
+</tr>
+<tr>
+<td><code>--theme &lt;light\|dark&gt;</code></td>
+<td>Image palette (default <code>light</code>; the VS Code theme does not matter)</td>
+</tr>
+<tr>
+<td><code>--no-grid</code></td>
+<td>Omit the background grid dots</td>
+</tr>
+<tr>
+<td><code>--no-legend</code></td>
+<td>System designs only. Omit the wire-category legend below the drawing</td>
+</tr>
+<tr>
+<td><code>--background &lt;editor\|transparent&gt;</code></td>
+<td>Fill with the palette background (default) or leave transparent. A JPG cannot be transparent</td>
+</tr>
+<tr>
+<td><code>--scale &lt;1-4&gt;</code></td>
+<td>PNG and JPG only. Pixels per SVG unit, an integer (default 2)</td>
+</tr>
+<tr>
+<td><code>--quality &lt;1-100&gt;</code></td>
+<td>JPG only. JPEG quality (default 90)</td>
+</tr>
+<tr>
+<td><code>--workspace &lt;dir&gt;</code></td>
+<td>System designs only. Folder searched for the <code>.ip.yml</code>, HDL and <code>.qsys</code> files that define the design's instances (default: the design file's folder)</td>
+</tr>
+<tr>
+<td><code>--no-workspace</code></td>
+<td>System designs only. Draw the design exactly as the file declares it, without those definitions</td>
+</tr>
+<tr>
+<td><code>--manifest &lt;file.yml&gt;</code></td>
+<td>Render every image listed in a <a href="#render-many-images-from-one-manifest">manifest</a>. Takes no input file and no other option</td>
+</tr>
+</tbody>
+</table>
+<p>The SVG uses plain shapes and text only (no <code>foreignObject</code>, scripts or CSS
+variables), so it opens in Inkscape, LibreOffice and Word. The IBM Plex fonts
+used for text are embedded in the file. The same input and options always
+produce the same bytes, so a committed image only changes when the design does.</p>
+<p>PNG and JPG are drawn from that SVG by a bundled WebAssembly rasterizer (resvg),
+so they need no browser or system fonts, and the text uses the same IBM Plex
+faces. Bold monospace text is drawn with the regular face, as the renderer ships
+only IBM Plex Mono 400. A JPG has no alpha channel, so it is filled with the
+palette background; use a PNG for a transparent image.</p>
+<p>An <code>.ip.yml</code> is drawn as the IP core editor's canvas shows it: the block with
+its name, vendor and library, dependencies, generics, ports (clocks, resets,
+interrupts, data ports and collapsed bus interfaces with their protocol, mode and
+memory map badges) and description. Bus interface names and protocols come from
+the built-in bus library plus the file's own <code>useBusLibrary</code> folder; bus
+libraries configured in VS Code settings or found in the workspace are not read.
+The options <code>--level</code>, <code>--expand</code>, <code>--select</code>, <code>--hops</code>, <code>--highlight</code>, <code>--clocks</code>, <code>--no-legend</code>, <code>--workspace</code> and <code>--no-workspace</code> are errors for an <code>.ip.yml</code>,
+and so is a file that declares a newer <code>apiVersion</code> than this IPCraft supports.</p>
+<p>An unknown <code>--level</code>, <code>--expand</code>, <code>--select</code> or <code>--highlight</code> name exits with code 1 and lists the closest
+names. Expanded bus interfaces in the IP symbol are not part of <code>render</code> yet.</p>
+<h3 id="workspace-definitions">Workspace definitions<a class="headerlink" href="#workspace-definitions" title="Permanent link">&para;</a></h3>
+<p>A design file often does not list the pins of its blocks. <code>render</code> finds them
+the way the system viewer does: it searches the <code>--workspace</code> folder (default:
+the design file's folder) and everything below it for</p>
+<ul>
+<li>an <code>.ip.yml</code> whose VLNV matches a Vivado block (case-insensitively), or whose
+  name matches a Platform Designer component, and adds the definition's pins;</li>
+<li>an HDL file (<code>.vhd</code>, <code>.vhdl</code>, <code>.v</code>, <code>.sv</code>) declaring the entity or module that
+  a Vivado module reference names, and adds its ports;</li>
+<li>a <code>.qsys</code> file named like the <code>kind</code> of a Platform Designer module, which is
+  drawn as a hierarchy block holding that system (use <code>--level</code> or <code>--expand</code> to
+  open it).</li>
+</ul>
+<p>When several files match, the one nearest the design file wins; a tie is left
+undefined. The search follows symbolic links (not into a loop), skips
+<code>node_modules</code>, <code>.git</code>, <code>.Xil</code> and Vivado-generated folders (<code>*.gen</code>, <code>*.cache</code>,
+<code>*.ip_user_files</code>, <code>*.runs</code>, <code>*.sim</code>) anywhere in a path relative to the
+workspace folder (the viewer applies the same filter to the whole path), reads at
+most 2000 <code>.ip.yml</code>, 5000 HDL and 2000 <code>.qsys</code> files, the first by sorted
+relative path, and ignores HDL files over 1 MiB. VS Code's <code>files.exclude</code>
+setting is not applied. Without a match the block is drawn as the design
+declares it, so a design with no definitions nearby gives the same image with or
+without <code>--workspace</code>. Use <code>--no-workspace</code> for that image on purpose. A folder
+or an invalid <code>.ip.yml</code> that is skipped is reported as a warning on stderr.</p>
+<p>The command reads those files without asking for trust, like <code>generate</code>; point
+<code>--workspace</code> only at folders you trust. Display names are relative to the
+workspace folder, and the result does not depend on file system order.</p>
+<h3 id="render-many-images-from-one-manifest">Render many images from one manifest<a class="headerlink" href="#render-many-images-from-one-manifest" title="Permanent link">&para;</a></h3>
+<p><code>ipcraft render --manifest docs/images.yml</code> renders every entry of a YAML file.
+Paths are relative to the manifest file.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">defaults</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> theme</span><span class="p">:</span><span class="w"> </span><span class="nv">light</span><span class="p p-Indicator">,</span><span class="nt"> scale</span><span class="p">:</span><span class="w"> </span><span class="nv">2</span><span class="p p-Indicator">,</span><span class="nt"> legend</span><span class="p">:</span><span class="w"> </span><span class="nv">true</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="nt">images</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ip/axi_dma.ip.yml</span>
+<span class="w">    </span><span class="nt">out</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docs/img/axi_dma.svg</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bd/system.tcl</span>
+<span class="w">    </span><span class="nt">out</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">docs/img/dma-context.png</span>
+<span class="w">    </span><span class="nt">select</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">axi_dma_0</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">hops</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">    </span><span class="nt">workspace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ip</span>
+</code></pre></div>
+<p>Each entry takes <code>source</code> and <code>out</code> (required) and the options <code>level</code>,
+<code>expand</code>, <code>select</code>, <code>hops</code>, <code>highlight</code>, <code>clocks</code>, <code>theme</code>, <code>scale</code>, <code>quality</code>,
+<code>grid</code>, <code>legend</code>, <code>background</code> and <code>workspace</code> (a folder, or <code>false</code> for none).
+<code>expand</code>, <code>select</code> and <code>highlight</code> are lists or comma-separated strings;
+<code>clocks</code>, <code>grid</code> and <code>legend</code> are <code>true</code> or <code>false</code>. <code>defaults</code> takes the same
+keys except <code>source</code> and <code>out</code>, which every image sets itself, and applies under
+every entry. A default that an entry cannot use is skipped: <code>scale</code> for an SVG,
+<code>quality</code> for a non-JPG, <code>background: transparent</code> for a JPG, <code>hops</code> without
+<code>select</code>, and the system design options (<code>level</code>, <code>expand</code>, <code>select</code>, <code>hops</code>,
+<code>highlight</code>, <code>clocks</code>, <code>legend</code>, <code>workspace</code>) for an <code>.ip.yml</code>. A key set on the
+entry itself is checked like the matching flag, with the same message. An
+unknown key is an error, as are an empty <code>images</code> list and two images with the
+same <code>out</code>. <code>workspace: false</code> (or <code>null</code>) draws that design without workspace
+definitions, like <code>--no-workspace</code>.</p>
+<p>The images are rendered one after another in file order, sharing the fonts, the
+rasterizer, the bus library and the workspace file lists. Each success prints
+<code>Rendered &lt;path&gt;</code>. An entry that fails prints <code>images[&lt;index&gt;] (&lt;source&gt;):
+&lt;message&gt;</code> on stderr and the others still render; the exit code is 1 if any
+failed, 0 otherwise. A problem with the manifest as a whole (unreadable file,
+invalid YAML, unknown top-level key) renders nothing and exits with 1. Output
+folders are created. An image from a manifest is byte for byte the image the
+same options give on the command line.</p>
+<h2 id="compare-two-revisions-of-a-system-design">Compare two revisions of a system design<a class="headerlink" href="#compare-two-revisions-of-a-system-design" title="Permanent link">&para;</a></h2>
+<p><code>diff</code> reports what changed between two revisions of a system design, in terms
+of blocks, parameters, connections, external ports and the address map. It reads
+a Vivado block design <code>.tcl</code> or <code>.bd</code>, a Platform Designer <code>.qsys</code> or a
+<code>qsys-script</code> <code>.tcl</code>, and needs no VS Code window. The text of the files is not
+compared; the two designs are read into the viewer's graph and the graphs are
+compared, so the order of blocks and nets, net names, line numbers and tool
+metadata do not show up as changes.</p>
+<p>There are two forms:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># one file: the working tree (or --head) against a git revision</span>
+ipcraft<span class="w"> </span>diff<span class="w"> </span>bd/system.bd<span class="w"> </span>--base<span class="w"> </span>HEAD
+ipcraft<span class="w"> </span>diff<span class="w"> </span>bd/system.bd<span class="w"> </span>--base<span class="w"> </span>main<span class="w"> </span>--head<span class="w"> </span>feature/fifo
+
+<span class="c1"># two files on disk</span>
+ipcraft<span class="w"> </span>diff<span class="w"> </span>old/system.qsys<span class="w"> </span>new/system.qsys
+
+<span class="c1"># fail a CI job when a pull request adds findings</span>
+ipcraft<span class="w"> </span>diff<span class="w"> </span>bd/system.bd<span class="w"> </span>--base<span class="w"> </span>origin/main<span class="w"> </span>--fail-on<span class="w"> </span>new-findings
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--base &lt;git ref&gt;</code></td>
+<td>One-file form. The revision to compare with: a branch, tag, commit or <code>HEAD~1</code>. The file is read at the same path in the repository that contains it, or under its old path when git finds that it was renamed since (see below)</td>
+</tr>
+<tr>
+<td><code>--head &lt;git ref&gt;</code></td>
+<td>One-file form, with <code>--base</code>. Compare with this revision instead of the working tree</td>
+</tr>
+<tr>
+<td><code>--format &lt;markdown\|json&gt;</code></td>
+<td>Report format (default <code>markdown</code>)</td>
+</tr>
+<tr>
+<td><code>--out &lt;file&gt;</code></td>
+<td>Write the report to this file instead of standard output. The folder is created if needed</td>
+</tr>
+<tr>
+<td><code>--ignore-version-only</code></td>
+<td>Leave out blocks whose only change is the version of their IP. The JSON report then has no instance with status <code>version</code> and <code>summary.version</code> is 0</td>
+</tr>
+<tr>
+<td><code>--fail-on &lt;changes\|new-findings&gt;</code></td>
+<td>Exit with 1 when the check fails: <code>changes</code> on any change (the total of the summary, after <code>--ignore-version-only</code>; a difference of findings alone is not a change), <code>new-findings</code> on at least one new finding (resolved findings never fail)</td>
+</tr>
+<tr>
+<td><code>--image &lt;file.svg\|png\|jpg&gt;</code></td>
+<td>Also draw the top level of the current revision with the changes marked, to this file; the extension picks the format. The folder is created if needed</td>
+</tr>
+</tbody>
+</table>
+<p><code>--image</code> draws what the viewer shows with <strong>Marks</strong> on, at the top level <code>/</code> of the
+current revision with nothing expanded, in the look <code>ipcraft render</code> has by
+default (light theme, grid, legend, editor background, scale 2). Added blocks,
+blocks with changed parameters or pins, renamed and moved blocks, blocks with only a new
+version and added or changed external ports have a border in the color of their
+kind and a sign in the header (<code>+</code>, <code>~</code>, <code>→</code>, <code>»</code>, <code>v</code>); a hierarchy with changes inside
+has a <code>~ N inside</code> count; the pins that gained or changed a connection have
+their name in color; new wires are drawn in the added color, a little wider. The
+blocks and ports that only the base has are drawn as ghosts, as the viewer draws them
+with <strong>Show removed</strong> on: a dashed border in the removed color, the name struck
+through, a <code>−</code> in the header and a dimmed body; a pin a block lost has its name struck
+through, and a lost wire is dashed in the removed color. The image is laid out with
+both revisions, so a block can sit somewhere else than in an image of the current
+revision alone. The legend names the kinds present, including <code>− Removed</code>, and
+<code>Removed wire</code> when there is one. With <code>--ignore-version-only</code>, blocks with only
+a version change are not marked. For another level, an expanded hierarchy or
+another look, use the viewer. The command prints <code>Wrote &lt;file&gt;</code> on its own line
+after the report: to standard output when the report is written with <code>--out</code>, to
+standard error when the report is on standard output, so the report stays clean.
+<code>--fail-on</code> still decides the exit code, after the image is written. An image that cannot be drawn or written also exits with 1 and prints <code>Image failed: &lt;reason&gt;</code>; the report is still written.</p>
+<div class="highlight"><pre><span></span><code>ipcraft<span class="w"> </span>diff<span class="w"> </span>bd/system.bd<span class="w"> </span>--base<span class="w"> </span>main<span class="w"> </span>--image<span class="w"> </span>docs/img/changes.png
+</code></pre></div>
+<p>Without <code>--fail-on</code>, the exit code is 0 when the report is written, whether or
+not the designs differ. It is 1 on an error (an option error, a file or
+revision that cannot be read, or a file that is not a system design) or when
+<code>--fail-on</code> fails the check, and when <code>--image</code> cannot be drawn or written.
+The report is written or printed first in every case, so a CI job can fail and
+still keep it. A failed image prints <code>Image failed: &lt;reason&gt;</code> to standard error,
+before any failed check. A failed check prints one line to standard error, for
+example <code>Diff check failed: 3 changes (--fail-on changes)</code> or
+<code>Diff check failed: 1 new finding (--fail-on new-findings)</code>. In a CI job:</p>
+<div class="highlight"><pre><span></span><code>ipcraft<span class="w"> </span>diff<span class="w"> </span>bd/system.bd<span class="w"> </span>--base<span class="w"> </span>origin/main<span class="w"> </span>--out<span class="w"> </span>diff.md<span class="w"> </span>--fail-on<span class="w"> </span>new-findings
+</code></pre></div>
+<p>The Markdown report is made for a pull request comment:</p>
+<div class="highlight"><pre><span></span><code><span class="gu">## System design changes: zynq_gpio_system</span>
+
+Comparing <span class="sb">`HEAD`</span> (base) with <span class="sb">`working tree`</span>.
+
+<span class="gs">**+1 added · −4 removed · ~2 changed · v1 version only · 0 new findings · 1 resolved finding**</span>
+
+<span class="gu">### Findings</span>
+| | Finding | Where | Detail |
+|---|---|---|---|
+| Resolved | undriven pin | <span class="sb">`led_o`</span> | |
+
+Findings are computed from the design files alone; workspace definitions are not used, so pins of blocks without a known pin list are not checked.
+
+<span class="gu">### Address map</span>
+| | Address space | Segment | Base | Current |
+|---|---|---|---|---|
+| − | <span class="sb">`sys_ps7/Data`</span> | <span class="sb">`axi_gpio_0/S_AXI/Reg`</span> | <span class="sb">`0x41200000`</span> · <span class="sb">`0x00010000`</span> | |
+| ~ | <span class="sb">`sys_ps7/Data`</span> | <span class="sb">`gpio_block/axi_gpio_1/S_AXI/Reg`</span> | <span class="sb">`0x41210000`</span> · <span class="sb">`0x00010000`</span> | <span class="sb">`0x41220000`</span> · <span class="sb">`0x00010000`</span> |
+
+<span class="gu">### External ports</span>
+| | Port | Base | Current |
+|---|---|---|---|
+| − | <span class="sb">`led_o`</span> | direction <span class="sb">`out`</span> · width <span class="sb">`7:0`</span> · not connected | |
+
+<span class="gu">### Level `/`</span>
+| | Block | Change | Base | Current |
+|---|---|---|---|---|
+| + | <span class="sb">`axis_data_fifo_0`</span> | added | | <span class="sb">`xilinx.com:ip:axis_data_fifo:2.0`</span> |
+| + | <span class="sb">`axis_data_fifo_0`</span> | pin <span class="sb">`s_axis_aclk`</span> connects to | | <span class="sb">`sys_ps7/FCLK_CLK1`</span> |
+| ~ | <span class="sb">`sys_ps7`</span> | parameter <span class="sb">`CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ`</span> | <span class="sb">`100`</span> | <span class="sb">`150`</span> |
+
+<span class="gu">### Level `/gpio_block`</span>
+| | Block | Change | Base | Current |
+|---|---|---|---|---|
+| v | <span class="sb">`axi_gpio_1`</span> | version | <span class="sb">`xilinx.com:ip:axi_gpio:2.0`</span> | <span class="sb">`xilinx.com:ip:axi_gpio:2.1`</span> |
+</code></pre></div>
+<p>The <strong>Findings</strong> section lists what the review of the viewer (the <strong>Unconnected</strong> and
+<strong>Clocks</strong> tabs) reports in one revision and not in the other: <code>New</code> for a finding only the
+current revision has, <code>Resolved</code> for one only the base has. A finding is one of</p>
+<ul>
+<li>an <code>undriven pin</code> or an <code>unused pin</code>, a pin that no net touches on its level. An undriven
+  pin is one that something should drive: an input of a block, or an output of the design or
+  of a hierarchy, seen from inside. An unused pin is any other pin that no net touches: an
+  output of a block, an input of the design or of a hierarchy, or an <code>inout</code> or a pin
+  without a direction. Its Where is <code>instanceName/pin</code> for a block, or the pin name for a
+  pin of the design or of a hierarchy;</li>
+<li>a <code>data crossing</code> or a <code>reset crossing</code>: a connection or a reset whose two ends are on
+  different clock domains with no known synchronizer; its Where is <code>from → to</code>, and its
+  Detail the two clocks and the reason. Crossings that Vivado times (related clocks), crossings
+  that are unchecked because a clock is not known, blocks that span domains, and crossings
+  that are fine are not findings. A Platform Designer system (<code>.qsys</code>, qsys-script) has no
+  crossing findings, because Platform Designer inserts the clock crossing adapters itself.</li>
+</ul>
+<p>A finding is the same in both revisions when it is the same pin (or the same two ends), so a
+renamed net does not make a new finding. A renamed block keeps its findings: they are neither
+new nor resolved, and a resolved finding that mentions it uses the new name. The
+section is written when at least one finding differs, and the summary line then ends with
+<code>N new findings · M resolved findings</code>; when only findings differ the report is the summary and this
+section rather than <code>No changes.</code> <code>--ignore-version-only</code> does not filter findings. As in
+the viewer, a pin is checked only when the design files list the pins of its block, and
+workspace definitions are not used, so pins of blocks without a known pin list are not
+checked (the note under the table says so). The JSON report has the same lists in a
+<code>findings</code> field, <code>{ "new": [...], "resolved": [...] }</code>, empty when nothing differs; each
+entry has <code>kind</code> (<code>undriven</code>, <code>unused</code>, <code>dataCrossing</code>, <code>resetCrossing</code>), <code>level</code>, and for a
+pin <code>instance</code> (null for a boundary pin), <code>pin</code> and <code>label</code>, for a crossing <code>from</code>, <code>to</code>,
+<code>fromInstance</code> and <code>toInstance</code> (the instance path of each end, null for an external port or a
+reset whose source is not known), <code>fromClock</code>, <code>toClock</code> (left out when the clock is not known)
+and <code>reason</code>, sorted by kind,
+level and label.</p>
+<p>Each sign has a meaning: <code>+</code> added, <code>−</code> removed, <code>~</code> changed, <code>→</code> renamed,
+<code>»</code> moved, <code>v</code> version only. A section without changes is left out, and a report without any change reads
+<code>No changes.</code> Connections are compared per pin: a pin whose set of connected pins
+changed is listed with the old and the new set (<code>not connected</code> for an empty
+set), however the nets are named. Only the pin that moved is listed: a pin whose
+net gained or lost a neighbour is not reported when the neighbour is a pin of an
+added or removed block, and not when its other connections stayed and the
+neighbour is the pin that joined or left (a new signal on an existing net lists
+the new pin, not every pin on that net). A new or removed block lists its own
+connected pins. A pin that is connected to a pin on another level of the
+hierarchy (a net of the top level can name a pin of a block inside a hierarchy)
+is written with its absolute path, such as <code>/a/x</code>. For a hierarchy block
+<code>/h/g1</code>, <code>/h/g1/z</code> is its pin <code>z</code> seen from outside and <code>/h/g1:z</code> is the same
+pin seen from inside. The pins of a hierarchy block are compared from the
+outside and from the inside: a row such as <code>pin `fin` inside connects to</code>
+lists what the pin is connected to within the hierarchy, with the names relative
+to that hierarchy (<code>fifo/s_axis</code> there is the block <code>fifo</code> inside it), and only
+the pin that moved is listed there too. The attributes (direction, signal type,
+interface, width) and parameters of external ports and of the pins of a
+hierarchy block are compared too, one row per difference; a direction is
+compared only when both revisions declare it. For the pins of other blocks only
+the connections are compared. The JSON report is the same
+change list as data; a <code>changed</code> pin or port also carries <code>gained</code> and <code>lost</code>, the
+sorted peers (written like <code>currentPeers</code> and <code>basePeers</code>) that only the current
+revision or only the base has, left out when empty, so a renamed block is neither.</p>
+<p>A block is identified by its path, so a renamed block would be one removed and one
+added block. In every format (Vivado <code>.bd</code> and <code>write_bd_tcl</code> script, Platform Designer
+<code>.qsys</code> and <code>qsys-script</code>), the diff pairs them as a rename only when they are the same
+block under a new name: the same level, kind, type (version included), parameters and
+pin names, and, after the rename is applied to the base, the diff reports no change on
+the block (for a hierarchy: nor on anything inside it). Connections to blocks that were
+added or removed, and neighbours that only joined or left one of its nets, do not count
+as a change of the block. There must be exactly one such removed and one such added
+block in the level, so identical candidates are not guessed at, and the pairs are
+checked together, so the result does not depend on names. A renamed block is one row,
+with the characters that differ in bold, and the address segments and the connections
+of other blocks that only differed by the name are not reported; the Base column
+shows the names the base had. A block whose address changed is still a rename, and its
+segment is shown as changed under the new name. A block that is renamed and also
+changed stays removed plus added, and a block moved to another level is not a rename.
+In JSON, a rename is an instance with <code>status</code> <code>renamed</code>, <code>path</code> (the new path),
+<code>basePath</code> (the old one), empty <code>parameters</code> and <code>pins</code>, and is counted in
+<code>summary.renamed</code>. The summary line of the Markdown report adds <code>→N renamed</code> when N is
+not 0:</p>
+<div class="highlight"><pre><span></span><code>| → | <span class="sb">`framebuffer_reader`</span> | renamed | <span class="sb">`frambuffer_reader`</span> | <span class="sb">`fram`</span><span class="gs">**`e`**</span><span class="sb">`buffer_reader`</span> |
+</code></pre></div>
+<p>After the renames, a removed and an added block are paired as a <strong>move</strong> when they are
+the same block under another parent level: the same name, kind, type (version
+included), parameters and pin names, each the topmost block of its subtree (neither
+lies below another removed or added block), and the only such pair. All pairs are
+applied to the base at once, with the block and what is below it under the new path
+and the nets staying on their levels, so the pins of the moved block can see other
+neighbours. A pair is kept when nothing differs below the moved block and the block
+itself has no change but its pins (no parameter, type or attribute change); the
+others stay removed plus added, as does a block that is moved and renamed, or moved
+into a hierarchy that is itself new. A move is one row in the new level, with the old
+path under Base and the new path under Current, followed by the rows of the pins whose
+connections changed, written as for a changed block; the pins of the blocks that were
+connected to it are listed from their side, as for any rewired pin. In JSON, a move
+is an instance with <code>status</code> <code>moved</code>, <code>path</code> (the new path), <code>basePath</code> (the old one),
+<code>level</code> (the new parent level), empty <code>parameters</code> and the changed <code>pins</code>, and is
+counted in <code>summary.moved</code>; <code>summary</code> has the key with 0 when there is no move. The
+summary line of the Markdown report adds <code>»N moved</code> when N is not 0, and <code>--fail-on
+changes</code> counts a move as a change:</p>
+<div class="highlight"><pre><span></span><code>| » | <span class="sb">`framebuffer_reader`</span> | moved | <span class="sb">`/framebuffer_reader`</span> | <span class="sb">`/video/framebuffer_reader`</span> |
+| ~ | <span class="sb">`framebuffer_reader`</span> | pin <span class="sb">`M_AXI`</span> connects to | <span class="sb">`axi_interconnect_0/S00_AXI`</span> | <span class="sb">`S_AXI_FB`</span> |
+</code></pre></div>
+<p>If the two files are of different formats, for example a <code>write_bd_tcl</code> script
+and a <code>.bd</code> of the same design, the report says so, because each format knows
+different things about the design (a <code>.bd</code> declares the pins of module
+references, a script lists only the pins it connects).</p>
+<p>Both revisions are read as text and nothing is executed, as in the viewer. The
+revision is read from the local git object store with <code>git show</code>; there is no
+network access and nothing is checked out.</p>
+<p>A file that was added after the base revision, or that had another path there, is
+still compared. If the file is not at the same path in the base revision, <code>diff</code>
+asks git for the renames between the base and the current side (<code>git diff-index -M</code>
+for the working tree, <code>git diff-tree -M</code> for <code>--head</code>, at the default similarity of git;
+your <code>diff.*</code> settings do not apply) and
+reads the file under its old path; a file that was also edited since is paired
+with its old self as long as git pairs them. The report says so in one line after
+the <code>Comparing</code> line:</p>
+<div class="highlight"><pre><span></span><code>Read at HEAD~1 as <span class="sb">`bd/old_name.bd`</span> (renamed since).
+</code></pre></div>
+<p>If git finds no such rename and the path is not in the tree of the base revision, the
+file did not exist there, and the base is an empty design: every block, port and address
+segment is added, the line reads</p>
+<div class="highlight"><pre><span></span><code>The file did not exist at HEAD~1: everything is added.
+</code></pre></div>
+<p>and <code>--fail-on changes</code> fails on the added blocks. <code>--fail-on new-findings</code> fails too
+when the new file has any finding (an unconnected pin, a clock or reset crossing),
+because every finding of a file that was not there before is new. In the JSON report,
+<code>base</code> has <code>"path": "bd/old_name.bd"</code> (relative to the repository root) for a renamed file
+and <code>"missing": true</code> for a file that did not exist; neither field is there otherwise. A rename is found only for
+a file that git knows: a new name that is not added to the index is not paired
+with the old file. The current side must exist: a file that is not in the
+working tree (or at <code>--head</code>) is an error, and so is any other failure of git, with
+git's own reason, also a path that is in the base revision whose content git cannot
+read (a partial clone without its remote, say).</p>
+<p>Limits for now: workspace definitions (<code>.ip.yml</code>, HDL, <code>.qsys</code>) are not used, so
+only the pins the design files list are compared; the viewer's comparison reads the
+definitions of a base revision from git, <code>ipcraft diff</code> does not. The path given to
+<code>git show</code> is the spelling on the command line, so on a case-insensitive file
+system a path with the wrong case is found on disk but not at the revision, so
+the file is reported as new, with everything added, rather than as an error. A
+file stored with Git LFS is read as its pointer text and reported as not a
+recognized system design. The concept is in
+<a href="../../concepts/brainstorm/system-design-diff/">System Design Diff</a>.</p>
+<h2 id="upgrade-files-to-the-latest-format">Upgrade files to the latest format<a class="headerlink" href="#upgrade-files-to-the-latest-format" title="Permanent link">&para;</a></h2>
+<p>An <code>.ip.yml</code> declares its file format version in <code>apiVersion</code> (<code>1.0</code>, <code>1.1</code>, or <code>1.2</code>);
+a file without <code>apiVersion</code> is version 1.0. IPCraft reads every version up to
+its latest (1.2), refuses a file that declares a newer version with an error
+asking you to upgrade IPCraft, and can upgrade older files. Version 1.1
+introduced bus interface contracts: legacy port names such as Avalon-MM
+<code>read_n</code> or <code>waitrequest_n</code> become one port plus an entry in
+<code>portPolarityOverrides</code>. Version 1.2 added port field metadata and changes no
+existing content. The IP Core editor applies this upgrade (and sets
+<code>apiVersion: '1.2'</code>) when you make the first edit to an older file; to upgrade
+explicitly, run:</p>
+<div class="highlight"><pre><span></span><code>ipcraft<span class="w"> </span>migrate<span class="w"> </span>path/to/core.ip.yml<span class="w"> </span>other.ip.yml
+ipcraft<span class="w"> </span>migrate<span class="w"> </span>path/to/core.ip.yml<span class="w"> </span>--check
+ipcraft<span class="w"> </span>migrate<span class="w"> </span>path/to/map.mm.yml
+</code></pre></div>
+<p>Each file is rewritten in place only when it changes, preserving comments and
+hex literals; the command prints <code>Upgraded &lt;path&gt; (1.0 -&gt; 1.2, &lt;n&gt; change(s))</code>
+or <code>Up to date: &lt;path&gt; (1.2)</code>. With <code>--check</code> nothing is written, files that
+need an upgrade are listed as <code>Needs upgrade: &lt;path&gt; (1.0 -&gt; 1.2)</code>, and the
+exit status is 1 if any file would change (useful in CI). A file that cannot
+be read or parsed, or that declares a newer version, is reported and makes the
+exit status 1, but the remaining files are still processed. The bus library
+honors <code>useBusLibrary</code> from each file.</p>
+<p>In VS Code, the same migration is available as <strong>IPCraft: Migrate .ip.yml /
+.mm.yml to Latest Format</strong>, from the Explorer context menu (multi-select is
+supported) or the Command Palette for the active <code>.ip.yml</code> or <code>.mm.yml</code>. Like
+<code>ipcraft migrate</code>, it also converts legacy keys in <code>.mm.yml</code> files and repairs a
+dangling <code>memoryMapRef</code>. It applies one
+undoable edit per file and saves it. If a file already has unsaved changes in
+the editor, the upgrade is applied to the open buffer but the file is not
+saved, so your unrelated edits are not written to disk unasked; the summary
+message reports how many files were left unsaved.</p>
+<h3 id="convert-legacy-snake_case-keys">Convert legacy snake_case keys<a class="headerlink" href="#convert-legacy-snake_case-keys" title="Permanent link">&para;</a></h3>
+<p>IPCraft reads camelCase keys only. Old files may still use snake_case spellings
+such as <code>address_blocks</code>, <code>base_address</code>, <code>address_offset</code>, <code>reset_value</code>,
+<code>memory_maps</code>, <code>file_sets</code>, <code>use_optional_ports</code> or <code>physical_prefix</code>. Run
+<code>ipcraft migrate</code> to convert them. It works for <code>.ip.yml</code> and <code>.mm.yml</code> files,
+renames the keys in place, and keeps comments, key order and hex literals. For
+an <code>.ip.yml</code> file the conversion runs together with the version upgrade, and a
+file that is already at the latest version is still rewritten when it has
+legacy keys. If a node has both spellings, the camelCase key wins and the
+legacy key is removed. A <code>.mm.yml</code> file has no <code>apiVersion</code>, so only keys are
+renamed. In an <code>.ip.yml</code> file, <code>ipcraft migrate</code> also rewrites a dot-separated
+bus <code>type</code> such as <code>ipcraft.busif.axi4_lite.1.0</code> (the spelling the IPCraft
+Python CLI uses) to its colon VLNV <code>ipcraft:busif:axi4_lite:1.0</code> when that
+VLNV resolves in the active bus library, at any format version. The VS Code Migrate command handles <code>.ip.yml</code> files the same way.</p>
+<h2 id="generate-a-vhdl_lstoml">Generate a vhdl_ls.toml<a class="headerlink" href="#generate-a-vhdl_lstoml" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>ipcraft<span class="w"> </span>vhdl-ls<span class="w"> </span>--root<span class="w"> </span>.<span class="w"> </span>--dry-run
+</code></pre></div>
+<p><code>--dry-run</code> prints the file instead of writing it, and <code>--force</code> replaces a
+<code>vhdl_ls.toml</code> that IPCraft did not write (the old file is saved to
+<code>.ipcraft/backup/</code>). See <a href="../../how-to/generate-vhdl-ls-config/">Generating a vhdl_ls.toml</a>.</p>
+<h2 id="build-the-npm-package">Build the npm package<a class="headerlink" href="#build-the-npm-package" title="Permanent link">&para;</a></h2>
+<p>The standalone <code>ipcraft</code> npm package remains unpublished and separate. Contributors
+can build a local package archive and install it in a clean environment:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>run<span class="w"> </span>package:cli
+npm<span class="w"> </span>install<span class="w"> </span>--global<span class="w"> </span>./build/ipcraft-&lt;version&gt;.tgz
+ipcraft<span class="w"> </span>generate<span class="w"> </span>path/to/core.ip.yml<span class="w"> </span>--target<span class="w"> </span>quartus<span class="w"> </span>--lang<span class="w"> </span>vhdl<span class="w"> </span>--out<span class="w"> </span>gen/
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 Le Viet Bach
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.sections", "navigation.expand", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
