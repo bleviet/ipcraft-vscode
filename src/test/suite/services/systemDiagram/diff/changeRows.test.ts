@@ -363,4 +363,36 @@ describe('changeRows', () => {
       ]);
     });
   });
+
+  describe('moved blocks', () => {
+    const moveDiff = bd('zynq_gpio_base.bd', 'zynq_gpio_move_current.bd');
+
+    it('gives a moved block one row in its new level, with the old and the new path', () => {
+      const [row] = changeRows(moveDiff, KEEP).filter((r) => r.sign === '»');
+      expect(row).toEqual({
+        sign: '»',
+        section: 'level',
+        level: '/gpio_block',
+        subject: [[{ text: 'axi_gpio_0', code: true }]],
+        change: [[{ text: 'moved' }]],
+        base: [[{ text: '/axi_gpio_0', code: true }]],
+        current: [[{ text: '/gpio_block/axi_gpio_0', code: true }]],
+        target: { kind: 'instance', path: '/gpio_block/axi_gpio_0' },
+      });
+    });
+
+    it('lists the connection changes of the move as pin rows of a changed block, after the row', () => {
+      const rows = plainRows(moveDiff).filter((r) => r.level === '/gpio_block');
+      expect(rows.map((r) => [r.sign, r.subject, r.change])).toEqual([
+        ['»', 'axi_gpio_0', 'moved'],
+        ['~', 'axi_gpio_0', 'pin S_AXI connects to'],
+        ['~', 'axi_gpio_0', 'pin s_axi_aclk connects to'],
+      ]);
+    });
+
+    it('keeps it with ignoreVersionOnly', () => {
+      const rows = changeRows(moveDiff, { ignoreVersionOnly: true });
+      expect(rows.some((r) => r.sign === '»')).toBe(true);
+    });
+  });
 });

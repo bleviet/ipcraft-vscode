@@ -50,6 +50,7 @@ describe('SystemDesignCompare', () => {
       changed: 2,
       version: 1,
       renamed: 0,
+      moved: 0,
     });
     expect(enrich).not.toHaveBeenCalled();
   });
@@ -244,6 +245,7 @@ describe('SystemDesignCompare', () => {
       changed: 2,
       version: 1,
       renamed: 0,
+      moved: 0,
     });
   });
 

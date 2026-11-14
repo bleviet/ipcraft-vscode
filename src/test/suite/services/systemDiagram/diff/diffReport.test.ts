@@ -89,6 +89,37 @@ describe('diffToMarkdown', () => {
     expect(text).toContain('| → | `axi_gpio_main` | renamed |');
   });
 
+  it('matches the golden report of a pair with a block moved into a hierarchy', () => {
+    expect(fixtureReport('zynq_gpio_base.bd', 'zynq_gpio_move_current.bd', 'system.bd')).toBe(
+      golden('zynq_gpio_move.expected.md')
+    );
+  });
+
+  it('writes a moved block as one row with its old and new path, and counts it', () => {
+    const diff = fixtureDiff('zynq_gpio_base.bd', 'zynq_gpio_move_current.bd', 'system.bd');
+    const text = diffToMarkdown(diff, LABELS, KEEP);
+    expect(text).toContain(
+      '| » | `axi_gpio_0` | moved | `/axi_gpio_0` | `/gpio_block/axi_gpio_0` |'
+    );
+    // Its rewired pins follow as rows of a changed block.
+    expect(text).toContain('| ~ | `axi_gpio_0` | pin `S_AXI` connects to |');
+    expect(text).toContain('~2 changed · »1 moved · v0 version only**');
+    expect(diffToMarkdown(diff, LABELS, { ignoreVersionOnly: true })).toContain(
+      '~2 changed · »1 moved**'
+    );
+  });
+
+  it('leaves the moved count out of the summary when there is none', () => {
+    for (const [base, current] of [
+      ['zynq_gpio_base.bd', 'zynq_gpio_current.bd'],
+      ['zynq_gpio_rename_base.bd', 'zynq_gpio_rename_current.bd'],
+    ]) {
+      const text = diffToMarkdown(fixtureDiff(base, current, 'system.bd'), LABELS, KEEP);
+      expect(text).not.toContain(' moved');
+      expect(text).not.toContain('»');
+    }
+  });
+
   it('leaves the renamed count out of the summary when there is none', () => {
     const diff = fixtureDiff('zynq_gpio_base.bd', 'zynq_gpio_current.bd', 'system.bd');
     expect(diffToMarkdown(diff, LABELS, KEEP)).not.toContain('renamed');

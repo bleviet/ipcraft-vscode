@@ -7,7 +7,7 @@ command with its Markdown and JSON report work; see
 the [command line reference](../../reference/command-line.md#compare-two-revisions-of-a-system-design).
 In the viewer, the compare command, the base picker (a git revision or a file)
 and the **Changes** tab of phase 1 also work. The current side is the open file.
-A block that is only renamed is reported as one change (see
+A block that is only renamed, and one that is only moved to another level, is reported as one change (see
 [Renames and Moves](#renames-and-moves)). The findings diff (new and resolved
 unconnected pins and clock or reset crossings) is implemented in the engine and
 in `ipcraft diff`, and the **Findings** tab of the viewer lists them; the viewer
@@ -125,6 +125,8 @@ A hierarchy pin has two views: the outside one, on the nets of the level that co
 | Version only | `xlconcat:2.1` to `xlconcat:2.2`, nothing else | Its own quiet kind, can be hidden |
 | Type changed | `axi_gpio` replaced by `axi_iic` under the same name | Changed |
 | Parameter changed | `c_s2mm_burst_size` 64 to 256 | Changed, with both values |
+| Block renamed | `axi_gpio_0` is now `axi_gpio_main`, nothing else | One row, old and new name |
+| Block moved to another level | `fifo_0` moved from the top level into `dsp_pipeline` | One row, old and new path, then its rewired pins |
 | Pin rewired | `S_AXIS_S2MM` now fed by the FIFO | Changed, with old and new peers |
 | Pin added or removed | `M01_AXI` of an interconnect is gone | On its instance |
 | Address segment added, removed or moved | `0x4120_0000` freed | Address map tab |
@@ -153,9 +155,9 @@ connected to. One typo fixed in a block name gave 22 rows in the Markdown report
 The diff pairs a removed and an added instance as a rename only when all of
 these hold:
 
-- they are in the same level (a rename in place; a move to another level is not
-  paired), and that level exists in both revisions, so only the topmost block of
-  a renamed hierarchy is a candidate;
+- they are in the same level (a rename in place; a move to another level is a
+  separate pairing, see below), and that level exists in both revisions, so only
+  the topmost block of a renamed hierarchy is a candidate;
 - same kind, same type with its version, same parameters, same pin names;
 - they are the only removed and the only added instance with these properties in
   that level (two identical candidates on a side are ambiguous, and not guessed);
@@ -171,10 +173,43 @@ added instance is dropped, and the rest starts again from the original base,
 until no pair is dropped. The address segments and the connections of other
 blocks that differed only by the name are then no longer reported, and the Base
 column shows the names the base had. A renamed hierarchy is one change; its children are not
-listed. A block that is renamed and also changed, or moved to another level,
-stays removed plus added. A wrong rename hides a real change, so the rule
-prefers to miss a rename. Detection never hides a change. It can show a connection
+listed. A block that is renamed and also changed stays removed plus added. A wrong
+rename hides a real change, so the rule prefers to miss a rename. Detection never hides a change. It can show a connection
 change that the diff without it attributed to the removed and the added block. A block that only lost or gained a neighbour may no longer be listed; the change then shows on that neighbour.
+
+A block that moved to another level is paired the same way, after the renames, from
+what they left unpaired. A move is the same block under another parent level with
+the **same last name**; a block that is moved and renamed at once stays removed plus
+added. The removed and the added instance must have the same name, kind, type with
+its version, parameters and pin names, in different parents; each is the topmost
+block of its subtree (its parent is not itself a removed or an added instance), and
+they are the only such pair with that signature. All pairs are applied to the base
+at once: the block, and everything below it for a hierarchy, takes the new path, the
+child lists of the old and the new level follow, and net endpoints follow the path.
+Nets stay on the level they were on, so the pins of the moved block see their old
+neighbours through absolute pin identity, and a move that rewired a connection (the
+usual case, because a connection crossing a hierarchy goes through its boundary pins)
+reports it. A pair is kept when, in that diff, nothing differs strictly below the
+moved block (its subtree is identical) and the block itself has no change but its
+pins: no parameter, type or attribute change. Failing pairs are dropped and the rest
+starts again from the original base, as for renames, so the result is order-free.
+A move is one change: `moved`, with the old path (`basePath`), the new path, and the
+connection changes of the block as its pins. The Base column of the report shows
+the old path and the base side of a pin the names and levels the base had. The
+neighbours that were rewired are listed from their side, as for any rewired pin.
+The pairing keeps its limits on purpose: a block moved into a hierarchy that is
+itself new (wrapping blocks in a new hierarchy) is not paired, because the added
+block lies below an added hierarchy. Renames are paired first, without the moves. If
+the moves would change a block that was paired as a rename (a moved block is connected to
+it), the moves connected to that block are dropped; the others stay (if none can be told, all moves fall back to removed plus added). A moved block that
+is identical to a block renamed in its destination level makes that rename ambiguous (two
+added blocks of one signature in that level), and the rename is then lost. A deleted block
+and an identically configured new block of the same name in another level are reported as
+moved, because the identity of an instance beyond its path (`xci_name`, say) is not in the
+graph. The findings diff does not apply moves
+(the review of unconnected pins is per level, and the nets of a moved block stay on
+their old level in the moved base), so a finding of a moved block can show as both
+resolved and new.
 
 ### Two Different Formats
 

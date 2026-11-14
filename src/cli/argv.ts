@@ -112,8 +112,11 @@ diff reports a block as renamed (→) when it is the same block under a new name
 same level, type, parameters and pin names, with no other difference once the rename
 is applied (its address segments may still differ), and the only such pair. A block
 that is renamed and also changed stays removed plus added; a move to another level is
-not a rename. Example row:
+not a rename. A block that keeps its name and moves to another parent level, with the same
+type, parameters and pin names and an unchanged subtree, is reported as moved (»); a block
+that is moved and renamed stays removed plus added. Example rows:
   | → | \`framebuffer_reader\` | renamed | \`frambuffer_reader\` | \`fram\`**\`e\`**\`buffer_reader\` |
+  | » | \`framebuffer_reader\` | moved | \`/framebuffer_reader\` | \`/video/framebuffer_reader\` |
 
 Examples:
   ipcraft generate path/to.ip.yml --target quartus --lang systemverilog --out gen/

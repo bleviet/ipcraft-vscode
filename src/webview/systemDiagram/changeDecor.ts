@@ -42,7 +42,7 @@ export interface ChangeDecor {
   legend: ChangeLegend;
 }
 
-const KIND_ORDER: readonly MarkStatus[] = ['added', 'changed', 'renamed', 'version'];
+const KIND_ORDER: readonly MarkStatus[] = ['added', 'changed', 'renamed', 'moved', 'version'];
 
 /** The mark of an instance node or a frame. */
 function blockChange(marks: ChangeMarks, id: string, frame: boolean): NodeChange | undefined {

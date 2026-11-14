@@ -32,6 +32,14 @@ export function renameDiff(): SystemGraphDiff {
 /** The current graph of that pair. */
 export const renameGraph = () => read('zynq_gpio_rename_current.bd');
 
+/** Base to current of the pair with a block moved into a hierarchy (`axi_gpio_0` into `gpio_block`), its nets rewired. */
+export function moveDiff(): SystemGraphDiff {
+  return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_move_current.bd'));
+}
+
+/** The current graph of that pair. */
+export const moveGraph = () => read('zynq_gpio_move_current.bd');
+
 export function emptyDiff(): SystemGraphDiff {
   return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_base.bd'));
 }

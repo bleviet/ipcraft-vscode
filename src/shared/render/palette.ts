@@ -264,6 +264,7 @@ function buildPalette(t: Tokens): Palette {
       added: t.gitAdded,
       changed: t.gitModified,
       renamed: t.purple,
+      moved: t.purple,
       version: t.gitIgnored,
       newWire: t.gitAdded,
     },

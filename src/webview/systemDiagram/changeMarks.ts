@@ -7,13 +7,18 @@
 
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { PinChange, PortChange, SystemGraphDiff } from '../../domain/systemGraphDiff';
-import { instancePin, peerLabel, pinKey } from '../../services/systemDiagram/diff/pinPeers';
+import {
+  instancePin,
+  parentLevel,
+  peerLabel,
+  pinKey,
+} from '../../services/systemDiagram/diff/pinPeers';
 import { CHANGE_KINDS } from './changeSummary';
 import { segmentOwners, segmentSlave, segmentTextOwner, type SegmentOwners } from './changeTargets';
 import { boundaryId } from './model';
 
 /** The kinds of change a block that exists in the current revision can have. */
-export type MarkStatus = 'added' | 'changed' | 'renamed' | 'version';
+export type MarkStatus = 'added' | 'changed' | 'renamed' | 'moved' | 'version';
 export type PinMarkKind = 'added' | 'changed';
 
 export interface BlockMarks {
@@ -88,9 +93,9 @@ export function pinChangeAttributes(mark: PinChangeMark | undefined): {
     : {};
 }
 
-/** The sign of a status (`+`, `~`, `→`, `v`), as the Changes tab writes it. */
+/** The sign of a status (`+`, `~`, `→`, `»`, `v`), as the Changes tab writes it. */
 export const markSign = (status: MarkStatus): string => KINDS[status].sign;
-/** The name of a status (`Added`, `Changed`, `Renamed`, `Version only`). */
+/** The name of a status (`Added`, `Changed`, `Renamed`, `Moved`, `Version only`). */
 export const markName = (status: MarkStatus): string => KINDS[status].chip;
 /** The label of the count of changes below a hierarchy block. */
 export const insideLabel = (count: number): string =>
@@ -130,6 +135,8 @@ function blockTitle(change: SystemGraphDiff['instances'][number]): string {
       return markName('added');
     case 'renamed':
       return `${markName('renamed')} from ${lastName(change.basePath ?? change.path)}`;
+    case 'moved':
+      return `${markName('moved')} from ${movedFrom(change)}`;
     case 'version':
       return `${markName('version')}: ${change.baseType} → ${change.currentType}`;
     default: {
@@ -146,12 +153,18 @@ function blockTitle(change: SystemGraphDiff['instances'][number]): string {
   }
 }
 
-/** The title of a version-only or renamed block that an address change promoted to `changed`. */
+/** The level a moved block was on: its old parent path. */
+const movedFrom = (change: SystemGraphDiff['instances'][number]): string =>
+  parentLevel(change.basePath ?? change.path);
+
+/** The title of a version-only, renamed or moved block that an address change promoted to `changed`. */
 function promotedTitle(change: SystemGraphDiff['instances'][number]): string {
   const what =
     change.status === 'renamed'
       ? `renamed from ${lastName(change.basePath ?? change.path)}`
-      : `${change.baseType} → ${change.currentType}`;
+      : change.status === 'moved'
+        ? `moved from ${movedFrom(change)}`
+        : `${change.baseType} → ${change.currentType}`;
   return `${markName('changed')}: ${what}`;
 }
 
@@ -203,7 +216,7 @@ function pinMarks(pins: readonly PinChange[], inside: boolean): Record<string, P
 /** The marks of the whole design for `diff`, which `graph` is the current side of. */
 export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): ChangeMarks {
   const statuses = new Map<string, Omit<BlockMarks, 'inside'>>();
-  /** The title a version-only or renamed block takes when an address change promotes it. */
+  /** The title a version-only, renamed or moved block takes when an address change promotes it. */
   const promotedTitles = new Map<string, string>();
   const inside = new Map<string, number>();
   const removed = new Map<string, number>();
@@ -219,7 +232,7 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
     if (change.status === 'removed') {
       removed.set(change.level, (removed.get(change.level) ?? 0) + 1);
     } else if (graph.instances[change.path]) {
-      const withPins = change.status === 'changed';
+      const withPins = change.status === 'changed' || change.status === 'moved';
       const insidePins = pinMarks(change.pins, true);
       statuses.set(change.path, {
         status: change.status,
@@ -227,7 +240,7 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
         pins: withPins ? pinMarks(change.pins, false) : {},
         ...(withPins && Object.keys(insidePins).length > 0 && { insidePins }),
       });
-      if (change.status === 'version' || change.status === 'renamed') {
+      if (change.status === 'version' || change.status === 'renamed' || change.status === 'moved') {
         promotedTitles.set(change.path, promotedTitle(change));
       }
     }
@@ -266,7 +279,7 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
     // Only the first text of a title is capitalized: `Address changed, address segment removed`.
     const [first = '', ...rest] = titles;
     const text = [first, ...rest.map(lowerFirst)].join(', ');
-    // An address change makes a version-only or renamed block a changed one.
+    // An address change makes a version-only, renamed or moved block a changed one.
     const promoted = promotedTitles.get(slave);
     const lead = promoted ?? known?.title ?? '';
     statuses.set(

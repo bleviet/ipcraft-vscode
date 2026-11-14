@@ -1,8 +1,15 @@
 import type { DiffSummary, SystemGraphDiff } from '../../../domain/systemGraphDiff';
 
-/** The number of changes a summary counts: added, removed, changed, renamed and version-only. */
+/** The number of changes a summary counts: added, removed, changed, renamed, moved and version-only. */
 export function changeCount(summary: DiffSummary): number {
-  return summary.added + summary.removed + summary.changed + summary.renamed + summary.version;
+  return (
+    summary.added +
+    summary.removed +
+    summary.changed +
+    summary.renamed +
+    summary.moved +
+    summary.version
+  );
 }
 
 /** The diff without the instances whose only change is the version of their type. */

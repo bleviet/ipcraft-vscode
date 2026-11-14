@@ -73,6 +73,7 @@ describe('change colors', () => {
       added: '#587c0c',
       changed: '#895503',
       renamed: '#652d90',
+      moved: '#652d90',
       version: '#8e8e90',
       newWire: '#587c0c',
     });
@@ -80,15 +81,17 @@ describe('change colors', () => {
       added: '#81b88b',
       changed: '#e2c08d',
       renamed: '#b180d7',
+      moved: '#b180d7',
       version: '#8c8c8c',
       newWire: '#81b88b',
     });
   });
 
-  it('takes the renamed color from charts-purple', () => {
+  it('takes the renamed and the moved color from charts-purple', () => {
     for (const theme of ['light', 'dark'] as const) {
       const palette = paletteFor(theme);
       expect(palette.change.renamed).toBe(palette.tokens['--vscode-charts-purple']);
+      expect(palette.change.moved).toBe(palette.tokens['--vscode-charts-purple']);
     }
   });
 });

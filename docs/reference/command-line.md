@@ -273,9 +273,9 @@ ipcraft diff bd/system.bd --base origin/main --fail-on new-findings
 `--image` draws what the viewer shows with **Marks** on, at the top level `/` of the
 current revision with nothing expanded, in the look `ipcraft render` has by
 default (light theme, grid, legend, editor background, scale 2). Added blocks,
-blocks with changed parameters or pins, renamed blocks, blocks with only a new
+blocks with changed parameters or pins, renamed and moved blocks, blocks with only a new
 version and added or changed external ports have a border in the color of their
-kind and a sign in the header (`+`, `~`, `→`, `v`); a hierarchy with changes inside
+kind and a sign in the header (`+`, `~`, `→`, `»`, `v`); a hierarchy with changes inside
 has a `~ N inside` count; the pins that gained or changed a connection have
 their name in color; new wires are drawn in the added color, a little wider. The
 legend names the kinds present and counts the removed blocks and ports as
@@ -379,7 +379,7 @@ and `reason`, sorted by kind,
 level and label.
 
 Each sign has a meaning: `+` added, `−` removed, `~` changed, `→` renamed,
-`v` version only. A section without changes is left out, and a report without any change reads
+`»` moved, `v` version only. A section without changes is left out, and a report without any change reads
 `No changes.` Connections are compared per pin: a pin whose set of connected pins
 changed is listed with the old and the new set (`not connected` for an empty
 set), however the nets are named. Only the pin that moved is listed: a pin whose
@@ -426,6 +426,30 @@ not 0:
 
 ```markdown
 | → | `framebuffer_reader` | renamed | `frambuffer_reader` | `fram`**`e`**`buffer_reader` |
+```
+
+After the renames, a removed and an added block are paired as a **move** when they are
+the same block under another parent level: the same name, kind, type (version
+included), parameters and pin names, each the topmost block of its subtree (neither
+lies below another removed or added block), and the only such pair. All pairs are
+applied to the base at once, with the block and what is below it under the new path
+and the nets staying on their levels, so the pins of the moved block can see other
+neighbours. A pair is kept when nothing differs below the moved block and the block
+itself has no change but its pins (no parameter, type or attribute change); the
+others stay removed plus added, as does a block that is moved and renamed, or moved
+into a hierarchy that is itself new. A move is one row in the new level, with the old
+path under Base and the new path under Current, followed by the rows of the pins whose
+connections changed, written as for a changed block; the pins of the blocks that were
+connected to it are listed from their side, as for any rewired pin. In JSON, a move
+is an instance with `status` `moved`, `path` (the new path), `basePath` (the old one),
+`level` (the new parent level), empty `parameters` and the changed `pins`, and is
+counted in `summary.moved`; `summary` has the key with 0 when there is no move. The
+summary line of the Markdown report adds `»N moved` when N is not 0, and `--fail-on
+changes` counts a move as a change:
+
+```markdown
+| » | `framebuffer_reader` | moved | `/framebuffer_reader` | `/video/framebuffer_reader` |
+| ~ | `framebuffer_reader` | pin `M_AXI` connects to | `axi_interconnect_0/S00_AXI` | `S_AXI_FB` |
 ```
 
 If the two files are of different formats, for example a `write_bd_tcl` script

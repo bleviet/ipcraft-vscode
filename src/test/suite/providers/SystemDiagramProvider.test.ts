@@ -742,6 +742,7 @@ describe('SystemDiagramProvider export image', () => {
         removed: 0,
         changed: 0,
         renamed: 0,
+        moved: 0,
         version: 1,
       });
       // The findings of the two revisions travel with the changes.

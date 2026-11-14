@@ -10,6 +10,7 @@ import {
   ROOT,
   buildPeerLookup,
   instancePin,
+  basePeerLabels,
   peerLabels,
   pinKey,
   type PeerLookup,
@@ -124,7 +125,11 @@ export function classifyPin(
     }
     return current
       ? { pin, status: 'added', currentPeers: peerLabels(current, id.level) }
-      : { pin, status: 'removed', basePeers: peerLabels(base ?? [], id.level, ctx.base.baseName) };
+      : {
+          pin,
+          status: 'removed',
+          basePeers: basePeerLabels(ctx.base, id, base ?? []),
+        };
   }
   const [baseKeys, currentKeys] = [new Set(base.map(pinKey)), new Set(current.map(pinKey))];
   const kept = base.filter((p) => currentKeys.has(pinKey(p)));
@@ -153,15 +158,15 @@ export function classifyPin(
     current.filter((p) => !baseKeys.has(pinKey(p))),
     id.level
   );
-  const lost = peerLabels(
-    base.filter((p) => !currentKeys.has(pinKey(p))),
-    id.level,
-    ctx.base.baseName
+  const lost = basePeerLabels(
+    ctx.base,
+    id,
+    base.filter((p) => !currentKeys.has(pinKey(p)))
   );
   return {
     pin,
     status: 'changed',
-    basePeers: peerLabels(base, id.level, samePeers ? undefined : ctx.base.baseName),
+    basePeers: samePeers ? peerLabels(base, id.level) : basePeerLabels(ctx.base, id, base),
     currentPeers: peerLabels(current, id.level),
     ...(gained.length > 0 && { gained }),
     ...(lost.length > 0 && { lost }),
@@ -238,7 +243,10 @@ export function connectedPins(
   const changes: PinChange[] = [];
   for (const pin of [...new Set(pinNames)].sort(compareText)) {
     const id = instancePin(owner, pin);
-    const peers = peerLabels(lookup(id), id.level, lookup.baseName);
+    const peers =
+      status === 'removed'
+        ? basePeerLabels(lookup, id, lookup(id))
+        : peerLabels(lookup(id), id.level);
     if (peers.length > 0) {
       changes.push(
         status === 'added'

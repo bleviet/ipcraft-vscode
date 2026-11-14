@@ -62,6 +62,7 @@ export function ChangesTable({
     '−': true,
     '~': true,
     '→': true,
+    '»': true,
     v: true,
   });
   // A kind that comes back is listed again, whatever its chip said when it went.

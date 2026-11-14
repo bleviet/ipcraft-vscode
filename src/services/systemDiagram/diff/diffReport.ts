@@ -90,7 +90,7 @@ export function diffToMarkdown(
 ): string {
   const rows = changeRows(diff, options);
   const summary = (options.ignoreVersionOnly ? withoutVersionOnly(diff) : diff).summary;
-  const { added, removed, changed, version, renamed } = summary;
+  const { added, removed, changed, version, renamed, moved } = summary;
   const parts = [
     `## System design changes: ${diff.current.name}`,
     `Comparing ${code(labels.base)} (base) with ${code(labels.current)}.`,
@@ -112,8 +112,8 @@ export function diffToMarkdown(
       : ` · ${foundNew} new finding${foundNew === 1 ? '' : 's'} · ${foundResolved} resolved finding${foundResolved === 1 ? '' : 's'}`;
   parts.push(
     `**+${added} added · −${removed} removed · ~${changed} changed${renamed > 0 ? ` · →${renamed} renamed` : ''}${
-      options.ignoreVersionOnly ? '' : ` · v${version} version only`
-    }${findingsSummary}**`
+      moved > 0 ? ` · »${moved} moved` : ''
+    }${options.ignoreVersionOnly ? '' : ` · v${version} version only`}${findingsSummary}**`
   );
   if (found && foundNew + foundResolved > 0) {
     parts.push(findingsSection(found));

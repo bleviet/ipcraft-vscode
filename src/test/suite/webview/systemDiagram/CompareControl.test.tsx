@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { CompareControl } from '../../../../webview/systemDiagram/CompareControl';
-import { compareOf, renameDiff, zynqDiff } from './compareFixtures';
+import { compareOf, moveDiff, renameDiff, zynqDiff } from './compareFixtures';
 
 const noop = {
   onStart: jest.fn(),
@@ -72,6 +72,14 @@ describe('CompareControl', () => {
     const counts = screen.getAllByRole('img').map((item) => item.getAttribute('aria-label'));
     expect(counts).toEqual(['0 added', '0 removed', '1 changed', '1 renamed', '0 version only']);
     expect(screen.getByLabelText('1 renamed')).toHaveAttribute('data-zero', 'false');
+  });
+
+  it('shows the moved count, after the renamed one, only when a block was moved', () => {
+    render(<CompareControl compare={compareOf(moveDiff())} {...noop} />);
+    const counts = screen.getAllByRole('img').map((item) => item.getAttribute('aria-label'));
+    expect(counts).toEqual(['0 added', '0 removed', '2 changed', '1 moved', '0 version only']);
+    expect(screen.getByLabelText('1 moved')).toHaveTextContent('»1');
+    expect(screen.getByLabelText('1 moved')).toHaveAttribute('data-zero', 'false');
   });
 
   it('mutes a count of zero', () => {

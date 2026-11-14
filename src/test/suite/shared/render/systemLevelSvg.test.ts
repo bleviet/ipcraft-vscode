@@ -210,6 +210,26 @@ describe('renderSystemLevelSvg marks of a comparison', () => {
     }
   );
 
+  it.each(['light', 'dark'] as const)(
+    'draws a moved block with the renamed color and its own sign in the %s theme',
+    (theme) => {
+      const { change } = paletteFor(theme);
+      expect(change.moved).toBe(change.renamed);
+      const svg = renderSystemLevelSvg(
+        layout,
+        options(theme, {
+          changes: decorOf([['/sys_ps7', { status: 'moved', title: 'Moved from /' }]]),
+        })
+      );
+      const body = group(svg, '/sys_ps7');
+      expect(/<rect[^>]* stroke="[^"]*" [^>]*>/.exec(body)![0]).toContain(
+        `stroke="${change.moved}"`
+      );
+      expect(textFill(body, '»')).toBe(change.moved);
+      expect(body.includes('x="-0.5"')).toBe(true);
+    }
+  );
+
   it('keeps the selection outline of a marked block, and still writes its sign', () => {
     const svg = renderSystemLevelSvg(
       layout,
@@ -359,7 +379,7 @@ describe('renderSystemLevelSvg marks of a comparison', () => {
     it('lists the kinds present with their sign, the new wire and the count of removed blocks', () => {
       const { change } = paletteFor('light');
       const legend = legendOf({
-        kinds: ['added', 'renamed', 'version'],
+        kinds: ['added', 'renamed', 'moved', 'version'],
         newWire: true,
         removed: 2,
       });
@@ -367,6 +387,8 @@ describe('renderSystemLevelSvg marks of a comparison', () => {
       expect(textFill(legend, 'Added')).toBeDefined();
       expect(textFill(legend, '→')).toBe(change.renamed);
       expect(textFill(legend, 'Renamed')).toBeDefined();
+      expect(textFill(legend, '»')).toBe(change.moved);
+      expect(textFill(legend, 'Moved')).toBeDefined();
       expect(textFill(legend, 'v')).toBe(change.version);
       expect(textFill(legend, 'Version only')).toBeDefined();
       expect(textFill(legend, 'Changed')).toBeUndefined();

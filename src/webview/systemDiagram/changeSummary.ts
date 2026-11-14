@@ -6,7 +6,7 @@ import type { ChangeRow, ChangeSign } from '../../services/systemDiagram/diff/ch
 const plural = (count: number, one: string, many = `${one}s`): string =>
   `${count} ${count === 1 ? one : many}`;
 
-/** `3 blocks, 1 port and 2 address segments differ.`; the empty diff says so. A renamed block counts as a block that differs. */
+/** `3 blocks, 1 port and 2 address segments differ.`; the empty diff says so. A renamed or moved block counts as a block that differs. */
 export function changeSummaryText(diff: SystemGraphDiff): string {
   const parts = [
     diff.instances.length > 0 && plural(diff.instances.length, 'block'),
@@ -51,6 +51,13 @@ export const CHANGE_KINDS: readonly {
     meaning: 'Same block under a new name',
   },
   {
+    sign: '»',
+    key: 'moved',
+    badge: 'Moved',
+    chip: 'Moved',
+    meaning: 'Same block under another level',
+  },
+  {
     sign: 'v',
     key: 'version',
     badge: 'Version',
@@ -60,8 +67,8 @@ export const CHANGE_KINDS: readonly {
 ];
 
 /**
- * The kinds to offer for a diff: the renamed kind only when a block was renamed, and the
- * version-only kind only while version-only changes are shown (`ipcraft diff --ignore-version-only`
+ * The kinds to offer for a diff: the renamed kind only when a block was renamed, the moved kind
+ * only when one was moved, and the version-only kind only while version-only changes are shown (`ipcraft diff --ignore-version-only`
  * leaves it out of its summary too).
  */
 export const shownKinds = (
@@ -69,7 +76,10 @@ export const shownKinds = (
   { version = true }: { version?: boolean } = {}
 ): typeof CHANGE_KINDS =>
   CHANGE_KINDS.filter(
-    ({ key }) => (key !== 'renamed' || summary.renamed > 0) && (key !== 'version' || version)
+    ({ key }) =>
+      (key !== 'renamed' || summary.renamed > 0) &&
+      (key !== 'moved' || summary.moved > 0) &&
+      (key !== 'version' || version)
   );
 
 /** The word of the badge of a change row's sign. */

@@ -12,10 +12,12 @@ import { instanceType } from '../../../../../services/systemDiagram/diff/diffIns
 import { diffWithoutRenames } from '../../../../../services/systemDiagram/diff/diffWithoutRenames';
 
 const lastName = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
+const parentOf = (path: string): string => path.slice(0, path.lastIndexOf('/')) || '/';
 
 /**
  * The original rename of one block, kept here as an oracle that shares no code with the one-pass
- * `renameInstances` of the detection.
+ * `relocateInstances` of the detection. `to` may also be under another parent level (a move): the
+ * block then changes its parent and the child lists of both levels; nets stay on their levels.
  */
 function renameOne(graph: SystemGraph, from: string, to: string): SystemGraph {
   const affected = (path: string): boolean => path === from || path.startsWith(`${from}/`);
@@ -41,7 +43,12 @@ function renameOne(graph: SystemGraph, from: string, to: string): SystemGraph {
     Object.entries(graph.instances).map(([key, i]): [string, SystemInstance] => [
       mapPath(key),
       affected(key)
-        ? { ...i, path: mapPath(i.path), name: mapName(key, i.name), parent: mapPath(i.parent) }
+        ? {
+            ...i,
+            path: mapPath(i.path),
+            name: mapName(key, i.name),
+            parent: key === from ? parentOf(to) : mapPath(i.parent),
+          }
         : i,
     ])
   );
@@ -52,7 +59,10 @@ function renameOne(graph: SystemGraph, from: string, to: string): SystemGraph {
         ...l,
         path: mapPath(l.path),
         name: mapName(key, l.name),
-        instances: l.instances.map(mapPath),
+        instances: [
+          ...l.instances.filter((p) => p !== from || parentOf(from) === parentOf(to)).map(mapPath),
+          ...(mapPath(key) === parentOf(to) && parentOf(from) !== parentOf(to) ? [to] : []),
+        ],
       },
     ])
   );
@@ -76,7 +86,7 @@ function renameOne(graph: SystemGraph, from: string, to: string): SystemGraph {
   return { ...graph, instances, levels, nets, addressSegments };
 }
 
-/** The renames applied one after the other with the oracle. */
+/** The renames and moves applied one after the other with the oracle. */
 export function renameOneByOne(graph: SystemGraph, pairs: [string, string][]): SystemGraph {
   return pairs.reduce((g, [from, to]) => renameOne(g, from, to), graph);
 }

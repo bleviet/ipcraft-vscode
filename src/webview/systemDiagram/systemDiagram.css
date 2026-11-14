@@ -15,8 +15,9 @@ body,
   --sd-change-added: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
   --sd-change-removed: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
   --sd-change-changed: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
-  /* Purple: a renamed block is told from an added one by its color as well as its sign, and is
-     not mistaken for a selected block, which is drawn in the focus blue. */
+  /* Purple: a renamed or moved block (both are the same block in a new place; the sign tells
+     them apart) is told from an added one by its color as well as its sign, and is not mistaken
+     for a selected block, which is drawn in the focus blue. */
   --sd-change-renamed: var(--vscode-charts-purple, #b180d7);
   /* Muted in every theme; a block with only a version change differs from an unchanged one by a
      dotted border. Dashed is left to black boxes. */
@@ -438,7 +439,8 @@ input:focus-visible {
   border-color: var(--sd-change-changed);
 }
 
-.sd-legend-swatch[data-change='renamed'] {
+.sd-legend-swatch[data-change='renamed'],
+.sd-legend-swatch[data-change='moved'] {
   border-color: var(--sd-change-renamed);
 }
 
@@ -462,7 +464,9 @@ input:focus-visible {
 }
 
 .sd-node[data-change='renamed'],
-.sd-frame[data-change='renamed'] {
+.sd-frame[data-change='renamed'],
+.sd-node[data-change='moved'],
+.sd-frame[data-change='moved'] {
   --sd-change-color: var(--sd-change-renamed);
 }
 
@@ -545,7 +549,9 @@ input:focus-visible {
   }
 
   .sd-node[data-change='renamed'],
-  .sd-frame[data-change='renamed'] {
+  .sd-frame[data-change='renamed'],
+  .sd-node[data-change='moved'],
+  .sd-frame[data-change='moved'] {
     outline: 3px double Highlight;
   }
 
@@ -563,7 +569,8 @@ input:focus-visible {
   color: var(--sd-change-changed);
 }
 
-.sd-change-sign[data-change='renamed'] {
+.sd-change-sign[data-change='renamed'],
+.sd-change-sign[data-change='moved'] {
   color: var(--sd-change-renamed);
 }
 
@@ -1338,7 +1345,9 @@ input:focus-visible {
 }
 
 .sd-delta[data-sign='→'],
-.sd-sign[data-sign='→'] {
+.sd-sign[data-sign='→'],
+.sd-delta[data-sign='»'],
+.sd-sign[data-sign='»'] {
   color: var(--sd-change-renamed);
 }
 

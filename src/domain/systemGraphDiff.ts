@@ -45,9 +45,12 @@ export interface InstanceChange {
   path: string;
   /** Level that contains the instance. */
   level: string;
-  /** `version`: only the version of the type differs. `renamed`: the same block under a new name (see `basePath`). */
-  status: ChangeStatus | 'version' | 'renamed';
-  /** `renamed`: the path of the block in the base revision; `path` is its path in the current one. */
+  /**
+   * `version`: only the version of the type differs. `renamed`: the same block under a new name
+   * (see `basePath`). `moved`: the same block, with the same name, under another parent level.
+   */
+  status: ChangeStatus | 'version' | 'renamed' | 'moved';
+  /** `renamed`, `moved`: the path of the block in the base revision; `path` is its path in the current one. */
   basePath?: string;
   /** Type as shown to the user in each revision; absent when the instance does not exist there. */
   baseType?: string;
@@ -58,7 +61,8 @@ export interface InstanceChange {
    * as `added` (with `currentPeers`) or `removed` (with `basePeers`). Otherwise the pins
    * that moved; a pin is not listed when it only joined or left a net of pins that kept
    * their connections, or when its peers differ only by pins of added or removed blocks.
-   * Sorted by pin name. A `renamed` block has no parameters and no pins.
+   * Sorted by pin name. A `renamed` block has no parameters and no pins; a `moved` block has no
+   * parameters, and its pins are those whose connections changed with the move.
    */
   pins: PinChange[];
 }
@@ -93,6 +97,7 @@ export interface DiffSummary {
   changed: number;
   version: number;
   renamed: number;
+  moved: number;
 }
 
 export interface SystemGraphDiff {

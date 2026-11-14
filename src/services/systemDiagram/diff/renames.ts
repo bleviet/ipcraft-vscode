@@ -5,112 +5,21 @@
  * Pure: no `vscode`, no DOM.
  */
 
-import type {
-  AddressSegment,
-  SystemGraph,
-  SystemInstance,
-  SystemLevel,
-  SystemNet,
-} from '../../../domain/systemGraph';
+import type { SystemGraph, SystemInstance } from '../../../domain/systemGraph';
 import type { InstanceChange, SystemGraphDiff } from '../../../domain/systemGraphDiff';
 import { compareText } from './compareText';
 import { instanceType } from './diffInstances';
 import { diffWithoutRenames } from './diffWithoutRenames';
-
-const lastName = (path: string): string => path.slice(path.lastIndexOf('/') + 1);
+import { relocateInstances } from './relocate';
 
 /**
- * A copy of `graph` in which every block that is a key of `renames` (from path -> to path), and
- * everything below it when it is a hierarchy, has its new path (the same parent level, another
- * name). Instance and level keys, paths, names and child lists, net endpoints and the levels
- * and ids of the nets of a renamed level, and address segments follow; nothing else changes.
- * One pass over the graph, whatever the number of renames. The keys must not lie below each
- * other (a path is renamed by its nearest renamed ancestor-or-self); `findRenames` pairs only
- * the topmost block of a renamed subtree, so its keys never do.
+ * What a block must have in common with its renamed or moved self: the `place` it keeps (the
+ * parent level for a rename, the name for a move), its kind, type, parameters and pin names.
  */
-export function renameInstances(
-  graph: SystemGraph,
-  renames: ReadonlyMap<string, string>
-): SystemGraph {
-  // The renamed block that `path` is or lies below: the nearest of its prefixes cut at a `/`.
-  const renamedRoot = (path: string): string | undefined => {
-    for (let end = path.length; end > 0; end = path.lastIndexOf('/', end - 1)) {
-      const from = path.slice(0, end);
-      if (renames.has(from)) {
-        return from;
-      }
-    }
-    return undefined;
-  };
-  const affected = (path: string): boolean => renamedRoot(path) !== undefined;
-  const mapPath = (path: string): string => {
-    const from = renamedRoot(path);
-    return from === undefined ? path : (renames.get(from) as string) + path.slice(from.length);
-  };
-  // The text of an address space or segment starts with the spelling of its owning instance
-  // (the path without the leading slash) and a separator: `/` in a Vivado design (`a/b/S_AXI/Reg`),
-  // `.` in a Platform Designer one (`cpu.data_master`), with a subsystem prefix `sub/` when grafted.
-  // Only the text of an owner that is renamed or below it changes, and only that leading part.
-  const mapText = (text: string, owner: string): string => {
-    const spelled = owner.slice(1);
-    // A Vivado Tcl script may write the text with a leading slash, which stays.
-    const lead = text.startsWith('/') ? 1 : 0;
-    const separator = text.charAt(lead + spelled.length);
-    return affected(owner) &&
-      text.startsWith(spelled, lead) &&
-      (separator === '/' || separator === '.')
-      ? text.slice(0, lead) + mapPath(owner).slice(1) + text.slice(lead + spelled.length)
-      : text;
-  };
-  const mapName = (path: string, name: string): string => {
-    const to = renames.get(path);
-    return to === undefined ? name : lastName(to);
-  };
-
-  const instances = Object.fromEntries(
-    Object.entries(graph.instances).map(([key, i]): [string, SystemInstance] => [
-      mapPath(key),
-      affected(key)
-        ? { ...i, path: mapPath(i.path), name: mapName(key, i.name), parent: mapPath(i.parent) }
-        : i,
-    ])
-  );
-  const levels = Object.fromEntries(
-    Object.entries(graph.levels).map(([key, l]): [string, SystemLevel] => [
-      mapPath(key),
-      {
-        ...l,
-        path: mapPath(l.path),
-        name: mapName(key, l.name),
-        instances: l.instances.map(mapPath),
-      },
-    ])
-  );
-  const nets = graph.nets.map((n): SystemNet => {
-    const endpoints = n.endpoints.map((e) =>
-      e.instance === null ? e : { ...e, instance: mapPath(e.instance) }
-    );
-    return affected(n.level)
-      ? { ...n, level: mapPath(n.level), id: `${mapPath(n.level)}::${n.name}`, endpoints }
-      : { ...n, endpoints };
-  });
-  const addressSegments = graph.addressSegments.map(
-    (s): AddressSegment => ({
-      ...s,
-      addressSpace: mapText(s.addressSpace, s.masterInstance),
-      segment: mapText(s.segment, s.slaveInstance),
-      masterInstance: mapPath(s.masterInstance),
-      slaveInstance: mapPath(s.slaveInstance),
-    })
-  );
-  return { ...graph, instances, levels, nets, addressSegments };
-}
-
-/** What a block must have in common with its renamed self: where, what and how it is set up. */
-function signature(instance: SystemInstance): string {
+export function signature(instance: SystemInstance, ...place: string[]): string {
   const parameters = Object.entries(instance.parameters).sort(([a], [b]) => compareText(a, b));
   const pins = [...new Set(instance.pins.map((p) => p.name))].sort(compareText);
-  return JSON.stringify([instance.parent, instance.kind, instanceType(instance), parameters, pins]);
+  return JSON.stringify([...place, instance.kind, instanceType(instance), parameters, pins]);
 }
 
 /** Pairs of (removed path, added path): the only removed and the only added block of a signature. */
@@ -129,9 +38,10 @@ function candidatePairs(
       current.levels[change.level]
     ) {
       const instance = (removed ? base : current).instances[change.path];
-      const group = groups.get(signature(instance)) ?? { removed: [], added: [] };
+      const key = signature(instance, instance.parent);
+      const group = groups.get(key) ?? { removed: [], added: [] };
       group[removed ? 'removed' : 'added'].push(change.path);
-      groups.set(signature(instance), group);
+      groups.set(key, group);
     }
   }
   return [...groups.values()]
@@ -147,16 +57,17 @@ function candidatePairs(
  * applied to the base at once and the diff is taken once; a pair is dropped when something at
  * or below its added block differs, and the rest starts again from the original base, until no
  * pair is dropped. So the result depends on no order of the candidates. Returns one `renamed`
- * change per rename and the diff of the base with them applied (`plain` without renames).
+ * change per rename, the base with them applied (the base itself when there is none) and its
+ * diff (`plain` without renames).
  */
 export function findRenames(
   base: SystemGraph,
   current: SystemGraph,
   plain: SystemGraphDiff
-): { renames: InstanceChange[]; diff: SystemGraphDiff } {
+): { renames: InstanceChange[]; base: SystemGraph; diff: SystemGraphDiff } {
   let pairs = candidatePairs(base, current, plain);
   while (pairs.length > 0) {
-    const renamedBase = renameInstances(base, new Map(pairs));
+    const renamedBase = relocateInstances(base, new Map(pairs));
     const diff = diffWithoutRenames(renamedBase, current, new Map(pairs.map(([f, t]) => [t, f])));
     // The changed blocks and all their ancestors: a pair is dropped when its added block is one.
     const touched = new Set<string>();
@@ -181,9 +92,9 @@ export function findRenames(
           pins: [],
         };
       });
-      return { renames, diff };
+      return { renames, base: renamedBase, diff };
     }
     pairs = kept;
   }
-  return { renames: [], diff: plain };
+  return { renames: [], base, diff: plain };
 }

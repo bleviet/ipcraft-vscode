@@ -68,9 +68,10 @@ describe('REVIEW_LEGEND', () => {
 
 describe('changeLegendEntries', () => {
   it('names the kinds present, with the signs and words of the Changes tab', () => {
-    expect(changeLegendEntries(['added', 'renamed', 'version'])).toEqual([
+    expect(changeLegendEntries(['added', 'renamed', 'moved', 'version'])).toEqual([
       { status: 'added', sign: '+', label: 'Added' },
       { status: 'renamed', sign: '→', label: 'Renamed' },
+      { status: 'moved', sign: '»', label: 'Moved' },
       { status: 'version', sign: 'v', label: 'Version only' },
     ]);
     expect(changeLegendEntries([])).toEqual([]);

@@ -389,8 +389,8 @@ or file cannot be read, or is not a system design, a message says so and a compa
 that was already on stays on.
 
 While a comparison is on, the toolbar shows a chip with the base (`vs HEAD`), the
-numbers of added, removed, changed, renamed and version-only changes (`+1 −4 ~2 →1 v1`;
-a zero is dimmed), and an **Exit compare** button. Click the chip or the numbers to open the
+numbers of added, removed, changed, renamed, moved and version-only changes (`+1 −4 ~2 →1 »1 v1`;
+a zero is dimmed; the renamed and the moved count appear only when there is one), and an **Exit compare** button. Click the chip or the numbers to open the
 **Changes** tab, the first tab of the bottom panel. The tab also opens by itself when
 a comparison starts.
 
@@ -402,6 +402,7 @@ The Changes tab lists one row per change:
 | `− Removed` | It is gone |
 | `~ Changed` | A parameter, a type, an address or a connection differs |
 | `→ Renamed` | The same block under a new name |
+| `» Moved` | The same block, with the same name, under another level |
 | `v Version` | Only the version of the block's IP differs |
 
 Each row names where it is (the **Address map**, the **External ports**, or the
@@ -424,8 +425,22 @@ by the name are not listed, and the **Base** column shows the names the base had
 block whose address changed is still a rename; its segment is listed as changed under
 the new name (a segment that was removed is listed under the new name too), and the diagram draws the block as changed (`~`). The rule prefers to miss a rename over a wrong one: a block
 that is renamed and also changed (a parameter, a version, a connection) stays a removed
-and an added block, a block moved to another level is not a rename, and two identical
-blocks on each side are not guessed at.
+and an added block, and two identical blocks on each side are not guessed at.
+
+A block is **moved** when it is the same block under another level, with the same
+name: the same kind, type with its version, parameters and pin names, the only such
+removed and the only such added block, and each the topmost of its subtree (a block
+moved into a hierarchy that is new is not paired, nor is one that is moved and renamed
+at once; both stay a removed and an added block). A moved hierarchy is one change, and
+nothing inside it may differ. The block itself may have only its connections changed,
+which a move usually does (a connection across a hierarchy goes through its pins): a move
+gets one row in the new level, with the old path under **Base** and the new path under
+**Current**, followed by one row for each pin whose connections changed, written as for
+a changed block. The base side of those rows, and of the rows of the blocks it was
+connected to, names the blocks and levels the base had. A moved block whose address
+changed is drawn as changed (`~`) with a tooltip such as `Changed: moved from /, address
+changed`. A diagram of a moved block shows `»` in the renamed color (purple) and the
+tooltip `Moved from /dsp_pipeline`, the level it came from.
 
 The bar at the top of the tab stays in view while the table scrolls. It is one line
 (it wraps when the panel is narrow) and says which side is which, for example
@@ -438,7 +453,8 @@ and 2 address segments differ.", and the chips.
 Hover a chip for its meaning: **+ Added** is only in the current design, **−
 Removed** only in the base, **~ Changed** is in both but different, **→ Renamed** (offered
 only when a block was renamed, and counted in the toolbar then) is the
-same block under a new name, and **v Version only** differs only in the IP version. With no difference the sentence says "No
+same block under a new name, **» Moved** (offered and counted likewise, only after a move) is the
+same block under another level, and **v Version only** differs only in the IP version. With no difference the sentence says "No
 changes." and there is no table.
 
 When the base is a file (an open design or **Compare with File...**), the bar has
@@ -457,7 +473,7 @@ level; a row for the inside view says `inside`. The full rules are in
 [`ipcraft diff`](../reference/command-line.md#compare-two-revisions-of-a-system-design),
 which produces the same changes on the command line.
 
-The chips **Added**, **Removed**, **Changed**, **Renamed** and **Version only** hide the rows of
+The chips **Added**, **Removed**, **Changed**, **Renamed**, **Moved** and **Version only** hide the rows of
 that kind; they are all on at first. The filter box above the table works on every
 column, as in the other tabs.
 
@@ -518,11 +534,12 @@ wires use color and weight (a bold name, a thicker wire):
 | `+` | Added block or external port | Border in the added color (green) |
 | `~` | Changed block or external port | Border in the changed color (yellow) |
 | `→` | Renamed block; the tooltip names the old name | Border in the renamed color (purple) |
+| `»` | Moved block; the tooltip names the level it came from | Border in the renamed color (purple), as a rename is the same block in a new place |
 | `v` | Only the IP version differs; the tooltip shows both | Dotted border in the version-only color (muted gray) |
 
 A block whose address segment was added, removed or changed counts as changed, and its
 tooltip says so (`Address changed`); the segment is listed in its Details. This includes
-a renamed or version-only block: it is drawn `~`, and its tooltip keeps the old name or
+a renamed, moved or version-only block: it is drawn `~`, and its tooltip keeps the old name, the old level or
 the two versions (`Changed: renamed from axi_gpio_0, address changed`). A removed
 segment is attributed to the block its name starts with, when that block still exists.
 The border has a ring of the same color, one pixel wide (a version-only block has none, its border is dotted instead). A selected block keeps the focus color, so it is never mistaken for a renamed one. When you zoom out far enough
@@ -540,7 +557,7 @@ design is drawn in the added color and a little thicker; a selected or highlight
 wire keeps its selection or highlight style. A hierarchy block with changes below it
 shows `~ 2 inside` in its header, whether or not it changed itself (not when it is
 added: everything inside is new, and the `+` says it); the count adds
-up the changed, added, renamed and version-only blocks at any depth and the removed
+up the changed, added, renamed, moved and version-only blocks at any depth and the removed
 ones. The **Outline** shows the same: the sign after the name of a changed block or
 port, and `~2` on a hierarchy, also in the search results. On the minimap a marked
 block takes its color unless it is selected or matches the search. The legend lists

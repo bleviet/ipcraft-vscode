@@ -13,6 +13,7 @@ export const MINIMAP_COLORS = {
   added: 'var(--sd-change-added)',
   changed: 'var(--sd-change-changed)',
   renamed: 'var(--sd-change-renamed)',
+  moved: 'var(--sd-change-renamed)',
   version: 'var(--sd-change-version)',
 };
 

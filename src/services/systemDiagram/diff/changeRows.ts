@@ -16,7 +16,7 @@ import { withoutVersionOnly } from './ignoreVersionOnly';
 import { nameDifference } from './nameDifference';
 import { FIXED_ATTRIBUTES } from './pinAttributes';
 
-export type ChangeSign = '+' | '−' | '~' | 'v' | '→';
+export type ChangeSign = '+' | '−' | '~' | 'v' | '→' | '»';
 
 /** A piece of a cell; `code`: an identifier or value as written in the design (monospace in the tab, a code span in Markdown). */
 export interface CellPart {
@@ -70,6 +70,7 @@ export const CHANGE_SIGNS = {
   changed: '~',
   version: 'v',
   renamed: '→',
+  moved: '»',
 } as const;
 
 const plain = (text: string): CellPart => ({ text });
@@ -205,6 +206,20 @@ function renamedRow(change: InstanceChange, block: BlockRow): ChangeRow {
   };
 }
 
+/** The row of a moved block (its old and new path), then the pins whose connections the move changed. */
+function movedRows(change: InstanceChange, block: BlockRow): ChangeRow[] {
+  return [
+    {
+      ...block,
+      sign: CHANGE_SIGNS.moved,
+      change: [[plain('moved')]],
+      base: [[code(change.basePath as string)]],
+      current: [[code(change.path)]],
+    },
+    ...pinRows(change, block),
+  ];
+}
+
 function instanceRows(change: InstanceChange): ChangeRow[] {
   const block: BlockRow = {
     section: 'level',
@@ -214,6 +229,9 @@ function instanceRows(change: InstanceChange): ChangeRow[] {
   };
   if (change.status === 'renamed') {
     return [renamedRow(change, block)];
+  }
+  if (change.status === 'moved') {
+    return movedRows(change, block);
   }
   const [baseType, currentType] = [value(change.baseType), value(change.currentType)];
   if (change.status !== 'changed') {

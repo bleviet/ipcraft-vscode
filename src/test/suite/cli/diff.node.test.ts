@@ -98,7 +98,14 @@ describe('ipcraft diff of two files', () => {
     const text = fs.readFileSync(out, 'utf8');
     expect(text.endsWith('}\n')).toBe(true);
     const diff = JSON.parse(text);
-    expect(diff.summary).toEqual({ added: 1, removed: 4, changed: 2, version: 1, renamed: 0 });
+    expect(diff.summary).toEqual({
+      added: 1,
+      removed: 4,
+      changed: 2,
+      version: 1,
+      renamed: 0,
+      moved: 0,
+    });
     expect(text).toBe(`${JSON.stringify(diff, null, 2)}\n`);
   });
 
@@ -140,7 +147,14 @@ describe('ipcraft diff of two files', () => {
     const json = JSON.parse(
       (await runCliDiff(files({ ...pair, format: 'json' }))).report as string
     ) as SystemGraphDiff;
-    expect(json.summary).toEqual({ added: 0, removed: 0, changed: 1, version: 0, renamed: 1 });
+    expect(json.summary).toEqual({
+      added: 0,
+      removed: 0,
+      changed: 1,
+      version: 0,
+      renamed: 1,
+      moved: 0,
+    });
     expect(json.instances.find((i) => i.status === 'renamed')).toMatchObject({
       path: '/axi_gpio_main',
       basePath: '/axi_gpio_0',
@@ -150,6 +164,42 @@ describe('ipcraft diff of two files', () => {
     });
     const markdown = (await runCliDiff(files(pair))).report as string;
     expect(markdown).toContain('| → | `axi_gpio_main` | renamed | `axi_gpio_`**`0`** |');
+  });
+
+  it('reports a moved block in the JSON with its base path and pins, as rows in the Markdown, and fails on it', async () => {
+    const pair = {
+      files: [
+        path.join(fixtures, 'zynq_gpio_base.bd'),
+        path.join(fixtures, 'zynq_gpio_move_current.bd'),
+      ],
+    };
+    const json = JSON.parse(
+      (await runCliDiff(files({ ...pair, format: 'json' }))).report as string
+    ) as SystemGraphDiff;
+    expect(json.summary).toEqual({
+      added: 0,
+      removed: 0,
+      changed: 2,
+      version: 0,
+      renamed: 0,
+      moved: 1,
+    });
+    const moved = json.instances.find((i) => i.status === 'moved');
+    expect(moved).toMatchObject({
+      path: '/gpio_block/axi_gpio_0',
+      basePath: '/axi_gpio_0',
+      level: '/gpio_block',
+      parameters: [],
+    });
+    expect(moved?.pins.map((p) => p.pin)).toEqual(['S_AXI', 's_axi_aclk']);
+    const markdown = (await runCliDiff(files(pair))).report as string;
+    expect(markdown).toContain(
+      '| » | `axi_gpio_0` | moved | `/axi_gpio_0` | `/gpio_block/axi_gpio_0` |'
+    );
+    expect(markdown).toContain('~2 changed · »1 moved · v0 version only**');
+    expect(failOnReason(json, { new: [], resolved: [] }, 'changes', false)).toBe(
+      '3 changes (--fail-on changes)'
+    );
   });
 
   it('leaves version-only instances out of the JSON with --ignore-version-only', async () => {
@@ -207,7 +257,7 @@ describe('ipcraft diff --fail-on', () => {
   const diffOf = (summary: Partial<SystemGraphDiff['summary']>) =>
     ({
       instances: [],
-      summary: { added: 0, removed: 0, changed: 0, version: 0, renamed: 0, ...summary },
+      summary: { added: 0, removed: 0, changed: 0, version: 0, renamed: 0, moved: 0, ...summary },
     }) as unknown as SystemGraphDiff;
   const noFindings: FindingsDiff = { new: [], resolved: [] };
 
@@ -217,12 +267,15 @@ describe('ipcraft diff --fail-on', () => {
     );
     expect(
       failOnReason(
-        diffOf({ added: 1, removed: 1, changed: 1, renamed: 1, version: 1 }),
+        diffOf({ added: 1, removed: 1, changed: 1, renamed: 1, moved: 1, version: 1 }),
         noFindings,
         'changes',
         false
       )
-    ).toBe('5 changes (--fail-on changes)');
+    ).toBe('6 changes (--fail-on changes)');
+    expect(failOnReason(diffOf({ moved: 1 }), noFindings, 'changes', true)).toBe(
+      '1 change (--fail-on changes)'
+    );
     expect(failOnReason(diffOf({}), noFindings, 'changes', false)).toBeUndefined();
   });
 
