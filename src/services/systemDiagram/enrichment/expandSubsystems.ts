@@ -8,7 +8,12 @@
 
 import type { SystemDiagnostic, SystemGraph } from '../../../domain/systemGraph';
 import { readQsys } from '../../../parser/system/QsysReader';
-import type { EnrichmentIo, EnrichmentLog } from './enrichmentIo';
+import {
+  FileAbsentError,
+  SourceFailedError,
+  type EnrichmentIo,
+  type EnrichmentLog,
+} from './enrichmentIo';
 import type { QsysEntry } from './fileEntries';
 import { graftSubsystem } from './graftSubsystem';
 import { matchSubsystems } from './matchDefinitions';
@@ -56,6 +61,13 @@ async function expandWithin<R>(
         uri: entry.uri,
       });
     } catch (error) {
+      if (error instanceof SourceFailedError) {
+        throw error;
+      }
+      if (error instanceof FileAbsentError) {
+        // Not there (at a revision, say): the instance stays opaque.
+        continue;
+      }
       log?.warn(`Could not read subsystem ${entry.displayName}: ${String(error)}`);
       notes.push({
         severity: 'warning',

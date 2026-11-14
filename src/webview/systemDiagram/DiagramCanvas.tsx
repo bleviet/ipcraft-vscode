@@ -83,11 +83,17 @@ interface DiagramCanvasProps {
   onFit: () => void;
 }
 
-/** Whether a React Flow node is a hierarchy block, collapsed (an instance) or expanded (a frame). */
+/**
+ * Whether a React Flow node is a hierarchy block that can be entered or expanded, collapsed (an
+ * instance) or expanded (a frame). The ghost of a removed hierarchy (see `unionGraph.ts`) cannot:
+ * it has no level in the design on show.
+ */
 function isHierarchy(node: Node): boolean {
   return (
     node.type === 'frame' ||
-    (node.type === 'instance' && (node.data as InstanceNodeData).instance.kind === 'hier')
+    (node.type === 'instance' &&
+      (node.data as InstanceNodeData).instance.kind === 'hier' &&
+      (node.data as InstanceNodeData).change?.status !== 'removed')
   );
 }
 

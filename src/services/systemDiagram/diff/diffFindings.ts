@@ -16,7 +16,7 @@ import type { PinCrossing } from '../../../webview/systemDiagram/clocks/clockTyp
 import { endKey } from '../../../webview/systemDiagram/clocks/physicalNets';
 import { unconnectedPins } from '../../../webview/systemDiagram/unconnectedPins';
 import { compareText } from './compareText';
-import { renameInstances } from './renames';
+import { relocateInstances } from './relocate';
 
 const KIND_ORDER: Record<Finding['kind'], number> = {
   undriven: 0,
@@ -118,7 +118,7 @@ export function findingsBase(base: SystemGraph, diff: SystemGraphDiff): SystemGr
         : []
     )
   );
-  return renames.size > 0 ? renameInstances(base, renames) : base;
+  return renames.size > 0 ? relocateInstances(base, renames) : base;
 }
 
 /** The findings of `current` that `base` does not have (new) and the other way round (resolved). */

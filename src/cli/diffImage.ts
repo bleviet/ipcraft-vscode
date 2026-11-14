@@ -1,23 +1,25 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { SystemGraph } from '../domain/systemGraph';
-import type { SystemGraphDiff } from '../domain/systemGraphDiff';
+import type { SystemGraphDiff, UnionAdditions } from '../domain/systemGraphDiff';
 import type { RenderRoots } from '../services/render/imageEncoding';
 import { RenderAssets } from '../services/render/renderResources';
 import { renderSystemLevelImage } from '../services/render/systemLevelImage';
 import { buildChangeMarks } from '../webview/systemDiagram/changeMarks';
+import { withUnion } from '../webview/systemDiagram/layout/unionGraph';
 import { RENDER_DEFAULTS, renderOutputFormat } from './renderArgv';
 
 /**
  * Draws the top level of the current revision with the marks of `diff` (issue #302) to the image
  * file `image`, in the default look of `ipcraft render`, and returns the path written.
- * Removed blocks are only counted in the legend.
+ * What only the base has (`union`, see `unionAdditions`) is drawn as ghosts.
  */
 export async function writeDiffImage(
   image: string,
   current: SystemGraph,
   diff: SystemGraphDiff,
-  roots: RenderRoots
+  roots: RenderRoots,
+  union?: UnionAdditions
 ): Promise<string> {
   const outputPath = path.resolve(image);
   const format = renderOutputFormat(outputPath);
@@ -33,7 +35,8 @@ export async function writeDiffImage(
       expanded: [],
       selectedNodeIds: [],
       clocks: false,
-      changes: buildChangeMarks(diff, current),
+      changes: buildChangeMarks(diff, current, withUnion(current, union).ghosts),
+      union,
     },
     look,
     { format, scale, quality },

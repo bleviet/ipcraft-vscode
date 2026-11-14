@@ -7,20 +7,15 @@ import { ClockTreeDetails, ResetTreeDetails } from './ClockTreeDetails';
 import { CrossingNote } from './CrossingNote';
 import { capabilityRows, designEyebrow, formatLabel } from './detailsLabels';
 import type { ComparisonDetails } from './hooks/useCompareView';
+import { openNetsByEndpoint } from './layout/unionGraph';
+import { GhostInstanceDetails, GhostNetDetails, GhostPortDetails } from './GhostDetails';
 import { InstanceChanges } from './InstanceChanges';
 import { InstanceDetails } from './InstanceDetails';
 import { PortClockDetails } from './InstanceClockDetails';
 import { MultiSelectionDetails } from './MultiSelectionDetails';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
-import {
-  boundaryId,
-  endpointKey,
-  netsByEndpoint,
-  nodeSelection,
-  parseBoundaryId,
-  type Selection,
-} from './model';
+import { boundaryId, endpointKey, nodeSelection, parseBoundaryId, type Selection } from './model';
 import { focusedPinOf, unconnectedClass, type FocusedPin } from './unconnectedPins';
 
 interface DetailsPanelProps {
@@ -38,7 +33,17 @@ interface DetailsPanelProps {
   onOpenDefinition: (instance: string) => void;
 }
 
-function DesignSummary({ graph }: { graph: SystemGraph }) {
+/** The design as opened: `graph` may hold the ghosts of a comparison, which are not part of it. */
+function DesignSummary({
+  graph,
+  comparison,
+}: {
+  graph: SystemGraph;
+  comparison?: ComparisonDetails;
+}) {
+  const ghostBlocks = [...(comparison?.marks.blocks.values() ?? [])].filter(
+    (block) => block.status === 'removed'
+  ).length;
   return (
     <div>
       <div className="sd-eyebrow">{designEyebrow(graph.source.format)}</div>
@@ -55,9 +60,9 @@ function DesignSummary({ graph }: { graph: SystemGraph }) {
           </>
         )}
         <dt>Instances</dt>
-        <dd>{Object.keys(graph.instances).length}</dd>
+        <dd>{Object.keys(graph.instances).length - ghostBlocks}</dd>
         <dt>Nets</dt>
-        <dd>{graph.nets.length}</dd>
+        <dd>{graph.nets.length - (comparison?.marks.removedNets.size ?? 0)}</dd>
       </dl>
       <h3 className="sd-h3">What this view knows</h3>
       <ul className="sd-cap-list">
@@ -148,9 +153,11 @@ function BoundaryDetails({
   onReveal: (line: number, uri?: string) => void;
 }) {
   const parameters = Object.entries(pin.parameters);
-  const unconnected = !netsByEndpoint(graph, level).has(
-    endpointKey({ instance: null, pin: pin.name })
-  );
+  const unconnected = !openNetsByEndpoint(
+    graph,
+    level,
+    comparison?.marks.removedNets ?? new Set()
+  ).has(endpointKey({ instance: null, pin: pin.name }));
   return (
     <div className="space-y-3">
       <header>
@@ -211,9 +218,15 @@ export function DetailsPanel({
   onOpenDefinition,
 }: DetailsPanelProps) {
   const items = selectedItems ?? selectedNodeIds.map(nodeSelection);
-  let content: React.ReactNode = <DesignSummary graph={graph} />;
+  let content: React.ReactNode = <DesignSummary graph={graph} comparison={comparison} />;
   if (items.length > 1) {
     content = <MultiSelectionDetails graph={graph} items={items} onSelect={onSelect} />;
+  } else if (
+    selection?.kind === 'instance' &&
+    graph.instances[selection.id] &&
+    comparison?.marks.blocks.get(selection.id)?.status === 'removed'
+  ) {
+    content = <GhostInstanceDetails instance={graph.instances[selection.id]} />;
   } else if (selection?.kind === 'instance' && graph.instances[selection.id]) {
     content = (
       <InstanceDetails
@@ -230,7 +243,9 @@ export function DetailsPanel({
     );
   } else if (selection?.kind === 'net') {
     const net = graph.nets.find((candidate) => candidate.id === selection.id);
-    if (net) {
+    if (net && comparison?.marks.removedNets.has(net.id)) {
+      content = <GhostNetDetails net={net} onSelect={onSelect} />;
+    } else if (net) {
       const domain = clocks.domainOfNet(net.id);
       const reset = clocks.resetOfNet(net.id);
       const tree = { graph, clocks, net, onSelect, onReveal };
@@ -251,7 +266,9 @@ export function DetailsPanel({
   } else if (selection?.kind === 'boundary') {
     const { level, pin: pinName } = parseBoundaryId(selection.id);
     const pin = graph.levels[level]?.boundaryPins.find((candidate) => candidate.name === pinName);
-    if (pin) {
+    if (pin && comparison?.marks.ports.get(pin.name)?.status === 'removed' && level === '/') {
+      content = <GhostPortDetails pin={pin} />;
+    } else if (pin) {
       content = (
         <BoundaryDetails
           graph={graph}

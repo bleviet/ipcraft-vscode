@@ -33,7 +33,14 @@ describeSamples('diffSystemGraphs: real .bd files', () => {
     const g = graphs.get(file)!;
     const diff = diffSystemGraphs(g, g);
     expect([diff.instances, diff.ports, diff.segments]).toEqual([[], [], []]);
-    expect(diff.summary).toEqual({ added: 0, removed: 0, changed: 0, version: 0, renamed: 0 });
+    expect(diff.summary).toEqual({
+      added: 0,
+      removed: 0,
+      changed: 0,
+      version: 0,
+      renamed: 0,
+      moved: 0,
+    });
   });
 
   it.each(pairs)('mirrors the diff of %s and %s', (a, b) => {

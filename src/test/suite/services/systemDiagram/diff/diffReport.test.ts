@@ -89,9 +89,93 @@ describe('diffToMarkdown', () => {
     expect(text).toContain('| → | `axi_gpio_main` | renamed |');
   });
 
+  it('matches the golden report of a pair with a block moved into a hierarchy', () => {
+    expect(fixtureReport('zynq_gpio_base.bd', 'zynq_gpio_move_current.bd', 'system.bd')).toBe(
+      golden('zynq_gpio_move.expected.md')
+    );
+  });
+
+  it('writes a moved block as one row with its old and new path, and counts it', () => {
+    const diff = fixtureDiff('zynq_gpio_base.bd', 'zynq_gpio_move_current.bd', 'system.bd');
+    const text = diffToMarkdown(diff, LABELS, KEEP);
+    expect(text).toContain(
+      '| » | `axi_gpio_0` | moved | `/axi_gpio_0` | `/gpio_block/axi_gpio_0` |'
+    );
+    // Its rewired pins follow as rows of a changed block.
+    expect(text).toContain('| ~ | `axi_gpio_0` | pin `S_AXI` connects to |');
+    expect(text).toContain('~2 changed · »1 moved · v0 version only**');
+    expect(diffToMarkdown(diff, LABELS, { ignoreVersionOnly: true })).toContain(
+      '~2 changed · »1 moved**'
+    );
+  });
+
+  it('leaves the moved count out of the summary when there is none', () => {
+    for (const [base, current] of [
+      ['zynq_gpio_base.bd', 'zynq_gpio_current.bd'],
+      ['zynq_gpio_rename_base.bd', 'zynq_gpio_rename_current.bd'],
+    ]) {
+      const text = diffToMarkdown(fixtureDiff(base, current, 'system.bd'), LABELS, KEEP);
+      expect(text).not.toContain(' moved');
+      expect(text).not.toContain('»');
+    }
+  });
+
   it('leaves the renamed count out of the summary when there is none', () => {
     const diff = fixtureDiff('zynq_gpio_base.bd', 'zynq_gpio_current.bd', 'system.bd');
     expect(diffToMarkdown(diff, LABELS, KEEP)).not.toContain('renamed');
+  });
+
+  describe('a base that did not exist or was read under another path', () => {
+    const diff = () => fixtureDiff('nios_base.qsys', 'nios_current.qsys', 'nios_system.qsys');
+    const plain = diffToMarkdown(diff(), LABELS, KEEP);
+
+    it('writes one line after the comparison line for a missing file', () => {
+      const missing = diff();
+      missing.base.missing = true;
+      const text = diffToMarkdown(missing, LABELS, KEEP);
+      expect(text).toBe(
+        plain.replace(
+          'Comparing `HEAD` (base) with `working tree`.\n',
+          'Comparing `HEAD` (base) with `working tree`.\n\nThe file did not exist at HEAD: everything is added.\n'
+        )
+      );
+    });
+
+    it('writes the old path in a code span for a renamed file', () => {
+      const renamed = diff();
+      renamed.base.path = 'ip/old `name`.qsys';
+      const text = diffToMarkdown(renamed, LABELS, KEEP);
+      expect(text).toContain(
+        'Comparing `HEAD` (base) with `working tree`.\n\nRead at HEAD as ``ip/old `name`.qsys`` (renamed since).\n\n'
+      );
+      expect(text).not.toContain('did not exist');
+    });
+
+    it('writes neither line for an ordinary base, so the reports stay as they were', () => {
+      expect(plain).not.toContain('did not exist');
+      expect(plain).not.toContain('renamed since');
+      expect(plain).toBe(golden('nios.expected.md'));
+    });
+
+    it('carries the fields in the JSON of the diff, and only when they are set', () => {
+      const [missing, renamed] = [diff(), diff()];
+      missing.base.missing = true;
+      renamed.base.path = 'old.qsys';
+      expect(JSON.parse(JSON.stringify(missing)).base).toEqual({
+        name: 'nios_system',
+        format: 'qsys',
+        missing: true,
+      });
+      expect(JSON.parse(JSON.stringify(renamed)).base).toEqual({
+        name: 'nios_system',
+        format: 'qsys',
+        path: 'old.qsys',
+      });
+      expect(JSON.parse(JSON.stringify(diff())).base).toEqual({
+        name: 'nios_system',
+        format: 'qsys',
+      });
+    });
   });
 
   it('says No changes. when nothing differs', () => {

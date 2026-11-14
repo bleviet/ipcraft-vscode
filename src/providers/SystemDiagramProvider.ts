@@ -294,7 +294,13 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     });
 
     router.on('exportImage', async (message) => {
-      await this.imageExport.exportSystem(document, lastGraph, message, lastChanges?.diff);
+      await this.imageExport.exportSystem(
+        document,
+        lastGraph,
+        message,
+        lastChanges?.diff,
+        lastChanges?.union
+      );
     });
 
     router.on('startCompare', () => compare.pick());

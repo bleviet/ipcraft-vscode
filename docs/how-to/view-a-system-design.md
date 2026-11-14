@@ -383,14 +383,21 @@ A file is read in its own format, a git revision in the format of the open file.
 Changes bar then adds "Different formats: only what both describe is comparable.",
 because what one format leaves out cannot show up as a difference.
 
+A file that is new since the base revision shows everything as added: the Changes bar
+says "The file did not exist at HEAD: everything is added." (with the name of your base).
+A file that was renamed since is read under its old path, found by the rename detection
+of git for the file in the working tree, and the bar says "Read at HEAD as old/system.bd
+(renamed since)." A new name that git does not know yet (not added to the index) is not
+paired with the old file. The same holds for `ipcraft diff`.
+
 Without a git repository, only the open designs and **Compare with File...** are
 offered. Cancel the picker at any step to leave things as they were. If the revision
 or file cannot be read, or is not a system design, a message says so and a comparison
 that was already on stays on.
 
-While a comparison is on, the toolbar shows a chip with the base (`vs HEAD`), the
-numbers of added, removed, changed, renamed and version-only changes (`+1 −4 ~2 →1 v1`;
-a zero is dimmed), and an **Exit compare** button. Click the chip or the numbers to open the
+While a comparison is on, the toolbar shows a chip with the base (`vs HEAD (1a2b3c4)`: a branch, `HEAD` or a typed revision is followed by the short hash of the commit it named), the
+numbers of added, removed, changed, renamed, moved and version-only changes (`+1 −4 ~2 →1 »1 v1`;
+a zero is dimmed; the renamed and the moved count appear only when there is one), and an **Exit compare** button. Click the chip or the numbers to open the
 **Changes** tab, the first tab of the bottom panel. The tab also opens by itself when
 a comparison starts.
 
@@ -402,6 +409,7 @@ The Changes tab lists one row per change:
 | `− Removed` | It is gone |
 | `~ Changed` | A parameter, a type, an address or a connection differs |
 | `→ Renamed` | The same block under a new name |
+| `» Moved` | The same block, with the same name, under another level |
 | `v Version` | Only the version of the block's IP differs |
 
 Each row names where it is (the **Address map**, the **External ports**, or the
@@ -424,8 +432,22 @@ by the name are not listed, and the **Base** column shows the names the base had
 block whose address changed is still a rename; its segment is listed as changed under
 the new name (a segment that was removed is listed under the new name too), and the diagram draws the block as changed (`~`). The rule prefers to miss a rename over a wrong one: a block
 that is renamed and also changed (a parameter, a version, a connection) stays a removed
-and an added block, a block moved to another level is not a rename, and two identical
-blocks on each side are not guessed at.
+and an added block, and two identical blocks on each side are not guessed at.
+
+A block is **moved** when it is the same block under another level, with the same
+name: the same kind, type with its version, parameters and pin names, the only such
+removed and the only such added block, and each the topmost of its subtree (a block
+moved into a hierarchy that is new is not paired, nor is one that is moved and renamed
+at once; both stay a removed and an added block). A moved hierarchy is one change, and
+nothing inside it may differ. The block itself may have only its connections changed,
+which a move usually does (a connection across a hierarchy goes through its pins): a move
+gets one row in the new level, with the old path under **Base** and the new path under
+**Current**, followed by one row for each pin whose connections changed, written as for
+a changed block. The base side of those rows, and of the rows of the blocks it was
+connected to, names the blocks and levels the base had. A moved block whose address
+changed is drawn as changed (`~`) with a tooltip such as `Changed: moved from /, address
+changed`. A diagram of a moved block shows `»` in the renamed color (purple) and the
+tooltip `Moved from /dsp_pipeline`, the level it came from.
 
 The bar at the top of the tab stays in view while the table scrolls. It is one line
 (it wraps when the panel is narrow) and says which side is which, for example
@@ -438,7 +460,8 @@ and 2 address segments differ.", and the chips.
 Hover a chip for its meaning: **+ Added** is only in the current design, **−
 Removed** only in the base, **~ Changed** is in both but different, **→ Renamed** (offered
 only when a block was renamed, and counted in the toolbar then) is the
-same block under a new name, and **v Version only** differs only in the IP version. With no difference the sentence says "No
+same block under a new name, **» Moved** (offered and counted likewise, only after a move) is the
+same block under another level, and **v Version only** differs only in the IP version. With no difference the sentence says "No
 changes." and there is no table.
 
 When the base is a file (an open design or **Compare with File...**), the bar has
@@ -457,7 +480,7 @@ level; a row for the inside view says `inside`. The full rules are in
 [`ipcraft diff`](../reference/command-line.md#compare-two-revisions-of-a-system-design),
 which produces the same changes on the command line.
 
-The chips **Added**, **Removed**, **Changed**, **Renamed** and **Version only** hide the rows of
+The chips **Added**, **Removed**, **Changed**, **Renamed**, **Moved** and **Version only** hide the rows of
 that kind; they are all on at first. The filter box above the table works on every
 column, as in the other tabs.
 
@@ -468,10 +491,25 @@ longer exists in the current design cannot be selected; its row is dimmed and sa
 "Not in this revision" on hover.
 
 The list follows your edits: change the file and the Changes tab updates. The
-workspace definitions (`.ip.yml` and HDL files) come from your working tree for both
-sides. Both sides always use the same definitions, also after you grant trust to the
-workspace or change a definition, so a definition never shows up as a change. If the
-definitions cannot be read for one of the sides, both sides are compared without them.
+definitions of the blocks (`.ip.yml`, HDL and `.qsys` files) come from your working
+tree for the current side. When the base is a git revision, the base reads them as they
+were at that revision, so a pin that a definition gained or lost since shows up as a
+difference, and the **Findings** tab says which definitions each side uses. Only the
+definitions the design uses are read from git, at the commit the revision named when you
+picked it (a branch or `HEAD` that moves later does not change the base, and the base's
+name in the toolbar and the tab carries that commit, for example `HEAD (1a2b3c4)`), and
+each definition file is read from git once per comparison. A definition
+file that was moved since is read under its old path, when the move is committed or staged
+at the start of the comparison and git's rename detection finds it; an untracked file, a move
+made later in the session, or a move combined with edits that git no longer sees as a rename
+is not followed, so its block is shown without the definition. A definition that exists only at
+the revision (it was deleted since) or whose name changed since is not found; that block
+is then shown without it. When the base is a file or an open tab, both sides use the
+definitions of your workspace, so a definition never shows up as a change. After you
+grant trust or change a definition file, the base is matched with the definitions again;
+the files already read from git are not read again. If git cannot read the revision's definitions (an offline partial clone, say), or
+the definitions cannot be read for one of the sides, both sides are compared without
+them, the note says so, and the error is in the IPCraft output.
 **Exit compare** ends the comparison; it also ends when you close the diagram.
 
 ### Findings of the comparison
@@ -483,9 +521,12 @@ touches or a data connection or reset that crosses into another clock domain wit
 known synchronizer; the
 [command-line reference](../reference/command-line.md#compare-two-revisions-of-a-system-design)
 defines them. The tab shows the number of findings that differ and does not open by
-itself. Unlike `ipcraft diff`, which reads the design files alone, the viewer checks both
-revisions with the workspace definitions of your workspace, so pins of blocks with a
-known definition are checked on both sides. The columns are the sign (the word `New` or
+itself. Unlike `ipcraft diff`, which reads the design files alone, the viewer checks pins of
+blocks with a known definition on both sides: the current side with the definitions of
+your workspace, and a base that is a git revision with the definitions as they were at
+that revision (the note above the list says so; with a file as base, both sides use
+your workspace's definitions). A finding can therefore appear because a definition
+changed, not the design. The columns are the sign (the word `New` or
 `Resolved`, also colored), the kind of finding, where it is, and a detail (for a
 crossing, the two clocks and the reason). The chips **New** and **Resolved** and the
 filter box narrow the list.
@@ -516,13 +557,15 @@ wires use color and weight (a bold name, a thicker wire):
 | Mark | Meaning | Drawing |
 |---|---|---|
 | `+` | Added block or external port | Border in the added color (green) |
+| `−` | Removed block or external port, only in the base: a **ghost** | Dashed border in the removed color (red), name struck through, body dimmed |
 | `~` | Changed block or external port | Border in the changed color (yellow) |
 | `→` | Renamed block; the tooltip names the old name | Border in the renamed color (purple) |
+| `»` | Moved block; the tooltip names the level it came from | Border in the renamed color (purple), as a rename is the same block in a new place |
 | `v` | Only the IP version differs; the tooltip shows both | Dotted border in the version-only color (muted gray) |
 
 A block whose address segment was added, removed or changed counts as changed, and its
 tooltip says so (`Address changed`); the segment is listed in its Details. This includes
-a renamed or version-only block: it is drawn `~`, and its tooltip keeps the old name or
+a renamed, moved or version-only block: it is drawn `~`, and its tooltip keeps the old name, the old level or
 the two versions (`Changed: renamed from axi_gpio_0, address changed`). A removed
 segment is attributed to the block its name starts with, when that block still exists.
 The border has a ring of the same color, one pixel wide (a version-only block has none, its border is dotted instead). A selected block keeps the focus color, so it is never mistaken for a renamed one. When you zoom out far enough
@@ -540,13 +583,14 @@ design is drawn in the added color and a little thicker; a selected or highlight
 wire keeps its selection or highlight style. A hierarchy block with changes below it
 shows `~ 2 inside` in its header, whether or not it changed itself (not when it is
 added: everything inside is new, and the `+` says it); the count adds
-up the changed, added, renamed and version-only blocks at any depth and the removed
+up the changed, added, renamed, moved and version-only blocks at any depth and the removed
 ones. The **Outline** shows the same: the sign after the name of a changed block or
 port, and `~2` on a hierarchy, also in the search results. On the minimap a marked
 block takes its color unless it is selected or matches the search. The legend lists
-the kinds present on the level and `New wire` when it has one. When the level (or a
-block expanded in it) lost blocks or ports, it also has an entry `− 2 removed, see
-Changes` that opens the Changes tab.
+the kinds present on the level and `New wire` when it has one. While the ghosts of what
+was removed are drawn it lists `− Removed` and `Removed wire`; when the level (or a
+block expanded in it) lost blocks or ports that are not drawn as ghosts, it has an
+entry `− 2 removed, see Changes` that opens the Changes tab.
 
 Select a marked block or port and the **Details** panel starts with a **Changes**
 section: the changes of that block, with the base and the current value, and for a
@@ -556,8 +600,12 @@ whether or not the marks are drawn.
 These buttons sit between the numbers and the exit button:
 
 - **Marks** (the diff icon) draws or hides the marks. It is on whenever a comparison
-  starts or its base changes. With Marks off the diagram looks exactly as without a
-  comparison; the Changes tab stays.
+  starts or its base changes. With Marks off the diagram looks as without a
+  comparison, ghosts included; the Changes tab stays.
+- **Show removed** (the `−`) is shown when the base has something the current design
+  lacks. Pressed (the default), the [ghosts](#removed-blocks-ports-and-wires-ghosts) are
+  drawn; release it to hide them. It is on whenever a comparison starts or its base
+  changes, like Marks. Neither button moves a block.
 - **Show version-only changes** (the `v`) is shown when the comparison has a block whose
   only change is the IP version. Pressed (the default), those blocks are marked and listed
   like any other change. Release it to hide them, the same as
@@ -574,10 +622,53 @@ These buttons sit between the numbers and the exit button:
   bring the rest back. It is disabled on a level without changed blocks, and while
   Marks is off.
 
-Removed blocks, ports and wires are not drawn yet; they are listed in the Changes tab
-and counted in the legend. Blocks and wires that did not change are not dimmed.
-An [exported image](#export-an-image) carries the marks while Marks is on, without the
-version-only blocks when Show version-only changes is released.
+Blocks and wires that did not change are not dimmed. An
+[exported image](#export-an-image) carries the marks while Marks is on, without the
+version-only blocks when Show version-only changes is released; it draws the
+[ghosts](#removed-blocks-ports-and-wires-ghosts) while **Show removed** is on too, and
+then lays the level out with them, as the canvas does.
+
+### Removed blocks, ports and wires (ghosts)
+
+What only the base has is drawn on the diagram as **ghosts**, so you can see where
+it was and what it was connected to:
+
+- A removed **block** has a dashed border in the removed color, its name struck
+  through, a `−` in its header and a dimmed body. A removed hierarchy is one ghost
+  block: it cannot be expanded or entered, and what was inside it is not drawn.
+- A removed **external port** is drawn the same way, as a dashed tag.
+- A **wire** the current design no longer has is dashed in the removed color. It joins
+  what is still there to a ghost, or two blocks that stay when a pin was rewired, so
+  the old connection of a rewired pin is drawn next to its new one. A pin that only the
+  base has on a block that stays (the interconnect port of a removed slave) is drawn
+  with its name struck through, in the removed color, to give the wire an end. A
+  wire is drawn once: the connections the current design keeps are not drawn a second
+  time. Clock and reset wires are not drawn as ghosts; the Changes tab lists them.
+- A renamed or moved block is the same block under its new name or level, so it
+  has no ghost.
+
+A ghost can be selected, searched and listed in the **Outline**, which marks it with
+the `−` under its level. Its **Details** say `Only in the base` and show its type,
+parameters and pins as the base had them. It has no source line, no definition to
+open and no level to enter, because it is not in the design you have open. The
+unconnected pins and the clock and reset domains are those of the open design: a
+ghost creates no finding or crossing, and the Details of a pin whose wire was lost say
+it is unconnected, with the lost wire listed apart and marked `−`. While ghosts are
+shown, a search finds them; with **Show removed** or **Marks** off they are neither
+selectable nor found. An isolated view is worked out with the ghost wires whether or
+not they are shown, so that pressing a toggle moves nothing: a block that only a ghost
+wire connects to the isolated blocks can be in the view. The counts of the `Isolated · …`
+chip and of a hierarchy in the **Outline** are those of the design as opened, without
+ghosts, except that a removed block you isolated counts as selected. One thing does change an
+isolation: a removed block you isolated is dropped from it when you hide removed blocks. **Changes only** does not include removed blocks: they are not marked blocks of
+the design, so they are not among the blocks it isolates.
+
+The diagram is laid out from both designs together, the open one and its ghosts, so a ghost
+sits where the blocks it was connected to pull it and its wires are routed like any
+other. That layout differs from the plain one of the open design, so **blocks can move
+once when a comparison starts, and when its base changes** (and back when it ends).
+They never move when you press **Marks**, **Show removed** or **Show version-only
+changes**: hiding the ghosts keeps their space free.
 
 The current side is always the file you have open: you cannot choose a revision for
 it.
@@ -607,16 +698,22 @@ or zooms the diagram. Your last options are remembered for this workspace.
 
 While you compare with another revision and **Marks** is on, the image draws the
 marks of the comparison and, with **Legend**, the change entries of the legend. With
-Marks off, or without a comparison, it is the plain diagram. With **Show version-only changes**
-released, the marks leave out the blocks whose only change is the IP version.
+Marks off it draws no marks, and without a comparison it is the plain diagram. With **Show version-only changes**
+released, the marks leave out the blocks whose only change is the IP version. With **Show
+removed** on, the image also draws what only the base has as ghosts. The image is laid out
+like the canvas, with the ghosts' room kept while they are hidden, so the blocks sit where
+the canvas has them and an isolated view has the same blocks. **Current view** crops to the
+blocks on screen, ghosts included while they are drawn.
 
 A save dialog opens with a default name such as `soc-dsp_fir.png` (the level path
 with `/` as `_`; the top level is just `soc.png`). Afterwards you can **Open** the
 file or **Reveal in Explorer**.
 
-The image equals what `ipcraft render` writes for the same design and options
-(see [Rendering documentation images](render-documentation-images.md)), apart from
-the Current view crop, which the command line does not have. The text is laid out
+Without a comparison, the image equals what `ipcraft render` writes for the same
+design and options (see [Rendering documentation images](render-documentation-images.md)),
+apart from the Current view crop, which the command line does not have. While you
+compare with a base that has removed blocks, the image is laid out like the canvas,
+with room for the ghosts, so it can differ from `ipcraft render` even with Marks off. The text is laid out
 with the bundled IBM Plex fonts, so block sizes can differ slightly from the
 canvas, which uses your editor font.
 

@@ -13,7 +13,7 @@ import {
   type DomainLegendEntry,
 } from '../../webview/systemDiagram/legend';
 import type { NetCategory } from '../../domain/systemGraph';
-import { dottedDash } from './changeSvg';
+import { dottedDash, REMOVED_WIRE_DASH } from './changeSvg';
 import { resolveColor, type Palette } from './palette';
 import { element, num } from './svg';
 import { measureText } from './textMetrics';
@@ -32,6 +32,10 @@ const SWATCH_WIDTH = 12;
 const SWATCH_HEIGHT = 8;
 const SWATCH_BORDER = 1.5;
 const SIGN_FONT_SIZE = 12;
+/** `.sd-legend-swatch[data-change='removed']`: a dashed border. */
+const REMOVED_SWATCH_DASH = '3 2';
+/** The stroke width of a dashed bar (a domain's dashed line, the removed wire). */
+const DASHED_BAR_WIDTH = 2;
 /** `.sd-legend-bar-new`. */
 const NEW_WIRE_BAR_HEIGHT = 3.75;
 
@@ -39,6 +43,7 @@ const NEW_WIRE_BAR_HEIGHT = 3.75;
 export type LegendChange =
   | { kind: 'status'; status: MarkStatus; sign: string }
   | { kind: 'newWire' }
+  | { kind: 'removedWire' }
   | { kind: 'removed' };
 
 export interface LegendLayout {
@@ -60,7 +65,10 @@ export interface LegendLayout {
   }[];
 }
 
-/** The entries of the marks of a comparison: the kinds of change, the new wire, the count of removed blocks. */
+/**
+ * The entries of the marks of a comparison: the kinds of change, the new wire, the removed wire,
+ * and the count of removed blocks unless the ghosts are drawn (the kind `removed` is an entry then).
+ */
 function changeEntries(changes: ChangeLegend | undefined) {
   if (!changes) {
     return [];
@@ -74,7 +82,10 @@ function changeEntries(changes: ChangeLegend | undefined) {
     ...(changes.newWire
       ? [{ label: 'New wire', thick: false, change: { kind: 'newWire' } as const }]
       : []),
-    ...(changes.removed > 0
+    ...(changes.removedWire
+      ? [{ label: 'Removed wire', thick: false, change: { kind: 'removedWire' } as const }]
+      : []),
+    ...(changes.removed > 0 && !changes.kinds.includes('removed')
       ? [
           {
             label: `− ${changes.removed} removed`,
@@ -165,7 +176,7 @@ function barSvg(x: number, centerY: number, height: number, color: string): stri
   });
 }
 
-/** What leads an entry: the swatch and sign of a kind of change, a wire bar, or nothing for the removed count. */
+/** What leads an entry: the swatch and sign of a kind of change, a wire bar, a dashed bar for the removed wire, or nothing for the removed count. */
 function itemMarkSvg(item: LegendLayout['items'][number], palette: Palette): string {
   const cy = item.y + ITEM_HEIGHT / 2;
   const { change } = item;
@@ -174,6 +185,17 @@ function itemMarkSvg(item: LegendLayout['items'][number], palette: Palette): str
   }
   if (change?.kind === 'newWire') {
     return barSvg(item.x, cy, NEW_WIRE_BAR_HEIGHT, palette.change.newWire);
+  }
+  if (change?.kind === 'removedWire') {
+    return element('line', {
+      x1: item.x,
+      y1: cy,
+      x2: item.x + BAR_WIDTH,
+      y2: cy,
+      stroke: palette.change.removed,
+      'stroke-width': DASHED_BAR_WIDTH,
+      'stroke-dasharray': REMOVED_WIRE_DASH,
+    });
   }
   if (change?.kind === 'status') {
     const color = palette.change[change.status];
@@ -187,7 +209,12 @@ function itemMarkSvg(item: LegendLayout['items'][number], palette: Palette): str
         fill: 'none',
         stroke: color,
         'stroke-width': SWATCH_BORDER,
-        'stroke-dasharray': change.status === 'version' ? dottedDash(SWATCH_BORDER) : undefined,
+        'stroke-dasharray':
+          change.status === 'version'
+            ? dottedDash(SWATCH_BORDER)
+            : change.status === 'removed'
+              ? REMOVED_SWATCH_DASH
+              : undefined,
       }),
       drawText(item.x + SWATCH_WIDTH + BAR_GAP, cy, change.sign, {
         face: 'sans600',
@@ -207,7 +234,7 @@ function itemMarkSvg(item: LegendLayout['items'][number], palette: Palette): str
         x2: item.x + BAR_WIDTH,
         y2: cy,
         stroke: color,
-        'stroke-width': 2,
+        'stroke-width': DASHED_BAR_WIDTH,
         'stroke-dasharray': '6 4',
       })
     : barSvg(item.x, cy, item.thick ? 3 : 1.5, color);

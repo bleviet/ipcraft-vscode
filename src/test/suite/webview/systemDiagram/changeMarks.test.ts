@@ -22,7 +22,14 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SegmentChange } from '../../../../domain/systemGraphDiff';
-import { renameDiff, renameGraph, zynqDiff, zynqGraph } from './compareFixtures';
+import {
+  moveDiff,
+  moveGraph,
+  renameDiff,
+  renameGraph,
+  zynqDiff,
+  zynqGraph,
+} from './compareFixtures';
 import { systemBd, twoClockGroups, withoutGpio0Net, withoutNestedSlave } from './systemBdEdit';
 
 const bd = systemBd;
@@ -75,6 +82,28 @@ describe('buildChangeMarks: blocks', () => {
     expect(renamed.blocks.get('/sys_ps7')?.status).toBe('changed');
   });
 
+  it('marks a moved block with the level it came from, and its rewired pins', () => {
+    const moved = buildChangeMarks(moveDiff(), moveGraph());
+    expect(moved.blocks.get('/gpio_block/axi_gpio_0')).toMatchObject({
+      status: 'moved',
+      title: 'Moved from /',
+      pins: { S_AXI: 'changed', s_axi_aclk: 'changed' },
+    });
+    // It is not removed: the base's block is the same block.
+    expect(moved.removed.size).toBe(0);
+    const [from, to] = [moveDiff().instances, moveGraph()];
+    const inHier = buildChangeMarks(
+      {
+        ...moveDiff(),
+        instances: from.map((i) =>
+          i.status === 'moved' ? { ...i, basePath: '/axi_periph/axi_gpio_0' } : i
+        ),
+      },
+      to
+    );
+    expect(inHier.blocks.get('/gpio_block/axi_gpio_0')?.title).toBe('Moved from /axi_periph');
+  });
+
   it('counts what only the base has, per level', () => {
     // axi_gpio_0 and the port led_o
     expect(marks.removed.get('/')).toBe(2);
@@ -82,12 +111,10 @@ describe('buildChangeMarks: blocks', () => {
   });
 
   it('names the signs and words from the Changes tab', () => {
-    expect(['added', 'changed', 'renamed', 'version'].map((s) => markSign(s as never))).toEqual([
-      '+',
-      '~',
-      '→',
-      'v',
-    ]);
+    expect(
+      ['added', 'changed', 'renamed', 'moved', 'version'].map((s) => markSign(s as never))
+    ).toEqual(['+', '~', '→', '»', 'v']);
+    expect(markName('moved')).toBe('Moved');
     expect(markName('version')).toBe('Version only');
   });
 });
@@ -460,6 +487,22 @@ describe('buildChangeMarks: address segments', () => {
       title: 'Changed: renamed from axi_gpio_0, address changed',
       pins: {},
     });
+  });
+
+  it('promotes a moved block to changed and keeps the old level in the title', () => {
+    const graph = moveGraph();
+    const marks = buildChangeMarks(
+      diffOf(
+        [segment('changed', 'gpio_block/axi_gpio_0/S_AXI/Reg')],
+        moveDiff().instances.filter((i) => i.status === 'moved')
+      ),
+      graph
+    );
+    expect(marks.blocks.get('/gpio_block/axi_gpio_0')).toMatchObject({
+      status: 'changed',
+      title: 'Changed: moved from /, address changed',
+    });
+    expect(marks.blocks.get('/gpio_block')?.inside).toBe(1);
   });
 
   it('joins the texts of several segment changes on a promoted block and counts it once', () => {

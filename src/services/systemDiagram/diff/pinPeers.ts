@@ -17,7 +17,7 @@ export interface PinId {
 }
 
 /**
- * `baseName`: set on the lookup of the base graph after renamed blocks were applied to it; it
+ * `baseName`: set on the lookup of the base graph after renamed and moved blocks were applied to it; it
  * gives the path a block had in the base revision, for labels only (identity uses the renamed paths).
  */
 export type PeerLookup = ((id: PinId) => PinId[]) & { baseName?: (path: string) => string };
@@ -91,4 +91,22 @@ export function buildPeerLookup(graph: SystemGraph): PeerLookup {
     }
   }
   return (id) => [...(peers.get(pinKey(id))?.values() ?? [])];
+}
+
+/**
+ * The labels of `peers` of the pin `id` of the base graph, sorted, written as the base revision
+ * had them: with the old paths of renamed and moved blocks (`PeerLookup.baseName`), and relative
+ * to the level `id` had there, so a block that moved with its neighbour is not written absolute.
+ */
+export function basePeerLabels(lookup: PeerLookup, id: PinId, peers: PinId[]): string[] {
+  const { baseName } = lookup;
+  if (!baseName) {
+    return peerLabels(peers, id.level);
+  }
+  const asNamed = (peer: PinId): PinId =>
+    peer.instance !== null
+      ? instancePin(baseName(peer.instance), peer.pin)
+      : { ...peer, level: baseName(peer.level) };
+  const view = id.instance !== null ? parentLevel(baseName(id.instance)) : baseName(id.level);
+  return peerLabels(peers.map(asNamed), view);
 }

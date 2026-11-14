@@ -22,6 +22,8 @@ export interface TextStyle {
   /** Extra space after each character, in px. */
   letterSpacing?: number;
   opacity?: number;
+  /** Struck through: the name of something a comparison removed. */
+  strike?: boolean;
   /** Outline color painted behind the glyphs (a halo that keeps the text legible over wires). */
   halo?: string;
 }
@@ -52,6 +54,7 @@ export function drawTextOnBaseline(
       fill: style.fill,
       'letter-spacing': style.letterSpacing,
       opacity: style.opacity,
+      'text-decoration': style.strike ? 'line-through' : undefined,
       stroke: style.halo,
       'stroke-width': style.halo === undefined ? undefined : HALO_WIDTH,
       'stroke-linejoin': style.halo === undefined ? undefined : 'round',

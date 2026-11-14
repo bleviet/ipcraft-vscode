@@ -262,7 +262,7 @@ ipcraft diff bd/system.bd --base origin/main --fail-on new-findings
 
 | Option | Meaning |
 |---|---|
-| `--base <git ref>` | One-file form. The revision to compare with: a branch, tag, commit or `HEAD~1`. The file is read at the same path in the repository that contains it |
+| `--base <git ref>` | One-file form. The revision to compare with: a branch, tag, commit or `HEAD~1`. The file is read at the same path in the repository that contains it, or under its old path when git finds that it was renamed since (see below) |
 | `--head <git ref>` | One-file form, with `--base`. Compare with this revision instead of the working tree |
 | `--format <markdown\|json>` | Report format (default `markdown`) |
 | `--out <file>` | Write the report to this file instead of standard output. The folder is created if needed |
@@ -273,13 +273,18 @@ ipcraft diff bd/system.bd --base origin/main --fail-on new-findings
 `--image` draws what the viewer shows with **Marks** on, at the top level `/` of the
 current revision with nothing expanded, in the look `ipcraft render` has by
 default (light theme, grid, legend, editor background, scale 2). Added blocks,
-blocks with changed parameters or pins, renamed blocks, blocks with only a new
+blocks with changed parameters or pins, renamed and moved blocks, blocks with only a new
 version and added or changed external ports have a border in the color of their
-kind and a sign in the header (`+`, `~`, `→`, `v`); a hierarchy with changes inside
+kind and a sign in the header (`+`, `~`, `→`, `»`, `v`); a hierarchy with changes inside
 has a `~ N inside` count; the pins that gained or changed a connection have
 their name in color; new wires are drawn in the added color, a little wider. The
-legend names the kinds present and counts the removed blocks and ports as
-`− N removed`: they are not drawn. With `--ignore-version-only`, blocks with only
+blocks and ports that only the base has are drawn as ghosts, as the viewer draws them
+with **Show removed** on: a dashed border in the removed color, the name struck
+through, a `−` in the header and a dimmed body; a pin a block lost has its name struck
+through, and a lost wire is dashed in the removed color. The image is laid out with
+both revisions, so a block can sit somewhere else than in an image of the current
+revision alone. The legend names the kinds present, including `− Removed`, and
+`Removed wire` when there is one. With `--ignore-version-only`, blocks with only
 a version change are not marked. For another level, an expanded hierarchy or
 another look, use the viewer. The command prints `Wrote <file>` on its own line
 after the report: to standard output when the report is written with `--out`, to
@@ -379,7 +384,7 @@ and `reason`, sorted by kind,
 level and label.
 
 Each sign has a meaning: `+` added, `−` removed, `~` changed, `→` renamed,
-`v` version only. A section without changes is left out, and a report without any change reads
+`»` moved, `v` version only. A section without changes is left out, and a report without any change reads
 `No changes.` Connections are compared per pin: a pin whose set of connected pins
 changed is listed with the old and the new set (`not connected` for an empty
 set), however the nets are named. Only the pin that moved is listed: a pin whose
@@ -428,6 +433,30 @@ not 0:
 | → | `framebuffer_reader` | renamed | `frambuffer_reader` | `fram`**`e`**`buffer_reader` |
 ```
 
+After the renames, a removed and an added block are paired as a **move** when they are
+the same block under another parent level: the same name, kind, type (version
+included), parameters and pin names, each the topmost block of its subtree (neither
+lies below another removed or added block), and the only such pair. All pairs are
+applied to the base at once, with the block and what is below it under the new path
+and the nets staying on their levels, so the pins of the moved block can see other
+neighbours. A pair is kept when nothing differs below the moved block and the block
+itself has no change but its pins (no parameter, type or attribute change); the
+others stay removed plus added, as does a block that is moved and renamed, or moved
+into a hierarchy that is itself new. A move is one row in the new level, with the old
+path under Base and the new path under Current, followed by the rows of the pins whose
+connections changed, written as for a changed block; the pins of the blocks that were
+connected to it are listed from their side, as for any rewired pin. In JSON, a move
+is an instance with `status` `moved`, `path` (the new path), `basePath` (the old one),
+`level` (the new parent level), empty `parameters` and the changed `pins`, and is
+counted in `summary.moved`; `summary` has the key with 0 when there is no move. The
+summary line of the Markdown report adds `»N moved` when N is not 0, and `--fail-on
+changes` counts a move as a change:
+
+```markdown
+| » | `framebuffer_reader` | moved | `/framebuffer_reader` | `/video/framebuffer_reader` |
+| ~ | `framebuffer_reader` | pin `M_AXI` connects to | `axi_interconnect_0/S00_AXI` | `S_AXI_FB` |
+```
+
 If the two files are of different formats, for example a `write_bd_tcl` script
 and a `.bd` of the same design, the report says so, because each format knows
 different things about the design (a `.bd` declares the pins of module
@@ -437,13 +466,44 @@ Both revisions are read as text and nothing is executed, as in the viewer. The
 revision is read from the local git object store with `git show`; there is no
 network access and nothing is checked out.
 
+A file that was added after the base revision, or that had another path there, is
+still compared. If the file is not at the same path in the base revision, `diff`
+asks git for the renames between the base and the current side (`git diff-index -M`
+for the working tree, `git diff-tree -M` for `--head`, at the default similarity of git;
+your `diff.*` settings do not apply) and
+reads the file under its old path; a file that was also edited since is paired
+with its old self as long as git pairs them. The report says so in one line after
+the `Comparing` line:
+
+```markdown
+Read at HEAD~1 as `bd/old_name.bd` (renamed since).
+```
+
+If git finds no such rename and the path is not in the tree of the base revision, the
+file did not exist there, and the base is an empty design: every block, port and address
+segment is added, the line reads
+
+```markdown
+The file did not exist at HEAD~1: everything is added.
+```
+
+and `--fail-on changes` fails on the added blocks. `--fail-on new-findings` fails too
+when the new file has any finding (an unconnected pin, a clock or reset crossing),
+because every finding of a file that was not there before is new. In the JSON report,
+`base` has `"path": "bd/old_name.bd"` (relative to the repository root) for a renamed file
+and `"missing": true` for a file that did not exist; neither field is there otherwise. A rename is found only for
+a file that git knows: a new name that is not added to the index is not paired
+with the old file. The current side must exist: a file that is not in the
+working tree (or at `--head`) is an error, and so is any other failure of git, with
+git's own reason, also a path that is in the base revision whose content git cannot
+read (a partial clone without its remote, say).
+
 Limits for now: workspace definitions (`.ip.yml`, HDL, `.qsys`) are not used, so
-only the pins the design files list are compared. A file that does not exist at
-the base revision is an error (`'<file>' does not exist at <ref>`, followed by
-git's own reason), not a design with everything added, and a file that was
-renamed or moved between the revisions is not followed. The path given to
+only the pins the design files list are compared; the viewer's comparison reads the
+definitions of a base revision from git, `ipcraft diff` does not. The path given to
 `git show` is the spelling on the command line, so on a case-insensitive file
-system a path with the wrong case is found on disk but not at the revision. A
+system a path with the wrong case is found on disk but not at the revision, so
+the file is reported as new, with everything added, rather than as an error. A
 file stored with Git LFS is read as its pointer text and reported as not a
 recognized system design. The concept is in
 [System Design Diff](../concepts/brainstorm/system-design-diff.md).

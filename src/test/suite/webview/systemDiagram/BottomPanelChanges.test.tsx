@@ -58,7 +58,7 @@ describe('BottomPanel Changes tab', () => {
 
   it('lists the findings in the tab and filters them with the filter box', () => {
     render(<Panel initial="findings" />);
-    expect(screen.getByText(/^Both revisions are checked/)).toBeVisible();
+    expect(screen.getByText(/^Both sides are checked/)).toBeVisible();
     expect(screen.getAllByRole('row')).toHaveLength(2);
     fireEvent.change(screen.getByRole('searchbox', { name: 'Filter Findings' }), {
       target: { value: 'nothing like this' },

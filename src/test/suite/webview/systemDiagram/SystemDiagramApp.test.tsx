@@ -10,6 +10,7 @@ import { createTextMeasurer } from '../../../../webview/systemDiagram/layout/tex
 import { searchMatches } from '../../../../webview/systemDiagram/search';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
 import { diffSystemGraphs } from '../../../../services/systemDiagram/diff/diffSystemGraphs';
+import { compareOf, zynqDiff, zynqGraph, zynqUnion } from './compareFixtures';
 import {
   fixtureText,
   loadClockFixtureGraph,
@@ -27,6 +28,7 @@ const query = (text: string) => compileSearch(text, DEFAULT_SEARCH_OPTIONS);
 
 const mockFitBounds = jest.fn<void, [unknown, unknown]>();
 let mockElkFailures = 0;
+let mockElkCalls = 0;
 const mockSetCenter = jest.fn<void, [number, number, unknown]>();
 const mockSetViewport = jest.fn<void, [unknown]>();
 let mockViewport = { x: 0, y: 0, zoom: 1 };
@@ -42,6 +44,7 @@ jest.mock('../../../../webview/systemDiagram/layout/runElkLayout', () => {
   >('../../../../webview/systemDiagram/layout/runElkLayout');
   return {
     runElkLayout: (input: Parameters<typeof actual.runElkLayout>[0]) => {
+      mockElkCalls += 1;
       if (mockElkFailures > 0) {
         mockElkFailures -= 1;
         return Promise.reject(new Error('elk failed'));
@@ -54,6 +57,7 @@ jest.mock('../../../../webview/systemDiagram/layout/runElkLayout', () => {
 interface MockFlowNode {
   id: string;
   type: string;
+  position?: { x: number; y: number };
   data: unknown;
   selected?: boolean;
   className?: string;
@@ -82,7 +86,13 @@ jest.mock('@xyflow/react', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const actualFlow = jest.requireActual<typeof import('@xyflow/react')>('@xyflow/react');
   const storeApi = {
-    getState: () => ({ width: 1000, height: 800, minZoom: 0.05, maxZoom: 2 }),
+    getState: () => ({
+      width: 1000,
+      height: 800,
+      minZoom: 0.05,
+      maxZoom: 2,
+      transform: [mockViewport.x, mockViewport.y, mockViewport.zoom],
+    }),
   };
   const api = {
     // Like React Flow, a fit changes the viewport; the fitted zoom is 0.8.
@@ -134,6 +144,9 @@ jest.mock('@xyflow/react', () => {
               {
                 key: node.id,
                 className: ['react-flow__node', node.className].filter(Boolean).join(' '),
+                'data-position': node.position
+                  ? `${node.position.x},${node.position.y}`
+                  : undefined,
               },
               React.createElement(
                 'button',
@@ -2996,6 +3009,7 @@ describe('SystemDiagramApp', () => {
       canSwap: true,
       diff: diffSystemGraphs(base, graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace' as const,
     };
     const changesTab = () => screen.getByRole('tab', { name: /^Changes/ });
     const versionOnlyToggle = () =>
@@ -3167,6 +3181,249 @@ describe('SystemDiagramApp', () => {
       expect(screen.getByTestId('node:/axi_dma_0')).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Show All' }));
       expect(screen.queryByText(/^Isolated · /)).not.toBeInTheDocument();
+    });
+
+    describe('the ghosts of what only the base has', () => {
+      // The .bd pair: `axi_gpio_0` and the port `led_o` are only in the base.
+      const bdNow = zynqGraph('current');
+      const withGhosts = compareOf(zynqDiff(), 'HEAD', { union: zynqUnion() });
+      const withoutUnion = compareOf(zynqDiff(), 'HEAD');
+      const GHOST = 'node:/axi_gpio_0';
+      const PORT = 'node:/::led_o';
+      const WIRE = 'edge:ghost:/::periph_gpio0#1';
+
+      async function renderGhosts(shown = withGhosts) {
+        render(<SystemDiagramApp />);
+        send({ type: 'graph', graph: bdNow, compare: shown });
+        await screen.findByTestId('node:/sys_ps7');
+      }
+      /** Where every node on show sits, by node id. */
+      const positions = (): Record<string, string | null> =>
+        Object.fromEntries(
+          [...document.querySelectorAll<HTMLElement>('.react-flow__node')].map(
+            (wrapper): [string, string | null] => [
+              wrapper.querySelector('[data-testid^="node:"]')!.getAttribute('data-testid')!,
+              wrapper.getAttribute('data-position'),
+            ]
+          )
+        );
+      const removedToggle = () => screen.getByRole('button', { name: 'Show removed' });
+
+      it('draws the removed block, the removed port and the wire between them and a block that stays', async () => {
+        await renderGhosts();
+        expect(removedToggle()).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByTestId(GHOST)).toBeInTheDocument();
+        expect(screen.getByTestId(PORT)).toBeInTheDocument();
+        expect(screen.getByTestId(WIRE)).toBeInTheDocument();
+        expect(document.querySelector('[data-kind][data-change="removed"]')).not.toBeNull();
+      });
+
+      it('has no Removed toggle, and draws no ghost, when the base has nothing the design lacks', async () => {
+        await renderGhosts(withoutUnion);
+        expect(screen.queryByRole('button', { name: 'Show removed' })).not.toBeInTheDocument();
+        expect(screen.queryByTestId(GHOST)).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Marks' })).toBeVisible();
+      });
+
+      it('hides and shows the ghosts with Removed without moving any other block', async () => {
+        await renderGhosts();
+        const shown = positions();
+        fireEvent.click(removedToggle());
+        expect(removedToggle()).toHaveAttribute('aria-pressed', 'false');
+        expect(screen.queryByTestId(GHOST)).not.toBeInTheDocument();
+        expect(screen.queryByTestId(PORT)).not.toBeInTheDocument();
+        expect(screen.queryByTestId(WIRE)).not.toBeInTheDocument();
+        const { [GHOST]: _g, [PORT]: _p, ...rest } = shown;
+        expect(positions()).toEqual(rest);
+        // The wire lost on the interconnect: its pin keeps no row on show.
+        expect(screen.queryByText('M00_AXI')).not.toBeInTheDocument();
+        fireEvent.click(removedToggle());
+        expect(positions()).toEqual(shown);
+      });
+
+      it('hides the ghosts with Marks too, which is the master switch, and keeps the blocks where they were', async () => {
+        await renderGhosts();
+        const shown = positions();
+        fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
+        expect(screen.queryByTestId(GHOST)).not.toBeInTheDocument();
+        expect(screen.queryByTestId(WIRE)).not.toBeInTheDocument();
+        // Removed itself is still on: the ghosts come back with Marks.
+        expect(removedToggle()).toHaveAttribute('aria-pressed', 'true');
+        const { [GHOST]: _g, [PORT]: _p, ...rest } = shown;
+        expect(positions()).toEqual(rest);
+        fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
+        expect(positions()).toEqual(shown);
+      });
+
+      it('starts a comparison with Removed on again for another base', async () => {
+        await renderGhosts();
+        fireEvent.click(removedToggle());
+        send({ type: 'graph', graph: bdNow, compare: { ...withGhosts, baseLabel: 'main' } });
+        expect(await screen.findByTestId(GHOST)).toBeInTheDocument();
+        expect(removedToggle()).toHaveAttribute('aria-pressed', 'true');
+      });
+
+      it('lays the diagram out from the union only while comparing: the plain diagram is as before', async () => {
+        const laidOut = await runElkLayout(buildElkInput(bdNow, '/', { measure: appMeasure }));
+        const plain = Object.fromEntries(
+          toFlowElements(laidOut, bdNow, '/', appMeasure).nodes.map((node) => [
+            `node:${node.id}`,
+            `${node.position.x},${node.position.y}`,
+          ])
+        );
+        await renderGhosts();
+        const comparing = positions();
+        send({ type: 'graph', graph: bdNow });
+        await waitFor(() =>
+          expect(screen.queryByRole('button', { name: 'Show removed' })).toBeNull()
+        );
+        // At once, before the layout of the plain diagram is in: a ghost is never drawn without its marks.
+        expect(screen.queryByTestId(GHOST)).not.toBeInTheDocument();
+        // Blocks move once when the comparison starts (the union has more to place), and back when it ends.
+        await waitFor(() => expect(positions()).toEqual(plain));
+        expect(plain).not.toEqual(comparing);
+      });
+
+      it('selects a ghost, shows what the base had and opens nothing, and the Outline lists it', async () => {
+        await renderGhosts();
+        openPanels();
+        expect(outline().getByRole('button', { name: /^axi_gpio_0/ })).toBeVisible();
+        fireEvent.click(screen.getByTestId(GHOST));
+        expect(details().getByRole('heading', { name: 'axi_gpio_0' })).toBeVisible();
+        expect(details().getByText('Only in the base')).toBeVisible();
+        expect(details().queryByRole('button', { name: 'Open hierarchy' })).not.toBeInTheDocument();
+        fireEvent.click(removedToggle());
+        // Hidden, it is neither on the Outline nor selected any more.
+        expect(outline().queryByRole('button', { name: /^axi_gpio_0/ })).not.toBeInTheDocument();
+        expect(details().queryByRole('heading', { name: 'axi_gpio_0' })).not.toBeInTheDocument();
+      });
+
+      it('finds a ghost by search while it is shown, and not once it is hidden', async () => {
+        await renderGhosts();
+        const box = () => screen.getByRole('searchbox', { name: 'Search instances' });
+        fireEvent.change(box(), { target: { value: 'axi_gpio_0' } });
+        expect(screen.getByText('1 match')).toBeVisible();
+        fireEvent.click(removedToggle());
+        expect(screen.getByText('No results')).toBeVisible();
+      });
+
+      it('does not let a ghost change the unconnected pins of the design', async () => {
+        await renderGhosts(withoutUnion);
+        const count = screen
+          .getByRole('button', { name: /^Unconnected pins/ })
+          .getAttribute('aria-label');
+        send({ type: 'graph', graph: bdNow, compare: { ...withGhosts, baseLabel: 'main' } });
+        await screen.findByTestId(GHOST);
+        expect(screen.getByRole('button', { name: /^Unconnected pins/ })).toHaveAttribute(
+          'aria-label',
+          count
+        );
+      });
+
+      it('keeps an isolated view, and its counts, where they are when Show removed is toggled', async () => {
+        await renderGhosts();
+        fireEvent.click(screen.getByTestId('node:/axi_periph'));
+        fireEvent.contextMenu(screen.getByTestId('node:/axi_periph'));
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+        // The ghost wire joins the removed block to the interconnect, so the block is in the view.
+        await waitFor(() => expect(screen.queryByTestId('node:/sync_0')).not.toBeInTheDocument());
+        expect(screen.getByTestId(GHOST)).toBeInTheDocument();
+        const chip = () => screen.getByText(/^Isolated · /).textContent;
+        const [shownPositions, shownChip] = [positions(), chip()];
+        const callsBefore = mockElkCalls;
+        fireEvent.click(removedToggle());
+        expect(screen.queryByTestId(GHOST)).not.toBeInTheDocument();
+        // Let a layout that would be asked for come in, then compare.
+        await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
+        const { [GHOST]: _g, ...rest } = shownPositions;
+        expect(positions()).toEqual(rest);
+        expect(chip()).toBe(shownChip);
+        // No seed is a ghost, so the toggle asks for no new layout at all.
+        expect(mockElkCalls).toBe(callsBefore);
+        fireEvent.click(removedToggle());
+        await act(() => new Promise((resolve) => setTimeout(resolve, 150)));
+        expect(positions()).toEqual(shownPositions);
+      });
+
+      it('counts an isolated ghost as selected, and drops it from the isolation when it is hidden', async () => {
+        await renderGhosts();
+        fireEvent.click(screen.getByTestId(GHOST));
+        fireEvent.contextMenu(screen.getByTestId(GHOST));
+        fireEvent.click(screen.getByRole('menuitem', { name: 'Isolate Selection' }));
+        await waitFor(() => expect(screen.getByText(/^Isolated · 1 selected/)).toBeInTheDocument());
+        fireEvent.click(removedToggle());
+        // The isolation had only the ghost: it ends, and the whole level is back.
+        await waitFor(() => expect(screen.queryByText(/^Isolated · /)).not.toBeInTheDocument());
+        await screen.findByTestId('node:/sys_ps7');
+      });
+
+      it('keeps the ghosts, and makes no finding of them, with Clocks and resets and the review on', async () => {
+        await renderGhosts();
+        fireEvent.click(screen.getByRole('button', { name: 'Clocks and resets' }));
+        fireEvent.click(screen.getByRole('button', { name: /^Unconnected pins/ }));
+        expect(screen.getByTestId(GHOST)).toBeInTheDocument();
+        expect(screen.getByTestId(WIRE)).toBeInTheDocument();
+        // The review counts the pins of the design: the ghost block's two pins are not among them.
+        const ghostNode = screen.getByTestId(GHOST).parentElement!;
+        expect(ghostNode.querySelector('.sd-pin-stub')).toBeNull();
+        expect(ghostNode.querySelector('.sd-node-unc')).toBeNull();
+      });
+
+      /** The view the Export image button sends, for the whole level or the blocks on screen. */
+      const exportedView = (area: 'whole' | 'view' = 'whole') => {
+        fireEvent.click(screen.getByRole('button', { name: 'Export image' }));
+        fireEvent.change(screen.getByLabelText('Area'), { target: { value: area } });
+        mockPostMessage.mockClear();
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Export' }));
+        return (
+          mockPostMessage.mock.calls.find(
+            ([posted]) => (posted as { type?: string }).type === 'exportImage'
+          )?.[0] as { view: Record<string, unknown> }
+        ).view;
+      };
+
+      it('exports with the ghosts only while Marks and Show removed are on and the comparison has some', async () => {
+        await renderGhosts();
+        expect(exportedView()).toMatchObject({ marks: true, ghosts: true, unionLayout: true });
+        // The ghosts are the host's to draw: no ghost is named in the view.
+        expect(JSON.stringify(exportedView())).not.toContain('axi_gpio_0');
+        fireEvent.click(removedToggle());
+        expect(exportedView()).not.toHaveProperty('ghosts');
+        expect(exportedView()).toMatchObject({ marks: true });
+        fireEvent.click(removedToggle());
+        expect(exportedView()).toHaveProperty('ghosts', true);
+        fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
+        expect(exportedView()).not.toHaveProperty('marks');
+        expect(exportedView()).not.toHaveProperty('ghosts');
+      });
+
+      it('keeps telling the host the layout is the union while the ghosts are hidden, as the canvas does', async () => {
+        await renderGhosts();
+        fireEvent.click(removedToggle());
+        expect(exportedView()).toMatchObject({ unionLayout: true });
+        fireEvent.click(removedToggle());
+        fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
+        expect(exportedView()).toMatchObject({ unionLayout: true });
+      });
+
+      it('crops to the blocks on screen, the ghost among them while it is drawn', async () => {
+        await renderGhosts();
+        // The viewport shows the whole level (see the mock store).
+        expect(exportedView('view').visibleNodeIds).toEqual(
+          expect.arrayContaining(['/axi_gpio_0', '/sys_ps7'])
+        );
+        fireEvent.click(removedToggle());
+        const hidden = exportedView('view').visibleNodeIds as string[];
+        expect(hidden).toContain('/sys_ps7');
+        expect(hidden).not.toContain('/axi_gpio_0');
+      });
+
+      it('exports no ghosts when the base has nothing the design lacks', async () => {
+        await renderGhosts(withoutUnion);
+        expect(exportedView()).toMatchObject({ marks: true });
+        expect(exportedView()).not.toHaveProperty('ghosts');
+        expect(exportedView()).not.toHaveProperty('unionLayout');
+      });
     });
 
     it('opens the Changes tab from the counts and expands a hidden panel', async () => {

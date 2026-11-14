@@ -14,9 +14,15 @@ import { parseArgs } from '../../../cli/argv';
 import { runCliRender, type CliRenderArgs } from '../../../cli/render';
 import { RenderSession } from '../../../cli/renderResources';
 import { createWorkspaceIo } from '../../../cli/workspaceIo';
+import { emptySystemGraph } from '../../../domain/emptySystemGraph';
+import type { EnrichmentIo } from '../../../services/systemDiagram/enrichment/enrichmentIo';
 import { devResourceRoots } from '../../../services/ResourceRoots';
 import { FONT_FILES } from '../../../shared/render/fontFaces';
 import { IP_YML } from '../services/systemDiagram/enrichment/definitionFixtures';
+
+/** The workspace's `.ip.yml` entries; this io lists all of them whatever the design. */
+const listIp = (io: EnrichmentIo<string>) =>
+  io.listIpFiles(emptySystemGraph('d', 'vivado-bd'), '/d.tcl');
 
 const repoRoot = path.resolve(__dirname, '../../../..');
 const fixtures = path.join(repoRoot, 'src/test/fixtures/system-design');
@@ -192,14 +198,14 @@ describe('file discovery', () => {
       'rtl/small.v': 'module small(input a);\nendmodule\n',
     });
     const io = createWorkspaceIo(dir);
-    expect((await io.listIpFiles()).map((e) => e.displayName)).toEqual(['ok/d.ip.yml']);
+    expect((await listIp(io)).map((e) => e.displayName)).toEqual(['ok/d.ip.yml']);
     expect((await io.listHdlFiles()).map((e) => e.displayName)).toEqual(['rtl/small.v']);
   });
 
   it('lists files in sorted order with folder-relative display names', async () => {
     const dir = workspace({ 'z/a.ip.yml': IP_YML, 'b.ip.yml': IP_YML, 'a/c.ip.yml': IP_YML });
     const io = createWorkspaceIo(dir);
-    expect((await io.listIpFiles()).map((e) => e.displayName)).toEqual([
+    expect((await listIp(io)).map((e) => e.displayName)).toEqual([
       'a/c.ip.yml',
       'b.ip.yml',
       'z/a.ip.yml',
@@ -218,7 +224,7 @@ describe('file discovery', () => {
       return; // symbolic links are not available here
     }
     const io = createWorkspaceIo(dir);
-    expect((await io.listIpFiles()).map((e) => e.displayName)).toEqual([
+    expect((await listIp(io)).map((e) => e.displayName)).toEqual([
       'alias.ip.yml',
       'linked/linked.ip.yml',
       'real/a.ip.yml',
@@ -234,7 +240,7 @@ describe('file discovery', () => {
     });
     const warnings: string[] = [];
     const io = createWorkspaceIo(dir, (message) => warnings.push(message));
-    expect((await io.listIpFiles()).map((e) => e.displayName)).toEqual([
+    expect((await listIp(io)).map((e) => e.displayName)).toEqual([
       'a-b/c.ip.yml',
       'a/c.ip.yml',
       'bom/m.ip.yml',

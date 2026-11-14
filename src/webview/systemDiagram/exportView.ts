@@ -44,6 +44,10 @@ export interface SystemExportState {
   marksOn: boolean;
   /** Version only is off: the marks leave out the blocks whose only change is the version. */
   ignoreVersionOnly?: boolean;
+  /** The ghosts of what only the base has are drawn on the canvas (Marks and Show removed are on, and there are some). */
+  ghostsOn?: boolean;
+  /** The comparison has ghosts, so the layout is the union's even while they are hidden. */
+  unionLayout?: boolean;
 }
 
 /** The message payload for the viewer's state; `visible` is set for the Current view area. */
@@ -58,10 +62,12 @@ export function buildSystemExportView(
       isolate: { nodeIds: [...state.isolation.seedIds], hops: state.isolation.hops },
     }),
     clocks: state.clocksOn,
+    ...(state.unionLayout && { unionLayout: true }),
     selectedNodeIds: [...state.selectedNodeIds],
     ...(state.marksOn && {
       marks: true,
       ...(state.ignoreVersionOnly && { ignoreVersionOnly: true }),
+      ...(state.ghostsOn && { ghosts: true }),
     }),
     ...(visible && { visibleNodeIds: [...visible] }),
   };

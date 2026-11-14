@@ -15,11 +15,12 @@ body,
   --sd-change-added: var(--vscode-gitDecoration-addedResourceForeground, #81b88b);
   --sd-change-removed: var(--vscode-gitDecoration-deletedResourceForeground, #c74e39);
   --sd-change-changed: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d);
-  /* Purple: a renamed block is told from an added one by its color as well as its sign, and is
-     not mistaken for a selected block, which is drawn in the focus blue. */
+  /* Purple: a renamed or moved block (both are the same block in a new place; the sign tells
+     them apart) is told from an added one by its color as well as its sign, and is not mistaken
+     for a selected block, which is drawn in the focus blue. */
   --sd-change-renamed: var(--vscode-charts-purple, #b180d7);
   /* Muted in every theme; a block with only a version change differs from an unchanged one by a
-     dotted border. Dashed is left to black boxes. */
+     dotted border. Dashed is left to black boxes and to the ghosts of removed blocks. */
   --sd-change-version: var(--vscode-gitDecoration-ignoredResourceForeground, #8c8c8c);
 }
 
@@ -144,6 +145,11 @@ input:focus-visible {
   color: var(--sd-change-changed);
 }
 
+.sd-pin-label[data-change='removed'] {
+  color: var(--sd-change-removed);
+  text-decoration: line-through;
+}
+
 .sd-pin-label[data-highlight='true'] {
   font-weight: 700;
 }
@@ -171,6 +177,17 @@ input:focus-visible {
   .sd-port-shape {
   stroke: var(--sd-change-changed);
   stroke-width: 1.5;
+}
+
+.sd-port[data-change='removed']:not([data-selected='true']):not([data-highlighted='true'])
+  .sd-port-shape {
+  stroke: var(--sd-change-removed);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.sd-port[data-change='removed'] .sd-port-label {
+  text-decoration: line-through;
 }
 
 /* The sign sits at the end of the tag away from the pin marker, in the 12 px the label leaves free. */
@@ -438,8 +455,14 @@ input:focus-visible {
   border-color: var(--sd-change-changed);
 }
 
-.sd-legend-swatch[data-change='renamed'] {
+.sd-legend-swatch[data-change='renamed'],
+.sd-legend-swatch[data-change='moved'] {
   border-color: var(--sd-change-renamed);
+}
+
+.sd-legend-swatch[data-change='removed'] {
+  border-style: dashed;
+  border-color: var(--sd-change-removed);
 }
 
 .sd-legend-swatch[data-change='version'] {
@@ -462,13 +485,20 @@ input:focus-visible {
 }
 
 .sd-node[data-change='renamed'],
-.sd-frame[data-change='renamed'] {
+.sd-frame[data-change='renamed'],
+.sd-node[data-change='moved'],
+.sd-frame[data-change='moved'] {
   --sd-change-color: var(--sd-change-renamed);
 }
 
 .sd-node[data-change='version'],
 .sd-frame[data-change='version'] {
   --sd-change-color: var(--sd-change-version);
+}
+
+.sd-node[data-change='removed'],
+.sd-frame[data-change='removed'] {
+  --sd-change-color: var(--sd-change-removed);
 }
 
 .sd-node[data-change]:not([data-selected='true']):not([data-highlighted='true']) {
@@ -492,6 +522,22 @@ input:focus-visible {
 .sd-frame[data-change='version']:not([data-selected='true']):not([data-highlighted='true']) {
   border-style: dotted;
   box-shadow: none;
+}
+
+/* Removed (the ghost of a block only the base has): a dashed border, the name struck through
+   and the body dimmed, so it is never taken for a block of the design. The ring stays off, as for
+   version only, except far out. */
+.sd-node[data-change='removed']:not([data-selected='true']):not([data-highlighted='true']) {
+  border-style: dashed;
+  box-shadow: var(--sd-node-shadow);
+}
+
+.sd-node[data-change='removed'] > :not(.sd-node-head) {
+  opacity: 0.65;
+}
+
+.sd-node[data-change='removed'] .sd-node-name {
+  text-decoration: line-through;
 }
 
 [data-far='true'] .sd-node[data-change]:not([data-selected='true']):not([data-highlighted='true']) {
@@ -545,13 +591,19 @@ input:focus-visible {
   }
 
   .sd-node[data-change='renamed'],
-  .sd-frame[data-change='renamed'] {
+  .sd-frame[data-change='renamed'],
+  .sd-node[data-change='moved'],
+  .sd-frame[data-change='moved'] {
     outline: 3px double Highlight;
   }
 
   .sd-node[data-change='version'],
   .sd-frame[data-change='version'] {
     outline-style: dotted;
+  }
+
+  .sd-node[data-change='removed'] {
+    outline-style: dashed;
   }
 }
 
@@ -563,12 +615,17 @@ input:focus-visible {
   color: var(--sd-change-changed);
 }
 
-.sd-change-sign[data-change='renamed'] {
+.sd-change-sign[data-change='renamed'],
+.sd-change-sign[data-change='moved'] {
   color: var(--sd-change-renamed);
 }
 
 .sd-change-sign[data-change='version'] {
   color: var(--sd-change-version);
+}
+
+.sd-change-sign[data-change='removed'] {
+  color: var(--sd-change-removed);
 }
 
 .sd-change-sign {
@@ -1012,6 +1069,13 @@ input:focus-visible {
   color: var(--vscode-editorWarning-foreground);
 }
 
+.sd-legend-bar-removed {
+  height: 0;
+  background: none !important;
+  border-top: 2px dashed var(--sd-change-removed);
+  border-radius: 0;
+}
+
 .sd-legend-bar-dashed {
   height: 0;
   background: none !important;
@@ -1338,7 +1402,9 @@ input:focus-visible {
 }
 
 .sd-delta[data-sign='→'],
-.sd-sign[data-sign='→'] {
+.sd-sign[data-sign='→'],
+.sd-delta[data-sign='»'],
+.sd-sign[data-sign='»'] {
   color: var(--sd-change-renamed);
 }
 

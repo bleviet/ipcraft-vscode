@@ -38,7 +38,7 @@ export function segmentSlave(
 /**
  * The blocks a segment text can name, by the path the text spells, and the block of the current
  * graph each belongs to: a current block is its own; a removed block belongs to none (`undefined`);
- * a renamed block, and the blocks below a renamed hierarchy, are spelled by their base path and
+ * a renamed or moved block, and the blocks below a renamed or moved hierarchy, are spelled by their base path and
  * belong to the block under its current name.
  */
 export type SegmentOwners = ReadonlyMap<string, string | undefined>;
@@ -50,7 +50,10 @@ export function segmentOwners(graph: SystemGraph, diff: SystemGraphDiff): Segmen
   for (const change of diff.instances) {
     if (change.status === 'removed') {
       owners.set(change.path, undefined);
-    } else if (change.status === 'renamed' && change.basePath !== undefined) {
+    } else if (
+      (change.status === 'renamed' || change.status === 'moved') &&
+      change.basePath !== undefined
+    ) {
       for (const path of Object.keys(graph.instances)) {
         if (path === change.path || path.startsWith(`${change.path}/`)) {
           owners.set(change.basePath + path.slice(change.path.length), path);

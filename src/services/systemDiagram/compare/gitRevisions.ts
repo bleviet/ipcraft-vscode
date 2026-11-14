@@ -22,6 +22,21 @@ interface GitRepository {
   getRefs?(query: object): Promise<GitRef[]>;
   /** The commits that changed `path`, newest first. */
   log(options: { path: string; maxEntries: number }): Promise<GitCommit[]>;
+  /** The files that differ between the working tree and `ref`; a renamed file is one change. */
+  diffWith(ref: string): Promise<GitChange[]>;
+  /** Throws a `GitError` with `gitErrorCode` `UnknownPath` when `path` is not in the tree of `treeish`. */
+  getObjectDetails(treeish: string, path: string): Promise<unknown>;
+  /** The commit `ref` names now. */
+  getCommit(ref: string): Promise<{ hash: string }>;
+  /** Refreshes `state`; the git extension fills `state.HEAD` asynchronously after it opens a repository. */
+  status?(): Promise<void>;
+}
+
+/** `status`: `Status.INDEX_RENAMED` (3) for a renamed file; `originalUri` is the old path, `uri` the new one. */
+interface GitChange {
+  uri: vscode.Uri;
+  originalUri: vscode.Uri;
+  status: number;
 }
 
 interface GitCommit {
@@ -175,6 +190,10 @@ export async function listRevisions(
   uri: vscode.Uri
 ): Promise<RevisionChoice[]> {
   try {
+    // Without HEAD the current branch would be listed among the others.
+    if (!repo.state.HEAD && repo.status) {
+      await repo.status();
+    }
     const refs = await refsOf(repo);
     const current = repo.state.HEAD?.name;
     const named = (type: number, group: 'branch' | 'tag'): RevisionChoice[] =>
@@ -245,21 +264,164 @@ export async function listFileCommits(
   });
 }
 
-/** The text of the file at `ref`. */
+const INDEX_RENAMED = 3;
+
+/** The file at a revision: its text (and the old path when git found it under another one), or nothing when it did not exist there. */
+export type RevisionFile = { text: string; renamedFrom?: string } | { missing: true };
+
+/** The old path of `uri` per the rename detection of git between `ref` and the working tree. */
+async function renamedFrom(
+  repo: GitRepository,
+  ref: string,
+  uri: vscode.Uri
+): Promise<vscode.Uri | undefined> {
+  try {
+    const changes = await repo.diffWith(ref);
+    return changes.find((c) => c.status === INDEX_RENAMED && c.uri.fsPath === uri.fsPath)
+      ?.originalUri;
+  } catch {
+    return undefined;
+  }
+}
+
+/** True when git says the path is not in the tree of `ref`; any other failure is not an answer. */
+async function absentAt(repo: GitRepository, ref: string, uri: vscode.Uri): Promise<boolean> {
+  try {
+    await repo.getObjectDetails(ref, uri.fsPath);
+    return false;
+  } catch (error) {
+    return (error as { gitErrorCode?: unknown } | undefined)?.gitErrorCode === 'UnknownPath';
+  }
+}
+
+/**
+ * The file at `ref`. When it is not there: its text under the old path, if git's rename
+ * detection finds that it was renamed since; `missing`, if the path is not in the revision;
+ * otherwise an error with git's reason.
+ */
 export async function readRevision(
   repo: GitRepository,
   ref: string,
   uri: vscode.Uri
-): Promise<string> {
+): Promise<RevisionFile> {
   // A leading '-' would be read by git as an option.
   if (ref.trim().startsWith('-')) {
     throw new Error(REVISION_DASH);
   }
+  const fail = (error: unknown): Error =>
+    new Error(
+      `Cannot read ${vscode.workspace.asRelativePath(uri, false)} at '${ref}': ${gitReason(error)}`
+    );
+  try {
+    return { text: await repo.show(ref, uri.fsPath) };
+  } catch (error) {
+    const old = await renamedFrom(repo, ref, uri);
+    if (old) {
+      try {
+        return {
+          text: await repo.show(ref, old.fsPath),
+          renamedFrom: vscode.workspace.asRelativePath(old, false),
+        };
+      } catch (renamedError) {
+        throw fail(renamedError);
+      }
+    }
+    if (await absentAt(repo, ref, uri)) {
+      return { missing: true };
+    }
+    throw fail(error);
+  }
+}
+
+/**
+ * The commit `ref` names now. A branch or `HEAD` moves with the next commit, so a comparison
+ * reads everything at the hash it resolved once. `^{commit}` peels an annotated tag, so the
+ * git extension (which finds the hash in the output of `git show`) sees only the commit and
+ * not a tag message that quotes another hash.
+ */
+export async function resolveCommit(repo: GitRepository, ref: string): Promise<string> {
+  if (ref.trim().startsWith('-')) {
+    throw new Error(REVISION_DASH);
+  }
+  try {
+    return (await repo.getCommit(`${ref}^{commit}`)).hash;
+  } catch (error) {
+    throw new Error(`Cannot resolve '${ref}': ${gitReason(error)}`);
+  }
+}
+
+/**
+ * The text of `uri` at `ref`; undefined when the path is not in the tree of `ref` and
+ * `oldPathOf` finds no other path of the file there. `oldPathOf` gives the path the file had at
+ * `ref` when it was renamed since. Any other failure throws an error with git's reason.
+ */
+export async function readFileAt(
+  repo: GitRepository,
+  ref: string,
+  uri: vscode.Uri,
+  oldPathOf?: (uri: vscode.Uri) => Promise<vscode.Uri | undefined>
+): Promise<string | undefined> {
+  const fail = (file: vscode.Uri, error: unknown): Error =>
+    new Error(
+      `Cannot read ${vscode.workspace.asRelativePath(file, false)} at '${ref}': ${gitReason(error)}`
+    );
   try {
     return await repo.show(ref, uri.fsPath);
   } catch (error) {
-    throw new Error(
-      `Cannot read ${vscode.workspace.asRelativePath(uri, false)} at '${ref}': ${gitReason(error)}`
-    );
+    if (!(await absentAt(repo, ref, uri))) {
+      throw fail(uri, error);
+    }
   }
+  const old = await oldPathOf?.(uri);
+  if (!old) {
+    return undefined;
+  }
+  try {
+    return await repo.show(ref, old.fsPath);
+  } catch (error) {
+    throw fail(old, error);
+  }
+}
+
+/** The files renamed between `ref` and the working tree: new path -> old path. */
+async function renamedSince(repo: GitRepository, ref: string): Promise<Map<string, vscode.Uri>> {
+  const changes = await repo.diffWith(ref);
+  return new Map(
+    changes.filter((c) => c.status === INDEX_RENAMED).map((c) => [c.uri.fsPath, c.originalUri])
+  );
+}
+
+/**
+ * Reads the files of the workspace as they were at the commit `hash`, for the definitions of
+ * one comparison: a file renamed since is read under its old path (one `diffWith` for the
+ * comparison, made when a file is not at the commit under its own path), and each file is read
+ * once. A move is followed when it is committed or staged as of the first lookup, and git's
+ * rename detection sees it (similar enough content); an untracked file or a move made later in
+ * the session is not. Undefined for a file that was not there; rejects when git fails, and a failed read is
+ * tried again on the next call.
+ */
+export function revisionFileReader(
+  repo: GitRepository,
+  hash: string
+): (uri: vscode.Uri) => Promise<string | undefined> {
+  let renames: Promise<Map<string, vscode.Uri>> | undefined;
+  const oldPathOf = async (uri: vscode.Uri) => {
+    const found = (renames ??= renamedSince(repo, hash));
+    try {
+      return (await found).get(uri.fsPath);
+    } catch (error) {
+      renames = undefined;
+      throw error;
+    }
+  };
+  const reads = new Map<string, Promise<string | undefined>>();
+  return (uri) => {
+    let read = reads.get(uri.fsPath);
+    if (!read) {
+      read = readFileAt(repo, hash, uri, oldPathOf);
+      reads.set(uri.fsPath, read);
+      read.catch(() => reads.delete(uri.fsPath));
+    }
+    return read;
+  };
 }

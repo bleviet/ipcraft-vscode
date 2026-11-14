@@ -40,7 +40,8 @@ jest.mock('../../../services/systemDiagram/SystemDesignEnricher', () => ({
     get revision() {
       return String(mockEnrichRevision);
     }
-    enrich = (graph: unknown) => mockEnrich(graph) as Promise<unknown>;
+    enrich = (graph: unknown, _file: string, readAt?: unknown) =>
+      mockEnrich(graph, readAt) as Promise<unknown>;
     dispose = jest.fn();
   },
 }));
@@ -718,7 +719,13 @@ describe('SystemDiagramProvider export image', () => {
     const editedText = (text: string) => text.split('axi_dma:7.1').join('axi_dma:7.2');
     type Posted = {
       type: string;
-      compare?: { baseLabel: string; diff: { summary: unknown }; findings: unknown };
+      compare?: {
+        baseLabel: string;
+        baseDefinitions: string;
+        diff: { summary: unknown };
+        findings: unknown;
+        union?: { instances: { path: string }[] };
+      };
     };
 
     async function ready() {
@@ -742,10 +749,28 @@ describe('SystemDiagramProvider export image', () => {
         removed: 0,
         changed: 0,
         renamed: 0,
+        moved: 0,
         version: 1,
       });
       // The findings of the two revisions travel with the changes.
       expect(message.compare?.findings).toEqual({ new: [], resolved: [] });
+    });
+
+    it('sends what only the base has with the changes, for the diagram to draw as ghosts', async () => {
+      const { posted, send } = await ready();
+      const withExtra = `${fixtureText}\nset extra_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 extra_0 ]\n`;
+      pick.mockResolvedValue({ text: withExtra, label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      expect((posted[0] as Posted).compare?.union?.instances.map((i) => i.path)).toEqual([
+        '/extra_0',
+      ]);
+    });
+
+    it('sends no union when the base has nothing the document lacks', async () => {
+      const { posted, send } = await ready();
+      pick.mockResolvedValue({ text: editedText(fixtureText), label: 'HEAD' });
+      await send({ type: 'startCompare' });
+      expect((posted[0] as Posted).compare).not.toHaveProperty('union');
     });
 
     it('updates the changes when the document is edited', async () => {
@@ -793,6 +818,39 @@ describe('SystemDiagramProvider export image', () => {
         await send({ type: 'stopCompare' });
         await send(exportMessage);
         expect(exportedDiff(1)).not.toHaveProperty('changes');
+      });
+    });
+
+    describe('Export image ghosts', () => {
+      const ghostMessage = {
+        type: 'exportImage',
+        options: { ...DEFAULT_EXPORT_OPTIONS, area: 'whole' },
+        view: {
+          levelPath: '/',
+          expanded: [],
+          clocks: false,
+          selectedNodeIds: [],
+          marks: true,
+          ghosts: true,
+          unionLayout: true,
+        },
+      };
+
+      it('draws what only the base has, as the last published comparison carries it', async () => {
+        (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue(undefined);
+        (renderSystemLevelImage as jest.Mock).mockClear();
+        const { send } = await ready();
+        const withExtra = `${fixtureText}\nset extra_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 extra_0 ]\n`;
+        pick.mockResolvedValue({ text: withExtra, label: 'HEAD' });
+        await send({ type: 'startCompare' });
+        await send(ghostMessage);
+        const request = (renderSystemLevelImage as jest.Mock).mock.calls[0][1] as {
+          union?: { instances: { path: string }[] };
+        };
+        expect(request.union?.instances.map((i) => i.path)).toEqual(['/extra_0']);
+        await send({ type: 'stopCompare' });
+        await send(ghostMessage);
+        expect((renderSystemLevelImage as jest.Mock).mock.calls[1][1]).not.toHaveProperty('union');
       });
     });
 
@@ -962,6 +1020,47 @@ describe('SystemDiagramProvider export image', () => {
           ports: [],
           segments: [],
         });
+
+      it('enriches a revision as base with its definitions, the current side with the workspace ones', async () => {
+        const { posted, send, change, document } = await ready();
+        const readDefinitionAt = jest.fn();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD', readDefinitionAt });
+        mockEnrich.mockClear();
+        await send({ type: 'startCompare' });
+        // Only the base is enriched: the current side already is.
+        expect(mockEnrich.mock.calls.map((call: unknown[]) => call[1])).toEqual([readDefinitionAt]);
+        document.text = editedText(fixtureText);
+        change();
+        await flush();
+        // An edit enriches the current side with the workspace definitions.
+        expect(mockEnrich.mock.calls.map((call: unknown[]) => call[1])).toEqual([
+          readDefinitionAt,
+          undefined,
+        ]);
+        expect((posted.at(-1) as Posted).compare?.baseDefinitions).toBe('revision');
+      });
+
+      it('says that definitions are not read in an untrusted workspace', async () => {
+        const workspace = vscode.workspace as unknown as { isTrusted: boolean };
+        const { posted, send } = await ready();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD', readDefinitionAt: jest.fn() });
+        workspace.isTrusted = false;
+        try {
+          await send({ type: 'startCompare' });
+          expect((posted.at(-1) as Posted).compare?.baseDefinitions).toBe('none');
+        } finally {
+          workspace.isTrusted = true;
+        }
+      });
+
+      it('says that a file as base uses the definitions of the workspace', async () => {
+        const { posted, send } = await ready();
+        pick.mockResolvedValue({ text: fixtureText, label: 'HEAD', file: oldUri });
+        mockEnrich.mockClear();
+        await send({ type: 'startCompare' });
+        expect(mockEnrich.mock.calls.map((call: unknown[]) => call[1])).toEqual([undefined]);
+        expect((posted.at(-1) as Posted).compare?.baseDefinitions).toBe('workspace');
+      });
 
       it('shows no phantom pin once trust is granted and both sides get the definition', async () => {
         const { posted, send, grantTrust } = await ready();

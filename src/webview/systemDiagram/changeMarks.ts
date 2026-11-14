@@ -2,19 +2,30 @@
  * What a comparison marks on the diagram (issue #302): per block, per external port and per
  * level, and whether a drawn wire is new. A plain data structure and small pure functions over
  * a {@link SystemGraphDiff} and the current {@link SystemGraph}; the canvas, the outline and
- * the Details panel read it. Removed blocks, ports and wires are only counted (they are not drawn).
+ * the Details panel read it. A removed block, port or wire is drawn only while its ghost is shown (see
+ * `layout/unionGraph.ts`); otherwise it is only counted.
  */
 
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { PinChange, PortChange, SystemGraphDiff } from '../../domain/systemGraphDiff';
-import { instancePin, peerLabel, pinKey } from '../../services/systemDiagram/diff/pinPeers';
+import {
+  instancePin,
+  parentLevel,
+  peerLabel,
+  pinKey,
+} from '../../services/systemDiagram/diff/pinPeers';
 import { CHANGE_KINDS } from './changeSummary';
 import { segmentOwners, segmentSlave, segmentTextOwner, type SegmentOwners } from './changeTargets';
-import { boundaryId } from './model';
+import { boundaryId, parseBoundaryId } from './model';
+import { NO_GHOSTS, type Ghosts } from './layout/unionGraph';
 
-/** The kinds of change a block that exists in the current revision can have. */
-export type MarkStatus = 'added' | 'changed' | 'renamed' | 'version';
-export type PinMarkKind = 'added' | 'changed';
+/**
+ * The kinds of change a drawn block can have: those of a block of the current revision, and
+ * `removed` for the ghost of a block that only the base has.
+ */
+export type MarkStatus = 'added' | 'changed' | 'renamed' | 'moved' | 'version' | 'removed';
+/** `removed`: the ghost of a pin that only the base has, on a block that exists in both. */
+export type PinMarkKind = 'added' | 'changed' | 'removed';
 
 export interface BlockMarks {
   status?: MarkStatus;
@@ -29,14 +40,14 @@ export interface BlockMarks {
 }
 
 export interface PortMarks {
-  status: 'added' | 'changed';
+  status: 'added' | 'changed' | 'removed';
   title: string;
 }
 
 export interface ChangeMarks {
-  /** The blocks of the current graph with a status or with changes below them. */
+  /** The blocks of the current graph with a status or with changes below them, and the ghosts that are shown. */
   blocks: ReadonlyMap<string, BlockMarks>;
-  /** The external ports of `/` that are added or changed. */
+  /** The external ports of `/` that are added or changed, and the ghosts of the removed ones that are shown. */
   ports: ReadonlyMap<string, PortMarks>;
   /** Level path to the number of instances and external ports of that level that only the base has. */
   removed: ReadonlyMap<string, number>;
@@ -44,6 +55,8 @@ export interface ChangeMarks {
   gained: ReadonlyMap<string, ReadonlySet<string>>;
   /** Who a segment text names, for a removed segment (see `segmentOwners`). */
   owners: SegmentOwners;
+  /** The ids of the nets only the base has whose ghosts are shown: their wires are drawn removed. */
+  removedNets: ReadonlySet<string>;
 }
 
 /** A marked pin of a node; `inside`: the mark is of the view from inside the hierarchy (a frame's pin). */
@@ -65,6 +78,7 @@ export interface NodeChange {
 /** Tooltips of a marked pin. */
 export const PIN_TITLES = {
   added: 'New pin',
+  removed: 'Removed pin',
   changed: 'Connection changed',
   addedInside: 'New pin inside',
   changedInside: 'Connection inside changed',
@@ -83,14 +97,17 @@ export function pinChangeAttributes(mark: PinChangeMark | undefined): {
   return mark
     ? {
         'data-change': mark.kind,
-        title: PIN_TITLES[mark.inside ? (`${mark.kind}Inside` as const) : mark.kind],
+        title:
+          mark.kind === 'removed'
+            ? PIN_TITLES.removed
+            : PIN_TITLES[mark.inside ? (`${mark.kind}Inside` as const) : mark.kind],
       }
     : {};
 }
 
-/** The sign of a status (`+`, `~`, `→`, `v`), as the Changes tab writes it. */
+/** The sign of a status (`+`, `~`, `→`, `»`, `v`), as the Changes tab writes it. */
 export const markSign = (status: MarkStatus): string => KINDS[status].sign;
-/** The name of a status (`Added`, `Changed`, `Renamed`, `Version only`). */
+/** The name of a status (`Added`, `Changed`, `Renamed`, `Moved`, `Version only`). */
 export const markName = (status: MarkStatus): string => KINDS[status].chip;
 /** The label of the count of changes below a hierarchy block. */
 export const insideLabel = (count: number): string =>
@@ -130,6 +147,8 @@ function blockTitle(change: SystemGraphDiff['instances'][number]): string {
       return markName('added');
     case 'renamed':
       return `${markName('renamed')} from ${lastName(change.basePath ?? change.path)}`;
+    case 'moved':
+      return `${markName('moved')} from ${movedFrom(change)}`;
     case 'version':
       return `${markName('version')}: ${change.baseType} → ${change.currentType}`;
     default: {
@@ -146,12 +165,18 @@ function blockTitle(change: SystemGraphDiff['instances'][number]): string {
   }
 }
 
-/** The title of a version-only or renamed block that an address change promoted to `changed`. */
+/** The level a moved block was on: its old parent path. */
+const movedFrom = (change: SystemGraphDiff['instances'][number]): string =>
+  parentLevel(change.basePath ?? change.path);
+
+/** The title of a version-only, renamed or moved block that an address change promoted to `changed`. */
 function promotedTitle(change: SystemGraphDiff['instances'][number]): string {
   const what =
     change.status === 'renamed'
       ? `renamed from ${lastName(change.basePath ?? change.path)}`
-      : `${change.baseType} → ${change.currentType}`;
+      : change.status === 'moved'
+        ? `moved from ${movedFrom(change)}`
+        : `${change.baseType} → ${change.currentType}`;
   return `${markName('changed')}: ${what}`;
 }
 
@@ -196,14 +221,25 @@ function pinMarks(pins: readonly PinChange[], inside: boolean): Record<string, P
   return Object.fromEntries(
     pins
       .filter((pin) => (pin.inside === true) === inside && pin.status !== 'removed')
-      .map((pin) => [pin.pin, pin.status as PinMarkKind])
+      .map((pin) => [pin.pin, pin.status])
   );
 }
 
-/** The marks of the whole design for `diff`, which `graph` is the current side of. */
-export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): ChangeMarks {
+/** The title of a ghost: a block, port or pin that only the base has. */
+const GHOST_TITLE = 'Removed: only in the base';
+
+/**
+ * The marks of the whole design for `diff`, which `graph` is the current side of. The `ghosts`
+ * that are shown (see `unionGraph.ts`) are marked removed: blocks and ports by their own mark,
+ * pins that a block lacks as a pin mark of that block.
+ */
+export function buildChangeMarks(
+  diff: SystemGraphDiff,
+  graph: SystemGraph,
+  ghosts: Ghosts = NO_GHOSTS
+): ChangeMarks {
   const statuses = new Map<string, Omit<BlockMarks, 'inside'>>();
-  /** The title a version-only or renamed block takes when an address change promotes it. */
+  /** The title a version-only, renamed or moved block takes when an address change promotes it. */
   const promotedTitles = new Map<string, string>();
   const inside = new Map<string, number>();
   const removed = new Map<string, number>();
@@ -219,7 +255,7 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
     if (change.status === 'removed') {
       removed.set(change.level, (removed.get(change.level) ?? 0) + 1);
     } else if (graph.instances[change.path]) {
-      const withPins = change.status === 'changed';
+      const withPins = change.status === 'changed' || change.status === 'moved';
       const insidePins = pinMarks(change.pins, true);
       statuses.set(change.path, {
         status: change.status,
@@ -227,7 +263,7 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
         pins: withPins ? pinMarks(change.pins, false) : {},
         ...(withPins && Object.keys(insidePins).length > 0 && { insidePins }),
       });
-      if (change.status === 'version' || change.status === 'renamed') {
+      if (change.status === 'version' || change.status === 'renamed' || change.status === 'moved') {
         promotedTitles.set(change.path, promotedTitle(change));
       }
     }
@@ -266,7 +302,7 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
     // Only the first text of a title is capitalized: `Address changed, address segment removed`.
     const [first = '', ...rest] = titles;
     const text = [first, ...rest.map(lowerFirst)].join(', ');
-    // An address change makes a version-only or renamed block a changed one.
+    // An address change makes a version-only, renamed or moved block a changed one.
     const promoted = promotedTitles.get(slave);
     const lead = promoted ?? known?.title ?? '';
     statuses.set(
@@ -298,11 +334,31 @@ export function buildChangeMarks(diff: SystemGraphDiff, graph: SystemGraph): Cha
     }
   }
 
+  for (const path of ghosts.instances) {
+    statuses.set(path, { status: 'removed', title: GHOST_TITLE, pins: {} });
+  }
+  for (const [path, names] of ghosts.pins) {
+    const known = statuses.get(path);
+    statuses.set(path, {
+      ...known,
+      pins: {
+        ...known?.pins,
+        ...Object.fromEntries([...names].map((name) => [name, 'removed' as const])),
+      },
+    });
+  }
+  for (const id of ghosts.boundary) {
+    const { level, pin } = parseBoundaryId(id);
+    if (level === '/') {
+      ports.set(pin, { status: 'removed', title: GHOST_TITLE });
+    }
+  }
+
   const blocks = new Map<string, BlockMarks>();
   for (const path of new Set([...statuses.keys(), ...inside.keys()])) {
     blocks.set(path, { pins: {}, ...statuses.get(path), inside: inside.get(path) ?? 0 });
   }
-  return { blocks, ports, removed, gained, owners };
+  return { blocks, ports, removed, gained, owners, removedNets: ghosts.nets };
 }
 
 /**
@@ -330,7 +386,9 @@ export function boundaryMark(
     return marks.ports.get(pin);
   }
   const kind = marks.blocks.get(level)?.insidePins?.[pin];
-  return kind && { status: kind, title: PIN_TITLES[`${kind}Inside`] };
+  return kind && kind !== 'removed'
+    ? { status: kind, title: PIN_TITLES[`${kind}Inside`] }
+    : undefined;
 }
 
 /** The ids of the nodes of `levelPath` that carry a mark: a block with a status or changes below it, an added or changed external port or boundary pin. */

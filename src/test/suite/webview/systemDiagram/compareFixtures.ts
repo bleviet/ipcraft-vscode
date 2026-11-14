@@ -1,8 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { FindingsDiff, SystemGraphDiff } from '../../../../domain/systemGraphDiff';
+import type {
+  FindingsDiff,
+  SystemGraphDiff,
+  UnionAdditions,
+} from '../../../../domain/systemGraphDiff';
 import type { DiagramCompare } from '../../../../shared/messages/systemDiagram';
 import { diffSystemGraphs } from '../../../../services/systemDiagram/diff/diffSystemGraphs';
+import { unionAdditions } from '../../../../services/systemDiagram/diff/unionAdditions';
 import { readSystemDesign } from '../../../../services/systemDiagram/readSystemDesign';
 
 const FIXTURES = path.resolve(__dirname, '../../../fixtures/system-design/diff');
@@ -32,6 +37,18 @@ export function renameDiff(): SystemGraphDiff {
 /** The current graph of that pair. */
 export const renameGraph = () => read('zynq_gpio_rename_current.bd');
 
+/** Base to current of the pair with a block moved into a hierarchy (`axi_gpio_0` into `gpio_block`), its nets rewired. */
+export function moveDiff(): SystemGraphDiff {
+  return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_move_current.bd'));
+}
+
+/** The current graph of that pair. */
+export const moveGraph = () => read('zynq_gpio_move_current.bd');
+
+/** What only the base has in the .bd pair: a removed block, its pin on the interconnect, a removed port and a wire. */
+export const zynqUnion = (): UnionAdditions =>
+  unionAdditions(zynqGraph('base'), zynqGraph('current'), zynqDiff());
+
 export function emptyDiff(): SystemGraphDiff {
   return diffSystemGraphs(read('zynq_gpio_base.bd'), read('zynq_gpio_base.bd'));
 }
@@ -39,11 +56,19 @@ export function emptyDiff(): SystemGraphDiff {
 export const compareOf = (
   diff: SystemGraphDiff,
   baseLabel = 'HEAD',
-  options: { currentLabel?: string; canSwap?: boolean; findings?: FindingsDiff } = {}
+  options: {
+    currentLabel?: string;
+    canSwap?: boolean;
+    findings?: FindingsDiff;
+    baseDefinitions?: DiagramCompare['baseDefinitions'];
+    union?: UnionAdditions;
+  } = {}
 ): DiagramCompare => ({
   baseLabel,
   currentLabel: options.currentLabel ?? 'sys/current.bd',
   canSwap: options.canSwap ?? false,
   diff,
   findings: options.findings ?? { new: [], resolved: [] },
+  baseDefinitions: options.baseDefinitions ?? 'workspace',
+  ...(options.union && { union: options.union }),
 });

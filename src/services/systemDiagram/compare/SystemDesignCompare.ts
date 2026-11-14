@@ -6,20 +6,31 @@
  * the early graph, enriched against enriched once it shows the enriched one. The base is
  * enriched once and the result is reused while the workspace definitions are unchanged (the
  * enricher's `revision`), so it sees the same definitions as the current side, also after
- * trust is granted or a definition changes, without being enriched anew for each edit.
+ * trust is granted or a definition changes, without being enriched anew for each edit. A base
+ * that is a git revision is enriched with the definitions as they were at that revision; the
+ * current side always uses those of the workspace.
  */
 
+import { emptySystemGraph } from '../../../domain/emptySystemGraph';
 import type { SystemGraph } from '../../../domain/systemGraph';
-import type { Finding, FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
+import type { BaseDefinitions } from '../../../shared/messages/systemDiagram';
+import type {
+  Finding,
+  FindingsDiff,
+  SystemGraphDiff,
+  UnionAdditions,
+} from '../../../domain/systemGraphDiff';
 import { compareFindings, findingsBase, findingsOf } from '../diff/diffFindings';
 import { diffSystemGraphs } from '../diff/diffSystemGraphs';
+import { hasAdditions, unionAdditions } from '../diff/unionAdditions';
+import type { ReadAt } from '../enrichment/revisionIo';
 import { readSystemDesign } from '../readSystemDesign';
 
 /** The part of `SystemDesignEnricher` the comparison uses. */
-export interface GraphEnricher {
+export interface GraphEnricher<R> {
   /** Differs between two moments when what `enrich` reads may have changed in between. */
   readonly revision: string;
-  enrich(read: SystemGraph, designFile: string): Promise<SystemGraph>;
+  enrich(read: SystemGraph, designFile: string, readAt?: ReadAt<R>): Promise<SystemGraph>;
 }
 
 export interface CompareResult {
@@ -27,6 +38,9 @@ export interface CompareResult {
   diff: SystemGraphDiff;
   /** The findings that differ, for the same two graphs as `diff`. */
   findings: FindingsDiff;
+  baseDefinitions: BaseDefinitions;
+  /** What only the base has, for the diagram to draw as ghosts; absent when there is none. */
+  union?: UnionAdditions;
 }
 
 /** The current side: the graph as read, as enriched, and whether its enrichment failed (then both are the read graph). */
@@ -36,12 +50,32 @@ export interface CurrentSide {
   fellBack: boolean;
 }
 
-export class SystemDesignCompare {
-  private base: { label: string; read: SystemGraph } | undefined;
+/** How the base was found, when it is not the file read under its own path. */
+export interface BaseOrigin<R> {
+  /** The base revision has no such file: the base is an empty design. */
+  missing?: true;
+  /** The base revision has the file under this path. */
+  renamedFrom?: string;
+  /**
+   * Reads the definitions (of the workspace file `R`) at the base revision; without it the
+   * base uses the workspace's. It rejects when the revision cannot be read: the comparison is
+   * then made without definitions.
+   */
+  readDefinitionAt?: ReadAt<R>;
+}
+
+/** `read` is undefined for a missing file: the empty design of the format of the current side. */
+interface Base<R> extends BaseOrigin<R> {
+  label: string;
+  read?: SystemGraph;
+}
+
+export class SystemDesignCompare<R> {
+  private base: Base<R> | undefined;
   /** The enrichment of the base for one design file, as of one revision of the definitions. */
   private enrichedBase:
     | {
-        base: object;
+        base: Base<R>;
         designFile: string;
         revision: string;
         enriched: Promise<SystemGraph>;
@@ -51,7 +85,7 @@ export class SystemDesignCompare {
   private readonly analysed = new WeakMap<SystemGraph, ReadonlyMap<string, Finding>>();
 
   constructor(
-    private readonly enricher: GraphEnricher,
+    private readonly enricher: GraphEnricher<R>,
     private readonly logError: (message: string, error: Error) => void
   ) {}
 
@@ -62,13 +96,29 @@ export class SystemDesignCompare {
   /**
    * Reads the base text as the document would be read (`documentFileName` decides the
    * format). Throws when the text is not a system design; a running comparison stays as it was.
+   * A missing base has no text: everything of the current side is added.
    */
-  start(baseText: string, baseDisplayName: string, label: string, documentFileName: string): void {
-    const read = readSystemDesign(documentFileName, baseDisplayName, baseText);
-    if (!read) {
-      throw new Error(`'${label}' is not a recognized system design`);
+  start(
+    baseText: string,
+    baseDisplayName: string,
+    label: string,
+    documentFileName: string,
+    origin: BaseOrigin<R> = {}
+  ): void {
+    if (origin.missing) {
+      this.base = { label, missing: true };
+    } else {
+      const read = readSystemDesign(documentFileName, baseDisplayName, baseText);
+      if (!read) {
+        throw new Error(`'${label}' is not a recognized system design`);
+      }
+      this.base = {
+        label,
+        read,
+        renamedFrom: origin.renamedFrom,
+        readDefinitionAt: origin.readDefinitionAt,
+      };
     }
-    this.base = { label, read };
     this.enrichedBase = undefined;
   }
 
@@ -94,24 +144,34 @@ export class SystemDesignCompare {
       if (!base) {
         return undefined;
       }
+      const baseRead = base.read;
+      if (!baseRead) {
+        // Nothing to enrich: the empty design is compared with the current side as shown.
+        return this.result(
+          base,
+          undefined,
+          current.fellBack ? current.read : current.enriched,
+          current.fellBack
+        );
+      }
       let fellBack = current.fellBack;
       const enriched = fellBack
-        ? base.read
-        : await this.enrich(base, designFile).catch((error: unknown) => {
+        ? baseRead
+        : await this.enrich(base, baseRead, designFile).catch((error: unknown) => {
             this.logError('Failed to enrich the base of the comparison', error as Error);
             fellBack = true;
-            return base.read;
+            return baseRead;
           });
       if (this.base === base) {
         return fellBack
-          ? this.result(base, base.read, current.read)
+          ? this.result(base, baseRead, current.read, true)
           : this.result(base, enriched, current.enriched);
       }
     }
   }
 
   /** The enrichment of the base, shared while the base, the design file and the definitions are the same. */
-  private enrich(base: { read: SystemGraph }, designFile: string): Promise<SystemGraph> {
+  private enrich(base: Base<R>, read: SystemGraph, designFile: string): Promise<SystemGraph> {
     // Read before the enrichment starts: a change while it runs makes the next call enrich again.
     const revision = this.enricher.revision;
     const cached = this.enrichedBase;
@@ -122,7 +182,7 @@ export class SystemDesignCompare {
       base,
       designFile,
       revision,
-      enriched: this.enricher.enrich(base.read, designFile),
+      enriched: this.enricher.enrich(read, designFile, base.readDefinitionAt),
     };
     this.enrichedBase = entry;
     // A failed enrichment is not kept: the next diff tries again.
@@ -135,18 +195,30 @@ export class SystemDesignCompare {
   }
 
   private result(
-    base: { label: string },
-    baseGraph: SystemGraph,
-    current: SystemGraph
+    base: Base<R>,
+    baseGraph: SystemGraph | undefined,
+    current: SystemGraph,
+    withoutDefinitions = false
   ): CompareResult {
-    const diff = diffSystemGraphs(baseGraph, current);
+    const from = baseGraph ?? emptySystemGraph(current.name, current.source.format);
+    const diff = diffSystemGraphs(from, current);
+    if (base.missing) {
+      diff.base.missing = true;
+    } else if (base.renamedFrom !== undefined) {
+      diff.base.path = base.renamedFrom;
+    }
+    const renamedBase = findingsBase(from, diff);
+    const union = unionAdditions(from, current, diff, renamedBase);
     return {
       baseLabel: base.label,
+      baseDefinitions: withoutDefinitions
+        ? 'none'
+        : base.readDefinitionAt
+          ? 'revision'
+          : 'workspace',
       diff,
-      findings: compareFindings(
-        this.findingsOf(findingsBase(baseGraph, diff)),
-        this.findingsOf(current)
-      ),
+      findings: compareFindings(this.findingsOf(renamedBase), this.findingsOf(current)),
+      ...(hasAdditions(union) && { union }),
     };
   }
 

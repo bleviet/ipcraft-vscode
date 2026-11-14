@@ -54,3 +54,12 @@ export const withoutNestedSlave = (design: any): void => {
   block.nets = {};
   delete design.addressing['/sys_ps7'].address_spaces.Data.segments.SEG_axi_gpio_1_Reg;
 };
+
+/** `gpio_block`, a hierarchy, is gone with its wires and its address segment; `axi_periph` stays. */
+export const withoutGpioBlock = (design: any): void => {
+  delete design.components.gpio_block;
+  delete design.interface_nets.periph_block;
+  const ports: string[] = design.nets.fclk.ports;
+  design.nets.fclk.ports = ports.filter((p) => !p.startsWith('gpio_block/'));
+  delete design.addressing['/sys_ps7'].address_spaces.Data.segments.SEG_axi_gpio_1_Reg;
+};

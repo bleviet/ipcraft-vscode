@@ -9,7 +9,8 @@ import {
 } from './changeMarks';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { outlineDomains, type OutlineDomains } from './clocks/domainView';
-import { boundaryId, cellCount, instanceTypeLabel, type Selection } from './model';
+import { openCellCount } from './layout/unionGraph';
+import { boundaryId, instanceTypeLabel, type Selection } from './model';
 import { withAncestors } from './search';
 import { nodeUnconnectedCount, type UnconnectedPin } from './unconnectedPins';
 
@@ -186,6 +187,16 @@ export function OutlineTree({
     () => (searchMatches ? withAncestors(searchMatches) : null),
     [searchMatches]
   );
+  // The ghosts of a comparison are not cells of the design: the counts of a hierarchy leave them out.
+  const ghostBlocks = useMemo(
+    () =>
+      new Set(
+        [...(changes?.blocks ?? [])]
+          .filter(([, block]) => block.status === 'removed')
+          .map(([path]) => path)
+      ),
+    [changes]
+  );
   const unconnectedOf = (nodeId: string) =>
     review ? nodeUnconnectedCount(review, nodeId, graph) : undefined;
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set(['/', 'ports']));
@@ -204,7 +215,9 @@ export function OutlineTree({
       if (!instance || (shown && !shown.has(instancePath))) {
         return null;
       }
-      const isHier = instance.kind === 'hier';
+      // The ghost of a removed hierarchy is one block: it has no cells to list.
+      const isHier =
+        instance.kind === 'hier' && changes?.blocks.get(instancePath)?.status !== 'removed';
       const open = shown !== null || expanded.has(instancePath);
       return (
         <React.Fragment key={instancePath}>
@@ -213,7 +226,7 @@ export function OutlineTree({
             label={instance.name}
             icon={instance.kind}
             detail={isHier ? undefined : instanceTypeLabel(instance)}
-            count={isHier ? cellCount(graph, instancePath) : undefined}
+            count={isHier ? openCellCount(graph, instancePath, ghostBlocks) : undefined}
             unconnected={unconnectedOf(instancePath)}
             domains={clocks ? outlineDomains(clocks, graph, instancePath) : undefined}
             change={blockChange(changes, instancePath)}

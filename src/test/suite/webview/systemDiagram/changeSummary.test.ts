@@ -4,7 +4,7 @@ import {
   changeSummaryText,
   shownKinds,
 } from '../../../../webview/systemDiagram/changeSummary';
-import { emptyDiff, renameDiff, zynqDiff } from './compareFixtures';
+import { emptyDiff, moveDiff, renameDiff, zynqDiff } from './compareFixtures';
 
 const only = (key: 'instances' | 'ports' | 'segments', count: number): SystemGraphDiff => {
   const base = emptyDiff();
@@ -37,17 +37,22 @@ describe('changeSummaryText', () => {
 });
 
 describe('CHANGE_KINDS', () => {
-  it('lists the five kinds in display order, the renamed one fourth', () => {
+  it('lists the six kinds in display order, the renamed and the moved one after the changed one', () => {
     expect(CHANGE_KINDS.map(({ sign, key, chip }) => [sign, key, chip])).toEqual([
       ['+', 'added', 'Added'],
       ['−', 'removed', 'Removed'],
       ['~', 'changed', 'Changed'],
       ['→', 'renamed', 'Renamed'],
+      ['»', 'moved', 'Moved'],
       ['v', 'version', 'Version only'],
     ]);
     expect(CHANGE_KINDS[3]).toMatchObject({
       badge: 'Renamed',
       meaning: 'Same block under a new name',
+    });
+    expect(CHANGE_KINDS[4]).toMatchObject({
+      badge: 'Moved',
+      meaning: 'Same block under another level',
     });
   });
 });
@@ -63,6 +68,18 @@ describe('shownKinds', () => {
       'version',
     ]);
     expect(keys(shownKinds(renameDiff().summary))).toContain('renamed');
+  });
+
+  it('lists the moved kind only after a move', () => {
+    expect(keys(shownKinds(zynqDiff().summary))).not.toContain('moved');
+    expect(keys(shownKinds(renameDiff().summary))).not.toContain('moved');
+    expect(keys(shownKinds(moveDiff().summary))).toEqual([
+      'added',
+      'removed',
+      'changed',
+      'moved',
+      'version',
+    ]);
   });
 
   it('leaves the version kind out when asked, whatever the count', () => {

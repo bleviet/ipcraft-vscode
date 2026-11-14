@@ -6,6 +6,7 @@ import path from 'path';
 import type { SystemGraphDiff } from '../../domain/systemGraphDiff';
 import { diffFindings } from '../../services/systemDiagram/diff/diffFindings';
 import { diffSystemGraphs } from '../../services/systemDiagram/diff/diffSystemGraphs';
+import { unionAdditions } from '../../services/systemDiagram/diff/unionAdditions';
 import { readSystemDesign } from '../../services/systemDiagram/readSystemDesign';
 
 const harnessPath = `file://${path.resolve(__dirname, 'system-diagram.html')}`;
@@ -39,6 +40,7 @@ test.describe('System diagram comparison', () => {
       canSwap: true,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     };
     await page.goto(harnessPath);
     await page.waitForFunction(() =>
@@ -81,6 +83,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff,
       findings: diffFindings(base, graph, diff),
+      baseDefinitions: 'workspace',
     };
     await page.goto(harnessPath);
     await page.waitForFunction(() =>
@@ -101,7 +104,7 @@ test.describe('System diagram comparison', () => {
       'true'
     );
     await tab.click();
-    await expect(page.getByText(/^Both revisions are checked/)).toBeVisible();
+    await expect(page.getByText(/^Both sides are checked/)).toBeVisible();
     const row = page.getByRole('row').filter({ hasText: 'undriven pin' });
     await expect(row).toContainText('Resolved');
     await expect(row).toContainText('led_o');
@@ -117,6 +120,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_rename_base.bd'), graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     };
     await page.goto(harnessPath);
     await page.waitForFunction(() =>
@@ -142,15 +146,20 @@ test.describe('System diagram comparison', () => {
   async function openComparing(
     page: Page,
     pair: [string, string],
-    edit: (diff: SystemGraphDiff) => SystemGraphDiff = (diff) => diff
+    edit: (diff: SystemGraphDiff) => SystemGraphDiff = (diff) => diff,
+    ghosts = false
   ) {
-    const graph = read(pair[1]);
+    const [base, graph] = [read(pair[0]), read(pair[1])];
+    const diff = edit(diffSystemGraphs(base, graph));
     const compare = {
       baseLabel: 'HEAD',
       currentLabel: 'sys/system.bd',
       canSwap: false,
-      diff: edit(diffSystemGraphs(read(pair[0]), graph)),
+      diff,
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
+      // What only the base has, drawn as ghosts; the extension sends it with every comparison.
+      ...(ghosts && { union: unionAdditions(base, graph, diff) }),
     };
     await page.setViewportSize({ width: 1500, height: 900 });
     await page.goto(harnessPath);
@@ -190,6 +199,69 @@ test.describe('System diagram comparison', () => {
     await expect(page.locator('path.sd-edge-new').first()).toBeAttached();
     await expect(page.getByLabel('Legend')).toContainText('New wire');
     await expect(page.getByLabel('Legend')).toContainText('2 removed, see Changes');
+  });
+
+  test('draws what only the base has as ghosts: dashed, struck through, with the minus sign', async ({
+    page,
+  }) => {
+    await openComparing(page, ['zynq_gpio_base.bd', 'zynq_gpio_current.bd'], undefined, true);
+
+    const ghost = block(page, 'axi_gpio_0');
+    await expect(ghost).toHaveAttribute('data-change', 'removed');
+    await expect(ghost).toHaveCSS('border-top-style', 'dashed');
+    await expect(ghost.locator('.sd-node-name')).toHaveCSS('text-decoration-line', 'line-through');
+    await expect(ghost.getByRole('img', { name: /^Removed/ })).toHaveText('−');
+    const port = page.locator('.sd-port[data-change="removed"]', { hasText: 'led_o' });
+    await expect(port).toBeVisible();
+    const wire = page.locator('path.sd-edge-removed.react-flow__edge-path');
+    await expect(wire).toHaveCount(1);
+    await expect(wire).toHaveCSS('stroke-dasharray', '6px, 4px');
+    await expect(page.getByLabel('Legend')).toContainText('− Removed');
+    await expect(page.getByLabel('Legend')).toContainText('Removed wire');
+    await expect(page.getByLabel('Legend')).not.toContainText('see Changes');
+    // The interconnect shows the pin of the ghost wire, marked as removed.
+    await expect(
+      block(page, 'axi_periph').locator('.sd-pin-label[data-change="removed"]')
+    ).toHaveText('M00_AXI');
+  });
+
+  test('hides the ghosts with Removed or Marks without moving the other blocks', async ({
+    page,
+  }) => {
+    await openComparing(page, ['zynq_gpio_base.bd', 'zynq_gpio_current.bd'], undefined, true);
+    const names = ['sys_ps7', 'axi_periph', 'gpio_block', 'axis_data_fifo_0'];
+    const boxes = () => Promise.all(names.map(async (name) => block(page, name).boundingBox()));
+    const before = await boxes();
+    const toggle = page.getByRole('button', { name: 'Show removed' });
+    await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await expect(block(page, 'axi_gpio_0')).toHaveCount(0);
+    await expect(page.locator('.sd-port[data-change="removed"]')).toHaveCount(0);
+    await expect(page.locator('path.sd-edge-removed')).toHaveCount(0);
+    await expect(page.locator('.sd-pin-label[data-change="removed"]')).toHaveCount(0);
+    expect(await boxes()).toEqual(before);
+    // The removed things are still counted, as before the ghosts.
+    await expect(page.getByLabel('Legend')).toContainText('removed, see Changes');
+
+    await toggle.click();
+    await expect(block(page, 'axi_gpio_0')).toBeVisible();
+    expect(await boxes()).toEqual(before);
+
+    // Marks is the master switch: no ghost without it, and the blocks stay where they were.
+    await page.getByRole('button', { name: 'Marks' }).click();
+    await expect(block(page, 'axi_gpio_0')).toHaveCount(0);
+    expect(await boxes()).toEqual(before);
+    await page.getByRole('button', { name: 'Marks' }).click();
+    await expect(block(page, 'axi_gpio_0')).toBeVisible();
+  });
+
+  test('has no Removed toggle when the base has nothing the design lacks', async ({ page }) => {
+    await openComparing(page, ['zynq_gpio_base.bd', 'zynq_gpio_current.bd']);
+    await expect(page.getByRole('button', { name: 'Marks' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show removed' })).toHaveCount(0);
+    await expect(block(page, 'axi_gpio_0')).toHaveCount(0);
   });
 
   test('marks the changed and removed segments in the Address map tab', async ({ page }) => {
@@ -309,6 +381,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: diffSystemGraphs(base, current),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     });
     await expect(page.locator('.sd-node').first()).toBeVisible();
     const overlay = page.locator('path.sd-edge-new:not(.react-flow__edge-path)');
@@ -356,6 +429,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     });
     await expect(
       block(page, 'gpio_block').getByRole('img', { name: '1 change inside' })
@@ -378,6 +452,7 @@ test.describe('System diagram comparison', () => {
       canSwap: false,
       diff: diffSystemGraphs(read('zynq_gpio_base.bd'), graph),
       findings: { new: [], resolved: [] },
+      baseDefinitions: 'workspace',
     });
     await expect(page.locator('.sd-node').first()).toBeVisible();
     const canvas = page.locator('.sd-canvas');
@@ -419,6 +494,7 @@ test.describe('System diagram comparison', () => {
         canSwap: true,
         diff: realisticNames(diffSystemGraphs(read('zynq_gpio_base.bd'), graph)),
         findings: { new: [], resolved: [] },
+        baseDefinitions: 'workspace',
       };
       await page.setViewportSize({ width: size.width, height: size.height });
       await page.goto(harnessPath);

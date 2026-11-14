@@ -8,13 +8,19 @@ import {
 } from '../../../../../services/systemDiagram/compare/SystemDesignCompare';
 import { fixtureText as tclText } from '../../../webview/systemDiagram/fixtureGraph';
 import { readSystemDesign } from '../../../../../services/systemDiagram/readSystemDesign';
+import { ipEntryFromText } from '../../../../../services/systemDiagram/enrichment/fileEntries';
+import { enrichSystemGraph } from '../../../../../services/systemDiagram/enrichment/enrichSystemGraph';
+import { revisionIo } from '../../../../../services/systemDiagram/enrichment/revisionIo';
+import { IP_YML } from '../enrichment/definitionFixtures';
 
 const fixtures = path.resolve(__dirname, '../../../../fixtures/system-design/diff');
 const text = (file: string) => fs.readFileSync(path.join(fixtures, file), 'utf8');
 const current = readSystemDesign('/ws/system.bd', 'system.bd', text('zynq_gpio_current.bd'))!;
 
 function setup() {
-  const enrich = jest.fn((graph: SystemGraph, _file: string) => Promise.resolve(graph));
+  const enrich = jest.fn((graph: SystemGraph, _file: string, _readAt?: unknown) =>
+    Promise.resolve(graph)
+  );
   const logError = jest.fn();
   // The revision of the definitions: a test bumps it to change them.
   const enricher = { revision: '1', enrich };
@@ -50,8 +56,35 @@ describe('SystemDesignCompare', () => {
       changed: 2,
       version: 1,
       renamed: 0,
+      moved: 0,
     });
     expect(enrich).not.toHaveBeenCalled();
+  });
+
+  describe('the union of both graphs for the layout', () => {
+    it('carries what only the base has, as read and as enriched, from the same base as the diff', async () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      const read = compare.diffRead(current)!;
+      const enriched = (await compare.diffEnriched(side(), '/ws/system.bd'))!;
+      for (const result of [read, enriched]) {
+        expect(result.union?.instances.map((i) => i.path)).toEqual(['/axi_gpio_0']);
+        expect(result.union?.boundaryPins.map(({ pin }) => pin.name)).toEqual(['led_o']);
+        expect(result.union?.nets.map((net) => net.id)).toEqual(['ghost:/::periph_gpio0']);
+      }
+    });
+
+    it('is absent when the base has nothing the current side lacks', () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_current.bd'), ...START);
+      expect(compare.diffRead(current)).not.toHaveProperty('union');
+    });
+
+    it('is absent for a base that did not exist, which has nothing to draw', () => {
+      const { compare } = setup();
+      compare.start('', 'system.bd', 'HEAD~3', '/ws/system.bd', { missing: true });
+      expect(compare.diffRead(current)).not.toHaveProperty('union');
+    });
   });
 
   it('enriches the base with the document path', async () => {
@@ -244,6 +277,7 @@ describe('SystemDesignCompare', () => {
       changed: 2,
       version: 1,
       renamed: 0,
+      moved: 0,
     });
   });
 
@@ -299,7 +333,7 @@ describe('SystemDesignCompare', () => {
         side({ enriched: marked(current) }),
         '/ws/system.bd'
       );
-      expect(result).toEqual(compare.diffRead(current));
+      expect(result).toEqual({ ...compare.diffRead(current), baseDefinitions: 'none' });
       expect(result?.diff.current.name).not.toBe('enriched');
     });
 
@@ -308,7 +342,7 @@ describe('SystemDesignCompare', () => {
       enrich.mockImplementation((graph) => Promise.resolve(marked(graph)));
       compare.start(text('zynq_gpio_base.bd'), ...START);
       const result = await compare.diffEnriched(side({ fellBack: true }), '/ws/system.bd');
-      expect(result).toEqual(compare.diffRead(current));
+      expect(result).toEqual({ ...compare.diffRead(current), baseDefinitions: 'none' });
       expect(result?.diff.base.name).not.toBe('enriched');
     });
   });
@@ -349,5 +383,207 @@ describe('SystemDesignCompare', () => {
     compare.stop();
     expect(compare.active).toBe(false);
     expect(compare.diffRead(current)).toBeUndefined();
+  });
+
+  describe('a base that is not the file read under its own path', () => {
+    it('takes a missing file as an empty design in the format of the current side, so everything is added', () => {
+      const { compare } = setup();
+      compare.start('', 'system.bd', 'HEAD~3', '/ws/system.bd', { missing: true });
+      expect(compare.active).toBe(true);
+      const { diff, baseLabel, findings } = compare.diffRead(current)!;
+      expect(baseLabel).toBe('HEAD~3');
+      expect(diff.base).toEqual({ name: current.name, format: 'vivado-bd', missing: true });
+      expect(diff.formatsDiffer).toBe(false);
+      expect(diff.summary.added).toBe(
+        Object.keys(current.instances).length + diff.ports.length + current.addressSegments.length
+      );
+      expect(diff.ports.length).toBeGreaterThan(0);
+      expect(diff.summary).toMatchObject({ removed: 0, changed: 0, renamed: 0, moved: 0 });
+      expect(diff.instances.every((i) => i.status === 'added')).toBe(true);
+      expect(findings.resolved).toEqual([]);
+    });
+
+    it('does not read the text of a missing file, nor enrich it, and compares with the current side as shown', async () => {
+      const { compare, enrich } = setup();
+      compare.start('puts not-a-design', 'system.bd', 'HEAD~3', '/ws/system.bd', { missing: true });
+      const enriched = { ...current, name: 'enriched' };
+      const result = await compare.diffEnriched(side({ enriched }), '/ws/system.bd');
+      expect(enrich).not.toHaveBeenCalled();
+      expect(result!.diff.current.name).toBe('enriched');
+      expect(result!.diff.base.missing).toBe(true);
+      const fellBack = await compare.diffEnriched(
+        side({ enriched, fellBack: true }),
+        '/ws/system.bd'
+      );
+      expect(fellBack!.diff.current.name).toBe(current.name);
+    });
+
+    it('records the old path of a file read under another one, as read and as enriched', async () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START, { renamedFrom: 'old/system.bd' });
+      expect(compare.diffRead(current)!.diff.base.path).toBe('old/system.bd');
+      expect(compare.diffRead(current)!.diff.base).not.toHaveProperty('missing');
+      const enriched = await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enriched!.diff.base.path).toBe('old/system.bd');
+    });
+
+    it('leaves the sides as they are without an origin', () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      expect(compare.diffRead(current)!.diff.base).not.toHaveProperty('path');
+      expect(compare.diffRead(current)!.diff.base).not.toHaveProperty('missing');
+    });
+  });
+
+  describe('the definitions of a revision', () => {
+    const BD = [
+      'create_bd_design "d"',
+      'set my_core_0 [ create_bd_cell -type ip -vlnv acme.com:ip:my_core:1.0 my_core_0 ]',
+      'set other_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:other:1.0 other_0 ]',
+      'connect_bd_net [get_bd_pins my_core_0/flag] [get_bd_pins other_0/x]',
+    ].join('\n');
+    // The definition at the revision had no interrupt: the pin `irq` is new.
+    const OLD_IP = IP_YML.replace('interrupts:\n  - { name: irq }\n', '');
+    const readDefinitionAt = jest.fn<Promise<string | undefined>, [unknown]>();
+    const location = {
+      file: '/ws/my_core.ip.yml',
+      displayName: 'my_core.ip.yml',
+      uri: 'file:///ws/my_core.ip.yml',
+      ref: '/ws/my_core.ip.yml',
+    };
+
+    beforeEach(() => {
+      readDefinitionAt.mockReset().mockResolvedValue(OLD_IP);
+    });
+
+    it('reaches the enrichment of a base that has it, and only that', async () => {
+      const { compare, enrich } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START, { readDefinitionAt });
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich.mock.calls[0][2]).toBe(readDefinitionAt);
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich.mock.calls[1][2]).toBeUndefined();
+    });
+
+    it('says where the definitions of the base come from, as read and as enriched', async () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START, { readDefinitionAt });
+      expect(compare.diffRead(current)!.baseDefinitions).toBe('revision');
+      expect((await compare.diffEnriched(side(), '/ws/system.bd'))!.baseDefinitions).toBe(
+        'revision'
+      );
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      expect(compare.diffRead(current)!.baseDefinitions).toBe('workspace');
+      expect((await compare.diffEnriched(side(), '/ws/system.bd'))!.baseDefinitions).toBe(
+        'workspace'
+      );
+    });
+
+    it('is workspace for a missing base, which is never enriched', async () => {
+      const { compare, enrich } = setup();
+      compare.start('', ...START, { missing: true, readDefinitionAt });
+      expect((await compare.diffEnriched(side(), '/ws/system.bd'))!.baseDefinitions).toBe(
+        'workspace'
+      );
+      expect(enrich).not.toHaveBeenCalled();
+    });
+
+    it('compares as read, saying so, when the revision cannot be read, and logs it once', async () => {
+      const failing = jest.fn().mockRejectedValue(new Error('Cannot read core at v1: offline'));
+      const workspace = {
+        listIpFiles: async () => [ipEntryFromText(IP_YML, location)],
+        listHdlFiles: async () => [],
+        listQsysFiles: async () => [],
+        readText: async () => '',
+      };
+      const logError = jest.fn();
+      const real = {
+        revision: '1',
+        enrich: (
+          graph: SystemGraph,
+          file: string,
+          readAt?: (ref: string) => Promise<string | undefined>
+        ) => enrichSystemGraph(graph, file, readAt ? revisionIo(workspace, readAt) : workspace),
+      };
+      const compare = new SystemDesignCompare(real, logError);
+      compare.start(BD, 'd.tcl', 'HEAD', '/ws/d.tcl', { readDefinitionAt: failing });
+      const currentRead = readSystemDesign('/ws/d.tcl', 'd.tcl', BD)!;
+      const currentEnriched = await real.enrich(currentRead, '/ws/d.tcl');
+      const result = (await compare.diffEnriched(
+        { read: currentRead, enriched: currentEnriched, fellBack: false },
+        '/ws/d.tcl'
+      ))!;
+      // No definition shows up as a change: read against read.
+      expect(result.diff.instances).toEqual([]);
+      expect(result.findings).toEqual({ new: [], resolved: [] });
+      expect(result.baseDefinitions).toBe('none');
+      expect(logError).toHaveBeenCalledTimes(1);
+      expect(logError.mock.calls[0][1]).toEqual(
+        expect.objectContaining({ message: expect.stringContaining('offline') })
+      );
+    });
+
+    it('keeps the enriched base while the definitions are unchanged', async () => {
+      const { compare, enrich, enricher } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START, { readDefinitionAt });
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich).toHaveBeenCalledTimes(1);
+      enricher.revision = '2';
+      await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enrich).toHaveBeenCalledTimes(2);
+      expect(enrich.mock.calls[1][2]).toBe(readDefinitionAt);
+    });
+
+    it('shows a pin that is in only one of the definition at the revision and the workspace one', async () => {
+      const workspace = {
+        listIpFiles: async () => [ipEntryFromText(IP_YML, location)],
+        listHdlFiles: async () => [],
+        listQsysFiles: async () => [],
+        readText: async () => '',
+      };
+      const { enricher, logError } = setup();
+      const real = {
+        revision: enricher.revision,
+        enrich: (
+          graph: SystemGraph,
+          file: string,
+          readAt?: (uri: never) => Promise<string | undefined>
+        ) =>
+          enrichSystemGraph(
+            graph,
+            file,
+            readAt ? revisionIo(workspace, readAt as never) : workspace
+          ),
+      };
+      const compare = new SystemDesignCompare(real, logError);
+      compare.start(BD, 'd.tcl', 'HEAD', '/ws/d.tcl', { readDefinitionAt });
+      const currentRead = readSystemDesign('/ws/d.tcl', 'd.tcl', BD)!;
+      const currentEnriched = await real.enrich(currentRead, '/ws/d.tcl');
+      const result = (await compare.diffEnriched(
+        { read: currentRead, enriched: currentEnriched, fellBack: false },
+        '/ws/d.tcl'
+      ))!;
+      expect(readDefinitionAt).toHaveBeenCalledTimes(1);
+      const change = result.diff.instances.find((i) => i.path === '/my_core_0');
+      expect(change?.status).toBe('changed');
+      expect(change?.pins).toEqual([{ pin: 'irq', status: 'added', currentPeers: [] }]);
+      expect(result.findings.new).toEqual([
+        expect.objectContaining({ kind: 'unused', pin: 'irq' }),
+      ]);
+      expect(result.findings.resolved).toEqual([]);
+      // The definition of the workspace on both sides is no difference.
+      const same = new SystemDesignCompare(
+        { revision: '1', enrich: (graph, file) => real.enrich(graph, file) },
+        logError
+      );
+      same.start(BD, 'd.tcl', 'HEAD', '/ws/d.tcl');
+      const unchanged = await same.diffEnriched(
+        { read: currentRead, enriched: currentEnriched, fellBack: false },
+        '/ws/d.tcl'
+      );
+      expect(unchanged!.diff.summary.changed).toBe(0);
+    });
   });
 });

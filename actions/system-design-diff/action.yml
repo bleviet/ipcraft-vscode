@@ -1,0 +1,114 @@
+name: IPCraft system design diff
+description: Run `ipcraft diff` on a pull request and post the report as one comment.
+author: bleviet
+
+inputs:
+  designs:
+    description: Paths of the system designs to compare, one per line or separated by spaces (no spaces inside a path).
+    required: true
+  cli:
+    description: Path to the `ipcraft` CLI, the `dist/cli.js` of an ipcraft-vscode checkout built in the same job.
+    required: true
+  base:
+    description: Git revision to compare with.
+    required: false
+    default: ${{ github.event.pull_request.base.sha }}
+  head:
+    description: Git revision to compare. Default is the checked-out working tree.
+    required: false
+    default: ''
+  fail-on:
+    description: Fail the job when the check fails, `changes` or `new-findings`. Default is to report only.
+    required: false
+    default: ''
+  ignore-version-only:
+    description: Leave out blocks whose only change is the version of their IP.
+    required: false
+    default: 'false'
+  comment:
+    description: Post the report as a pull request comment.
+    required: false
+    default: 'true'
+  github-token:
+    description: Token used to post the comment.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  failed:
+    description: '`true` when a run failed its check or exited with an error, else `false`.'
+    value: ${{ steps.diff.outputs.failed }}
+  report-dir:
+    description: Folder with one Markdown report per design, named 1.md, 2.md and so on.
+    value: ${{ steps.diff.outputs.report-dir }}
+
+runs:
+  using: composite
+  steps:
+    - name: Run ipcraft diff
+      id: diff
+      shell: bash
+      env:
+        DESIGNS: ${{ inputs.designs }}
+        CLI: ${{ inputs.cli }}
+        BASE_REF: ${{ inputs.base }}
+        HEAD_REF: ${{ inputs.head }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        IGNORE_VERSION_ONLY: ${{ inputs.ignore-version-only }}
+      run: |
+        # GitHub starts bash with -e: a failing diff must not end the step.
+        set -u
+        set -f
+        if [ -z "$BASE_REF" ]; then
+          echo "::error::Set the base input: this event has no pull request base"
+          exit 1
+        fi
+        if [ ! -f "$CLI" ]; then
+          echo "::error::The cli input is not a file: $CLI"
+          exit 1
+        fi
+        REPORT_DIR=$(mktemp -d "$RUNNER_TEMP/ipcraft-diff.XXXXXX")
+        failed=false
+        n=0
+        for design in $DESIGNS; do
+          n=$((n + 1))
+          md="$REPORT_DIR/$n.md"
+          err="$REPORT_DIR/$n.err"
+          args=("$design" --base "$BASE_REF" --out "$md")
+          if [ -n "$HEAD_REF" ]; then args+=(--head "$HEAD_REF"); fi
+          if [ "$IGNORE_VERSION_ONLY" = "true" ]; then args+=(--ignore-version-only); fi
+          if [ -n "$FAIL_ON" ]; then args+=(--fail-on "$FAIL_ON"); fi
+          if node "$CLI" diff "${args[@]}" 2> "$err"; then code=0; else code=$?; fi
+          cat "$err" >&2
+          echo "$code" > "$REPORT_DIR/$n.exit"
+          if [ "$code" -ne 0 ]; then failed=true; fi
+          if [ -s "$md" ]; then
+            cat "$md" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$code" -ne 0 ] && [ -s "$err" ]; then
+              printf '\n`%s`\n' "$(tail -n 1 "$err" | tr '`' "'")" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          else
+            printf '## System design changes: %s\n\n`ipcraft diff` exited with code %s and wrote no report.\n\n```\n%s\n```\n' \
+              "$design" "$code" "$(tail -n 5 "$err" | tr '`' "'")" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo >> "$GITHUB_STEP_SUMMARY"
+        done
+        echo "failed=$failed" >> "$GITHUB_OUTPUT"
+        echo "report-dir=$REPORT_DIR" >> "$GITHUB_OUTPUT"
+
+    - name: Post the pull request comment
+      if: ${{ !cancelled() && steps.diff.outcome == 'success' && inputs.comment == 'true' && github.event_name == 'pull_request' }}
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        DESIGNS: ${{ inputs.designs }}
+        REPORT_DIR: ${{ steps.diff.outputs.report-dir }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: node "$ACTION_PATH/comment.js"
+
+    - name: Fail when a run failed
+      if: ${{ !cancelled() && steps.diff.outputs.failed == 'true' }}
+      shell: bash
+      run: |
+        echo "::error::ipcraft diff failed its check or exited with an error. See the report above."
+        exit 1

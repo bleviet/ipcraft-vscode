@@ -7,7 +7,7 @@ import type { SystemGraphDiff } from '../../../../../domain/systemGraphDiff';
 import { diffSystemGraphs } from '../../../../../services/systemDiagram/diff/diffSystemGraphs';
 import { diffWithoutRenames } from '../../../../../services/systemDiagram/diff/diffWithoutRenames';
 import { diffAndCheck, expectMatchesRenamedBase, renameOneByOne } from './renameReference';
-import { renameInstances } from '../../../../../services/systemDiagram/diff/renames';
+import { relocateInstances } from '../../../../../services/systemDiagram/diff/relocate';
 import { readSystemDesign } from '../../../../../services/systemDiagram/readSystemDesign';
 
 const BASE_TEXT = fs.readFileSync(
@@ -30,7 +30,7 @@ const reverse = (o: Record<string, unknown>) => Object.fromEntries(Object.entrie
 
 const toMain = (t: string) => renamed(t, 'axi_gpio_0', 'axi_gpio_main');
 const hierToMain = (t: string) => renamed(t, 'gpio_block', 'gpio_main');
-const NONE = { added: 0, removed: 0, changed: 0, version: 0, renamed: 0 };
+const NONE = { added: 0, removed: 0, changed: 0, version: 0, renamed: 0, moved: 0 };
 
 const renames = (diff: SystemGraphDiff) => diff.instances.filter((i) => i.status === 'renamed');
 const statusOf = (diff: SystemGraphDiff, p: string) => diff.instances.find((i) => i.path === p);
@@ -40,13 +40,15 @@ function expectNothingHidden(base: SystemGraph, current: SystemGraph): void {
   diffAndCheck(base, current);
 }
 
-describe('renameInstances', () => {
+describe('relocateInstances', () => {
   it('equals the graph read from the design in which the block is written under the new name', () => {
-    expect(renameInstances(bd(), new Map([['/axi_gpio_0', '/axi_gpio_main']]))).toEqual(bd(toMain));
+    expect(relocateInstances(bd(), new Map([['/axi_gpio_0', '/axi_gpio_main']]))).toEqual(
+      bd(toMain)
+    );
   });
 
   it('renames a hierarchy with its children, inner nets and address segments', () => {
-    const g = renameInstances(bd(), new Map([['/gpio_block', '/gpio_main']]));
+    const g = relocateInstances(bd(), new Map([['/gpio_block', '/gpio_main']]));
     expect(g).toEqual(bd(hierToMain));
     expect(Object.keys(g.instances)).toContain('/gpio_main/axi_gpio_1');
     expect(g.instances['/gpio_main/axi_gpio_1']).toMatchObject({
@@ -65,13 +67,13 @@ describe('renameInstances', () => {
   });
 
   it('renames the leading path of address space and segment texts, and the instances they name', () => {
-    const g = renameInstances(bd(), new Map([['/axi_gpio_0', '/axi_gpio_main']]));
+    const g = relocateInstances(bd(), new Map([['/axi_gpio_0', '/axi_gpio_main']]));
     const segment = g.addressSegments.find((s) => s.segment === 'axi_gpio_main/S_AXI/Mem');
     expect(segment).toMatchObject({
       addressSpace: 'sys_ps7/Data',
       slaveInstance: '/axi_gpio_main',
     });
-    const master = renameInstances(bd(), new Map([['/sys_ps7', '/ps7_main']]));
+    const master = relocateInstances(bd(), new Map([['/sys_ps7', '/ps7_main']]));
     expect(master.addressSegments[0]).toMatchObject({
       addressSpace: 'ps7_main/Data',
       masterInstance: '/ps7_main',
@@ -82,7 +84,7 @@ describe('renameInstances', () => {
     const before = bd();
     const index = before.levels['/'].instances.indexOf('/axi_gpio_0');
     expect(index).toBeGreaterThan(0);
-    const after = renameInstances(before, new Map([['/axi_gpio_0', '/axi_gpio_main']]));
+    const after = relocateInstances(before, new Map([['/axi_gpio_0', '/axi_gpio_main']]));
     expect(after.levels['/'].instances.indexOf('/axi_gpio_main')).toBe(index);
     expect(Object.keys(after.instances).indexOf('/axi_gpio_main')).toBe(
       Object.keys(before.instances).indexOf('/axi_gpio_0')
@@ -118,7 +120,7 @@ describe('renameInstances', () => {
       ['/sys_ps7', '/ps7_main'],
     ];
     const sequential = renameOneByOne(g, pairs);
-    const atOnce = renameInstances(g, new Map(pairs));
+    const atOnce = relocateInstances(g, new Map(pairs));
     expect(atOnce).toEqual(sequential);
     expect(atOnce.addressSegments.slice(-2).map((s) => [s.addressSpace, s.segment])).toEqual([
       ['/ps7_main/Data', '/axi_gpio_main/S_AXI/Mem'],
@@ -135,8 +137,8 @@ describe('renameInstances', () => {
   it('does not change its input', () => {
     const g = bd();
     const copy = JSON.parse(JSON.stringify(g));
-    renameInstances(g, new Map([['/gpio_block', '/gpio_main']]));
-    renameInstances(g, new Map([['/axi_gpio_0', '/axi_gpio_main']]));
+    relocateInstances(g, new Map([['/gpio_block', '/gpio_main']]));
+    relocateInstances(g, new Map([['/axi_gpio_0', '/axi_gpio_main']]));
     expect(g).toEqual(copy);
   });
 });
@@ -255,14 +257,14 @@ describe('renamed blocks in diffSystemGraphs', () => {
       parameters: { FIFO_DEPTH: { value: '1024' } },
     };
 
-    it('does not pair a block moved into another level under the same name', () => {
+    it('does not pair a block moved into another level under the same name as a rename', () => {
       const diff = diffSystemGraphs(
         bd(undefined, (d) => (d.components.mover = fifo)),
         bd(undefined, (d) => (d.components.gpio_block.components.mover = fifo))
       );
-      expect(diff.summary).toMatchObject({ added: 1, removed: 1, renamed: 0 });
-      expect(statusOf(diff, '/mover')?.status).toBe('removed');
-      expect(statusOf(diff, '/gpio_block/mover')?.status).toBe('added');
+      // It is a move (see moves.test.ts), not a rename.
+      expect(diff.summary).toMatchObject({ added: 0, removed: 0, renamed: 0, moved: 1 });
+      expect(statusOf(diff, '/gpio_block/mover')?.status).toBe('moved');
     });
 
     it('does not pair a removed and an added block of the same type in different levels', () => {
@@ -305,6 +307,7 @@ describe('renamed blocks in diffSystemGraphs', () => {
       changed: forward.summary.changed,
       version: forward.summary.version,
       renamed: forward.summary.renamed,
+      moved: forward.summary.moved,
     });
   });
 
@@ -467,6 +470,7 @@ describe('renames that depend on each other', () => {
       changed: forward.summary.changed,
       version: forward.summary.version,
       renamed: 0,
+      moved: 0,
     });
     expect(statusOf(forward, '/sys_ps7')?.status).toBe('removed');
     expect(statusOf(forward, '/axi_periph')?.status).toBe('removed');
@@ -745,13 +749,16 @@ describe('renamed blocks of Platform Designer systems', () => {
 
   it('rewrites the instance.pin texts of a master and of a slave', () => {
     const base = qsys('nios_rename_base.qsys');
-    const slave = renameInstances(base, new Map([['/pio_0', '/pio_main']])).addressSegments;
+    const slave = relocateInstances(base, new Map([['/pio_0', '/pio_main']])).addressSegments;
     expect(slave.map((x) => x.segment)).toContain('pio_main.s1');
     expect(slave.map((x) => x.segment)).not.toContain('pio_0.s1');
     expect(slave.map((x) => x.addressSpace)).toEqual(
       base.addressSegments.map((x) => x.addressSpace)
     );
-    const master = renameInstances(base, new Map([['/nios2_gen2_0', '/cpu_main']])).addressSegments;
+    const master = relocateInstances(
+      base,
+      new Map([['/nios2_gen2_0', '/cpu_main']])
+    ).addressSegments;
     expect(master.map((x) => x.addressSpace).every((t) => t.startsWith('cpu_main.'))).toBe(true);
     expect(master.map((x) => x.segment)).toEqual(base.addressSegments.map((x) => x.segment));
   });
@@ -772,9 +779,9 @@ describe('renamed blocks of Platform Designer systems', () => {
         segment('cpu.x.data_master', 'uart.s1', '/cpu.x', '/uart'),
       ],
     };
-    const after = renameInstances(g, new Map([['/uart', '/serial']])).addressSegments;
+    const after = relocateInstances(g, new Map([['/uart', '/serial']])).addressSegments;
     expect(after.map((x) => x.segment)).toEqual(['serial.s1', 'uart_0.s1', 'serial.s1']);
-    const cpu = renameInstances(g, new Map([['/cpu', '/core']])).addressSegments;
+    const cpu = relocateInstances(g, new Map([['/cpu', '/core']])).addressSegments;
     expect(cpu.map((x) => x.addressSpace)).toEqual([
       'core.data_master',
       'cpu2.data_master',
@@ -802,12 +809,12 @@ describe('renamed blocks of Platform Designer systems', () => {
         },
       ],
     };
-    const after = renameInstances(g, new Map([['/sub/uart', '/sub/serial']])).addressSegments;
+    const after = relocateInstances(g, new Map([['/sub/uart', '/sub/serial']])).addressSegments;
     expect(after.map((x) => [x.addressSpace, x.segment, x.slaveInstance])).toEqual([
       ['sub/cpu.data_master', 'sub/serial.s1', '/sub/serial'],
       ['sub/cpu.data_master', 'sub/uart_0.s1', '/sub/uart_0'],
     ]);
-    const master = renameInstances(g, new Map([['/sub/cpu', '/sub/core']])).addressSegments;
+    const master = relocateInstances(g, new Map([['/sub/cpu', '/sub/core']])).addressSegments;
     expect(master.map((x) => x.addressSpace)).toEqual([
       'sub/core.data_master',
       'sub/core.data_master',

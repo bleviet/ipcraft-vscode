@@ -2,25 +2,30 @@
 
 ## Status
 
-Partly implemented. The diff engine (`diffSystemGraphs`) and the `ipcraft diff`
+Implemented: every task of [#302](https://github.com/bleviet/ipcraft-vscode/issues/302) is done; the
+[Open Questions](#open-questions) remain, and in the viewer the current side is always the open file
+(a revision as the current side is available in `ipcraft diff --head` only). The diff engine (`diffSystemGraphs`) and the `ipcraft diff`
 command with its Markdown and JSON report work; see
 the [command line reference](../../reference/command-line.md#compare-two-revisions-of-a-system-design).
 In the viewer, the compare command, the base picker (a git revision or a file)
 and the **Changes** tab of phase 1 also work. The current side is the open file.
-A block that is only renamed is reported as one change (see
+A block that is only renamed, and one that is only moved to another level, is reported as one change (see
 [Renames and Moves](#renames-and-moves)). The findings diff (new and resolved
 unconnected pins and clock or reset crossings) is implemented in the engine and
 in `ipcraft diff`, and the **Findings** tab of the viewer lists them; the viewer
-checks both revisions with the workspace definitions, `ipcraft diff` with the
+checks the current side with the workspace definitions and a base that is a git
+revision with the definitions as they were at that revision, `ipcraft diff` with the
 design files alone. `ipcraft diff --fail-on changes|new-findings` exits with 1
-for use in CI. The **Address map** tab marks added, changed and removed segments. The overlay on the
-diagram and the later phases are open. The marks of everything that exists in the current revision
+for use in CI. The **Address map** tab marks added, changed and removed segments. On the
+diagram, the marks of everything that exists in the current revision
 (blocks, pins, new wires, counts on hierarchies, the outline, the legend, Details, the
 **Marks**, **Changes only** and **Show version-only changes** buttons) are implemented, and the viewer's
-exported images carry them while Marks is on; ghosts for what was removed, the **Removed**
-toggle that comes with them, and the union layout are open.
-`ipcraft diff --image <file.svg|png|jpg>` draws the top level of the current revision
-with those marks. This document describes
+exported images carry them while Marks is on. What was removed is drawn as ghosts, laid out
+with the union of both revisions, with the **Show removed** toggle (see [Layout](#layout) for
+the decision and its measurement); exported images (while Show removed is on too) and
+`ipcraft diff --image <file.svg|png|jpg>` draw the ghosts as well, laid out with the same union. A file that was renamed since the base revision is read under its
+old path, and one that did not exist there is compared as all added, in `ipcraft diff`
+and in the viewer. This document describes
 how the [system viewer](../../how-to/view-a-system-design.md) could show what
 changed between two revisions of a block design or Platform Designer system.
 
@@ -125,6 +130,8 @@ A hierarchy pin has two views: the outside one, on the nets of the level that co
 | Version only | `xlconcat:2.1` to `xlconcat:2.2`, nothing else | Its own quiet kind, can be hidden |
 | Type changed | `axi_gpio` replaced by `axi_iic` under the same name | Changed |
 | Parameter changed | `c_s2mm_burst_size` 64 to 256 | Changed, with both values |
+| Block renamed | `axi_gpio_0` is now `axi_gpio_main`, nothing else | One row, old and new name |
+| Block moved to another level | `fifo_0` moved from the top level into `dsp_pipeline` | One row, old and new path, then its rewired pins |
 | Pin rewired | `S_AXIS_S2MM` now fed by the FIFO | Changed, with old and new peers |
 | Pin added or removed | `M01_AXI` of an interconnect is gone | On its instance |
 | Address segment added, removed or moved | `0x4120_0000` freed | Address map tab |
@@ -153,9 +160,9 @@ connected to. One typo fixed in a block name gave 22 rows in the Markdown report
 The diff pairs a removed and an added instance as a rename only when all of
 these hold:
 
-- they are in the same level (a rename in place; a move to another level is not
-  paired), and that level exists in both revisions, so only the topmost block of
-  a renamed hierarchy is a candidate;
+- they are in the same level (a rename in place; a move to another level is a
+  separate pairing, see below), and that level exists in both revisions, so only
+  the topmost block of a renamed hierarchy is a candidate;
 - same kind, same type with its version, same parameters, same pin names;
 - they are the only removed and the only added instance with these properties in
   that level (two identical candidates on a side are ambiguous, and not guessed);
@@ -171,10 +178,43 @@ added instance is dropped, and the rest starts again from the original base,
 until no pair is dropped. The address segments and the connections of other
 blocks that differed only by the name are then no longer reported, and the Base
 column shows the names the base had. A renamed hierarchy is one change; its children are not
-listed. A block that is renamed and also changed, or moved to another level,
-stays removed plus added. A wrong rename hides a real change, so the rule
-prefers to miss a rename. Detection never hides a change. It can show a connection
+listed. A block that is renamed and also changed stays removed plus added. A wrong
+rename hides a real change, so the rule prefers to miss a rename. Detection never hides a change. It can show a connection
 change that the diff without it attributed to the removed and the added block. A block that only lost or gained a neighbour may no longer be listed; the change then shows on that neighbour.
+
+A block that moved to another level is paired the same way, after the renames, from
+what they left unpaired. A move is the same block under another parent level with
+the **same last name**; a block that is moved and renamed at once stays removed plus
+added. The removed and the added instance must have the same name, kind, type with
+its version, parameters and pin names, in different parents; each is the topmost
+block of its subtree (its parent is not itself a removed or an added instance), and
+they are the only such pair with that signature. All pairs are applied to the base
+at once: the block, and everything below it for a hierarchy, takes the new path, the
+child lists of the old and the new level follow, and net endpoints follow the path.
+Nets stay on the level they were on, so the pins of the moved block see their old
+neighbours through absolute pin identity, and a move that rewired a connection (the
+usual case, because a connection crossing a hierarchy goes through its boundary pins)
+reports it. A pair is kept when, in that diff, nothing differs strictly below the
+moved block (its subtree is identical) and the block itself has no change but its
+pins: no parameter, type or attribute change. Failing pairs are dropped and the rest
+starts again from the original base, as for renames, so the result is order-free.
+A move is one change: `moved`, with the old path (`basePath`), the new path, and the
+connection changes of the block as its pins. The Base column of the report shows
+the old path and the base side of a pin the names and levels the base had. The
+neighbours that were rewired are listed from their side, as for any rewired pin.
+The pairing keeps its limits on purpose: a block moved into a hierarchy that is
+itself new (wrapping blocks in a new hierarchy) is not paired, because the added
+block lies below an added hierarchy. Renames are paired first, without the moves. If
+the moves would change a block that was paired as a rename (a moved block is connected to
+it), the moves connected to that block are dropped; the others stay (if none can be told, all moves fall back to removed plus added). A moved block that
+is identical to a block renamed in its destination level makes that rename ambiguous (two
+added blocks of one signature in that level), and the rename is then lost. A deleted block
+and an identically configured new block of the same name in another level are reported as
+moved, because the identity of an instance beyond its path (`xci_name`, say) is not in the
+graph. The findings diff does not apply moves
+(the review of unconnected pins is per level, and the nets of a moved block stay on
+their old level in the moved base), so a finding of a moved block can show as both
+resolved and new.
 
 ### Two Different Formats
 
@@ -196,10 +236,15 @@ results by their pins:
 
 This is the line a reviewer most needs, and no text diff can give it.
 
-Workspace definitions (`.ip.yml`, HDL) are read from the working tree for both
-revisions, also when both sides are git revisions. A finding can therefore
-change because a definition changed, not the design, and it can differ from
-what either revision had. The report says where the definitions come from.
+In `ipcraft diff` no workspace definitions are read: findings come from the design
+files alone. In the viewer the current side uses the definitions of the workspace
+(`.ip.yml`, HDL, `.qsys`), and a base that is a git revision uses them as they were at
+that revision, so a finding can appear because a definition changed, not the design.
+The Findings tab says where the definitions come from. Only the definitions the design
+matches (by the working tree's index) are read from git, so a definition that exists
+only at the revision, or whose VLNV or name changed since, is not found; a base that is
+a file, or a design that did not exist at the revision, uses the working tree's
+definitions or none.
 
 ## Viewer Experience
 
@@ -244,7 +289,7 @@ and a sign, so it does not depend on color alone.
 - A summary: `+2 −3 ~4 v1`.
 - **Changes only**: hides what did not change, using the isolate view (the
   changed blocks and one connection around them).
-- **Removed**: shows or hides the ghosts.
+- **Show removed**: shows or hides the ghosts. Offered when the base has something the current design lacks; **Marks** off hides them too.
 - **Version only**: marks or ignores version-only changes.
 - **Exit compare**: back to the plain diagram.
 
@@ -287,7 +332,11 @@ source opens the file at that revision, and the diagram does not follow edits
 of the file on disk.
 
 A file that was renamed or moved between the two revisions is looked up under
-its old path, using the rename detection of git.
+its old path, using the rename detection of git (`git diff-index -M` / `git diff-tree -M` for the command
+line, the `diffWith` of the git extension for the viewer). A file that did not
+exist in the base is compared with an empty design, so everything is added. Both
+say so in the report line, the JSON `base` (`path`, `missing`) and the Changes
+bar.
 
 Entry points:
 
@@ -304,19 +353,45 @@ compare works, without workspace definitions, as the plain viewer does.
 The removed blocks need positions, and the diagram should not jump when the
 compare is turned on.
 
-Proposed: lay out the **union** of both graphs (the current graph plus the
+Decided: lay out the **union** of both graphs (the current graph plus the
 removed instances, pins and wires) with ELK. Ghosts then sit where their
-neighbours pull them, and wires to them are routed like any other wire.
+neighbours pull them, and wires to them are routed like any other wire. The union
+is computed with the diff (`unionAdditions`, see [Architecture](#architecture)): the
+removed blocks, the removed external ports, the connections of the base that the
+current graph does not have (one ghost net per base net, cut to the pins that exist in
+the union and grouped by what the current graph still connects, so a lost connection is
+drawn once and a kept one is not repeated) and the pins a block that stays lost (the
+interconnect port of a removed slave), which the ghost wires need as ends. A removed
+hierarchy is one ghost block. Clock and reset nets are left out of the ghosts: the viewer
+draws them as badges and routes them apart, and the Changes tab lists them.
 
 The union layout differs from the plain layout of the current revision. So
 entering compare mode moves blocks once. That is acceptable: it is a different
-view, and it stays stable while toggles change (**Removed** and **Version
+view, and it stays stable while toggles change (**Show removed**, **Marks** and **Version
 only** only change what is drawn; blocks never move, as with the other toggles
-of the viewer).
+of the viewer). Hiding the ghosts leaves their space free.
 
-To measure before deciding: how much the union layout differs from the plain
-one on real pull requests, and whether pinning the positions of unchanged
-blocks is worth the extra code.
+**Measurement.** Before the decision, the real ELK pipeline laid out the plain graph
+and the union graph of each pair, and compared the places of the blocks that both have
+(the unchanged ones). Displacement is a fraction of the diagonal of the plain
+layout.
+
+| Pairs | Median displacement | Order |
+|---|---|---|
+| The fixture pairs of the diff with a removal: the Vivado `.bd` pair (a block and a port removed) and the Platform Designer pair (a port and a wire); the rename and move pairs have no ghost, so no block moves | 0.07 in both (mean 0.07 and 0.10, largest 0.17 and 0.16) | Left to right order kept; no block changes column |
+| 7 small designs (3 to 14 blocks) with 1 or 3 blocks removed, spread over the design | 0.02 to 0.18 | Columns kept, except one design (3 of 8 removed: 40% of the pairs of blocks change columns) |
+| The same, removing the most connected blocks (13 cases) | 0.04 to 0.80; above 0.25 in 4 of 13, where the hub gone changes the whole design | At most 11% of the pairs change columns |
+| Generated designs of 60 and 400 blocks, 1, 3 and 10 removed (12 cases) | 0.12 to 0.40 | At most 11% of the pairs change columns; the order inside a column differs for 29% to 66% of the pairs |
+
+What decided it: on a pull request that removes one or two blocks, an unchanged block moves by
+a tenth of the diagram, stays in its column and keeps its neighbours. Larger numbers
+come from designs where ELK reshuffles the order inside the columns for any edit:
+laying out the **base** and the **current** graphs plain, with no ghost at all, moves the unchanged
+blocks of the generated designs by the same amount (median 0.20 to 0.40), so the union adds no
+instability of its own. Inserting the ghosts at their place in the base order instead of at the end
+of their level was no consistent improvement. Pinning the positions of the unchanged blocks
+was not needed, and was not built. The measurement is on fixtures and on designs edited by removing
+blocks; real pull requests are still to be measured.
 
 ## Command Line
 
@@ -367,9 +442,10 @@ are. No move is needed first.
 
 - Both revisions are read as text. Nothing is executed, as in the plain viewer.
 - The base revision comes from the local git object store. No network access.
-- A base revision that cannot be read (the file did not exist, or is not a
-  system design) gives a clear message. `ipcraft diff` reports a file that did
-  not exist in the base as an error; showing it as "all added" is open.
+- A base revision that cannot be read (it does not exist, git fails, or the
+  text is not a system design) gives a clear message. A file that did not exist
+  in the base is not an error: it is shown as all added, and said so. A path
+  that exists in neither the working tree nor the base is an error.
 
 ## Testing
 
@@ -396,8 +472,8 @@ are. No move is needed first.
 
 | Question | Notes |
 |---|---|
-| Union layout, or the plain layout with ghosts placed afterwards? | Measure on real pull requests first. See [Layout](#layout) |
+| Union layout, or the plain layout with ghosts placed afterwards? | Resolved: the union layout. Measured on the fixture pairs and on edited and generated designs, see [Layout](#layout). Real pull requests are still to be measured |
 | Should a change inside a non-descended IP (for example an `axi_interconnect` in a `.bd`) be reported? | The graph does not hold its inside, so today it cannot be |
-| How are grafted Platform Designer subsystems compared when the subsystem file changed but the top file did not? | The compare is per design file; the subsystem files of the base revision must be read from the same revision |
-| Should definitions (`.ip.yml`, HDL) be read from the base revision too? | More correct findings diff, more git reads. Start with the working tree and say so in the report |
+| How are grafted Platform Designer subsystems compared when the subsystem file changed but the top file did not? | The compare is per design file; the subsystem files of the base revision must be read from the same revision. Done in the viewer for a base that is a git revision |
+| Should definitions (`.ip.yml`, HDL) be read from the base revision too? | Resolved for the viewer: the base revision reads the definitions the design matches from git and the Findings tab says so. `ipcraft diff` reads none |
 | Is three-way compare (base, ours, theirs) needed for merge conflicts? | Out of scope until asked for |

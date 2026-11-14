@@ -14,6 +14,8 @@ export interface CompareControlProps {
   onMarksChange: (on: boolean) => void;
   /** Isolates the marked blocks of the level on show; absent when the level has none or Marks is off. */
   onChangesOnly?: () => void;
+  /** Shows or hides the ghosts of what only the base has; absent when the base has nothing the current side lacks. */
+  removed?: { on: boolean; onChange: (on: boolean) => void };
   /** Shows or hides the blocks whose only change is the IP version; absent when there are none. */
   versionOnly?: { on: boolean; onChange: (on: boolean) => void };
   /** Whether the version-only kind is counted in the toolbar; false while Version only is off. Default true. */
@@ -29,6 +31,7 @@ export function CompareControl({
   marksOn,
   onMarksChange,
   onChangesOnly,
+  removed,
   versionOnly,
   showVersion = true,
 }: CompareControlProps) {
@@ -88,6 +91,22 @@ export function CompareControl({
           >
             <span aria-hidden="true" className="codicon codicon-diff" />
           </button>
+          {removed && (
+            <button
+              type="button"
+              className={`canvas-view-toggle${removed.on ? ' canvas-view-toggle--active' : ''}`}
+              aria-label="Show removed"
+              aria-pressed={removed.on}
+              title={
+                removed.on
+                  ? 'Hide what only the base has (removed blocks, ports and wires)'
+                  : 'Show what only the base has (removed blocks, ports and wires), dashed'
+              }
+              onClick={() => removed.onChange(!removed.on)}
+            >
+              <span aria-hidden="true">−</span>
+            </button>
+          )}
           {versionOnly && (
             <button
               type="button"

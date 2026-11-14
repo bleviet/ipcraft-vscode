@@ -59,7 +59,7 @@ describe('minimapColor for a comparison', () => {
     ({ ...node, data: { ...node.data, change: { status } } }) as unknown as DiagramFlowNode;
 
   it('colors a marked block with the color of its kind of change', () => {
-    for (const status of ['added', 'changed', 'renamed', 'version'] as const) {
+    for (const status of ['added', 'changed', 'renamed', 'moved', 'version'] as const) {
       expect(minimapColor(marked(instance('ip', 'dma'), status), null)).toBe(
         MINIMAP_COLORS[status]
       );

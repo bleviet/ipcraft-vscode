@@ -3,6 +3,8 @@ import React from 'react';
 import type { SystemGraph } from '../../../../domain/systemGraph';
 import type { Finding } from '../../../../domain/systemGraphDiff';
 import { findingRows } from '../../../../services/systemDiagram/diff/findingRows';
+import type { DiagramCompare } from '../../../../shared/messages/systemDiagram';
+import { compareOf, emptyDiff } from './compareFixtures';
 import { FindingsTable } from '../../../../webview/systemDiagram/FindingsTable';
 import type { Selection } from '../../../../webview/systemDiagram/model';
 import {
@@ -49,11 +51,28 @@ const goneBlock: Finding = {
   label: 'gone/rst',
 };
 
+function compare(options: {
+  baseDefinitions?: DiagramCompare['baseDefinitions'];
+  baseLabel?: string;
+  missingBase?: boolean;
+}): DiagramCompare {
+  const base = compareOf(emptyDiff(), options.baseLabel ?? 'v1.0', {
+    baseDefinitions: options.baseDefinitions,
+  });
+  if (options.missingBase) {
+    base.diff.base.missing = true;
+  }
+  return base;
+}
+
 function renderTable(
   options: {
     findings?: { new: Finding[]; resolved: Finding[] };
     filter?: string;
     selection?: Selection | null;
+    baseDefinitions?: DiagramCompare['baseDefinitions'];
+    baseLabel?: string;
+    missingBase?: boolean;
   } = {}
 ) {
   const onSelectInstance = jest.fn();
@@ -61,6 +80,7 @@ function renderTable(
   render(
     <FindingsTable
       graph={graph}
+      compare={compare(options)}
       rows={findingRows(options.findings ?? { new: [undrivenA, crossing], resolved: [goneBlock] })}
       filter={options.filter ? compileSearch(options.filter, DEFAULT_SEARCH_OPTIONS) : null}
       selection={options.selection ?? null}
@@ -96,17 +116,50 @@ describe('FindingsTable', () => {
     ]);
   });
 
-  it('says in one line that both revisions use the definitions of this workspace', () => {
-    renderTable();
-    expect(
-      screen.getByText('Both revisions are checked with the same workspace definitions.')
-    ).toBeVisible();
+  describe('the note about the definitions', () => {
+    it('says that a file base and the current side use the definitions of this workspace', () => {
+      renderTable();
+      expect(
+        screen.getByText('Both sides are checked with the definitions of this workspace.')
+      ).toBeVisible();
+    });
+
+    it('says that the base is checked with the definitions at its revision', () => {
+      renderTable({ baseDefinitions: 'revision' });
+      expect(
+        screen.getByText(
+          'The base is checked with the definitions at v1.0; the current side with those of this workspace.'
+        )
+      ).toBeVisible();
+    });
+
+    it('names a commit by its short hash and keeps other labels', () => {
+      renderTable({ baseDefinitions: 'revision', baseLabel: 'ccccccc Add the DMA block' });
+      expect(screen.getByText(/definitions at ccccccc;/)).toBeVisible();
+      cleanup();
+      renderTable({ baseDefinitions: 'revision', baseLabel: 'main (merge base bbbbbbb)' });
+      expect(screen.getByText(/definitions at main \(merge base bbbbbbb\);/)).toBeVisible();
+    });
+
+    it('says that the base did not exist, whatever the definitions', () => {
+      renderTable({ baseDefinitions: 'revision', missingBase: true });
+      expect(
+        screen.getByText('The base did not exist: every finding of the file is new.')
+      ).toBeVisible();
+    });
+
+    it('says that definitions are not read when neither side has them', () => {
+      renderTable({ baseDefinitions: 'none' });
+      expect(
+        screen.getByText('Definitions are not read, so neither side is checked with them.')
+      ).toBeVisible();
+    });
   });
 
   it('says so when no finding differs, still with the note', () => {
     renderTable({ findings: { new: [], resolved: [] } });
     expect(screen.getByText('No finding differs from the base.')).toBeVisible();
-    expect(screen.getByText(/^Both revisions are checked/)).toBeVisible();
+    expect(screen.getByText(/^Both sides are checked/)).toBeVisible();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
 

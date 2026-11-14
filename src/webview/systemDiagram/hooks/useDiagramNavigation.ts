@@ -7,6 +7,7 @@ import {
   pruneExpanded,
   targetLevel,
 } from '../expansion';
+import { NO_GHOSTS, type Ghosts } from '../layout/unionGraph';
 import {
   nodeSelection,
   reconcileNavigation,
@@ -20,9 +21,11 @@ import {
  * the gestures that change them. `selection` is the primary item (it drives
  * Details); `selectedItems` are all selected items of the view (Cmd/Ctrl+Click
  * adds to them). The expanded blocks are a set of instance paths that survives
- * navigation: entering a block shows its own expanded children expanded.
+ * navigation: entering a block shows its own expanded children expanded. A ghost block (what
+ * only the base has, `ghosts` of a comparison) has no level of its own: it is neither entered
+ * nor expanded.
  */
-export function useDiagramNavigation(graph: SystemGraph) {
+export function useDiagramNavigation(graph: SystemGraph, ghosts: Ghosts = NO_GHOSTS) {
   const [levelPath, setLevelPath] = useState('/');
   const [selection, setSelection] = useState<Selection | null>(null);
   const [items, setItems] = useState<Selection[]>([]);
@@ -87,16 +90,16 @@ export function useDiagramNavigation(graph: SystemGraph) {
   }, []);
   const enterHierarchy = useCallback(
     (instancePath: string) => {
-      if (graph.instances[instancePath]?.kind === 'hier') {
+      if (graph.instances[instancePath]?.kind === 'hier' && !ghosts.instances.has(instancePath)) {
         navigate(instancePath);
       }
     },
-    [graph, navigate]
+    [graph, ghosts, navigate]
   );
   /** Expands or collapses a hierarchy block in place; the level, selection and viewport stay. */
   const toggleExpanded = useCallback(
     (instancePath: string) => {
-      if (graph.instances[instancePath]?.kind !== 'hier') {
+      if (graph.instances[instancePath]?.kind !== 'hier' || ghosts.instances.has(instancePath)) {
         return;
       }
       setExpandedState((current) => {
@@ -107,7 +110,7 @@ export function useDiagramNavigation(graph: SystemGraph) {
         return next;
       });
     },
-    [graph]
+    [graph, ghosts]
   );
   const selectInstance = useCallback(
     (instancePath: string) => selectAndReveal({ kind: 'instance', id: instancePath }),

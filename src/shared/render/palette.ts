@@ -140,8 +140,9 @@ interface Tokens {
   warning: string;
   ansiCyan: string;
   ansiMagenta: string;
-  /** `--vscode-gitDecoration-addedResourceForeground`, `-modifiedResourceForeground`, `-ignoredResourceForeground`. */
+  /** `--vscode-gitDecoration-addedResourceForeground`, `-deletedResourceForeground`, `-modifiedResourceForeground`, `-ignoredResourceForeground`. */
   gitAdded: string;
+  gitDeleted: string;
   gitModified: string;
   gitIgnored: string;
 }
@@ -165,6 +166,7 @@ const LIGHT_TOKENS: Tokens = {
   ansiCyan: '#0598bc',
   ansiMagenta: '#bc05bc',
   gitAdded: '#587c0c',
+  gitDeleted: '#ad0707',
   gitModified: '#895503',
   gitIgnored: '#8e8e90',
 };
@@ -188,6 +190,7 @@ const DARK_TOKENS: Tokens = {
   ansiCyan: '#11a8cd',
   ansiMagenta: '#bc3fbc',
   gitAdded: '#81b88b',
+  gitDeleted: '#c74e39',
   gitModified: '#e2c08d',
   gitIgnored: '#8c8c8c',
 };
@@ -262,8 +265,11 @@ function buildPalette(t: Tokens): Palette {
     },
     change: {
       added: t.gitAdded,
+      // The ghosts of what only the base has (blocks, ports, pins, wires): dashed, see `changeSvg`.
+      removed: t.gitDeleted,
       changed: t.gitModified,
       renamed: t.purple,
+      moved: t.purple,
       version: t.gitIgnored,
       newWire: t.gitAdded,
     },

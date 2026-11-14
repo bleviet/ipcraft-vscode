@@ -57,6 +57,10 @@ export interface SystemExportView {
   marks?: boolean;
   /** With `marks`: Version only is off, so the blocks whose only change is the version are not marked. */
   ignoreVersionOnly?: boolean;
+  /** With `marks`: Show removed is on, so the image also draws what only the base has, as ghosts. */
+  ghosts?: boolean;
+  /** The comparison has what only the base has, so the canvas lays the level out with it, whether or not it draws it. */
+  unionLayout?: boolean;
 }
 
 /** JPEG quality of an exported JPG. */
@@ -127,11 +131,13 @@ export function parseSystemExportView(raw: unknown): SystemExportView | undefine
   if (view.visibleNodeIds !== undefined && !isStringArray(view.visibleNodeIds)) {
     return undefined;
   }
-  const { marks, ignoreVersionOnly, ...rest } = view;
+  const { marks, ignoreVersionOnly, ghosts, unionLayout, ...rest } = view;
   return {
     ...rest,
     ...(typeof marks === 'boolean' && { marks }),
     ...(typeof ignoreVersionOnly === 'boolean' && { ignoreVersionOnly }),
+    ...(typeof ghosts === 'boolean' && { ghosts }),
+    ...(typeof unionLayout === 'boolean' && { unionLayout }),
   } as unknown as SystemExportView;
 }
 

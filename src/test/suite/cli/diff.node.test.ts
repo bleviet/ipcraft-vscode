@@ -98,7 +98,14 @@ describe('ipcraft diff of two files', () => {
     const text = fs.readFileSync(out, 'utf8');
     expect(text.endsWith('}\n')).toBe(true);
     const diff = JSON.parse(text);
-    expect(diff.summary).toEqual({ added: 1, removed: 4, changed: 2, version: 1, renamed: 0 });
+    expect(diff.summary).toEqual({
+      added: 1,
+      removed: 4,
+      changed: 2,
+      version: 1,
+      renamed: 0,
+      moved: 0,
+    });
     expect(text).toBe(`${JSON.stringify(diff, null, 2)}\n`);
   });
 
@@ -140,7 +147,14 @@ describe('ipcraft diff of two files', () => {
     const json = JSON.parse(
       (await runCliDiff(files({ ...pair, format: 'json' }))).report as string
     ) as SystemGraphDiff;
-    expect(json.summary).toEqual({ added: 0, removed: 0, changed: 1, version: 0, renamed: 1 });
+    expect(json.summary).toEqual({
+      added: 0,
+      removed: 0,
+      changed: 1,
+      version: 0,
+      renamed: 1,
+      moved: 0,
+    });
     expect(json.instances.find((i) => i.status === 'renamed')).toMatchObject({
       path: '/axi_gpio_main',
       basePath: '/axi_gpio_0',
@@ -150,6 +164,42 @@ describe('ipcraft diff of two files', () => {
     });
     const markdown = (await runCliDiff(files(pair))).report as string;
     expect(markdown).toContain('| → | `axi_gpio_main` | renamed | `axi_gpio_`**`0`** |');
+  });
+
+  it('reports a moved block in the JSON with its base path and pins, as rows in the Markdown, and fails on it', async () => {
+    const pair = {
+      files: [
+        path.join(fixtures, 'zynq_gpio_base.bd'),
+        path.join(fixtures, 'zynq_gpio_move_current.bd'),
+      ],
+    };
+    const json = JSON.parse(
+      (await runCliDiff(files({ ...pair, format: 'json' }))).report as string
+    ) as SystemGraphDiff;
+    expect(json.summary).toEqual({
+      added: 0,
+      removed: 0,
+      changed: 2,
+      version: 0,
+      renamed: 0,
+      moved: 1,
+    });
+    const moved = json.instances.find((i) => i.status === 'moved');
+    expect(moved).toMatchObject({
+      path: '/gpio_block/axi_gpio_0',
+      basePath: '/axi_gpio_0',
+      level: '/gpio_block',
+      parameters: [],
+    });
+    expect(moved?.pins.map((p) => p.pin)).toEqual(['S_AXI', 's_axi_aclk']);
+    const markdown = (await runCliDiff(files(pair))).report as string;
+    expect(markdown).toContain(
+      '| » | `axi_gpio_0` | moved | `/axi_gpio_0` | `/gpio_block/axi_gpio_0` |'
+    );
+    expect(markdown).toContain('~2 changed · »1 moved · v0 version only**');
+    expect(failOnReason(json, { new: [], resolved: [] }, 'changes', false)).toBe(
+      '3 changes (--fail-on changes)'
+    );
   });
 
   it('leaves version-only instances out of the JSON with --ignore-version-only', async () => {
@@ -207,7 +257,7 @@ describe('ipcraft diff --fail-on', () => {
   const diffOf = (summary: Partial<SystemGraphDiff['summary']>) =>
     ({
       instances: [],
-      summary: { added: 0, removed: 0, changed: 0, version: 0, renamed: 0, ...summary },
+      summary: { added: 0, removed: 0, changed: 0, version: 0, renamed: 0, moved: 0, ...summary },
     }) as unknown as SystemGraphDiff;
   const noFindings: FindingsDiff = { new: [], resolved: [] };
 
@@ -217,12 +267,15 @@ describe('ipcraft diff --fail-on', () => {
     );
     expect(
       failOnReason(
-        diffOf({ added: 1, removed: 1, changed: 1, renamed: 1, version: 1 }),
+        diffOf({ added: 1, removed: 1, changed: 1, renamed: 1, moved: 1, version: 1 }),
         noFindings,
         'changes',
         false
       )
-    ).toBe('5 changes (--fail-on changes)');
+    ).toBe('6 changes (--fail-on changes)');
+    expect(failOnReason(diffOf({ moved: 1 }), noFindings, 'changes', true)).toBe(
+      '1 change (--fail-on changes)'
+    );
     expect(failOnReason(diffOf({}), noFindings, 'changes', false)).toBeUndefined();
   });
 
@@ -382,7 +435,13 @@ describe('ipcraft diff --image', () => {
     expect(svg).toContain(change.changed);
     expect(svg).toContain('>+</text>');
     expect(svg).toContain('>New wire</text>');
-    expect(svg).toContain('>− 2 removed</text>');
+    // The removed block and port are drawn as ghosts, so they are not counted.
+    expect(svg).toContain(change.removed);
+    expect(svg).toContain('data-node="/axi_gpio_0"');
+    expect(svg).toMatch(/text-decoration="line-through"[^>]*>axi_gpio_0</);
+    expect(svg).toMatch(/text-decoration="line-through"[^>]*>led_o</);
+    expect(svg).toContain('>Removed wire</text>');
+    expect(svg).not.toContain('removed</text>');
     expect(svg).not.toContain('see Changes');
     // The default look of `ipcraft render`: the light theme.
     expect(svg).toContain(`fill="${paletteFor('light').background}"`);
@@ -523,16 +582,6 @@ describeGit('ipcraft diff against a git revision', () => {
     });
   });
 
-  it('fails for a file that does not exist at the revision', async () => {
-    const added = path.join(repo, 'bd/new.qsys');
-    fs.copyFileSync(path.join(fixtures, 'nios_base.qsys'), added);
-    const result = await runCliDiff(gitArgs({ files: [added], baseRef: 'HEAD' }));
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(
-      new RegExp(`^'${escapeRegExp(added)}' does not exist at HEAD: .*bd/new\\.qsys`)
-    );
-  });
-
   it('names the file and the revision of the current side in a parse error', async () => {
     const own = fs.mkdtempSync(path.join(tmp, 'repo-'));
     const run = (...args: string[]) =>
@@ -566,5 +615,238 @@ describeGit('ipcraft diff against a git revision', () => {
   it('rejects a revision that looks like an option', async () => {
     const result = await runCliDiff(gitArgs({ baseRef: '--output=x' }));
     expect(result).toEqual({ success: false, error: "Invalid git revision '--output=x'" });
+  });
+
+  describe('a file that was renamed, or did not exist, at the base revision', () => {
+    const MISSING_LINE = 'The file did not exist at HEAD: everything is added.';
+    let own: string;
+    let seq = 0;
+
+    const run = (...args: string[]) => {
+      const r = spawnSync('git', ['-c', 'commit.gpgsign=false', ...args], { cwd: own });
+      expect(r.status).toBe(0);
+    };
+    const put = (name: string, fixture: string) => {
+      fs.mkdirSync(path.dirname(path.join(own, name)), { recursive: true });
+      fs.copyFileSync(path.join(fixtures, fixture), path.join(own, name));
+    };
+    const at = (name: string) => path.join(own, name);
+
+    beforeEach(() => {
+      seq += 1;
+      own = fs.mkdtempSync(path.join(tmp, `moved-${seq}-`));
+      run('init', '-q');
+      run('config', 'user.email', 'test@example.com');
+      run('config', 'user.name', 'Test');
+      put('bd/other.qsys', 'nios_base.qsys');
+      run('add', '.');
+      run('commit', '-q', '-m', 'first');
+    });
+
+    it('shows everything of a file added after the base as added, with the note, and exits 0', async () => {
+      put('bd/new.qsys', 'nios_current.qsys');
+      const result = await runCliDiff(files({ files: [at('bd/new.qsys')], baseRef: 'HEAD' }));
+      expect(result.success).toBe(true);
+      expect(result.report).toContain(
+        `Comparing \`HEAD\` (base) with \`working tree\`.\n\n${MISSING_LINE}\n`
+      );
+      expect(result.report).toContain('## System design changes: new');
+      expect(result.report).not.toContain('different formats');
+      expect(result.report).toContain('−0 removed · ~0 changed');
+      expect(result.failed).toBeUndefined();
+      const json = await runCliDiff(
+        files({ files: [at('bd/new.qsys')], baseRef: 'HEAD', format: 'json' })
+      );
+      const diff = JSON.parse(json.report!) as SystemGraphDiff;
+      expect(diff.base).toEqual({ name: 'new', format: 'qsys', missing: true });
+      expect(diff.instances.length).toBeGreaterThan(0);
+      expect(diff.instances.every((i) => i.status === 'added')).toBe(true);
+      expect(diff.summary).toMatchObject({ removed: 0, changed: 0 });
+    });
+
+    it('exits 0 for the added file, and 1 with --fail-on changes', async () => {
+      put('bd/new.qsys', 'nios_current.qsys');
+      const write = jest.spyOn(process.stdout, 'write').mockImplementation(() => true);
+      const error = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        expect(await main(['diff', at('bd/new.qsys'), '--base', 'HEAD'])).toBe(0);
+        expect(
+          await main(['diff', at('bd/new.qsys'), '--base', 'HEAD', '--fail-on', 'changes'])
+        ).toBe(1);
+        expect(error).toHaveBeenCalledWith(expect.stringMatching(/changes \(--fail-on changes\)/));
+      } finally {
+        write.mockRestore();
+        error.mockRestore();
+      }
+    });
+
+    it('shows a file committed after the base as added with --head too', async () => {
+      put('bd/new.qsys', 'nios_current.qsys');
+      run('add', '.');
+      run('commit', '-q', '-m', 'second');
+      const result = await runCliDiff(
+        files({ files: [at('bd/new.qsys')], baseRef: 'HEAD~1', headRef: 'HEAD' })
+      );
+      expect(result.report).toContain(MISSING_LINE.replace('HEAD', 'HEAD~1'));
+    });
+
+    it('reads a renamed file under its old path, in the working tree and with --head', async () => {
+      run('mv', 'bd/other.qsys', 'bd/renamed.qsys');
+      const working = await runCliDiff(files({ files: [at('bd/renamed.qsys')], baseRef: 'HEAD' }));
+      expect(working.report).toContain(
+        'Comparing `HEAD` (base) with `working tree`.\n\nRead at HEAD as `bd/other.qsys` (renamed since).\n'
+      );
+      expect(working.report).toContain('\n\nNo changes.\n');
+      run('commit', '-q', '-m', 'rename');
+      const committed = await runCliDiff(
+        files({ files: [at('bd/renamed.qsys')], baseRef: 'HEAD~1', headRef: 'HEAD' })
+      );
+      expect(committed.report).toContain('Read at HEAD~1 as `bd/other.qsys` (renamed since).');
+      expect(committed.report).toContain('No changes.');
+      const json = await runCliDiff(
+        files({
+          files: [at('bd/renamed.qsys')],
+          baseRef: 'HEAD~1',
+          headRef: 'HEAD',
+          format: 'json',
+        })
+      );
+      expect((JSON.parse(json.report!) as SystemGraphDiff).base).toEqual({
+        name: 'renamed',
+        format: 'qsys',
+        path: 'bd/other.qsys',
+      });
+    });
+
+    it('reads a renamed and changed file under its old path, so the diff shows the content change', async () => {
+      run('mv', 'bd/other.qsys', 'bd/renamed.qsys');
+      put('bd/renamed.qsys', 'nios_current.qsys');
+      const result = await runCliDiff(files({ files: [at('bd/renamed.qsys')], baseRef: 'HEAD' }));
+      expect(result.success).toBe(true);
+      expect(result.report).toContain('Read at HEAD as `bd/other.qsys` (renamed since).');
+      expect(result.report).not.toContain('did not exist');
+      expect(result.report).toContain(
+        golden('nios.expected.md').split('\n\n').slice(2).join('\n\n')
+      );
+    });
+
+    it('finds the old path from a file in a subfolder of the repository, with the paths of the root', async () => {
+      fs.mkdirSync(at('bd/deeper'));
+      run('mv', 'bd/other.qsys', 'bd/deeper/renamed.qsys');
+      const result = await runCliDiff(
+        files({ files: [at('bd/deeper/renamed.qsys')], baseRef: 'HEAD' })
+      );
+      expect(result.report).toContain('as `bd/other.qsys` (renamed since)');
+    });
+
+    it('does not take the rename of another file for the file', async () => {
+      run('mv', 'bd/other.qsys', 'bd/renamed.qsys');
+      put('bd/new.qsys', 'nios_current.qsys');
+      const result = await runCliDiff(files({ files: [at('bd/new.qsys')], baseRef: 'HEAD' }));
+      expect(result.report).toContain(MISSING_LINE);
+    });
+
+    it('finds the rename with the porcelain setting diff.relative, which would hide it', async () => {
+      run('config', 'diff.relative', 'true');
+      fs.mkdirSync(at('bd/deeper'));
+      run('mv', 'bd/other.qsys', 'bd/deeper/renamed.qsys');
+      const result = await runCliDiff(
+        files({ files: [at('bd/deeper/renamed.qsys')], baseRef: 'HEAD' })
+      );
+      expect(result.report).toContain('Read at HEAD as `bd/other.qsys` (renamed since).');
+      expect(result.report).not.toContain('did not exist');
+      run('commit', '-q', '-m', 'rename');
+      const committed = await runCliDiff(
+        files({ files: [at('bd/deeper/renamed.qsys')], baseRef: 'HEAD~1', headRef: 'HEAD' })
+      );
+      expect(committed.report).toContain('Read at HEAD~1 as `bd/other.qsys` (renamed since).');
+    });
+
+    it('handles spaces and non-ASCII characters in the paths', async () => {
+      put('bd dir/ü design.qsys', 'nios_base.qsys');
+      run('add', '.');
+      run('commit', '-q', '-m', 'unicode');
+      run('mv', 'bd dir/ü design.qsys', 'bd dir/ö renamed design.qsys');
+      const result = await runCliDiff(
+        files({ files: [at('bd dir/ö renamed design.qsys')], baseRef: 'HEAD' })
+      );
+      expect(result.report).toContain('Read at HEAD as `bd dir/ü design.qsys` (renamed since).');
+      expect(result.report).toContain('No changes.');
+    });
+
+    it('reads each of two files renamed at once under its own old path', async () => {
+      put('bd/second.qsys', 'nios_current.qsys');
+      run('add', '.');
+      run('commit', '-q', '-m', 'second');
+      run('mv', 'bd/other.qsys', 'bd/one.qsys');
+      run('mv', 'bd/second.qsys', 'bd/two.qsys');
+      const first = await runCliDiff(files({ files: [at('bd/one.qsys')], baseRef: 'HEAD' }));
+      const second = await runCliDiff(files({ files: [at('bd/two.qsys')], baseRef: 'HEAD' }));
+      expect(first.report).toContain('as `bd/other.qsys` (renamed since)');
+      expect(second.report).toContain('as `bd/second.qsys` (renamed since)');
+      expect(first.report).toContain('No changes.');
+      expect(second.report).toContain('No changes.');
+    });
+
+    it('rejects a --head that looks like an option', async () => {
+      put('bd/new.qsys', 'nios_current.qsys');
+      const result = await runCliDiff(
+        files({ files: [at('bd/new.qsys')], baseRef: 'HEAD', headRef: '--output=x' })
+      );
+      expect(result).toEqual({ success: false, error: "Invalid git revision '--output=x'" });
+    });
+
+    it('does not report a path as missing when it is in the tree but its blob cannot be read', async () => {
+      // A partial clone whose remote is gone: the tree is there, the blob cannot be fetched.
+      const origin = own;
+      run('config', 'uploadpack.allowFilter', 'true');
+      run('config', 'uploadpack.allowAnySHA1InWant', 'true');
+      const clone = path.join(tmp, `partial-${seq}`);
+      const cloned = spawnSync(
+        'git',
+        ['clone', '-q', '--filter=blob:none', '--no-checkout', `file://${origin}`, clone],
+        { encoding: 'utf8' }
+      );
+      expect(cloned.status).toBe(0);
+      fs.renameSync(origin, `${origin}-gone`);
+      fs.mkdirSync(path.join(clone, 'bd'), { recursive: true });
+      fs.copyFileSync(path.join(fixtures, 'nios_base.qsys'), path.join(clone, 'bd/other.qsys'));
+      const result = await runCliDiff(
+        files({ files: [path.join(clone, 'bd/other.qsys')], baseRef: 'HEAD' })
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/^'.*other\.qsys' cannot be read at HEAD: /);
+      expect(result.report).toBeUndefined();
+    });
+
+    it('fails for a path that never existed and is not in the working tree', async () => {
+      const gone = at('bd/never.qsys');
+      expect(await runCliDiff(files({ files: [gone], baseRef: 'HEAD' }))).toEqual({
+        success: false,
+        error: `Input file not found: ${gone}`,
+      });
+    });
+
+    it('fails when the current side at --head does not have the file', async () => {
+      put('bd/new.qsys', 'nios_current.qsys');
+      const result = await runCliDiff(
+        files({ files: [at('bd/new.qsys')], baseRef: 'HEAD', headRef: 'HEAD' })
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(
+        new RegExp(`^'${escapeRegExp(at('bd/new.qsys'))}' does not exist at HEAD: .*bd/new\\.qsys`)
+      );
+    });
+
+    it('does not look for a rename at the current side', async () => {
+      run('mv', 'bd/other.qsys', 'bd/renamed.qsys');
+      run('commit', '-q', '-m', 'rename');
+      // The old path no longer exists at HEAD: the current side is an error, not read as renamed.
+      const result = await runCliDiff(
+        files({ files: [at('bd/other.qsys')], baseRef: 'HEAD~1', headRef: 'HEAD' })
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('does not exist at HEAD');
+    });
   });
 });

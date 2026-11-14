@@ -12,6 +12,8 @@ import {
 import {
   compareOf,
   emptyDiff,
+  moveDiff,
+  moveGraph,
   renameDiff,
   renameGraph,
   zynqDiff,
@@ -155,6 +157,19 @@ describe('ChangesTable', () => {
     renderTable({ ...emptyDiff(), formatsDiffer: true });
     expect(screen.getByText('No changes.')).toBeVisible();
     expect(screen.getByText(/Different formats/)).toBeVisible();
+  });
+
+  it('says that the file did not exist at the base, or was read under another path', () => {
+    renderTable();
+    expect(screen.queryByText(/did not exist/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/renamed since/)).not.toBeInTheDocument();
+    cleanup();
+    const zynq = zynqDiff();
+    renderTable({ ...zynq, base: { ...zynq.base, missing: true } });
+    expect(screen.getByText('The file did not exist at HEAD: everything is added.')).toBeVisible();
+    cleanup();
+    renderTable({ ...zynq, base: { ...zynq.base, path: 'old/system.bd' } });
+    expect(screen.getByText('Read at HEAD as old/system.bd (renamed since).')).toBeVisible();
   });
 
   it('offers Swap only when the base is a file, and posts swapCompare', () => {
@@ -442,6 +457,63 @@ describe('ChangesTable', () => {
         selection: { kind: 'instance', id: '/axi_gpio_main' },
       });
       expect(rowOf('axi_gpio_main', 'renamed')).toHaveClass('sd-row-selected');
+    });
+  });
+
+  describe('a moved block', () => {
+    const renderMoved = (extra: Parameters<typeof renderTable>[1] = {}) =>
+      renderTable(moveDiff(), { graph: moveGraph(), ...extra });
+
+    it('is one row with its old and new path, followed by the pins the move rewired', () => {
+      renderMoved();
+      const row = rowOf('axi_gpio_0', 'moved');
+      expect(
+        within(row)
+          .getAllByRole('cell')
+          .map((cell) => cell.textContent)
+      ).toEqual([
+        '» Moved',
+        '/gpio_block',
+        'axi_gpio_0',
+        'moved',
+        '/axi_gpio_0',
+        '/gpio_block/axi_gpio_0',
+      ]);
+      expect(rowOf('axi_gpio_0', 'pin S_AXI')).toBeDefined();
+    });
+
+    it('adds the Moved chip after the Renamed one, only when a block was moved', () => {
+      renderMoved();
+      const chips = screen
+        .getAllByRole('button')
+        .filter((button) => button.hasAttribute('aria-pressed'));
+      expect(chips.map((chip) => [chip.textContent, chip.getAttribute('title')])).toEqual([
+        ['+ Added', 'Only in current'],
+        ['− Removed', 'Only in base'],
+        ['~ Changed', 'In both, but different'],
+        ['» Moved', 'Same block under another level'],
+        ['v Version only', 'Only the IP version differs'],
+      ]);
+      cleanup();
+      renderTable(renameDiff(), { graph: renameGraph() });
+      expect(screen.queryByRole('button', { name: 'Moved' })).not.toBeInTheDocument();
+    });
+
+    it('is hidden and shown with its chip', () => {
+      renderMoved();
+      const before = dataRows().length;
+      const chip = screen.getByRole('button', { name: 'Moved' });
+      fireEvent.click(chip);
+      expect(dataRows().length).toBeLessThan(before);
+      expect(screen.queryByText('/gpio_block/axi_gpio_0')).not.toBeInTheDocument();
+      fireEvent.click(chip);
+      expect(dataRows()).toHaveLength(before);
+    });
+
+    it('selects the block at its new path on a click', () => {
+      const { onSelectInstance } = renderMoved();
+      fireEvent.click(rowOf('axi_gpio_0', 'moved'));
+      expect(onSelectInstance).toHaveBeenCalledWith('/gpio_block/axi_gpio_0');
     });
   });
 });

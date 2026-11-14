@@ -121,6 +121,53 @@ describe('SystemDesignEnricher', () => {
     expect(result.instances['/other_0'].definition).toBeUndefined();
   });
 
+  describe('with readAt', () => {
+    const OLD_IP = IP_YML.replace(
+      '{ name: flag, direction: in }',
+      '{ name: old_flag, direction: in }'
+    );
+
+    it('reads the matched definitions at the revision, not from disk', async () => {
+      setup({
+        '/ws/my_core.ip.yml': IP_YML,
+        '/ws/other.ip.yml': IP_YML.replace('My_Core', 'Other_Core'),
+        '/ws/rtl/pulse_gen.vhd': PULSE_VHDL,
+      });
+      const revision: Record<string, string> = {
+        '/ws/my_core.ip.yml': OLD_IP,
+        '/ws/rtl/pulse_gen.vhd': PULSE_VHDL.replace('q   :', 'old_q :'),
+      };
+      const readAt = jest.fn((u: vscode.Uri) => Promise.resolve(revision[u.fsPath]));
+      const result = await new SystemDesignEnricher().enrich(bdGraph, DESIGN, readAt);
+      const pins = (path: string) => result.instances[path].pins.map((p) => p.name);
+      expect(pins('/my_core_0')).toContain('old_flag');
+      expect(pins('/my_core_0')).not.toContain('flag');
+      expect(pins('/pulse_0')).toContain('old_q');
+      // Only the matched files are read at the revision.
+      expect(readAt.mock.calls.map(([u]) => u.fsPath).sort()).toEqual([
+        '/ws/my_core.ip.yml',
+        '/ws/rtl/pulse_gen.vhd',
+      ]);
+    });
+
+    it('uses the working tree without it', async () => {
+      setup({ '/ws/my_core.ip.yml': IP_YML });
+      const result = await new SystemDesignEnricher().enrich(bdGraph, DESIGN);
+      expect(result.instances['/my_core_0'].pins.map((p) => p.name)).toContain('flag');
+    });
+
+    it('reads nothing at the revision in an untrusted workspace', async () => {
+      const { workspace } = setup({ '/ws/my_core.ip.yml': IP_YML });
+      workspace.isTrusted = false;
+      const readAt = jest.fn();
+      const result = await new SystemDesignEnricher().enrich(bdGraph, DESIGN, readAt);
+      expect(readAt).not.toHaveBeenCalled();
+      expect(result.diagnostics.at(-1)?.message).toBe(
+        'IP definitions are not read in untrusted workspaces.'
+      );
+    });
+  });
+
   it('enriches a module instance from the HDL file that declares the entity', async () => {
     setup({ '/ws/rtl/pulse_gen.vhd': PULSE_VHDL, '/ws/rtl/other.vhd': 'entity other is end;' });
     const result = await new SystemDesignEnricher().enrich(bdGraph, DESIGN);

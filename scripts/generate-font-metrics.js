@@ -17,7 +17,7 @@ const FACES = [
   ['mono400', '@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2'],
 ];
 /** Printable ASCII plus the few other characters the diagram draws. */
-const EXTRA = [0xb7, 0x2026, 0x2212];
+const EXTRA = [0xb7, 0xbb, 0x2026, 0x2212];
 const CODE_POINTS = [...Array.from({ length: 95 }, (_, i) => 32 + i), ...EXTRA];
 
 function faceMetrics(file) {

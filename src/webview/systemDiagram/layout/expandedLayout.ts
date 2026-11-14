@@ -7,7 +7,7 @@
 
 import type { ElkNode, ElkPort } from 'elkjs/lib/elk-api';
 import type { SystemGraph, SystemInstance, SystemPin } from '../../../domain/systemGraph';
-import { cellCount, endpointKey, netsByEndpoint } from '../model';
+import { cellCount, endpointKey, type netsByEndpoint } from '../model';
 import type { FrameNodeData, FramePinRow, PinSide } from './diagramTypes';
 import { portId } from './levelEdges';
 import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
@@ -111,9 +111,18 @@ export function frameData(
   graph: SystemGraph,
   instance: SystemInstance,
   ports: ReadonlyMap<string, ElkPort>,
-  outer: { nets: NetLookup; clockReset: ClockResetNets }
+  outer: {
+    nets: NetLookup;
+    /** The nets of the hierarchy's own level. */
+    inner: NetLookup;
+    clockReset: ClockResetNets;
+    /** Names of the pins only the base has (a comparison's union layout). */
+    ghostPins?: ReadonlySet<string>;
+    /** The cells of the hierarchy, when they are not all of its level (a union layout's ghosts are not). */
+    cells?: number;
+  }
 ): FrameNodeData {
-  const inner = netsByEndpoint(graph, instance.path);
+  const { inner } = outer;
   const rows: Record<PinSide, FramePinRow[]> = { west: [], east: [] };
   for (const pin of instance.pins) {
     const ref = { instance: instance.path, pin: pin.name };
@@ -128,7 +137,11 @@ export function frameData(
       pin.name,
       badgeOfPort(port, outer.clockReset.get(endpointKey(ref)))
     );
-    rows[row.side].push({ ...row, y: (port?.y ?? 0) + (port?.height ?? PORT_SIZE) / 2 });
+    rows[row.side].push({
+      ...row,
+      ...(outer.ghostPins?.has(pin.name) && { ghost: true as const }),
+      y: (port?.y ?? 0) + (port?.height ?? PORT_SIZE) / 2,
+    });
   }
-  return { instance, cellCount: cellCount(graph, instance.path), ...rows };
+  return { instance, cellCount: outer.cells ?? cellCount(graph, instance.path), ...rows };
 }

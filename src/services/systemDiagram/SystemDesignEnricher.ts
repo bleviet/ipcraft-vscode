@@ -22,6 +22,7 @@ import {
   type HdlEntry,
   type IpEntry,
 } from './enrichment/fileEntries';
+import { revisionIo, type ReadAt } from './enrichment/revisionIo';
 import { SubsystemExpander } from './SubsystemExpander';
 import { WorkspaceFileIndex } from './WorkspaceFileIndex';
 
@@ -90,8 +91,15 @@ export class SystemDesignEnricher {
     ].join('.');
   }
 
-  /** `designFile` is the path of the design: the nearest definition wins a tie. */
-  async enrich(read: SystemGraph, designFile: string): Promise<SystemGraph> {
+  /**
+   * `designFile` is the path of the design: the nearest definition wins a tie. With `readAt`
+   * the definitions are read as they were at a revision (see {@link revisionIo}), not from disk.
+   */
+  async enrich(
+    read: SystemGraph,
+    designFile: string,
+    readAt?: ReadAt<vscode.Uri>
+  ): Promise<SystemGraph> {
     if (hasOnlyHierarchies(read)) {
       return read;
     }
@@ -101,7 +109,12 @@ export class SystemDesignEnricher {
         diagnostics: [...read.diagnostics, { severity: 'info', message: UNTRUSTED_MESSAGE }],
       };
     }
-    return enrichSystemGraph(read, designFile, this.io, this.log);
+    return enrichSystemGraph(
+      read,
+      designFile,
+      readAt ? revisionIo(this.io, readAt) : this.io,
+      this.log
+    );
   }
 
   dispose(): void {

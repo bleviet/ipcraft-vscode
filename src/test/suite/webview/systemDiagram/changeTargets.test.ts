@@ -45,11 +45,14 @@ describe('resolveTarget', () => {
 });
 
 describe('segmentTextOwner', () => {
-  const graph = { instances: { '/h': {}, '/new': {}, '/new/c': {} } } as unknown as SystemGraph;
+  const graph = {
+    instances: { '/h': {}, '/new': {}, '/new/c': {}, '/new/c/m': {} },
+  } as unknown as SystemGraph;
   const diff = {
     instances: [
       { path: '/h/gone', status: 'removed' },
       { path: '/new', status: 'renamed', basePath: '/old' },
+      { path: '/new/c/m', status: 'moved', basePath: '/elsewhere/m' },
     ],
   } as unknown as SystemGraphDiff;
   const owners = segmentOwners(graph, diff);
@@ -64,6 +67,10 @@ describe('segmentTextOwner', () => {
     expect(segmentTextOwner(owners, 'old/S/Reg')).toBe('/new');
     expect(segmentTextOwner(owners, 'old/c/S/Reg')).toBe('/new/c');
     expect(segmentTextOwner(owners, 'nowhere/S')).toBeUndefined();
+  });
+
+  it('maps the base spelling of a moved block to the block under its current path', () => {
+    expect(segmentTextOwner(owners, 'elsewhere/m/S/Reg')).toBe('/new/c/m');
   });
 });
 

@@ -1,5 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
-import { useCompareView } from '../../../../webview/systemDiagram/hooks/useCompareView';
+import { useCompareView as useView } from '../../../../webview/systemDiagram/hooks/useCompareView';
+import { useCompareToggles } from '../../../../webview/systemDiagram/hooks/useCompareToggles';
+import type { DiagramCompare } from '../../../../shared/messages/systemDiagram';
+import type { SystemGraph } from '../../../../domain/systemGraph';
+import type { Ghosts } from '../../../../webview/systemDiagram/layout/unionGraph';
 import { diffSystemGraphs } from '../../../../services/systemDiagram/diff/diffSystemGraphs';
 import { compareOf, emptyDiff, zynqDiff, zynqGraph } from './compareFixtures';
 import type { ChangeRow } from '../../../../services/systemDiagram/diff/changeRows';
@@ -7,6 +11,15 @@ import { systemBd } from './systemBdEdit';
 
 const graph = zynqGraph('current');
 const diff = zynqDiff();
+
+/** The toggles and the view of a comparison, as the workbench composes them. */
+const useCompareView = (
+  design: SystemGraph,
+  incoming: DiagramCompare | undefined,
+  levelPath: string,
+  isolate: (nodeIds: string[]) => void,
+  ghosts?: Ghosts
+) => useView(design, useCompareToggles(incoming), levelPath, isolate, ghosts);
 
 interface Props {
   label?: string;

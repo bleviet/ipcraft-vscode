@@ -5,7 +5,7 @@
  * command line writes it as the JSON report.
  */
 
-import type { SystemGraph } from './systemGraph';
+import type { SystemGraph, SystemInstance, SystemNet, SystemPin } from './systemGraph';
 
 export type ChangeStatus = 'added' | 'removed' | 'changed';
 
@@ -45,9 +45,12 @@ export interface InstanceChange {
   path: string;
   /** Level that contains the instance. */
   level: string;
-  /** `version`: only the version of the type differs. `renamed`: the same block under a new name (see `basePath`). */
-  status: ChangeStatus | 'version' | 'renamed';
-  /** `renamed`: the path of the block in the base revision; `path` is its path in the current one. */
+  /**
+   * `version`: only the version of the type differs. `renamed`: the same block under a new name
+   * (see `basePath`). `moved`: the same block, with the same name, under another parent level.
+   */
+  status: ChangeStatus | 'version' | 'renamed' | 'moved';
+  /** `renamed`, `moved`: the path of the block in the base revision; `path` is its path in the current one. */
   basePath?: string;
   /** Type as shown to the user in each revision; absent when the instance does not exist there. */
   baseType?: string;
@@ -58,7 +61,8 @@ export interface InstanceChange {
    * as `added` (with `currentPeers`) or `removed` (with `basePeers`). Otherwise the pins
    * that moved; a pin is not listed when it only joined or left a net of pins that kept
    * their connections, or when its peers differ only by pins of added or removed blocks.
-   * Sorted by pin name. A `renamed` block has no parameters and no pins.
+   * Sorted by pin name. A `renamed` block has no parameters and no pins; a `moved` block has no
+   * parameters, and its pins are those whose connections changed with the move.
    */
   pins: PinChange[];
 }
@@ -85,6 +89,10 @@ export interface SegmentChange {
 export interface SystemGraphDiffSide {
   name: string;
   format: SystemGraph['source']['format'];
+  /** Set by the caller, only when the side was read under another path (the file was renamed). */
+  path?: string;
+  /** Set by the caller when the file did not exist on this side: the side is an empty design. */
+  missing?: true;
 }
 
 export interface DiffSummary {
@@ -93,6 +101,7 @@ export interface DiffSummary {
   changed: number;
   version: number;
   renamed: number;
+  moved: number;
 }
 
 export interface SystemGraphDiff {
@@ -150,4 +159,19 @@ export interface FindingsDiff {
   new: Finding[];
   /** Findings only the base has, written with the current names of renamed blocks. */
   resolved: Finding[];
+}
+
+/**
+ * What only the base has, to draw as ghosts next to the current graph (see `unionAdditions`):
+ * the layout of a comparison is made from the current graph plus these.
+ */
+export interface UnionAdditions {
+  /** Blocks only the base has, as the base wrote them, on a level the current graph has. */
+  instances: SystemInstance[];
+  /** Pins only the base has, on blocks the current graph has: the ends of the wires of `nets`. */
+  pins: { instance: string; pin: SystemPin }[];
+  /** External ports only the base has: `level` is always the root (`/`). */
+  boundaryPins: { level: string; pin: SystemPin }[];
+  /** Connections only the base has, one net per base net. */
+  nets: SystemNet[];
 }

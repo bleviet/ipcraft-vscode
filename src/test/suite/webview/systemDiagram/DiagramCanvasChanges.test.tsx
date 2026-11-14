@@ -10,7 +10,14 @@ import { DiagramCanvas } from '../../../../webview/systemDiagram/DiagramCanvas';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
 import { clockContextOf } from './clockContext';
-import { renameDiff, renameGraph, zynqDiff, zynqGraph } from './compareFixtures';
+import {
+  moveDiff,
+  moveGraph,
+  renameDiff,
+  renameGraph,
+  zynqDiff,
+  zynqGraph,
+} from './compareFixtures';
 import { stubCanvasSize } from './canvasSize';
 import { fakeMeasure } from './fixtureGraph';
 import { systemBd, twoClockGroups, withoutGpio0Net } from './systemBdEdit';
@@ -134,6 +141,15 @@ describe('marks on the canvas', () => {
     expect(within(block).getByRole('img', { name: 'Renamed from axi_gpio_0' })).toHaveTextContent(
       '→'
     );
+  });
+
+  it('marks a moved block inside its hierarchy with a sign and the level it came from', async () => {
+    const graph = moveGraph();
+    const layout = await layoutOf(graph, ['/gpio_block']);
+    render(canvas(layout, graph, contextOf(graph, moveDiff())));
+    const block = root('axi_gpio_0');
+    expect(block).toHaveAttribute('data-change', 'moved');
+    expect(within(block).getByRole('img', { name: 'Moved from /' })).toHaveTextContent('»');
   });
 
   it('colors the name of a changed pin and gives it a title, on an instance and on a frame', async () => {

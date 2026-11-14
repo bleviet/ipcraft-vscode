@@ -19,7 +19,9 @@ export interface ImageExportChannel {
 
 /**
  * The state of the system viewer's Export image button. Exporting reads the viewport and sends the
- * state; it never changes the view. Must run inside a React Flow provider.
+ * state; it never changes the view. The layout holds the ghosts of a comparison only while they
+ * are drawn (`state.ghostsOn`), and then the image draws them too, so the blocks in view are the
+ * layout's. Must run inside a React Flow provider.
  */
 export function useDiagramExport(
   channel: ImageExportChannel | undefined,

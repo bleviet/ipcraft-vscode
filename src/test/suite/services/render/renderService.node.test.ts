@@ -12,16 +12,17 @@ import {
   renderIpSymbolImage,
 } from '../../../../services/render/ipSymbolImage';
 import { RenderAssets } from '../../../../services/render/renderResources';
-import { renderSystemLevelImage } from '../../../../services/render/systemLevelImage';
+import { isolateNodes, renderSystemLevelImage } from '../../../../services/render/systemLevelImage';
 import { readSystemDesign } from '../../../../services/systemDiagram/readSystemDesign';
 import { FONT_FILES } from '../../../../shared/render/fontFaces';
 import { paletteFor } from '../../../../shared/render/palette';
 import { plexTextMeasure } from '../../../../shared/render/textMetrics';
 import { buildChangeMarks, type ChangeMarks } from '../../../../webview/systemDiagram/changeMarks';
-import { zynqDiff, zynqGraph } from '../../webview/systemDiagram/compareFixtures';
+import { zynqDiff, zynqGraph, zynqUnion } from '../../webview/systemDiagram/compareFixtures';
 import { nodeBounds } from '../../../../webview/systemDiagram/layout/diagramBounds';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
+import { withoutGhosts, withUnion } from '../../../../webview/systemDiagram/layout/unionGraph';
 
 const repoRoot = path.resolve(__dirname, '../../../../..');
 const ZYNQ = path.join(repoRoot, 'src/test/fixtures/system-design/zynq_dma_system.tcl');
@@ -166,6 +167,120 @@ describe('renderSystemLevelImage', () => {
     expect(body(marked, '/sync_0')).toBe(body(plain, '/sync_0'));
     expect(marked).toContain('>− 2 removed</text>');
     expect(marked).toContain('>New wire</text>');
+  });
+
+  describe('ghosts of a comparison', () => {
+    const current = zynqGraph('current');
+    const union = zynqUnion();
+    const request = { level: '/', expanded: [], selectedNodeIds: [], clocks: false } as const;
+    const draw = async (extra: { union?: typeof union } = {}) =>
+      text(
+        await renderSystemLevelImage(
+          current,
+          {
+            ...request,
+            changes: buildChangeMarks(zynqDiff(), current, withUnion(current, extra.union).ghosts),
+            ...extra,
+          },
+          { ...look, legend: true },
+          svg,
+          assets,
+          roots
+        )
+      );
+    const body = (image: string, id: string) => {
+      const start = image.indexOf(`data-node="${id}"`);
+      return image.slice(start, image.indexOf('data-node=', start + 1));
+    };
+
+    it('draws the removed block and port as ghosts and the lost wire dashed', async () => {
+      const image = await draw({ union });
+      const { removed } = paletteFor('light').change;
+      expect(body(image, '/axi_gpio_0')).toContain(`stroke="${removed}"`);
+      expect(body(image, '/axi_gpio_0')).toMatch(/text-decoration="line-through"[^>]*>axi_gpio_0</);
+      expect(body(image, '/axi_gpio_0')).toContain('>−</text>');
+      expect(image).toMatch(/text-decoration="line-through"[^>]*>led_o</);
+      expect(image).toContain('>Removed wire</text>');
+      expect(image).not.toContain('removed</text>');
+    });
+
+    it('draws only the marks, as before, without the union', async () => {
+      const image = await draw();
+      expect(image).not.toContain('data-node="/axi_gpio_0"');
+      expect(image).not.toContain('line-through');
+      expect(image).toContain('>− 2 removed</text>');
+    });
+
+    describe('with the ghosts hidden', () => {
+      // Two hops from the processor reach DDR, which the ghost wire pushes down in the union layout.
+      const isolate = { nodeIds: ['/sys_ps7'], hops: 2 };
+      /** The nodes and where they sit, as the canvas has them: the union's isolation and layout, the ghosts left out. */
+      async function canvas() {
+        const { graph: merged, ghosts } = withUnion(current, union);
+        const subset = isolateNodes(merged, '/', isolate.nodeIds, isolate.hops);
+        const laidOut = await runElkLayout(
+          buildElkInput(merged, '/', { measure: plexTextMeasure, isolate: subset })
+        );
+        const { nodes } = withoutGhosts(
+          toFlowElements(laidOut, merged, '/', plexTextMeasure, subset, ghosts),
+          ghosts
+        );
+        return Object.fromEntries(nodes.map((n) => [n.id, `${n.position.x} ${n.position.y}`]));
+      }
+      /** The nodes of an image and their `translate`, by id. */
+      const placed = (image: string) =>
+        Object.fromEntries(
+          [...image.matchAll(/data-node="([^"]*)"[^>]* transform="translate\(([^)]*)\)"/g)].map(
+            (match) => [match[1], match[2]]
+          )
+        );
+      const request = {
+        level: '/',
+        expanded: [],
+        selectedNodeIds: [],
+        clocks: false,
+        isolate,
+      } as const;
+      const drawHidden = async (extra: object) =>
+        text(
+          await renderSystemLevelImage(current, { ...request, ...extra }, look, svg, assets, roots)
+        );
+
+      it.each([
+        ['marks of the open design', { changes: buildChangeMarks(zynqDiff(), current) }],
+        ['no marks', {}],
+      ])('isolates and places the blocks as the canvas does, with %s', async (_name, marks) => {
+        const image = await drawHidden({ ...marks, union, ghostsHidden: true });
+        const expected = await canvas();
+        expect(placed(image)).toEqual(expected);
+        expect(image).not.toContain('data-node="/axi_gpio_0"');
+        expect(image).not.toContain('line-through');
+      });
+
+      it('differs from an isolation of the open design, which the canvas does not draw', async () => {
+        const open = await drawHidden({});
+        expect(placed(open)).not.toEqual(await canvas());
+      });
+    });
+
+    it('lets an isolation start from a ghost', async () => {
+      const image = text(
+        await renderSystemLevelImage(
+          current,
+          {
+            ...request,
+            isolate: { nodeIds: ['/axi_gpio_0'], hops: 1 },
+            changes: buildChangeMarks(zynqDiff(), current, withUnion(current, union).ghosts),
+            union,
+          },
+          look,
+          svg,
+          assets,
+          roots
+        )
+      );
+      expect(image).toContain('data-node="/axi_gpio_0"');
+    });
   });
 
   it('rejects an isolation of nodes that are not on the level', async () => {

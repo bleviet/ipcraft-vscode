@@ -11,8 +11,10 @@ export const MINIMAP_COLORS = {
   match: 'var(--vscode-editorWarning-foreground)',
   /** A block marked by a comparison, by kind (the colors of the Changes tab). */
   added: 'var(--sd-change-added)',
+  removed: 'var(--sd-change-removed)',
   changed: 'var(--sd-change-changed)',
   renamed: 'var(--sd-change-renamed)',
+  moved: 'var(--sd-change-renamed)',
   version: 'var(--sd-change-version)',
 };
 

@@ -86,6 +86,7 @@ nav:
       - System Viewer:
           - Viewing a system design: how-to/view-a-system-design.md
           - Rendering documentation images: how-to/render-documentation-images.md
+          - Reviewing changes in CI: how-to/review-system-design-changes-in-ci.md
       - Data Inspector:
           - Using the Data Inspector: how-to/use-data-inspector.md
           - How values are decoded: concepts/data-inspector.md

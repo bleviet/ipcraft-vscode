@@ -68,6 +68,24 @@ describe('message parsers', () => {
     }
   });
 
+  it('keeps a boolean ghosts flag and drops any other value', () => {
+    expect(parseSystemExportView({ ...view, ghosts: true })).toEqual({ ...view, ghosts: true });
+    expect(parseSystemExportView({ ...view, ghosts: false })).toEqual({ ...view, ghosts: false });
+    for (const ghosts of ['yes', 1, null, {}]) {
+      expect(parseSystemExportView({ ...view, ghosts })).toEqual(view);
+    }
+  });
+
+  it('keeps a boolean unionLayout flag and drops any other value', () => {
+    expect(parseSystemExportView({ ...view, unionLayout: true })).toEqual({
+      ...view,
+      unionLayout: true,
+    });
+    for (const unionLayout of ['yes', 1, null, {}]) {
+      expect(parseSystemExportView({ ...view, unionLayout })).toEqual(view);
+    }
+  });
+
   it('keeps a boolean ignoreVersionOnly flag and drops any other value', () => {
     expect(parseSystemExportView({ ...view, ignoreVersionOnly: true })).toEqual({
       ...view,
