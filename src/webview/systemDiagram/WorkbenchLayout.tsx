@@ -121,6 +121,7 @@ export function WorkbenchLayout({
     isolation,
     clocksOn,
     selectedNodeIds: nav.selectedNodeIds,
+    marksOn: compareView.marksOn,
   });
 
   const bodyRef = useRef<HTMLDivElement>(null);

@@ -8,7 +8,9 @@ import { RenderAssets } from '../../../services/render/renderResources';
 import type { RenderRoots } from '../../../services/render/imageEncoding';
 import { DEFAULT_EXPORT_OPTIONS } from '../../../shared/messages/imageExport';
 import { Logger } from '../../../utils/Logger';
+import { buildChangeMarks, type ChangeMarks } from '../../../webview/systemDiagram/changeMarks';
 import { loadFixtureGraph } from '../webview/systemDiagram/fixtureGraph';
+import { zynqDiff, zynqGraph } from '../webview/systemDiagram/compareFixtures';
 
 jest.mock('../../../services/render/systemLevelImage', () => ({
   ...jest.requireActual<object>('../../../services/render/systemLevelImage'),
@@ -163,6 +165,48 @@ describe('ImageExportHost.exportSystem', () => {
     expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
       'Could not export the image: The design is not loaded.'
     );
+  });
+
+  describe('comparison marks', () => {
+    const current = zynqGraph('current');
+    const diff = zynqDiff();
+    const requestOf = () =>
+      (renderSystemLevelImage as jest.Mock).mock.calls[0][1] as { changes?: ChangeMarks };
+
+    it('draws the marks of the diff when the view says they are on the canvas', async () => {
+      const { host } = setup();
+      await host.exportSystem(
+        document,
+        current,
+        { options: DEFAULT_EXPORT_OPTIONS, view: { ...view, marks: true } },
+        diff
+      );
+      expect(requestOf().changes?.blocks.get('/axis_data_fifo_0')?.status).toBe('added');
+      expect(requestOf().changes).toEqual(buildChangeMarks(diff, current));
+      expect(vscode.workspace.fs.writeFile).toHaveBeenCalled();
+    });
+
+    it.each([false, undefined])('draws no marks when marks is %s', async (marks) => {
+      const { host } = setup();
+      await host.exportSystem(
+        document,
+        current,
+        { options: DEFAULT_EXPORT_OPTIONS, view: { ...view, marks } },
+        diff
+      );
+      expect(requestOf()).not.toHaveProperty('changes');
+    });
+
+    it('draws no marks, and no error, when the comparison ended before the message arrived', async () => {
+      const { host } = setup();
+      await host.exportSystem(document, current, {
+        options: DEFAULT_EXPORT_OPTIONS,
+        view: { ...view, marks: true },
+      });
+      expect(requestOf()).not.toHaveProperty('changes');
+      expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+      expect(vscode.workspace.fs.writeFile).toHaveBeenCalled();
+    });
   });
 
   it('opens or reveals the file from the notification', async () => {

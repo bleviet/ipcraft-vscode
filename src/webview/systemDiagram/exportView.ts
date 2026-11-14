@@ -40,6 +40,8 @@ export interface SystemExportState {
   isolation: { seedIds: readonly string[]; hops: number } | null;
   clocksOn: boolean;
   selectedNodeIds: readonly string[];
+  /** A comparison is on and Marks is pressed. */
+  marksOn: boolean;
 }
 
 /** The message payload for the viewer's state; `visible` is set for the Current view area. */
@@ -55,6 +57,7 @@ export function buildSystemExportView(
     }),
     clocks: state.clocksOn,
     selectedNodeIds: [...state.selectedNodeIds],
+    ...(state.marksOn && { marks: true }),
     ...(visible && { visibleNodeIds: [...visible] }),
   };
 }

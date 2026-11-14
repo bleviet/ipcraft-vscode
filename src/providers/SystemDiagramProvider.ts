@@ -80,6 +80,8 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     let lastGraph: SystemGraph | undefined;
     /** False while `lastGraph` is the early, not yet enriched graph. */
     let lastGraphFinal = true;
+    /** The comparison `lastGraph` was published with; undefined without one. */
+    let lastChanges: CompareResult | undefined;
     /** The sides of `lastGraph` while it is final. */
     let lastSides: CurrentSide | undefined;
     /** The problem the webview shows over `lastGraph`; a published graph clears it. */
@@ -109,6 +111,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       prune = final
     ) => {
       lastGraph = graph;
+      lastChanges = changes;
       lastProblem = undefined;
       lastGraphFinal = final;
       const raw = this.context.workspaceState?.get<unknown>(storageKey);
@@ -291,7 +294,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     });
 
     router.on('exportImage', async (message) => {
-      await this.imageExport.exportSystem(document, lastGraph, message);
+      await this.imageExport.exportSystem(document, lastGraph, message, lastChanges?.diff);
     });
 
     router.on('startCompare', () => compare.pick());
