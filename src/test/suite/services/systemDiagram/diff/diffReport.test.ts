@@ -125,6 +125,59 @@ describe('diffToMarkdown', () => {
     expect(diffToMarkdown(diff, LABELS, KEEP)).not.toContain('renamed');
   });
 
+  describe('a base that did not exist or was read under another path', () => {
+    const diff = () => fixtureDiff('nios_base.qsys', 'nios_current.qsys', 'nios_system.qsys');
+    const plain = diffToMarkdown(diff(), LABELS, KEEP);
+
+    it('writes one line after the comparison line for a missing file', () => {
+      const missing = diff();
+      missing.base.missing = true;
+      const text = diffToMarkdown(missing, LABELS, KEEP);
+      expect(text).toBe(
+        plain.replace(
+          'Comparing `HEAD` (base) with `working tree`.\n',
+          'Comparing `HEAD` (base) with `working tree`.\n\nThe file did not exist at HEAD: everything is added.\n'
+        )
+      );
+    });
+
+    it('writes the old path in a code span for a renamed file', () => {
+      const renamed = diff();
+      renamed.base.path = 'ip/old `name`.qsys';
+      const text = diffToMarkdown(renamed, LABELS, KEEP);
+      expect(text).toContain(
+        'Comparing `HEAD` (base) with `working tree`.\n\nRead at HEAD as ``ip/old `name`.qsys`` (renamed since).\n\n'
+      );
+      expect(text).not.toContain('did not exist');
+    });
+
+    it('writes neither line for an ordinary base, so the reports stay as they were', () => {
+      expect(plain).not.toContain('did not exist');
+      expect(plain).not.toContain('renamed since');
+      expect(plain).toBe(golden('nios.expected.md'));
+    });
+
+    it('carries the fields in the JSON of the diff, and only when they are set', () => {
+      const [missing, renamed] = [diff(), diff()];
+      missing.base.missing = true;
+      renamed.base.path = 'old.qsys';
+      expect(JSON.parse(JSON.stringify(missing)).base).toEqual({
+        name: 'nios_system',
+        format: 'qsys',
+        missing: true,
+      });
+      expect(JSON.parse(JSON.stringify(renamed)).base).toEqual({
+        name: 'nios_system',
+        format: 'qsys',
+        path: 'old.qsys',
+      });
+      expect(JSON.parse(JSON.stringify(diff())).base).toEqual({
+        name: 'nios_system',
+        format: 'qsys',
+      });
+    });
+  });
+
   it('says No changes. when nothing differs', () => {
     const g = read('nios_base.qsys', 'nios_system.qsys');
     expect(diffToMarkdown(diffSystemGraphs(g, g), LABELS, KEEP)).toBe(

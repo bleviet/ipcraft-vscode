@@ -159,6 +159,19 @@ describe('ChangesTable', () => {
     expect(screen.getByText(/Different formats/)).toBeVisible();
   });
 
+  it('says that the file did not exist at the base, or was read under another path', () => {
+    renderTable();
+    expect(screen.queryByText(/did not exist/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/renamed since/)).not.toBeInTheDocument();
+    cleanup();
+    const zynq = zynqDiff();
+    renderTable({ ...zynq, base: { ...zynq.base, missing: true } });
+    expect(screen.getByText('The file did not exist at HEAD: everything is added.')).toBeVisible();
+    cleanup();
+    renderTable({ ...zynq, base: { ...zynq.base, path: 'old/system.bd' } });
+    expect(screen.getByText('Read at HEAD as old/system.bd (renamed since).')).toBeVisible();
+  });
+
   it('offers Swap only when the base is a file, and posts swapCompare', () => {
     renderTable();
     expect(screen.queryByRole('button', { name: 'Swap' })).not.toBeInTheDocument();

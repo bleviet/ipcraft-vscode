@@ -1,6 +1,7 @@
 /** Markdown report of a {@link SystemGraphDiff}, made for a pull request comment. Pure. */
 
 import type { FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
+import { baseNote } from './baseNote';
 import { changeRows, type Cell, type CellPart, type ChangeRow } from './changeRows';
 import { findingRows } from './findingRows';
 import { changeCount, withoutVersionOnly } from './ignoreVersionOnly';
@@ -95,6 +96,10 @@ export function diffToMarkdown(
     `## System design changes: ${diff.current.name}`,
     `Comparing ${code(labels.base)} (base) with ${code(labels.current)}.`,
   ];
+  const note = baseNote(diff.base, labels.base, code);
+  if (note) {
+    parts.push(note);
+  }
   if (diff.formatsDiffer) {
     parts.push(
       `The two revisions use different formats (${diff.base.format} and ${diff.current.format}).`

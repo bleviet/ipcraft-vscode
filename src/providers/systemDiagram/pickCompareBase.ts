@@ -18,6 +18,10 @@ export interface CompareBase {
   text: string;
   label: string;
   file?: vscode.Uri;
+  /** The revision has no such file: the base is an empty design and `text` is empty. */
+  missing?: true;
+  /** The revision has the file under this (workspace-relative) path: it was renamed since. */
+  renamedFrom?: string;
 }
 
 type Choice = RevisionChoice | { action: 'enter' | 'file' } | { action: 'open'; uri: vscode.Uri };
@@ -95,7 +99,8 @@ async function revisionBase(
   label: string,
   uri: vscode.Uri
 ): Promise<CompareBase> {
-  return { text: await readRevision(repo, ref, uri), label };
+  const read = await readRevision(repo, ref, uri);
+  return 'missing' in read ? { text: '', label, missing: true } : { ...read, label };
 }
 
 async function fileBase(document: vscode.TextDocument): Promise<CompareBase | undefined> {

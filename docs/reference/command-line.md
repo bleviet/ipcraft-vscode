@@ -262,7 +262,7 @@ ipcraft diff bd/system.bd --base origin/main --fail-on new-findings
 
 | Option | Meaning |
 |---|---|
-| `--base <git ref>` | One-file form. The revision to compare with: a branch, tag, commit or `HEAD~1`. The file is read at the same path in the repository that contains it |
+| `--base <git ref>` | One-file form. The revision to compare with: a branch, tag, commit or `HEAD~1`. The file is read at the same path in the repository that contains it, or under its old path when git finds that it was renamed since (see below) |
 | `--head <git ref>` | One-file form, with `--base`. Compare with this revision instead of the working tree |
 | `--format <markdown\|json>` | Report format (default `markdown`) |
 | `--out <file>` | Write the report to this file instead of standard output. The folder is created if needed |
@@ -461,13 +461,43 @@ Both revisions are read as text and nothing is executed, as in the viewer. The
 revision is read from the local git object store with `git show`; there is no
 network access and nothing is checked out.
 
+A file that was added after the base revision, or that had another path there, is
+still compared. If the file is not at the same path in the base revision, `diff`
+asks git for the renames between the base and the current side (`git diff-index -M`
+for the working tree, `git diff-tree -M` for `--head`, at the default similarity of git;
+your `diff.*` settings do not apply) and
+reads the file under its old path; a file that was also edited since is paired
+with its old self as long as git pairs them. The report says so in one line after
+the `Comparing` line:
+
+```markdown
+Read at HEAD~1 as `bd/old_name.bd` (renamed since).
+```
+
+If git finds no such rename and the path is not in the tree of the base revision, the
+file did not exist there, and the base is an empty design: every block, port and address
+segment is added, the line reads
+
+```markdown
+The file did not exist at HEAD~1: everything is added.
+```
+
+and `--fail-on changes` fails on the added blocks. `--fail-on new-findings` fails too
+when the new file has any finding (an unconnected pin, a clock or reset crossing),
+because every finding of a file that was not there before is new. In the JSON report,
+`base` has `"path": "bd/old_name.bd"` (relative to the repository root) for a renamed file
+and `"missing": true` for a file that did not exist; neither field is there otherwise. A rename is found only for
+a file that git knows: a new name that is not added to the index is not paired
+with the old file. The current side must exist: a file that is not in the
+working tree (or at `--head`) is an error, and so is any other failure of git, with
+git's own reason, also a path that is in the base revision whose content git cannot
+read (a partial clone without its remote, say).
+
 Limits for now: workspace definitions (`.ip.yml`, HDL, `.qsys`) are not used, so
-only the pins the design files list are compared. A file that does not exist at
-the base revision is an error (`'<file>' does not exist at <ref>`, followed by
-git's own reason), not a design with everything added, and a file that was
-renamed or moved between the revisions is not followed. The path given to
+only the pins the design files list are compared. The path given to
 `git show` is the spelling on the command line, so on a case-insensitive file
-system a path with the wrong case is found on disk but not at the revision. A
+system a path with the wrong case is found on disk but not at the revision, so
+the file is reported as new, with everything added, rather than as an error. A
 file stored with Git LFS is read as its pointer text and reported as not a
 recognized system design. The concept is in
 [System Design Diff](../concepts/brainstorm/system-design-diff.md).

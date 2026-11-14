@@ -383,6 +383,13 @@ A file is read in its own format, a git revision in the format of the open file.
 Changes bar then adds "Different formats: only what both describe is comparable.",
 because what one format leaves out cannot show up as a difference.
 
+A file that is new since the base revision shows everything as added: the Changes bar
+says "The file did not exist at HEAD: everything is added." (with the name of your base).
+A file that was renamed since is read under its old path, found by the rename detection
+of git for the file in the working tree, and the bar says "Read at HEAD as old/system.bd
+(renamed since)." A new name that git does not know yet (not added to the index) is not
+paired with the old file. The same holds for `ipcraft diff`.
+
 Without a git repository, only the open designs and **Compare with File...** are
 offered. Cancel the picker at any step to leave things as they were. If the revision
 or file cannot be read, or is not a system design, a message says so and a comparison

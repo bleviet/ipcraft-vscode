@@ -352,4 +352,54 @@ describe('SystemDesignCompare', () => {
     expect(compare.active).toBe(false);
     expect(compare.diffRead(current)).toBeUndefined();
   });
+
+  describe('a base that is not the file read under its own path', () => {
+    it('takes a missing file as an empty design in the format of the current side, so everything is added', () => {
+      const { compare } = setup();
+      compare.start('', 'system.bd', 'HEAD~3', '/ws/system.bd', { missing: true });
+      expect(compare.active).toBe(true);
+      const { diff, baseLabel, findings } = compare.diffRead(current)!;
+      expect(baseLabel).toBe('HEAD~3');
+      expect(diff.base).toEqual({ name: current.name, format: 'vivado-bd', missing: true });
+      expect(diff.formatsDiffer).toBe(false);
+      expect(diff.summary.added).toBe(
+        Object.keys(current.instances).length + diff.ports.length + current.addressSegments.length
+      );
+      expect(diff.ports.length).toBeGreaterThan(0);
+      expect(diff.summary).toMatchObject({ removed: 0, changed: 0, renamed: 0, moved: 0 });
+      expect(diff.instances.every((i) => i.status === 'added')).toBe(true);
+      expect(findings.resolved).toEqual([]);
+    });
+
+    it('does not read the text of a missing file, nor enrich it, and compares with the current side as shown', async () => {
+      const { compare, enrich } = setup();
+      compare.start('puts not-a-design', 'system.bd', 'HEAD~3', '/ws/system.bd', { missing: true });
+      const enriched = { ...current, name: 'enriched' };
+      const result = await compare.diffEnriched(side({ enriched }), '/ws/system.bd');
+      expect(enrich).not.toHaveBeenCalled();
+      expect(result!.diff.current.name).toBe('enriched');
+      expect(result!.diff.base.missing).toBe(true);
+      const fellBack = await compare.diffEnriched(
+        side({ enriched, fellBack: true }),
+        '/ws/system.bd'
+      );
+      expect(fellBack!.diff.current.name).toBe(current.name);
+    });
+
+    it('records the old path of a file read under another one, as read and as enriched', async () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START, { renamedFrom: 'old/system.bd' });
+      expect(compare.diffRead(current)!.diff.base.path).toBe('old/system.bd');
+      expect(compare.diffRead(current)!.diff.base).not.toHaveProperty('missing');
+      const enriched = await compare.diffEnriched(side(), '/ws/system.bd');
+      expect(enriched!.diff.base.path).toBe('old/system.bd');
+    });
+
+    it('leaves the sides as they are without an origin', () => {
+      const { compare } = setup();
+      compare.start(text('zynq_gpio_base.bd'), ...START);
+      expect(compare.diffRead(current)!.diff.base).not.toHaveProperty('path');
+      expect(compare.diffRead(current)!.diff.base).not.toHaveProperty('missing');
+    });
+  });
 });

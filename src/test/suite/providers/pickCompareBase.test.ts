@@ -52,7 +52,7 @@ function inRepository(inside: boolean) {
   (git.openRepository as jest.Mock).mockResolvedValue(inside ? repo : undefined);
   (git.listRevisions as jest.Mock).mockResolvedValue(revisions);
   (git.listFileCommits as jest.Mock).mockResolvedValue(commits);
-  (git.readRevision as jest.Mock).mockResolvedValue('revision text');
+  (git.readRevision as jest.Mock).mockResolvedValue({ text: 'revision text' });
 }
 
 const pickLabel = (label: string) =>
@@ -185,6 +185,27 @@ describe('pickCompareBase', () => {
     expect(base).toEqual({ text: 'revision text', label: 'v1.0' });
     expect(base).not.toHaveProperty('file');
     expect(git.readRevision).toHaveBeenCalledWith(repo, 'v1.0', document.uri);
+  });
+
+  it('carries the old path of a file that was renamed since the revision', async () => {
+    inRepository(true);
+    (git.readRevision as jest.Mock).mockResolvedValue({
+      text: 'revision text',
+      renamedFrom: 'old/system.bd',
+    });
+    pickLabel('v1.0');
+    expect(await pickCompareBase(document)).toEqual({
+      text: 'revision text',
+      label: 'v1.0',
+      renamedFrom: 'old/system.bd',
+    });
+  });
+
+  it('makes a base without text of a file that did not exist at the revision', async () => {
+    inRepository(true);
+    (git.readRevision as jest.Mock).mockResolvedValue({ missing: true });
+    pickLabel('v1.0');
+    expect(await pickCompareBase(document)).toEqual({ text: '', label: 'v1.0', missing: true });
   });
 
   it('labels the merge base with the default branch and the short hash', async () => {

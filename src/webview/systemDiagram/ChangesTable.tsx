@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { DiagramCompare } from '../../shared/messages/systemDiagram';
 import type { SystemGraph } from '../../domain/systemGraph';
+import { baseNote } from '../../services/systemDiagram/diff/baseNote';
 import type { ChangeRow, ChangeSign } from '../../services/systemDiagram/diff/changeRows';
 import { CellView } from './ChangeCell';
 import { middleTruncate, shortLabels } from './compareLabels';
@@ -76,6 +77,7 @@ export function ChangesTable({
     compare.currentLabel,
     compare.canSwap
   );
+  const note = baseNote(compare.diff.base, compare.baseLabel);
   const bar = (
     <div className="sd-ubar">
       <span role="group" aria-label="Direction of the comparison">
@@ -100,6 +102,7 @@ export function ChangesTable({
         </button>
       )}
       <span>{changeSummaryText(compare.diff)}</span>
+      {note && <span className="opacity-70">{note}</span>}
       {compare.diff.formatsDiffer && <span className="opacity-70">{FORMATS_DIFFER_NOTE}</span>}
       {rows.length > 0 &&
         shownKinds(compare.diff.summary, { version: showVersion }).map(

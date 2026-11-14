@@ -20,7 +20,9 @@ diagram and the later phases are open. The marks of everything that exists in th
 exported images carry them while Marks is on; ghosts for what was removed, the **Removed**
 toggle that comes with them, and the union layout are open.
 `ipcraft diff --image <file.svg|png|jpg>` draws the top level of the current revision
-with those marks. This document describes
+with those marks. A file that was renamed since the base revision is read under its
+old path, and one that did not exist there is compared as all added, in `ipcraft diff`
+and in the viewer. This document describes
 how the [system viewer](../../how-to/view-a-system-design.md) could show what
 changed between two revisions of a block design or Platform Designer system.
 
@@ -322,7 +324,11 @@ source opens the file at that revision, and the diagram does not follow edits
 of the file on disk.
 
 A file that was renamed or moved between the two revisions is looked up under
-its old path, using the rename detection of git.
+its old path, using the rename detection of git (`git diff-index -M` / `git diff-tree -M` for the command
+line, the `diffWith` of the git extension for the viewer). A file that did not
+exist in the base is compared with an empty design, so everything is added. Both
+say so in the report line, the JSON `base` (`path`, `missing`) and the Changes
+bar.
 
 Entry points:
 
@@ -402,9 +408,10 @@ are. No move is needed first.
 
 - Both revisions are read as text. Nothing is executed, as in the plain viewer.
 - The base revision comes from the local git object store. No network access.
-- A base revision that cannot be read (the file did not exist, or is not a
-  system design) gives a clear message. `ipcraft diff` reports a file that did
-  not exist in the base as an error; showing it as "all added" is open.
+- A base revision that cannot be read (it does not exist, git fails, or the
+  text is not a system design) gives a clear message. A file that did not exist
+  in the base is not an error: it is shown as all added, and said so. A path
+  that exists in neither the working tree nor the base is an error.
 
 ## Testing
 

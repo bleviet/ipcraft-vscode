@@ -9,6 +9,7 @@
  * trust is granted or a definition changes, without being enriched anew for each edit.
  */
 
+import { emptySystemGraph } from '../../../domain/emptySystemGraph';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import type { Finding, FindingsDiff, SystemGraphDiff } from '../../../domain/systemGraphDiff';
 import { compareFindings, findingsBase, findingsOf } from '../diff/diffFindings';
@@ -36,8 +37,22 @@ export interface CurrentSide {
   fellBack: boolean;
 }
 
+/** How the base was found, when it is not the file read under its own path. */
+export interface BaseOrigin {
+  /** The base revision has no such file: the base is an empty design. */
+  missing?: true;
+  /** The base revision has the file under this path. */
+  renamedFrom?: string;
+}
+
+/** `read` is undefined for a missing file: the empty design of the format of the current side. */
+interface Base extends BaseOrigin {
+  label: string;
+  read?: SystemGraph;
+}
+
 export class SystemDesignCompare {
-  private base: { label: string; read: SystemGraph } | undefined;
+  private base: Base | undefined;
   /** The enrichment of the base for one design file, as of one revision of the definitions. */
   private enrichedBase:
     | {
@@ -62,13 +77,28 @@ export class SystemDesignCompare {
   /**
    * Reads the base text as the document would be read (`documentFileName` decides the
    * format). Throws when the text is not a system design; a running comparison stays as it was.
+   * A missing base has no text: everything of the current side is added.
    */
-  start(baseText: string, baseDisplayName: string, label: string, documentFileName: string): void {
-    const read = readSystemDesign(documentFileName, baseDisplayName, baseText);
-    if (!read) {
-      throw new Error(`'${label}' is not a recognized system design`);
+  start(
+    baseText: string,
+    baseDisplayName: string,
+    label: string,
+    documentFileName: string,
+    origin: BaseOrigin = {}
+  ): void {
+    if (origin.missing) {
+      this.base = { label, missing: true };
+    } else {
+      const read = readSystemDesign(documentFileName, baseDisplayName, baseText);
+      if (!read) {
+        throw new Error(`'${label}' is not a recognized system design`);
+      }
+      this.base = {
+        label,
+        read,
+        renamedFrom: origin.renamedFrom,
+      };
     }
-    this.base = { label, read };
     this.enrichedBase = undefined;
   }
 
@@ -94,24 +124,29 @@ export class SystemDesignCompare {
       if (!base) {
         return undefined;
       }
+      const baseRead = base.read;
+      if (!baseRead) {
+        // Nothing to enrich: the empty design is compared with the current side as shown.
+        return this.result(base, undefined, current.fellBack ? current.read : current.enriched);
+      }
       let fellBack = current.fellBack;
       const enriched = fellBack
-        ? base.read
-        : await this.enrich(base, designFile).catch((error: unknown) => {
+        ? baseRead
+        : await this.enrich(base, baseRead, designFile).catch((error: unknown) => {
             this.logError('Failed to enrich the base of the comparison', error as Error);
             fellBack = true;
-            return base.read;
+            return baseRead;
           });
       if (this.base === base) {
         return fellBack
-          ? this.result(base, base.read, current.read)
+          ? this.result(base, baseRead, current.read)
           : this.result(base, enriched, current.enriched);
       }
     }
   }
 
   /** The enrichment of the base, shared while the base, the design file and the definitions are the same. */
-  private enrich(base: { read: SystemGraph }, designFile: string): Promise<SystemGraph> {
+  private enrich(base: Base, read: SystemGraph, designFile: string): Promise<SystemGraph> {
     // Read before the enrichment starts: a change while it runs makes the next call enrich again.
     const revision = this.enricher.revision;
     const cached = this.enrichedBase;
@@ -122,7 +157,7 @@ export class SystemDesignCompare {
       base,
       designFile,
       revision,
-      enriched: this.enricher.enrich(base.read, designFile),
+      enriched: this.enricher.enrich(read, designFile),
     };
     this.enrichedBase = entry;
     // A failed enrichment is not kept: the next diff tries again.
@@ -135,16 +170,22 @@ export class SystemDesignCompare {
   }
 
   private result(
-    base: { label: string },
-    baseGraph: SystemGraph,
+    base: Base,
+    baseGraph: SystemGraph | undefined,
     current: SystemGraph
   ): CompareResult {
-    const diff = diffSystemGraphs(baseGraph, current);
+    const from = baseGraph ?? emptySystemGraph(current.name, current.source.format);
+    const diff = diffSystemGraphs(from, current);
+    if (base.missing) {
+      diff.base.missing = true;
+    } else if (base.renamedFrom !== undefined) {
+      diff.base.path = base.renamedFrom;
+    }
     return {
       baseLabel: base.label,
       diff,
       findings: compareFindings(
-        this.findingsOf(findingsBase(baseGraph, diff)),
+        this.findingsOf(findingsBase(from, diff)),
         this.findingsOf(current)
       ),
     };

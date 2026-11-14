@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { emptySystemGraph } from '../domain/emptySystemGraph';
 import type { SystemGraph } from '../domain/systemGraph';
 import type { FindingsDiff, SystemGraphDiff } from '../domain/systemGraphDiff';
 import { diffFindings } from '../services/systemDiagram/diff/diffFindings';
@@ -10,7 +11,7 @@ import type { RenderRoots } from '../services/render/imageEncoding';
 import { readRequired } from '../services/render/renderResources';
 import { readSystemDesign } from '../services/systemDiagram/readSystemDesign';
 import { writeDiffImage } from './diffImage';
-import { readGitFile } from './gitFile';
+import { readGitFile, readGitFileStrict, type GitFile } from './gitFile';
 
 export interface CliDiffArgs {
   /** One design (compared with `--base`) or the base file and the current file. */
@@ -51,10 +52,22 @@ function parseDesign(filePath: string, what: string, text: string): SystemGraph 
   return graph;
 }
 
-async function readSide(filePath: string, ref: string | undefined): Promise<string> {
+/** The current side: the file or its text at `ref`; it must exist. */
+async function readCurrent(filePath: string, ref: string | undefined): Promise<string> {
   return ref === undefined
     ? (await readRequired(path.resolve(filePath), 'Input file')).toString('utf8')
-    : readGitFile(filePath, ref);
+    : readGitFileStrict(filePath, ref);
+}
+
+/** The base side; a file in git mode may have been renamed or not yet exist at the base revision. */
+async function readBase(
+  filePath: string,
+  ref: string | undefined,
+  headRef: string | undefined
+): Promise<GitFile> {
+  return ref === undefined
+    ? { text: await readCurrent(filePath, undefined) }
+    : readGitFile(filePath, ref, headRef);
 }
 
 const plural = (count: number, noun: string): string => `${count} ${noun}${count === 1 ? '' : 's'}`;
@@ -91,13 +104,22 @@ export async function runCliDiff(
     const labels = gitMode
       ? { base: args.baseRef as string, current: args.headRef ?? 'working tree' }
       : { base: baseFile, current: currentFile };
-    const baseText = await readSide(baseFile, args.baseRef);
-    const currentText = await readSide(currentFile, args.headRef);
+    const baseSide = await readBase(baseFile, args.baseRef, args.headRef);
+    const currentText = await readCurrent(currentFile, args.headRef);
     const named = (file: string, ref: string | undefined) =>
       ref === undefined ? file : `${file} at ${ref}`;
-    const base = parseDesign(baseFile, named(baseFile, args.baseRef), baseText);
+    const parsedBase =
+      'text' in baseSide
+        ? parseDesign(baseFile, named(baseFile, args.baseRef), baseSide.text)
+        : undefined;
     const current = parseDesign(currentFile, named(currentFile, args.headRef), currentText);
+    const base = parsedBase ?? emptySystemGraph(current.name, current.source.format);
     const diff = diffSystemGraphs(base, current);
+    if ('missing' in baseSide) {
+      diff.base.missing = true;
+    } else if (baseSide.path !== undefined) {
+      diff.base.path = baseSide.path;
+    }
     const findings = diffFindings(base, current, diff);
     const report =
       args.format === 'json'

@@ -89,6 +89,10 @@ export interface SegmentChange {
 export interface SystemGraphDiffSide {
   name: string;
   format: SystemGraph['source']['format'];
+  /** Set by the caller, only when the side was read under another path (the file was renamed). */
+  path?: string;
+  /** Set by the caller when the file did not exist on this side: the side is an empty design. */
+  missing?: true;
 }
 
 export interface DiffSummary {

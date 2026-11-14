@@ -16,6 +16,8 @@ function repo(overrides: Record<string, unknown> = {}): Repo {
   return {
     state: { HEAD: { name: 'feature', commit: TIP }, refs: [] },
     show: jest.fn().mockResolvedValue('text'),
+    diffWith: jest.fn().mockResolvedValue([]),
+    getObjectDetails: jest.fn().mockResolvedValue({}),
     log: jest.fn().mockResolvedValue([]),
     getMergeBase: jest.fn().mockResolvedValue(BASE),
     getRefs: jest.fn().mockResolvedValue([
@@ -337,7 +339,8 @@ describe('listFileCommits', () => {
 describe('readRevision', () => {
   it('shows the file at the ref', async () => {
     const r = repo();
-    expect(await readRevision(r, 'v1.0', uri)).toBe('text');
+    expect(await readRevision(r, 'v1.0', uri)).toEqual({ text: 'text' });
+    expect(r.diffWith).not.toHaveBeenCalled();
     expect(r.show).toHaveBeenCalledWith('v1.0', '/ws/system.bd');
   });
 
@@ -367,5 +370,104 @@ describe('readRevision', () => {
     await expect(readRevision(r, 'nope', uri)).rejects.toThrow(
       "Cannot read system.bd at 'nope': bad object"
     );
+  });
+
+  describe('when the file is not at the ref under its path', () => {
+    const notThere = new Error('Failed to execute git');
+    const unknownPath = Object.assign(new Error('Path not known by git'), {
+      gitErrorCode: 'UnknownPath',
+    });
+    const at = (fsPath: string) => ({ fsPath }) as vscode.Uri;
+    const renamedTo = (to: string, from = '/ws/old/system.bd') => ({
+      status: 3,
+      uri: at(to),
+      originalUri: at(from),
+    });
+    beforeEach(() => {
+      (vscode.workspace.asRelativePath as jest.Mock).mockImplementation((target: vscode.Uri) =>
+        target.fsPath.replace('/ws/', '')
+      );
+    });
+
+    it('reads it under the old path that git found for the rename', async () => {
+      const showOnlyOld = jest
+        .fn()
+        .mockImplementation((ref: string, path: string) =>
+          path === '/ws/old/system.bd' ? Promise.resolve('old text') : Promise.reject(notThere)
+        );
+      const r = repo({
+        show: showOnlyOld,
+        diffWith: jest
+          .fn()
+          .mockResolvedValue([
+            { status: 5, uri: at('/ws/other.bd'), originalUri: at('/ws/other.bd') },
+            renamedTo('/ws/system.bd'),
+          ]),
+      });
+      expect(await readRevision(r, 'v1.0', uri)).toEqual({
+        text: 'old text',
+        renamedFrom: 'old/system.bd',
+      });
+      expect(r.diffWith).toHaveBeenCalledWith('v1.0');
+      expect(showOnlyOld).toHaveBeenLastCalledWith('v1.0', '/ws/old/system.bd');
+    });
+
+    it('ignores the rename of another file and a change that is not a rename', async () => {
+      const r = repo({
+        show: jest.fn().mockRejectedValue(notThere),
+        diffWith: jest
+          .fn()
+          .mockResolvedValue([
+            renamedTo('/ws/other.bd'),
+            { status: 1, uri: at('/ws/system.bd'), originalUri: at('/ws/system.bd') },
+          ]),
+        getObjectDetails: jest.fn().mockRejectedValue(unknownPath),
+      });
+      expect(await readRevision(r, 'v1.0', uri)).toEqual({ missing: true });
+    });
+
+    it('reports the file as missing when git does not know the path at the ref', async () => {
+      const r = repo({
+        show: jest.fn().mockRejectedValue(notThere),
+        getObjectDetails: jest.fn().mockRejectedValue(unknownPath),
+      });
+      expect(await readRevision(r, 'v1.0', uri)).toEqual({ missing: true });
+      expect(r.getObjectDetails).toHaveBeenCalledWith('v1.0', '/ws/system.bd');
+    });
+
+    it('keeps the error of show when the path is known or git fails for another reason', async () => {
+      (vscode.workspace.asRelativePath as jest.Mock).mockReturnValue('system.bd');
+      const known = repo({ show: jest.fn().mockRejectedValue(new Error('bad object')) });
+      await expect(readRevision(known, 'v1.0', uri)).rejects.toThrow(
+        "Cannot read system.bd at 'v1.0': bad object"
+      );
+      const unrelated = repo({
+        show: jest.fn().mockRejectedValue(new Error('bad object')),
+        getObjectDetails: jest.fn().mockRejectedValue(new Error('not a valid object name')),
+      });
+      await expect(readRevision(unrelated, 'nope', uri)).rejects.toThrow(
+        "Cannot read system.bd at 'nope': bad object"
+      );
+    });
+
+    it('treats a failing diff as no rename', async () => {
+      const r = repo({
+        show: jest.fn().mockRejectedValue(notThere),
+        diffWith: jest.fn().mockRejectedValue(new Error('boom')),
+        getObjectDetails: jest.fn().mockRejectedValue(unknownPath),
+      });
+      expect(await readRevision(r, 'v1.0', uri)).toEqual({ missing: true });
+    });
+
+    it('fails when the file cannot be read under the old path either', async () => {
+      (vscode.workspace.asRelativePath as jest.Mock).mockReturnValue('system.bd');
+      const r = repo({
+        show: jest.fn().mockRejectedValue(new Error('gone')),
+        diffWith: jest.fn().mockResolvedValue([renamedTo('/ws/system.bd')]),
+      });
+      await expect(readRevision(r, 'v1.0', uri)).rejects.toThrow(
+        "Cannot read system.bd at 'v1.0': gone"
+      );
+    });
   });
 });

@@ -119,12 +119,17 @@ suite('Compare a system design (real git extension, tabs and quick pick)', funct
     fs.writeFileSync(path.join(root, 'core_hw.tcl'), 'package require qsys\n');
     fs.writeFileSync(path.join(root, 'notes.txt'), 'notes\n');
     fs.writeFileSync(path.join(root, 'diffed.bd'), BASE);
+    fs.writeFileSync(path.join(root, 'to_rename.bd'), BASE);
     git('add', '.');
     git('commit', '-m', 'Add the base design');
     baseCommit = git('rev-parse', 'HEAD');
     git('tag', 'v1');
     git('branch', 'feature/gpio');
     fs.writeFileSync(path.join(root, 'system.bd'), CURRENT);
+    // A file renamed since the base commit, and one that did not exist then.
+    git('mv', 'to_rename.bd', 'renamed.bd');
+    fs.writeFileSync(path.join(root, 'added.bd'), CURRENT);
+    git('add', 'added.bd');
     git('commit', '-am', SUBJECT);
 
     design = vscode.Uri.file(path.join(root, 'system.bd'));
@@ -176,11 +181,39 @@ suite('Compare a system design (real git extension, tabs and quick pick)', funct
   });
 
   test('reads the file at a revision', async () => {
-    assert.strictEqual(await readRevision(repo, 'HEAD', design), CURRENT);
-    assert.strictEqual(await readRevision(repo, 'HEAD~1', design), BASE);
-    assert.strictEqual(await readRevision(repo, baseCommit, design), BASE);
-    assert.strictEqual(await readRevision(repo, 'v1', design), BASE);
-    assert.strictEqual(await readRevision(repo, 'feature/gpio', design), BASE);
+    assert.deepStrictEqual(await readRevision(repo, 'HEAD', design), { text: CURRENT });
+    assert.deepStrictEqual(await readRevision(repo, 'HEAD~1', design), { text: BASE });
+    assert.deepStrictEqual(await readRevision(repo, baseCommit, design), { text: BASE });
+    assert.deepStrictEqual(await readRevision(repo, 'v1', design), { text: BASE });
+    assert.deepStrictEqual(await readRevision(repo, 'feature/gpio', design), { text: BASE });
+  });
+
+  test('reads a file that was renamed since the revision under its old path', async () => {
+    const renamed = vscode.Uri.file(path.join(root, 'renamed.bd'));
+    // Workspace-relative, as the other labels; the test window has no folder, so the path is absolute.
+    const oldPath = vscode.workspace.asRelativePath(path.join(root, 'to_rename.bd'), false);
+    assert.deepStrictEqual(await readRevision(repo, 'HEAD~1', renamed), {
+      text: BASE,
+      renamedFrom: oldPath,
+    });
+    assert.deepStrictEqual(await readRevision(repo, 'v1', renamed), {
+      text: BASE,
+      renamedFrom: oldPath,
+    });
+    assert.ok(oldPath.endsWith('to_rename.bd'));
+    // At HEAD the file is under its own path.
+    assert.deepStrictEqual(await readRevision(repo, 'HEAD', renamed), { text: BASE });
+  });
+
+  test('reports a file that did not exist at the revision as missing', async () => {
+    const added = vscode.Uri.file(path.join(root, 'added.bd'));
+    assert.deepStrictEqual(await readRevision(repo, 'HEAD~1', added), { missing: true });
+    assert.deepStrictEqual(await readRevision(repo, 'v1', added), { missing: true });
+    assert.deepStrictEqual(await readRevision(repo, 'HEAD', added), { text: CURRENT });
+    // A path that never existed is missing too; a revision that does not exist stays an error.
+    const never = vscode.Uri.file(path.join(root, 'never.bd'));
+    assert.deepStrictEqual(await readRevision(repo, 'v1', never), { missing: true });
+    await assert.rejects(readRevision(repo, 'no-such-revision', added), /no-such-revision/);
   });
 
   test('explains a revision that cannot be read', async () => {

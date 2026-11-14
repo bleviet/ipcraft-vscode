@@ -158,7 +158,10 @@ export class PanelCompare {
     this.waiting = undefined;
     // A file is read in its own format; a revision of the document is in the document's.
     const formatPath = base.file?.fsPath ?? this.document.fileName;
-    this.compare.start(base.text, this.currentLabel, base.label, formatPath);
+    this.compare.start(base.text, this.currentLabel, base.label, formatPath, {
+      missing: base.missing,
+      renamedFrom: base.renamedFrom,
+    });
     this.baseFile = base.file;
   }
 

@@ -22,8 +22,19 @@ interface GitRepository {
   getRefs?(query: object): Promise<GitRef[]>;
   /** The commits that changed `path`, newest first. */
   log(options: { path: string; maxEntries: number }): Promise<GitCommit[]>;
+  /** The files that differ between the working tree and `ref`; a renamed file is one change. */
+  diffWith(ref: string): Promise<GitChange[]>;
+  /** Throws a `GitError` with `gitErrorCode` `UnknownPath` when `path` is not in the tree of `treeish`. */
+  getObjectDetails(treeish: string, path: string): Promise<unknown>;
   /** Refreshes `state`; the git extension fills `state.HEAD` asynchronously after it opens a repository. */
   status?(): Promise<void>;
+}
+
+/** `status`: `Status.INDEX_RENAMED` (3) for a renamed file; `originalUri` is the old path, `uri` the new one. */
+interface GitChange {
+  uri: vscode.Uri;
+  originalUri: vscode.Uri;
+  status: number;
 }
 
 interface GitCommit {
@@ -251,21 +262,71 @@ export async function listFileCommits(
   });
 }
 
-/** The text of the file at `ref`. */
+const INDEX_RENAMED = 3;
+
+/** The file at a revision: its text (and the old path when git found it under another one), or nothing when it did not exist there. */
+export type RevisionFile = { text: string; renamedFrom?: string } | { missing: true };
+
+/** The old path of `uri` per the rename detection of git between `ref` and the working tree. */
+async function renamedFrom(
+  repo: GitRepository,
+  ref: string,
+  uri: vscode.Uri
+): Promise<vscode.Uri | undefined> {
+  try {
+    const changes = await repo.diffWith(ref);
+    return changes.find((c) => c.status === INDEX_RENAMED && c.uri.fsPath === uri.fsPath)
+      ?.originalUri;
+  } catch {
+    return undefined;
+  }
+}
+
+/** True when git says the path is not in the tree of `ref`; any other failure is not an answer. */
+async function absentAt(repo: GitRepository, ref: string, uri: vscode.Uri): Promise<boolean> {
+  try {
+    await repo.getObjectDetails(ref, uri.fsPath);
+    return false;
+  } catch (error) {
+    return (error as { gitErrorCode?: unknown } | undefined)?.gitErrorCode === 'UnknownPath';
+  }
+}
+
+/**
+ * The file at `ref`. When it is not there: its text under the old path, if git's rename
+ * detection finds that it was renamed since; `missing`, if the path is not in the revision;
+ * otherwise an error with git's reason.
+ */
 export async function readRevision(
   repo: GitRepository,
   ref: string,
   uri: vscode.Uri
-): Promise<string> {
+): Promise<RevisionFile> {
   // A leading '-' would be read by git as an option.
   if (ref.trim().startsWith('-')) {
     throw new Error(REVISION_DASH);
   }
-  try {
-    return await repo.show(ref, uri.fsPath);
-  } catch (error) {
-    throw new Error(
+  const fail = (error: unknown): Error =>
+    new Error(
       `Cannot read ${vscode.workspace.asRelativePath(uri, false)} at '${ref}': ${gitReason(error)}`
     );
+  try {
+    return { text: await repo.show(ref, uri.fsPath) };
+  } catch (error) {
+    const old = await renamedFrom(repo, ref, uri);
+    if (old) {
+      try {
+        return {
+          text: await repo.show(ref, old.fsPath),
+          renamedFrom: vscode.workspace.asRelativePath(old, false),
+        };
+      } catch (renamedError) {
+        throw fail(renamedError);
+      }
+    }
+    if (await absentAt(repo, ref, uri)) {
+      return { missing: true };
+    }
+    throw fail(error);
   }
 }
