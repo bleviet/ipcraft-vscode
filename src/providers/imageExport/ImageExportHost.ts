@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import type { SystemGraph } from '../../domain/systemGraph';
-import type { SystemGraphDiff } from '../../domain/systemGraphDiff';
+import type { SystemGraphDiff, UnionAdditions } from '../../domain/systemGraphDiff';
 import type { NormalizedBusLibrary } from '../../shared/busContracts';
 import {
   DEFAULT_JPEG_QUALITY,
@@ -63,13 +63,16 @@ export class ImageExportHost {
   /**
    * Exports the level the system viewer shows; `graph` is what the viewer got (unsaved edits
    * included) and `diff` the comparison it was published with, whose marks the image draws when
-   * the view says they are on the canvas.
+   * the view says they are on the canvas, and whose `union` (what only the base has) it lays the
+   * level out with when the canvas does, drawing the ghosts when the view says they are on the
+   * canvas too.
    */
   async exportSystem(
     document: vscode.TextDocument,
     graph: SystemGraph | undefined,
     message: { options?: unknown; view?: unknown },
-    diff?: SystemGraphDiff
+    diff?: SystemGraphDiff,
+    union?: UnionAdditions
   ): Promise<void> {
     const options = sanitizeExportOptions(message.options);
     const view = parseSystemExportView(message.view);
@@ -87,12 +90,19 @@ export class ImageExportHost {
       const [look, encoding] = lookAndEncoding(options);
       // Loaded on first use: the layout engine is not needed to activate the extension.
       const { renderSystemLevelImage } = await import('../../services/render/systemLevelImage');
-      // The marks too: the renderer above already evaluates this module, so it costs no extra load.
+      // The marks too: the renderer above already evaluates these modules, so they cost no extra load.
+      // The canvas lays the level out with the union whenever the comparison has one, and draws its ghosts with Marks and Show removed.
+      const layoutUnion = view.unionLayout ? union : undefined;
+      const ghostUnion = view.marks && view.ghosts ? layoutUnion : undefined;
       const changes =
         view.marks && diff
           ? (await import('../../webview/systemDiagram/changeMarks')).buildChangeMarks(
               view.ignoreVersionOnly ? withoutVersionOnly(diff) : diff,
-              graph
+              graph,
+              (await import('../../webview/systemDiagram/layout/unionGraph')).withUnion(
+                graph,
+                ghostUnion
+              ).ghosts
             )
           : undefined;
       const bytes = await renderSystemLevelImage(
@@ -105,6 +115,10 @@ export class ImageExportHost {
           clocks: view.clocks,
           cropNodeIds: crop,
           ...(changes && { changes }),
+          ...(layoutUnion && {
+            union: layoutUnion,
+            ...(!(changes && ghostUnion) && { ghostsHidden: true }),
+          }),
         },
         look,
         encoding,

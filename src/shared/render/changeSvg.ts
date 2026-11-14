@@ -27,12 +27,22 @@ export interface HeaderItem {
   svg(right: number, centerY: number): string;
 }
 
-/** The border of a block with a kind of change: its color, and whether it is dotted and has a ring. */
+/** The border of a block with a kind of change: its color, and whether it is solid (with a ring), dotted or dashed. */
 export interface ChangeBorder {
   color: string;
-  /** Version only: a dotted border and no ring. */
-  dotted: boolean;
+  /** Version only: dotted, no ring. Removed (a ghost): dashed, no ring. Else solid with a ring. */
+  line: 'solid' | 'dotted' | 'dashed';
 }
+
+/** `.sd-node[data-change='removed'] > :not(.sd-node-head)`: the body of a ghost is dimmed to this opacity. */
+export const GHOST_BODY_OPACITY = 0.65;
+/** The dashes of the border of a ghost block (a black box's border has the same). */
+export const GHOST_DASH = '4 3';
+/** The dashes of a wire only the base has: the canvas and the legend bar draw it the same. */
+export const REMOVED_WIRE_DASH = '6 4';
+
+/** Whether `change` marks the ghost of a block or port that only the base has. */
+export const isGhost = (change: NodeChange | undefined): boolean => change?.status === 'removed';
 
 /** The border a marked block takes; a selected block keeps the selection outline, so undefined then. */
 export function changeBorder(
@@ -41,12 +51,24 @@ export function changeBorder(
   palette: Palette
 ): ChangeBorder | undefined {
   return change?.status && !selected
-    ? { color: palette.change[change.status], dotted: change.status === 'version' }
+    ? {
+        color: palette.change[change.status],
+        line:
+          change.status === 'version' ? 'dotted' : change.status === 'removed' ? 'dashed' : 'solid',
+      }
     : undefined;
 }
 
 /** `stroke-dasharray` of a dotted border of `width` px. */
 export const dottedDash = (width: number): string => `${width} ${width + 1}`;
+
+/** `stroke-dasharray` of the border of a block of `width` px, undefined for a solid or an unmarked one. */
+export const borderDash = (border: ChangeBorder | undefined, width: number): string | undefined =>
+  border?.line === 'dotted'
+    ? dottedDash(width)
+    : border?.line === 'dashed'
+      ? GHOST_DASH
+      : undefined;
 
 /** The sign of the block's kind of change and the count of changes inside it, left to right. */
 export function changeHeaderItems(change: NodeChange | undefined, palette: Palette): HeaderItem[] {

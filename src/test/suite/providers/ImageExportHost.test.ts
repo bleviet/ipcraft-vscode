@@ -11,7 +11,8 @@ import { DEFAULT_EXPORT_OPTIONS } from '../../../shared/messages/imageExport';
 import { Logger } from '../../../utils/Logger';
 import { buildChangeMarks, type ChangeMarks } from '../../../webview/systemDiagram/changeMarks';
 import { loadFixtureGraph } from '../webview/systemDiagram/fixtureGraph';
-import { zynqDiff, zynqGraph } from '../webview/systemDiagram/compareFixtures';
+import { zynqDiff, zynqGraph, zynqUnion } from '../webview/systemDiagram/compareFixtures';
+import { withUnion } from '../../../webview/systemDiagram/layout/unionGraph';
 
 jest.mock('../../../services/render/systemLevelImage', () => ({
   ...jest.requireActual<object>('../../../services/render/systemLevelImage'),
@@ -202,6 +203,62 @@ describe('ImageExportHost.exportSystem', () => {
       expect(requestOf().changes).toEqual(expected);
       expect(expected).not.toEqual(buildChangeMarks(diff, current));
       expect(requestOf().changes?.blocks.get('/gpio_block/axi_gpio_1')?.status).not.toBe('version');
+    });
+
+    describe('ghosts', () => {
+      const union = zynqUnion();
+      type Request = {
+        changes?: ChangeMarks;
+        union?: unknown;
+        ghostsHidden?: boolean;
+      };
+      const requestWith = async (viewExtra: object, withComparison = true): Promise<Request> => {
+        const { host } = setup();
+        await host.exportSystem(
+          document,
+          current,
+          { options: DEFAULT_EXPORT_OPTIONS, view: { ...view, ...viewExtra } },
+          withComparison ? diff : undefined,
+          withComparison ? union : undefined
+        );
+        return (renderSystemLevelImage as jest.Mock).mock.calls[0][1] as Request;
+      };
+
+      it('carries the union and the marks of its ghosts when the view says they are drawn', async () => {
+        const request = await requestWith({ marks: true, ghosts: true, unionLayout: true });
+        expect(request.union).toBe(union);
+        expect(request).not.toHaveProperty('ghostsHidden');
+        expect(request.changes).toEqual(
+          buildChangeMarks(diff, current, withUnion(current, union).ghosts)
+        );
+        expect(request.changes?.blocks.get('/axi_gpio_0')?.status).toBe('removed');
+        expect(request.changes?.ports.get('led_o')?.status).toBe('removed');
+      });
+
+      it.each([
+        { marks: true, unionLayout: true },
+        { marks: true, ghosts: false, unionLayout: true },
+        { ghosts: true, unionLayout: true },
+      ])('lays out with the union but does not draw its ghosts for the view %j', async (extra) => {
+        const request = await requestWith(extra);
+        expect(request.union).toBe(union);
+        expect(request.ghostsHidden).toBe(true);
+        expect(request.changes?.blocks.get('/axi_gpio_0')).toBeUndefined();
+      });
+
+      it.each([{ marks: true }, { marks: true, ghosts: true }, {}])(
+        'carries no union when the canvas did not lay out with it: the view %j',
+        async (extra) => {
+          const request = await requestWith(extra);
+          expect(request).not.toHaveProperty('union');
+          expect(request).not.toHaveProperty('ghostsHidden');
+        }
+      );
+
+      it('carries no union when the comparison ended before the message arrived', async () => {
+        const request = await requestWith({ marks: true, ghosts: true, unionLayout: true }, false);
+        expect(request).not.toHaveProperty('union');
+      });
     });
 
     it.each([false, undefined])('draws no marks when marks is %s', async (marks) => {

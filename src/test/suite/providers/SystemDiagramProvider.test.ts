@@ -821,6 +821,39 @@ describe('SystemDiagramProvider export image', () => {
       });
     });
 
+    describe('Export image ghosts', () => {
+      const ghostMessage = {
+        type: 'exportImage',
+        options: { ...DEFAULT_EXPORT_OPTIONS, area: 'whole' },
+        view: {
+          levelPath: '/',
+          expanded: [],
+          clocks: false,
+          selectedNodeIds: [],
+          marks: true,
+          ghosts: true,
+          unionLayout: true,
+        },
+      };
+
+      it('draws what only the base has, as the last published comparison carries it', async () => {
+        (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue(undefined);
+        (renderSystemLevelImage as jest.Mock).mockClear();
+        const { send } = await ready();
+        const withExtra = `${fixtureText}\nset extra_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 extra_0 ]\n`;
+        pick.mockResolvedValue({ text: withExtra, label: 'HEAD' });
+        await send({ type: 'startCompare' });
+        await send(ghostMessage);
+        const request = (renderSystemLevelImage as jest.Mock).mock.calls[0][1] as {
+          union?: { instances: { path: string }[] };
+        };
+        expect(request.union?.instances.map((i) => i.path)).toEqual(['/extra_0']);
+        await send({ type: 'stopCompare' });
+        await send(ghostMessage);
+        expect((renderSystemLevelImage as jest.Mock).mock.calls[1][1]).not.toHaveProperty('union');
+      });
+    });
+
     describe('when the document stopped reading as a design', () => {
       const storageKey = 'ipcraft.systemDiagram.highlights:file:///ws/zynq.tcl';
       type Problem = { type: 'notRecognized' | 'error' };

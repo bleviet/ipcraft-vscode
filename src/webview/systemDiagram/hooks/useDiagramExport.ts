@@ -6,7 +6,6 @@ import {
   type SystemExportView,
 } from '../../../shared/messages/imageExport';
 import { buildSystemExportView, visibleNodeIds, type SystemExportState } from '../exportView';
-import { isGhostNode, NO_GHOSTS, type Ghosts } from '../layout/unionGraph';
 import type { DiagramLayout } from './useElkLayout';
 
 /** The host side of Export image: the remembered options, the open request, and the send. */
@@ -20,15 +19,14 @@ export interface ImageExportChannel {
 
 /**
  * The state of the system viewer's Export image button. Exporting reads the viewport and sends the
- * state; it never changes the view. The image shows the open design, so the `ghosts` of a
- * comparison that are drawn on the canvas are not among the blocks in view. Must run inside a
- * React Flow provider.
+ * state; it never changes the view. The layout holds the ghosts of a comparison only while they
+ * are drawn (`state.ghostsOn`), and then the image draws them too, so the blocks in view are the
+ * layout's. Must run inside a React Flow provider.
  */
 export function useDiagramExport(
   channel: ImageExportChannel | undefined,
   layout: DiagramLayout | null,
-  state: SystemExportState,
-  ghosts: Ghosts = NO_GHOSTS
+  state: SystemExportState
 ) {
   const store = useStoreApi();
   const [options, setOptions] = useState<ExportImageOptions>(
@@ -50,14 +48,11 @@ export function useDiagramExport(
       const { transform, width, height } = store.getState();
       const visible =
         chosen.area === 'view' && layout?.levelPath === state.levelPath
-          ? visibleNodeIds(
-              layout.nodes.filter((node) => !isGhostNode(ghosts, node.id)),
-              { transform, width, height }
-            )
+          ? visibleNodeIds(layout.nodes, { transform, width, height })
           : undefined;
       send(chosen, buildSystemExportView(state, visible));
     },
-    [send, store, layout, state, ghosts]
+    [send, store, layout, state]
   );
   return { options, setOptions, openToken: channel?.openToken ?? 0, exportImage };
 }

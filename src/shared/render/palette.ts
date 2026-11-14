@@ -265,8 +265,7 @@ function buildPalette(t: Tokens): Palette {
     },
     change: {
       added: t.gitAdded,
-      // Images do not draw ghosts yet (the viewer does). The entry is here for the type of `MarkStatus`;
-      // `changeSvg` would draw a block with this status solid, as the others, until a later change draws ghosts.
+      // The ghosts of what only the base has (blocks, ports, pins, wires): dashed, see `changeSvg`.
       removed: t.gitDeleted,
       changed: t.gitModified,
       renamed: t.purple,

@@ -6,6 +6,7 @@ import type { FindingsDiff, SystemGraphDiff } from '../domain/systemGraphDiff';
 import { diffFindings } from '../services/systemDiagram/diff/diffFindings';
 import { diffToMarkdown } from '../services/systemDiagram/diff/diffReport';
 import { diffSystemGraphs } from '../services/systemDiagram/diff/diffSystemGraphs';
+import { unionAdditions } from '../services/systemDiagram/diff/unionAdditions';
 import { changeCount, withoutVersionOnly } from '../services/systemDiagram/diff/ignoreVersionOnly';
 import type { RenderRoots } from '../services/render/imageEncoding';
 import { readRequired } from '../services/render/renderResources';
@@ -140,7 +141,14 @@ export async function runCliDiff(
           throw new Error('The resource roots are required to draw an image');
         }
         const marked = args.ignoreVersionOnly ? withoutVersionOnly(diff) : diff;
-        result.imagePath = await writeDiffImage(args.image, current, marked, loadRoots());
+        // The ghosts are those of the whole diff: hiding the version-only changes removes no block.
+        result.imagePath = await writeDiffImage(
+          args.image,
+          current,
+          marked,
+          loadRoots(),
+          unionAdditions(base, current, diff)
+        );
       } catch (err) {
         // The report is already written or held: a failed image must not lose it.
         result.imageError = err instanceof Error ? err.message : String(err);

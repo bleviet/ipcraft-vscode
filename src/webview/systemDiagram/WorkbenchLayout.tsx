@@ -134,20 +134,17 @@ export function WorkbenchLayout({
     toggles.ghostsShown
   );
 
-  const exporter = useDiagramExport(
-    imageExport,
-    layout,
-    {
-      levelPath: nav.levelPath,
-      expanded: nav.expanded,
-      isolation,
-      clocksOn,
-      selectedNodeIds: nav.selectedNodeIds,
-      marksOn: compareView.marksOn,
-      ignoreVersionOnly: compareView.hidingVersionOnly,
-    },
-    shownGhosts
-  );
+  const exporter = useDiagramExport(imageExport, layout, {
+    levelPath: nav.levelPath,
+    expanded: nav.expanded,
+    isolation,
+    clocksOn,
+    selectedNodeIds: nav.selectedNodeIds,
+    marksOn: compareView.marksOn,
+    ignoreVersionOnly: compareView.hidingVersionOnly,
+    ghostsOn: toggles.ghostsShown,
+    unionLayout: toggles.hasRemoved,
+  });
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);

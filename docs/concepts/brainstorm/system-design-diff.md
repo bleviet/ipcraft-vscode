@@ -20,8 +20,8 @@ diagram, the marks of everything that exists in the current revision
 **Marks**, **Changes only** and **Show version-only changes** buttons) are implemented, and the viewer's
 exported images carry them while Marks is on. What was removed is drawn as ghosts, laid out
 with the union of both revisions, with the **Show removed** toggle (see [Layout](#layout) for
-the decision and its measurement); exported images and `ipcraft diff --image <file.svg|png|jpg>`
-draw the top level of the current revision with the marks and without ghosts. A file that was renamed since the base revision is read under its
+the decision and its measurement); exported images (while Show removed is on too) and
+`ipcraft diff --image <file.svg|png|jpg>` draw the ghosts as well, laid out with the same union. A file that was renamed since the base revision is read under its
 old path, and one that did not exist there is compared as all added, in `ipcraft diff`
 and in the viewer. This document describes
 how the [system viewer](../../how-to/view-a-system-design.md) could show what

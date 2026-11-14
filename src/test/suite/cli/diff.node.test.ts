@@ -435,7 +435,13 @@ describe('ipcraft diff --image', () => {
     expect(svg).toContain(change.changed);
     expect(svg).toContain('>+</text>');
     expect(svg).toContain('>New wire</text>');
-    expect(svg).toContain('>− 2 removed</text>');
+    // The removed block and port are drawn as ghosts, so they are not counted.
+    expect(svg).toContain(change.removed);
+    expect(svg).toContain('data-node="/axi_gpio_0"');
+    expect(svg).toMatch(/text-decoration="line-through"[^>]*>axi_gpio_0</);
+    expect(svg).toMatch(/text-decoration="line-through"[^>]*>led_o</);
+    expect(svg).toContain('>Removed wire</text>');
+    expect(svg).not.toContain('removed</text>');
     expect(svg).not.toContain('see Changes');
     // The default look of `ipcraft render`: the light theme.
     expect(svg).toContain(`fill="${paletteFor('light').background}"`);

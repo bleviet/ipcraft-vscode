@@ -624,8 +624,9 @@ These buttons sit between the numbers and the exit button:
 
 Blocks and wires that did not change are not dimmed. An
 [exported image](#export-an-image) carries the marks while Marks is on, without the
-version-only blocks when Show version-only changes is released; it does not draw the
-ghosts.
+version-only blocks when Show version-only changes is released; it draws the
+[ghosts](#removed-blocks-ports-and-wires-ghosts) while **Show removed** is on too, and
+then lays the level out with them, as the canvas does.
 
 ### Removed blocks, ports and wires (ghosts)
 
@@ -697,16 +698,22 @@ or zooms the diagram. Your last options are remembered for this workspace.
 
 While you compare with another revision and **Marks** is on, the image draws the
 marks of the comparison and, with **Legend**, the change entries of the legend. With
-Marks off, or without a comparison, it is the plain diagram. With **Show version-only changes**
-released, the marks leave out the blocks whose only change is the IP version.
+Marks off it draws no marks, and without a comparison it is the plain diagram. With **Show version-only changes**
+released, the marks leave out the blocks whose only change is the IP version. With **Show
+removed** on, the image also draws what only the base has as ghosts. The image is laid out
+like the canvas, with the ghosts' room kept while they are hidden, so the blocks sit where
+the canvas has them and an isolated view has the same blocks. **Current view** crops to the
+blocks on screen, ghosts included while they are drawn.
 
 A save dialog opens with a default name such as `soc-dsp_fir.png` (the level path
 with `/` as `_`; the top level is just `soc.png`). Afterwards you can **Open** the
 file or **Reveal in Explorer**.
 
-The image equals what `ipcraft render` writes for the same design and options
-(see [Rendering documentation images](render-documentation-images.md)), apart from
-the Current view crop, which the command line does not have. The text is laid out
+Without a comparison, the image equals what `ipcraft render` writes for the same
+design and options (see [Rendering documentation images](render-documentation-images.md)),
+apart from the Current view crop, which the command line does not have. While you
+compare with a base that has removed blocks, the image is laid out like the canvas,
+with room for the ghosts, so it can differ from `ipcraft render` even with Marks off. The text is laid out
 with the bundled IBM Plex fonts, so block sizes can differ slightly from the
 canvas, which uses your editor font.
 

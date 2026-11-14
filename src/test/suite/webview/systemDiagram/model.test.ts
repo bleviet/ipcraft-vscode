@@ -2,6 +2,7 @@ import type { AddressSegment, SystemInstance } from '../../../../domain/systemGr
 import {
   boundaryId,
   breadcrumbs,
+  instanceSubtitle,
   instanceTypeLabel,
   isClockOrReset,
   levelOf,
@@ -28,6 +29,24 @@ import {
 const query = (text: string) => compileSearch(text, DEFAULT_SEARCH_OPTIONS)!;
 
 const graph = loadFixtureGraph();
+
+describe('instanceSubtitle', () => {
+  const hier = Object.values(graph.instances).find((instance) => instance.kind === 'hier')!;
+  const leaf = Object.values(graph.instances).find((instance) => instance.kind === 'ip')!;
+
+  it('counts the cells of a hierarchy', () => {
+    expect(instanceSubtitle(hier, 3)).toBe('Hierarchy · 3 cells');
+    expect(instanceSubtitle(hier, 3, false)).toBe('Hierarchy · 3 cells');
+  });
+
+  it('does not count the cells of the ghost of a removed hierarchy', () => {
+    expect(instanceSubtitle(hier, 0, true)).toBe('Hierarchy');
+  });
+
+  it('leaves any other block as it is, ghost or not', () => {
+    expect(instanceSubtitle(leaf, 0, true)).toBe(instanceSubtitle(leaf, 0));
+  });
+});
 
 describe('system diagram model', () => {
   it('computes levels and breadcrumbs', () => {

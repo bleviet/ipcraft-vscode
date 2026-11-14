@@ -86,7 +86,13 @@ jest.mock('@xyflow/react', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const actualFlow = jest.requireActual<typeof import('@xyflow/react')>('@xyflow/react');
   const storeApi = {
-    getState: () => ({ width: 1000, height: 800, minZoom: 0.05, maxZoom: 2 }),
+    getState: () => ({
+      width: 1000,
+      height: 800,
+      minZoom: 0.05,
+      maxZoom: 2,
+      transform: [mockViewport.x, mockViewport.y, mockViewport.zoom],
+    }),
   };
   const api = {
     // Like React Flow, a fit changes the viewport; the fitted zoom is 0.8.
@@ -3363,17 +3369,60 @@ describe('SystemDiagramApp', () => {
         expect(ghostNode.querySelector('.sd-node-unc')).toBeNull();
       });
 
-      it('exports the image of the design, with no ghost among the blocks in view', async () => {
-        await renderGhosts();
+      /** The view the Export image button sends, for the whole level or the blocks on screen. */
+      const exportedView = (area: 'whole' | 'view' = 'whole') => {
         fireEvent.click(screen.getByRole('button', { name: 'Export image' }));
-        fireEvent.change(screen.getByLabelText('Area'), { target: { value: 'whole' } });
+        fireEvent.change(screen.getByLabelText('Area'), { target: { value: area } });
         mockPostMessage.mockClear();
         fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Export' }));
-        const message = mockPostMessage.mock.calls.find(
-          ([posted]) => (posted as { type?: string }).type === 'exportImage'
-        )?.[0] as { view: Record<string, unknown> };
-        expect(message.view).toMatchObject({ marks: true });
-        expect(JSON.stringify(message.view)).not.toContain('axi_gpio_0');
+        return (
+          mockPostMessage.mock.calls.find(
+            ([posted]) => (posted as { type?: string }).type === 'exportImage'
+          )?.[0] as { view: Record<string, unknown> }
+        ).view;
+      };
+
+      it('exports with the ghosts only while Marks and Show removed are on and the comparison has some', async () => {
+        await renderGhosts();
+        expect(exportedView()).toMatchObject({ marks: true, ghosts: true, unionLayout: true });
+        // The ghosts are the host's to draw: no ghost is named in the view.
+        expect(JSON.stringify(exportedView())).not.toContain('axi_gpio_0');
+        fireEvent.click(removedToggle());
+        expect(exportedView()).not.toHaveProperty('ghosts');
+        expect(exportedView()).toMatchObject({ marks: true });
+        fireEvent.click(removedToggle());
+        expect(exportedView()).toHaveProperty('ghosts', true);
+        fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
+        expect(exportedView()).not.toHaveProperty('marks');
+        expect(exportedView()).not.toHaveProperty('ghosts');
+      });
+
+      it('keeps telling the host the layout is the union while the ghosts are hidden, as the canvas does', async () => {
+        await renderGhosts();
+        fireEvent.click(removedToggle());
+        expect(exportedView()).toMatchObject({ unionLayout: true });
+        fireEvent.click(removedToggle());
+        fireEvent.click(screen.getByRole('button', { name: 'Marks' }));
+        expect(exportedView()).toMatchObject({ unionLayout: true });
+      });
+
+      it('crops to the blocks on screen, the ghost among them while it is drawn', async () => {
+        await renderGhosts();
+        // The viewport shows the whole level (see the mock store).
+        expect(exportedView('view').visibleNodeIds).toEqual(
+          expect.arrayContaining(['/axi_gpio_0', '/sys_ps7'])
+        );
+        fireEvent.click(removedToggle());
+        const hidden = exportedView('view').visibleNodeIds as string[];
+        expect(hidden).toContain('/sys_ps7');
+        expect(hidden).not.toContain('/axi_gpio_0');
+      });
+
+      it('exports no ghosts when the base has nothing the design lacks', async () => {
+        await renderGhosts(withoutUnion);
+        expect(exportedView()).toMatchObject({ marks: true });
+        expect(exportedView()).not.toHaveProperty('ghosts');
+        expect(exportedView()).not.toHaveProperty('unionLayout');
       });
     });
 

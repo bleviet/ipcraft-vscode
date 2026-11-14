@@ -5,8 +5,8 @@ import {
   type SystemLevelLayout,
   type SystemLevelOptions,
 } from '../../../../shared/render/systemLevelSvg';
-import type { ChangeDecor } from '../../../../webview/systemDiagram/changeDecor';
-import type { NodeChange } from '../../../../webview/systemDiagram/changeMarks';
+import { changeDecor, type ChangeDecor } from '../../../../webview/systemDiagram/changeDecor';
+import { buildChangeMarks, type NodeChange } from '../../../../webview/systemDiagram/changeMarks';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
 import {
   buildElkInput,
@@ -14,7 +14,8 @@ import {
   type DiagramFlowEdge,
 } from '../../../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../../../webview/systemDiagram/layout/runElkLayout';
-import { zynqGraph } from '../../webview/systemDiagram/compareFixtures';
+import { zynqDiff, zynqGraph, zynqUnion } from '../../webview/systemDiagram/compareFixtures';
+import { withoutGhosts, withUnion } from '../../../../webview/systemDiagram/layout/unionGraph';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
 import { applyClockDecor, clockDecor } from '../../../../webview/systemDiagram/clockDecor';
 import { plexTextMeasure } from '../../../../shared/render/textMetrics';
@@ -406,5 +407,189 @@ describe('renderSystemLevelSvg marks of a comparison', () => {
         expect(legend).not.toContain(text);
       }
     });
+  });
+});
+
+describe('renderSystemLevelSvg ghosts of a comparison', () => {
+  const current = zynqGraph('current');
+  const diff = zynqDiff();
+  const GHOST = '/axi_gpio_0';
+  let union: ReturnType<typeof withUnion>;
+  let unionLayout: SystemLevelLayout;
+  let plainLayout: SystemLevelLayout;
+
+  const layoutOf = async (graph: typeof current, ghosts?: typeof union.ghosts) =>
+    toFlowElements(
+      await runElkLayout(buildElkInput(graph, '/', { measure: fakeMeasure })),
+      graph,
+      '/',
+      fakeMeasure,
+      undefined,
+      ghosts
+    );
+  const drawWith = (
+    theme: 'light' | 'dark',
+    layout: SystemLevelLayout,
+    ghosts: typeof union.ghosts | undefined,
+    legend = false
+  ) =>
+    renderSystemLevelSvg(layout, {
+      palette: paletteFor(theme),
+      grid: false,
+      legend,
+      background: 'transparent',
+      fontFaceCss: '',
+      changes: changeDecor(layout, {
+        marks: buildChangeMarks(diff, current, ghosts),
+        graph: current,
+        levelPath: '/',
+      }),
+    });
+  const nodeBody = (svg: string, id: string) => {
+    const start = svg.indexOf(`data-node="${id}"`);
+    return svg.slice(start, svg.indexOf('data-node=', start + 1));
+  };
+
+  beforeAll(async () => {
+    union = withUnion(current, zynqUnion());
+    unionLayout = await layoutOf(union.graph, union.ghosts);
+    plainLayout = await layoutOf(current);
+  }, 30000);
+
+  it.each(['light', 'dark'] as const)(
+    'draws a removed block dashed in the removed color, struck through, dimmed, with its sign (%s)',
+    (theme) => {
+      const { removed } = paletteFor(theme).change;
+      const svg = drawWith(theme, unionLayout, union.ghosts);
+      const body = nodeBody(svg, GHOST);
+      const border = /<rect[^>]* stroke="[^"]*" [^>]*>/.exec(body)![0];
+      expect(border).toContain(`stroke="${removed}"`);
+      expect(border).toContain('stroke-dasharray="4 3"');
+      // No ring, as for a version-only change.
+      expect(body).not.toContain('x="-0.5"');
+      expect(body).toMatch(/<text[^>]* text-decoration="line-through"[^>]*>axi_gpio_0<\/text>/);
+      expect(body).toMatch(new RegExp(`<text[^>]* fill="${removed}"[^>]*>−</text>`));
+      expect(body).toContain('<g opacity="0.65">');
+      // The header is not dimmed: the opacity group follows the name.
+      expect(body.indexOf('axi_gpio_0')).toBeLessThan(body.indexOf('<g opacity="0.65">'));
+    }
+  );
+
+  it.each(['light', 'dark'] as const)(
+    'draws a removed external port dashed and struck through, with its sign (%s)',
+    (theme) => {
+      const { removed } = paletteFor(theme).change;
+      const portId = unionLayout.nodes.find(
+        (node) => node.type === 'boundary' && node.id.endsWith('led_o')
+      )!.id;
+      const port = nodeBody(drawWith(theme, unionLayout, union.ghosts), portId);
+      const shape = /<path[^>]*>/.exec(port)![0];
+      expect(shape).toContain(`stroke="${removed}"`);
+      expect(shape).toContain('stroke-dasharray="4 3"');
+      expect(port).toMatch(/<text[^>]* text-decoration="line-through"[^>]*>led_o<\/text>/);
+      expect(port).toMatch(new RegExp(`<text[^>]* fill="${removed}"[^>]*>−</text>`));
+    }
+  );
+
+  it.each(['light', 'dark'] as const)(
+    'strikes through the pin a block lost, in the removed color, and no other (%s)',
+    (theme) => {
+      const { removed } = paletteFor(theme).change;
+      const periph = nodeBody(drawWith(theme, unionLayout, union.ghosts), '/axi_periph');
+      expect(periph).toMatch(
+        new RegExp(
+          `<text[^>]* fill="${removed}"[^>]*text-decoration="line-through"[^>]*>M00_AXI</text>`
+        )
+      );
+      expect(periph.match(/line-through/g)).toHaveLength(1);
+    }
+  );
+
+  it.each(['light', 'dark'] as const)(
+    'draws a removed wire dashed in the removed color (%s)',
+    (theme) => {
+      const { removed } = paletteFor(theme).change;
+      const svg = drawWith(theme, unionLayout, union.ghosts);
+      const dashed =
+        svg.match(/<path[^>]* stroke="[^"]*"[^>]* stroke-dasharray="6 4"[^>]*>/g) ?? [];
+      expect(dashed.length).toBeGreaterThan(0);
+      expect(dashed.every((path) => path.includes(`stroke="${removed}"`))).toBe(true);
+    }
+  );
+
+  it.each(['light', 'dark'] as const)(
+    'names the removed kind and wire in the legend instead of counting them (%s)',
+    (theme) => {
+      const { removed } = paletteFor(theme).change;
+      const legend = /<g data-legend[^>]*>.*?<\/g>/.exec(
+        drawWith(theme, unionLayout, union.ghosts, true)
+      )![0];
+      expect(legend).toMatch(new RegExp(`<text[^>]* fill="${removed}"[^>]*>−</text>`));
+      expect(legend).toContain('>Removed<');
+      expect(legend).toContain('>Removed wire<');
+      expect(legend).not.toMatch(/\d+ removed</);
+      expect(legend).toContain('stroke-dasharray="3 2"');
+      expect(legend).toContain('stroke-dasharray="6 4"');
+    }
+  );
+
+  it('keeps the row of a pin whose ghost is not drawn empty, so no label moves', () => {
+    const drawn = nodeBody(drawWith('light', unionLayout, union.ghosts), '/axi_periph');
+    const hiddenLayout = withoutGhosts(
+      { nodes: [...unionLayout.nodes], edges: [...unionLayout.edges] },
+      union.ghosts
+    );
+    const hidden = nodeBody(drawWith('light', hiddenLayout, undefined), '/axi_periph');
+    expect(drawn).toContain('>M00_AXI</text>');
+    expect(hidden).not.toContain('>M00_AXI</text>');
+    expect(hidden).not.toContain('line-through');
+    // The pins that stay are where they were drawn with the ghost, and the block is as tall.
+    const y = (body: string, label: string) =>
+      new RegExp(`<text[^>]* y="([^"]*)"[^>]*>${label}</text>`).exec(body)![1];
+    for (const label of ['ACLK', 'S00_AXI', 'M01_AXI']) {
+      expect(y(hidden, label)).toBe(y(drawn, label));
+    }
+    expect(hiddenLayout.nodes.some((node) => node.id === '/axi_gpio_0')).toBe(false);
+  });
+
+  it('draws the ghost of a removed hierarchy as one block: no expand toggle, no cell count', () => {
+    const hier = plainLayout.nodes.find((node) => node.id === '/gpio_block')!;
+    expect(hier.type).toBe('instance');
+    const draw = (status?: 'removed') =>
+      nodeBody(
+        renderSystemLevelSvg(plainLayout, {
+          palette: paletteFor('light'),
+          grid: false,
+          legend: false,
+          background: 'transparent',
+          fontFaceCss: '',
+          changes: {
+            nodes: new Map(status ? [['/gpio_block', { status, title: 'Removed' }]] : []),
+            newEdgeIds: new Set(),
+            legend: { kinds: [], newWire: false, removed: 0 },
+          },
+        }),
+        '/gpio_block'
+      );
+    const plain = draw();
+    expect(plain).toContain('>Hierarchy · 1 cells</text>');
+    // The expand toggle is the boxed [+] of `toggleSvg`.
+    expect(plain).toContain('rx="2.5"');
+    const ghost = draw('removed');
+    expect(ghost).toContain('>Hierarchy</text>');
+    expect(ghost).not.toContain('cells');
+    expect(ghost).not.toContain('rx="2.5"');
+    expect(ghost).toMatch(/<text[^>]* text-decoration="line-through"[^>]*>gpio_block<\/text>/);
+    // The name starts where it would in a block without a toggle.
+    const x = (body: string) => Number(/<text x="([^"]*)"[^>]*>gpio_block<\/text>/.exec(body)![1]);
+    expect(x(ghost)).toBeLessThan(x(plain));
+  });
+
+  it('draws no ghost without the union: the removed things are only counted, as before', () => {
+    const svg = drawWith('light', plainLayout, undefined, true);
+    expect(svg).not.toContain('line-through');
+    expect(svg).not.toContain(paletteFor('light').change.removed);
+    expect(svg).toContain('>− 2 removed<');
+    expect(svg).not.toContain('Removed wire');
   });
 });

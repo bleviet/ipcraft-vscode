@@ -5,6 +5,7 @@
  */
 
 import type { SystemGraph } from '../../domain/systemGraph';
+import type { UnionAdditions } from '../../domain/systemGraphDiff';
 import { paletteFor } from '../../shared/render/palette';
 import { plexTextMeasure } from '../../shared/render/textMetrics';
 import { renderSystemLevelSvg } from '../../shared/render/systemLevelSvg';
@@ -16,6 +17,7 @@ import { hopDistances, isolationSubset, maxRadius } from '../../webview/systemDi
 import { buildElkInput, toFlowElements } from '../../webview/systemDiagram/layout/elkLayout';
 import type { IsolationSubset } from '../../webview/systemDiagram/layout/elkLayout';
 import { runElkLayout } from '../../webview/systemDiagram/layout/runElkLayout';
+import { withoutGhosts, withUnion } from '../../webview/systemDiagram/layout/unionGraph';
 import { isLevelNode } from '../../webview/systemDiagram/model';
 import { closestNames } from './closestNames';
 import {
@@ -41,6 +43,16 @@ export interface SystemLevelRequest {
   cropNodeIds?: readonly string[];
   /** The marks of a comparison of the whole design (`buildChangeMarks`); absent: no marks are drawn. */
   changes?: ChangeMarks;
+  /**
+   * What only the base has: the level is isolated and laid out with it, as the viewer does while
+   * a comparison has it (whether or not the ghosts are shown); absent: the open design. The
+   * ghosts are drawn when `changes` carries their marks (`buildChangeMarks` with
+   * `withUnion(graph, union).ghosts`) and `ghostsHidden` is not set; else they are left out
+   * after the layout, which keeps the places the union gave the blocks.
+   */
+  union?: UnionAdditions;
+  /** With `union`: the ghosts are not drawn (Show removed or Marks is off on the canvas). */
+  ghostsHidden?: boolean;
 }
 
 /** The viewer's isolation of `nodeIds` at `hops`, clamped to what the selection reaches like the + button. */
@@ -71,22 +83,26 @@ async function drawSystemLevel(
 ): Promise<string> {
   const { level } = request;
   requireLevel(graph, level);
-  const stale = request.isolate?.nodeIds.find((id) => !isLevelNode(graph, level, id));
+  // The union is the layout input, as in the viewer; the open design stays the one the analyses read.
+  const { graph: layoutGraph, ghosts } = withUnion(graph, request.union);
+  const stale = request.isolate?.nodeIds.find((id) => !isLevelNode(layoutGraph, level, id));
   if (stale !== undefined) {
     throw new Error(`'${stale}' is not a block or port of level '${level}'`);
   }
   const expanded = new Set(request.expanded);
   const isolation =
     request.isolate && request.isolate.nodeIds.length > 0
-      ? isolateNodes(graph, level, request.isolate.nodeIds, request.isolate.hops)
+      ? isolateNodes(layoutGraph, level, request.isolate.nodeIds, request.isolate.hops)
       : undefined;
-  const input = buildElkInput(graph, level, {
+  const input = buildElkInput(layoutGraph, level, {
     measure: plexTextMeasure,
     expanded,
     ...(isolation && { isolate: isolation }),
   });
   const laidOut = await runElkLayout(input);
-  const flow = toFlowElements(laidOut, graph, level, plexTextMeasure, isolation);
+  const placed = toFlowElements(laidOut, layoutGraph, level, plexTextMeasure, isolation, ghosts);
+  const drawGhosts = request.changes !== undefined && request.ghostsHidden !== true;
+  const flow = drawGhosts ? placed : withoutGhosts(placed, ghosts);
   const decor = request.clocks
     ? clockDecor(
         flow,

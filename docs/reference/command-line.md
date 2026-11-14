@@ -278,8 +278,13 @@ version and added or changed external ports have a border in the color of their
 kind and a sign in the header (`+`, `~`, `→`, `»`, `v`); a hierarchy with changes inside
 has a `~ N inside` count; the pins that gained or changed a connection have
 their name in color; new wires are drawn in the added color, a little wider. The
-legend names the kinds present and counts the removed blocks and ports as
-`− N removed`: they are not drawn. With `--ignore-version-only`, blocks with only
+blocks and ports that only the base has are drawn as ghosts, as the viewer draws them
+with **Show removed** on: a dashed border in the removed color, the name struck
+through, a `−` in the header and a dimmed body; a pin a block lost has its name struck
+through, and a lost wire is dashed in the removed color. The image is laid out with
+both revisions, so a block can sit somewhere else than in an image of the current
+revision alone. The legend names the kinds present, including `− Removed`, and
+`Removed wire` when there is one. With `--ignore-version-only`, blocks with only
 a version change are not marked. For another level, an expanded hierarchy or
 another look, use the viewer. The command prints `Wrote <file>` on its own line
 after the report: to standard output when the report is written with `--out`, to

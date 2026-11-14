@@ -8,7 +8,8 @@
  * - no node shadow, user highlight colors, search dimming, review or selected clock tree;
  *   the selection outline (`selectedNodeIds`) and the Clocks and resets domain decorations
  *   (already merged into the layout by `applyClockDecor`, plus `domainLegend`) and the marks of a
- *   comparison (`changes`, merged into the nodes and wires here, as the canvas does) are drawn;
+ *   comparison (`changes`, merged into the nodes and wires here, as the canvas does, with the
+ *   ghosts of what only the base has when the layout is the union's) are drawn;
  * - the signs of a comparison are drawn at weight 600: no 700 face is embedded, the canvas uses 700;
  * - the legend sits below the drawing instead of floating over the canvas corner;
  * - grid dots are 1.5 px across (the canvas draws 1 px) so they survive printing;
@@ -25,6 +26,7 @@ import type {
 import { JUNCTION_RADIUS } from '../../webview/systemDiagram/layout/diagramTypes';
 import { diagramBounds, nodeBounds } from '../../webview/systemDiagram/layout/diagramBounds';
 import { frameSvg, instanceSvg } from './blockSvg';
+import { REMOVED_WIRE_DASH } from './changeSvg';
 import { layoutLegend, legendSvg } from './legendSvg';
 import type { Palette } from './palette';
 import { boundarySvg } from './pinSvg';
@@ -70,17 +72,19 @@ function edgeSvg(edge: DiagramFlowEdge, palette: Palette): string {
   const d = edge.data.points
     .map((point, index) => `${index === 0 ? 'M' : 'L'} ${num(point.x)} ${num(point.y)}`)
     .join(' ');
-  const { crossing, dimmed, category, changeNew } = edge.data;
+  const { crossing, dimmed, category, changeNew, changeRemoved } = edge.data;
   const plainStroke = crossing
     ? palette.warning
     : dimmed
       ? palette.category[category]
       : palette.wire[category];
   // ElkEdge `markedStroke`: a new wire takes the added color unless a crossing or a domain color says something already.
-  const stroke =
+  const markedStroke =
     changeNew && !crossing && edge.data.domainColor === undefined
       ? palette.change.newWire
       : plainStroke;
+  // A wire only the base has (a ghost) is the removed color, whatever else it says, and dashed.
+  const stroke = changeRemoved ? palette.change.removed : markedStroke;
   const opacity = dimmed && !crossing ? DIMMED_OPACITY : undefined;
   const wire = element('path', {
     d,
@@ -88,7 +92,7 @@ function edgeSvg(edge: DiagramFlowEdge, palette: Palette): string {
     stroke,
     'stroke-width':
       (edge.data.isInterface ? INTERFACE_WIDTH : SIGNAL_WIDTH) + (changeNew ? NEW_WIRE_WIDTH : 0),
-    'stroke-dasharray': crossing ? CROSSING_DASH : undefined,
+    'stroke-dasharray': changeRemoved ? REMOVED_WIRE_DASH : crossing ? CROSSING_DASH : undefined,
     opacity,
   });
   // A junction dot marks where a branch leaves its net's tree (ElkEdge draws the same).
@@ -130,7 +134,9 @@ function withChanges(layout: SystemLevelLayout, decor: ChangeDecor): SystemLevel
     edges: layout.edges.map((edge) =>
       decor.newEdgeIds.has(edge.id)
         ? { ...edge, data: { ...edge.data, changeNew: true as const } }
-        : edge
+        : decor.removedEdgeIds?.has(edge.id)
+          ? { ...edge, data: { ...edge.data, changeRemoved: true as const } }
+          : edge
     ),
   };
 }

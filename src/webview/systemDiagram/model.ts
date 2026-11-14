@@ -167,10 +167,15 @@ export function pinHoverLines(pin: HoverPin, netNames: readonly string[]): strin
   return lines;
 }
 
-/** Node header subtitle: hierarchy size, type label, or the module marker. */
-export function instanceSubtitle(instance: SystemInstance, cells: number): string {
+/**
+ * Node header subtitle: hierarchy size, type label, or the module marker. The ghost of a removed
+ * hierarchy (a comparison's) has no cells to count.
+ */
+export function instanceSubtitle(instance: SystemInstance, cells: number, ghost = false): string {
   return instance.kind === 'hier'
-    ? `Hierarchy · ${cells} cells`
+    ? ghost
+      ? 'Hierarchy'
+      : `Hierarchy · ${cells} cells`
     : (instanceTypeLabel(instance) ?? (instance.kind === 'module' ? 'module' : ''));
 }
 

@@ -22,9 +22,11 @@ import {
   selectionRing,
 } from './decorSvg';
 import {
+  borderDash,
   changeBorder,
   changeHeaderItems,
-  dottedDash,
+  GHOST_BODY_OPACITY,
+  isGhost,
   pinChangeColor,
   type HeaderItem,
 } from './changeSvg';
@@ -132,10 +134,12 @@ function headerText(
 ): string {
   const top = box.border + HEADER_PADDING_Y;
   const left = box.border + HEADER_PADDING_X;
-  const isHier = instance.kind === 'hier';
+  // The ghost of a removed hierarchy is one block: no expand toggle, as in NodeHeader.
+  const ghost = isGhost(data.change);
+  const isHier = instance.kind === 'hier' && !ghost;
   const nameX = left + (isHier ? TOGGLE_SIZE + TOGGLE_GAP : 0);
   const textWidth = box.width - 2 * (box.border + HEADER_PADDING_X);
-  const subtitle = instanceSubtitle(instance, cellCount);
+  const subtitle = instanceSubtitle(instance, cellCount, ghost);
   const items = headerItems(data.change, data.domains, palette);
   const itemsWidth = items.reduce((sum, item) => sum + item.width + BADGE_GAP, 0);
   let right = box.width - box.border - HEADER_PADDING_X;
@@ -150,7 +154,7 @@ function headerText(
       nameX,
       top + TITLE_CENTER,
       truncateEnd(instance.name, textWidth - (nameX - left) - itemsWidth, WEIGHT_FACES.semibold),
-      { ...WEIGHT_FACES.semibold, fill: palette.foreground }
+      { ...WEIGHT_FACES.semibold, fill: palette.foreground, ...(ghost && { strike: true }) }
     ),
     ...itemsSvg,
     subtitle === ''
@@ -183,6 +187,7 @@ function pinLabel(
       : (changeColor ?? (row.unconnected ? palette.descriptionForeground : palette.foreground)),
     italic: row.unconnected,
     anchor: east ? 'end' : 'start',
+    ...(change?.kind === 'removed' && { strike: true }),
   });
 }
 
@@ -218,6 +223,13 @@ function pinParts(
   ];
 }
 
+/**
+ * A pin that only the base has, while its ghost is not drawn: it keeps its row, empty, so no block
+ * moves (InstanceNode and FrameNode do the same).
+ */
+const hiddenGhostRow = (data: InstanceNodeData | FrameNodeData, row: PinRow): boolean =>
+  row.ghost === true && data.change?.pins?.[row.name]?.kind !== 'removed';
+
 /** The domain mark and the comparison mark of the pin `row` of a block. */
 function pinMarks(data: InstanceNodeData | FrameNodeData, row: PinRow) {
   return { mark: data.pinMarks?.[row.name], change: data.change?.pins?.[row.name] };
@@ -238,7 +250,7 @@ export function instanceSvg(
     : blockBorder(palette, selected, hasCrossingEnd(data.pinMarks));
   const parts = [
     selected ? selectionRing({ width, height }, 1, 3.5, palette) : '',
-    marked && !marked.dotted ? selectionRing({ width, height }, 1, 3.5, palette, marked.color) : '',
+    marked?.line === 'solid' ? selectionRing({ width, height }, 1, 3.5, palette, marked.color) : '',
     element('rect', {
       x: 0.5,
       y: 0.5,
@@ -248,11 +260,8 @@ export function instanceSvg(
       fill: palette.nodeFill,
       stroke: border.color,
       'stroke-opacity': border.opacity,
-      'stroke-dasharray': marked?.dotted
-        ? dottedDash(NODE_BORDER)
-        : data.instance.kind === 'blackbox'
-          ? '4 3'
-          : undefined,
+      'stroke-dasharray':
+        borderDash(marked, NODE_BORDER) ?? (data.instance.kind === 'blackbox' ? '4 3' : undefined),
     }),
     headerBand(box, palette),
     data.domains ? domainStripSvg(data.domains.segments, box, palette) : '',
@@ -273,8 +282,12 @@ export function instanceSvg(
       })
     );
   }
+  const pins: string[] = [];
   for (const rows of [data.west, data.east]) {
     rows.forEach((row, index) => {
+      if (hiddenGhostRow(data, row)) {
+        return;
+      }
       const east = row.side === 'east';
       const cy = NODE_BORDER + HEADER_HEIGHT + index * PIN_ROW_HEIGHT + PIN_ROW_HEIGHT / 2;
       const place = {
@@ -284,9 +297,13 @@ export function instanceSvg(
         cy,
         labelCy: cy,
       };
-      parts.push(...pinParts(row, place, pinMarks(data, row), palette));
+      pins.push(...pinParts(row, place, pinMarks(data, row), palette));
     });
   }
+  // The body of a ghost (its pins) is dimmed; the header stays at full strength.
+  parts.push(
+    isGhost(data.change) ? `<g opacity="${GHOST_BODY_OPACITY}">${pins.join('')}</g>` : pins.join('')
+  );
   return parts.join('');
 }
 
@@ -305,7 +322,7 @@ export function frameSvg(
     : blockBorder(palette, selected, false);
   const parts = [
     selected ? selectionRing(size, 0.5, 6, palette) : '',
-    marked && !marked.dotted ? selectionRing(size, 1, 6, palette, marked.color) : '',
+    marked?.line === 'solid' ? selectionRing(size, 1, 6, palette, marked.color) : '',
     element('rect', {
       x: 1,
       y: 1,
@@ -317,7 +334,7 @@ export function frameSvg(
       stroke: border.color,
       'stroke-opacity': border.opacity,
       'stroke-width': FRAME_BORDER,
-      'stroke-dasharray': marked?.dotted ? dottedDash(FRAME_BORDER) : undefined,
+      'stroke-dasharray': borderDash(marked, FRAME_BORDER),
     }),
     headerBand(box, palette),
     data.domains ? domainStripSvg(data.domains.segments, box, palette) : '',
@@ -325,6 +342,9 @@ export function frameSvg(
   ];
   for (const rows of [data.west, data.east]) {
     for (const row of rows) {
+      if (hiddenGhostRow(data, row)) {
+        continue;
+      }
       const east = row.side === 'east';
       const place = {
         edgeX: east ? width : 0,

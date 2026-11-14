@@ -116,9 +116,7 @@ export function NodeHeader({
           </span>
         )}
       </div>
-      <div className="sd-node-subtitle">
-        {ghost && isHier ? 'Hierarchy' : instanceSubtitle(instance, cellCount)}
-      </div>
+      <div className="sd-node-subtitle">{instanceSubtitle(instance, cellCount, ghost)}</div>
     </div>
   );
 }

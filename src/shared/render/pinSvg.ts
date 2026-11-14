@@ -10,7 +10,7 @@ import {
 import { BOUNDARY_HEIGHT } from '../../webview/systemDiagram/layout/elkLayout';
 import { CIRCLE_MARKER, SQUARE_MARKER } from '../../webview/systemDiagram/layout/pinRows';
 import { portShapePath } from '../../webview/systemDiagram/layout/portShape';
-import { changeBorder, portSignSvg } from './changeSvg';
+import { borderDash, changeBorder, isGhost, portSignSvg } from './changeSvg';
 import { frequencySvg, markColor } from './decorSvg';
 import type { Palette } from './palette';
 import { element } from './svg';
@@ -98,6 +98,8 @@ export function boundarySvg(data: BoundaryNodeData, palette: Palette, selected =
       stroke: outline.color,
       'stroke-opacity': outline.opacity,
       'stroke-width': outline.width,
+      // `.sd-port[data-change='removed'] .sd-port-shape`: the same dashes as the border of a ghost block.
+      'stroke-dasharray': borderDash(marked, CHANGED_STROKE),
     }),
     markerSvg(
       east ? data.width : 0,
@@ -125,6 +127,7 @@ export function boundarySvg(data: BoundaryNodeData, palette: Palette, selected =
       face: 'sans600',
       sizePx: 11.5,
       fill: mark?.crossing ? palette.warning : palette.foreground,
+      ...(isGhost(data.change) && { strike: true }),
     }),
     data.badge ? badgeSvg(data.badge, palette) : '',
   ].join('');
