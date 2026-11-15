@@ -10,7 +10,7 @@ builds. It does not download anything else, and it needs no vendor tool.
 ## Prerequisites
 
 - A GitHub repository with the system design files (`.bd`, `.tcl`, `.qsys`) committed
-- A tag or commit of `bleviet/ipcraft-vscode` that has the `diff` command, which is a release after 1.5.3. Use the same tag or commit for the checkout of the command line and for the action, so the two match
+- A tag or commit of `bleviet/ipcraft-vscode` that has the `diff` command, which is IPCraft 1.6.0 or later. Use the same tag or commit for the checkout of the command line and for the action, so the two match
 - A Linux or macOS runner. The action is tested there; it runs its scripts with bash
 
 ## Add the workflow
