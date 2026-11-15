@@ -38,8 +38,12 @@ export interface Shot {
   clip?: string;
   scale?: 'css' | 'device';
   setup?: (page: Page) => Promise<void>;
+  compareBase?: string;
 }
 ```
+
+For the system viewer, `compareBase` names the base revision of `source`; the
+viewer then opens comparing with it, as against HEAD.
 
 The output name is `docs/images/<id>-<theme>.png`.
 

@@ -1734,7 +1734,8 @@
       <nav class="nav-links" aria-label="Main">
         <a href="#overview">Overview</a>
         <a href="#editors">Editors</a>
-        <a href="#system-viewer">System Viewer <span class="pill-new">NEW</span></a>
+        <a href="#system-viewer">System Viewer</a>
+        <a href="#compare">Compare <span class="pill-new">NEW</span></a>
         <a href="#data-inspector">Data Inspector</a>
         <a href="#capabilities">Capabilities</a>
         <a href="introduction/what-is-ipcraft/">Docs</a>
@@ -1771,7 +1772,7 @@
       </svg>
 
       <div class="wrap hero-inner">
-        <p class="eyebrow mono rise"><span class="pin"></span>v1.5.3 &middot; FPGA IP workspace for VS Code</p>
+        <p class="eyebrow mono rise"><span class="pin"></span>v1.6.0 &middot; FPGA IP workspace for VS Code</p>
         <h1 class="rise" style="--i: 1">See the whole system. <span class="grad-text">Craft every core.</span></h1>
         <div class="hero-row rise" style="--i: 2">
           <p class="lede">Read Vivado and Platform Designer systems as diagrams, design IP cores and register maps
@@ -1779,12 +1780,12 @@
             Code.</p>
           <div class="cta-row">
             <a class="btn" href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Install for VS Code</a>
-            <a class="btn btn-ghost" href="#system-viewer">Explore the System Viewer</a>
+            <a class="btn btn-ghost" href="#compare">See what changed in a design</a>
           </div>
         </div>
 
         <div class="hero-shot rise" style="--i: 4">
-          <div class="badge-float mono"><i></i>New: System Viewer</div>
+          <div class="badge-float mono"><i></i>New in 1.6: Compare block designs</div>
           <figure class="window">
             <figcaption><b>zynq_dma_system.tcl</b><span>System Diagram</span><span class="state">read-only &middot; offline</span></figcaption>
             <img class="theme-image" src="images/system-diagram-level-dark.png"
@@ -1924,7 +1925,7 @@
           <a class="more" href="reference/command-line/">Read the command line reference <span aria-hidden="true">&rarr;</span></a>
         </div>
         <div class="terminal" role="img"
-          aria-label="Terminal: ipcraft generate core.ip.yml --target quartus,vivado --lang systemverilog; ipcraft verify core.ip.yml generated; ipcraft package core.ip.yml --out core.zip --zip; ipcraft render system.tcl --out system.svg">
+          aria-label="Terminal: ipcraft generate core.ip.yml --target quartus,vivado --lang systemverilog; ipcraft verify core.ip.yml generated; ipcraft package core.ip.yml --out core.zip --zip; ipcraft render system.tcl --out system.svg; ipcraft diff system.bd --base main">
           <div class="c"># RTL, testbench, and both vendor projects</div>
           <div><span class="p">$</span> <span class="k">ipcraft generate</span> <span class="f">core.ip.yml</span> <span class="o">--target</span> quartus,vivado <span class="o">--lang</span> systemverilog</div>
           <div class="c"># check that generated files still match the specification</div>
@@ -1932,6 +1933,8 @@
           <div class="c"># one self-contained archive, and a diagram for the docs</div>
           <div><span class="p">$</span> <span class="k">ipcraft package</span> <span class="f">core.ip.yml</span> <span class="o">--out</span> core.zip <span class="o">--zip</span></div>
           <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">system.tcl</span> <span class="o">--out</span> system.svg</div>
+          <div class="c"># what changed in a block design since main</div>
+          <div><span class="p">$</span> <span class="k">ipcraft diff</span> <span class="f">system.bd</span> <span class="o">--base</span> main</div>
         </div>
       </article>
     </section>
@@ -1970,11 +1973,11 @@
 
     <!-- System Viewer -->
     <section class="block wrap" id="system-viewer">
-      <p class="marker reveal" style="--c: var(--accent)"><span>New &middot; System Viewer</span></p>
+      <p class="marker reveal" style="--c: var(--accent)"><span>System Viewer</span></p>
       <div class="split reveal">
         <h2>Open a block design without opening Vivado.</h2>
         <div class="split-side">
-          <p>A read-only diagram of a Vivado block design or a Platform Designer system. Files are read as text and never
+          <p>A read-only diagram of a Vivado block design (<code>.bd</code> or Tcl) or a Platform Designer system. Files are read as text and never
             executed, so it needs no vendor tool and no license, and it works offline.</p>
           <p class="keys">Press <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>V</kbd> on any supported file</p>
         </div>
@@ -1982,8 +1985,13 @@
 
       <div class="card files reveal">
         <div>
-          <span class="ext mono" style="color: var(--node-cyan)">.tcl</span>
+          <span class="ext mono" style="color: var(--node-cyan)">.bd</span>
           <b>Vivado block design</b>
+          <small>The design file itself, Vivado 2018.3 or later</small>
+        </div>
+        <div>
+          <span class="ext mono" style="color: var(--node-cyan)">.tcl</span>
+          <b>Vivado block design script</b>
           <small>Script written by write_bd_tcl</small>
         </div>
         <div>
@@ -2172,12 +2180,112 @@
 
       <article class="card reveal note" style="margin-top: 1.25rem">
         <div class="pad">
+          <h3>Search the whole design</h3>
+          <p>While you search, the outline lists every matching block under its hierarchy, on every level. Match Case,
+            Match Whole Word, and the <code>*</code> and <code>?</code> wildcards (<code>axi*fifo</code>) narrow the
+            matches, and each tab of the bottom panel has its own filter.</p>
+        </div>
+      </article>
+
+      <article class="card reveal note" style="margin-top: 1.25rem">
+        <div class="pad">
           <h3>Knows your workspace</h3>
           <p>Definitions in your .ip.yml and HDL files fill in pins, directions, and interface types, with a link to
                 where each block is defined. Blocks defined elsewhere stay visible as black boxes.</p>
         </div>
       </article>
       <a class="more" href="how-to/view-a-system-design/">Read the System Viewer guide <span aria-hidden="true">&rarr;</span></a>
+    </section>
+
+    <!-- Compare -->
+    <section class="block wrap" id="compare">
+      <p class="marker reveal" style="--c: var(--chart-7)"><span>New in 1.6 &middot; Design comparison</span></p>
+      <div class="split reveal">
+        <h2>See what changed in a block design before you merge it.</h2>
+        <div class="split-side">
+          <p>A <code>.bd</code> file is thousands of lines of JSON, and a textual diff of it says little. IPCraft compares
+            two revisions of a block design or a Platform Designer system as designs: blocks, parameters, connections,
+            external ports, and address segments.</p>
+          <p class="keys">Click <b>Compare</b> in the system viewer toolbar</p>
+        </div>
+      </div>
+
+      <article class="card big reveal" style="margin-top: 3.5rem">
+        <div class="pad head-row">
+          <div>
+            <h3>The changes, drawn on the diagram</h3>
+            <p>Compare the open design with HEAD, the merge base with <code>main</code>, a branch, a tag, any commit
+              that changed the file, or another file. Added, changed, and renamed blocks get a colored border and a
+              sign; what the base had and the current revision dropped stays on the diagram as a dashed ghost, struck
+              through, so you can see where it was connected. The Changes tab lists every difference; click a row to
+              go to its block.</p>
+          </div>
+          <div class="chips">
+            <span class="chip" style="--c: var(--chart-7)">+ added</span>
+            <span class="chip dashed" style="--c: var(--node-pink)">&minus; removed</span>
+            <span class="chip" style="--c: var(--chart-6)">~ changed</span>
+            <span class="chip" style="--c: var(--node-cyan)">&rarr; renamed</span>
+            <span class="chip" style="--c: var(--muted)">v version only</span>
+          </div>
+        </div>
+        <img class="theme-image shot-top" loading="lazy" src="images/system-diagram-compare-dark.png"
+          data-dark="images/system-diagram-compare-dark.png" data-light="images/system-diagram-compare-light.png"
+          width="3200" height="2000"
+          alt="System viewer comparing a Vivado block design with HEAD: an added FIFO with a green border, a changed processing system, a removed GPIO block and port drawn as dashed ghosts, and the Changes tab listing every difference" />
+      </article>
+
+      <div class="bento">
+        <article class="card big reveal">
+          <img class="theme-image shot-bottom" loading="lazy" src="images/system-diagram-compare-findings-dark.png"
+            data-dark="images/system-diagram-compare-findings-dark.png"
+            data-light="images/system-diagram-compare-findings-light.png" width="3200" height="2000"
+            alt="The Findings tab of a comparison listing an undriven pin that the current revision resolved" />
+          <div class="pad">
+            <h3>New problems, not old ones</h3>
+            <p>The Findings tab lists only the unconnected pins and the clock or reset domain crossings that the change
+              introduced or resolved. When the base is a git revision, its blocks are checked with the
+              <code>.ip.yml</code>, HDL, and <code>.qsys</code> definitions as they were at that revision.</p>
+          </div>
+        </article>
+        <div class="stack">
+          <article class="card reveal" style="--i: 1">
+            <div class="pad">
+              <h3>Noise stays out</h3>
+              <p>Block order, net names, line numbers, and tool metadata do not count as changes. A renamed or moved
+                block is one row, with the differing characters marked. Hide blocks whose only change is the IP
+                version with one button.</p>
+            </div>
+          </article>
+          <article class="card reveal" style="--i: 2">
+            <div class="pad">
+              <h3>Changes only</h3>
+              <p>Show just the changed blocks and what they connect to. The Address map tab marks added, changed, and
+                removed segments, and exported images carry the marks and the ghosts.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <article class="card big headless reveal" style="margin-top: 1.25rem">
+        <div class="pad">
+          <h3>In code review, too</h3>
+          <p><code>ipcraft diff</code> writes the same comparison as Markdown or JSON, and <code>--image</code> draws
+            the changed diagram. The <code>system-design-diff</code> GitHub Action posts it as one pull request comment,
+            updated on each push, and can fail the job on new findings.</p>
+          <a class="more" href="how-to/review-system-design-changes-in-ci/">Review system design changes in CI <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <div class="terminal" role="img"
+          aria-label="Terminal: ipcraft diff bd/system.bd --base main --image changes.png --fail-on new-findings, which reports 1 added, 4 removed, 2 changed, 1 version only, 0 new findings and 1 resolved finding">
+          <div class="c"># compare with main, draw the changes, fail on new findings</div>
+          <div><span class="p">$</span> <span class="k">ipcraft diff</span> <span class="f">bd/system.bd</span> <span class="o">--base</span> main <span class="o">--image</span> changes.png <span class="o">--fail-on</span> new-findings</div>
+          <div class="k">## System design changes: zynq_gpio_system</div>
+          <div><span class="o">+1 added</span> &middot; <span class="p">&minus;4 removed</span> &middot; ~2 changed &middot; v1 version only</div>
+          <div>0 new findings &middot; <span class="o">1 resolved finding</span></div>
+          <div class="c">| ~ | sys_ps7 | CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ | 100 | 150 |</div>
+          <div><span class="p">$</span> <span class="caret"></span></div>
+        </div>
+      </article>
+      <a class="more" href="how-to/view-a-system-design/#compare-with-another-revision">Read about comparing designs <span aria-hidden="true">&rarr;</span></a>
     </section>
 
     <!-- Data Inspector -->

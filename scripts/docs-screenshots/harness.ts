@@ -2,6 +2,10 @@ import type { Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import * as YAML from 'yaml';
+import type { DiagramCompare } from '../../src/shared/messages/systemDiagram';
+import { diffFindings } from '../../src/services/systemDiagram/diff/diffFindings';
+import { diffSystemGraphs } from '../../src/services/systemDiagram/diff/diffSystemGraphs';
+import { unionAdditions } from '../../src/services/systemDiagram/diff/unionAdditions';
 import { readSystemDesign } from '../../src/services/systemDiagram/readSystemDesign';
 
 export type HarnessKind = 'memorymap' | 'ipcore' | 'dataInspector' | 'systemDiagram';
@@ -56,11 +60,13 @@ export interface OpenOptions {
    *  Without this, an .ip.yml that imports a .mm.yml renders a false
    *  "references unknown memory map" validation error. */
   memoryMapImports?: unknown[];
+  /** systemDiagram: the base revision's design text; the viewer opens comparing with it (as against HEAD). */
+  compareBaseText?: string;
   viewport: { width: number; height: number };
 }
 
 export async function openHarness(page: Page, opts: OpenOptions): Promise<void> {
-  const { harness, theme, yamlText, fileName, memoryMapImports, viewport } = opts;
+  const { harness, theme, yamlText, fileName, memoryMapImports, compareBaseText, viewport } = opts;
 
   await page.setViewportSize(viewport);
 
@@ -145,11 +151,13 @@ export async function openHarness(page: Page, opts: OpenOptions): Promise<void> 
     if (!graph) {
       throw new Error(`${name} is not a recognized system design`);
     }
+    const compare =
+      compareBaseText === undefined ? undefined : buildCompare(name, compareBaseText, graph);
     await page.evaluate(
-      (value) => {
-        window.postMessage({ type: 'graph', graph: value }, '*');
+      ({ value, compareValue }) => {
+        window.postMessage({ type: 'graph', graph: value, compare: compareValue }, '*');
       },
-      graph as unknown as object
+      { value: graph as unknown as object, compareValue: compare as unknown as object | undefined }
     );
     await page.waitForSelector('.react-flow__node', { state: 'visible', timeout: 15000 });
     // React Flow starts at translate(0px, 0px) scale(1); the first fit moves it.
@@ -175,4 +183,26 @@ export async function openHarness(page: Page, opts: OpenOptions): Promise<void> 
 
   // Let webfonts finish and layout settle after the content swap above.
   await page.waitForTimeout(300);
+}
+
+/** The comparison SystemDiagramProvider sends for a design compared with HEAD. */
+function buildCompare(
+  name: string,
+  baseText: string,
+  graph: NonNullable<ReturnType<typeof readSystemDesign>>
+): DiagramCompare {
+  const base = readSystemDesign(name, name, baseText);
+  if (!base) {
+    throw new Error(`The base of ${name} is not a recognized system design`);
+  }
+  const diff = diffSystemGraphs(base, graph);
+  return {
+    baseLabel: 'HEAD',
+    currentLabel: name,
+    canSwap: false,
+    diff,
+    findings: diffFindings(base, graph, diff),
+    baseDefinitions: 'workspace',
+    union: unionAdditions(base, graph, diff),
+  };
 }

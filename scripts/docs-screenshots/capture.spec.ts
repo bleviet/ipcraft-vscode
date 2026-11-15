@@ -5,7 +5,7 @@ import { test } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import { openHarness, type ThemeVariant } from './harness';
-import { shots, readShotSource, readShotMemoryMapImports } from './shots';
+import { shots, readShotSource, readShotMemoryMapImports, readShotCompareBase } from './shots';
 
 const OUTPUT_DIR = path.resolve(__dirname, '../../docs/images');
 const THEMES: ThemeVariant[] = ['dark', 'light'];
@@ -23,6 +23,7 @@ for (const shot of shots) {
         yamlText: readShotSource(shot),
         fileName: shot.fileName ?? path.basename(shot.source),
         memoryMapImports: readShotMemoryMapImports(shot),
+        compareBaseText: readShotCompareBase(shot),
         viewport: shot.viewport ?? { width: 1400, height: 900 },
       });
 

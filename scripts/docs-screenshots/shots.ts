@@ -20,6 +20,7 @@ const DATA_INSPECTOR_STATUS_SOURCE =
 
 const SYSTEM_BD_SOURCE = 'src/test/fixtures/system-design/zynq_dma_system.tcl';
 const SYSTEM_QSYS_SOURCE = 'src/test/fixtures/system-design/niosv_hps_system.tcl';
+const SYSTEM_DIFF_DIR = 'src/test/fixtures/system-design/diff';
 
 const VIEWPORT_SELECTOR = '.react-flow__viewport';
 
@@ -324,6 +325,8 @@ export interface Shot {
    *  Without it, a bus interface's memoryMapRef fails reference validation
    *  and the editor shows a false "unknown memory map" error banner. */
   mmImportSource?: string;
+  /** systemDiagram: repo-relative path to the base revision of `source`; the viewer opens comparing with it. */
+  compareBase?: string;
   viewport?: { width: number; height: number };
   /** Selector to capture instead of the full page. */
   clip?: string;
@@ -526,6 +529,26 @@ export const shots: Shot[] = [
     setup: setupSystemHover,
   },
   {
+    // A comparison with HEAD: marks and ghosts on the diagram, the Changes tab below.
+    id: 'system-diagram-compare',
+    harness: 'systemDiagram',
+    source: `${SYSTEM_DIFF_DIR}/zynq_gpio_current.bd`,
+    compareBase: `${SYSTEM_DIFF_DIR}/zynq_gpio_base.bd`,
+    fileName: 'system.bd',
+    viewport: { width: 1600, height: 1000 },
+  },
+  {
+    id: 'system-diagram-compare-findings',
+    harness: 'systemDiagram',
+    source: `${SYSTEM_DIFF_DIR}/zynq_gpio_current.bd`,
+    compareBase: `${SYSTEM_DIFF_DIR}/zynq_gpio_base.bd`,
+    fileName: 'system.bd',
+    viewport: { width: 1600, height: 1000 },
+    setup: async (page) => {
+      await page.getByRole('tab', { name: /^Findings/ }).click();
+    },
+  },
+  {
     id: 'data-inspector-workspace',
     harness: 'dataInspector',
     source: DATA_INSPECTOR_SPLIT_SOURCE,
@@ -652,4 +675,8 @@ export function readShotMemoryMapImports(shot: Shot): unknown[] | undefined {
   const text = fs.readFileSync(path.join(REPO_ROOT, shot.mmImportSource), 'utf-8');
   const parsed = YAML.parse(text) as unknown;
   return Array.isArray(parsed) ? parsed : [parsed];
+}
+
+export function readShotCompareBase(shot: Shot): string | undefined {
+  return shot.compareBase && fs.readFileSync(path.join(REPO_ROOT, shot.compareBase), 'utf-8');
 }
