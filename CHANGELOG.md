@@ -6,6 +6,15 @@ attention when you update, for example because generated files change.
 Contributors: the technical changelog, with modules, issues and pull requests,
 is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
+## [1.6.1] - 2026-11-20
+
+### New
+
+- **See search results in a list under the search box in the system viewer.** As you type, a list opens under the box with the matching blocks grouped by level and a summary such as `5 matches in 3 levels`; click a row to go to that block. Up and Down step through the list while it is open (and through your earlier searches otherwise), and Enter, Shift+Enter and the counter follow its order. Long lists scroll, and above 20 matches the groups are collapsed except the one you are on. Escape or leaving the box closes it.
+- **Hierarchy blocks show how many matches they hold.** While you search, a hierarchy block, collapsed or expanded in place, that has matching blocks inside is no longer dimmed and shows a badge such as `3 matches inside` (`99+` above 99).
+- **Follow a data or bus connection through the hierarchy.** Selecting a data or interface net that continues into or out of a hierarchy block now selects the whole connection on every level, as for a clock or reset net: its pins and badges are highlighted on every level, the blocks it does not touch are dimmed, and Details shows a **Connection tree** with the driver and the nets it reaches level by level, through hierarchy pins and ports.
+- **Expand the selected hierarchy block with Space.** In the system viewer, Space expands the selected hierarchy block in place, or collapses it again, like its **+** and **-** button.
+
 ## [1.6.0] - 2026-11-15
 
 ### New

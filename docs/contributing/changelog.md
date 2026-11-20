@@ -12,6 +12,14 @@ Marketplace, so it describes each release in user terms only. When you make a
 change, record it here; if users will notice it, also add a plain-language
 entry to the release notes.
 
+## [1.6.1] - 2026-11-20
+
+### Added
+
+- **System viewer: a results dropdown under the search box and matches-inside badges.** New pure helpers in `search.ts`: `groupMatches(graph, matches)` (`MatchGroup` per level), `resultsSummary(groups)` (`N matches in M levels`), `initiallyCollapsed(groups, currentId)` (groups collapsed above 20 matches, except the one holding the current match), `matchesInside(matches)` (match count per hierarchy path) and `insideBadgeText(count)` (`99+` above 99). `useSearchStepper` steps, counts (`matchCounter`) and lists in one order, the flattened groups, and returns `results` (`groups`, `summary`, `currentId`, `rowOf`) and `jumpTo(path)`. The new `SearchResults.tsx` renders the listbox; `SearchBox` opens it when a query is typed and closes it on Escape, blur or history browsing, Up/Down move through it while it is open, and the input is an ARIA combobox (`aria-activedescendant` through `resultOptionId`). `WorkbenchLayout` passes `searchInside` through `useCanvasElements` to `InstanceNode` and `FrameNode`, whose `NodeHeader` shows the badge and keeps the block undimmed. Tests: `search.test.ts`, `SystemDiagramApp.test.tsx`; `scripts/perf/system-viewer.spec.ts` adjusted.
+- **System viewer: the connection tree of a data or bus net across hierarchy.** `ClockAnalysis` gains `physicalOfNet(netId)` (the physical net from `buildPhysicalNets`), and `SelectedTree` gains `{ kind: 'data'; physical; netIds }`, which `selectedTree` returns for a net that is neither clock nor reset when its physical net has more than one member net. `clockDecor` and `useCanvasElements` badge and dim it like a clock or reset tree; `DetailsPanel` shows it with the new `ConnectionTree` in `ClockTreeDetails.tsx` (`Connection tree · N ends`: the driver, then `netTreeRows` from the driver net through every level) instead of the one-level endpoints. Tests: `clockDecor.test.ts`, `clockViews.test.ts`, `SystemDiagramApp.test.tsx`.
+- **System viewer: Space toggles in-place expansion of the selected hierarchy block.** `DiagramCanvas` handles Space without modifiers when an instance is selected and the target is not a button, input, textarea, select or menu, and calls `onToggleExpand` for a hierarchy node. Tests: `DiagramCanvasExpand.test.tsx`.
+
 ## [1.6.0] - 2026-11-15
 
 ### Added

@@ -56,8 +56,11 @@ The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Un
   ports. Select an item to select it in the diagram and center it. While a
   search is on, it lists the search results instead.
 - **Search.** Type in **Search instances** to dim the blocks whose name or
-  type does not match. The outline opens and lists every match on every
-  level under its hierarchy blocks, which are shown muted when they do not
+  type does not match. A hierarchy block with matches inside is not dimmed and
+  shows how many it holds, for example `3 matches inside`. A list opens under
+  the box with the matches grouped by level; click a row to go to that block,
+  and press Up and Down to move through it. Leaving the box closes it. The
+  outline opens and lists every match on every level under its hierarchy blocks, which are shown muted when they do not
   match themselves; click a result to go to it. Clear the search to get the
   full outline back. `*` stands for any characters and `?` for one character,
   so `axi*fifo` finds `axis_data_fifo_0`. The **Match Case** and **Match
@@ -69,9 +72,9 @@ The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Un
   moves to the search box from anywhere in the viewer with its text selected,
   filled in with the name of the selected block unless the search already
   matches it, and F3 or Shift+F3 goes to the next or previous match.
-  Up and Down in the search box go through your earlier searches, as in the
-  VS Code find box. A search is remembered when you step through its matches
-  or leave the box, and the history lasts while the viewer is open.
+  When the results list is closed, Up and Down in the search box go through
+  your earlier searches, as in the VS Code find box. A search is remembered
+  when you step through its matches or leave the box, and the history lasts while the viewer is open.
 - **Details.** Shows the selected block, net, or port: type, where it is
   defined in the file, the parameters set in the file, and its pins with their
   nets. Select a line link to open the file at that line.
@@ -247,6 +250,10 @@ frequency. Details shows the tree:
 - a **reset tree** with who releases the reset, a check per sink (`✓` released
   on its own clock, `✗` clocked by another domain, `?` clock unknown, `✓`
   asynchronous input), and the reset domain crossings.
+
+Selecting a data or bus net that continues into or out of a hierarchy block
+selects the whole connection the same way, and Details shows a **Connection
+tree** with its driver and the nets it reaches on every level.
 
 Selecting a block shows its clock pins with their domains, and for a block with a
 known pin list the clock of each interface and the release of each reset. A
