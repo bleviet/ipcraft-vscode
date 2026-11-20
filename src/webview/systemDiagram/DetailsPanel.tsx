@@ -3,7 +3,8 @@ import type { SystemGraph, SystemNet, SystemPin } from '../../domain/systemGraph
 import { CapabilityPill } from './CapabilityPill';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { netCrossings } from './clocks/treeChecks';
-import { ClockTreeDetails, ResetTreeDetails } from './ClockTreeDetails';
+import { selectedTree } from './clocks/treeSelection';
+import { ClockTreeDetails, ConnectionTree, ResetTreeDetails } from './ClockTreeDetails';
 import { CrossingNote } from './CrossingNote';
 import { capabilityRows, designEyebrow, formatLabel } from './detailsLabels';
 import type { ComparisonDetails } from './hooks/useCompareView';
@@ -90,6 +91,7 @@ function NetDetails({
   onSelect: DetailsPanelProps['onSelect'];
   onReveal: (line: number, uri?: string) => void;
 }) {
+  const tree = selectedTree(clocks, { kind: 'net', id: net.id });
   return (
     <div className="space-y-3">
       <header>
@@ -106,31 +108,35 @@ function NetDetails({
       {netCrossings(clocks, net.id).map((crossing) => (
         <CrossingNote key={crossing.id} crossing={crossing} />
       ))}
-      <section>
-        <h3 className="sd-h3">Endpoints</h3>
-        <ul>
-          {net.endpoints.map((ref) => {
-            const label = ref.instance === null ? ref.pin : `${ref.instance}/${ref.pin}`;
-            return (
-              <li key={`${ref.instance ?? ''}::${ref.pin}`}>
-                <button
-                  type="button"
-                  className="sd-link"
-                  onClick={() =>
-                    onSelect(
-                      ref.instance === null
-                        ? { kind: 'boundary', id: boundaryId(net.level, ref.pin) }
-                        : { kind: 'instance', id: ref.instance }
-                    )
-                  }
-                >
-                  {label}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </section>
+      {tree?.kind === 'data' ? (
+        <ConnectionTree graph={graph} physical={tree.physical} net={net} onSelect={onSelect} />
+      ) : (
+        <section>
+          <h3 className="sd-h3">Endpoints</h3>
+          <ul>
+            {net.endpoints.map((ref) => {
+              const label = ref.instance === null ? ref.pin : `${ref.instance}/${ref.pin}`;
+              return (
+                <li key={`${ref.instance ?? ''}::${ref.pin}`}>
+                  <button
+                    type="button"
+                    className="sd-link"
+                    onClick={() =>
+                      onSelect(
+                        ref.instance === null
+                          ? { kind: 'boundary', id: boundaryId(net.level, ref.pin) }
+                          : { kind: 'instance', id: ref.instance }
+                      )
+                    }
+                  >
+                    {label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

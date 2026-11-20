@@ -1,8 +1,8 @@
 /**
- * The tree of a clock or reset net as rows with a depth: the source, then per
- * net its loads, descending into hierarchy blocks, following the net out of a
- * hierarchy through its boundary pins and through clock-forwarding blocks.
- * Every net is listed once.
+ * The tree of a clock, reset, or data/bus connection net as rows with a depth:
+ * the source, then per net its loads, descending into hierarchy blocks,
+ * following the net out of a hierarchy through its boundary pins and through
+ * clock-forwarding blocks. Every net is listed once.
  */
 
 import type { PinRef, SystemGraph, SystemNet } from '../../../domain/systemGraph';

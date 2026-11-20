@@ -5,7 +5,7 @@ import type { ClockDomain, ResetSource } from './clocks/clockTypes';
 import { UNRELEASED_RESET_COLOR } from './clocks/domainView';
 import { formatHz, nameWithFrequency } from './clocks/frequency';
 import { netTreeRows, pinRow, type TreePinRow, type TreeRow } from './clocks/netTree';
-import { endKey } from './clocks/physicalNets';
+import { endKey, type PhysicalNet } from './clocks/physicalNets';
 import {
   domainRelations,
   frequencyCheck,
@@ -108,6 +108,45 @@ function SourceLine({
         {row.label}
       </button>
     </p>
+  );
+}
+
+/** A data or bus net that spans hierarchy levels: its driver and the nets and pins it reaches, level by level. */
+export function ConnectionTree({
+  graph,
+  physical,
+  net,
+  onSelect,
+}: {
+  graph: SystemGraph;
+  physical: PhysicalNet;
+  net: SystemNet;
+  onSelect: TreeDetailsProps['onSelect'];
+}) {
+  const { driver } = physical;
+  return (
+    <section>
+      <h3 className="sd-h3">Connection tree · {physical.ends.length} ends</h3>
+      {driver && (
+        <SourceLine
+          graph={graph}
+          level={driver.level}
+          source={{ instance: driver.instance, pin: driver.pin }}
+          onSelect={onSelect}
+        />
+      )}
+      <TreeList
+        rows={netTreeRows(
+          graph,
+          physical.driverNet?.id ?? net.id,
+          driver && { instance: driver.instance, pin: driver.pin }
+        )}
+        selectedNetId={net.id}
+        color="var(--vscode-focusBorder)"
+        onSelect={onSelect}
+        checkOf={() => undefined}
+      />
+    </section>
   );
 }
 

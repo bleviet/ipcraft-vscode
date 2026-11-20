@@ -30,8 +30,20 @@ describe('selectedTree', () => {
     expect(tree?.netIds.has(RESET_NET)).toBe(true);
   });
 
-  it('is undefined for a data net, an instance, or no selection', () => {
-    expect(selectedTree(analysis, net(DATA_NET))).toBeUndefined();
+  it('takes the member nets of a data or bus net that crosses hierarchy levels', () => {
+    for (const [id, inner] of [
+      [DATA_NET, `${DSP}::Conn1`],
+      ['/::ps7_0_axi_periph_M01_AXI', `${DSP}::Conn3`],
+    ]) {
+      const tree = selectedTree(analysis, net(id));
+      expect(tree?.kind).toBe('data');
+      expect([...(tree?.netIds ?? [])].sort()).toEqual([id, inner].sort());
+    }
+  });
+
+  it('is undefined for a data net on one level, an instance, or no selection', () => {
+    expect(selectedTree(analysis, net('/::ps7_0_axi_periph_M00_AXI'))).toBeUndefined();
+    expect(selectedTree(analysis, net(`${DSP}::axis_data_fifo_0_M_AXIS`))).toBeUndefined();
     expect(selectedTree(analysis, { kind: 'instance', id: '/axi_dma_0' })).toBeUndefined();
     expect(selectedTree(analysis, null)).toBeUndefined();
   });

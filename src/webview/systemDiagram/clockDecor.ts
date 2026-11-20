@@ -26,7 +26,7 @@ export interface ClockContext {
 }
 
 export interface ClockDecor {
-  /** The clock or reset tree of the selected net. */
+  /** The clock, reset, or connection tree of the selected net. */
   tree: SelectedTree | undefined;
   /** Wire style overrides by edge id. */
   edges: ReadonlyMap<string, EdgeMarks>;

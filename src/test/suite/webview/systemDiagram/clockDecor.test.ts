@@ -31,11 +31,20 @@ describe('clockDecor', () => {
   it('adds nothing outside the domain mode without a selected tree', async () => {
     const decor = clockDecor(await layoutOf('/'), context('/', false), {
       kind: 'net',
-      id: '/::axi_dma_0_M_AXIS_MM2S',
+      id: '/::ps7_0_axi_periph_M00_AXI',
     });
     expect(decor.tree).toBeUndefined();
     expect(decor.edges.size + decor.pinMarks.size + decor.domains.size).toBe(0);
     expect(decor.legend).toBeNull();
+  });
+
+  it('selects a crossing data net without decorating it outside the domain mode', async () => {
+    const decor = clockDecor(await layoutOf('/'), context('/', false), {
+      kind: 'net',
+      id: '/::axi_dma_0_M_AXIS_MM2S',
+    });
+    expect(decor.tree?.kind).toBe('data');
+    expect(decor.edges.size + decor.pinMarks.size).toBe(0);
   });
 
   it('styles the wires, marks the pins and strips the blocks in the domain mode', async () => {

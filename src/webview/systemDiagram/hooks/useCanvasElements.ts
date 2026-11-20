@@ -71,7 +71,7 @@ export function useCanvasElements({
   );
   const showHighlights = review === null;
 
-  // Only a selected clock or reset net changes the decoration, so any other selection keeps
+  // Only a selected clock, reset, or connection-tree net changes the decoration, so any other selection keeps
   // the previous decor (and the per-node objects in it) instead of rebuilding it.
   const decorSelection = selectedTree(clocks.analysis, selection) ? selection : null;
   const decor = useMemo(
@@ -136,7 +136,7 @@ export function useCanvasElements({
           (node.type === 'boundary'
             ? !boundaryMatchesQuery(node.data.pin, matcher)
             : !matchesQuery(node.data.instance, matcher))) ||
-        // A selected clock or reset tree dims the blocks and ports it does not touch.
+        // A selected clock, reset, or connection tree dims the blocks and ports it does not touch.
         (tree !== undefined && node.type !== 'frame' && !highlighted?.has(node.id));
       const focused = focusedPinOf(focusedPin, selection, node.id);
       const highlightColor =

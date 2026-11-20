@@ -9,7 +9,7 @@ import type { PinRef, SystemGraph, SystemPin } from '../../../domain/systemGraph
 import { buildClockDomains } from './clockDomains';
 import type { ClockDomain, Crossing, ExpectedFrequency, PinClock, ResetSource } from './clockTypes';
 import { buildCrossings } from './crossings';
-import { buildPhysicalNets } from './physicalNets';
+import { buildPhysicalNets, type PhysicalNet } from './physicalNets';
 import { buildPinClocks } from './pinClocks';
 import { buildRelatedClocks } from './relatedClocks';
 import { buildResetSources } from './resetSources';
@@ -24,6 +24,8 @@ export interface ClockAnalysis {
   domainOfNet: (netId: string) => ClockDomain | undefined;
   /** The clock domain a pin occurrence sits on. */
   domainOfPin: (level: string, ref: PinRef) => ClockDomain | undefined;
+  /** The physical net a net belongs to: its member nets on every level, joined across hierarchy pins. */
+  physicalOfNet: (netId: string) => PhysicalNet | undefined;
   /** The reset source a net belongs to. */
   resetOfNet: (netId: string) => ResetSource | undefined;
   resetOfPin: (level: string, ref: PinRef) => ResetSource | undefined;
@@ -57,6 +59,7 @@ export function analyzeClocks(graph: SystemGraph): ClockAnalysis {
     ),
     domainOfNet: model.domainOfNet,
     domainOfPin: model.domainOfPin,
+    physicalOfNet: physical.ofNet,
     resetOfNet: sources.resetOfNet,
     resetOfPin: sources.resetOfPin,
     clockOfPin: pinClocks.clockOfPin,

@@ -658,14 +658,44 @@ describe('SystemDiagramApp', () => {
     );
   });
 
-  it('lists the endpoints of a data net in the details', async () => {
+  it('shows the connection tree of a data net that crosses hierarchy levels', async () => {
     await renderWithGraph();
     fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
     fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
 
     expect(details().getByRole('heading', { name: 'axi_dma_0_M_AXIS_MM2S' })).toBeVisible();
+    expect(details().getByText('Connection tree · 2 ends')).toBeVisible();
+    expect(details().getByText('source').parentElement).toHaveTextContent(
+      'source axi_dma_0/M_AXIS_MM2S'
+    );
+    expect(details().queryByText('Endpoints')).not.toBeInTheDocument();
+    expect(details().getByRole('button', { name: 'Conn1' })).toBeVisible();
+    expect(details().getAllByText('enters hierarchy').length).toBeGreaterThan(0);
+  });
+
+  it('walks the connection tree from the selected net when no driver is known', async () => {
+    const edited = JSON.parse(JSON.stringify(graph)) as typeof graph;
+    const pin = edited.instances['/axi_dma_0'].pins.find((p) => p.name === 'M_AXIS_MM2S')!;
+    pin.direction = 'slave';
+    // With no source pin, the first endpoint stands in as the driver; make it the hierarchy pin.
+    const net = edited.nets.find((candidate) => candidate.id === '/::axi_dma_0_M_AXIS_MM2S')!;
+    net.endpoints.reverse();
+    await renderWithGraph({ design: edited });
+    fireEvent.click(outline().getByRole('button', { name: /^axi_dma_0/ }));
+    fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
+
+    expect(details().getByText('Connection tree · 2 ends')).toBeVisible();
+    expect(details().queryByText('source')).not.toBeInTheDocument();
+    expect(details().getByRole('button', { name: 'Conn1' })).toBeVisible();
+  });
+
+  it('lists the endpoints of a data net that stays on one level', async () => {
+    await renderWithGraph();
+    fireEvent.click(outline().getByRole('button', { name: /^processing_system7_0/ }));
+    fireEvent.click(details().getByRole('button', { name: 'processing_system7_0_M_AXI_GP0' }));
+
     expect(details().getByText('Endpoints')).toBeVisible();
-    expect(details().getByRole('button', { name: '/axi_dma_0/M_AXIS_MM2S' })).toBeVisible();
+    expect(details().queryByText(/^Connection tree/)).not.toBeInTheDocument();
   });
 
   describe('search stepping', () => {
@@ -1011,7 +1041,7 @@ describe('SystemDiagramApp', () => {
       fireEvent.click(screen.getByTestId('node:/axi_dma_0'));
       fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
       mockSetCenter.mockClear();
-      const link = details().getAllByRole('button', { name: /^\/axi_dma_0\// })[0];
+      const link = details().getAllByRole('button', { name: /^axi_dma_0\// })[0];
       fireEvent.click(link);
       await waitFor(() => expect(mockSetCenter).toHaveBeenCalledTimes(1));
     });
