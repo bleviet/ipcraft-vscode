@@ -32,7 +32,7 @@ import { boundaryId, nodeSelection, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
-import { findSeed } from './search';
+import { findSeed, matchesInside } from './search';
 import { compileSearch, DEFAULT_SEARCH_OPTIONS } from './searchMatcher';
 import { unconnectedPins, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
 
@@ -101,6 +101,13 @@ export function WorkbenchLayout({
     },
     [remember, search.step]
   );
+  const jumpToResult = useCallback(
+    (path: string) => {
+      remember();
+      search.jumpTo(path);
+    },
+    [remember, search.jumpTo]
+  );
   const searchInputRef = useRef<HTMLInputElement>(null);
   useFindShortcuts({
     inputRef: searchInputRef,
@@ -166,6 +173,11 @@ export function WorkbenchLayout({
     }
   }, [searching]);
 
+  const searchInside = useMemo(
+    () => (searching ? matchesInside(search.matches) : null),
+    [searching, search.matches]
+  );
+
   const { tab, setTab, openTab: openBottomTab } = useBottomTab(compare?.baseLabel, panels.bottom);
   const selectPort = (name: string) =>
     view.selectAndReveal({ kind: 'boundary', id: boundaryId('/', name) }, '/');
@@ -218,6 +230,8 @@ export function WorkbenchLayout({
           onStep: stepSearch,
           onHistory: browse,
           onBlur: remember,
+          results: search.results,
+          onPick: jumpToResult,
         }}
         clocksOn={clocksOn}
         autoDetail={autoDetail}
@@ -298,6 +312,7 @@ export function WorkbenchLayout({
               onOpenChanges={() => openBottomTab('changes')}
               focusedPin={focusedPin}
               matcher={matcher}
+              searchInside={searchInside}
               autoDetail={autoDetail}
               minimap={minimapOn}
               flash={search.flash}

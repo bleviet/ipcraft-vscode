@@ -102,7 +102,7 @@ for (const fileName of FIXTURES) {
         () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
       );
 
-    const box = page.getByRole('searchbox', { name: 'Search instances' });
+    const box = page.getByRole('combobox', { name: 'Search instances' });
     await box.focus();
     for (const ch of ['c', 'h', '1', '2']) {
       await measure(`search keystroke "${ch}"`, async () => {

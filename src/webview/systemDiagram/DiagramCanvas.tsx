@@ -62,6 +62,8 @@ interface DiagramCanvasProps {
   focusedPin: FocusedPin | null;
   /** The compiled search, or null without one. */
   matcher: TextMatcher | null;
+  /** Matches below each hierarchy block (by node id) while a search is on: such a block is not dimmed. */
+  searchInside?: ReadonlyMap<string, number> | null;
   /** Auto detail is on: far out, pin text goes and block names grow. Absent, it is off. */
   autoDetail?: boolean;
   /** The minimap is shown. Absent, it is not. */
@@ -113,6 +115,7 @@ export function DiagramCanvas({
   onOpenChanges,
   focusedPin,
   matcher,
+  searchInside,
   autoDetail,
   minimap,
   flash,
@@ -200,6 +203,7 @@ export function DiagramCanvas({
     changes,
     focusedPin,
     matcher,
+    searchInside,
     flash,
     onFlashEnd,
     onSelectNet,

@@ -59,6 +59,8 @@ export interface InstanceUiData {
   highlightColors?: ReadonlyMap<string, string>;
   /** Name of the pin whose marker gets the focus halo. */
   focusedPin?: string;
+  /** Present on a hierarchy block that holds search matches: how many, anywhere below it. */
+  searchInside?: number;
   /** Set on the node being pulsed after a search step; a new value restarts the pulse. */
   flashToken?: number;
   onFlashEnd?: (token: number) => void;

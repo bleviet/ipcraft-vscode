@@ -35,6 +35,8 @@ interface CanvasElementsInput {
   changes: ChangeContext | null;
   focusedPin: FocusedPin | null;
   matcher: TextMatcher | null;
+  /** Matches below each hierarchy block (by node id) while a search is on. */
+  searchInside?: ReadonlyMap<string, number> | null;
   flash?: SearchFlash | null;
   onFlashEnd?: (token: number) => void;
   onSelectNet: (netId: string, additive?: boolean) => void;
@@ -58,6 +60,7 @@ export function useCanvasElements({
   changes,
   focusedPin,
   matcher,
+  searchInside,
   flash,
   onFlashEnd,
   onSelectNet,
@@ -131,8 +134,10 @@ export function useCanvasElements({
 
   const builtNodes = useMemo(() => {
     return (layout?.nodes ?? []).map((node) => {
+      const inside = searchInside?.get(node.id);
       const dimmed =
         (matcher !== null &&
+          inside === undefined &&
           (node.type === 'boundary'
             ? !boundaryMatchesQuery(node.data.pin, matcher)
             : !matchesQuery(node.data.instance, matcher))) ||
@@ -158,6 +163,7 @@ export function useCanvasElements({
           ...(badgedNodes?.has(node.id) && { selectedNetIds: selectedAndTreeNetIds }),
           ...(highlightBadgedNodes?.has(node.id) && { highlightColors }),
           ...(highlightColor !== undefined && { highlightColor }),
+          ...(inside !== undefined && { searchInside: inside }),
           ...(focused !== undefined && { focusedPin: focused }),
           ...(highlighted?.has(node.id) && { highlightedPins: highlighted.get(node.id) }),
           onSelectNet,
@@ -170,6 +176,7 @@ export function useCanvasElements({
   }, [
     layout,
     matcher,
+    searchInside,
     flash,
     onFlashEnd,
     selection,

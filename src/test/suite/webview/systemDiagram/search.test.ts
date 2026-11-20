@@ -1,6 +1,11 @@
 import {
   findSeed,
+  groupMatches,
+  initiallyCollapsed,
+  insideBadgeText,
   matchCounter,
+  matchesInside,
+  resultsSummary,
   searchMatches,
   stepMatch,
   withAncestors,
@@ -132,5 +137,86 @@ describe('findSeed', () => {
     ).toBeUndefined();
     expect(findSeed(graph, query('fifo'), { kind: 'boundary', id: '/DDR' })).toBeUndefined();
     expect(findSeed(graph, query('fifo'), { kind: 'instance', id: '/gone' })).toBeUndefined();
+  });
+});
+
+describe('matchesInside', () => {
+  it('counts the matches below every hierarchy above them, nested ones included', () => {
+    const inside = matchesInside(['/a/b/x', '/a/b/y', '/a/z', '/top']);
+    expect(Object.fromEntries(inside)).toEqual({ '/a': 3, '/a/b': 2 });
+  });
+
+  it('never counts the root and counts a matching hierarchy only for its ancestors', () => {
+    const inside = matchesInside(['/a', '/a/b']);
+    expect(inside.has('/')).toBe(false);
+    expect(Object.fromEntries(inside)).toEqual({ '/a': 1 });
+    expect(matchesInside([]).size).toBe(0);
+  });
+
+  it('on the fixture, puts fir_compiler_0 inside dsp_pipeline', () => {
+    expect(matchesInside(searchMatches(graph, query('fir'))).get('/dsp_pipeline')).toBe(1);
+  });
+});
+
+describe('insideBadgeText', () => {
+  it('caps the count at 99+', () => {
+    expect(insideBadgeText(1)).toBe('1');
+    expect(insideBadgeText(99)).toBe('99');
+    expect(insideBadgeText(100)).toBe('99+');
+  });
+});
+
+describe('groupMatches', () => {
+  it('groups by level in order of first appearance, labelled by hierarchy path or design name', () => {
+    const groups = groupMatches(graph, [
+      '/a',
+      '/dsp_pipeline/x',
+      '/b',
+      '/dsp_pipeline/coeff_bank/y',
+      '/dsp_pipeline/z',
+    ]);
+    expect(groups).toEqual([
+      { level: '/', label: graph.name, paths: ['/a', '/b'] },
+      {
+        level: '/dsp_pipeline',
+        label: 'dsp_pipeline',
+        paths: ['/dsp_pipeline/x', '/dsp_pipeline/z'],
+      },
+      {
+        level: '/dsp_pipeline/coeff_bank',
+        label: 'dsp_pipeline / coeff_bank',
+        paths: ['/dsp_pipeline/coeff_bank/y'],
+      },
+    ]);
+  });
+});
+
+describe('resultsSummary', () => {
+  it('uses singular and plural forms', () => {
+    expect(resultsSummary(groupMatches(graph, ['/a']))).toBe('1 match in 1 level');
+    expect(resultsSummary(groupMatches(graph, ['/a', '/b', '/d/c']))).toBe('3 matches in 2 levels');
+  });
+});
+
+describe('initiallyCollapsed', () => {
+  const many = Array.from({ length: 21 }, (_, i) => `/g${i % 3}/n${i}`);
+  const groups = groupMatches(graph, many);
+
+  it('keeps everything open up to 20 matches', () => {
+    expect(initiallyCollapsed(groupMatches(graph, many.slice(0, 20)), undefined).size).toBe(0);
+  });
+
+  it('collapses all groups but the current one beyond 20 matches', () => {
+    expect([...initiallyCollapsed(groups, undefined)]).toEqual(['/g0', '/g1', '/g2']);
+    expect([...initiallyCollapsed(groups, '/g1/n1')]).toEqual(['/g0', '/g2']);
+  });
+});
+
+describe('the visible order of the results', () => {
+  it('differs from the outline order when a top-level match follows a hierarchy with matches', () => {
+    const matches = searchMatches(graph, query('p'));
+    const visible = groupMatches(graph, matches).flatMap((group) => group.paths);
+    expect([...visible].sort()).toEqual([...matches].sort());
+    expect(visible).not.toEqual(matches);
   });
 });

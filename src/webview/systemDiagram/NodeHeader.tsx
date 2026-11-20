@@ -5,6 +5,7 @@ import { ChangeBadges } from './ChangeBadges';
 import { domainBadge, type NodeDomains } from './clocks/domainView';
 import { HEADER_HEIGHT } from './layout/elkLayout';
 import { instanceSubtitle } from './model';
+import { insideBadgeText } from './search';
 import type { NodeReview } from './unconnectedPins';
 
 /** A name as text parts that each end after an underscore, to put a `<wbr />` after each. */
@@ -45,6 +46,10 @@ function unconnectedLabel(review: NodeReview): string {
   return `${review.all} unconnected pins (${review.undriven} undriven, ${review.all - review.undriven} unused)`;
 }
 
+function insideLabel(count: number): string {
+  return count === 1 ? '1 match inside' : `${count} matches inside`;
+}
+
 interface NodeHeaderProps extends ExpandToggleProps {
   cellCount: number;
   review?: NodeReview;
@@ -52,6 +57,8 @@ interface NodeHeaderProps extends ExpandToggleProps {
   change?: NodeChange;
   /** Clock domain mode: a strip with one segment per domain, and the crossing or domain count. */
   domains?: NodeDomains;
+  /** Search matches anywhere below this hierarchy block. */
+  searchInside?: number;
 }
 
 /** Header of an instance block and of an expanded frame: expand toggle, name, review or domain count, subtitle. */
@@ -61,6 +68,7 @@ export function NodeHeader({
   review,
   change,
   domains,
+  searchInside,
   expanded,
   onToggleExpand,
 }: NodeHeaderProps) {
@@ -104,6 +112,17 @@ export function NodeHeader({
             {review.all}
           </span>
         ) : null}
+        {searchInside !== undefined && (
+          <span
+            className="sd-node-open sd-node-search"
+            role="img"
+            title={insideLabel(searchInside)}
+            aria-label={insideLabel(searchInside)}
+          >
+            <span className="codicon codicon-search" />
+            {insideBadgeText(searchInside)}
+          </span>
+        )}
         {badge && (
           <span
             className="sd-node-open sd-node-dom"

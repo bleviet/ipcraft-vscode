@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useId, useState } from 'react';
+import { resultOptionId, SearchResults, type SearchResultsProps } from './SearchResults';
 import type { SearchOptions } from './searchMatcher';
 
 export interface SearchBoxProps {
@@ -14,6 +15,9 @@ export interface SearchBoxProps {
   onHistory: (direction: -1 | 1) => boolean;
   /** The input lost focus: remember its query. */
   onBlur: () => void;
+  /** The matches the dropdown lists, and the pick of one. */
+  results: Omit<SearchResultsProps, 'onPick' | 'listId'>;
+  onPick: (path: string) => void;
 }
 
 const OPTION_TOGGLES: { option: keyof SearchOptions; label: string; icon: string }[] = [
@@ -32,46 +36,78 @@ export function SearchBox({
   onStep,
   onHistory,
   onBlur,
+  results,
+  onPick,
 }: SearchBoxProps) {
+  // The dropdown opens when the query is typed and closes on Escape, blur, or history browsing.
+  const [open, setOpen] = useState(false);
+  const listed = open && results.groups.length > 0;
+  const listId = useId();
+  const currentIndex =
+    results.currentId === undefined
+      ? -1
+      : results.groups.flatMap((group) => group.paths).indexOf(results.currentId);
   return (
     <>
-      <input
-        ref={inputRef}
-        type="search"
-        className="sd-input w-[220px] min-w-0"
-        placeholder="Search instances (⇅ for history)"
-        aria-label="Search instances"
-        title="Search instance names and types. * matches any characters, ? matches one"
-        value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
-        onBlur={onBlur}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-            if (
-              event.altKey ||
-              event.ctrlKey ||
-              event.metaKey ||
-              event.shiftKey ||
-              event.nativeEvent.isComposing
-            ) {
-              return;
-            }
-            if (onHistory(event.key === 'ArrowUp' ? -1 : 1)) {
-              event.preventDefault();
-            }
-          } else if (event.key === 'Enter') {
-            if (event.nativeEvent.isComposing) {
-              return;
-            }
-            event.preventDefault();
-            onStep(event.shiftKey ? -1 : 1);
-          } else if (event.key === 'Escape') {
-            event.preventDefault();
-            onQueryChange('');
-            event.currentTarget.blur();
+      <div className="relative min-w-0">
+        <input
+          ref={inputRef}
+          type="search"
+          role="combobox"
+          aria-expanded={listed}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            listed && currentIndex >= 0 ? resultOptionId(listId, currentIndex) : undefined
           }
-        }}
-      />
+          className="sd-input w-[220px] min-w-0"
+          placeholder="Search instances (⇅ for history)"
+          aria-label="Search instances"
+          title="Search instance names and types. * matches any characters, ? matches one"
+          value={query}
+          onChange={(event) => {
+            setOpen(event.target.value.trim() !== '');
+            onQueryChange(event.target.value);
+          }}
+          onBlur={() => {
+            setOpen(false);
+            onBlur();
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+              if (
+                event.altKey ||
+                event.ctrlKey ||
+                event.metaKey ||
+                event.shiftKey ||
+                event.nativeEvent.isComposing
+              ) {
+                return;
+              }
+              const direction = event.key === 'ArrowUp' ? -1 : 1;
+              if (listed) {
+                event.preventDefault();
+                onStep(direction);
+              } else if (onHistory(direction)) {
+                setOpen(false);
+                event.preventDefault();
+              }
+            } else if (event.key === 'Enter') {
+              if (event.nativeEvent.isComposing) {
+                return;
+              }
+              event.preventDefault();
+              onStep(event.shiftKey ? -1 : 1);
+            } else if (event.key === 'Escape') {
+              event.preventDefault();
+              setOpen(false);
+              onQueryChange('');
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        {listed && <SearchResults {...results} listId={listId} onPick={onPick} />}
+      </div>
       <span className="sd-tool-group">
         {OPTION_TOGGLES.map(({ option, label, icon }) => (
           <button

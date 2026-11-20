@@ -134,6 +134,7 @@ function FrameNodeBase({ data, selected, width, height }: NodeProps<FrameFlowNod
         review={review}
         change={data.change}
         domains={data.domains}
+        searchInside={data.searchInside}
         expanded
         onToggleExpand={data.onToggleExpand}
       />

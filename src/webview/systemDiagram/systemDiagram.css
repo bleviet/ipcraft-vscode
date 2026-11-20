@@ -270,6 +270,31 @@ input:focus-visible {
   font-size: 10px;
 }
 
+.sd-node-search {
+  gap: 2px;
+  padding: 0 3px;
+  border-radius: 2px;
+  color: var(--vscode-editor-foreground);
+  background: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33));
+  outline: 1px solid var(--vscode-editor-findMatchBorder, transparent);
+}
+
+.sd-search-results {
+  color: var(--vscode-quickInput-foreground, var(--vscode-foreground));
+  background: var(--vscode-quickInput-background, var(--vscode-editorWidget-background));
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.3));
+}
+
+.sd-search-row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.sd-search-row[aria-selected='true'] {
+  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
 .sd-node-subtitle {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -346,7 +346,7 @@ describe('SystemDiagramApp', () => {
   describe('find keys', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
     const searchBox = () =>
-      screen.getByRole<HTMLInputElement>('searchbox', { name: 'Search instances' });
+      screen.getByRole<HTMLInputElement>('combobox', { name: 'Search instances' });
     const ctrlF = (init: Partial<KeyboardEventInit> = { ctrlKey: true }) =>
       fireEvent.keyDown(document.activeElement ?? window, { key: 'f', ...init });
     const expectAllSelected = () => {
@@ -700,7 +700,7 @@ describe('SystemDiagramApp', () => {
 
   describe('search stepping', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
-    const searchBox = () => screen.getByRole('searchbox', { name: 'Search instances' });
+    const searchBox = () => screen.getByRole('combobox', { name: 'Search instances' });
     const matches = searchMatches(graph, query('axi'));
     const last = matches.length - 1;
 
@@ -869,10 +869,157 @@ describe('SystemDiagramApp', () => {
     });
   });
 
+  describe('search results', () => {
+    const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+    const searchBox = () => screen.getByRole('combobox', { name: 'Search instances' });
+    const list = () => screen.queryByRole('listbox', { name: 'Search results' });
+    const DSP = '/dsp_pipeline';
+    const firOption = () => screen.getByRole('option', { name: /fir_compiler_0/ });
+
+    async function type(text: string) {
+      await renderWithGraph();
+      await settle();
+      fireEvent.change(searchBox(), { target: { value: text } });
+    }
+
+    it('lists the matches by level while typing and marks the blocks that hold them', async () => {
+      await type('fir');
+      const results = within(list()!);
+      expect(screen.getByText('1 match in 1 level')).toBeVisible();
+      expect(results.getByRole('group', { name: 'dsp_pipeline (1)' })).toBeVisible();
+      expect(firOption()).toHaveAttribute('aria-selected', 'false');
+      expect(wrapperOf(DSP)).not.toHaveClass('sd-dimmed');
+      expect(wrapperOf('/axi_dma_0')).toHaveClass('sd-dimmed');
+      expect(within(wrapperOf(DSP)).getByRole('img', { name: '1 match inside' })).toBeVisible();
+      expect(
+        within(wrapperOf('/axi_dma_0')).queryByRole('img', { name: /match.* inside/ })
+      ).toBeNull();
+    });
+
+    it('steps through the matches with ArrowDown and marks the current option', async () => {
+      await type('fir');
+      fireEvent.keyDown(searchBox(), { key: 'ArrowDown' });
+      await waitFor(() => expect(firOption()).toHaveAttribute('aria-selected', 'true'));
+      expect(screen.getByText('1 of 1')).toBeVisible();
+    });
+
+    it('jumps to a clicked option without blurring the search box', async () => {
+      await type('fir');
+      searchBox().focus();
+      const down = fireEvent.mouseDown(firOption());
+      expect(down).toBe(false);
+      fireEvent.click(firOption());
+      await waitFor(() => expect(firOption()).toHaveAttribute('aria-selected', 'true'));
+      expect(searchBox()).toHaveFocus();
+    });
+
+    it('closes on Escape and does not open on focus alone', async () => {
+      await type('fir');
+      searchBox().focus();
+      fireEvent.keyDown(searchBox(), { key: 'Escape' });
+      expect(list()).toBeNull();
+      searchBox().focus();
+      expect(list()).toBeNull();
+    });
+
+    it('closes when the input loses focus', async () => {
+      await type('fir');
+      searchBox().focus();
+      act(() => searchBox().blur());
+      expect(list()).toBeNull();
+    });
+
+    it('holds nothing focusable, so Tab cannot move focus off the input into it', async () => {
+      await type('p');
+      const panel = list()!.parentElement!;
+      expect(within(panel).queryAllByRole('button')).toHaveLength(0);
+      for (const element of panel.querySelectorAll('*')) {
+        expect((element as HTMLElement).tabIndex).toBeLessThan(0);
+      }
+    });
+
+    it('collapses and expands a group by clicking its header', async () => {
+      await type('p');
+      const optionCount = () => within(list()!).queryAllByRole('option').length;
+      const all = optionCount();
+      const header = list()!.querySelector('[id$="-group-0"]')!;
+      const size = Number(/\((\d+)\)$/.exec(header.textContent ?? '')![1]);
+      fireEvent.click(header);
+      expect(optionCount()).toBe(all - size);
+      fireEvent.click(header);
+      expect(optionCount()).toBe(all);
+    });
+
+    it('keeps the list open and the focus in the input after Enter and ArrowDown', async () => {
+      await type('fir');
+      searchBox().focus();
+      fireEvent.keyDown(searchBox(), { key: 'Enter' });
+      await waitFor(() => expect(firOption()).toHaveAttribute('aria-selected', 'true'));
+      expect(list()).not.toBeNull();
+      fireEvent.keyDown(searchBox(), { key: 'ArrowDown' });
+      expect(list()).not.toBeNull();
+      expect(searchBox()).toHaveFocus();
+    });
+
+    it('is a combobox that points at the current option', async () => {
+      await type('fir');
+      expect(searchBox()).toHaveAttribute('aria-expanded', 'true');
+      expect(searchBox()).not.toHaveAttribute('aria-activedescendant');
+      fireEvent.keyDown(searchBox(), { key: 'ArrowDown' });
+      await waitFor(() => expect(firOption()).toHaveAttribute('aria-selected', 'true'));
+      expect(searchBox().getAttribute('aria-controls')).toBe(list()!.id);
+      expect(searchBox().getAttribute('aria-activedescendant')).toBe(firOption().id);
+      expect(within(list()!).queryByText('1 match in 1 level')).toBeNull();
+      fireEvent.keyDown(searchBox(), { key: 'Escape' });
+      expect(searchBox()).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('steps in the order of the list: a top-level match after a hierarchy follows its group', async () => {
+      await type('p');
+      const order = [...list()!.querySelectorAll('[role="option"]')].map((option) => option.id);
+      expect(order.length).toBeGreaterThan(1);
+      const selected = () =>
+        [...list()!.querySelectorAll('[role="option"]')].findIndex(
+          (option) => option.getAttribute('aria-selected') === 'true'
+        );
+      fireEvent.keyDown(searchBox(), { key: 'ArrowDown' });
+      await waitFor(() => expect(selected()).toBe(0));
+      for (let expected = 1; expected < order.length; expected += 1) {
+        fireEvent.keyDown(searchBox(), { key: 'ArrowDown' });
+        await waitFor(() => expect(selected()).toBe(expected));
+      }
+    });
+
+    it('shows the badge on an expanded frame', async () => {
+      await type('fir');
+      fireEvent.click(await screen.findByRole('button', { name: 'Expand dsp_pipeline in place' }));
+      await screen.findByTestId('node:/dsp_pipeline/fir_compiler_0');
+      expect(within(wrapperOf(DSP)).getByRole('img', { name: '1 match inside' })).toBeVisible();
+    });
+
+    it('shows the list again when the query goes from no results back to some', async () => {
+      await type('fir');
+      fireEvent.change(searchBox(), { target: { value: 'zzzz' } });
+      expect(list()).toBeNull();
+      fireEvent.change(searchBox(), { target: { value: 'fir' } });
+      expect(list()).not.toBeNull();
+    });
+
+    it('lets Up browse the history while the list is closed', async () => {
+      await type('axi');
+      fireEvent.keyDown(searchBox(), { key: 'Enter' });
+      fireEvent.change(searchBox(), { target: { value: '' } });
+      expect(list()).toBeNull();
+      fireEvent.keyDown(searchBox(), { key: 'ArrowUp' });
+      expect(searchBox()).toHaveValue('axi');
+      expect(list()).toBeNull();
+    });
+  });
+
   describe('search history', () => {
     const settle = () => act(() => new Promise((resolve) => setTimeout(resolve, 100)));
     const searchBox = () =>
-      screen.getByRole<HTMLInputElement>('searchbox', { name: 'Search instances' });
+      screen.getByRole<HTMLInputElement>('combobox', { name: 'Search instances' });
     const type = (value: string) => fireEvent.change(searchBox(), { target: { value } });
     const press = (key: string) => fireEvent.keyDown(searchBox(), { key });
 
@@ -909,18 +1056,19 @@ describe('SystemDiagramApp', () => {
     it('ends browsing when the query is typed away and back to the browsed text', async () => {
       await renderWithGraph();
       await settle();
-      type('axi');
+      // Queries that match no instance keep the list of results closed, so Up browses.
+      type('zzq1');
       press('Enter');
-      type('fifo');
+      type('zzq2');
       press('Enter');
       type('');
       press('ArrowUp');
       press('ArrowUp');
-      expect(searchBox().value).toBe('axi');
-      type('axix');
-      type('axi');
+      expect(searchBox().value).toBe('zzq1');
+      type('zzq1x');
+      type('zzq1');
       press('ArrowUp');
-      expect(searchBox().value).toBe('fifo');
+      expect(searchBox().value).toBe('zzq2');
     });
 
     it('remembers a query when stepping with F3', async () => {
@@ -1644,7 +1792,7 @@ describe('SystemDiagramApp', () => {
       await waitFor(() => expect(screen.getByText(/^2-hop/)).toBeVisible());
       fireEvent.keyDown(pane(), { key: '+', ctrlKey: true });
       expect(screen.getByText(/^2-hop/)).toBeVisible();
-      fireEvent.keyDown(screen.getByRole('searchbox', { name: 'Search instances' }), {
+      fireEvent.keyDown(screen.getByRole('combobox', { name: 'Search instances' }), {
         key: '-',
       });
       expect(screen.getByText(/^2-hop/)).toBeVisible();
@@ -3330,7 +3478,7 @@ describe('SystemDiagramApp', () => {
 
       it('finds a ghost by search while it is shown, and not once it is hidden', async () => {
         await renderGhosts();
-        const box = () => screen.getByRole('searchbox', { name: 'Search instances' });
+        const box = () => screen.getByRole('combobox', { name: 'Search instances' });
         fireEvent.change(box(), { target: { value: 'axi_gpio_0' } });
         expect(screen.getByText('1 match')).toBeVisible();
         fireEvent.click(removedToggle());

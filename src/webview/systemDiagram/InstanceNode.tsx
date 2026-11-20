@@ -143,6 +143,7 @@ function InstanceNodeBase({ data, selected }: NodeProps<InstanceFlowNode>) {
         review={review}
         change={data.change}
         domains={data.domains}
+        searchInside={data.searchInside}
         expanded={false}
         onToggleExpand={data.onToggleExpand}
       />
