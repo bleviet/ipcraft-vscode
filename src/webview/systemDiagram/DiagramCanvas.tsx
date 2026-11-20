@@ -223,6 +223,21 @@ export function DiagramCanvas({
         if (delta && onHopStep && !(event.target as Element).closest('[role=menu]')) {
           event.preventDefault();
           onHopStep(delta);
+          return;
+        }
+        // Space expands the selected hierarchy block in place, or collapses its frame, like the
+        // header toggle. A focused control (the toggle itself, a menu) keeps its own Space.
+        if (
+          event.key === ' ' &&
+          !(event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) &&
+          selection?.kind === 'instance' &&
+          !(event.target as Element).closest('button, input, textarea, select, [role=menu]')
+        ) {
+          const node = nodes.find((candidate) => candidate.id === selection.id);
+          if (node && isHierarchy(node)) {
+            event.preventDefault();
+            onToggleExpand(node.id);
+          }
         }
       }}
       onDoubleClick={(event) => {

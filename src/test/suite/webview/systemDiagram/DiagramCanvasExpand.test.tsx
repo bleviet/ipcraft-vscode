@@ -139,6 +139,31 @@ describe('collapsed hierarchy block', () => {
     expect(callbacks.onEnterHierarchy).toHaveBeenCalledWith(DSP);
   });
 
+  it('expands the selected block on Space', async () => {
+    const callbacks = setup(layout, [DSP]);
+    await screen.findByText('dsp_pipeline');
+    const canvasEl = screen.getByRole('group', { name: 'Diagram canvas' });
+    fireEvent.keyDown(canvasEl, { key: ' ' });
+    expect(callbacks.onToggleExpand).toHaveBeenCalledTimes(1);
+    expect(callbacks.onToggleExpand).toHaveBeenCalledWith(DSP);
+    expect(callbacks.onEnterHierarchy).not.toHaveBeenCalled();
+  });
+
+  it('ignores Space without a selected hierarchy, with a modifier, or on a control', async () => {
+    const callbacks = setup(layout, ['/axi_dma_0']);
+    await screen.findByText('dsp_pipeline');
+    const canvasEl = screen.getByRole('group', { name: 'Diagram canvas' });
+    fireEvent.keyDown(canvasEl, { key: ' ' });
+    callbacks.select([]);
+    fireEvent.keyDown(canvasEl, { key: ' ' });
+    callbacks.select([DSP]);
+    fireEvent.keyDown(canvasEl, { key: ' ', ctrlKey: true });
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Expand dsp_pipeline in place' }), {
+      key: ' ',
+    });
+    expect(callbacks.onToggleExpand).not.toHaveBeenCalled();
+  });
+
   it('adds nothing to the context menu of a block that is not a hierarchy', async () => {
     setup(layout);
     fireEvent.contextMenu(await screen.findByText('axi_dma_0'));
@@ -166,6 +191,13 @@ describe('expanded hierarchy block', () => {
     fireEvent.click(toggle);
     expect(callbacks.onToggleExpand).toHaveBeenCalledWith(DSP);
     expect(callbacks.onSelect).not.toHaveBeenCalled();
+  });
+
+  it('collapses the selected frame on Space', async () => {
+    const callbacks = setup(layout, [DSP]);
+    await screen.findByText('fir_compiler_0');
+    fireEvent.keyDown(screen.getByRole('group', { name: 'Diagram canvas' }), { key: ' ' });
+    expect(callbacks.onToggleExpand).toHaveBeenCalledWith(DSP);
   });
 
   it('draws the inner blocks and the pins of the frame', async () => {
