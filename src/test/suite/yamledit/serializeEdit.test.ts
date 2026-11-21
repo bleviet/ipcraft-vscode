@@ -50,14 +50,25 @@ describe('serializeEdit CRLF and scale', () => {
     expect(out).toBe('z: 0\r\na: 1\r\nb: [X]\r\nc: 3\r\n');
   });
 
-  it('preserves formatting on a large file within a time bound', () => {
+  it('preserves formatting on a large file in time proportional to rendering it', () => {
     const entry = (i: number): string =>
       `  - name: r${i}\n    ports: [X]\n    description: >-\n      line one\n      line two\n`;
     const text = 'registers:\n' + Array.from({ length: 1200 }, (_, i) => entry(i)).join('');
-    const start = Date.now();
-    const out = run(text, (d) => d.setIn(['registers', 600, 'name'], 'changed'));
-    expect(Date.now() - start).toBeLessThan(1000);
+    const timed = (work: () => void): number => {
+      const start = performance.now();
+      work();
+      return performance.now() - start;
+    };
+    let out = '';
+    const elapsed = timed(() => {
+      out = run(text, (d) => d.setIn(['registers', 600, 'name'], 'changed'));
+    });
     expect(out).toBe(text.replace('name: r600\n', 'name: changed\n'));
+    // The yardstick is parsing and rendering the same text on the same machine at the same
+    // moment, as a fixed wall-clock limit fails on a slow CI runner. The edit costs 3 to 5
+    // renders; aligning by a diff of the whole file instead costs about 70.
+    const render = timed(() => String(parseDocument(text)));
+    expect(elapsed).toBeLessThan(render * 20);
   });
 });
 

@@ -23,6 +23,7 @@ entry to the release notes.
 ### Fixed
 
 - **System viewer: the net, clock and reset trees of Details walked ghost nets.** `DetailsPanel` gets the union graph of a comparison, and `netTreeRows` looked nets up by pin with `netsByEndpoint`, so the old wire of a rewired hierarchy pin (a ghost net of `unionAdditions`) was listed with its loads; a clock or reset tree met one on a pin that carried data in the base. `TreeDetailsProps` and `NetDetails` now take `ghostNets` (`comparison.marks.removedNets`) and pass it to `netTreeRows`. Tests: the net and clock tree Details cases in `ghosts.test.tsx`.
+- **Tests: the `serializeEdit` scale test no longer depends on the speed of the runner.** `serializeEdit.test.ts` asserted that an edit of a 1200-entry file takes under 1000 ms of wall-clock time; it takes about 160 ms locally and 700 to 1400 ms on a CI runner, so it failed CI now and then. The bound is now 20 times the cost of parsing and rendering the same text in the same test run: the edit costs 3 to 5 renders, and aligning by a diff of the whole file, the regression the test guards against, costs about 70.
 
 ## [1.6.1] - 2026-11-20
 
