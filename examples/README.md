@@ -23,19 +23,20 @@ examples/<name>/
     quartus/ or platforms/<cpu>/quartus/ board project + Makefile
     hdl/                           board top-level wrapper (e.g. DE10-Nano)
     debug/                         System Console / debug host scripts
-  xilinx/                          (future) Vivado tooling, once that
-                                   toolchain integration exists
+  xilinx/                          Vivado tooling (so far only in
+                                   regmap_conformance_axil/): IPCraft-generated
+                                   IP package and build scripts, and an
+                                   example block design in xilinx/system/
 ```
 
 **Why `rtl/`, `tb/`, and `software/app/` sit outside `altera/`:** they don't
 depend on Quartus/Platform Designer at all. `rtl/` and `tb/` are plain
 VHDL/SystemVerilog and a cocotb testbench that any simulator can run;
 `software/app/` is C written only against a small HAL (see below) that any
-CPU platform can implement. Only `altera/` (and, later, a `xilinx/` sibling)
+CPU platform can implement. Only `altera/` (and a `xilinx/` sibling)
 holds vendor-specific project files, board wrappers, and debug tooling.
-This is deliberate: Vivado/Xilinx integration isn't built yet, and this
-layout means adding it later is "add a `xilinx/` folder," not "restructure
-every example."
+This is deliberate: adding Vivado to an example is "add a `xilinx/`
+folder," not "restructure every example."
 
 **Why `software/` splits into `app/` + `platform/<cpu>/`:** the actual test
 or demo logic (what registers to poke, in what order, what to expect) is
@@ -61,7 +62,7 @@ CPU-agnostic -- it's expressed once against a tiny HAL
 | -------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `led_avmm/`                | Avalon-MM | A minimal real peripheral (LED PIO + heartbeat status) end-to-end: IPCraft spec -> generated RTL -> Platform Designer system -> Nios II firmware -> real DE10-Nano hardware. The original reference example this repo's hardware bring-up process was developed against.                                                                                 |
 | `regmap_conformance_avmm/` | Avalon-MM | Every register/field access type IPCraft generates (all 7 access types, change-of-state, register arrays, byte strobes, mixed registers, enumerated/non-zero-reset fields, and heartbeat/watchdog status), driven by one manifest-derived scenario suite in cocotb and through JTAG-to-Avalon on a DE10-Nano. See `docs/hardware_validation_results.md`. |
-| `regmap_conformance_axil/` | AXI4-Lite | The same register map, conformance sequence, and manifest-driven scenario suite as `regmap_conformance_avmm/`, proving the AXI4-Lite bus wrapper instead -- including the SLVERR response path Avalon-MM has no equivalent for. Driven by a JTAG-to-Avalon-MM master with Platform Designer's automatic Avalon<->AXI4 bridging, no HPS/Nios II required. |
+| `regmap_conformance_axil/` | AXI4-Lite | The same register map, conformance sequence, and manifest-driven scenario suite as `regmap_conformance_avmm/`, proving the AXI4-Lite bus wrapper instead -- including the SLVERR response path Avalon-MM has no equivalent for. Driven by a JTAG-to-Avalon-MM master with Platform Designer's automatic Avalon<->AXI4 bridging, no HPS/Nios II required. `xilinx/` adds a Vivado block design with two instances on a Zynq (see `docs/vivado_block_design.md`). |
 
 Each example's `docs/hardware_validation_results.md` (where present) has the
 full test results and any generator quirks or bugs found along the way.
@@ -90,9 +91,10 @@ so Docker only ever mounts this examples tree plus `examples/common/`.
 
 ## What's not here yet
 
-- A Xilinx/Vivado build of any of these examples (the `altera/`-only
-  structure above is designed so this can be added as a `xilinx/` sibling
-  without touching `rtl/`, `tb/`, or `software/app/`).
+- A Xilinx/Vivado hardware run of any of these examples.
+  `regmap_conformance_axil/xilinx/` has the IP package and an example
+  block design for the ZedBoard, built through place and route but not run
+  on a board (see `regmap_conformance_axil/docs/vivado_block_design.md`).
 - An ARM `software/platform/` port.
 - Tutorials walking through building one of these from scratch with
   IPCraft -- these examples are the source material for that, not yet

@@ -61,5 +61,17 @@ examples/**/tb/*.ghw
 examples/**/quartus/?/
 examples/**/*_dump.txt
 
+# examples/ — Vivado project written by xilinx/system/build_system.tcl (the IP
+# core's own builds go to xilinx/build/, ignored above).
+examples/**/xilinx/system/*.xpr
+examples/**/xilinx/system/*.cache/
+examples/**/xilinx/system/*.gen/
+examples/**/xilinx/system/*.hw/
+examples/**/xilinx/system/*.ip_user_files/
+examples/**/xilinx/system/*.runs/
+examples/**/xilinx/system/*.sim/
+examples/**/xilinx/system/*.srcs/
+examples/**/.Xil/
+
 # Local isolated agent worktrees.
 .worktrees/

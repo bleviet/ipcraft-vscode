@@ -14,6 +14,7 @@ description: >
   Designer's Avalon<->AXI bridging -- no HPS/Nios II required.
 targets:
   - quartus
+  - vivado
 
 clocks:
   - name: clk
