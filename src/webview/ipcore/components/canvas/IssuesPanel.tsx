@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { IpcraftIssue } from '../../../../shared/issues';
 import { deduplicateAndOrderIssues, issueGroupLabel, issueKey } from '../../types/issues';
+import { useInspectorWidth } from './inspector/useInspectorWidth';
 
 interface IssuesPanelProps {
   issues: readonly IpcraftIssue[];
@@ -9,6 +10,7 @@ interface IssuesPanelProps {
 }
 
 export const IssuesPanel: React.FC<IssuesPanelProps> = ({ issues, onSelect, onClose }) => {
+  const { panelWidth, handleResizeMouseDown } = useInspectorWidth();
   const groups = useMemo(() => {
     const result = new Map<string, IpcraftIssue[]>();
     for (const issue of deduplicateAndOrderIssues(issues)) {
@@ -21,7 +23,12 @@ export const IssuesPanel: React.FC<IssuesPanelProps> = ({ issues, onSelect, onCl
   }, [issues]);
 
   return (
-    <aside className="canvas-inspector issues-panel" aria-label="Issues">
+    <aside
+      className="canvas-inspector issues-panel"
+      aria-label="Issues"
+      style={{ width: panelWidth }}
+    >
+      <div className="ci-resize-handle" onMouseDown={handleResizeMouseDown} />
       <div className="ci-header">
         <div className="ci-header__info">
           <span className="ci-badge">Issues</span>
@@ -42,7 +49,7 @@ export const IssuesPanel: React.FC<IssuesPanelProps> = ({ issues, onSelect, onCl
               <button
                 type="button"
                 key={issueKey(issue)}
-                className="ci-busmatrix-row"
+                className="ci-busmatrix-row issues-panel__row"
                 onClick={() => onSelect(issue)}
                 style={{ width: '100%', textAlign: 'left' }}
               >
@@ -50,7 +57,7 @@ export const IssuesPanel: React.FC<IssuesPanelProps> = ({ issues, onSelect, onCl
                   className={`codicon codicon-${issue.severity === 'error' ? 'error' : 'warning'}`}
                   aria-label={issue.severity}
                 />
-                <span>{issue.message}</span>
+                <span className="issues-panel__message">{issue.message}</span>
               </button>
             ))}
           </section>

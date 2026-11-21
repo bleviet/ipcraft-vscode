@@ -21,7 +21,7 @@ Both are available from the Command Palette, the `.ip.yml` editor title bar, the
 ## Run it
 
 1. Open the `.ip.yml` file (visual editor or text editor)
-2. Run **IPCraft: Check Consistency** (or the HDL-only variant) from the Command Palette
+2. Run **IPCraft: Check Consistency** (or the HDL-only variant) from the Command Palette. The result goes to the output channel and a toast; to see it in the visual editor, click the **Check Consistency** button (the check-mark icon in the toolbar's Consistency group) instead
 3. A toolbar badge in the visual editor also runs the full check automatically whenever the editor opens and whenever the HDL or vendor files it depends on change, so you may already see a result before running the command manually
 
 ## Reading the results
@@ -30,11 +30,11 @@ Results appear in three places at once:
 
 | Location | What you see |
 | --- | --- |
-| Toolbar badge (visual editor) | A live count reflecting the current state — click it to open the findings panel |
-| Findings overlay panel | Every finding, grouped by source, with **Re-check** and **Keep .ip.yml & Regenerate** actions |
+| Toolbar badge (visual editor) | A live count reflecting the current state — click it to open the Issues panel |
+| Issues panel (visual editor) | The findings, listed with the IP core's other issues and grouped by source (HDL findings appear under **HDL consistency**). Click a finding to select the element it refers to. The panel opens by itself when a check started from the **Check Consistency** button (the check-mark icon in the toolbar's Consistency group) finds something. To re-check, click that button again; to regenerate, run **Scaffold Project** |
 | Output channel (`IPCraft Consistency Check` / `IPCraft HDL Consistency`) | The same findings as plain text, plus an information/warning toast |
 
-![Consistency Check findings panel showing a new port and a width mismatch grouped under HDL](../images/consistency-findings-light.png)
+![Issues panel listing a width mismatch and a new port under HDL consistency](../images/consistency-findings-light.png)
 
 Each finding has a **kind** — `missing-port`, `extra-port`, `direction-mismatch`, `width-mismatch`, `parameter-default-mismatch`, `missing-register`, `field-range-mismatch`, and others — and a **severity**:
 
@@ -51,7 +51,7 @@ Interface drift of existing HDL files (ports or generics that differ from the ne
 
 | Finding kind | Typical fix |
 | --- | --- |
-| Extra port/parameter in HDL | Add the matching field to the `.ip.yml` spec (canvas or YAML), or ignore the finding if the addition was intentional and out of scope for the spec |
+| Extra port/parameter in HDL | Add the matching field to the `.ip.yml` spec (canvas or YAML), or leave it as is if the addition was intentional and out of scope for the spec |
 | Missing port/parameter in HDL | Someone deleted it by hand — either restore it in the HDL or remove it from the spec |
 | Direction/width/default mismatch | Decide which side is correct, then edit the other to match |
 | Missing register/field-range mismatch | Regenerate the register file, or reconcile the memory map manually if the HDL was hand-tuned |

@@ -1,7 +1,7 @@
 import React from 'react';
 import { categoryColor } from './colors';
 import type { NetCategory } from '../../domain/systemGraph';
-import { CIRCLE_MARKER, SQUARE_MARKER } from './layout/pinRows';
+import { CIRCLE_MARKER, SQUARE_MARKER, SQUARE_MARKER_RADIUS } from '../../shared/pinGlyph';
 
 interface PinMarkerProps {
   isInterface: boolean;
@@ -39,7 +39,7 @@ export function PinMarker({
         width: size,
         height: size,
         marginTop: -size / 2,
-        borderRadius: isInterface ? 1 : '50%',
+        borderRadius: isInterface ? SQUARE_MARKER_RADIUS : '50%',
         boxSizing: 'border-box',
         background: hollow ? 'var(--vscode-editor-background)' : color,
         border: hollow ? `1.5px solid ${color}` : undefined,

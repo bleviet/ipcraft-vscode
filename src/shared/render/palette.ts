@@ -23,15 +23,14 @@ export interface Paint {
 }
 
 /**
- * Roles of the IP core symbol, from canvas.css. The IP canvas colors clocks and resets differently
- * from the system diagram (charts-green clocks and charts-orange resets here; orange and red in
- * `Palette.category`). Both are kept as the two editors draw them.
+ * Roles of the IP core symbol, from canvas.css. The port kind colors (clock, reset, interrupt) are
+ * not here: the IP canvas takes them from the system diagram, so they come from `Palette.category`.
  */
 export interface IpSymbolPalette {
   /** `.ip-block-body` fill (`--vscode-editor-background`) and stroke (`--vscode-panel-border`). */
   bodyFill: string;
   bodyStroke: string;
-  /** `.ip-block-header`: focusBorder 20% over the background. */
+  /** `.ip-block-header`: foreground 10% over the background (the `--sd-node-head-fill` formula). */
   headerFill: string;
   /** `.ip-canvas-grid-dot`: foreground at 10%. */
   gridDot: Paint;
@@ -39,10 +38,6 @@ export interface IpSymbolPalette {
   yellow: string;
   /** Dependencies section (`--vscode-charts-blue`). */
   dependency: string;
-  /** Port kind colors: stubs, dots and icons of clocks, resets and interrupts. */
-  clock: string;
-  reset: string;
-  interrupt: string;
   /** Bus bundle stub, connector and badge border (`--vscode-charts-blue`). */
   bus: string;
   /** Bus protocol badge: bus color 20% over the background. */
@@ -90,7 +85,7 @@ export interface Palette {
   /** `--vscode-editorWarning-foreground`: clock domain crossings. */
   warning: string;
   /**
-   * The `--vscode-*` tokens the clock domain colors use (clockDomains.ts `DOMAIN_COLORS`,
+   * The `--vscode-*` tokens the clock domain colors use (`shared/clockDomainColors.ts` `DOMAIN_COLORS`,
    * domainView.ts `UNRELEASED_RESET_COLOR`), by name without `var()`; see {@link resolveColor}.
    */
   tokens: Readonly<Record<string, string>>;
@@ -214,13 +209,10 @@ function buildIpSymbolPalette(t: Tokens): IpSymbolPalette {
   return {
     bodyFill: t.background,
     bodyStroke: t.panelBorder,
-    headerFill: mixSrgb(t.focusBorder, t.background, 20),
+    headerFill: mixSrgb(t.foreground, t.background, 10),
     gridDot: { color: t.foreground, opacity: 0.1 },
     yellow: t.yellow,
     dependency: t.blue,
-    clock: t.green,
-    reset: t.orange,
-    interrupt: t.yellow,
     bus: t.blue,
     busBadgeFill: mixSrgb(t.blue, t.background, 20),
     busToggleFill: mixSrgb(t.blue, t.background, 15),

@@ -105,9 +105,12 @@ builds the bus-library lookups, protocol labels and clock-domain colors for
 `IpBlockCanvas.tsx`, so the canvas and the CLI cannot drift. `IpBlockDiagram.tsx`
 and the `Canvas*` components cannot be imported (they load React and the webview
 host), so `ipSymbolSvg.ts` and `ipPortSvg.ts` mirror their geometry and
-`canvas.css` styles by hand; change both together. Colors are `Palette.ip`. The
-IP canvas colors clocks green and resets orange, while the system diagram colors
-them orange and red; both are kept as the editors draw them.
+`canvas.css` styles by hand; change both together. Colors are `Palette.ip`, except
+the port kind colors (clock, reset, interrupt), which come from `Palette.category`,
+the same as the system diagram. The pin marker sizes come from
+`src/shared/pinGlyph.ts`. Clock domain colors are `DOMAIN_COLORS` in
+`src/shared/clockDomainColors.ts`, the same list as the system diagram;
+`ipSymbolImage.ts` resolves each through `resolveColor`.
 
 `src/cli/renderIpCore.ts` reads the file (`yaml` parse, format version check,
 `canonicalizeParsedIpCore`), loads the built-in bus library plus the file's

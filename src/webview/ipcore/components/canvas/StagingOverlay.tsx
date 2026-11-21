@@ -1,6 +1,7 @@
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { vscode } from '../../../vscode';
 import { allKeptBanner, type StagingAction } from '../../../../shared/staging';
+import { useInspectorWidth } from './inspector/useInspectorWidth';
 import { StagingFileActions, StagingFileBadges } from './StagingFileActions';
 import {
   buildTree,
@@ -30,10 +31,8 @@ interface StagingOverlayProps {
   onCancel: () => void;
 }
 
-const INSPECTOR_WIDTH_KEY = 'ipcraft.inspectorWidth';
-const INSPECTOR_MIN_WIDTH = 240;
-const INSPECTOR_MAX_WIDTH = 640;
 const STAGING_DEFAULT_WIDTH = 320;
+const STAGING_MIN_INITIAL_WIDTH = 300;
 
 const TreeNodeView: React.FC<{
   node: TreeNode;
@@ -218,56 +217,12 @@ export const StagingOverlay: React.FC<StagingOverlayProps> = ({
   onConfirm,
   onCancel,
 }) => {
-  const [panelWidth, setPanelWidth] = useState<number>(() => {
-    try {
-      const stored = sessionStorage.getItem(INSPECTOR_WIDTH_KEY);
-      if (stored) {
-        const w = parseInt(stored, 10);
-        if (w >= INSPECTOR_MIN_WIDTH && w <= INSPECTOR_MAX_WIDTH) {
-          return Math.max(w, 300);
-        }
-      }
-    } catch {
-      // sessionStorage unavailable in some webview contexts
-    }
-    return STAGING_DEFAULT_WIDTH;
+  const { panelWidth, handleResizeMouseDown } = useInspectorWidth({
+    defaultWidth: STAGING_DEFAULT_WIDTH,
+    minInitialWidth: STAGING_MIN_INITIAL_WIDTH,
   });
-  const panelWidthRef = useRef(panelWidth);
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
-
-  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = panelWidthRef.current;
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const onMouseMove = (ev: MouseEvent) => {
-      const delta = startX - ev.clientX;
-      const newWidth = Math.max(
-        INSPECTOR_MIN_WIDTH,
-        Math.min(INSPECTOR_MAX_WIDTH, startWidth + delta)
-      );
-      panelWidthRef.current = newWidth;
-      setPanelWidth(newWidth);
-    };
-
-    const onMouseUp = () => {
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      try {
-        sessionStorage.setItem(INSPECTOR_WIDTH_KEY, String(panelWidthRef.current));
-      } catch {
-        // ignore
-      }
-      document.removeEventListener('mousemove', onMouseMove);
-      document.removeEventListener('mouseup', onMouseUp);
-    };
-
-    document.addEventListener('mousemove', onMouseMove);
-    document.addEventListener('mouseup', onMouseUp);
-  }, []);
 
   const toggleDir = useCallback((path: string) => {
     setCollapsed((prev) => {

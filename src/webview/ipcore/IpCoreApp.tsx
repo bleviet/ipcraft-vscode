@@ -104,13 +104,8 @@ const IpCoreApp: React.FC = () => {
     [selection.multiSelection.all]
   );
 
-  // Consistency check (issue #84) — request/response and result-driven actions.
-  const consistency = useConsistencySession({
-    ipCore,
-    updateIpCore,
-    onSelectElement: selection.select,
-    showToast,
-  });
+  // Consistency check (issue #84) — request/response and the toolbar badge.
+  const consistency = useConsistencySession({ showToast });
 
   // Dismissed suggestion chip IDs (ephemeral — not persisted to YAML)
   const [dismissedChipIds, setDismissedChipIds] = useState<Set<string>>(new Set());
@@ -169,6 +164,7 @@ const IpCoreApp: React.FC = () => {
     busLibrary: imports.busLibrary,
     validationErrors,
     consistencyIssues: consistency.consistencyResult?.issues,
+    revealRequest: consistency.findingsRevealRequest,
     onSelectElement: selection.select,
     onSelectSubPort: selection.selectSubPort,
   });

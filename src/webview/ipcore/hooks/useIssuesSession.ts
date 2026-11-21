@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { checkBusConformance } from '../../../shared/busConformance';
-import type { ConformanceReport, IpcraftIssue } from '../../../shared/issues';
+import type { ConformanceReport, IpcraftIssue, IssueSource } from '../../../shared/issues';
 import type { IpCore } from '../../types/ipCore';
 import type { ValidationError } from './useIpCoreState';
 import type { NormalizedBusLibrary } from '../../../shared/busContracts';
@@ -11,6 +11,9 @@ import {
   issuesToCanvasAnnotations,
   type IssueFocusRequest,
 } from '../types/issues';
+
+/** Sources of the findings a consistency check reports (it also folds in protocol issues). */
+const CONSISTENCY_SOURCES: ReadonlySet<IssueSource> = new Set(['hdl', 'hwTcl', 'componentXml']);
 
 function referenceIssues(
   ipCore: IpCore | null,
@@ -36,6 +39,8 @@ export function useIssuesSession(options: {
   busLibrary?: NormalizedBusLibrary;
   validationErrors: readonly ValidationError[];
   consistencyIssues?: readonly IpcraftIssue[];
+  /** Counts requests to open the panel; each increase opens it once, like the toolbar badge. */
+  revealRequest?: number;
   onSelectElement: (id: string) => void;
   onSelectSubPort: (id: string) => void;
 }) {
@@ -45,6 +50,7 @@ export function useIssuesSession(options: {
     busLibrary,
     validationErrors,
     consistencyIssues = [],
+    revealRequest = 0,
     onSelectElement,
     onSelectSubPort,
   } = options;
@@ -114,6 +120,16 @@ export function useIssuesSession(options: {
     },
     [issues, focusIssue]
   );
+
+  // Runs after the render that carries the request, so `issues` already holds the new findings.
+  // Focuses the first consistency finding rather than an unrelated error elsewhere in the core.
+  const handledRevealRef = useRef(0);
+  useEffect(() => {
+    if (revealRequest > handledRevealRef.current) {
+      handledRevealRef.current = revealRequest;
+      openIssues(issues.find((issue) => CONSISTENCY_SOURCES.has(issue.source)));
+    }
+  }, [revealRequest, openIssues, issues]);
 
   const handleGenerateResult = useCallback(
     (message: { success: boolean; issues?: readonly IpcraftIssue[]; sourceRevision?: string }) => {

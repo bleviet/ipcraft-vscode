@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutPort } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
+import { SQUARE_MARKER, SQUARE_MARKER_RADIUS } from '../../../../shared/pinGlyph';
 import { PORT_MOVE_MIME, REMOVE_MIME, parsePortMoveDragPayload } from './canvasDragTypes';
 
 import { ValidationAnnotation } from '../../hooks/useCanvasValidation';
@@ -211,12 +212,12 @@ export const CanvasBusBundle: React.FC<CanvasBusBundleProps> = ({
 
       {/* Connector block at block edge */}
       <rect
-        x={port.x - 4}
-        y={port.y - 6}
-        width={8}
-        height={12}
+        x={port.x - SQUARE_MARKER / 2}
+        y={port.y - SQUARE_MARKER / 2}
+        width={SQUARE_MARKER}
+        height={SQUARE_MARKER}
         className="canvas-bus-bundle__connector"
-        rx={2}
+        rx={SQUARE_MARKER_RADIUS}
         style={domainColor ? { fill: domainColor } : undefined}
       />
 

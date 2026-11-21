@@ -1,7 +1,7 @@
 import { boundaryId } from '../../../../webview/systemDiagram/model';
 import type { SystemGraph } from '../../../../domain/systemGraph';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
+import { DOMAIN_COLORS } from '../../../../shared/clockDomainColors';
 import type { CrossingEnd, PinCrossing } from '../../../../webview/systemDiagram/clocks/clockTypes';
 import {
   crossingKind,

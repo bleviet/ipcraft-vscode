@@ -109,3 +109,92 @@ describe('StagingOverlay action selector', () => {
     expect(screen.getByText(/set to Keep/)).toBeTruthy();
   });
 });
+
+describe('StagingOverlay panel width', () => {
+  const WIDTH_KEY = 'ipcraft.inspectorWidth';
+
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  function renderPanel() {
+    const { container } = render(
+      <StagingOverlay
+        files={[modified]}
+        mergedPaths={new Set()}
+        stagingActions={{ 'rtl/a_core.vhd': 'keep' }}
+        onMerge={jest.fn()}
+        onSelectAction={jest.fn()}
+        onConfirm={jest.fn()}
+        onCancel={jest.fn()}
+      />
+    );
+    const panel = container.querySelector('.canvas-inspector') as HTMLElement;
+    const handle = container.querySelector('.ci-resize-handle') as HTMLElement;
+    return { panel, handle };
+  }
+
+  function drag(handle: HTMLElement, fromX: number, toX: number) {
+    fireEvent.mouseDown(handle, { clientX: fromX });
+    fireEvent.mouseMove(document, { clientX: toX });
+    fireEvent.mouseUp(document);
+  }
+
+  it('defaults to 320px when nothing is stored', () => {
+    expect(renderPanel().panel.style.width).toBe('320px');
+  });
+
+  it('raises a stored width below 300 to 300px', () => {
+    sessionStorage.setItem(WIDTH_KEY, '250');
+    expect(renderPanel().panel.style.width).toBe('300px');
+  });
+
+  it('uses a stored in-range width as is', () => {
+    sessionStorage.setItem(WIDTH_KEY, '500');
+    expect(renderPanel().panel.style.width).toBe('500px');
+  });
+
+  it('falls back to 320px for an out-of-range stored width', () => {
+    sessionStorage.setItem(WIDTH_KEY, '700');
+    expect(renderPanel().panel.style.width).toBe('320px');
+  });
+
+  it.each([
+    ['240', '300px'],
+    ['300', '300px'],
+    ['640', '640px'],
+    ['239', '320px'],
+    ['641', '320px'],
+    ['abc', '320px'],
+  ])('opens with stored width %s at %s', (stored, width) => {
+    sessionStorage.setItem(WIDTH_KEY, stored);
+    expect(renderPanel().panel.style.width).toBe(width);
+  });
+
+  it('resizes by dragging the handle and stores the dragged width', () => {
+    const { panel, handle } = renderPanel();
+    drag(handle, 800, 700);
+    expect(panel.style.width).toBe('420px');
+    expect(sessionStorage.getItem(WIDTH_KEY)).toBe('420');
+  });
+
+  it('clamps a drag to 640px at most and to 240px at least, below the 300px mount floor', () => {
+    const { panel, handle } = renderPanel();
+    drag(handle, 800, 0);
+    expect(panel.style.width).toBe('640px');
+    expect(sessionStorage.getItem(WIDTH_KEY)).toBe('640');
+    drag(handle, 0, 2000);
+    expect(panel.style.width).toBe('240px');
+    expect(sessionStorage.getItem(WIDTH_KEY)).toBe('240');
+  });
+
+  it('sets the resize cursor during a drag and clears it on mouseup', () => {
+    const { handle } = renderPanel();
+    fireEvent.mouseDown(handle, { clientX: 800 });
+    expect(document.body.style.cursor).toBe('col-resize');
+    expect(document.body.style.userSelect).toBe('none');
+    fireEvent.mouseUp(document);
+    expect(document.body.style.cursor).toBe('');
+    expect(document.body.style.userSelect).toBe('');
+  });
+});

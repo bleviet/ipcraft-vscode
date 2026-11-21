@@ -17,6 +17,11 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 - **Resource usage on the command line.** `ipcraft resources <design> <report>...` writes the resource usage of every block as Markdown or JSON, for example in a CI job after synthesis, and `ipcraft render --resources <report>` draws it on the diagram image. See [Command Line](docs/reference/command-line.md#report-the-resource-usage-of-a-system-design).
 - **Trace a port of a hierarchy block to where it is connected.** In the system viewer, right-click a port of the level you opened (an input or output of the subsystem) and choose **Trace Signal**: the viewer goes to the highest level the wire reaches through the hierarchy above the port, selects it so the whole connection is highlighted, expands the subsystems the wire passes through so the whole path is visible, and centres the block it enters with its pin marked, zooming out when needed so the whole expanded block is in view. Selecting such a port also shows its **Connection tree** in Details, from the driver through every level above and below, with the port marked `THIS PORT`; click a net or pin in the tree to go to its level. A port with no connection on the level above says so, and Trace Signal is disabled for a port on no wire.
 
+### Changed
+
+- **The IP core editor matches the system viewer's look.** Clocks are now orange, resets red and interrupts purple, as in the system viewer, on the canvas, in the inspector and in exported images. A bus interface connects to the block with a small square, a signal with a small circle, and the block header is a neutral band with the core name in the editor's UI font.
+- **Clock domains have the system viewer's colors.** With several clocks, the IP core editor colors each clock domain with the same theme colors as the system viewer, on the canvas and in exported images.
+
 ### Fixed
 
 - **A Vivado or Quartus run that cannot start no longer waits forever.** When a vendor tool failed to start (for example because a library was missing), it waited for input and the build kept running until you cancelled it. It now ends at once and the build reports the failure.
@@ -24,6 +29,8 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 - **Quartus build results show timing and utilization.** After a Quartus Build, the reports tree showed no timing or utilization, or reported timing as met for a design that failed it. It now reads the real Quartus reports and shows the maximum clock frequency (Fmax), whether timing passes, and the logic, register, memory and DSP usage. Timing passes only when every slack in every corner, including recovery, removal and minimum pulse width, is zero or better.
 - **The timing constraints of a generated Quartus project are applied.** The project could not find its `.sdc` file, so Quartus analysed every clock at its 1 GHz default and reported failing timing for a design that meets it at the clock you declared. The project also wrote its reports to `altera/build/` instead of `altera/build/output_files/`, where IPCraft and the documentation expect them.
 - **Vivado build results show the device totals.** After a Vivado Build, the utilization in the reports tree showed an available device total of 0 for LUTs, registers, block RAM and DSPs, so no share of the device could be computed. It now shows the real totals, and a row whose share is written as `<0.01` is no longer skipped.
+- **Check Consistency opens the Issues panel again.** Clicking Check Consistency in the IP core editor's toolbar opens the Issues panel when it finds differences, with the findings listed under their source.
+- **The Issues panel keeps the inspector's width.** In the IP core editor, the Issues panel no longer grows with its longest message and covers the canvas. It has the width of the inspector, you can resize it the same way, and long messages wrap.
 
 ### Before you upgrade
 

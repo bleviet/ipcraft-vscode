@@ -11,7 +11,7 @@ import type { NormalizedBusLibrary } from '../../shared/busContracts';
 import { readIpCoreFormatVersion } from '../../shared/ipCoreFormat';
 import type { ExportRect } from '../../shared/messages/imageExport';
 import { renderIpSymbolSvg } from '../../shared/render/ipSymbolSvg';
-import { paletteFor } from '../../shared/render/palette';
+import { paletteFor, resolveColor } from '../../shared/render/palette';
 import type { IpCore } from '../../webview/types/ipCore';
 import {
   clockDomainColor,
@@ -75,13 +75,17 @@ function drawIpSymbol(
   const inputs = symbolLayoutInputs(ipCore, library);
   const layout = computeSymbolLayout(ipCore, inputs);
   const multiDomain = hasMultipleClockDomains(ipCore);
+  const palette = paletteFor(look.theme);
   return renderIpSymbolSvg(layout, {
-    palette: paletteFor(look.theme),
+    palette,
     grid: look.grid,
     background: look.background,
     fontFaceCss,
     crop: request.crop,
-    domainColor: (idx) => clockDomainColor(idx, multiDomain),
+    domainColor: (idx) => {
+      const color = clockDomainColor(idx, multiDomain);
+      return color === undefined ? undefined : resolveColor(palette, color);
+    },
     expandable: (port) =>
       isExpandableBus(port.data as { type?: string; conduitPorts?: unknown[] }, inputs.busDefs),
   });

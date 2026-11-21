@@ -102,6 +102,81 @@ busInterfaces:
     ).toBeVisible();
   });
 
+  test.describe('consistency results', () => {
+    const hdlIssueMessage = "Port 'led' is 8 bits in the spec and 4 in the HDL.";
+    const consistencyResult = {
+      type: 'consistencyResult',
+      findings: [
+        {
+          kind: 'width-mismatch',
+          message: hdlIssueMessage,
+          ipYmlPath: ['ports', 0],
+          hdlFile: 'rtl/core.sv',
+          hdlEntity: 'core',
+          severity: 'amber',
+          source: 'hdl',
+        },
+      ],
+      issues: [
+        {
+          code: 'CONSISTENCY_WIDTH_MISMATCH',
+          severity: 'warning',
+          source: 'hdl',
+          path: ['ports', 0],
+          message: hdlIssueMessage,
+        },
+      ],
+      summary: { added: 1, removed: 0, changed: 0 },
+    };
+
+    test('a manual check that finds something opens the Issues panel', async ({ page }) => {
+      await page.evaluate((message) => window.postMessage(message, '*'), consistencyResult);
+
+      const issuesPanel = page.getByRole('complementary', { name: 'Issues' });
+      await expect(issuesPanel).toBeVisible();
+      await expect(issuesPanel.getByRole('button', { name: hdlIssueMessage })).toBeVisible();
+    });
+
+    test('a long finding wraps inside an Issues panel that has the inspector width', async ({
+      page,
+    }) => {
+      const longMessage =
+        "'o_status' exists in led_controller_avmm.vhd (entity/module 'led_controller_avmm') but is not declared in the .ip.yml.";
+      await page.evaluate(
+        ({ result, text }) =>
+          window.postMessage({ ...result, issues: [{ ...result.issues[0], message: text }] }, '*'),
+        { result: consistencyResult, text: longMessage }
+      );
+
+      const issuesPanel = page.getByRole('complementary', { name: 'Issues' });
+      await expect(issuesPanel).toBeVisible();
+      const box = await issuesPanel.boundingBox();
+      expect(box?.width).toBeCloseTo(288, 0);
+
+      // The message is a flex item (one box), so count the line boxes of its text instead.
+      const lines = await issuesPanel.getByText(longMessage).evaluate((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+      });
+      expect(lines).toBeGreaterThan(1);
+    });
+
+    test('a background check lists its findings without opening the Issues panel', async ({
+      page,
+    }) => {
+      await page.evaluate(
+        (message) => window.postMessage({ ...message, auto: true }, '*'),
+        consistencyResult
+      );
+
+      await expect(
+        page.getByRole('button', { name: /\d+ errors, \d+ warnings/ })
+      ).toHaveAccessibleName('2 errors, 1 warnings');
+      await expect(page.getByRole('complementary', { name: 'Issues' })).toBeHidden();
+    });
+  });
+
   test('keeps preview save enabled while surfacing an unresolved bus warning', async ({ page }) => {
     const unresolvedYaml = `
 vlnv:

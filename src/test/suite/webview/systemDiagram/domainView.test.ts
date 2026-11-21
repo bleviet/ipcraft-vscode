@@ -1,5 +1,5 @@
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
+import { DOMAIN_COLORS } from '../../../../shared/clockDomainColors';
 import {
   nodeDomains,
   pinDomainColor,

@@ -1,6 +1,7 @@
 /** Pin markers, net badges and external port tags as native SVG, mirroring PinMarker, NetBadgeView and BoundaryNode. */
 
 import type { NetCategory } from '../../domain/systemGraph';
+import { CIRCLE_MARKER, SQUARE_MARKER, SQUARE_MARKER_RADIUS } from '../pinGlyph';
 import type { BoundaryNodeData } from '../../webview/systemDiagram/layout/diagramTypes';
 import {
   BADGE_GAP,
@@ -8,7 +9,6 @@ import {
   type NetBadge,
 } from '../../webview/systemDiagram/layout/netBadges';
 import { BOUNDARY_HEIGHT } from '../../webview/systemDiagram/layout/elkLayout';
-import { CIRCLE_MARKER, SQUARE_MARKER } from '../../webview/systemDiagram/layout/pinRows';
 import { portShapePath } from '../../webview/systemDiagram/layout/portShape';
 import { borderDash, changeBorder, isGhost, portSignSvg } from './changeSvg';
 import { frequencySvg, markColor } from './decorSvg';
@@ -44,7 +44,7 @@ export function markerSvg(cx: number, cy: number, spec: MarkerSpec, palette: Pal
       y: cy - size / 2 + inset,
       width: size - 2 * inset,
       height: size - 2 * inset,
-      rx: 1,
+      rx: SQUARE_MARKER_RADIUS,
       ...paint,
     });
   }

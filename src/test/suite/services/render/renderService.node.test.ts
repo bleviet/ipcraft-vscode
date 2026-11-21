@@ -15,7 +15,8 @@ import { RenderAssets } from '../../../../services/render/renderResources';
 import { isolateNodes, renderSystemLevelImage } from '../../../../services/render/systemLevelImage';
 import { readSystemDesign } from '../../../../services/systemDiagram/readSystemDesign';
 import { FONT_FILES } from '../../../../shared/render/fontFaces';
-import { paletteFor } from '../../../../shared/render/palette';
+import { DOMAIN_COLORS } from '../../../../shared/clockDomainColors';
+import { paletteFor, resolveColor } from '../../../../shared/render/palette';
 import { plexTextMeasure } from '../../../../shared/render/textMetrics';
 import { buildChangeMarks, type ChangeMarks } from '../../../../webview/systemDiagram/changeMarks';
 import type { ResourceReport } from '../../../../domain/resourceUsage';
@@ -347,6 +348,23 @@ describe('renderIpSymbolImage', () => {
     const [x, y] = viewBoxOf(await render());
     const cropped = await render({ x: x + 30.4, y: y + 20.6, width: 200.2, height: 150 });
     expect(viewBoxOf(cropped)).toEqual([x + 30, y + 20, 201, 151]);
+  });
+
+  it('colors the clock domains of a multi-clock core with fixed colors, not CSS variables', async () => {
+    const data = parseIpCoreDocument(fs.readFileSync(LED, 'utf8'), LED);
+    const clocks = data.clocks as Record<string, unknown>[];
+    data.clocks = [
+      ...clocks,
+      ...['clk_b', 'clk_c', 'clk_d'].map((name) => ({ name, direction: 'in' })),
+    ];
+    const library = await busLibraryFor(data, LED, roots, assets.busLibraries);
+    const image = text(await renderIpSymbolImage(data, library, {}, look, svg, assets, roots));
+    const palette = paletteFor(look.theme);
+    expect(image).not.toContain('var(');
+    // Domains 0 and 1 (blue, purple) are also the bus and mode badge colors of the symbol, so
+    // only domains 2 and 3 prove that the clock colors are drawn.
+    expect(image).toContain(resolveColor(palette, DOMAIN_COLORS[2]));
+    expect(image).toContain(resolveColor(palette, DOMAIN_COLORS[3]));
   });
 
   it('fails when the symbol is not in the visible rectangle', async () => {

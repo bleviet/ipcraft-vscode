@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import type { LayoutPort, PortSide } from './canvasLayout';
 import { STUB_LENGTH } from './canvasLayout';
+import { CIRCLE_MARKER } from '../../../../shared/pinGlyph';
 
 import { ValidationAnnotation } from '../../hooks/useCanvasValidation';
 
@@ -131,7 +132,7 @@ export const CanvasPort: React.FC<CanvasPortProps> = ({
   const arrowMidY = isBottom ? port.y + STUB_LENGTH / 2 : port.y;
 
   // Connector dot radius
-  const dotR = port.kind === 'bus' ? 5 : 3;
+  const dotR = port.kind === 'bus' ? 5 : CIRCLE_MARKER / 2;
 
   // Inline rename state
   const [isRenaming, setIsRenaming] = useState(false);

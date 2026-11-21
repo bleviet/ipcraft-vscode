@@ -11,8 +11,8 @@
  * - the canvas margin is cropped to the drawing plus a 24 px margin;
  * - glyphs outside the embedded fonts (the generics and dependency icons, the toggle arrow) are
  *   drawn as small native shapes;
- * - the mono core name and badge texts use the 400 face; the bold weight is synthesized by the
- *   viewer, as it is for the canvas;
+ * - badge texts use the 400 face; the bold weight is synthesized by the viewer, as it is for the
+ *   canvas;
  * - section headers are written in capitals instead of `text-transform: uppercase`;
  * - grid dots are 1.5 px across (the canvas draws 1 px) so they survive printing.
  */
@@ -142,8 +142,8 @@ function headerSvg(layout: CanvasLayout, palette: Palette): string {
       y: r.y,
       width: r.width,
       height: r.height,
-      rx: 6,
-      ry: 6,
+      rx: 4,
+      ry: 4,
       fill: palette.ip.bodyFill,
       stroke: palette.ip.bodyStroke,
       'stroke-width': 2,
@@ -153,8 +153,8 @@ function headerSvg(layout: CanvasLayout, palette: Palette): string {
       y: r.y,
       width: r.width,
       height: 28 + titleRowOffset,
-      rx: 6,
-      ry: 6,
+      rx: 4,
+      ry: 4,
       fill: palette.ip.headerFill,
     }),
     element('rect', {
@@ -168,12 +168,10 @@ function headerSvg(layout: CanvasLayout, palette: Palette): string {
   coreNameLines.forEach((line, index) => {
     parts.push(
       drawText(cx, r.y + (titleRowOffset ? 9 + index * titleRowOffset : 15), str(line), {
-        face: 'mono400',
+        face: 'sans600',
         sizePx: 13,
         fill: palette.foreground,
         anchor: 'middle',
-        weight: 700,
-        letterSpacing: 0.52,
       })
     );
   });

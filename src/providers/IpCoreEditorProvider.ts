@@ -375,8 +375,8 @@ export class IpCoreEditorProvider implements vscode.CustomTextEditorProvider {
    * Runs the consistency check (issue #84) in the background — on webview open and whenever a
    * watched HDL/vendor file changes — and pushes the result to the webview so the toolbar badge
    * stays live without the user having to click Check Consistency. Unlike the manual check, this
-   * never surfaces an error or opens the results overlay: `auto: true` tells the webview to
-   * update the badge silently (see IpCoreApp.tsx's `consistencyResult` handler).
+   * never surfaces an error or opens the Issues panel: `auto: true` tells the webview to
+   * update the badge silently (see `useConsistencySession`'s `consistencyResult` handler).
    */
   private async runAutoConsistencyCheck(
     document: vscode.TextDocument,

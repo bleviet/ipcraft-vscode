@@ -35,4 +35,14 @@ describe('IssuesPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /Bad bus/ }));
     expect(onSelect).toHaveBeenCalledWith(issues[1]);
   });
+
+  it('has the inspector width and a resize handle', () => {
+    sessionStorage.clear();
+    const { container } = render(
+      <IssuesPanel issues={[]} onSelect={jest.fn()} onClose={jest.fn()} />
+    );
+
+    expect(screen.getByRole('complementary', { name: 'Issues' })).toHaveStyle({ width: '288px' });
+    expect(container.querySelector('.ci-resize-handle')).not.toBeNull();
+  });
 });

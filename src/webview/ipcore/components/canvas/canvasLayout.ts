@@ -42,7 +42,11 @@ export const MIN_BLOCK_HEIGHT = 124;
 /** Horizontal block width */
 export const BLOCK_WIDTH = 280;
 
-/** Maximum single-line title length that keeps the 13px monospace text inside the block. */
+/**
+ * Maximum single-line title length that keeps the 13px semibold title inside the block. The title
+ * font is proportional, so this holds for typical identifiers; a title of only wide capitals
+ * (W, M) can still overflow.
+ */
 const CORE_TITLE_MAX_CHARS = 31;
 
 /** How far port stubs extend from the block edge */
