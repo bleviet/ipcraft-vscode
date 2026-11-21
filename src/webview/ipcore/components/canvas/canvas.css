@@ -2044,6 +2044,18 @@
   border-bottom: none;
 }
 
+.issues-panel__row {
+  align-items: flex-start;
+}
+.issues-panel__row .codicon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.issues-panel__message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .ci-busmatrix-row__name {
   flex: 1 1 90px;
   min-width: 0;

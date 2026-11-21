@@ -30,6 +30,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 - **The timing constraints of a generated Quartus project are applied.** The project could not find its `.sdc` file, so Quartus analysed every clock at its 1 GHz default and reported failing timing for a design that meets it at the clock you declared. The project also wrote its reports to `altera/build/` instead of `altera/build/output_files/`, where IPCraft and the documentation expect them.
 - **Vivado build results show the device totals.** After a Vivado Build, the utilization in the reports tree showed an available device total of 0 for LUTs, registers, block RAM and DSPs, so no share of the device could be computed. It now shows the real totals, and a row whose share is written as `<0.01` is no longer skipped.
 - **Check Consistency opens the Issues panel again.** Clicking Check Consistency in the IP core editor's toolbar opens the Issues panel when it finds differences, with the findings listed under their source.
+- **The Issues panel keeps the inspector's width.** In the IP core editor, the Issues panel no longer grows with its longest message and covers the canvas. It has the width of the inspector, you can resize it the same way, and long messages wrap.
 
 ### Before you upgrade
 

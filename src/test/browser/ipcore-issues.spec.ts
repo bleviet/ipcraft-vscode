@@ -137,6 +137,31 @@ busInterfaces:
       await expect(issuesPanel.getByRole('button', { name: hdlIssueMessage })).toBeVisible();
     });
 
+    test('a long finding wraps inside an Issues panel that has the inspector width', async ({
+      page,
+    }) => {
+      const longMessage =
+        "'o_status' exists in led_controller_avmm.vhd (entity/module 'led_controller_avmm') but is not declared in the .ip.yml.";
+      await page.evaluate(
+        ({ result, text }) =>
+          window.postMessage({ ...result, issues: [{ ...result.issues[0], message: text }] }, '*'),
+        { result: consistencyResult, text: longMessage }
+      );
+
+      const issuesPanel = page.getByRole('complementary', { name: 'Issues' });
+      await expect(issuesPanel).toBeVisible();
+      const box = await issuesPanel.boundingBox();
+      expect(box?.width).toBeCloseTo(288, 0);
+
+      // The message is a flex item (one box), so count the line boxes of its text instead.
+      const lines = await issuesPanel.getByText(longMessage).evaluate((element) => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size;
+      });
+      expect(lines).toBeGreaterThan(1);
+    });
+
     test('a background check lists its findings without opening the Issues panel', async ({
       page,
     }) => {
