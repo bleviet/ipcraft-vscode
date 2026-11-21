@@ -1,0 +1,299 @@
+/*
+ * bahonavi theme for the IPCraft documentation (MkDocs Material).
+ * Tokens follow the bahonavi brand guidelines used by docs/index.html:
+ * dark-first, cyan accent for links, the orange-to-pink gradient only for
+ * highlights, Space Grotesk headings, Manrope body, IBM Plex Mono code.
+ */
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap");
+
+/* ---------- Light theme ---------- */
+[data-md-color-scheme="default"] {
+  --bn-bg: #e8ecf5;
+  --bn-bg-card: #f1f4fb;
+  --bn-surface: rgba(0, 0, 0, 0.05);
+  --bn-line: rgba(0, 0, 0, 0.12);
+  --bn-text: #0d1120;
+  --bn-muted: #3d5370;
+  --bn-accent: #006ea3;
+  --bn-nav-bg: rgba(232, 236, 245, 0.93);
+  --bn-code-bg: #e8ecf5;
+
+  --md-default-bg-color: var(--bn-bg-card);
+  --md-default-fg-color: var(--bn-text);
+  --md-default-fg-color--light: var(--bn-muted);
+  --md-default-fg-color--lighter: rgba(61, 83, 112, 0.6);
+  --md-default-fg-color--lightest: var(--bn-line);
+  --md-typeset-color: var(--bn-text);
+  --md-typeset-a-color: var(--bn-accent);
+  --md-code-bg-color: var(--bn-code-bg);
+  --md-code-fg-color: var(--bn-text);
+  --md-typeset-table-color: var(--bn-line);
+  --md-footer-bg-color: #0d1120;
+  --md-footer-bg-color--dark: #050811;
+}
+
+/* ---------- Dark theme (default brand look) ---------- */
+[data-md-color-scheme="slate"] {
+  --bn-bg: #050811;
+  --bn-bg-card: #0c1123;
+  --bn-surface: rgba(255, 255, 255, 0.05);
+  --bn-line: rgba(255, 255, 255, 0.1);
+  --bn-text: #d4deee;
+  --bn-muted: #7a8fa8;
+  --bn-accent: #00f2fe;
+  --bn-nav-bg: rgba(5, 8, 17, 0.84);
+  --bn-code-bg: #0c1123;
+
+  --md-default-bg-color: var(--bn-bg);
+  --md-default-fg-color: var(--bn-text);
+  --md-default-fg-color--light: var(--bn-muted);
+  --md-default-fg-color--lighter: rgba(122, 143, 168, 0.6);
+  --md-default-fg-color--lightest: var(--bn-line);
+  --md-typeset-color: var(--bn-text);
+  --md-typeset-a-color: var(--bn-accent);
+  --md-code-bg-color: var(--bn-code-bg);
+  --md-code-fg-color: var(--bn-text);
+  --md-typeset-table-color: var(--bn-line);
+  --md-footer-bg-color: #0c1123;
+  --md-footer-bg-color--dark: #050811;
+}
+
+/* ---------- Shared tokens ---------- */
+[data-md-color-scheme] {
+  --bn-brand: #ff512f;
+  --bn-brand-2: #dd2476;
+  --bn-grad: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
+
+  --md-primary-fg-color: var(--bn-nav-bg);
+  --md-primary-fg-color--light: var(--bn-surface);
+  --md-primary-fg-color--dark: var(--bn-bg);
+  --md-primary-bg-color: var(--bn-text);
+  --md-primary-bg-color--light: var(--bn-muted);
+  --md-accent-fg-color: var(--bn-brand-2);
+  --md-accent-fg-color--transparent: rgba(221, 36, 118, 0.1);
+  --md-accent-bg-color: #ffffff;
+  --md-accent-bg-color--light: rgba(255, 255, 255, 0.7);
+  --md-footer-fg-color: #d4deee;
+  --md-footer-fg-color--light: #a9b8cd;
+  --md-footer-fg-color--lighter: #7a8fa8;
+}
+
+/* ---------- Header and tabs: frosted bar with a brand line ---------- */
+.md-header,
+.md-tabs {
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  color: var(--bn-text);
+}
+
+.md-header {
+  box-shadow: none;
+}
+
+.md-header[data-md-state="shadow"],
+.md-header--shadow {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.md-tabs {
+  border-top: 1px solid var(--bn-line);
+}
+
+.md-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--bn-grad);
+  opacity: 0.85;
+}
+
+.md-header__title,
+.md-tabs__link {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+}
+
+.md-header__title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 1.6rem;
+}
+
+.md-tabs__link {
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.md-tabs__link--active,
+.md-tabs__item--active .md-tabs__link,
+.md-tabs__link:hover {
+  opacity: 1;
+  color: var(--bn-text);
+}
+
+.md-search__form {
+  background-color: var(--bn-surface);
+  border: 1px solid var(--bn-line);
+  border-radius: 999px;
+}
+
+/* ---------- Typography ---------- */
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3,
+.md-typeset h4 {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  color: var(--bn-text);
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+
+.md-typeset h1 {
+  font-weight: 700;
+  font-size: 2.2em;
+  letter-spacing: -0.04em;
+  margin-bottom: 0.8em;
+}
+
+.md-typeset h2 {
+  font-weight: 700;
+  margin-top: 2em;
+}
+
+.md-typeset h3 {
+  font-weight: 700;
+}
+
+.md-typeset {
+  line-height: 1.7;
+}
+
+.md-typeset a {
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.md-typeset a:hover {
+  color: var(--bn-accent);
+  border-bottom-color: currentColor;
+}
+
+.md-typeset .headerlink {
+  border-bottom: 0;
+}
+
+/* ---------- Navigation ---------- */
+.md-nav__title,
+.md-nav__item--section > .md-nav__link {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-weight: 700;
+  color: var(--bn-text);
+}
+
+.md-nav__item--section > .md-nav__link {
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--bn-muted);
+}
+
+.md-nav__link--active,
+.md-nav__link:focus,
+.md-nav__link:hover {
+  color: var(--bn-accent);
+}
+
+.md-nav--primary .md-nav__link--active {
+  font-weight: 700;
+}
+
+/* ---------- Content blocks ---------- */
+.md-typeset code {
+  border-radius: 6px;
+  padding: 0.1em 0.35em;
+}
+
+.md-typeset pre > code {
+  border-radius: 12px;
+  border: 1px solid var(--bn-line);
+  padding: 1em 1.2em;
+}
+
+.md-typeset table:not([class]) {
+  border: 1px solid var(--bn-line);
+  border-radius: 12px;
+  overflow: hidden;
+  font-size: 0.72rem;
+  box-shadow: none;
+}
+
+.md-typeset table:not([class]) th {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-weight: 700;
+  background-color: var(--bn-surface);
+  color: var(--bn-text);
+}
+
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--bn-line);
+}
+
+.md-typeset img {
+  border-radius: 12px;
+}
+
+.md-typeset img[src$=".png"] {
+  border: 1px solid var(--bn-line);
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 12px;
+  border-width: 1px;
+  box-shadow: none;
+  font-size: 0.74rem;
+}
+
+/* Buttons keep the brand gradient: it marks actions. */
+.md-typeset .md-button--primary {
+  background: var(--bn-grad);
+  border: 0;
+  color: #ffffff;
+  border-radius: 999px;
+}
+
+.md-typeset .md-button {
+  border-radius: 999px;
+}
+
+/* ---------- Content tabs, search, misc ---------- */
+.md-typeset .tabbed-labels > label {
+  font-family: "Space Grotesk", system-ui, sans-serif;
+  font-weight: 700;
+}
+
+.md-typeset .tabbed-labels::before {
+  background: var(--bn-grad);
+}
+
+.md-search-result mark,
+.md-typeset mark {
+  color: inherit;
+  background-color: rgba(221, 36, 118, 0.18);
+}
+
+.md-footer-meta {
+  background-color: var(--md-footer-bg-color--dark);
+}
+
+::selection {
+  background: rgba(221, 36, 118, 0.25);
+}
