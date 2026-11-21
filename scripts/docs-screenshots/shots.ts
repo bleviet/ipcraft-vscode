@@ -2,6 +2,11 @@ import { expect, type Locator, type Page } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 import * as YAML from 'yaml';
+import type { DiagramResources } from '../../src/shared/messages/systemDiagram';
+import { mapHierarchyReport } from '../../src/services/resources/mapReportToGraph';
+import { readVivadoFlat } from '../../src/services/resources/resourceMetrics';
+import { parseVivadoHierarchy } from '../../src/services/resources/vivadoHierarchyTable';
+import { readSystemDesign } from '../../src/services/systemDiagram/readSystemDesign';
 import type { HarnessKind } from './harness';
 
 const REPO_ROOT = path.resolve(__dirname, '../..');
@@ -21,6 +26,7 @@ const DATA_INSPECTOR_STATUS_SOURCE =
 const SYSTEM_BD_SOURCE = 'src/test/fixtures/system-design/zynq_dma_system.tcl';
 const SYSTEM_QSYS_SOURCE = 'src/test/fixtures/system-design/niosv_hps_system.tcl';
 const SYSTEM_DIFF_DIR = 'src/test/fixtures/system-design/diff';
+const SYSTEM_RESOURCES_DIR = 'src/test/fixtures/reports/vivado/spike';
 
 const VIEWPORT_SELECTOR = '.react-flow__viewport';
 
@@ -93,6 +99,72 @@ async function setupSystemHover(page: Page): Promise<void> {
   await untilViewportChanges(page, () => page.getByRole('button', { name: 'Zoom out' }).click());
   await node.getByText('S_AXI_LITE', { exact: true }).hover();
   await expect(page.getByRole('tooltip')).toBeVisible();
+}
+
+async function setupSystemResources(page: Page): Promise<void> {
+  const dir = path.join(REPO_ROOT, SYSTEM_RESOURCES_DIR);
+  const read = (file: string) => fs.readFileSync(path.join(dir, file), 'utf-8');
+  const graph = readSystemDesign('sys.bd', 'sys.bd', read('sys.bd'));
+  if (!graph) {
+    throw new Error('setupSystemResources: failed to parse sys.bd');
+  }
+  const report = mapHierarchyReport(
+    {
+      table: parseVivadoHierarchy(read('routed_hier.rpt')),
+      vendor: 'vivado',
+      stage: 'routed',
+      source: { fileName: 'routed_hier.rpt' },
+      capacity: readVivadoFlat(read('routed_flat.rpt')).capacity,
+    },
+    graph
+  );
+  const synthReport = mapHierarchyReport(
+    {
+      table: parseVivadoHierarchy(read('synth_hier.rpt')),
+      vendor: 'vivado',
+      stage: 'synth',
+      source: { fileName: 'synth_hier.rpt' },
+    },
+    graph
+  );
+  const resources: DiagramResources = {
+    sources: [
+      {
+        id: 'impl',
+        label: 'Post-route (impl_1)',
+        vendor: 'vivado',
+        stage: 'routed',
+        origin: 'project',
+        fileName: 'routed_hier.rpt',
+        usable: true,
+      },
+      {
+        id: 'synth',
+        label: 'Post-synthesis (synth_1)',
+        vendor: 'vivado',
+        stage: 'synth',
+        origin: 'project',
+        fileName: 'synth_hier.rpt',
+        usable: true,
+      },
+    ],
+    selected: 'impl',
+    report,
+    compare: { id: 'synth', report: synthReport },
+    searched: ['sys.runs/impl_1', 'sys.runs/synth_1'],
+    hierarchicalTcl: 'report_utilization -hierarchical -file sys_utilization_hier.rpt',
+  };
+  await page.evaluate(
+    (value) => window.postMessage({ type: 'resources', resources: value, show: true }, '*'),
+    resources
+  );
+  await expect(page.locator('.sd-node-usage').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Toggle Bottom Panel' }).click();
+  await page.getByRole('tab', { name: /^Resources/ }).click();
+  await expect(page.getByText('Change against Post-synthesis (synth_1)')).toBeVisible();
+  await page.getByRole('columnheader', { name: 'LUTs' }).click();
+  await page.getByRole('button', { name: 'Fit' }).click();
+  await page.waitForTimeout(300);
 }
 
 async function setupSplitAddress(page: Page): Promise<void> {
@@ -587,6 +659,15 @@ export const shots: Shot[] = [
     setup: async (page) => {
       await page.getByRole('tab', { name: /^Findings/ }).click();
     },
+  },
+  {
+    // Per-block resource usage with Resources tab open and Post-synthesis stage comparison.
+    id: 'system-diagram-resources',
+    harness: 'systemDiagram',
+    source: `${SYSTEM_RESOURCES_DIR}/sys.bd`,
+    fileName: 'sys.bd',
+    viewport: { width: 1600, height: 1000 },
+    setup: setupSystemResources,
   },
   {
     id: 'data-inspector-workspace',

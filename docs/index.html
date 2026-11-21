@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description"
-    content="IPCraft is a visual FPGA IP workspace for VS Code: view Vivado and Platform Designer systems as diagrams, design IP cores and register maps, and generate HDL projects." />
+    content="IPCraft is a visual FPGA IP workspace for VS Code: view Vivado and Platform Designer systems as diagrams, compare revisions, inspect per-block resource usage, design IP cores and register maps, and generate HDL projects." />
   <meta name="theme-color" content="#050811" />
   <title>IPCraft | See the whole system. Craft every core.</title>
   <link rel="icon" type="image/svg+xml" href="images/ipcraft-logo.svg" />
@@ -36,6 +36,7 @@
       --muted: #7a8fa8;
       --accent: #00f2fe;
       --nav-bg: rgba(5, 8, 17, 0.84);
+      --menu-bg: rgba(12, 17, 35, 0.985);
       --shadow: 0 20px 60px rgba(0, 0, 0, 0.36);
       --shadow-deep: 0 40px 120px rgba(0, 0, 0, 0.6);
       --brand: #ff512f;
@@ -75,6 +76,7 @@
       --muted: #3d5370;
       --accent: #006ea3;
       --nav-bg: rgba(232, 236, 245, 0.93);
+      --menu-bg: rgba(241, 244, 251, 0.98);
       --shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
       --shadow-deep: 0 40px 100px rgba(13, 17, 32, 0.22);
       --node-cyan: #005e9e;
@@ -208,19 +210,19 @@
     }
 
     .btn-small {
-      min-height: 44px;
-      padding: 0 1.25rem;
-      font-size: 0.94rem;
+      min-height: 42px;
+      padding: 0 1.15rem;
+      font-size: 0.92rem;
     }
 
     /* ---------- Nav ---------- */
     .nav {
       position: sticky;
       top: 0;
-      z-index: 50;
+      z-index: 60;
       background: var(--nav-bg);
-      -webkit-backdrop-filter: blur(16px);
-      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(18px);
+      backdrop-filter: blur(18px);
       border-bottom: 1px solid var(--line);
     }
 
@@ -228,7 +230,7 @@
       min-height: var(--nav-height);
       display: flex;
       align-items: center;
-      gap: 1.75rem;
+      gap: 1.5rem;
     }
 
     .logo {
@@ -241,52 +243,199 @@
       font-weight: 700;
       font-size: 1.25rem;
       letter-spacing: -0.02em;
+      flex: none;
     }
 
     .nav-links {
-      flex: 1;
       display: flex;
+      align-items: center;
       gap: 0.25rem;
-      font-size: 0.94rem;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 4px;
+      border-radius: 999px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      font-size: 0.92rem;
       font-weight: 500;
     }
 
-    .nav-links a {
-      display: flex;
+    .nav-item {
+      position: relative;
+    }
+
+    .nav-link,
+    .nav-trigger {
+      display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      min-height: 44px;
-      padding: 0 0.75rem;
+      gap: 0.4rem;
+      min-height: 36px;
+      padding: 0 0.95rem;
+      font: inherit;
+      font-weight: 500;
       color: var(--text);
-      border-radius: 10px;
-    }
-
-    .nav-links a:hover {
-      color: var(--text-strong);
-      background: var(--surface);
-    }
-
-    .pill-new {
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-size: 0.66rem;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      color: var(--bg);
-      background: var(--accent);
+      background: transparent;
+      border: 0;
       border-radius: 999px;
-      padding: 2px 7px;
+      cursor: pointer;
+      transition: color 0.2s ease, background-color 0.2s ease;
+    }
+
+    .nav-link:hover,
+    .nav-trigger:hover,
+    .nav-trigger[aria-expanded='true'],
+    .nav-link.is-active,
+    .nav-trigger.is-active {
+      color: var(--text-strong);
+      background: var(--bg-card);
+    }
+
+    .nav-chevron {
+      width: 14px;
+      height: 14px;
+      opacity: 0.7;
+      transition: transform 0.22s ease, opacity 0.22s ease;
+    }
+
+    .nav-trigger[aria-expanded='true'] .nav-chevron {
+      transform: rotate(180deg);
+      opacity: 1;
+    }
+
+    .nav-dropdown {
+      position: absolute;
+      top: calc(100% + 14px);
+      left: 50%;
+      width: min(390px, calc(100vw - 2.5rem));
+      padding: 1rem;
+      border-radius: var(--r);
+      background: var(--menu-bg);
+      -webkit-backdrop-filter: blur(22px);
+      backdrop-filter: blur(22px);
+      border: 1px solid var(--line-strong);
+      box-shadow: var(--shadow-deep);
+      transform: translate(-50%, -8px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0s linear 0.2s;
+    }
+
+    .nav-dropdown::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: -16px;
+      height: 16px;
+    }
+
+    .nav-item.is-open .nav-dropdown {
+      transform: translate(-50%, 0);
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .mega-group-label {
+      margin: 0 0 0.45rem 0.65rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .mega-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .mega-link {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.7rem 0.75rem;
+      border-radius: 12px;
+      border: 1px solid transparent;
+      color: var(--text);
+      transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .mega-link:hover,
+    .mega-link.is-active {
+      background: var(--surface);
+      border-color: var(--line);
+      color: var(--text-strong);
+    }
+
+    .mega-dot {
+      flex: none;
+      width: 8px;
+      height: 8px;
+      margin-top: 0.48rem;
+      border-radius: 2px;
+      background: var(--c, var(--accent));
+    }
+
+    .mega-link b {
+      display: block;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--text-strong);
+      line-height: 1.25;
+    }
+
+    .mega-link span {
+      display: block;
+      margin-top: 0.15rem;
+      font-size: 0.83rem;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .mega-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem 1.25rem;
+      margin-top: 1rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.84rem;
+    }
+
+    .mega-footer-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.25rem;
+    }
+
+    .mega-footer a {
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .mega-footer a:hover {
+      color: var(--text-strong);
     }
 
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 0.6rem;
-      margin-left: auto;
+      gap: 0.55rem;
+      flex: none;
     }
 
-    .theme-toggle {
-      width: 44px;
-      height: 44px;
+    .theme-toggle,
+    .nav-menu-btn {
+      width: 42px;
+      height: 42px;
       display: grid;
       place-items: center;
       color: var(--text);
@@ -294,11 +443,16 @@
       border: 1px solid var(--line);
       border-radius: 50%;
       cursor: pointer;
-      transition: transform 0.4s ease, border-color 0.2s ease;
+      transition: transform 0.35s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .theme-toggle:hover,
+    .nav-menu-btn:hover {
+      color: var(--text-strong);
+      border-color: var(--accent);
     }
 
     .theme-toggle:hover {
-      border-color: var(--accent);
       transform: rotate(40deg);
     }
 
@@ -309,6 +463,134 @@
 
     [data-theme='light'] .theme-toggle .sun {
       display: block;
+    }
+
+    .nav-menu-btn {
+      display: none;
+    }
+
+    .nav-menu-btn .icon-close,
+    .nav-menu-btn[aria-expanded='true'] .icon-menu {
+      display: none;
+    }
+
+    .nav-menu-btn[aria-expanded='true'] .icon-close {
+      display: block;
+    }
+
+    /* Mobile navigation drawer */
+    .mobile-drawer {
+      display: none;
+      border-top: 1px solid var(--line);
+      background: var(--menu-bg);
+      -webkit-backdrop-filter: blur(22px);
+      backdrop-filter: blur(22px);
+      max-height: calc(100dvh - var(--nav-height));
+      overflow-y: auto;
+    }
+
+    .mobile-drawer.is-open {
+      display: block;
+    }
+
+    .mobile-drawer-inner {
+      padding: 1.25rem 0 1.75rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+
+    .mobile-group-label {
+      margin-bottom: 0.5rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .mobile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.45rem;
+    }
+
+    .mobile-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding-top: 0.9rem;
+      border-top: 1px solid var(--line);
+    }
+
+    /* ---------- Desktop Scroll-Spy Rail ---------- */
+    .page-rail {
+      position: fixed;
+      right: 22px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 40;
+      display: none;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.65rem;
+    }
+
+    @media (min-width: 1460px) {
+      .page-rail {
+        display: flex;
+      }
+    }
+
+    .page-rail a {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.6rem;
+      padding: 4px 2px;
+      color: var(--muted);
+    }
+
+    .page-rail .rail-label {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--menu-bg);
+      border: 1px solid var(--line-strong);
+      color: var(--text-strong);
+      opacity: 0;
+      transform: translateX(6px);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .page-rail a:hover .rail-label,
+    .page-rail a:focus-visible .rail-label {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .page-rail .rail-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--line-strong);
+      transition: height 0.25s ease, background-color 0.25s ease;
+    }
+
+    .page-rail a:hover .rail-dot {
+      background: var(--text);
+    }
+
+    .page-rail a.is-active .rail-dot {
+      height: 22px;
+      background: var(--accent);
     }
 
     /* ---------- Hero ---------- */
@@ -369,7 +651,7 @@
 
     .hero-inner {
       position: relative;
-      padding-top: clamp(3.5rem, 8vw, 7rem);
+      padding-top: clamp(3.5rem, 8vw, 6.5rem);
     }
 
     .eyebrow {
@@ -416,7 +698,7 @@
 
     .lede {
       flex: 1 1 460px;
-      max-width: 620px;
+      max-width: 640px;
       font-size: clamp(1.0625rem, 1.5vw, 1.25rem);
       color: var(--text-soft);
     }
@@ -429,7 +711,7 @@
 
     .hero-shot {
       position: relative;
-      margin-top: clamp(3rem, 6vw, 5.25rem);
+      margin-top: clamp(3rem, 6vw, 4.75rem);
     }
 
     .hero-shot::before {
@@ -474,31 +756,6 @@
       color: var(--chart-7);
     }
 
-    .badge-float {
-      position: absolute;
-      top: -36px;
-      right: 4%;
-      z-index: 2;
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      padding: 0.55rem 1rem;
-      border-radius: 999px;
-      background: var(--bg-card);
-      border: 1px solid var(--accent);
-      font-size: 0.78rem;
-      color: var(--accent);
-      box-shadow: var(--shadow);
-      animation: float 5s ease-in-out infinite alternate;
-    }
-
-    .badge-float i {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-    }
-
     .marquee {
       margin-top: 2.5rem;
       display: flex;
@@ -538,9 +795,155 @@
       animation-play-state: paused;
     }
 
+    /* ---------- Workspace Pillars (Homepage quick index) ---------- */
+    .workspace-map {
+      margin-top: 2.75rem;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .pillar-card {
+      display: flex;
+      flex-direction: column;
+      padding: 1.35rem 1.4rem;
+      border-radius: var(--r);
+      border: 1px solid var(--line);
+      background: var(--bg-card);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .pillar-card:hover {
+      border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, var(--line-strong));
+      box-shadow: var(--shadow);
+    }
+
+    .pillar-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--c, var(--accent));
+    }
+
+    .pillar-tag i {
+      width: 7px;
+      height: 7px;
+      border-radius: 2px;
+      background: var(--c, var(--accent));
+    }
+
+    .pillar-card h2 {
+      margin-top: 0.55rem;
+      font-size: 1.35rem;
+      line-height: 1.15;
+      letter-spacing: -0.025em;
+    }
+
+    .pillar-card > p {
+      margin-top: 0.4rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--text-soft);
+    }
+
+    .pillar-links {
+      list-style: none;
+      margin: auto 0 0;
+      padding: 1rem 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      border-top: 1px solid var(--line);
+      margin-top: 1.1rem;
+    }
+
+    .pillar-links a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.45rem 0.55rem;
+      margin: 0 -0.55rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      transition: background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .pillar-links a span {
+      color: var(--muted);
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .pillar-links a:hover {
+      background: var(--surface);
+      color: var(--text-strong);
+    }
+
+    .pillar-links a:hover span {
+      transform: translateX(4px);
+      color: var(--c, var(--accent));
+    }
+
+    .cli-strip {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem 1.5rem;
+      padding: 0.95rem 1.4rem;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--bg-card);
+      font-size: 0.92rem;
+    }
+
+    .cli-strip-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.65rem 1rem;
+      color: var(--text-soft);
+    }
+
+    .cli-strip-badge {
+      padding: 3px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.74rem;
+      color: var(--text-strong);
+    }
+
+    .cli-strip-main code {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.84rem;
+      color: var(--text);
+    }
+
+    .cli-strip a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    .cli-strip a:hover {
+      color: var(--text-strong);
+    }
+
     /* ---------- Sections ---------- */
     section.block {
-      padding-top: clamp(5.5rem, 11vw, 10rem);
+      padding-top: clamp(5.5rem, 11vw, 9.5rem);
     }
 
     .marker {
@@ -666,6 +1069,11 @@
       width: 100%;
     }
 
+    .card code {
+      font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      font-size: 0.9em;
+    }
+
     .files {
       display: flex;
       flex-wrap: wrap;
@@ -718,6 +1126,13 @@
 
     .stack > .card {
       flex: 1 1 auto;
+    }
+
+    .tri-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.25rem;
+      margin-top: 1.25rem;
     }
 
     .head-row {
@@ -1341,10 +1756,6 @@
       color: var(--muted);
     }
 
-    .note h3 + p {
-      max-width: 760px;
-    }
-
     .more {
       display: inline-flex;
       align-items: center;
@@ -1497,41 +1908,62 @@
     }
 
     footer {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 1rem 2.5rem;
-      padding: 4rem 0 3rem;
+      margin-top: 5rem;
+      padding: 3.5rem 0 3rem;
+      border-top: 1px solid var(--line);
       font-size: 0.94rem;
       color: var(--muted);
     }
 
-    footer > div:first-child {
-      flex: 1 1 320px;
+    .footer-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.4fr) repeat(3, minmax(150px, 1fr));
+      gap: 2.25rem 2.5rem;
     }
 
-    footer strong {
-      display: block;
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-size: 1.125rem;
-      color: var(--text-strong);
-    }
-
-    footer nav {
+    .footer-brand strong {
       display: flex;
-      flex-wrap: wrap;
-      gap: 0.25rem 0.5rem;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 1.15rem;
+      color: var(--text-strong);
+      margin-bottom: 0.6rem;
     }
 
-    footer nav a {
+    .footer-brand p {
+      max-width: 300px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .footer-col h4 {
+      margin: 0 0 0.75rem;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .footer-col ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.2rem;
+    }
+
+    .footer-col a {
       display: inline-flex;
       align-items: center;
-      min-height: 44px;
-      padding: 0 0.75rem;
+      min-height: 36px;
       color: var(--text);
+      font-size: 0.92rem;
     }
 
-    footer nav a:hover {
+    .footer-col a:hover {
       color: var(--accent);
     }
 
@@ -1605,11 +2037,6 @@
       to { transform: scale(1.04); }
     }
 
-    @keyframes float {
-      from { transform: translateY(0); }
-      to { transform: translateY(-8px); }
-    }
-
     @keyframes marquee {
       to { transform: translateX(-50%); }
     }
@@ -1628,11 +2055,33 @@
       50% { opacity: 0; }
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 980px) {
       .nav-links {
         display: none;
       }
 
+      .nav-actions {
+        margin-left: auto;
+      }
+
+      .nav-menu-btn {
+        display: grid;
+      }
+
+      .workspace-map {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .tri-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .footer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 900px) {
       .hub-grid {
         grid-template-columns: minmax(0, 1fr);
         gap: 0;
@@ -1655,10 +2104,12 @@
       .marquee-track {
         width: 100%;
       }
+    }
 
-      .badge-float {
-        right: 3%;
-        font-size: 0.72rem;
+    @media (max-width: 600px) {
+      .tri-grid,
+      .footer-grid {
+        grid-template-columns: minmax(0, 1fr);
       }
     }
 
@@ -1732,13 +2183,93 @@
         IPCraft
       </a>
       <nav class="nav-links" aria-label="Main">
-        <a href="#overview">Overview</a>
-        <a href="#editors">Editors</a>
-        <a href="#system-viewer">System Viewer</a>
-        <a href="#compare">Compare <span class="pill-new">NEW</span></a>
-        <a href="#data-inspector">Data Inspector</a>
-        <a href="#capabilities">Capabilities</a>
-        <a href="introduction/what-is-ipcraft/">Docs</a>
+        <div class="nav-item" data-nav-dropdown data-dropdown-sections="overview,editors,capabilities">
+          <button class="nav-trigger" type="button" aria-expanded="false" aria-controls="ipCoresMenu">
+            IP Cores
+            <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <div class="nav-dropdown" id="ipCoresMenu" role="region" aria-label="IP Cores">
+            <p class="mega-group-label">IP Cores</p>
+            <div class="mega-list">
+              <a class="mega-link" href="#overview" data-nav-target="overview">
+                <span class="mega-dot" style="--c: var(--chart-2)"></span>
+                <div>
+                  <b>Specification &amp; Conversion</b>
+                  <span>One YAML spec; import &amp; convert between VHDL, _hw.tcl, and component.xml</span>
+                </div>
+              </a>
+              <a class="mega-link" href="#editors" data-nav-target="editors">
+                <span class="mega-dot" style="--c: var(--node-cyan)"></span>
+                <div>
+                  <b>Visual Editors</b>
+                  <span>IP core canvas (.ip.yml) and memory-mapped registers (.mm.yml)</span>
+                </div>
+              </a>
+              <a class="mega-link" href="#capabilities" data-nav-target="capabilities">
+                <span class="mega-dot" style="--c: var(--chart-3)"></span>
+                <div>
+                  <b>Generation, Checks &amp; Builds</b>
+                  <span>VHDL/SV RTL, cocotb, Vivado/Quartus packaging, scaffold packs &amp; vhdl_ls.toml</span>
+                </div>
+              </a>
+            </div>
+            <div class="mega-footer">
+              <div class="mega-footer-links">
+                <a href="reference/ip-core-editor/">IP Core editor &rarr;</a>
+                <a href="how-to/generating-a-project/">Generate a project &rarr;</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-item" data-nav-dropdown data-dropdown-sections="system-viewer,compare,resources">
+          <button class="nav-trigger" type="button" aria-expanded="false" aria-controls="systemDesignsMenu">
+            System Designs
+            <svg class="nav-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+          <div class="nav-dropdown" id="systemDesignsMenu" role="region" aria-label="System Designs">
+            <p class="mega-group-label">Block Design &amp; Platform Designer</p>
+            <div class="mega-list">
+              <a class="mega-link" href="#system-viewer" data-nav-target="system-viewer">
+                <span class="mega-dot" style="--c: var(--accent)"></span>
+                <div>
+                  <b>System Viewer</b>
+                  <span>Offline .bd, .tcl, and .qsys diagrams, signal tracing, clocks/resets, search &amp; export</span>
+                </div>
+              </a>
+              <a class="mega-link" href="#compare" data-nav-target="compare">
+                <span class="mega-dot" style="--c: var(--chart-7)"></span>
+                <div>
+                  <b>Design Comparison</b>
+                  <span>Visual Git diffs, dashed ghosts, findings, and pull-request review comments</span>
+                </div>
+              </a>
+              <a class="mega-link" href="#resources" data-nav-target="resources">
+                <span class="mega-dot" style="--c: var(--chart-6)"></span>
+                <div>
+                  <b>Resource Usage</b>
+                  <span>Per-block LUTs, FFs, BRAM, and DSPs from Vivado and Quartus reports</span>
+                </div>
+              </a>
+            </div>
+            <div class="mega-footer">
+              <div class="mega-footer-links">
+                <a href="how-to/view-a-system-design/">System Viewer guide &rarr;</a>
+                <a href="how-to/review-system-design-changes-in-ci/">CI design diff &rarr;</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <a class="nav-link" href="#data-inspector" data-nav-target="data-inspector">Debug</a>
+        <a class="nav-link" href="#cli" data-nav-target="cli">CLI</a>
+        <a class="nav-link" href="introduction/what-is-ipcraft/">Docs</a>
       </nav>
       <div class="nav-actions">
         <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" aria-pressed="false">
@@ -1754,9 +2285,83 @@
         </button>
         <a class="btn btn-ghost btn-small" href="https://github.com/bleviet/ipcraft-vscode">GitHub</a>
         <a class="btn btn-small" href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Get IPCraft</a>
+        <button class="nav-menu-btn" id="mobileMenuToggle" type="button" aria-label="Open navigation menu" aria-expanded="false"
+          aria-controls="mobileDrawer">
+          <svg class="icon-menu" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+          <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+            stroke-linecap="round" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="mobile-drawer" id="mobileDrawer" aria-label="Mobile navigation">
+      <div class="wrap mobile-drawer-inner">
+        <div>
+          <p class="mobile-group-label">IP Cores</p>
+          <div class="mobile-grid">
+            <a class="mega-link" href="#overview">
+              <span class="mega-dot" style="--c: var(--chart-2)"></span>
+              <div><b>Specification &amp; Conversion</b><span>YAML hub, VHDL, _hw.tcl &amp; component.xml</span></div>
+            </a>
+            <a class="mega-link" href="#editors">
+              <span class="mega-dot" style="--c: var(--node-cyan)"></span>
+              <div><b>Visual Editors</b><span>.ip.yml canvas &amp; .mm.yml registers</span></div>
+            </a>
+            <a class="mega-link" href="#capabilities">
+              <span class="mega-dot" style="--c: var(--chart-3)"></span>
+              <div><b>Generation, Checks &amp; Builds</b><span>RTL, cocotb, vendor packaging &amp; checks</span></div>
+            </a>
+          </div>
+        </div>
+        <div>
+          <p class="mobile-group-label">System Designs</p>
+          <div class="mobile-grid">
+            <a class="mega-link" href="#system-viewer">
+              <span class="mega-dot" style="--c: var(--accent)"></span>
+              <div><b>System Viewer</b><span>Vivado &amp; Platform Designer diagrams</span></div>
+            </a>
+            <a class="mega-link" href="#compare">
+              <span class="mega-dot" style="--c: var(--chart-7)"></span>
+              <div><b>Design Comparison</b><span>Revision diffs, ghosts &amp; PR checks</span></div>
+            </a>
+            <a class="mega-link" href="#resources">
+              <span class="mega-dot" style="--c: var(--chart-6)"></span>
+              <div><b>Resource Usage</b><span>Per-block LUTs, FFs, BRAM &amp; DSPs</span></div>
+            </a>
+          </div>
+        </div>
+        <div>
+          <p class="mobile-group-label">Debug</p>
+          <div class="mobile-grid">
+            <a class="mega-link" href="#data-inspector">
+              <span class="mega-dot" style="--c: var(--chart-7)"></span>
+              <div><b>Data Inspector</b><span>Decode hardware captures against register &amp; port fields</span></div>
+            </a>
+          </div>
+        </div>
+        <div class="mobile-quick">
+          <a class="btn btn-ghost btn-small" href="#cli">CLI</a>
+          <a class="btn btn-ghost btn-small" href="introduction/what-is-ipcraft/">Docs</a>
+          <a class="btn btn-ghost btn-small" href="https://github.com/bleviet/ipcraft-vscode">GitHub</a>
+        </div>
       </div>
     </div>
   </header>
+
+  <nav class="page-rail" aria-label="On this page">
+    <a href="#overview" data-rail-target="overview"><span class="rail-label">Overview</span><span class="rail-dot"></span></a>
+    <a href="#editors" data-rail-target="editors"><span class="rail-label">Editors</span><span class="rail-dot"></span></a>
+    <a href="#system-viewer" data-rail-target="system-viewer"><span class="rail-label">System Viewer</span><span class="rail-dot"></span></a>
+    <a href="#compare" data-rail-target="compare"><span class="rail-label">Compare</span><span class="rail-dot"></span></a>
+    <a href="#resources" data-rail-target="resources"><span class="rail-label">Resources</span><span class="rail-dot"></span></a>
+    <a href="#data-inspector" data-rail-target="data-inspector"><span class="rail-label">Data Inspector</span><span class="rail-dot"></span></a>
+    <a href="#capabilities" data-rail-target="capabilities"><span class="rail-label">Capabilities</span><span class="rail-dot"></span></a>
+  </nav>
 
   <main id="main">
     <section class="hero" id="top">
@@ -1775,17 +2380,16 @@
         <p class="eyebrow mono rise"><span class="pin"></span>v1.6.1 &middot; FPGA IP workspace for VS Code</p>
         <h1 class="rise" style="--i: 1">See the whole system. <span class="grad-text">Craft every core.</span></h1>
         <div class="hero-row rise" style="--i: 2">
-          <p class="lede">Read Vivado and Platform Designer systems as diagrams, design IP cores and register maps
-            visually, and generate VHDL or SystemVerilog projects from one readable YAML specification. All inside VS
-            Code.</p>
+          <p class="lede">Read Vivado and Platform Designer systems as diagrams, compare revisions, inspect per-block
+            resource usage, design IP cores and register maps visually, and generate VHDL or SystemVerilog projects from
+            one readable YAML specification. All inside VS Code.</p>
           <div class="cta-row">
             <a class="btn" href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Install for VS Code</a>
-            <a class="btn btn-ghost" href="#compare">See what changed in a design</a>
+            <a class="btn btn-ghost" href="introduction/what-is-ipcraft/">Read the docs</a>
           </div>
         </div>
 
         <div class="hero-shot rise" style="--i: 4">
-          <div class="badge-float mono"><i></i>New in 1.6: Compare block designs</div>
           <figure class="window">
             <figcaption><b>zynq_dma_system.tcl</b><span>System Diagram</span><span class="state">read-only &middot; offline</span></figcaption>
             <img class="theme-image" src="images/system-diagram-level-dark.png"
@@ -1807,6 +2411,48 @@
               <li aria-hidden="true">IP-XACT</li><li aria-hidden="true">Nunjucks</li>
             </ul>
           </div>
+        </div>
+
+        <nav class="workspace-map rise" style="--i: 5" aria-label="Workspace pillars">
+          <div class="pillar-card" style="--c: var(--node-cyan)">
+            <span class="pillar-tag"><i></i>01 &middot; IP Cores</span>
+            <h2>Create, generate &amp; convert</h2>
+            <p>Design interfaces and register maps in YAML, generate HDL and vendor components, or port between AMD and Altera.</p>
+            <ul class="pillar-links">
+              <li><a href="#overview">Specification &amp; conversion <span aria-hidden="true">&rarr;</span></a></li>
+              <li><a href="#editors">IP Core &amp; Memory Map editors <span aria-hidden="true">&rarr;</span></a></li>
+              <li><a href="#capabilities">Generation, checks &amp; builds <span aria-hidden="true">&rarr;</span></a></li>
+            </ul>
+          </div>
+
+          <div class="pillar-card" style="--c: var(--accent)">
+            <span class="pillar-tag"><i></i>02 &middot; System Designs</span>
+            <h2>View, compare &amp; measure</h2>
+            <p>Inspect Vivado block designs and Platform Designer systems offline, diff revisions, and read per-block utilization.</p>
+            <ul class="pillar-links">
+              <li><a href="#system-viewer">System Viewer &amp; signal tracing <span aria-hidden="true">&rarr;</span></a></li>
+              <li><a href="#compare">Design comparison &amp; PR diffs <span aria-hidden="true">&rarr;</span></a></li>
+              <li><a href="#resources">Per-block resource usage <span aria-hidden="true">&rarr;</span></a></li>
+            </ul>
+          </div>
+
+          <div class="pillar-card" style="--c: var(--chart-7)">
+            <span class="pillar-tag"><i></i>03 &middot; Debug</span>
+            <h2>Decode hardware captures</h2>
+            <p>Map CSV logs and raw words onto register and port bit fields, then wire operators to inspect multi-word values.</p>
+            <ul class="pillar-links">
+              <li><a href="#data-inspector">Data Inspector walkthrough <span aria-hidden="true">&rarr;</span></a></li>
+              <li><a href="how-to/use-data-inspector/">Data Inspector guide <span aria-hidden="true">&rarr;</span></a></li>
+            </ul>
+          </div>
+        </nav>
+
+        <div class="cli-strip rise" style="--i: 6">
+          <div class="cli-strip-main">
+            <span class="cli-strip-badge">CLI &amp; CI</span>
+            <span>Run the same engine headless: <code>generate</code> &middot; <code>verify</code> &middot; <code>package</code> &middot; <code>render</code> &middot; <code>diff</code> &middot; <code>resources</code> &middot; <code>vhdl-ls</code></span>
+          </div>
+          <a href="#cli">See the CLI <span aria-hidden="true">&rarr;</span></a>
         </div>
       </div>
     </section>
@@ -1905,36 +2551,37 @@
           <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="in" /><circle cx="24" cy="24" r="12" class="in" /><circle cx="24" cy="24" r="16.5" class="on" /><circle cx="24" cy="24" r="21" class="" /></svg>
           <span class="tag mono">04</span>
           <h3>The system</h3>
-          <p>See how the cores connect in a Vivado block design or a Platform Designer system.</p>
+          <p>View Vivado and Platform Designer systems offline, compare revisions, trace signals across hierarchy, and inspect per-block resource usage.</p>
           <a class="more" href="#system-viewer">See the System Viewer <span aria-hidden="true">&rarr;</span></a>
         </li>
         <li class="reveal" style="--i: 4">
           <svg class="ring" width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true"><circle cx="24" cy="24" r="3" class="in" /><circle cx="24" cy="24" r="7.5" class="in" /><circle cx="24" cy="24" r="12" class="in" /><circle cx="24" cy="24" r="16.5" class="in" /><circle cx="24" cy="24" r="21" class="on" /></svg>
           <span class="tag mono">05</span>
           <h3>Debug</h3>
-          <p>Decode data captured from hardware against the register definitions.</p>
+          <p>Decode data captured from hardware against the register and port definitions.</p>
           <a class="more" href="#data-inspector">See the Data Inspector <span aria-hidden="true">&rarr;</span></a>
         </li>
       </ol>
 
-      <article class="card big headless reveal">
+      <article class="card big headless reveal" id="cli">
         <div class="pad">
           <h3>The same engine on the command line</h3>
-          <p>The <code>ipcraft</code> command generates, verifies, packages, and renders without VS Code, so a
-            continuous-integration job produces the same files as the editor.</p>
+          <p>The <code>ipcraft</code> command generates, verifies, packages, renders, diffs, and reports resource usage
+            without VS Code, so a continuous-integration job produces the same results as the editor.</p>
           <a class="more" href="reference/command-line/">Read the command line reference <span aria-hidden="true">&rarr;</span></a>
         </div>
         <div class="terminal" role="img"
-          aria-label="Terminal: ipcraft generate core.ip.yml --target quartus,vivado --lang systemverilog; ipcraft verify core.ip.yml generated; ipcraft package core.ip.yml --out core.zip --zip; ipcraft render system.tcl --out system.svg; ipcraft diff system.bd --base main">
+          aria-label="Terminal: ipcraft generate core.ip.yml --target quartus,vivado --lang systemverilog; ipcraft verify core.ip.yml generated; ipcraft package core.ip.yml --out core.zip --zip; ipcraft render system.tcl --out system.svg; ipcraft diff system.bd --base main; ipcraft resources system.bd routed_hier.rpt">
           <div class="c"># RTL, testbench, and both vendor projects</div>
           <div><span class="p">$</span> <span class="k">ipcraft generate</span> <span class="f">core.ip.yml</span> <span class="o">--target</span> quartus,vivado <span class="o">--lang</span> systemverilog</div>
           <div class="c"># check that generated files still match the specification</div>
           <div><span class="p">$</span> <span class="k">ipcraft verify</span> <span class="f">core.ip.yml</span> generated/</div>
-          <div class="c"># one self-contained archive, and a diagram for the docs</div>
+          <div class="c"># self-contained archive and diagram for the docs</div>
           <div><span class="p">$</span> <span class="k">ipcraft package</span> <span class="f">core.ip.yml</span> <span class="o">--out</span> core.zip <span class="o">--zip</span></div>
           <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">system.tcl</span> <span class="o">--out</span> system.svg</div>
-          <div class="c"># what changed in a block design since main</div>
+          <div class="c"># design changes since main, and per-block utilization</div>
           <div><span class="p">$</span> <span class="k">ipcraft diff</span> <span class="f">system.bd</span> <span class="o">--base</span> main</div>
+          <div><span class="p">$</span> <span class="k">ipcraft resources</span> <span class="f">system.bd</span> impl/routed_hier.rpt</div>
         </div>
       </article>
     </section>
@@ -1948,8 +2595,9 @@
         <div class="editor-copy">
           <span class="tag mono">01 &middot; .ip.yml</span>
           <h3>Design an IP core on a visual canvas.</h3>
-          <p>Place clocks, resets, ports, bus interfaces, and parameters. Select an item to edit its properties in the
-            inspector.</p>
+          <p>Place clocks, resets, interrupts, ports, bus interfaces, and parameters on a canvas that shares the system
+            viewer's pin colors, clock domains, and markers. Edit properties in the inspector and review protocol and
+            consistency findings in the Issues panel.</p>
           <a class="more" href="reference/ip-core-editor/">Explore the IP Core editor <span aria-hidden="true">&rarr;</span></a>
         </div>
         <img class="theme-image editor-shot" loading="lazy" src="images/ipcore-editor-dark.png"
@@ -2021,7 +2669,7 @@
               <ol class="walk-steps">
                 <li><button class="walk-step" type="button"><b>Start at the top level</b><span>Hierarchy blocks have a dashed outline and show how many cells they hold.</span></button></li>
                 <li><button class="walk-step" type="button"><b>Double-click to enter</b><span>The block opens as its own level, and the breadcrumb shows where you are.</span></button></li>
-                <li><button class="walk-step" type="button"><b>Expand a block in place</b><span>Click + in a block header to see inside it as a frame, without leaving the level.</span></button></li>
+                <li><button class="walk-step" type="button"><b>Expand a block in place</b><span>Click + in a block header &mdash; or press Space on a selected hierarchy block &mdash; to see inside it as a frame without leaving the level.</span></button></li>
                 <li><button class="walk-step" type="button"><b>Go back up</b><span>Click a level in the breadcrumb, or use the mouse back button.</span></button></li>
                 <li><button class="walk-step" type="button"><b>Back at the top</b><span>You are on the top level again, with the zoom and position it had.</span></button></li>
               </ol>
@@ -2178,28 +2826,38 @@
         </article>
       </div>
 
-      <article class="card reveal note" style="margin-top: 1.25rem">
-        <div class="pad">
-          <h3>Search the whole design</h3>
-          <p>While you search, the outline lists every matching block under its hierarchy, on every level. Match Case,
-            Match Whole Word, and the <code>*</code> and <code>?</code> wildcards (<code>axi*fifo</code>) narrow the
-            matches, and each tab of the bottom panel has its own filter.</p>
-        </div>
-      </article>
+      <div class="tri-grid">
+        <article class="card reveal">
+          <div class="pad">
+            <h3>Trace signals across hierarchy</h3>
+            <p>Select any data or bus net to highlight its full path on every level and read its <b>Connection tree</b>
+              in Details. Right-click a subsystem port and choose <b>Trace Signal</b> to jump to the highest level it
+              reaches, expand subsystems along the path in place, and centre the destination pin.</p>
+          </div>
+        </article>
+        <article class="card reveal" style="--i: 1">
+          <div class="pad">
+            <h3>Search every level at once</h3>
+            <p>As you type, a grouped dropdown lists matching blocks by level, while hierarchy blocks show
+              <code>N matches inside</code> badges and stay visible. Match Case, Match Whole Word, <code>*</code> and
+              <code>?</code> wildcards (<code>axi*fifo</code>), and per-tab filters narrow large designs fast.</p>
+          </div>
+        </article>
+        <article class="card reveal" style="--i: 2">
+          <div class="pad">
+            <h3>Knows your workspace</h3>
+            <p>Definitions in your <code>.ip.yml</code> and HDL files fill in pins, directions, and interface types,
+              with a link to where each block is defined. Blocks defined elsewhere stay visible as black boxes.</p>
+          </div>
+        </article>
+      </div>
 
-      <article class="card reveal note" style="margin-top: 1.25rem">
-        <div class="pad">
-          <h3>Knows your workspace</h3>
-          <p>Definitions in your .ip.yml and HDL files fill in pins, directions, and interface types, with a link to
-                where each block is defined. Blocks defined elsewhere stay visible as black boxes.</p>
-        </div>
-      </article>
       <a class="more" href="how-to/view-a-system-design/">Read the System Viewer guide <span aria-hidden="true">&rarr;</span></a>
     </section>
 
     <!-- Compare -->
     <section class="block wrap" id="compare">
-      <p class="marker reveal" style="--c: var(--chart-7)"><span>New in 1.6 &middot; Design comparison</span></p>
+      <p class="marker reveal" style="--c: var(--chart-7)"><span>Design comparison</span></p>
       <div class="split reveal">
         <h2>See what changed in a block design before you merge it.</h2>
         <div class="split-side">
@@ -2288,14 +2946,95 @@
       <a class="more" href="how-to/view-a-system-design/#compare-with-another-revision">Read about comparing designs <span aria-hidden="true">&rarr;</span></a>
     </section>
 
+    <!-- Resource Usage -->
+    <section class="block wrap" id="resources">
+      <p class="marker reveal" style="--c: var(--chart-6)"><span>Resource usage</span></p>
+      <div class="split reveal">
+        <h2>See what every block costs, right on the diagram.</h2>
+        <div class="split-side">
+          <p>Turn on <b>Resources</b> to show the LUTs, FFs, BRAM, and DSPs (Vivado) or ALMs, registers, memory blocks,
+            and DSPs (Quartus) of every block, together with its share of the design and of the device.</p>
+          <p class="keys">Click <b>Resources</b> in the system viewer toolbar</p>
+        </div>
+      </div>
+
+      <article class="card big reveal" style="margin-top: 3.5rem">
+        <div class="pad head-row">
+          <div>
+            <h3>Utilization on the blocks, deltas in the table</h3>
+            <p>A two-line strip above each block shows its four main numbers and its share of the design and device,
+              while a thin bar under the header scales with its share of the level. The <b>Resources</b> tab lists every
+              block, sortable, alongside tool-generated interconnect and top-level logic.</p>
+          </div>
+          <div class="chips">
+            <span class="chip" style="--c: var(--chart-6)">Post-route &middot; 841 LUTs &middot; 1.3 %</span>
+            <span class="chip" style="--c: var(--node-cyan)">Vivado &amp; Quartus</span>
+            <span class="chip" style="--c: var(--chart-7)">Stage compare</span>
+          </div>
+        </div>
+        <img class="theme-image shot-top" loading="lazy" src="images/system-diagram-resources-dark.png"
+          data-dark="images/system-diagram-resources-dark.png" data-light="images/system-diagram-resources-light.png"
+          width="3200" height="2000"
+          alt="System viewer with Resources turned on: per-block LUT, FF, BRAM, and DSP strips above every block and the Resources tab comparing post-route against post-synthesis" />
+      </article>
+
+      <div class="tri-grid">
+        <article class="card reveal">
+          <div class="pad">
+            <h3>Project reports, IPCraft builds, or CI downloads</h3>
+            <p>Finds Vivado <code>.runs</code> and Quartus output reports next to the design automatically, offers your
+              own IP cores' IPCraft builds, or lets you attach any report or folder from CI &mdash; recognized by
+              content.</p>
+          </div>
+        </article>
+        <article class="card reveal" style="--i: 1">
+          <div class="pad">
+            <h3>Extract from a Vivado checkpoint</h3>
+            <p>When a Vivado run has no hierarchical report, select its <code>.dcp</code> checkpoint in the Resources
+              tab and click <b>Extract</b>. IPCraft reads it in batch mode without running synthesis or implementation
+              again.</p>
+          </div>
+        </article>
+        <article class="card reveal" style="--i: 2">
+          <div class="pad">
+            <h3>Compare stages and export images</h3>
+            <p>Pick another stage in <b>Compare with</b> &mdash; for example Post-synthesis against Post-route &mdash;
+              to see the change next to every number in the table and both stages side by side in Details. <b>Export
+                image</b> draws the strips too.</p>
+          </div>
+        </article>
+      </div>
+
+      <article class="card big headless reveal" style="margin-top: 1.25rem">
+        <div class="pad">
+          <h3>Resource reports in CI, too</h3>
+          <p><code>ipcraft resources</code> writes the per-block utilization of a Vivado or Quartus design as Markdown
+            or JSON after synthesis or routing, and <code>ipcraft render --resources</code> draws the strips onto
+            diagram images.</p>
+          <a class="more" href="reference/command-line/#report-the-resource-usage-of-a-system-design">Read the command line reference <span aria-hidden="true">&rarr;</span></a>
+        </div>
+        <div class="terminal" role="img"
+          aria-label="Terminal: ipcraft resources bd/system.bd impl/routed_hier.rpt --capacity impl/routed_flat.rpt and ipcraft render bd/system.bd --resources impl/routed_hier.rpt --out usage.svg">
+          <div class="c"># per-block utilization as Markdown, with device capacity</div>
+          <div><span class="p">$</span> <span class="k">ipcraft resources</span> <span class="f">bd/system.bd</span> impl/routed_hier.rpt <span class="o">--capacity</span> impl/routed_flat.rpt</div>
+          <div class="k">Design: 841 LUTs (1.3 %) &middot; 1386 FFs (1.1 %) &middot; 2 BRAM (1.5 %) &middot; 0 DSPs</div>
+          <div class="c">| smartconnect_0 | 422 | 449 | 0 | 0 | 50.2 % |</div>
+          <div class="c"># draw the strips on a diagram image</div>
+          <div><span class="p">$</span> <span class="k">ipcraft render</span> <span class="f">bd/system.bd</span> <span class="o">--resources</span> impl/routed_hier.rpt <span class="o">--out</span> usage.svg</div>
+          <div><span class="p">$</span> <span class="caret"></span></div>
+        </div>
+      </article>
+      <a class="more" href="how-to/view-a-system-design/#resource-usage">Read about resource usage <span aria-hidden="true">&rarr;</span></a>
+    </section>
+
     <!-- Data Inspector -->
     <section class="block wrap" id="data-inspector">
       <p class="marker reveal" style="--c: var(--chart-7)"><span>Debug &middot; Data Inspector</span></p>
       <div class="split reveal">
         <h2>Inspect captured data against register definitions.</h2>
         <div class="split-side">
-          <p>Map CSV captures and literals onto real register definitions, then wire operators together to decode,
-            combine, and transform values.</p>
+          <p>Map CSV captures and literals onto real register and port field definitions, then wire operators together
+            to decode, combine, and transform values.</p>
         </div>
       </div>
       <div class="tour editor-tour reveal" data-tour>
@@ -2355,15 +3094,17 @@
       <div class="sheet">
         <div class="sheet-row reveal">
           <span class="addr mono">0x00</span>
-          <h3>Vendor project generation</h3>
-          <p>Complete RTL projects with bus wrappers, constraints, packaging metadata, testbenches, and scripts for
-            Vivado or Quartus.</p>
+          <h3>Vendor project generation &amp; builds</h3>
+          <p>Complete RTL projects with bus wrappers, timing constraints, packaging metadata, testbenches, and scripts
+            for Vivado or Quartus &mdash; plus headless builds with timing and utilization reports.
+            <a href="how-to/building-a-project/">Read the guide</a></p>
         </div>
         <div class="sheet-row reveal">
           <span class="addr mono">0x04</span>
           <h3>Consistency checks</h3>
           <p>Cross-check the specification, the top-level HDL, and the vendor artifacts to catch mismatches before
-            integration. <a href="how-to/check-consistency/">Read the guide</a></p>
+            integration, surfaced directly in the Issues panel.
+            <a href="how-to/check-consistency/">Read the guide</a></p>
         </div>
         <div class="sheet-row reveal">
           <span class="addr mono">0x08</span>
@@ -2384,6 +3125,13 @@
           <p>Compact YAML stays at the center. Visual edits preserve your comments and numeric formatting, so diffs stay
             reviewable.</p>
         </div>
+        <div class="sheet-row reveal">
+          <span class="addr mono">0x14</span>
+          <h3>VHDL navigation across cores</h3>
+          <p><code>ipcraft vhdl-ls</code> generates <code>vhdl_ls.toml</code> from the Vivado, Quartus, IP-XACT,
+            <code>_hw.tcl</code>, and <code>.ip.yml</code> files in your repository so go-to-definition works across
+            every core. <a href="how-to/generate-vhdl-ls-config/">Read the guide</a></p>
+        </div>
       </div>
     </section>
 
@@ -2393,8 +3141,8 @@
         <div class="cta-inner">
           <div>
             <h2>Get started with IPCraft.</h2>
-            <p>Install IPCraft, open a block design script or create an IP core with a register map, and generate a
-              working project from your first interface.</p>
+            <p>Install IPCraft, open a block design or create an IP core with a register map, and generate a working
+              project from your first interface.</p>
           </div>
           <div class="cta-row">
             <a class="btn" href="https://marketplace.visualstudio.com/items?itemName=bahonavi.ipcraft-vscode">Install IPCraft</a>
@@ -2406,16 +3154,43 @@
   </main>
 
   <footer class="wrap">
-    <div>
-      <strong>IPCraft</strong>
-      Visual FPGA IP design for VS Code. Open source under the MIT license.
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <strong>
+          <img src="images/ipcraft-logo.svg" alt="" width="24" height="24" />
+          IPCraft
+        </strong>
+        <p>Visual FPGA IP design and offline system analysis for VS Code. Open source under the MIT license.</p>
+      </div>
+      <div class="footer-col">
+        <h4>IP Cores</h4>
+        <ul>
+          <li><a href="#overview">Specification &amp; conversion</a></li>
+          <li><a href="#editors">Visual editors</a></li>
+          <li><a href="#capabilities">Generation, checks &amp; builds</a></li>
+          <li><a href="#cli">Command line &amp; CI</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>System Designs &amp; Debug</h4>
+        <ul>
+          <li><a href="#system-viewer">System Viewer</a></li>
+          <li><a href="#compare">Design comparison</a></li>
+          <li><a href="#resources">Resource usage</a></li>
+          <li><a href="#data-inspector">Data Inspector</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Docs &amp; Project</h4>
+        <ul>
+          <li><a href="introduction/what-is-ipcraft/">Documentation</a></li>
+          <li><a href="reference/command-line/">Command line reference</a></li>
+          <li><a href="https://github.com/bleviet/ipcraft-vscode">GitHub</a></li>
+          <li><a href="https://github.com/bleviet/ipcraft-vscode/issues">Issues</a></li>
+          <li><a href="https://bahonavi.de/">by bahonavi</a></li>
+        </ul>
+      </div>
     </div>
-    <nav aria-label="Footer">
-      <a href="introduction/what-is-ipcraft/">Documentation</a>
-      <a href="reference/commands/">Commands</a>
-      <a href="https://github.com/bleviet/ipcraft-vscode/issues">Issues</a>
-      <a href="https://bahonavi.de/">by bahonavi</a>
-    </nav>
   </footer>
 
   <script>
@@ -2446,6 +3221,169 @@
     themeToggle.addEventListener('click', () =>
       applyTheme(root.dataset.theme === 'dark' ? 'light' : 'dark', true)
     );
+
+    // Domain dropdown menus (click, keyboard, and hover on fine pointers)
+    const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
+    const dropdownItems = Array.from(document.querySelectorAll('[data-nav-dropdown]')).map((item) => {
+      const trigger = item.querySelector('.nav-trigger');
+      const menu = item.querySelector('.nav-dropdown');
+      const sections = new Set((item.dataset.dropdownSections || '').split(',').filter(Boolean));
+      return { item, trigger, menu, sections, closeTimer: null, hoverOpenedAt: 0 };
+    });
+
+    function setDropdownOpen(entry, open) {
+      clearTimeout(entry.closeTimer);
+      if (open) {
+        dropdownItems.forEach((other) => {
+          if (other !== entry) {
+            clearTimeout(other.closeTimer);
+            other.item.classList.remove('is-open');
+            other.trigger.setAttribute('aria-expanded', 'false');
+            other.hoverOpenedAt = 0;
+          }
+        });
+      }
+      entry.item.classList.toggle('is-open', open);
+      entry.trigger.setAttribute('aria-expanded', String(open));
+      if (!open) {
+        entry.hoverOpenedAt = 0;
+      }
+    }
+
+    dropdownItems.forEach((entry) => {
+      entry.trigger.addEventListener('click', () => {
+        const isOpen = entry.item.classList.contains('is-open');
+        // If hovering just opened the menu right before clicking, keep it open.
+        if (isOpen && Date.now() - entry.hoverOpenedAt < 450) {
+          entry.hoverOpenedAt = 0;
+          return;
+        }
+        setDropdownOpen(entry, !isOpen);
+      });
+
+      entry.item.addEventListener('mouseenter', () => {
+        if (finePointer.matches) {
+          if (!entry.item.classList.contains('is-open')) {
+            entry.hoverOpenedAt = Date.now();
+          }
+          setDropdownOpen(entry, true);
+        }
+      });
+
+      entry.item.addEventListener('mouseleave', () => {
+        if (finePointer.matches) {
+          entry.closeTimer = setTimeout(() => setDropdownOpen(entry, false), 160);
+        }
+      });
+
+      entry.menu.querySelectorAll('a').forEach((link) => {
+        link.addEventListener('click', () => setDropdownOpen(entry, false));
+      });
+    });
+
+    // Mobile drawer
+    const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+    const mobileDrawer = document.getElementById('mobileDrawer');
+
+    function setMobileOpen(open) {
+      mobileDrawer.classList.toggle('is-open', open);
+      mobileMenuToggle.setAttribute('aria-expanded', String(open));
+      mobileMenuToggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+    }
+
+    mobileMenuToggle.addEventListener('click', () => {
+      setMobileOpen(!mobileDrawer.classList.contains('is-open'));
+    });
+
+    mobileDrawer.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => setMobileOpen(false));
+    });
+
+    document.addEventListener('click', (event) => {
+      dropdownItems.forEach((entry) => {
+        if (!entry.item.contains(event.target)) {
+          setDropdownOpen(entry, false);
+        }
+      });
+      if (!mobileDrawer.contains(event.target) && !mobileMenuToggle.contains(event.target)) {
+        setMobileOpen(false);
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        dropdownItems.forEach((entry) => {
+          if (entry.item.classList.contains('is-open')) {
+            setDropdownOpen(entry, false);
+            entry.trigger.focus();
+          }
+        });
+        if (mobileDrawer.classList.contains('is-open')) {
+          setMobileOpen(false);
+          mobileMenuToggle.focus();
+        }
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 980 && mobileDrawer.classList.contains('is-open')) {
+        setMobileOpen(false);
+      }
+    });
+
+    // Scroll-spy for the desktop section rail and navbar active state
+    const trackedIds = ['overview', 'editors', 'system-viewer', 'compare', 'resources', 'data-inspector', 'capabilities'];
+    const railLinks = Array.from(document.querySelectorAll('[data-rail-target]'));
+    const navLinks = Array.from(document.querySelectorAll('[data-nav-target]'));
+
+    function setActiveSection(id) {
+      railLinks.forEach((link) => {
+        const active = link.dataset.railTarget === id;
+        link.classList.toggle('is-active', active);
+        if (active) {
+          link.setAttribute('aria-current', 'location');
+        } else {
+          link.removeAttribute('aria-current');
+        }
+      });
+      navLinks.forEach((link) => {
+        link.classList.toggle('is-active', link.dataset.navTarget === id);
+      });
+      dropdownItems.forEach((entry) => {
+        entry.trigger.classList.toggle('is-active', entry.sections.has(id));
+      });
+    }
+
+    const trackedSections = trackedIds
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+
+    function updateActiveSection() {
+      const marker = window.innerHeight * 0.35;
+      let current = '';
+      for (const section of trackedSections) {
+        if (section.getBoundingClientRect().top <= marker) {
+          current = section.id;
+        }
+      }
+      setActiveSection(current);
+    }
+
+    let spyTicking = false;
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (!spyTicking) {
+          spyTicking = true;
+          requestAnimationFrame(() => {
+            updateActiveSection();
+            spyTicking = false;
+          });
+        }
+      },
+      { passive: true }
+    );
+    updateActiveSection();
 
     const revealTargets = document.querySelectorAll('.reveal');
     if ('IntersectionObserver' in window) {
@@ -2599,6 +3537,7 @@
       document.addEventListener('visibilitychange', schedule);
       render();
     });
+
     // Overview hub: light up one route through the core at a time. It cycles on its
     // own until the visitor picks a route.
     document.querySelectorAll('[data-hub]').forEach((hub) => {
