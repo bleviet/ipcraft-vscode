@@ -5,26 +5,39 @@ const INSPECTOR_MIN_WIDTH = 240;
 const INSPECTOR_MAX_WIDTH = 640;
 const INSPECTOR_DEFAULT_WIDTH = 288;
 
-function readStoredWidth(): number {
+function readStoredWidth(defaultWidth: number, minInitialWidth: number): number {
   try {
     const stored = sessionStorage.getItem(INSPECTOR_WIDTH_KEY);
     if (stored) {
       const width = parseInt(stored, 10);
       if (width >= INSPECTOR_MIN_WIDTH && width <= INSPECTOR_MAX_WIDTH) {
-        return width;
+        return Math.max(width, minInitialWidth);
       }
     }
   } catch {
     // sessionStorage may be unavailable in some webview contexts
   }
-  return INSPECTOR_DEFAULT_WIDTH;
+  return defaultWidth;
 }
 
-export function useInspectorWidth(): {
+export interface InspectorWidthOptions {
+  /** Width used when no valid width is stored. */
+  defaultWidth?: number;
+  /** A stored width is raised to at least this at mount; dragging can still go down to the minimum. */
+  minInitialWidth?: number;
+}
+
+/** Resizable side-panel width, kept in sessionStorage and shared by the right-hand panels. */
+export function useInspectorWidth({
+  defaultWidth = INSPECTOR_DEFAULT_WIDTH,
+  minInitialWidth = INSPECTOR_MIN_WIDTH,
+}: InspectorWidthOptions = {}): {
   panelWidth: number;
   handleResizeMouseDown: (event: React.MouseEvent) => void;
 } {
-  const [panelWidth, setPanelWidth] = useState(readStoredWidth);
+  const [panelWidth, setPanelWidth] = useState(() =>
+    readStoredWidth(defaultWidth, minInitialWidth)
+  );
   const panelWidthRef = useRef(panelWidth);
 
   const handleResizeMouseDown = useCallback((event: React.MouseEvent) => {
