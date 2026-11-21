@@ -20,6 +20,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 ### Changed
 
 - **The IP core editor matches the system viewer's look.** Clocks are now orange, resets red and interrupts purple, as in the system viewer, on the canvas, in the inspector and in exported images. A bus interface connects to the block with a small square, a signal with a small circle, and the block header is a neutral band with the core name in the editor's UI font.
+- **Clock domains have the system viewer's colors.** With several clocks, the IP core editor colors each clock domain with the same theme colors as the system viewer, on the canvas and in exported images.
 
 ### Fixed
 
@@ -28,6 +29,7 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 - **Quartus build results show timing and utilization.** After a Quartus Build, the reports tree showed no timing or utilization, or reported timing as met for a design that failed it. It now reads the real Quartus reports and shows the maximum clock frequency (Fmax), whether timing passes, and the logic, register, memory and DSP usage. Timing passes only when every slack in every corner, including recovery, removal and minimum pulse width, is zero or better.
 - **The timing constraints of a generated Quartus project are applied.** The project could not find its `.sdc` file, so Quartus analysed every clock at its 1 GHz default and reported failing timing for a design that meets it at the clock you declared. The project also wrote its reports to `altera/build/` instead of `altera/build/output_files/`, where IPCraft and the documentation expect them.
 - **Vivado build results show the device totals.** After a Vivado Build, the utilization in the reports tree showed an available device total of 0 for LUTs, registers, block RAM and DSPs, so no share of the device could be computed. It now shows the real totals, and a row whose share is written as `<0.01` is no longer skipped.
+- **Check Consistency opens the Issues panel again.** Clicking Check Consistency in the IP core editor's toolbar opens the Issues panel when it finds differences, with the findings listed under their source.
 
 ### Before you upgrade
 

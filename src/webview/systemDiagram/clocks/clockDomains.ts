@@ -7,6 +7,7 @@
  * the script sets (rules in `clockRules.ts`).
  */
 
+import { DOMAIN_COLORS } from '../../../shared/clockDomainColors';
 import type {
   PinRef,
   SystemGraph,
@@ -26,16 +27,6 @@ import {
 } from './clockRules';
 import type { PhysicalNet, PhysicalNets, PinEnd } from './physicalNets';
 import { UnionFind } from './unionFind';
-
-/** Domain colors in creation order, cycling. */
-export const DOMAIN_COLORS: readonly string[] = [
-  'var(--vscode-charts-blue)',
-  'var(--vscode-charts-purple)',
-  'var(--vscode-terminal-ansiCyan)',
-  'var(--vscode-terminal-ansiMagenta)',
-  'var(--vscode-charts-green)',
-  'var(--vscode-charts-orange)',
-];
 
 type NetLookup = ReadonlyMap<string, readonly SystemNet[]>;
 

@@ -1,5 +1,5 @@
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
+import { DOMAIN_COLORS } from '../../../../shared/clockDomainColors';
 import { clockDecor } from '../../../../webview/systemDiagram/clockDecor';
 import { highlightedPinsByNode } from '../../../../webview/systemDiagram/pinHighlight';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';

@@ -2816,17 +2816,6 @@
   background: var(--vscode-button-secondaryHoverBackground);
 }
 
-.staging-btn-overwrite {
-  font-size: 11px;
-  padding: 2px 8px;
-  background: var(--vscode-button-secondaryBackground);
-  color: var(--vscode-button-secondaryForeground);
-}
-
-.staging-btn-overwrite:hover {
-  background: var(--vscode-button-secondaryHoverBackground);
-}
-
 .staging-action-choice--active {
   background: var(--vscode-button-background);
   color: var(--vscode-button-foreground);

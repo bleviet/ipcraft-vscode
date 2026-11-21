@@ -1,5 +1,5 @@
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
+import { DOMAIN_COLORS } from '../../../../shared/clockDomainColors';
 import { crossingEndKeys } from '../../../../webview/systemDiagram/clocks/crossingSummary';
 import { UNRELEASED_RESET_COLOR } from '../../../../webview/systemDiagram/clocks/domainView';
 import { edgeMarks } from '../../../../webview/systemDiagram/clocks/edgeView';

@@ -85,7 +85,7 @@ export interface Palette {
   /** `--vscode-editorWarning-foreground`: clock domain crossings. */
   warning: string;
   /**
-   * The `--vscode-*` tokens the clock domain colors use (clockDomains.ts `DOMAIN_COLORS`,
+   * The `--vscode-*` tokens the clock domain colors use (`shared/clockDomainColors.ts` `DOMAIN_COLORS`,
    * domainView.ts `UNRELEASED_RESET_COLOR`), by name without `var()`; see {@link resolveColor}.
    */
   tokens: Readonly<Record<string, string>>;

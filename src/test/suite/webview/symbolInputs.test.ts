@@ -1,5 +1,5 @@
+import { DOMAIN_COLORS } from '../../../shared/clockDomainColors';
 import {
-  CLOCK_DOMAIN_COLORS,
   clockDomainColor,
   computeSymbolLayout,
   hasMultipleClockDomains,
@@ -37,8 +37,8 @@ describe('clockDomainColor', () => {
   it('colors by domain only when the core has several clocks', () => {
     expect(clockDomainColor(0, false)).toBeUndefined();
     expect(clockDomainColor(-1, true)).toBeUndefined();
-    expect(clockDomainColor(1, true)).toBe(CLOCK_DOMAIN_COLORS[1]);
-    expect(clockDomainColor(CLOCK_DOMAIN_COLORS.length, true)).toBe(CLOCK_DOMAIN_COLORS[0]);
+    expect(clockDomainColor(1, true)).toBe(DOMAIN_COLORS[1]);
+    expect(clockDomainColor(DOMAIN_COLORS.length, true)).toBe(DOMAIN_COLORS[0]);
   });
 
   it('detects several clock domains', () => {

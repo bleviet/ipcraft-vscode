@@ -152,3 +152,82 @@ describe('useIssuesSession host report lifetime', () => {
     expect(result.current.importSaveBlocked).toBe(true);
   });
 });
+
+describe('useIssuesSession reveal request', () => {
+  const consistencyIssues = [
+    {
+      code: 'CONSISTENCY_WIDTH_MISMATCH',
+      severity: 'warning' as const,
+      source: 'hdl' as const,
+      path: ['ports', 0],
+      message: 'width differs',
+    },
+  ];
+
+  function render(initial: { revealRequest: number }) {
+    const onSelectElement = jest.fn();
+    const hook = renderHook(
+      ({ revealRequest, issues }) =>
+        useIssuesSession({
+          ipCore: core('test'),
+          revision: 'test',
+          validationErrors: [],
+          consistencyIssues: issues,
+          revealRequest,
+          onSelectElement,
+          onSelectSubPort: jest.fn(),
+        }),
+      { initialProps: { ...initial, issues: [] as typeof consistencyIssues } }
+    );
+    return { ...hook, onSelectElement };
+  }
+
+  it('opens the panel once per request, on the issues that arrived with it', () => {
+    const { result, rerender, onSelectElement } = render({ revealRequest: 0 });
+    expect(result.current.showIssues).toBe(false);
+
+    rerender({ revealRequest: 1, issues: consistencyIssues });
+    expect(result.current.showIssues).toBe(true);
+    expect(onSelectElement).toHaveBeenCalledWith('port:0');
+
+    act(() => result.current.setShowIssues(false));
+    rerender({ revealRequest: 1, issues: consistencyIssues });
+    expect(result.current.showIssues).toBe(false);
+
+    rerender({ revealRequest: 2, issues: consistencyIssues });
+    expect(result.current.showIssues).toBe(true);
+  });
+
+  it('focuses the consistency finding, not an earlier error elsewhere in the core', () => {
+    const onSelectElement = jest.fn();
+    const { result } = renderHook(() =>
+      useIssuesSession({
+        ipCore: core('test'),
+        revision: 'test',
+        validationErrors: [],
+        consistencyIssues: [
+          {
+            code: 'PROTOCOL_TEST',
+            severity: 'error',
+            source: 'protocol',
+            path: ['busInterfaces', 0],
+            message: 'protocol error',
+          },
+          ...consistencyIssues,
+        ],
+        revealRequest: 1,
+        onSelectElement,
+        onSelectSubPort: jest.fn(),
+      })
+    );
+    expect(result.current.showIssues).toBe(true);
+    expect(onSelectElement).toHaveBeenCalledTimes(1);
+    expect(onSelectElement).toHaveBeenCalledWith('port:0');
+  });
+
+  it('does not open the panel for a request of zero', () => {
+    const { result, rerender } = render({ revealRequest: 0 });
+    rerender({ revealRequest: 0, issues: consistencyIssues });
+    expect(result.current.showIssues).toBe(false);
+  });
+});

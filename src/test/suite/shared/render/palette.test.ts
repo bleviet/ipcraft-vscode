@@ -4,7 +4,7 @@ import {
   resolveColor,
   type RenderTheme,
 } from '../../../../shared/render/palette';
-import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
+import { DOMAIN_COLORS } from '../../../../shared/clockDomainColors';
 import { UNRELEASED_RESET_COLOR } from '../../../../webview/systemDiagram/clocks/domainView';
 
 describe('resolveColor', () => {

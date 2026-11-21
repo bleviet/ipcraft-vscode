@@ -102,6 +102,56 @@ busInterfaces:
     ).toBeVisible();
   });
 
+  test.describe('consistency results', () => {
+    const hdlIssueMessage = "Port 'led' is 8 bits in the spec and 4 in the HDL.";
+    const consistencyResult = {
+      type: 'consistencyResult',
+      findings: [
+        {
+          kind: 'width-mismatch',
+          message: hdlIssueMessage,
+          ipYmlPath: ['ports', 0],
+          hdlFile: 'rtl/core.sv',
+          hdlEntity: 'core',
+          severity: 'amber',
+          source: 'hdl',
+        },
+      ],
+      issues: [
+        {
+          code: 'CONSISTENCY_WIDTH_MISMATCH',
+          severity: 'warning',
+          source: 'hdl',
+          path: ['ports', 0],
+          message: hdlIssueMessage,
+        },
+      ],
+      summary: { added: 1, removed: 0, changed: 0 },
+    };
+
+    test('a manual check that finds something opens the Issues panel', async ({ page }) => {
+      await page.evaluate((message) => window.postMessage(message, '*'), consistencyResult);
+
+      const issuesPanel = page.getByRole('complementary', { name: 'Issues' });
+      await expect(issuesPanel).toBeVisible();
+      await expect(issuesPanel.getByRole('button', { name: hdlIssueMessage })).toBeVisible();
+    });
+
+    test('a background check lists its findings without opening the Issues panel', async ({
+      page,
+    }) => {
+      await page.evaluate(
+        (message) => window.postMessage({ ...message, auto: true }, '*'),
+        consistencyResult
+      );
+
+      await expect(
+        page.getByRole('button', { name: /\d+ errors, \d+ warnings/ })
+      ).toHaveAccessibleName('2 errors, 1 warnings');
+      await expect(page.getByRole('complementary', { name: 'Issues' })).toBeHidden();
+    });
+  });
+
   test('keeps preview save enabled while surfacing an unresolved bus warning', async ({ page }) => {
     const unresolvedYaml = `
 vlnv:

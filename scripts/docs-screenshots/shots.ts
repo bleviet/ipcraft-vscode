@@ -409,24 +409,45 @@ export const shots: Shot[] = [
             type: 'stagingStart',
             rootLabel: 'led_controller_avmm',
             files: [
-              { relativePath: 'rtl/led_controller_avmm_pkg.vhd', status: 'new', protected: false },
-              { relativePath: 'rtl/led_controller_avmm.vhd', status: 'new', protected: false },
+              {
+                relativePath: 'rtl/led_controller_avmm_pkg.vhd',
+                status: 'new',
+                protected: false,
+                actions: [],
+              },
+              {
+                relativePath: 'rtl/led_controller_avmm.vhd',
+                status: 'new',
+                protected: false,
+                actions: [],
+              },
               {
                 relativePath: 'rtl/led_controller_avmm_core.vhd',
                 status: 'modified',
                 protected: true,
+                handEdited: true,
+                actions: ['keep', 'overwrite', 'auto-merge'],
+                defaultAction: 'keep',
               },
               {
                 relativePath: 'rtl/led_controller_avmm_avmm.vhd',
                 status: 'modified',
                 protected: false,
+                actions: ['keep', 'overwrite'],
+                defaultAction: 'overwrite',
               },
               {
                 relativePath: 'rtl/led_controller_avmm_regs.vhd',
                 status: 'unchanged',
                 protected: false,
+                actions: [],
               },
-              { relativePath: 'tb/led_controller_avmm_test.py', status: 'new', protected: false },
+              {
+                relativePath: 'tb/led_controller_avmm_test.py',
+                status: 'new',
+                protected: false,
+                actions: [],
+              },
             ],
           },
           '*'
@@ -453,22 +474,22 @@ export const shots: Shot[] = [
     fileName: 'led_controller_avmm.ip.yml',
     mmImportSource: MM_SOURCE,
     viewport: DEFAULT_VIEWPORT,
-    // Drives IpCoreApp.tsx's 'consistencyResult' handler directly, the same
-    // message IpCoreEditorProvider.ts sends after a real cross-check run.
-    // findings.length > 0 auto-opens the ConsistencyOverlay (both share the
-    // .canvas-inspector wrapper with StagingOverlay).
-    clip: '.canvas-inspector',
+    // Drives IpCoreApp.tsx's 'consistencyResult' handler directly, with the
+    // findings and issues IpCoreEditorProvider.ts sends after a real manual
+    // cross-check run (runConsistencyCheck maps each finding to an issue). A
+    // manual result with findings opens the Issues panel by itself.
+    clip: '.issues-panel',
     setup: async (page) => {
       await page.evaluate(() => {
         window.postMessage(
           {
             type: 'consistencyResult',
-            auto: false,
             summary: { added: 1, removed: 0, changed: 1 },
             findings: [
               {
                 kind: 'extra-port',
-                message: "HDL declares 'o_status[3:0]' but the spec has no matching port",
+                message:
+                  "'o_status' exists in led_controller_avmm.vhd (entity/module 'led_controller_avmm') but is not declared in the .ip.yml.",
                 ipYmlPath: ['ports'],
                 hdlFile: 'led_controller_avmm.vhd',
                 hdlEntity: 'led_controller_avmm',
@@ -478,12 +499,31 @@ export const shots: Shot[] = [
               },
               {
                 kind: 'width-mismatch',
-                message: "Port 'o_led' is 1 bit in the spec but 8 bits in the HDL",
-                ipYmlPath: ['ports', 2],
+                message:
+                  "'led' is declared width 8 in the .ip.yml but width 4 in led_controller_avmm.vhd#led.",
+                ipYmlPath: ['ports', 0],
                 hdlFile: 'led_controller_avmm.vhd',
                 hdlEntity: 'led_controller_avmm',
                 severity: 'amber',
                 source: 'hdl',
+              },
+            ],
+            issues: [
+              {
+                code: 'CONSISTENCY_EXTRA_PORT',
+                severity: 'warning',
+                source: 'hdl',
+                path: ['ports'],
+                message:
+                  "'o_status' exists in led_controller_avmm.vhd (entity/module 'led_controller_avmm') but is not declared in the .ip.yml.",
+              },
+              {
+                code: 'CONSISTENCY_WIDTH_MISMATCH',
+                severity: 'warning',
+                source: 'hdl',
+                path: ['ports', 0],
+                message:
+                  "'led' is declared width 8 in the .ip.yml but width 4 in led_controller_avmm.vhd#led.",
               },
             ],
           },

@@ -9,6 +9,7 @@ import type {
   BusInterface as DomainBusInterface,
   Parameter,
 } from '../../../../domain/ipcore.types';
+import { DOMAIN_COLORS } from '../../../../shared/clockDomainColors';
 import {
   canonicalizeBusType,
   normalizeInterfaceMode,
@@ -19,22 +20,12 @@ import {
 import { lookupBusDef, type BusPortDef } from '../../utils/busLibrary';
 import { computeLayout, type CanvasLayout } from './canvasLayout';
 
-/** Distinct colours for clock domains when multiple clocks are defined */
-export const CLOCK_DOMAIN_COLORS = [
-  '#4ec9b0', // teal
-  '#e5a96a', // amber-orange
-  '#dcdcaa', // yellow
-  '#c586c0', // purple
-  '#9cdcfe', // sky blue
-  '#f28b82', // coral
-];
-
 /** The colour of clock domain `idx`, or undefined for a single-clock core or no domain (-1). */
 export function clockDomainColor(idx: number, multiDomain: boolean): string | undefined {
   if (!multiDomain || idx < 0) {
     return undefined;
   }
-  return CLOCK_DOMAIN_COLORS[idx % CLOCK_DOMAIN_COLORS.length];
+  return DOMAIN_COLORS[idx % DOMAIN_COLORS.length];
 }
 
 /** Whether the core has several clocks, so ports are coloured by domain. */

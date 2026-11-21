@@ -1,7 +1,7 @@
 import type { SystemGraph } from '../../../../domain/systemGraph';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import { DOMAIN_COLORS } from '../../../../webview/systemDiagram/clocks/clockDomains';
+import { DOMAIN_COLORS } from '../../../../shared/clockDomainColors';
 import { loadQsysSubsystemGraph, loadQsysTwoClockGraph } from './clockTestGraphs';
 import {
   loadClockFixtureGraph,
