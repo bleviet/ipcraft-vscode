@@ -81,6 +81,10 @@ interface DiagramCanvasProps {
   onToggleExpand: (instancePath: string) => void;
   /** Whether the nodes can be isolated: all of them belong to the level on show. */
   isolatable: (nodeIds: string[]) => boolean;
+  /** Whether the boundary port has a wire to trace. */
+  traceable?: (portId: string) => boolean;
+  /** Goes to the topmost level the wire of a boundary port reaches and selects it there. */
+  onTraceSignal?: (portId: string) => void;
   onFocusNode: (nodeId: string) => void;
   onFit: () => void;
 }
@@ -129,6 +133,8 @@ export function DiagramCanvas({
   onEnterHierarchy,
   onToggleExpand,
   isolatable,
+  traceable,
+  onTraceSignal,
   onFocusNode,
   onFit,
 }: DiagramCanvasProps) {
@@ -292,6 +298,15 @@ export function DiagramCanvas({
             onSelect(nodeSel);
           }
           openMenu(event, [
+            ...(node.type === 'boundary' && onTraceSignal
+              ? [
+                  {
+                    label: 'Trace Signal',
+                    disabled: !traceable?.(node.id),
+                    onSelect: () => onTraceSignal(node.id),
+                  },
+                ]
+              : []),
             ...(isHierarchy(node)
               ? [
                   {

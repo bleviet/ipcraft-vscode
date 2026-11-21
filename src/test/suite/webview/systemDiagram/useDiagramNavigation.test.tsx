@@ -32,6 +32,24 @@ describe('useDiagramNavigation expansion', () => {
     expect(result.current.expanded.size).toBe(0);
   });
 
+  it('expands several blocks at once, keeps the expanded ones, and leaves the level and selection', () => {
+    const { result } = setup();
+    act(() => result.current.select({ kind: 'instance', id: '/axi_dma_0' }));
+    act(() => result.current.toggleExpanded(DSP));
+    act(() => result.current.expandBlocks([DSP, BANK]));
+    expect([...result.current.expanded].sort()).toEqual([DSP, BANK]);
+    expect(result.current.levelPath).toBe('/');
+    expect(result.current.selection).toEqual({ kind: 'instance', id: '/axi_dma_0' });
+  });
+
+  it('keeps the same set when every path to expand is already expanded', () => {
+    const { result } = setup();
+    act(() => result.current.expandBlocks([DSP, BANK]));
+    const before = result.current.expanded;
+    act(() => result.current.expandBlocks([BANK]));
+    expect(result.current.expanded).toBe(before);
+  });
+
   it('ignores a toggle on anything but a hierarchy block', () => {
     const { result } = setup();
     const before = result.current.expanded;
@@ -80,7 +98,7 @@ describe('useDiagramNavigation expansion', () => {
 
     act(() => result.current.revealMatch(FIR));
     expect(result.current.levelPath).toBe('/');
-    expect(result.current.revealRequest).toMatchObject({ levelPath: '/', readable: true });
+    expect(result.current.revealRequest).toMatchObject({ levelPath: '/', zoom: 'readable' });
   });
 
   it('reveals the given node for a net: itself when drawn, else its outermost block', () => {
@@ -89,20 +107,20 @@ describe('useDiagramNavigation expansion', () => {
     act(() => result.current.selectAndReveal(net));
     expect(result.current.revealRequest).toBeNull();
 
-    act(() => result.current.selectAndReveal(net, undefined, true, FIR));
+    act(() => result.current.selectAndReveal(net, undefined, 'readable', FIR));
     expect(result.current.levelPath).toBe('/');
     expect(result.current.selection).toEqual(net);
     expect(result.current.revealRequest).toMatchObject({
       levelPath: '/',
       selection: { kind: 'instance', id: DSP },
-      readable: true,
+      zoom: 'readable',
     });
 
     act(() => result.current.toggleExpanded(DSP));
-    act(() => result.current.selectAndReveal(net, undefined, true, FIR));
+    act(() => result.current.selectAndReveal(net, undefined, 'readable', FIR));
     expect(result.current.revealRequest).toMatchObject({ selection: { id: FIR } });
 
-    act(() => result.current.selectAndReveal(net, undefined, true, boundaryId('/', 'DDR')));
+    act(() => result.current.selectAndReveal(net, undefined, 'readable', boundaryId('/', 'DDR')));
     expect(result.current.revealRequest).toMatchObject({
       selection: { kind: 'boundary', id: boundaryId('/', 'DDR') },
     });

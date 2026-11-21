@@ -52,6 +52,15 @@ The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Un
   block like a double-click. Hierarchy blocks inside a frame can be expanded
   too, and expanded blocks stay expanded when you go to another level and back.
   Isolate works on the blocks of the level on show, not on those inside a frame.
+- **Trace Signal.** Right-click a port of the level on show and choose **Trace
+  Signal** to go to the highest level the wire reaches through the hierarchy above
+  it. The net of the wire is selected there, so the whole connection is
+  highlighted, the block it enters is centred and its pin is marked. The
+  subsystems the wire passes through are expanded in place on the level it lands
+  on, so the whole path is visible, and the view zooms out when needed so the
+  whole expanded block is in view; collapse them as usual. When the wire
+  does not leave the level, the port itself is centred and marked. The item is
+  disabled for a port on no net.
 - **Outline.** Lists the instances of the current design and its external
   ports. Select an item to select it in the diagram and center it. While a
   search is on, it lists the search results instead.
@@ -77,7 +86,9 @@ The toolbar buttons are icons in three groups: **Design** (Clocks and resets, Un
   when you step through its matches or leave the box, and the history lasts while the viewer is open.
 - **Details.** Shows the selected block, net, or port: type, where it is
   defined in the file, the parameters set in the file, and its pins with their
-  nets. Select a line link to open the file at that line.
+  nets. Select a line link to open the file at that line. A port of a hierarchy
+  level you opened also shows its **Connection tree**, with the port marked
+  `THIS PORT`.
 - **Address map.** Lists the address segments found in the design. Select a
   row to select its instance.
 - **Clocks.** Lists the clock domains with their frequencies and the clock

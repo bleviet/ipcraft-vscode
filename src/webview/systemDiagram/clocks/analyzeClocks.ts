@@ -26,6 +26,8 @@ export interface ClockAnalysis {
   domainOfPin: (level: string, ref: PinRef) => ClockDomain | undefined;
   /** The physical net a net belongs to: its member nets on every level, joined across hierarchy pins. */
   physicalOfNet: (netId: string) => PhysicalNet | undefined;
+  /** The physical net a pin occurrence sits on; a hierarchy pin with a net on one side only sits on that net. */
+  physicalOfPin: (level: string, ref: PinRef) => PhysicalNet | undefined;
   /** The reset source a net belongs to. */
   resetOfNet: (netId: string) => ResetSource | undefined;
   resetOfPin: (level: string, ref: PinRef) => ResetSource | undefined;
@@ -60,6 +62,7 @@ export function analyzeClocks(graph: SystemGraph): ClockAnalysis {
     domainOfNet: model.domainOfNet,
     domainOfPin: model.domainOfPin,
     physicalOfNet: physical.ofNet,
+    physicalOfPin: physical.ofPin,
     resetOfNet: sources.resetOfNet,
     resetOfPin: sources.resetOfPin,
     clockOfPin: pinClocks.clockOfPin,

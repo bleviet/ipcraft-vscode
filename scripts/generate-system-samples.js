@@ -16,9 +16,18 @@
  * stream reaches the DSP clock unsynchronized (a flagged CDC); Platform
  * Designer inserts its own adapters, so the `.qsys` lists it as handled.
  *
+ * A second block design, the deep SoC (`--deep`), is for testing how a signal is
+ * traced through many hierarchy levels: `/region<r>/cluster<c>/lane<l>/stage/core`,
+ * five levels below the root, with pin names that differ from level to level.
+ * It wires a stream through every level, a clock that enters one block on two
+ * pins, a feed-through daisy chain, a wire that stops on a middle level, a net
+ * whose first boundary pin leads nowhere, a port on no net, AXI-Lite control
+ * down three levels, and one uniquely named cell (`probe_tap`) at the bottom.
+ *
  * Usage:
  *   node scripts/generate-system-samples.js                 # the standard set
  *   node scripts/generate-system-samples.js --channels 200 [--flat] [--out <dir>]
+ *   node scripts/generate-system-samples.js --deep --regions 4 [--out <dir>]
  *
  * The standard set is written to src/test/fixtures/system-design/generated/.
  * Output is deterministic, so regenerating it leaves the files unchanged.
@@ -33,6 +42,8 @@ const STANDARD_SET = [
   { kind: 'bd', channels: 64, flat: true },
   { kind: 'qsys', channels: 8 },
   { kind: 'qsys', channels: 64 },
+  { kind: 'bd-deep', regions: 2 },
+  { kind: 'bd-deep', regions: 8 },
 ];
 
 const VLNV = {
@@ -61,6 +72,8 @@ const CHANNELS_PER_CTRL_GROUP = 16;
 const CHANNELS_PER_MEM_GROUP = 8;
 const IRQS_PER_CONCAT = 32;
 const HP_PORTS = 4;
+const CLUSTERS_PER_REGION = 4;
+const LANES_PER_CLUSTER = 4;
 /** Every eighth channel carries a deliberate clock domain crossing bug. */
 const MISCLOCKED_EVERY = 8;
 
@@ -421,6 +434,269 @@ function flatten(design) {
   return { levels: { '/': root }, ports: design.ports, addresses };
 }
 
+const clkPin = (name) => ({ name, dir: 'I', type: 'clk' });
+const rstPin = (name) => ({ name, dir: 'I', type: 'rst' });
+const dataPin = (name, dir) => ({ name, dir, type: 'data' });
+const axisPin = (name, intf) => ({ name, intf, vlnv: INTF.axis });
+const axiPin = { name: 'S_AXI', intf: 'Slave', vlnv: INTF.aximm };
+
+/** The bottom of a lane: `stage` holds a `core`, whose pins `cfg`, `status` and `spare` test tracing. */
+function deepStageLevels(withProbe) {
+  const core = bdLevel([
+    axisPin('s_axis_in', 'Slave'),
+    axisPin('m_axis_out', 'Master'),
+    clkPin('clk'),
+    rstPin('rst_n'),
+    dataPin('cfg', 'I'),
+    dataPin('status', 'O'),
+    dataPin('spare', 'I'),
+  ]);
+  cell(core, 'in_fifo', { vlnv: VLNV.fifo }, { FIFO_DEPTH: 512 });
+  cell(core, 'fir', { vlnv: VLNV.fir }, { Data_Width: 16, Coefficient_Width: 16 });
+  cell(core, 'gain', { module: 'gain_stage' }, { GAIN_WIDTH: 12 });
+  if (withProbe) {
+    cell(core, 'probe_tap', { module: 'probe_tap_cell' });
+  }
+  net(core, 's_axis_in_1', true, ['@s_axis_in', 'in_fifo/S_AXIS']);
+  net(core, 'in_fifo_M_AXIS', true, ['in_fifo/M_AXIS', 'fir/S_AXIS_DATA']);
+  net(core, 'fir_M_AXIS_DATA', true, ['fir/M_AXIS_DATA', 'gain/s_axis']);
+  net(core, 'gain_m_axis', true, ['gain/m_axis', '@m_axis_out']);
+  net(core, 'clk_1', false, [
+    '@clk',
+    'in_fifo/s_axis_aclk',
+    'fir/aclk',
+    'gain/clk',
+    ...(withProbe ? ['probe_tap/clk'] : []),
+  ]);
+  net(core, 'rst_n_1', false, ['@rst_n', 'in_fifo/s_axis_aresetn', 'gain/rst_n']);
+  net(core, 'cfg_1', false, ['@cfg', 'gain/cfg_in']);
+  net(core, 'gain_status_out', false, ['gain/status_out', '@status']);
+
+  const stage = bdLevel([
+    axisPin('S_AXIS', 'Slave'),
+    axisPin('M_AXIS', 'Master'),
+    clkPin('aclk'),
+    rstPin('aresetn'),
+    dataPin('cfg', 'I'),
+    dataPin('status', 'O'),
+    dataPin('status_mon', 'O'),
+  ]);
+  cell(stage, 'core', { hier: true });
+  cell(stage, 'stage_ctl', { module: 'stage_ctl' });
+  net(stage, 'S_AXIS_1', true, ['@S_AXIS', 'core/s_axis_in']);
+  net(stage, 'core_m_axis_out', true, ['core/m_axis_out', '@M_AXIS']);
+  net(stage, 'aclk_1', false, ['@aclk', 'core/clk', 'stage_ctl/clk']);
+  net(stage, 'aresetn_1', false, ['@aresetn', 'core/rst_n', 'stage_ctl/rst_n']);
+  net(stage, 'cfg_1', false, ['@cfg', 'core/cfg']);
+  // `status_mon` is listed first and leads nowhere above; `status` is the one that goes up.
+  net(stage, 'core_status', false, ['core/status', '@status_mon', '@status']);
+  return { stage, core };
+}
+
+/** A lane: the stream and the clocks go down to the stage; `dbg_in` and `dbg_out` are tied together. */
+function deepLaneLevel() {
+  const lane = bdLevel([
+    axiPin,
+    clkPin('aclk'),
+    clkPin('mon_clk'),
+    rstPin('aresetn'),
+    axisPin('S_AXIS_RX', 'Slave'),
+    axisPin('M_AXIS_TX', 'Master'),
+    dataPin('dbg_in', 'I'),
+    dataPin('dbg_out', 'O'),
+  ]);
+  cell(lane, 'regs', { vlnv: VLNV.gpio }, { C_GPIO_WIDTH: 8 });
+  cell(lane, 'clk_monitor', { module: 'clk_monitor' });
+  cell(lane, 'lane_cfg', { module: 'lane_cfg' });
+  cell(lane, 'status_led', { module: 'status_led' });
+  cell(lane, 'stage', { hier: true });
+  net(lane, 'S_AXI_1', true, ['@S_AXI', 'regs/S_AXI']);
+  net(lane, 'S_AXIS_RX_1', true, ['@S_AXIS_RX', 'stage/S_AXIS']);
+  net(lane, 'stage_M_AXIS', true, ['stage/M_AXIS', '@M_AXIS_TX']);
+  net(lane, 'aclk_1', false, [
+    '@aclk',
+    'regs/s_axi_aclk',
+    'stage/aclk',
+    'lane_cfg/clk',
+    'status_led/clk',
+  ]);
+  net(lane, 'mon_clk_1', false, ['@mon_clk', 'clk_monitor/clk']);
+  net(lane, 'aresetn_1', false, ['@aresetn', 'regs/s_axi_aresetn', 'stage/aresetn']);
+  net(lane, 'dbg_loop', false, ['@dbg_in', '@dbg_out']);
+  // The wire that stops on this level: a lane cell drives the stage `cfg`.
+  net(lane, 'lane_cfg_out', false, ['lane_cfg/cfg_out', 'stage/cfg']);
+  net(lane, 'stage_status', false, ['stage/status', 'status_led/status_in']);
+  return lane;
+}
+
+/**
+ * A level of `count` hierarchy cells `<prefix><k>` under a control smartconnect, chained by `dbg`.
+ * `own` names the level's clock, reset and second clock pins; `wireChild` adds the nets of one child.
+ */
+function deepGroupLevel(own, count, childPrefix, wireChild, ownPins) {
+  const level = bdLevel(ownPins);
+  cell(level, 'sc', { vlnv: VLNV.smartconnect }, { NUM_SI: 1, NUM_MI: count });
+  net(level, 'S_AXI_1', true, ['@S_AXI', 'sc/S00_AXI']);
+  const clk = [`@${own.clk}`, 'sc/aclk'];
+  const rst = [`@${own.rst}`, 'sc/aresetn'];
+  const aux = [`@${own.aux}`];
+  for (let k = 0; k < count; k++) {
+    const child = `${childPrefix}${k}`;
+    cell(level, child, { hier: true });
+    net(level, `sc_M${pad2(k)}_AXI`, true, [`sc/M${pad2(k)}_AXI`, `${child}/S_AXI`]);
+    clk.push(`${child}/aclk`);
+    rst.push(`${child}/aresetn`);
+    aux.push(`${child}/mon_clk`);
+    net(level, `dbg_${k}`, false, [
+      k === 0 ? '@dbg_in' : `${childPrefix}${k - 1}/dbg_out`,
+      `${child}/dbg_in`,
+    ]);
+    wireChild(level, child, k);
+  }
+  net(level, 'dbg_out_1', false, [`${childPrefix}${count - 1}/dbg_out`, '@dbg_out']);
+  return { level, clk, rst, aux };
+}
+
+/**
+ * A deep SoC: `regions` regions of clusters of lanes, each lane holding a `stage` with a `core`.
+ * Levels are `/region<r>`, `/cluster<c>`, `/lane<l>`, `/stage` and `/core` below each other.
+ */
+function deepDesign(regions) {
+  const root = bdLevel();
+  const levels = { '/': root };
+  const ports = [dataPin('dbg_in', 'I'), dataPin('dbg_out', 'O')];
+  const addresses = [];
+  const lanes = CLUSTERS_PER_REGION * LANES_PER_CLUSTER;
+  const lastLane = regions * lanes - 1;
+  const ps = 'zynq_ultra_ps_e_0';
+
+  cell(
+    root,
+    ps,
+    { vlnv: VLNV.ps },
+    { PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ: 100, PSU__USE__M_AXI_GP0: 1 }
+  );
+  cell(
+    root,
+    'clk_wiz_0',
+    { vlnv: VLNV.clkWiz },
+    { CLKOUT1_REQUESTED_OUT_FREQ: 100, NUM_OUT_CLKS: 1 }
+  );
+  cell(root, 'rst_ctrl_100M', { vlnv: VLNV.reset });
+  cell(root, 'sc_root', { vlnv: VLNV.smartconnect }, { NUM_SI: 1, NUM_MI: regions });
+  net(root, 'ps_M_AXI_HPM0_FPD', true, [`${ps}/M_AXI_HPM0_FPD`, 'sc_root/S00_AXI']);
+  net(root, 'ps_pl_clk0', false, [`${ps}/pl_clk0`, 'clk_wiz_0/clk_in1']);
+  net(root, 'ps_pl_resetn0', false, [
+    `${ps}/pl_resetn0`,
+    'clk_wiz_0/resetn',
+    'rst_ctrl_100M/ext_reset_in',
+  ]);
+  net(root, 'clk_wiz_0_locked', false, ['clk_wiz_0/locked', 'rst_ctrl_100M/dcm_locked']);
+  const rootClk = [
+    'clk_wiz_0/clk_out1',
+    'rst_ctrl_100M/slowest_sync_clk',
+    `${ps}/maxihpm0_fpd_aclk`,
+    'sc_root/aclk',
+  ];
+  const rootRst = ['rst_ctrl_100M/peripheral_aresetn', 'sc_root/aresetn'];
+
+  const regionPins = [
+    axiPin,
+    clkPin('clk'),
+    clkPin('clk_aux'),
+    rstPin('resetn'),
+    dataPin('dbg_in', 'I'),
+    dataPin('dbg_out', 'O'),
+  ];
+  const clusterPins = [axiPin, clkPin('aclk'), clkPin('mon_clk'), rstPin('aresetn')];
+
+  for (let r = 0; r < regions; r++) {
+    const region = deepGroupLevel(
+      { clk: 'clk', rst: 'resetn', aux: 'clk_aux' },
+      CLUSTERS_PER_REGION,
+      'cluster',
+      (level, child, c) => {
+        for (let l = 0; l < LANES_PER_CLUSTER; l++) {
+          net(level, `rx_c${c}_l${l}_1`, true, [`@rx_c${c}_l${l}`, `${child}/rx_l${l}`]);
+          net(level, `${child}_tx_l${l}`, true, [`${child}/tx_l${l}`, `@tx_c${c}_l${l}`]);
+        }
+      },
+      regionPins.concat(
+        Array.from({ length: CLUSTERS_PER_REGION }, (_, c) =>
+          Array.from({ length: LANES_PER_CLUSTER }, (_, l) => [
+            axisPin(`rx_c${c}_l${l}`, 'Slave'),
+            axisPin(`tx_c${c}_l${l}`, 'Master'),
+          ]).flat()
+        ).flat()
+      )
+    );
+    const rp = `/region${r}`;
+    levels[rp] = region.level;
+    cell(root, `region${r}`, { hier: true });
+    net(root, `sc_root_M${pad2(r)}_AXI`, true, [`sc_root/M${pad2(r)}_AXI`, `region${r}/S_AXI`]);
+    rootClk.push(`region${r}/clk`, `region${r}/clk_aux`);
+    rootRst.push(`region${r}/resetn`);
+    net(root, `dbg_${r}`, false, [
+      r === 0 ? '@dbg_in' : `region${r - 1}/dbg_out`,
+      `region${r}/dbg_in`,
+    ]);
+    // The region's clock nets go to its clusters (`clk`) and to their monitors (`clk_aux`).
+    net(region.level, 'clk_1', false, region.clk);
+    net(region.level, 'resetn_1', false, region.rst);
+    net(region.level, 'clk_aux_1', false, region.aux);
+    for (let c = 0; c < CLUSTERS_PER_REGION; c++) {
+      const cp = `${rp}/cluster${c}`;
+      const cluster = deepGroupLevel(
+        { clk: 'aclk', rst: 'aresetn', aux: 'mon_clk' },
+        LANES_PER_CLUSTER,
+        'lane',
+        (level, child, l) => {
+          net(level, `rx_l${l}_1`, true, [`@rx_l${l}`, `${child}/S_AXIS_RX`]);
+          net(level, `${child}_M_AXIS_TX`, true, [`${child}/M_AXIS_TX`, `@tx_l${l}`]);
+        },
+        clusterPins.concat(
+          dataPin('dbg_in', 'I'),
+          dataPin('dbg_out', 'O'),
+          ...Array.from({ length: LANES_PER_CLUSTER }, (_, l) => [
+            axisPin(`rx_l${l}`, 'Slave'),
+            axisPin(`tx_l${l}`, 'Master'),
+          ]).flat()
+        )
+      );
+      levels[cp] = cluster.level;
+      net(cluster.level, 'clk_1', false, cluster.clk);
+      net(cluster.level, 'aresetn_1', false, cluster.rst);
+      net(cluster.level, 'mon_clk_1', false, cluster.aux);
+      for (let l = 0; l < LANES_PER_CLUSTER; l++) {
+        const lp = `${cp}/lane${l}`;
+        const index = (r * CLUSTERS_PER_REGION + c) * LANES_PER_CLUSTER + l;
+        levels[lp] = deepLaneLevel();
+        const { stage, core } = deepStageLevels(index === lastLane);
+        levels[`${lp}/stage`] = stage;
+        levels[`${lp}/stage/core`] = core;
+        ports.push(axisPin(`rx${index}`, 'Slave'), axisPin(`tx${index}`, 'Master'));
+        addresses.push({
+          slave: `region${r}/cluster${c}/lane${l}/regs/S_AXI/Reg`,
+          offset: 0xa0000000 + index * 0x10000,
+        });
+      }
+    }
+  }
+  for (let r = 0; r < regions; r++) {
+    for (let c = 0; c < CLUSTERS_PER_REGION; c++) {
+      for (let l = 0; l < LANES_PER_CLUSTER; l++) {
+        const index = (r * CLUSTERS_PER_REGION + c) * LANES_PER_CLUSTER + l;
+        net(root, `rx${index}_1`, true, [`@rx${index}`, `region${r}/rx_c${c}_l${l}`]);
+        net(root, `region${r}_tx_c${c}_l${l}`, true, [`region${r}/tx_c${c}_l${l}`, `@tx${index}`]);
+      }
+    }
+  }
+  net(root, 'dbg_out_1', false, [`region${regions - 1}/dbg_out`, '@dbg_out']);
+  net(root, 'clk_wiz_0_clk_out1', false, rootClk);
+  net(root, 'rst_ctrl_100M_peripheral_aresetn', false, rootRst);
+  return { levels, ports, addresses };
+}
+
 // ---------------------------------------------------------------------------
 // Block design Tcl writer
 
@@ -723,7 +999,13 @@ function writeQsys({ modules, connections, interfaces }) {
 
 // ---------------------------------------------------------------------------
 
-function generate({ kind, channels, flat }, outDir) {
+function generate({ kind, channels, flat, regions }, outDir) {
+  if (kind === 'bd-deep') {
+    const name = `vivado_deep_soc_${regions}r`;
+    fs.mkdirSync(outDir, { recursive: true });
+    fs.writeFileSync(path.join(outDir, `${name}.tcl`), writeBdTcl(deepDesign(regions), name));
+    return path.join(outDir, `${name}.tcl`);
+  }
   const base = kind === 'bd' ? `vivado_dsp_soc${flat ? '_flat' : ''}` : 'qsys_dsp_soc';
   const name = `${base}_${channels}ch`;
   const fileName = kind === 'bd' ? `${name}.tcl` : `${name}.qsys`;
@@ -746,15 +1028,28 @@ function main(argv) {
   };
   const outDir = path.resolve(value('--out') ?? DEFAULT_OUT);
   const channels = value('--channels');
-  const jobs = channels
-    ? [
-        { kind: 'bd', channels: Number(channels), flat: argv.includes('--flat') },
-        { kind: 'qsys', channels: Number(channels) },
-      ]
-    : STANDARD_SET;
-  if (channels !== undefined && !(Number(channels) >= 1)) {
-    throw new Error(`--channels must be a positive number, got ${channels}`);
+  const regions = value('--regions');
+  const deep = argv.includes('--deep');
+  const count = (flag, text) => {
+    if (!(Number.isInteger(Number(text)) && Number(text) >= 1)) {
+      throw new Error(`${flag} must be a positive integer, got ${text}`);
+    }
+    return Number(text);
+  };
+  if (deep && (channels !== undefined || argv.includes('--flat'))) {
+    throw new Error('--deep cannot be combined with --channels or --flat');
   }
+  if (!deep && regions !== undefined) {
+    throw new Error('--regions needs --deep');
+  }
+  const jobs = deep
+    ? [{ kind: 'bd-deep', regions: count('--regions', regions) }]
+    : channels !== undefined
+      ? [
+          { kind: 'bd', channels: count('--channels', channels), flat: argv.includes('--flat') },
+          { kind: 'qsys', channels: count('--channels', channels) },
+        ]
+      : STANDARD_SET;
   for (const job of jobs) {
     const file = generate(job, outDir);
     process.stdout.write(`${path.relative(process.cwd(), file)}\n`);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import { getViewportForBounds, useReactFlow, useStoreApi } from '@xyflow/react';
 import { diagramBounds, nodeBounds } from '../layout/diagramBounds';
 import { nodeCenter } from '../layout/nodeCenter';
-import { revealZoom } from '../layout/revealZoom';
+import { revealZoom, wholeZoom } from '../layout/revealZoom';
 import {
   anchoredViewport,
   decideViewportAction,
@@ -30,7 +30,8 @@ export interface DiagramViewport {
  * the current level (Fit button); it also runs when `resizeKey` changes (a
  * panel was shown or hidden), once the canvas has its new size. A reveal
  * request centres its node at the current zoom (a readable one for search
- * steps: see `revealZoom`) once its level is shown (after the policy above
+ * steps: see `revealZoom`; one that shows the whole node for Trace Signal: see
+ * `wholeZoom`) once its level is shown (after the policy above
  * applied) and its node is in the layout; until then it waits, for example
  * while an isolated layout that hides the node is still displayed.
  * `focusNode` zooms to one node of the current level, badges included
@@ -117,7 +118,7 @@ export function useDiagramViewport(
         return;
       }
       let zoom = getViewport().zoom;
-      const node = reveal.readable && layout.nodes.find((n) => n.id === reveal.selection.id);
+      const node = reveal.zoom && layout.nodes.find((n) => n.id === reveal.selection.id);
       if (node) {
         const { width, height, minZoom, maxZoom } = store.getState();
         const fit = getViewportForBounds(
@@ -128,7 +129,7 @@ export function useDiagramViewport(
           maxZoom,
           FOCUS_PADDING
         );
-        zoom = revealZoom(zoom, fit.zoom);
+        zoom = reveal.zoom === 'whole' ? wholeZoom(zoom, fit.zoom) : revealZoom(zoom, fit.zoom);
       }
       void setCenter(target.x, target.y, { zoom });
     };

@@ -14,6 +14,7 @@ import { compareOf, zynqDiff, zynqGraph, zynqUnion } from './compareFixtures';
 import {
   fixtureText,
   loadClockFixtureGraph,
+  loadDeepGraph,
   loadFixtureGraph,
   loadReviewFixtureGraph,
   loadVersalClockGraph,
@@ -215,17 +216,19 @@ function openPanels(): void {
 
 /**
  * Renders the app with a graph; `panelsOpen: false` keeps the initial hidden panels.
- * `ready` is the node whose presence says the level is drawn.
+ * `ready` is the node whose presence says the level is drawn; `timeout` is how long to wait for it
+ * (a large design takes longer to lay out).
  */
 async function renderWithGraph({
   panelsOpen = true,
   design = graph,
   ready = '/axi_dma_0',
-}: { panelsOpen?: boolean; design?: typeof graph; ready?: string } = {}) {
+  timeout,
+}: { panelsOpen?: boolean; design?: typeof graph; ready?: string; timeout?: number } = {}) {
   render(<SystemDiagramApp />);
   send({ type: 'graph', graph: design });
   await waitFor(() => expect(screen.getByTestId('flow')).toBeInTheDocument());
-  await screen.findByTestId(`node:${ready}`);
+  await screen.findByTestId(`node:${ready}`, {}, { timeout });
   if (panelsOpen) {
     openPanels();
   }
@@ -689,6 +692,138 @@ describe('SystemDiagramApp', () => {
     expect(details().getByRole('button', { name: 'Conn1' })).toBeVisible();
   });
 
+  describe('connection of a boundary port', () => {
+    async function openDspPort(name: string, design = graph) {
+      await renderWithGraph({ design });
+      fireEvent.click(outline().getByRole('button', { name: /^dsp_pipeline/ }));
+      fireEvent.click(details().getByRole('button', { name: 'Open hierarchy' }));
+      await screen.findByTestId('node:/dsp_pipeline/axis_data_fifo_0');
+      fireEvent.click(await screen.findByTestId(`node:/dsp_pipeline::${name}`));
+    }
+
+    it('traces a port of the opened level up to its driver and marks it', async () => {
+      await openDspPort('S_AXIS');
+
+      expect(details().getByText('Connection tree · 2 ends')).toBeVisible();
+      expect(details().getByText('source').parentElement).toHaveTextContent(
+        'source axi_dma_0/M_AXIS_MM2S'
+      );
+      const here = details().getAllByText('THIS PORT');
+      expect(here).toHaveLength(1);
+      expect(here[0].closest('li')).toHaveTextContent('dsp_pipeline/S_AXIS');
+      expect(details().queryByText(/^Not connected in/)).not.toBeInTheDocument();
+
+      fireEvent.click(details().getByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' }));
+      expect(details().getByRole('heading', { name: 'axi_dma_0_M_AXIS_MM2S' })).toBeVisible();
+      await screen.findByTestId('node:/axi_dma_0');
+      expect(screen.queryByTestId('node:/dsp_pipeline/axis_data_fifo_0')).not.toBeInTheDocument();
+    });
+
+    it('goes to the topmost net of a port with Trace Signal and centres the block it enters', async () => {
+      await openDspPort('S_AXIS');
+      mockSetCenter.mockClear();
+      fireEvent.contextMenu(screen.getByTestId('node:/dsp_pipeline::S_AXIS'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Trace Signal' }));
+
+      expect(await screen.findByRole('heading', { name: 'axi_dma_0_M_AXIS_MM2S' })).toBeVisible();
+      await screen.findByTestId('node:/axi_dma_0');
+      // The block the wire went through is a frame on the root level.
+      await screen.findByTestId('node:/dsp_pipeline/axis_data_fifo_0');
+      const crumbs = within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+      expect(crumbs.getByText(graph.name)).toHaveAttribute('aria-current', 'page');
+      // The reveal centres the frame the block became.
+      const input = buildElkInput(graph, '/', {
+        measure: appMeasure,
+        expanded: new Set(['/dsp_pipeline']),
+      });
+      const layout = toFlowElements(await runElkLayout(input), graph, '/', appMeasure);
+      const center = nodeCenter(layout, '/dsp_pipeline')!;
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalled());
+      const halos = screen
+        .getByTestId('node:/dsp_pipeline')
+        .parentElement!.querySelectorAll('.sd-pin-halo');
+      expect(halos).toHaveLength(1);
+      expect(halos[0].parentElement).toHaveTextContent('S_AXIS');
+      expect(mockSetCenter.mock.calls.at(-1)!.slice(0, 2)).toEqual([center.x, center.y]);
+    });
+
+    it('offers Trace Signal only on ports, disabled when the port is on no net', async () => {
+      const review = loadReviewFixtureGraph();
+      await renderWithGraph({ design: review });
+      fireEvent.contextMenu(screen.getByTestId('node:/::ext_out'));
+      expect(screen.getByRole('menuitem', { name: 'Trace Signal' })).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      fireEvent.keyDown(document.body, { key: 'Escape' });
+      fireEvent.contextMenu(screen.getByTestId('node:/axi_dma_0'));
+      expect(screen.queryByRole('menuitem', { name: 'Trace Signal' })).toBeNull();
+    });
+
+    it('shows no connection tree or note for a root-level port', async () => {
+      await renderWithGraph();
+      fireEvent.click(outline().getByRole('button', { name: /^DDR/ }));
+
+      expect(details().getByRole('heading', { name: 'DDR' })).toBeVisible();
+      expect(details().queryByText(/^Connection tree/)).not.toBeInTheDocument();
+      expect(details().queryByText(/^Not connected in/)).not.toBeInTheDocument();
+    });
+
+    it('says when the port has no connection on the level above', async () => {
+      const edited = JSON.parse(JSON.stringify(graph)) as typeof graph;
+      edited.nets = edited.nets.filter((net) => net.id !== '/::axi_dma_0_M_AXIS_MM2S');
+      await openDspPort('S_AXIS', edited);
+
+      expect(details().getByText(`Not connected in ${graph.name}.`)).toBeVisible();
+    });
+
+    it('zooms out to show the whole block when the root viewport is restored at a high zoom', async () => {
+      await renderWithGraph();
+      // Let the first fit settle, then zoom in: this viewport is saved and restored on the way back.
+      await act(() => new Promise((resolve) => setTimeout(resolve, 100)));
+      mockViewport = { x: 0, y: 0, zoom: 1.5 };
+      fireEvent.click(outline().getByRole('button', { name: /^dsp_pipeline/ }));
+      fireEvent.click(details().getByRole('button', { name: 'Open hierarchy' }));
+      await screen.findByTestId('node:/dsp_pipeline/axis_data_fifo_0');
+      mockSetCenter.mockClear();
+      fireEvent.contextMenu(screen.getByTestId('node:/dsp_pipeline::S_AXIS'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Trace Signal' }));
+
+      await screen.findByTestId('node:/axi_dma_0');
+      await waitFor(() => expect(mockSetCenter).toHaveBeenCalled());
+      // The zoom at which the expanded block fits the mocked 1000 x 800 canvas.
+      const input = buildElkInput(graph, '/', {
+        measure: appMeasure,
+        expanded: new Set(['/dsp_pipeline']),
+      });
+      const layout = toFlowElements(await runElkLayout(input), graph, '/', appMeasure);
+      const frame = layout.nodes.find((node) => node.id === '/dsp_pipeline')!;
+      const fit = jest
+        .requireActual<typeof import('@xyflow/react')>('@xyflow/react')
+        .getViewportForBounds(nodeBounds(frame), 1000, 800, 0.05, 2, 0.25);
+      expect(fit.zoom).toBeLessThan(1.5);
+      const { zoom } = mockSetCenter.mock.calls.at(-1)![2] as { zoom: number };
+      expect(zoom).toBeCloseTo(fit.zoom);
+    });
+
+    it('expands nothing when the wire of the port stays on its level', async () => {
+      const edited = JSON.parse(JSON.stringify(graph)) as typeof graph;
+      edited.nets = edited.nets.filter((net) => net.id !== '/::axi_dma_0_M_AXIS_MM2S');
+      await openDspPort('S_AXIS', edited);
+      fireEvent.contextMenu(screen.getByTestId('node:/dsp_pipeline::S_AXIS'));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Trace Signal' }));
+
+      expect(await screen.findByRole('heading', { name: 'Conn1' })).toBeVisible();
+      const crumbs = within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+      expect(crumbs.getByText('dsp_pipeline')).toHaveAttribute('aria-current', 'page');
+      expect(screen.queryByTestId('node:/axi_dma_0')).not.toBeInTheDocument();
+      expect(screen.getByTestId('node:/dsp_pipeline/axis_data_fifo_0')).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('node:/dsp_pipeline/coeff_bank/config_fifo')
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('lists the endpoints of a data net that stays on one level', async () => {
     await renderWithGraph();
     fireEvent.click(outline().getByRole('button', { name: /^processing_system7_0/ }));
@@ -738,6 +873,49 @@ describe('SystemDiagramApp', () => {
       await waitFor(() => expect(within(nav()).getByText('coeff_bank')).toBeVisible());
       expect(await screen.findByText('2 of 2')).toBeVisible();
     });
+
+    it('traces a port found by search five levels deep up to the root', async () => {
+      const deep = loadDeepGraph(2);
+      const core = '/region1/cluster3/lane3/stage/core';
+      const wait = { timeout: 10000 };
+      await renderWithGraph({ design: deep, ready: '/region0', ...wait });
+      fireEvent.change(searchBox(), { target: { value: 'probe_tap' } });
+      enter();
+      await screen.findByTestId(`node:${core}/probe_tap`, {}, wait);
+
+      fireEvent.contextMenu(screen.getByTestId(`node:${core}::s_axis_in`));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Trace Signal' }));
+
+      await screen.findByTestId('node:/region1', {}, wait);
+      // Every block the wire went through is a frame on the root level.
+      await screen.findByTestId(`node:${core}/probe_tap`, {}, wait);
+      const crumbs = within(screen.getByRole('navigation', { name: 'Hierarchy' }));
+      expect(crumbs.getByText(deep.name)).toHaveAttribute('aria-current', 'page');
+      expect(details().getByRole('heading', { name: 'rx31_1' })).toBeVisible();
+      const halos = screen
+        .getByTestId('node:/region1')
+        .parentElement!.querySelectorAll('.sd-pin-halo');
+      expect(halos).toHaveLength(1);
+      expect(halos[0].parentElement).toHaveTextContent('rx_c3_l3');
+    }, 60000);
+
+    it('keeps a block that was already expanded when tracing expands the path', async () => {
+      const deep = loadDeepGraph(2);
+      const core = '/region1/cluster3/lane3/stage/core';
+      const wait = { timeout: 10000 };
+      await renderWithGraph({ design: deep, ready: '/region0', ...wait });
+      fireEvent.click(screen.getByRole('button', { name: 'Expand region0 in place' }));
+      await screen.findByTestId('node:/region0/sc', {}, wait);
+      fireEvent.change(searchBox(), { target: { value: 'probe_tap' } });
+      enter();
+      await screen.findByTestId(`node:${core}/probe_tap`, {}, wait);
+      fireEvent.contextMenu(screen.getByTestId(`node:${core}::s_axis_in`));
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Trace Signal' }));
+
+      await screen.findByTestId('node:/region1', {}, wait);
+      await screen.findByTestId(`node:${core}/probe_tap`, {}, wait);
+      expect(screen.getByTestId('node:/region0/sc')).toBeInTheDocument();
+    }, 60000);
 
     it('wraps to the last match on Shift+Enter from the first', async () => {
       await search('axi');

@@ -1,4 +1,4 @@
-import { revealZoom } from '../../../../webview/systemDiagram/layout/revealZoom';
+import { revealZoom, wholeZoom } from '../../../../webview/systemDiagram/layout/revealZoom';
 
 describe('revealZoom', () => {
   it('never zooms out', () => {
@@ -13,5 +13,18 @@ describe('revealZoom', () => {
 
   it('does not zoom past the zoom at which the node fits', () => {
     expect(revealZoom(0.2, 0.4)).toBe(0.4);
+  });
+});
+
+describe('wholeZoom', () => {
+  it('zooms out to the fit zoom when the current zoom is larger', () => {
+    expect(wholeZoom(1.7, 0.3)).toBe(0.3);
+    expect(wholeZoom(1, 0.5)).toBe(0.5);
+  });
+
+  it('equals revealZoom otherwise', () => {
+    expect(wholeZoom(0.2, 5)).toBe(0.8);
+    expect(wholeZoom(0.2, 0.4)).toBe(0.4);
+    expect(wholeZoom(1.2, 5)).toBe(revealZoom(1.2, 5));
   });
 });

@@ -24,9 +24,15 @@ export interface RevealRequest {
   token: number;
   selection: Selection;
   levelPath: string;
-  /** Zoom in to a readable size when the node is small (search steps). */
-  readable?: true;
+  zoom?: RevealZoom;
 }
+
+/**
+ * How a reveal sets the zoom. `readable` zooms in to a readable size when the node is small, as
+ * for search steps; `whole` does the same but also zooms out until the node fits, for a block
+ * expanded by Trace Signal.
+ */
+export type RevealZoom = 'readable' | 'whole';
 
 export interface Breadcrumb {
   path: string;

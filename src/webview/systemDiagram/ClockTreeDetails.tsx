@@ -4,7 +4,13 @@ import type { ClockAnalysis } from './clocks/analyzeClocks';
 import type { ClockDomain, ResetSource } from './clocks/clockTypes';
 import { UNRELEASED_RESET_COLOR } from './clocks/domainView';
 import { formatHz, nameWithFrequency } from './clocks/frequency';
-import { netTreeRows, pinRow, type TreePinRow, type TreeRow } from './clocks/netTree';
+import {
+  isBoundaryPinRow,
+  netTreeRows,
+  pinRow,
+  type TreePinRow,
+  type TreeRow,
+} from './clocks/netTree';
 import { endKey, type PhysicalNet } from './clocks/physicalNets';
 import {
   domainRelations,
@@ -25,6 +31,8 @@ interface TreeDetailsProps {
   clocks: ClockAnalysis;
   /** The selected net, which belongs to the tree. */
   net: SystemNet;
+  /** Nets only the base of a comparison has; the tree does not walk them. */
+  ghostNets?: ReadonlySet<string>;
   onSelect: (selection: Selection) => void;
   onReveal: (line: number, uri?: string) => void;
 }
@@ -41,16 +49,18 @@ const ROLE_TEXT: Partial<Record<TreePinRow['role'], string>> = {
 
 interface TreeListProps {
   rows: readonly TreeRow[];
-  selectedNetId: string;
+  selectedNetId?: string;
   /** Color of the tree's guide lines. */
   color: string;
   onSelect: TreeDetailsProps['onSelect'];
   /** The check to print after a load. */
   checkOf: (row: TreePinRow) => RowCheck | undefined;
+  /** Marks the pin row that stands for the port being traced. */
+  isHere?: (row: TreePinRow) => boolean;
 }
 
 /** A tree as indented rows: the nets of each level, the pins on the way, and a check per load. */
-function TreeList({ rows, selectedNetId, color, onSelect, checkOf }: TreeListProps) {
+function TreeList({ rows, selectedNetId, color, onSelect, checkOf, isHere }: TreeListProps) {
   return (
     <ul className="sd-tree" style={{ ['--sd-tree-color' as string]: color }}>
       {rows.map((row, index) => {
@@ -81,6 +91,7 @@ function TreeList({ rows, selectedNetId, color, onSelect, checkOf }: TreeListPro
               {row.label}
             </button>
             {ROLE_TEXT[row.role] && <span className="opacity-60"> {ROLE_TEXT[row.role]}</span>}
+            {isHere?.(row) && <span className="sd-tree-here">THIS PORT</span>}
             {check && <CheckMark check={check} />}
           </li>
         );
@@ -116,11 +127,17 @@ export function ConnectionTree({
   graph,
   physical,
   net,
+  port,
+  ghostNets,
   onSelect,
 }: {
   graph: SystemGraph;
   physical: PhysicalNet;
-  net: SystemNet;
+  net?: SystemNet;
+  /** The boundary pin of a hierarchy level whose connection is traced. */
+  port?: { level: string; pin: string };
+  /** Nets only the base of a comparison has; the tree does not walk them. */
+  ghostNets?: ReadonlySet<string>;
   onSelect: TreeDetailsProps['onSelect'];
 }) {
   const { driver } = physical;
@@ -138,13 +155,15 @@ export function ConnectionTree({
       <TreeList
         rows={netTreeRows(
           graph,
-          physical.driverNet?.id ?? net.id,
-          driver && { instance: driver.instance, pin: driver.pin }
+          physical.driverNet?.id ?? net?.id ?? physical.nets[0].id,
+          driver && { instance: driver.instance, pin: driver.pin },
+          ghostNets
         )}
-        selectedNetId={net.id}
+        selectedNetId={net?.id}
         color="var(--vscode-focusBorder)"
         onSelect={onSelect}
         checkOf={() => undefined}
+        isHere={port && ((row) => isBoundaryPinRow(row, port.level, port.pin))}
       />
     </section>
   );
@@ -156,12 +175,13 @@ export function ClockTreeDetails({
   clocks,
   domain,
   net,
+  ghostNets,
   onSelect,
   onReveal,
 }: TreeDetailsProps & { domain: ClockDomain }) {
   const origin = domain.frequencyFrom;
   const relations = domainRelations(clocks, domain);
-  const rows = netTreeRows(graph, domain.sourceNetId, domain.sourceRef);
+  const rows = netTreeRows(graph, domain.sourceNetId, domain.sourceRef, ghostNets);
   const levelPlural = domain.levels === 1 ? 'level' : 'levels';
   return (
     <div className="space-y-3">
@@ -293,12 +313,13 @@ export function ResetTreeDetails({
   clocks,
   reset,
   net,
+  ghostNets,
   onSelect,
   onReveal,
 }: TreeDetailsProps & { reset: ResetSource }) {
   const checks = resetSinkChecks(clocks, reset);
   const relations = resetRelations(clocks, reset);
-  const rows = netTreeRows(graph, reset.netId, reset.source);
+  const rows = netTreeRows(graph, reset.netId, reset.source, ghostNets);
   const color = reset.domain?.color ?? UNRELEASED_RESET_COLOR;
   const release = reset.async ? (
     'asynchronous'

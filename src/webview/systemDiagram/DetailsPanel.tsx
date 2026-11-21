@@ -13,6 +13,7 @@ import { GhostInstanceDetails, GhostNetDetails, GhostPortDetails } from './Ghost
 import { InstanceChanges } from './InstanceChanges';
 import { InstanceDetails } from './InstanceDetails';
 import { PortClockDetails } from './InstanceClockDetails';
+import { PortConnection } from './PortConnection';
 import { MultiSelectionDetails } from './MultiSelectionDetails';
 import { LineLink } from './LineLink';
 import { levelSource } from './sourceFile';
@@ -82,12 +83,14 @@ function NetDetails({
   graph,
   clocks,
   net,
+  ghostNets,
   onSelect,
   onReveal,
 }: {
   graph: SystemGraph;
   clocks: ClockAnalysis;
   net: SystemNet;
+  ghostNets?: ReadonlySet<string>;
   onSelect: DetailsPanelProps['onSelect'];
   onReveal: (line: number, uri?: string) => void;
 }) {
@@ -109,7 +112,13 @@ function NetDetails({
         <CrossingNote key={crossing.id} crossing={crossing} />
       ))}
       {tree?.kind === 'data' ? (
-        <ConnectionTree graph={graph} physical={tree.physical} net={net} onSelect={onSelect} />
+        <ConnectionTree
+          graph={graph}
+          physical={tree.physical}
+          net={net}
+          ghostNets={ghostNets}
+          onSelect={onSelect}
+        />
       ) : (
         <section>
           <h3 className="sd-h3">Endpoints</h3>
@@ -159,11 +168,10 @@ function BoundaryDetails({
   onReveal: (line: number, uri?: string) => void;
 }) {
   const parameters = Object.entries(pin.parameters);
-  const unconnected = !openNetsByEndpoint(
-    graph,
-    level,
-    comparison?.marks.removedNets ?? new Set()
-  ).has(endpointKey({ instance: null, pin: pin.name }));
+  const removedNets = comparison?.marks.removedNets ?? new Set<string>();
+  const unconnected = !openNetsByEndpoint(graph, level, removedNets).has(
+    endpointKey({ instance: null, pin: pin.name })
+  );
   return (
     <div className="space-y-3">
       <header>
@@ -190,6 +198,16 @@ function BoundaryDetails({
         </p>
       )}
       <PortClockDetails graph={graph} clocks={clocks} level={level} pin={pin} onSelect={onSelect} />
+      {level !== '/' && (
+        <PortConnection
+          graph={graph}
+          clocks={clocks}
+          level={level}
+          pin={pin}
+          removedNets={removedNets}
+          onSelect={onSelect}
+        />
+      )}
       {pin.line !== undefined && (
         <p>
           Declared at{' '}
@@ -254,7 +272,8 @@ export function DetailsPanel({
     } else if (net) {
       const domain = clocks.domainOfNet(net.id);
       const reset = clocks.resetOfNet(net.id);
-      const tree = { graph, clocks, net, onSelect, onReveal };
+      const ghostNets = comparison?.marks.removedNets;
+      const tree = { graph, clocks, net, ghostNets, onSelect, onReveal };
       content = domain ? (
         <ClockTreeDetails {...tree} domain={domain} />
       ) : reset ? (
@@ -264,6 +283,7 @@ export function DetailsPanel({
           graph={graph}
           clocks={clocks}
           net={net}
+          ghostNets={ghostNets}
           onSelect={onSelect}
           onReveal={onReveal}
         />

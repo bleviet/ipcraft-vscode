@@ -6,6 +6,7 @@
  */
 
 import type { PinRef, SystemGraph, SystemNet } from '../../../domain/systemGraph';
+import { openNetsByEndpoint } from '../layout/unionGraph';
 import { boundaryId, endpointKey, netsByEndpoint } from '../model';
 import { passThroughOf } from './clockRules';
 
@@ -40,12 +41,23 @@ export interface TreePinRow {
 
 export type TreeRow = TreeNetRow | TreePinRow;
 
-function levelName(graph: SystemGraph, level: string): string {
+export function levelName(graph: SystemGraph, level: string): string {
   return level === '/' ? graph.name : (graph.levels[level]?.name ?? level);
 }
 
 function sameRef(a: PinRef, b: PinRef): boolean {
   return a.instance === b.instance && a.pin === b.pin;
+}
+
+/**
+ * Whether `row` is where the tree crosses boundary pin `pin` of hierarchy `level`:
+ * the `enter` row seen on the parent level, or the `exit` row seen on the level itself.
+ */
+export function isBoundaryPinRow(row: TreePinRow, level: string, pin: string): boolean {
+  return (
+    row.ref.pin === pin &&
+    (row.ref.instance === level || (row.ref.instance === null && row.level === level))
+  );
 }
 
 /** The pin row of `ref` as seen on `level`. */
@@ -72,13 +84,21 @@ export function pinRow(
  * Rows of the tree that starts at net `netId`, whose pin `source` is the driver
  * (absent when the source is not known: every pin of the net is listed).
  * The net rows start at depth 1; the caller draws the source above them.
+ * Nets in `ghostNets` (what only the base of a comparison has) are not walked.
  */
-export function netTreeRows(graph: SystemGraph, netId: string, source?: PinRef): TreeRow[] {
+export function netTreeRows(
+  graph: SystemGraph,
+  netId: string,
+  source?: PinRef,
+  ghostNets?: ReadonlySet<string>
+): TreeRow[] {
   const nets = new Map<string, ReadonlyMap<string, SystemNet[]>>();
   const netsAt = (level: string, ref: PinRef): SystemNet[] => {
     let lookup = nets.get(level);
     if (!lookup) {
-      lookup = netsByEndpoint(graph, level);
+      lookup = ghostNets
+        ? openNetsByEndpoint(graph, level, ghostNets)
+        : netsByEndpoint(graph, level);
       nets.set(level, lookup);
     }
     return lookup.get(endpointKey(ref)) ?? [];

@@ -6,6 +6,16 @@ attention when you update, for example because generated files change.
 Contributors: the technical changelog, with modules, issues and pull requests,
 is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
+## [Unreleased]
+
+### New
+
+- **Trace a port of a hierarchy block to where it is connected.** In the system viewer, right-click a port of the level you opened (an input or output of the subsystem) and choose **Trace Signal**: the viewer goes to the highest level the wire reaches through the hierarchy above the port, selects it so the whole connection is highlighted, expands the subsystems the wire passes through so the whole path is visible, and centres the block it enters with its pin marked, zooming out when needed so the whole expanded block is in view. Selecting such a port also shows its **Connection tree** in Details, from the driver through every level above and below, with the port marked `THIS PORT`; click a net or pin in the tree to go to its level. A port with no connection on the level above says so, and Trace Signal is disabled for a port on no wire.
+
+### Fixed
+
+- **Connection, clock and reset trees no longer list wires that only the base of a comparison has.** With a comparison on and removed items shown, the tree of a net in Details followed a removed wire, for example the old wire of a rewired hierarchy pin, as if it were part of the open design.
+
 ## [1.6.1] - 2026-11-20
 
 ### New

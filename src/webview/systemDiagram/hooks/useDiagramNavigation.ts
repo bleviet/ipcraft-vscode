@@ -13,6 +13,7 @@ import {
   reconcileNavigation,
   sameSelection,
   type RevealRequest,
+  type RevealZoom,
   type Selection,
 } from '../model';
 
@@ -52,7 +53,7 @@ export function useDiagramNavigation(graph: SystemGraph, ghosts: Ghosts = NO_GHO
    * outermost block containing it when that node is not drawn on the level).
    */
   const selectAndReveal = useCallback(
-    (next: Selection | null, level?: string, readable?: true, revealNode?: string) => {
+    (next: Selection | null, level?: string, zoom?: RevealZoom, revealNode?: string) => {
       select(next, level);
       const target = targetLevel(graph, levelPath, expanded, next, level);
       if (!next || target === undefined) {
@@ -70,7 +71,7 @@ export function useDiagramNavigation(graph: SystemGraph, ghosts: Ghosts = NO_GHO
           token: lastToken.current,
           selection: shown,
           levelPath: target,
-          ...(readable && { readable }),
+          ...(zoom && { zoom }),
         });
       }
     },
@@ -79,7 +80,7 @@ export function useDiagramNavigation(graph: SystemGraph, ghosts: Ghosts = NO_GHO
   /** Search step: select the instance, switch to its level, and centre it at a readable zoom. */
   const revealMatch = useCallback(
     (instancePath: string) =>
-      selectAndReveal({ kind: 'instance', id: instancePath }, undefined, true),
+      selectAndReveal({ kind: 'instance', id: instancePath }, undefined, 'readable'),
     [selectAndReveal]
   );
   const navigate = useCallback((path: string) => {
@@ -111,6 +112,14 @@ export function useDiagramNavigation(graph: SystemGraph, ghosts: Ghosts = NO_GHO
       });
     },
     [graph, ghosts]
+  );
+  /** Expands hierarchy blocks in place and keeps the ones already expanded; the level and selection stay. */
+  const expandBlocks = useCallback(
+    (paths: readonly string[]) =>
+      setExpandedState((current) =>
+        paths.every((path) => current.has(path)) ? current : new Set([...current, ...paths])
+      ),
+    []
   );
   const selectInstance = useCallback(
     (instancePath: string) => selectAndReveal({ kind: 'instance', id: instancePath }),
@@ -180,6 +189,7 @@ export function useDiagramNavigation(graph: SystemGraph, ghosts: Ghosts = NO_GHO
     navigate,
     enterHierarchy,
     toggleExpanded,
+    expandBlocks,
     selectInstance,
   };
 }

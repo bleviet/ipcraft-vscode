@@ -111,3 +111,10 @@ export function loadReviewFixtureGraph(): SystemGraph {
   graph.levels['/'].boundaryPins.push(openPin('ext_out', 'out'));
   return graph;
 }
+
+/** The generated deep SoC (`scripts/generate-system-samples.js --deep`): `regions` regions, five levels below the root. */
+export function loadDeepGraph(regions: 2 | 8): SystemGraph {
+  const file = `vivado_deep_soc_${regions}r.tcl`;
+  const generated = path.resolve(__dirname, '../../../fixtures/system-design/generated', file);
+  return readBdTcl(fs.readFileSync(generated, 'utf8'), file);
+}

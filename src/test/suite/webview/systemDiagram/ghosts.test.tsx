@@ -29,7 +29,7 @@ import { useDiagramNavigation } from '../../../../webview/systemDiagram/hooks/us
 import { stubCanvasSize } from './canvasSize';
 import { clockContextOf } from './clockContext';
 import { compareOf, zynqDiff, zynqGraph } from './compareFixtures';
-import { fakeMeasure } from './fixtureGraph';
+import { fakeMeasure, loadClockFixtureGraph, loadFixtureGraph } from './fixtureGraph';
 import { systemBd, withoutGpioBlock, withoutNestedSlave } from './systemBdEdit';
 
 stubCanvasSize();
@@ -606,5 +606,98 @@ describe('the style of the ghosts', () => {
       /\.sd-port\[data-change='removed'\][^{]*\s*\.sd-port-shape\s*\{[^}]*stroke-dasharray/
     );
     expect(rule(".sd-pin-label[data-change='removed']")).toContain('line-through');
+  });
+});
+
+describe('Details of a boundary port whose wire above is only in the base', () => {
+  it('walks no ghost net and says the port is not connected above', () => {
+    const base = loadFixtureGraph();
+    const now = loadFixtureGraph();
+    now.nets = now.nets.filter((net) => net.id !== '/::axi_dma_0_M_AXIS_MM2S');
+    const { union, marks, rows } = comparison(base, now);
+    expect(marks.removedNets.size).toBeGreaterThan(0);
+    expect(union.graph.nets.some((net) => net.id === 'ghost:/::axi_dma_0_M_AXIS_MM2S')).toBe(true);
+    render(
+      <DetailsPanel
+        graph={union.graph}
+        clocks={analyzeClocks(now)}
+        selection={{ kind: 'boundary', id: '/dsp_pipeline::S_AXIS' }}
+        selectedNodeIds={[]}
+        focusedPin={null}
+        comparison={{ marks, rows }}
+        onSelect={jest.fn()}
+        onEnterHierarchy={jest.fn()}
+        onReveal={jest.fn()}
+        onOpenDefinition={jest.fn()}
+      />
+    );
+    expect(screen.getByText(`Not connected in ${now.name}.`)).toBeVisible();
+    expect(screen.queryByRole('button', { name: 'axi_dma_0_M_AXIS_MM2S' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'axi_dma_0/M_AXIS_MM2S' })).toBeNull();
+  });
+});
+
+describe('Details of a net whose tree met a wire that is only in the base', () => {
+  it('does not walk the old wire of a rewired hierarchy pin', () => {
+    const base = loadFixtureGraph();
+    const now = loadFixtureGraph();
+    // Inside the hierarchy, S_AXIS now feeds the FIR directly, bypassing the FIFO; the base's wire to the FIFO is a ghost.
+    now.nets = now.nets.filter((net) => net.id !== '/dsp_pipeline::axis_data_fifo_0_M_AXIS');
+    const rewired = now.nets.find((net) => net.id === '/dsp_pipeline::Conn1')!;
+    rewired.endpoints = rewired.endpoints.map((ref) =>
+      ref.instance === '/dsp_pipeline/axis_data_fifo_0'
+        ? { instance: '/dsp_pipeline/fir_compiler_0', pin: 'S_AXIS_DATA' }
+        : ref
+    );
+    const { union, marks, rows } = comparison(base, now);
+    expect(union.graph.nets.some((net) => net.id === 'ghost:/dsp_pipeline::Conn1')).toBe(true);
+    render(
+      <DetailsPanel
+        graph={union.graph}
+        clocks={analyzeClocks(now)}
+        selection={{ kind: 'net', id: '/::axi_dma_0_M_AXIS_MM2S' }}
+        selectedNodeIds={[]}
+        focusedPin={null}
+        comparison={{ marks, rows }}
+        onSelect={jest.fn()}
+        onEnterHierarchy={jest.fn()}
+        onReveal={jest.fn()}
+        onOpenDefinition={jest.fn()}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'fir_compiler_0/S_AXIS_DATA' })).toBeVisible();
+    expect(screen.getAllByRole('button', { name: 'Conn1' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'axis_data_fifo_0/S_AXIS' })).toBeNull();
+  });
+
+  it('does not walk a data wire of the base on a pin that is now on a clock', () => {
+    const now = loadClockFixtureGraph();
+    const base = loadClockFixtureGraph();
+    // In the base the hierarchy's `aclk` pin carried data to the FIFO; a ghost of that wire stays on the pin.
+    const old = base.nets.find((net) => net.id === '/dsp_pipeline::aclk_1')!;
+    old.category = 'signal';
+    old.endpoints = [
+      { instance: null, pin: 'aclk' },
+      { instance: '/dsp_pipeline/axis_data_fifo_0', pin: 'S_AXIS' },
+    ];
+    const { union, marks, rows } = comparison(base, now);
+    expect(union.graph.nets.some((net) => net.id === 'ghost:/dsp_pipeline::aclk_1')).toBe(true);
+    render(
+      <DetailsPanel
+        graph={union.graph}
+        clocks={analyzeClocks(now)}
+        selection={{ kind: 'net', id: '/::processing_system7_0_FCLK_CLK0' }}
+        selectedNodeIds={[]}
+        focusedPin={null}
+        comparison={{ marks, rows }}
+        onSelect={jest.fn()}
+        onEnterHierarchy={jest.fn()}
+        onReveal={jest.fn()}
+        onOpenDefinition={jest.fn()}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'axis_data_fifo_0/s_axis_aclk' })).toBeVisible();
+    expect(screen.getAllByRole('button', { name: 'aclk_1' })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'axis_data_fifo_0/S_AXIS' })).toBeNull();
   });
 });

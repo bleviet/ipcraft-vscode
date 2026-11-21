@@ -3,7 +3,7 @@ import type { SystemGraph } from '../../../domain/systemGraph';
 import { levelNodeOf, targetLevel } from '../expansion';
 import { hopDistances, isolationSubset, maxRadius } from '../isolation';
 import { isGhostNode, NO_GHOSTS, openCellCount, type Ghosts } from '../layout/unionGraph';
-import { boundaryId, isLevelNode, type Selection } from '../model';
+import { boundaryId, isLevelNode, type RevealZoom, type Selection } from '../model';
 
 /** The isolated view being shown; a new `token` marks a new isolation or a radius change (it refits the view). */
 export interface IsolatedView {
@@ -38,7 +38,7 @@ interface IsolationNavigation {
   selectAndReveal: (
     next: Selection | null,
     level?: string,
-    readable?: true,
+    zoom?: RevealZoom,
     revealNode?: string
   ) => void;
   revealMatch: (instancePath: string) => void;
@@ -163,9 +163,9 @@ export function useIsolation(
   );
   const { selectAndReveal, revealMatch, selectInstance } = nav;
   const selectAndRevealShown = useCallback(
-    (next: Selection | null, level?: string, readable?: true, revealNode?: string) => {
+    (next: Selection | null, level?: string, zoom?: RevealZoom, revealNode?: string) => {
       endIfHidden(next, level);
-      selectAndReveal(next, level, readable, revealNode);
+      selectAndReveal(next, level, zoom, revealNode);
     },
     [endIfHidden, selectAndReveal]
   );

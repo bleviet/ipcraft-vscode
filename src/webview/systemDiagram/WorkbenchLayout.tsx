@@ -28,12 +28,13 @@ import { usePanelResize } from './hooks/usePanelResize';
 import { useSearchStepper } from './hooks/useSearchStepper';
 import { useUnionGraph } from './hooks/useUnionGraph';
 import type { DiagramProblem } from './messageState';
-import { boundaryId, nodeSelection, type Selection } from './model';
+import { boundaryId, nodeSelection, type RevealZoom, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
 import { ResizeHandle } from './ResizeHandle';
 import { findSeed, matchesInside } from './search';
 import { compileSearch, DEFAULT_SEARCH_OPTIONS } from './searchMatcher';
+import { traceSignalActions } from './traceSignalActions';
 import { unconnectedPins, type FocusedPin, type UnconnectedPin } from './unconnectedPins';
 
 interface WorkbenchLayoutProps {
@@ -183,19 +184,25 @@ export function WorkbenchLayout({
     view.selectAndReveal({ kind: 'boundary', id: boundaryId('/', name) }, '/');
   // Zoom in to a readable size: on a large design the pin is unreadable at the fitted zoom.
   const selectFinding = (finding: UnconnectedPin) => {
-    view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, true);
+    view.selectAndReveal(nodeSelection(finding.nodeId), finding.level, 'readable');
     setFocusedPin({ nodeId: finding.nodeId, pin: finding.pin.name });
   };
   // A row of the Clocks or Resets tab with a pin (a source, or a crossing's sink) centres that
   // pin's block, zooming in when it is unreadable, and haloes the pin.
-  const selectNet = (netId: string, focus?: { nodeId: string; pin: string }) => {
+  const selectNet = (
+    netId: string,
+    focus?: { nodeId: string; pin: string },
+    zoom: RevealZoom = 'readable'
+  ) => {
     if (focus) {
-      view.selectAndReveal({ kind: 'net', id: netId }, undefined, true, focus.nodeId);
+      view.selectAndReveal({ kind: 'net', id: netId }, undefined, zoom, focus.nodeId);
     } else {
       view.selectAndReveal({ kind: 'net', id: netId });
     }
     setFocusedPin(focus ? { ...focus, netId } : null);
   };
+
+  const trace = traceSignalActions(graph, nav.expandBlocks, selectNet);
 
   const { fit, focusNode } = useDiagramViewport(
     layout,
@@ -326,6 +333,8 @@ export function WorkbenchLayout({
               onEnterHierarchy={nav.enterHierarchy}
               onToggleExpand={nav.toggleExpanded}
               isolatable={view.canIsolate}
+              traceable={trace.traceable}
+              onTraceSignal={trace.onTraceSignal}
               onFocusNode={focusNode}
               onFit={fit}
             />

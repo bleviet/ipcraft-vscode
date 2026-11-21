@@ -1,5 +1,10 @@
 import { analyzeClocks } from '../../../../webview/systemDiagram/clocks/analyzeClocks';
-import { netTreeRows, type TreeRow } from '../../../../webview/systemDiagram/clocks/netTree';
+import {
+  isBoundaryPinRow,
+  netTreeRows,
+  type TreePinRow,
+  type TreeRow,
+} from '../../../../webview/systemDiagram/clocks/netTree';
 import {
   domainRelations,
   frequencyCheck,
@@ -184,5 +189,59 @@ describe('relations', () => {
     const ok = netCrossings(analysis, '/::processing_system7_0_M_AXI_GP0');
     expect(ok.map((crossing) => crossing.reason)).toEqual(['Both ends on FCLK_CLK0']);
     expect(netCrossings(analysis, '/::processing_system7_0_FCLK_CLK0')).toEqual([]);
+  });
+});
+
+describe('isBoundaryPinRow', () => {
+  const graph = loadClockFixtureGraph();
+  const analysis = analyzeClocks(graph);
+  const pinRows = (rows: readonly TreeRow[]) =>
+    rows.filter((row): row is TreePinRow => row.kind === 'pin');
+
+  it('matches the enter row of a hierarchy input in the clock tree', () => {
+    const domain = analysis.domains.find((candidate) => candidate.name === 'FCLK_CLK0')!;
+    const rows = pinRows(netTreeRows(graph, domain.sourceNetId, domain.sourceRef));
+    const here = rows.filter((row) => isBoundaryPinRow(row, DSP, 'aclk'));
+    expect(here.map((row) => `${row.role} ${row.label}`)).toEqual(['enter dsp_pipeline/aclk']);
+    expect(rows.some((row) => isBoundaryPinRow(row, DSP, 'dsp_clk'))).toBe(false);
+  });
+
+  it('matches the exit row of a hierarchy output', () => {
+    const inner = graph.nets.find((net) => net.level === DSP && net.name === 'Conn2')!;
+    const source = { instance: `${DSP}/fir_compiler_0`, pin: 'M_AXIS_DATA' };
+    const rows = pinRows(netTreeRows(graph, inner.id, source));
+    const here = rows.filter((row) => isBoundaryPinRow(row, DSP, 'M_AXIS'));
+    expect(here.map((row) => `${row.role} ${row.label}`)).toEqual(['exit M_AXIS']);
+  });
+});
+
+describe('isBoundaryPinRow on a leaf of the same name', () => {
+  it('does not match the load that shares the boundary pin name', () => {
+    const graph = loadClockFixtureGraph();
+    const net = graph.nets.find(
+      (candidate) => candidate.level === DSP && candidate.name === 'Conn1'
+    )!;
+    const rows = netTreeRows(graph, net.id).filter((row): row is TreePinRow => row.kind === 'pin');
+    const leaf = rows.find((row) => row.label === 'axis_data_fifo_0/S_AXIS')!;
+    expect(leaf).toBeDefined();
+    expect(isBoundaryPinRow(leaf, DSP, 'S_AXIS')).toBe(false);
+  });
+});
+
+describe('netTreeRows with ghost nets', () => {
+  const graph = loadClockFixtureGraph();
+  const root = graph.nets.find((net) => net.level === '/' && net.name === 'axi_dma_0_M_AXIS_MM2S')!;
+  const source = { instance: '/axi_dma_0', pin: 'M_AXIS_MM2S' };
+
+  it('does not walk a ghost net below the hierarchy pin, and walks it when no ghosts are given', () => {
+    const inner = graph.nets.find((net) => net.level === DSP && net.name === 'Conn1')!;
+    const ghosts = new Set([inner.id]);
+    const stopped = outline(netTreeRows(graph, root.id, source, ghosts));
+    expect(stopped).toContain('1 enter dsp_pipeline/S_AXIS');
+    expect(stopped.some((row) => row.includes('Conn1'))).toBe(false);
+    expect(stopped.some((row) => row.includes('axis_data_fifo_0'))).toBe(false);
+    const walked = outline(netTreeRows(graph, root.id, source));
+    expect(walked.some((row) => row.includes('Conn1'))).toBe(true);
+    expect(walked.some((row) => row.includes('axis_data_fifo_0/S_AXIS'))).toBe(true);
   });
 });
