@@ -54,10 +54,10 @@ function ctx(extra: Partial<PortDrawContext> = {}): PortDrawContext {
 const options = { palette, grid: true, background: 'editor' as const, fontFaceCss: '' };
 
 describe('portSvg', () => {
-  it('draws a clock stub and dot in the canvas clock color', () => {
+  it('draws a clock stub and dot in the system diagram clock color', () => {
     const svg = portSvg(port({ kind: 'clock', direction: 'in', label: 'clk' }), ctx());
-    expect(svg).toContain(`stroke="${palette.ip.clock}"`);
-    expect(svg).toContain(`fill="${palette.ip.clock}"`);
+    expect(svg).toContain(`stroke="${palette.category.clock}"`);
+    expect(svg).toContain(`fill="${palette.category.clock}"`);
   });
 
   it('draws an active-low reset as an inversion bubble with an L badge', () => {
@@ -65,7 +65,7 @@ describe('portSvg', () => {
       port({ kind: 'reset', direction: 'in', polarity: 'activeLow', label: 'rst_n' }),
       ctx()
     );
-    expect(svg).toContain(`r="4" fill="${palette.ip.bodyFill}" stroke="${palette.ip.reset}"`);
+    expect(svg).toContain(`r="4" fill="${palette.ip.bodyFill}" stroke="${palette.category.reset}"`);
     expect(svg).toContain('>L</text>');
   });
 
@@ -85,12 +85,15 @@ describe('portSvg', () => {
       ctx()
     );
     expect(svg).toContain('>F</text>');
+    expect(svg).toMatch(
+      new RegExp(`<polygon points="1,-5[^>]*fill="${palette.category.interrupt}"`)
+    );
   });
 
   it('replaces the kind color with the clock domain color on every element', () => {
     const domain = ctx({ domainColor: () => DOMAIN });
     const clock = portSvg(port({ kind: 'clock', direction: 'in' }), domain);
-    expect(clock).not.toContain(palette.ip.clock);
+    expect(clock).not.toContain(palette.category.clock);
     // stub, dot, direction arrow and both clock hands
     expect(clock.split(`"${DOMAIN}"`).length - 1).toBe(5);
     const irq = portSvg(port({ kind: 'interrupt', direction: 'out', side: 'right' }), domain);
@@ -99,7 +102,7 @@ describe('portSvg', () => {
     expect(irq).toContain(`points="1,-5 -2,0 1,0 -1,5 2,0 -1,0" fill="${DOMAIN}"`);
     const reset = portSvg(port({ kind: 'reset', direction: 'in', polarity: 'activeLow' }), domain);
     expect(reset).toContain(`stroke="${DOMAIN}"`);
-    expect(reset).not.toContain(`"${palette.ip.reset}"`);
+    expect(reset).not.toContain(`"${palette.category.reset}"`);
   });
 });
 
@@ -109,6 +112,10 @@ describe('busBundleSvg', () => {
   it('shows the expand toggle only for a bus with known signals', () => {
     expect(busBundleSvg(bus, ctx({ expandable: () => true }))).toContain('expand-toggle');
     expect(busBundleSvg(bus, ctx({ expandable: () => false }))).not.toContain('expand-toggle');
+  });
+
+  it('draws the connector as the 8 px square pin marker', () => {
+    expect(busBundleSvg(bus, ctx())).toContain('width="8" height="8" rx="1"');
   });
 
   it('truncates a memory map reference, even a numeric one', () => {

@@ -259,15 +259,14 @@
 }
 
 .ip-block-header {
-  fill: color-mix(in srgb, var(--vscode-focusBorder) 20%, var(--vscode-editor-background));
+  fill: color-mix(in srgb, var(--vscode-foreground) 10%, var(--vscode-editor-background));
 }
 
 .ip-block-name {
   fill: var(--vscode-foreground);
-  font-family: var(--vscode-editor-font-family, monospace);
+  font-family: var(--vscode-font-family);
   font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-weight: 600;
 }
 
 .ip-block-vlnv {
@@ -504,38 +503,38 @@
 
 /* Port kind coloring */
 .canvas-port--clock .canvas-port__stub {
-  stroke: var(--vscode-charts-green, #4ec9b0);
+  stroke: var(--vscode-charts-orange);
 }
 
 .canvas-port--clock .canvas-port__dot {
-  fill: var(--vscode-charts-green, #4ec9b0);
+  fill: var(--vscode-charts-orange);
 }
 
 .canvas-port--reset .canvas-port__stub {
-  stroke: var(--vscode-charts-orange, #ce9178);
+  stroke: var(--vscode-charts-red);
 }
 
 .canvas-port--reset .canvas-port__dot {
-  fill: var(--vscode-charts-orange, #ce9178);
+  fill: var(--vscode-charts-red);
 }
 
 .canvas-port--reset .canvas-port__inversion-bubble {
   fill: var(--vscode-editor-background);
-  stroke: var(--vscode-charts-orange, #ce9178);
+  stroke: var(--vscode-charts-red);
   stroke-width: 1.5;
   opacity: 1;
 }
 
 .canvas-port--interrupt .canvas-port__stub {
-  stroke: var(--vscode-charts-yellow, #e5c07b);
+  stroke: var(--vscode-charts-purple);
 }
 
 .canvas-port--interrupt .canvas-port__dot {
-  fill: var(--vscode-charts-yellow, #e5c07b);
+  fill: var(--vscode-charts-purple);
 }
 
 .canvas-port__icon--interrupt polygon {
-  fill: var(--vscode-charts-yellow, #e5c07b);
+  fill: var(--vscode-charts-purple);
 }
 
 /* Hover state */
@@ -1154,14 +1153,19 @@
 }
 
 .ci-badge--clock {
-  background: color-mix(in srgb, var(--vscode-charts-green, #4ec9b0) 18%, transparent);
-  color: var(--vscode-charts-green, #4ec9b0);
-  border: 1px solid color-mix(in srgb, var(--vscode-charts-green, #4ec9b0) 35%, transparent);
+  background: color-mix(in srgb, var(--vscode-charts-orange) 18%, transparent);
+  color: var(--vscode-charts-orange);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-orange) 35%, transparent);
 }
 .ci-badge--reset {
-  background: color-mix(in srgb, var(--vscode-charts-orange, #ce9178) 18%, transparent);
-  color: var(--vscode-charts-orange, #ce9178);
-  border: 1px solid color-mix(in srgb, var(--vscode-charts-orange, #ce9178) 35%, transparent);
+  background: color-mix(in srgb, var(--vscode-charts-red) 18%, transparent);
+  color: var(--vscode-charts-red);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-red) 35%, transparent);
+}
+.ci-badge--interrupt {
+  background: color-mix(in srgb, var(--vscode-charts-purple) 18%, transparent);
+  color: var(--vscode-charts-purple);
+  border: 1px solid color-mix(in srgb, var(--vscode-charts-purple) 35%, transparent);
 }
 .ci-badge--port {
   background: color-mix(in srgb, var(--vscode-charts-blue, #4facfe) 18%, transparent);

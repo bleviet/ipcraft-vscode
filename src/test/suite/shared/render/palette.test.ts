@@ -103,17 +103,12 @@ describe('IP symbol roles', () => {
     const light = paletteFor('light');
     expect(light.ip.bodyFill).toBe(light.background);
     expect(light.ip.bodyStroke).toBe('#e5e5e5');
-    expect(light.ip.headerFill).toBe(mixSrgb('#005fb8', light.background, 20));
+    expect(light.ip.headerFill).toBe(mixSrgb(light.foreground, light.background, 10));
     expect(light.ip.busBadgeFill).toBe(mixSrgb(light.ip.bus, light.background, 20));
     expect(light.ip.gridDot).toEqual({ color: light.foreground, opacity: 0.1 });
   });
 
-  it('keeps the canvas clock and reset colors, not the system diagram ones', () => {
-    const dark = paletteFor('dark');
-    expect(dark.ip.clock).toBe('#89d185');
-    expect(dark.ip.reset).toBe('#d18616');
-    expect(dark.ip.clock).not.toBe(dark.category.clock);
-    expect(dark.ip.reset).not.toBe(dark.category.reset);
+  it('gives the header fill a different value per theme', () => {
     expect(paletteFor('dark').ip.headerFill).not.toBe(paletteFor('light').ip.headerFill);
   });
 });

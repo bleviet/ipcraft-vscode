@@ -5,6 +5,7 @@
  */
 
 import { STUB_LENGTH, type LayoutPort } from '../../webview/ipcore/components/canvas/canvasLayout';
+import { CIRCLE_MARKER, SQUARE_MARKER, SQUARE_MARKER_RADIUS } from '../pinGlyph';
 import type { Palette } from './palette';
 import { attributes, element, num } from './svg';
 import { drawText, drawTextOnBaseline } from './textSvg';
@@ -34,11 +35,11 @@ const at = (x: number, y: number) => `translate(${num(x)} ${num(y)})`;
 function kindColor(port: LayoutPort, palette: Palette): string {
   switch (port.kind) {
     case 'clock':
-      return palette.ip.clock;
+      return palette.category.clock;
     case 'reset':
-      return palette.ip.reset;
+      return palette.category.reset;
     case 'interrupt':
-      return palette.ip.interrupt;
+      return palette.category.interrupt;
     default:
       return palette.foreground;
   }
@@ -139,7 +140,7 @@ function kindIcon(port: LayoutPort, domain: string | undefined, palette: Palette
     inner =
       element('polygon', {
         points: '1,-5 -2,0 1,0 -1,5 2,0 -1,0',
-        fill: domain ?? palette.ip.interrupt,
+        fill: domain ?? palette.category.interrupt,
       }) +
       badge(badgeX, INTERRUPT_MARKER[port.sensitivity ?? 'LEVEL_HIGH'], palette.ip.yellow, palette);
   }
@@ -175,12 +176,14 @@ export function portSvg(port: LayoutPort, ctx: PortDrawContext): string {
         cy: port.y,
         r: 4,
         fill: palette.ip.bodyFill,
-        stroke: domain ?? palette.ip.reset,
+        stroke: domain ?? palette.category.reset,
         'stroke-width': 1.5,
       })
     );
   } else {
-    parts.push(element('circle', { cx: port.x, cy: port.y, r: 3, fill: color, opacity: 0.7 }));
+    parts.push(
+      element('circle', { cx: port.x, cy: port.y, r: CIRCLE_MARKER / 2, fill: color, opacity: 0.7 })
+    );
   }
 
   parts.push(
@@ -272,11 +275,11 @@ export function busBundleSvg(port: LayoutPort, ctx: PortDrawContext): string {
       opacity: 0.8,
     }),
     element('rect', {
-      x: port.x - 4,
-      y: port.y - 6,
-      width: 8,
-      height: 12,
-      rx: 2,
+      x: port.x - SQUARE_MARKER / 2,
+      y: port.y - SQUARE_MARKER / 2,
+      width: SQUARE_MARKER,
+      height: SQUARE_MARKER,
+      rx: SQUARE_MARKER_RADIUS,
       fill: busColor,
       opacity: 0.9,
     }),

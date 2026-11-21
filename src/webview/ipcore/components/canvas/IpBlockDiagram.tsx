@@ -155,8 +155,8 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
         width={blockRect.width}
         height={blockRect.height}
         className={`ip-block-body${selectedId === 'body' ? ' ip-block-body--selected' : ''}${blockHovered ? ' ip-block-body--hovered' : ''}`}
-        rx={6}
-        ry={6}
+        rx={4}
+        ry={4}
         style={{ cursor: 'pointer' }}
         onClick={(e) => {
           e.stopPropagation();
@@ -173,8 +173,8 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
         width={blockRect.width}
         height={28 + titleRowOffset}
         className="ip-block-header"
-        rx={6}
-        ry={6}
+        rx={4}
+        ry={4}
         style={{ pointerEvents: 'none' }}
       />
       {/* Square off bottom corners of header */}
@@ -542,8 +542,8 @@ export const IpBlockDiagram: React.FC<IpBlockDiagramProps> = ({
                     y={blockRect.y}
                     width={blockRect.width}
                     height={blockRect.height}
-                    rx={6}
-                    ry={6}
+                    rx={4}
+                    ry={4}
                   />
                 </clipPath>
               </defs>

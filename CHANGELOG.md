@@ -17,6 +17,10 @@ is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 - **Resource usage on the command line.** `ipcraft resources <design> <report>...` writes the resource usage of every block as Markdown or JSON, for example in a CI job after synthesis, and `ipcraft render --resources <report>` draws it on the diagram image. See [Command Line](docs/reference/command-line.md#report-the-resource-usage-of-a-system-design).
 - **Trace a port of a hierarchy block to where it is connected.** In the system viewer, right-click a port of the level you opened (an input or output of the subsystem) and choose **Trace Signal**: the viewer goes to the highest level the wire reaches through the hierarchy above the port, selects it so the whole connection is highlighted, expands the subsystems the wire passes through so the whole path is visible, and centres the block it enters with its pin marked, zooming out when needed so the whole expanded block is in view. Selecting such a port also shows its **Connection tree** in Details, from the driver through every level above and below, with the port marked `THIS PORT`; click a net or pin in the tree to go to its level. A port with no connection on the level above says so, and Trace Signal is disabled for a port on no wire.
 
+### Changed
+
+- **The IP core editor matches the system viewer's look.** Clocks are now orange, resets red and interrupts purple, as in the system viewer, on the canvas, in the inspector and in exported images. A bus interface connects to the block with a small square, a signal with a small circle, and the block header is a neutral band with the core name in the editor's UI font.
+
 ### Fixed
 
 - **A Vivado or Quartus run that cannot start no longer waits forever.** When a vendor tool failed to start (for example because a library was missing), it waited for input and the build kept running until you cancelled it. It now ends at once and the build reports the failure.
