@@ -68,6 +68,17 @@ describe('message parsers', () => {
     }
   });
 
+  it('keeps the resources flag only as true, and treats anything else as absent', () => {
+    expect(parseSystemExportView({ ...view, resources: true })).toEqual({
+      ...view,
+      resources: true,
+    });
+    expect(parseSystemExportView(view)).not.toHaveProperty('resources');
+    for (const resources of [false, 'yes', 1, null, [], {}, { show: 'device' }]) {
+      expect(parseSystemExportView({ ...view, resources })).toEqual(view);
+    }
+  });
+
   it('keeps a boolean ghosts flag and drops any other value', () => {
     expect(parseSystemExportView({ ...view, ghosts: true })).toEqual({ ...view, ghosts: true });
     expect(parseSystemExportView({ ...view, ghosts: false })).toEqual({ ...view, ghosts: false });

@@ -8,6 +8,7 @@ import { runProcess } from '../BuildRunner';
 import { findInInstallDir, getQuartusTool } from '../../utils/quartusResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
+import { QUARTUS_OUTPUT_SUBDIR, quartusBuildDir } from './buildPaths';
 import { BUS_REGISTRY } from '../../generator/buses/builtin';
 import type { NormalizedBusLibrary } from '../../shared/busContracts';
 import { hdlLanguageFromPath, resolveFileSetRtlFiles } from '../../utils/compilationOrder';
@@ -258,7 +259,7 @@ async function computeMountBase(name: string, ipDir: string): Promise<string> {
 export class QuartusToolchain implements SynthesisToolchain {
   readonly id = 'quartus';
   readonly displayName = 'Quartus (Intel/Altera)';
-  readonly outputSubdir = 'altera';
+  readonly outputSubdir = QUARTUS_OUTPUT_SUBDIR;
   readonly contextKey = 'ipcraft.quartusFound';
   readonly subTools: ReadonlyArray<SubToolDeclaration> = [
     { name: 'qsys-edit', contextKey: 'ipcraft.qsysEditFound' },
@@ -429,7 +430,7 @@ export class QuartusToolchain implements SynthesisToolchain {
       return false;
     }
 
-    const buildDir = path.join(vendorDir, 'build');
+    const buildDir = quartusBuildDir(ipDir);
     await fsAsync.mkdir(buildDir, { recursive: true });
 
     const mountBase = await computeMountBase(name, ipDir);
@@ -478,7 +479,7 @@ export class QuartusToolchain implements SynthesisToolchain {
 
     const mountBase = await computeMountBase(name, ipDir);
     const { env, extraMounts } = this.getLaunchEnv(cfg);
-    const buildDir = path.join(alteraDir, 'build');
+    const buildDir = quartusBuildDir(ipDir);
 
     return [
       {

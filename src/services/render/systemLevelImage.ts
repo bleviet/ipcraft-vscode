@@ -8,6 +8,7 @@ import type { SystemGraph } from '../../domain/systemGraph';
 import type { UnionAdditions } from '../../domain/systemGraphDiff';
 import { paletteFor } from '../../shared/render/palette';
 import { plexTextMeasure } from '../../shared/render/textMetrics';
+import type { ResourceRender } from '../../shared/render/resourceSvg';
 import { renderSystemLevelSvg } from '../../shared/render/systemLevelSvg';
 import type { ChangeMarks } from '../../webview/systemDiagram/changeMarks';
 import { changeDecor } from '../../webview/systemDiagram/changeDecor';
@@ -53,6 +54,8 @@ export interface SystemLevelRequest {
   union?: UnionAdditions;
   /** With `union`: the ghosts are not drawn (Show removed or Marks is off on the canvas). */
   ghostsHidden?: boolean;
+  /** The usage of the blocks: the report mapped onto `graph`; absent: none is drawn. */
+  resources?: ResourceRender;
 }
 
 /** The viewer's isolation of `nodeIds` at `hops`, clamped to what the selection reaches like the + button. */
@@ -118,6 +121,7 @@ async function drawSystemLevel(
     cropNodeIds: request.cropNodeIds && new Set(request.cropNodeIds),
     domainLegend: decor?.legend,
     changes,
+    resources: request.resources,
     palette: paletteFor(look.theme),
     grid: look.grid,
     legend: look.legend,

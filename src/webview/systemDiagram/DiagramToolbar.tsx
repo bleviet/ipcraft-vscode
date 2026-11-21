@@ -9,6 +9,15 @@ import { CompareControl, type CompareControlProps } from './CompareControl';
 import { breadcrumbs } from './model';
 import { SearchBox, type SearchBoxProps } from './SearchBox';
 
+/** The Resources toggle and the chip next to it; absent where there is no way to load a report. */
+export interface ResourcesToolbarProps {
+  on: boolean;
+  /** The stage and design total of the chosen report, or `No report`. */
+  chip: string;
+  onChange: (on: boolean) => void;
+  onOpenTab: () => void;
+}
+
 interface DiagramToolbarProps {
   graph: SystemGraph;
   levelPath: string;
@@ -50,6 +59,8 @@ interface DiagramToolbarProps {
     openToken: number;
     exportImage: (options: ExportImageOptions) => void;
   };
+  /** The Resources toggle: the usage of each block from a synthesis or implementation report. */
+  resources?: ResourcesToolbarProps;
   /** The Compare button, and the base and summary of the comparison that is on. */
   compare: CompareControlProps;
   panelsVisible: Record<PanelName, boolean>;
@@ -87,6 +98,7 @@ export function DiagramToolbar({
   onMinimapChange,
   onFit,
   imageExport,
+  resources,
   compare,
   panelsVisible,
   onTogglePanel,
@@ -206,6 +218,32 @@ export function DiagramToolbar({
             {unconnected.count}
           </span>
         </button>
+        {resources && (
+          <span className="sd-tool-group">
+            <button
+              type="button"
+              className={`canvas-view-toggle${resources.on ? ' canvas-view-toggle--active' : ''}`}
+              aria-pressed={resources.on}
+              aria-label="Resources"
+              title="Resources: show the resource usage of each block from a synthesis or implementation report"
+              onClick={() => resources.onChange(!resources.on)}
+            >
+              <span aria-hidden="true" className="codicon codicon-dashboard" />
+            </button>
+            {resources.on && (
+              <button
+                type="button"
+                className="sd-tool-count"
+                data-tone="info"
+                aria-label={`Open the Resources tab: ${resources.chip}`}
+                title="Open the Resources tab"
+                onClick={resources.onOpenTab}
+              >
+                {resources.chip}
+              </button>
+            )}
+          </span>
+        )}
         <CompareControl {...compare} />
       </ToolbarGroup>
       <ToolbarSeparator />

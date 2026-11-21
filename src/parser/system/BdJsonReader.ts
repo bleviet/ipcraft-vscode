@@ -90,6 +90,7 @@ function addLevel(ctx: Ctx, level: string, node: JsonRecord, path: string[]): vo
     const compPath = [...path, 'components', name];
     const refName = asRecord(component.reference_info)?.ref_name;
     const vlnv = component.vlnv;
+    const xciName = component.xci_name;
     const kind = typeof refName === 'string' ? 'module' : typeof vlnv === 'string' ? 'ip' : 'hier';
     ctx.builder.addInstance({
       parent: level,
@@ -97,6 +98,7 @@ function addLevel(ctx: Ctx, level: string, node: JsonRecord, path: string[]): vo
       kind,
       ...(kind === 'ip' && { vlnv: vlnv as string }),
       ...(kind === 'module' && { moduleRef: refName as string, pinsComplete: true as const }),
+      ...(typeof xciName === 'string' && { xciName }),
       line: ctx.lineOf(compPath),
     });
     const instance = joinPath(level, name);

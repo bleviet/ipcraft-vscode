@@ -61,6 +61,8 @@ export interface SystemExportView {
   ghosts?: boolean;
   /** The comparison has what only the base has, so the canvas lays the level out with it, whether or not it draws it. */
   unionLayout?: boolean;
+  /** Resources is on: the image draws the usage of each block. */
+  resources?: true;
 }
 
 /** JPEG quality of an exported JPG. */
@@ -131,13 +133,14 @@ export function parseSystemExportView(raw: unknown): SystemExportView | undefine
   if (view.visibleNodeIds !== undefined && !isStringArray(view.visibleNodeIds)) {
     return undefined;
   }
-  const { marks, ignoreVersionOnly, ghosts, unionLayout, ...rest } = view;
+  const { marks, ignoreVersionOnly, ghosts, unionLayout, resources, ...rest } = view;
   return {
     ...rest,
     ...(typeof marks === 'boolean' && { marks }),
     ...(typeof ignoreVersionOnly === 'boolean' && { ignoreVersionOnly }),
     ...(typeof ghosts === 'boolean' && { ghosts }),
     ...(typeof unionLayout === 'boolean' && { unionLayout }),
+    ...(resources === true && { resources }),
   } as unknown as SystemExportView;
 }
 

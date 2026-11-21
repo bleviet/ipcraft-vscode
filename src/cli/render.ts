@@ -10,6 +10,7 @@ import { renderSystemLevelImage, requireLevel } from '../services/render/systemL
 import type { RenderTheme } from '../shared/render/palette';
 import { isIpCoreFile, renderOutputFormat } from './renderArgv';
 import { resolveExpanded } from './renderExpand';
+import { loadResourceRender, type CliResourcesOption } from './renderResourceUsage';
 import { busLibraryFor } from './renderIpCore';
 import { readRequired, RenderSession } from './renderResources';
 import { resolveSelection } from './renderSystemOptions';
@@ -39,6 +40,8 @@ export interface CliRenderArgs {
   quality: number;
   /** System designs: the folder whose `.ip.yml`, HDL and `.qsys` files define the instances (default: the design's folder); false: draw the design as read. */
   workspace?: string | false;
+  /** System designs: draw the usage of each block from these report files (see `loadResourceRender`). */
+  resources?: CliResourcesOption;
 }
 
 export interface CliRenderResult {
@@ -86,9 +89,10 @@ async function renderSystemDesign(
   requireLevel(graph, args.level);
   const expanded = resolveExpanded(graph, args.level, args.expand);
   const selection = resolveSelection(graph, args.level, args, new Set(expanded));
+  const resources = args.resources && (await loadResourceRender(graph, args.resources));
   return renderSystemLevelImage(
     graph,
-    { level: args.level, expanded, clocks: args.clocks, ...selection },
+    { level: args.level, expanded, clocks: args.clocks, ...selection, resources },
     look,
     encoding,
     session,

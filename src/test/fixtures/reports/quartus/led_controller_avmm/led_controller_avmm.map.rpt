@@ -1,0 +1,16 @@
+Analysis & Synthesis report for led_controller_avmm
+Sat Nov 21 08:54:49 2026
+Quartus Prime Version 25.1std.0 Build 1129 10/21/2025 SC Lite Edition
+
+
++-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+; Analysis & Synthesis Resource Utilization by Entity                                                                                                                                                                                                                               ;
++-----------------------------------------+---------------------+---------------------------+-------------------+------------+------+--------------+--------------------------------------------------------------------------------------+--------------------------+--------------+
+; Compilation Hierarchy Node              ; Combinational ALUTs ; Dedicated Logic Registers ; Block Memory Bits ; DSP Blocks ; Pins ; Virtual Pins ; Full Hierarchy Name                                                                  ; Entity Name              ; Library Name ;
++-----------------------------------------+---------------------+---------------------------+-------------------+------------+------+--------------+--------------------------------------------------------------------------------------+--------------------------+--------------+
+; |led_controller_avmm                    ; 38 (0)              ; 45 (0)                    ; 0                 ; 0          ; 0    ; 82           ; |led_controller_avmm                                                                 ; led_controller_avmm      ; work         ;
+;    |led_controller_avmm_avmm:u_avmm|    ; 13 (0)              ; 19 (0)                    ; 0                 ; 0          ; 0    ; 0            ; |led_controller_avmm|led_controller_avmm_avmm:u_avmm                                 ; led_controller_avmm_avmm ; work         ;
+;       |led_controller_avmm_regs:u_regs| ; 13 (13)             ; 19 (19)                   ; 0                 ; 0          ; 0    ; 0            ; |led_controller_avmm|led_controller_avmm_avmm:u_avmm|led_controller_avmm_regs:u_regs ; led_controller_avmm_regs ; work         ;
+;    |led_controller_avmm_core:u_core|    ; 25 (25)             ; 26 (26)                   ; 0                 ; 0          ; 0    ; 0            ; |led_controller_avmm|led_controller_avmm_core:u_core                                 ; led_controller_avmm_core ; work         ;
++-----------------------------------------+---------------------+---------------------------+-------------------+------------+------+--------------+--------------------------------------------------------------------------------------+--------------------------+--------------+
+Note: For table entries with two numbers listed, the numbers in parentheses indicate the number of resources of the given type used by the specific entity alone. The numbers listed outside of parentheses indicate the total resources of the given type used by the specific entity and all of its sub-entities in the hierarchy.

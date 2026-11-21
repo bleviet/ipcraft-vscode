@@ -10,12 +10,15 @@ import {
   comparedFindingTexts,
   findingTexts,
   resetTexts,
+  resourceTexts,
 } from '../../../../webview/systemDiagram/panelFilter';
 import {
   compileSearch,
   DEFAULT_SEARCH_OPTIONS,
 } from '../../../../webview/systemDiagram/searchMatcher';
 import type { UnconnectedPin } from '../../../../webview/systemDiagram/unconnectedPins';
+import { resourceRows } from '../../../../webview/systemDiagram/resources/resourceRows';
+import { vivadoGraph, vivadoReport } from './resources/resourceReports';
 import { renameDiff, zynqDiff } from './compareFixtures';
 import { loadClockFixtureGraph } from './fixtureGraph';
 
@@ -145,5 +148,36 @@ describe('comparedFindingTexts', () => {
     expect(matching('no synchronizer')).toHaveLength(1);
     expect(matching('led')).toHaveLength(1);
     expect(matching('nothing')).toHaveLength(0);
+  });
+});
+
+describe('resourceTexts', () => {
+  const rows = resourceRows(vivadoReport, vivadoGraph);
+  const smart = rows.find((row) => row.name === 'smartconnect_0')!;
+
+  it('has the counts with their shares of the device, as the cells show them', () => {
+    expect(resourceTexts(smart)).toEqual(
+      expect.arrayContaining(['422 (0.7 %)', '449 (0.4 %)', '0 (0 %)', '50.2 %'])
+    );
+    expect(filterRows(rows, filter('422'), resourceTexts)).toEqual([smart]);
+    expect(filterRows(rows, filter('0.7 %'), resourceTexts)).toEqual([smart]);
+  });
+
+  it('has the change texts only while comparing', () => {
+    const compared = {
+      ...vivadoReport,
+      instances: {
+        ...vivadoReport.instances,
+        '/smartconnect_0': { total: [368, 449, 0, 0, 0, 0, 0] },
+      },
+    };
+    const comparing = resourceRows(vivadoReport, vivadoGraph, compared).find(
+      (row) => row.name === 'smartconnect_0'
+    )!;
+    expect(resourceTexts(comparing)).toEqual(expect.arrayContaining(['422 (0.7 %)', '+54', '0']));
+    expect(resourceTexts(smart)).not.toContain('+54');
+    expect(resourceTexts(smart)).toHaveLength(resourceTexts(comparing).length - 4);
+    expect(filterRows([comparing], filter('+54'), resourceTexts)).toEqual([comparing]);
+    expect(filterRows([smart], filter('+54'), resourceTexts)).toEqual([]);
   });
 });

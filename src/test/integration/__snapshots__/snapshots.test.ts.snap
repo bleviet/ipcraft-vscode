@@ -419,7 +419,8 @@ exports[`Quartus project Tcl scripts match snapshot 1`] = `
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../avalon_peripheral_project.tcl
 #   quartus_sh --flow compile avalon_peripheral
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -456,6 +457,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY avalon_peripheral
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -463,13 +465,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY avalon_peripheral
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/avalon_peripheral.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE avalon_peripheral.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. avalon_peripheral.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -488,7 +489,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../avalon_peripheral_project.tcl
 #   quartus_sh --flow compile avalon_peripheral
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -525,6 +527,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY avalon_peripheral
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -532,13 +535,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY avalon_peripheral
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/avalon_peripheral.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE avalon_peripheral.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. avalon_peripheral.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -557,7 +559,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../axi_slave_core_project.tcl
 #   quartus_sh --flow compile axi_slave_core
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -594,6 +597,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY axi_slave_core
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -601,13 +605,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY axi_slave_core
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/axi_slave_core.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE axi_slave_core.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. axi_slave_core.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -626,7 +629,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../axi_slave_core_project.tcl
 #   quartus_sh --flow compile axi_slave_core
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -663,6 +667,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY axi_slave_core
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -670,13 +675,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY axi_slave_core
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/axi_slave_core.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE axi_slave_core.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. axi_slave_core.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -695,7 +699,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../basic_core_project.tcl
 #   quartus_sh --flow compile basic_core
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -732,6 +737,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY basic_core
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -739,13 +745,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_core
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_core.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE basic_core.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. basic_core.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -764,7 +769,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../basic_core_project.tcl
 #   quartus_sh --flow compile basic_core
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -801,6 +807,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY basic_core
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -808,13 +815,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY basic_core
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_core.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE basic_core.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. basic_core.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -833,7 +839,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../basic_peripheral_project.tcl
 #   quartus_sh --flow compile basic_peripheral
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -870,6 +877,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -881,13 +889,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_periph
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/basic_peripheral.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE basic_peripheral.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. basic_peripheral.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -906,7 +913,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../basic_peripheral_project.tcl
 #   quartus_sh --flow compile basic_peripheral
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -943,6 +951,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY basic_peripheral
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -954,13 +963,12 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral_axil
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/basic_peripheral.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE basic_peripheral.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. basic_peripheral.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -979,7 +987,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../comprehensive_avalon_project.tcl
 #   quartus_sh --flow compile comprehensive_avalon
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1016,6 +1025,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY comprehensive_avalon
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1027,13 +1037,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/comprehensiv
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/comprehensive_avalon.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE comprehensive_avalon.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. comprehensive_avalon.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1052,7 +1061,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../comprehensive_avalon_project.tcl
 #   quartus_sh --flow compile comprehensive_avalon
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1089,6 +1099,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY comprehensive_avalon
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1100,13 +1111,12 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/comprehensive_avalon_
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/comprehensive_avalon.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE comprehensive_avalon.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. comprehensive_avalon.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1125,7 +1135,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../comprehensive_axi_project.tcl
 #   quartus_sh --flow compile comprehensive_axi
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1162,6 +1173,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY comprehensive_axi
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1173,13 +1185,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/comprehensiv
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/comprehensive_axi.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE comprehensive_axi.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. comprehensive_axi.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1198,7 +1209,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../comprehensive_axi_project.tcl
 #   quartus_sh --flow compile comprehensive_axi
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1235,6 +1247,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY comprehensive_axi
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1246,13 +1259,12 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/comprehensive_axi_axi
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/comprehensive_axi.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE comprehensive_axi.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. comprehensive_axi.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1271,7 +1283,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../daq_controller_project.tcl
 #   quartus_sh --flow compile daq_controller
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1308,6 +1321,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY daq_controller
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1319,13 +1333,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/daq_controll
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/daq_controller.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE daq_controller.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. daq_controller.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1344,7 +1357,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../daq_controller_project.tcl
 #   quartus_sh --flow compile daq_controller
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1381,6 +1395,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY daq_controller
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1392,13 +1407,12 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/daq_controller_axil.v
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/daq_controller.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE daq_controller.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. daq_controller.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1417,7 +1431,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../minimal_ip_project.tcl
 #   quartus_sh --flow compile minimal_ip
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1454,6 +1469,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY minimal_ip
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1461,13 +1477,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY minimal_ip
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/minimal_ip.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE minimal_ip.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. minimal_ip.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1486,7 +1501,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../minimal_ip_project.tcl
 #   quartus_sh --flow compile minimal_ip
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1523,6 +1539,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY minimal_ip
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1530,13 +1547,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY minimal_ip
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/minimal_ip.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE minimal_ip.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. minimal_ip.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1555,7 +1571,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../multi_interface_accelerator_project.tcl
 #   quartus_sh --flow compile multi_interface_accelerator
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1592,6 +1609,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1603,13 +1621,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interf
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/multi_interface_accelerator.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE multi_interface_accelerator.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. multi_interface_accelerator.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1628,7 +1645,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../multi_interface_accelerator_project.tcl
 #   quartus_sh --flow compile multi_interface_accelerator
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1665,6 +1683,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY multi_interface_accelerator
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1676,13 +1695,12 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accel
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/multi_interface_accelerator.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE multi_interface_accelerator.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. multi_interface_accelerator.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1701,7 +1719,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../system_controller_project.tcl
 #   quartus_sh --flow compile system_controller
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1738,6 +1757,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY system_controller
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1749,13 +1769,12 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_contr
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/system_controller.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE system_controller.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. system_controller.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1774,7 +1793,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../system_controller_project.tcl
 #   quartus_sh --flow compile system_controller
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1811,6 +1831,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY system_controller
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1822,13 +1843,12 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller_axi
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/system_controller.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE system_controller.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. system_controller.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1847,7 +1867,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../xcvr_loopback_project.tcl
 #   quartus_sh --flow compile xcvr_loopback
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1884,6 +1905,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY xcvr_loopback
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1891,13 +1913,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY xcvr_loopback
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/xcvr_loopback.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE xcvr_loopback.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. xcvr_loopback.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1916,7 +1937,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../xcvr_loopback_project.tcl
 #   quartus_sh --flow compile xcvr_loopback
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -1953,6 +1975,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY xcvr_loopback
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -1960,13 +1983,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY xcvr_loopback
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/xcvr_loopback.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE xcvr_loopback.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. xcvr_loopback.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -1985,7 +2007,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../minimal_core_project.tcl
 #   quartus_sh --flow compile minimal_core
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -2022,6 +2045,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
 set_global_assignment -name TOP_LEVEL_ENTITY minimal_core
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -2029,13 +2053,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY minimal_core
 set_global_assignment -name SYSTEMVERILOG_FILE [file join .. ../rtl/minimal_core.sv]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE minimal_core.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. minimal_core.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus
@@ -2054,7 +2077,8 @@ puts "Timing report will be written to output_files/\${project_name}.sta.summary
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../minimal_core_project.tcl
 #   quartus_sh --flow compile minimal_core
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -2091,6 +2115,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY minimal_core
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -2098,13 +2123,12 @@ set_global_assignment -name TOP_LEVEL_ENTITY minimal_core
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/minimal_core.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE minimal_core.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. minimal_core.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus

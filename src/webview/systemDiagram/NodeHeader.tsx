@@ -5,6 +5,7 @@ import { ChangeBadges } from './ChangeBadges';
 import { domainBadge, type NodeDomains } from './clocks/domainView';
 import { HEADER_HEIGHT } from './layout/elkLayout';
 import { instanceSubtitle } from './model';
+import type { NodeResources } from './resources/resourceView';
 import { insideBadgeText } from './search';
 import type { NodeReview } from './unconnectedPins';
 
@@ -42,6 +43,9 @@ function ExpandToggle({ instance, expanded, onToggleExpand }: ExpandToggleProps)
   );
 }
 
+/** Height of the share bar; it sits on the bottom edge of the header, over its border. */
+const SHARE_BAR_HEIGHT = 3;
+
 function unconnectedLabel(review: NodeReview): string {
   return `${review.all} unconnected pins (${review.undriven} undriven, ${review.all - review.undriven} unused)`;
 }
@@ -59,6 +63,8 @@ interface NodeHeaderProps extends ExpandToggleProps {
   domains?: NodeDomains;
   /** Search matches anywhere below this hierarchy block. */
   searchInside?: number;
+  /** Resources on: a strip above the block shows the usage, a bar along the header its share of the level. */
+  resources?: NodeResources;
 }
 
 /** Header of an instance block and of an expanded frame: expand toggle, name, review or domain count, subtitle. */
@@ -69,6 +75,7 @@ export function NodeHeader({
   change,
   domains,
   searchInside,
+  resources,
   expanded,
   onToggleExpand,
 }: NodeHeaderProps) {
@@ -135,7 +142,26 @@ export function NodeHeader({
           </span>
         )}
       </div>
-      <div className="sd-node-subtitle">{instanceSubtitle(instance, cellCount, ghost)}</div>
+      <div className="sd-node-subtitle" title={resources?.title}>
+        {instanceSubtitle(instance, cellCount, ghost)}
+      </div>
+      {resources && (
+        <div className="sd-node-usage" data-muted={resources.notInReport ? true : undefined}>
+          <div>{resources.strip}</div>
+          {resources.shares !== undefined && <div>{resources.shares}</div>}
+        </div>
+      )}
+      {resources?.share !== undefined && resources.share > 0 && (
+        <div
+          className="sd-node-share"
+          aria-hidden="true"
+          style={{
+            top: HEADER_HEIGHT - SHARE_BAR_HEIGHT,
+            height: SHARE_BAR_HEIGHT,
+            width: `${resources.share * 100}%`,
+          }}
+        />
+      )}
     </div>
   );
 }

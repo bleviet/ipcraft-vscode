@@ -13,6 +13,8 @@ import { pickCompareBase } from '../../../providers/systemDiagram/pickCompareBas
 import { renderSystemLevelImage } from '../../../services/render/systemLevelImage';
 import type { RenderRoots } from '../../../services/render/imageEncoding';
 import { changeRows, cellText } from '../../../services/systemDiagram/diff/changeRows';
+import { PanelResources } from '../../../providers/systemDiagram/PanelResources';
+import { vivadoReport } from '../webview/systemDiagram/resources/resourceReports';
 import { fixtureText, qsysFixtureText } from '../webview/systemDiagram/fixtureGraph';
 
 jest.mock('../../../services/HtmlGenerator', () => ({
@@ -29,6 +31,11 @@ jest.mock('../../../services/render/systemLevelImage', () => ({
 
 jest.mock('../../../providers/systemDiagram/pickCompareBase', () => ({
   pickCompareBase: jest.fn(),
+}));
+
+jest.mock('../../../services/resources/reportDiscovery', () => ({
+  discoverProjectReports: () => Promise.resolve({ candidates: [], searched: ['/ws'] }),
+  discoverFolderReports: () => Promise.resolve([]),
 }));
 
 const mockEnrich = jest.fn();
@@ -173,6 +180,65 @@ describe('SystemDiagramProvider', () => {
       type: 'graph',
       graph: { name: 'zynq_dma_system', source: { fileName: 'zynq.tcl' } },
     });
+  });
+
+  it('posts resources after the graph only once the webview asked for them', async () => {
+    const { posted, send, change } = setup(fixtureText);
+    await send({ type: 'ready' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(posted.map((m) => (m as { type: string }).type)).toEqual(['graph']);
+
+    await send({ type: 'loadResources' });
+    expect(posted.map((m) => (m as { type: string }).type)).toEqual(['graph', 'resources']);
+    expect(posted[1]).toMatchObject({
+      type: 'resources',
+      resources: {
+        sources: [],
+        // The mocked discovery reports '/ws'; the controller shows it workspace-relative, and the
+        // asRelativePath mock of this file answers 'zynq.tcl' for every path.
+        searched: ['zynq.tcl'],
+        hierarchicalTcl:
+          'report_utilization -hierarchical -file zynq_dma_system_utilization_hier.rpt',
+      },
+    });
+
+    posted.length = 0;
+    change();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(posted.map((m) => (m as { type: string }).type)).toEqual(['graph', 'resources']);
+  });
+
+  it('has the command, not the webview gesture, turn Resources on', async () => {
+    const { provider, posted, send } = setup(fixtureText);
+    await send({ type: 'ready' });
+    (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue(undefined);
+    const resourceMessages = () =>
+      posted.filter((m) => (m as { type: string }).type === 'resources');
+
+    await send({ type: 'attachResourceReport' });
+    expect(resourceMessages().length).toBeGreaterThan(0);
+    expect(resourceMessages().some((m) => 'show' in (m as object))).toBe(false);
+
+    posted.length = 0;
+    expect(provider.attachReportActive()).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(resourceMessages()[0]).toMatchObject({ type: 'resources', show: true });
+  });
+
+  it('hands Attach Resource Report to the active panel only', async () => {
+    const { provider, send, webviewPanel, dispose } = setup(fixtureText);
+    await send({ type: 'ready' });
+    (vscode.window.showOpenDialog as jest.Mock).mockResolvedValue(undefined);
+
+    expect(provider.attachReportActive()).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(vscode.window.showOpenDialog).toHaveBeenCalledTimes(1);
+
+    (webviewPanel as { active: boolean }).active = false;
+    expect(provider.attachReportActive()).toBe(false);
+    (webviewPanel as { active: boolean }).active = true;
+    dispose();
+    expect(provider.attachReportActive()).toBe(false);
   });
 
   it('posts a qsys graph for a Platform Designer document', async () => {
@@ -710,6 +776,41 @@ describe('SystemDiagramProvider export image', () => {
       expect.anything(),
       expect.anything()
     );
+  });
+
+  describe('resources', () => {
+    const exportWith = async (view: Record<string, unknown>) => {
+      const { send } = setup(fixtureText);
+      (vscode.window.showSaveDialog as jest.Mock).mockResolvedValue(undefined);
+      (renderSystemLevelImage as jest.Mock).mockClear();
+      await send({ type: 'ready' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      await send({
+        type: 'exportImage',
+        options: { ...stored, area: 'whole' },
+        view: { levelPath: '/', expanded: [], clocks: false, selectedNodeIds: [], ...view },
+      });
+      return (renderSystemLevelImage as jest.Mock).mock.calls[0][1] as {
+        resources?: { report: unknown };
+      };
+    };
+
+    afterEach(() => jest.restoreAllMocks());
+
+    it('hands the report of the panel to the renderer when the view says Resources is on', async () => {
+      jest.spyOn(PanelResources.prototype, 'currentReport').mockReturnValue(vivadoReport);
+      const request = await exportWith({ resources: true });
+      expect(request.resources).toEqual({ report: vivadoReport });
+    });
+
+    it('hands over no report when the view does not say Resources is on', async () => {
+      jest.spyOn(PanelResources.prototype, 'currentReport').mockReturnValue(vivadoReport);
+      expect(await exportWith({})).not.toHaveProperty('resources');
+    });
+
+    it('draws no usage when Resources is on but the panel has no report', async () => {
+      expect(await exportWith({ resources: true })).not.toHaveProperty('resources');
+    });
   });
 
   describe('comparison', () => {

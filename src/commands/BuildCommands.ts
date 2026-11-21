@@ -4,6 +4,7 @@ import * as yaml from 'js-yaml';
 import type { BuildReports } from '../services/ReportParser';
 import type { ReportsTreeProvider, BuildStatus } from '../providers/ReportsTreeProvider';
 import type { IpCoreData } from '../generator/types';
+import { ipCoreBuildName } from '../services/toolchains/buildPaths';
 import { listAll } from '../services/toolchains/registry';
 import type { BuildMode } from '../services/toolchains/SynthesisToolchain';
 import { isIpCoreFile } from '../utils/fileExtensions';
@@ -40,7 +41,7 @@ async function resolveIpCore(
   try {
     const raw = await vscode.workspace.fs.readFile(ipUri);
     const data = yaml.load(new TextDecoder().decode(raw)) as IpCoreData;
-    const name = String(data?.vlnv?.name ?? '').toLowerCase();
+    const name = ipCoreBuildName(data);
     if (!name) {
       void vscode.window.showErrorMessage('Cannot read vlnv.name from IP core file.');
       return undefined;

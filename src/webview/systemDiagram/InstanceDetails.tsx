@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ResourceReport } from '../../domain/resourceUsage';
 import type { SystemGraph, SystemInstance } from '../../domain/systemGraph';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
 import { shownInside } from './changeMarks';
@@ -6,6 +7,7 @@ import { InstanceChanges } from './InstanceChanges';
 import { InstanceClockDetails } from './InstanceClockDetails';
 import type { ComparisonDetails } from './hooks/useCompareView';
 import { LineLink } from './LineLink';
+import { ResourceDetails } from './resources/ResourceDetails';
 import { levelSource } from './sourceFile';
 import { openNetsByEndpoint } from './layout/unionGraph';
 import { endpointKey, netsByEndpoint, shortVlnv, type Selection } from './model';
@@ -19,6 +21,10 @@ interface InstanceDetailsProps {
   focusedPin?: string;
   /** The comparison, when one is on: marked blocks show a Changes section. */
   comparison?: ComparisonDetails;
+  /** The resource report while Resources is on: the block's usage gets a section. */
+  resources?: ResourceReport;
+  /** A second report of the same design, shown next to `resources`. */
+  compareResources?: ResourceReport;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
@@ -33,6 +39,8 @@ export function InstanceDetails({
   instance,
   focusedPin,
   comparison,
+  resources,
+  compareResources,
   onSelect,
   onEnterHierarchy,
   onReveal,
@@ -136,6 +144,9 @@ export function InstanceDetails({
           </dl>
         )}
       </section>
+      {resources && (
+        <ResourceDetails report={resources} compare={compareResources} path={instance.path} />
+      )}
       <section>
         <h3 className="sd-h3">Pins</h3>
         <table className="sd-table">

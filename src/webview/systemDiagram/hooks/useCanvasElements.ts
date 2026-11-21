@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import type { ResourceReport } from '../../../domain/resourceUsage';
 import type { SystemGraph } from '../../../domain/systemGraph';
 import type { HighlightMap } from '../../../shared/messages/systemDiagram';
 import { selectedTree } from '../clocks/treeSelection';
@@ -13,6 +14,7 @@ import {
 } from '../highlights';
 import type { DiagramLayout } from './useElkLayout';
 import type { SearchFlash } from './useSearchStepper';
+import { nodeResources } from '../resources/resourceView';
 import { badgedNodeIds, highlightedPinsByNode } from '../pinHighlight';
 import { boundaryMatchesQuery, matchesQuery, type Selection } from '../model';
 import { focusedPinOf, nodeReview, type FocusedPin, type UnconnectedPin } from '../unconnectedPins';
@@ -33,6 +35,8 @@ interface CanvasElementsInput {
   clocks: ClockContext;
   /** The marks of a comparison; null while Marks is off or without a comparison. */
   changes: ChangeContext | null;
+  /** The report whose usage the block headers show; absent while Resources is off. */
+  resources?: ResourceReport | null;
   focusedPin: FocusedPin | null;
   matcher: TextMatcher | null;
   /** Matches below each hierarchy block (by node id) while a search is on. */
@@ -58,6 +62,7 @@ export function useCanvasElements({
   review,
   clocks,
   changes,
+  resources,
   focusedPin,
   matcher,
   searchInside,
@@ -132,6 +137,18 @@ export function useCanvasElements({
     [review, layout]
   );
 
+  const usage = useMemo(
+    () =>
+      resources && layout
+        ? new Map(
+            layout.nodes
+              .filter((node) => node.type !== 'boundary')
+              .map((node) => [node.id, nodeResources(resources, node.id)] as const)
+          )
+        : undefined,
+    [resources, layout]
+  );
+
   const builtNodes = useMemo(() => {
     return (layout?.nodes ?? []).map((node) => {
       const inside = searchInside?.get(node.id);
@@ -158,6 +175,9 @@ export function useCanvasElements({
             look?.nodes.get(node.id)?.status !== 'removed' && {
               review: reviews.get(node.id),
             }),
+          // A ghost (what only the base has) is not in the report.
+          ...(usage?.get(node.id) &&
+            look?.nodes.get(node.id)?.status !== 'removed' && { resources: usage.get(node.id) }),
           ...clockNodeData(decor, node.id),
           ...(look?.nodes.has(node.id) && { change: look.nodes.get(node.id) }),
           ...(badgedNodes?.has(node.id) && { selectedNetIds: selectedAndTreeNetIds }),
@@ -189,6 +209,7 @@ export function useCanvasElements({
     showHighlights,
     highlights,
     reviews,
+    usage,
     decor,
     look,
     tree,

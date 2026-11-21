@@ -29,6 +29,12 @@ const BOUNDARY_CHROME = 24;
 const HIER_TOGGLE_WIDTH = 22;
 /** Least gap between an expanded frame's border and the blocks inside it. */
 export const FRAME_MARGIN = 20;
+/**
+ * Gap between an expanded frame's header and the blocks inside it. Larger than
+ * {@link FRAME_MARGIN} to leave room for the two-line resource strip drawn above
+ * a block (at least `STRIP_GAP + 2 * STRIP_HEIGHT` in `shared/render/resourceSvg.ts`).
+ */
+export const FRAME_TOP_MARGIN = 36;
 const ELLIPSIS = '…';
 const START_SHARE = 0.6;
 

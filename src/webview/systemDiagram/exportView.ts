@@ -48,6 +48,8 @@ export interface SystemExportState {
   ghostsOn?: boolean;
   /** The comparison has ghosts, so the layout is the union's even while they are hidden. */
   unionLayout?: boolean;
+  /** Resources is on. */
+  resources?: true;
 }
 
 /** The message payload for the viewer's state; `visible` is set for the Current view area. */
@@ -69,6 +71,7 @@ export function buildSystemExportView(
       ...(state.ignoreVersionOnly && { ignoreVersionOnly: true }),
       ...(state.ghostsOn && { ghosts: true }),
     }),
+    ...(state.resources && { resources: true as const }),
     ...(visible && { visibleNodeIds: [...visible] }),
   };
 }

@@ -7,6 +7,7 @@ import { runCliMigrate } from './migrate';
 import { runCliPackage } from './package';
 import { runCliRender } from './render';
 import { runCliRenderManifest } from './renderManifest';
+import { runCliResources } from './resources';
 import { runCliVerify } from './verify';
 import { runCliVhdlLs } from './vhdlLs';
 import { parseArgs, usageText } from './argv';
@@ -21,7 +22,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
   if (parsed.kind === 'error') {
     console.error(parsed.message);
     console.log(usageText());
-    return 1;
+    return parsed.exitCode ?? 1;
   }
 
   if (parsed.kind === 'package') {
@@ -62,6 +63,22 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
       console.error(`Diff check failed: ${result.failed}`);
     }
     return result.imageError !== undefined || result.failed !== undefined ? 1 : 0;
+  }
+
+  if (parsed.kind === 'resources') {
+    const result = await runCliResources(parsed.args);
+    for (const note of result.notes) {
+      console.error(`Note: ${note}`);
+    }
+    if (result.outputPath) {
+      console.log(`Wrote ${result.outputPath}`);
+    } else {
+      process.stdout.write(result.report ?? '');
+    }
+    if (result.error !== undefined) {
+      console.error(`Resources failed: ${result.error}`);
+    }
+    return result.exitCode;
   }
 
   if (parsed.kind === 'vhdl-ls') {

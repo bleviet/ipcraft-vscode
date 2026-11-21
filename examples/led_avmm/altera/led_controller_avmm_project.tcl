@@ -3,7 +3,8 @@
 #
 # Target device : 5CSEBA6U23I7 (Cyclone V)
 #
-# Usage (batch — run from the altera/ directory):
+# Usage (batch — run from the altera/build/ directory, as IPCraft's Build does):
+#   quartus_sh -t ../led_controller_avmm_project.tcl
 #   quartus_sh --flow compile led_controller_avmm
 #
 # All I/O ports are marked as virtual pins so timing analysis runs without
@@ -40,6 +41,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CSEBA6U23I7
 set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
 set_global_assignment -name TOP_LEVEL_ENTITY led_controller_avmm
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 
 # ---- RTL source files -------------------------------------------------------
 # Paths are relative to this QSF (in build/) so the project is portable across
@@ -51,13 +53,12 @@ set_global_assignment -name VHDL_FILE [file join .. ../rtl/led_controller_avmm_a
 set_global_assignment -name VHDL_FILE [file join .. ../rtl/led_controller_avmm.vhd]
 
 # ---- Timing constraints -----------------------------------------------------
-# sdc_file is a bare filename (the .sdc is written as a sibling of this
-# project.tcl in altera/, unlike rtl_files which live one level up in
-# ../rtl/) -- no [file join ..] wrapper needed. Confirmed on a real Quartus
-# run: wrapping it the same way as rtl_files produced
-# "Synopsys Design Constraints File file not found" and unconstrained
-# (negative-slack) timing analysis.
-set_global_assignment -name SDC_FILE led_controller_avmm.sdc
+# The QSF is created in build/ (QuartusToolchain runs this script with cwd
+# altera/build/), but the .sdc is written one level up in altera/, so the path
+# must climb out of build/ like rtl_files do. A bare filename made Quartus
+# report "Synopsys Design Constraints File file not found" and constrain every
+# clock at the 1 GHz default.
+set_global_assignment -name SDC_FILE [file join .. led_controller_avmm.sdc]
 
 # ---- Virtual pins -----------------------------------------------------------
 # Marks every top-level I/O as a virtual (unconstrained) pin so that Quartus

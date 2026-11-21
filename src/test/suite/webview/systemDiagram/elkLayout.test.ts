@@ -1,8 +1,10 @@
 import type { ElkNode } from 'elkjs/lib/elk-api';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
 import { readQsysTcl } from '../../../../parser/system/QsysTclReader';
+import { STRIP_GAP, STRIP_HEIGHT } from '../../../../shared/render/resourceSvg';
 import {
   buildElkInput,
+  HEADER_HEIGHT,
   toFlowElements,
   type DiagramFlowNode,
 } from '../../../../webview/systemDiagram/layout/elkLayout';
@@ -563,6 +565,24 @@ describe('buildElkInput with expanded blocks', () => {
     const bank = child(child(input, DSP), BANK);
     expect(bank.children).toEqual([]);
     expect(bank.layoutOptions?.['elk.nodeSize.minimum']).toMatch(/^\(\d+,\d+\)$/);
+  });
+});
+
+describe('room for the resource strip', () => {
+  // The two-line strip sits above a block; the layout always leaves room for it, Resources on or off.
+  const STRIP_ROOM = STRIP_GAP + 2 * STRIP_HEIGHT;
+  const options = { measure: fakeMeasure };
+
+  it('spaces the blocks of a layer at least a strip apart', () => {
+    const root = buildElkInput(graph, '/', options);
+    expect(Number(root.layoutOptions?.['elk.spacing.nodeNode'])).toBeGreaterThanOrEqual(STRIP_ROOM);
+  });
+
+  it('leaves a strip between the header of a frame and the blocks inside it', () => {
+    const input = buildElkInput(graph, '/', { ...options, expanded: new Set(['/dsp_pipeline']) });
+    const padding = child(input, '/dsp_pipeline').layoutOptions?.['elk.padding'] ?? '';
+    const top = Number(/top=(\d+)/.exec(padding)?.[1]);
+    expect(top - HEADER_HEIGHT).toBeGreaterThanOrEqual(STRIP_ROOM);
   });
 });
 

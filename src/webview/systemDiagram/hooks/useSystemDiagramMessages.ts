@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
+  DiagramResources,
   HighlightMap,
   SystemDiagramToExtensionMessage,
   SystemDiagramToWebviewMessage,
@@ -7,6 +8,7 @@ import type {
 import type { ExportImageOptions, SystemExportView } from '../../../shared/messages/imageExport';
 import { vscode } from '../../vscode';
 import { reduceDiagramMessage, type SystemDiagramState } from '../messageState';
+import { useResourceChannel, type ResourceChannel } from '../resources/useResourceChannel';
 import type { ImageExportChannel } from './useDiagramExport';
 
 function post(message: SystemDiagramToExtensionMessage): void {
@@ -22,11 +24,15 @@ export function useSystemDiagramMessages(): {
   startCompare: () => void;
   stopCompare: () => void;
   swapCompare: () => void;
+  resourceChannel: ResourceChannel;
 } {
   const [state, setState] = useState<SystemDiagramState>({ status: 'loading' });
 
   const [savedExport, setSavedExport] = useState<ExportImageOptions>();
   const [openToken, setOpenToken] = useState(0);
+  // Apart from the diagram state: the resource report follows a graph but is not part of it.
+  const [resources, setResources] = useState<DiagramResources>();
+  const [showToken, setShowToken] = useState(0);
 
   useEffect(() => {
     const onMessage = (event: MessageEvent<SystemDiagramToWebviewMessage>) => {
@@ -35,6 +41,11 @@ export function useSystemDiagramMessages(): {
         setSavedExport(message.options);
       } else if (message?.type === 'openExport') {
         setOpenToken((token) => token + 1);
+      } else if (message?.type === 'resources') {
+        setResources(message.resources);
+        if (message.show) {
+          setShowToken((token) => token + 1);
+        }
       } else if (message?.type) {
         setState((state) => reduceDiagramMessage(state, message));
       }
@@ -68,6 +79,7 @@ export function useSystemDiagramMessages(): {
     }),
     [savedExport, openToken]
   );
+  const resourceChannel = useResourceChannel(resources, showToken, post);
   return {
     state,
     revealSource,
@@ -77,5 +89,6 @@ export function useSystemDiagramMessages(): {
     startCompare,
     stopCompare,
     swapCompare,
+    resourceChannel,
   };
 }

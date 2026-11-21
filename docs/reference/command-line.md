@@ -139,6 +139,7 @@ ipcraft render --manifest docs/images.yml
 | `--scale <1-4>` | PNG and JPG only. Pixels per SVG unit, an integer (default 2) |
 | `--quality <1-100>` | JPG only. JPEG quality (default 90) |
 | `--workspace <dir>` | System designs only. Folder searched for the `.ip.yml`, HDL and `.qsys` files that define the design's instances (default: the design file's folder) |
+| `--resources <report>...` | System designs only. Draw the resource usage of each block above it, as the viewer does with **Resources** on, from the same reports as [`ipcraft resources`](#report-the-resource-usage-of-a-system-design). Put the design file first; with `--capacity <file>` for the device capacity |
 | `--no-workspace` | System designs only. Draw the design exactly as the file declares it, without those definitions |
 | `--manifest <file.yml>` | Render every image listed in a [manifest](#render-many-images-from-one-manifest). Takes no input file and no other option |
 
@@ -507,6 +508,66 @@ the file is reported as new, with everything added, rather than as an error. A
 file stored with Git LFS is read as its pointer text and reported as not a
 recognized system design. The concept is in
 [System Design Diff](../concepts/brainstorm/system-design-diff.md).
+
+## Report the resource usage of a system design
+
+`resources` lists the resource usage of every block of a system design from a
+Vivado or Quartus utilization report, as the system viewer shows it with
+**Resources** on. It reads the design (a Vivado `.bd` or `write_bd_tcl` `.tcl`, a
+Platform Designer `.qsys` or `qsys-script` `.tcl`) and the reports, and runs no
+vendor tool:
+
+```bash
+# a hierarchical Vivado report, with the device capacity from a flat one
+ipcraft resources bd/system.bd impl/utilization_hier.rpt --capacity impl/utilization_flat.rpt
+
+# a Quartus fitter report
+ipcraft resources qsys/system.qsys output_files/top.fit.rpt --capacity output_files/top.fit.summary
+
+# the out-of-context reports of the IPs, as JSON
+ipcraft resources bd/system.bd project.runs/*_synth_1/*_utilization_synth.rpt --format json --out usage.json
+```
+
+The reports are one hierarchical Vivado report (`report_utilization -hierarchical`),
+one Quartus `.map.rpt` or `.fit.rpt`, or the flat reports of the out-of-context
+runs of the IPs of a `.bd` file. They are recognized from their content, so a file
+downloaded from a CI build can have any name. See [Resource usage](../how-to/view-a-system-design.md#resource-usage)
+for the stages and where Vivado and Quartus write these reports.
+
+| Option | Meaning |
+|---|---|
+| `--capacity <file>` | A flat Vivado utilization report or a Quartus `.fit.summary` of the same device, for the shares of the device. Ignored, with a note, for out-of-context reports, which carry their own |
+| `--root <report path>` | The instance of the design in the report when it appears more than once, for example `top/u_sys_a`. Without it the first one is used and a note on standard error names the others |
+| `--format <markdown\|json>` | Report format (default `markdown`). JSON is the full report of the viewer, with every column |
+| `--out <file>` | Write the report to this file instead of standard output |
+
+The Markdown report has the design total, then one table per hierarchy level with
+the four main numbers of each block and its share of the design, sorted by the
+first number. It ends with the logic that is not a block of the diagram (such as
+the interconnect Platform Designer generates), the logic outside the design, and
+the blocks that are not in the report. For example:
+
+```markdown
+# Resource usage of sys: Post-route, Sat Nov 21 03:51:54 2026
+
+Report `routed_hier.rpt` · Vivado v.2024.2 (lin64) Build 5239630 Fri Nov 08 22:34:34 MST 2024 · device xc7a100tfgg676-1
+
+**Design:** 841 LUTs (1.3 % of the device) · 1386 FFs (1.1 % of the device) · 2 BRAM (1.5 % of the device) · 0 DSPs (0 % of the device)
+
+### Level /
+
+| Block | LUTs | FFs | BRAM | DSPs | % of design |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `smartconnect_0` | 422 | 449 | 0 | 0 | 50.2 % |
+| `axi_bram_ctrl_0` | 154 | 168 | 0 | 0 | 18.3 % |
+| `hier_0` | 135 | 387 | 2 | 0 | 16.1 % |
+| `axi_gpio_0` | 131 | 382 | 0 | 0 | 15.6 % |
+```
+
+Exit codes: 0 when the report is written; 1 when the design is not in the report
+(the report is still written, with a note); 2 for a usage error or a report that
+cannot be used, with the reason (for example a timing report, or a Vivado report
+without `-hierarchical`).
 
 ## Upgrade files to the latest format
 

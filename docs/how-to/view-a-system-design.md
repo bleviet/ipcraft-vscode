@@ -361,6 +361,176 @@ sources and a table of crossings.
 Related clocks, blocks that span domains and connections that are fine are not
 listed in either tab.
 
+## Resource usage
+
+To see how much of the device each block uses, turn on **Resources** in the
+toolbar. The viewer reads a utilization report that Vivado or Quartus wrote and
+shows its numbers on the blocks of the diagram. It does not run the tool.
+
+While Resources is on:
+
+- A strip above each block shows four numbers: LUTs, FFs, BRAM tiles and DSPs for
+  Vivado, or ALMs, registers, M10K (or M20K) blocks and DSPs for Quartus. A second
+  line gives the block's share of the design and of the device for the first of
+  them, for example `514 LUT · 647 FF · 0 BRAM · 0 DSP` over
+  `64.3 % design · 1.0 % device`.
+  A thin bar under the block header shows its share of the level: of the design
+  for a block at the top level, of the hierarchy block for a block inside one.
+  Hover the type line under the block name for both shares of every resource.
+  Blocks never move.
+- The chip next to the toggle shows the stage of the report and the design total,
+  for example `Post-route · 841 LUTs · 1.3 %` (the last number is the share of the
+  device). Click it to open the **Resources** tab.
+- **Details** shows a **Resources** section for the selected block: every column
+  of the report, the total, the logic of the block itself (**Self**, a dash when the
+  report does not give it), and the shares of the design and of the device.
+- The **Resources** tab lists every block with its level and numbers. Each number
+  is followed by its share of the device, for example `514 (1.0 %)`, and the last
+  column is the share of the design. Click a column header to sort, and a row to go
+  to the block. It also lists the logic that is not a block of the diagram, such as
+  the interconnect and reset controller that Platform Designer generates, and the
+  logic outside the design (in your top level).
+
+A share of the device is left out when it is not known: the report gives no
+capacity for that resource (for example a Quartus `.fit.rpt` attached without its
+`.fit.summary`), or the number is a sum of out-of-context runs (`Σ`), which is not
+placed on the device. The share of the design is left out for a block that uses
+none of the first resource. When neither share is known, the strip is one line.
+The layout always leaves room above each block for the two lines, so the strip
+does not cover the block above it.
+
+With Resources on, **Export image** draws the strips above the blocks, so the
+image shows what the canvas shows.
+
+A hierarchy block shows the total that the report gives for it. A block that has
+no row in the report shows `not in report`: the tool removed all its logic (a
+clock source, for example), or the report is for another revision of the design.
+
+### Where the report comes from
+
+The viewer looks for reports next to the design file:
+
+- **Vivado project**: in the `.runs` folder of the `.xpr` that the design belongs
+  to, the reports of `synth_1`, `impl_1` and the out-of-context runs of the IPs.
+- **Quartus project**: in the output folder of the `.qpf` (`PROJECT_OUTPUT_DIRECTORY`
+  of the `.qsf`, or the project folder), the `.map.rpt` and `.fit.rpt`.
+
+For the blocks defined by an `.ip.yml` in your workspace (see [IP definitions
+from your workspace](#ip-definitions-from-your-workspace)), the list also offers
+**IPCraft builds**: the numbers of each IP core's own IPCraft **Build** (the
+out-of-context Vivado synthesis in `xilinx/build/ooc/`, else the full Vivado run in
+`xilinx/build/xpr/`, which the label then counts as post-route; or the Quartus
+compile in `altera/build/output_files/`). Each block shows its own build, so the
+numbers come from different runs, and the device shares are shown only when every
+build used the same device. This source is used first only when the project has no
+report of its own.
+
+Pick the report in the **Report** list at the top of the Resources tab. The viewer
+remembers your choice for each design file. When the project has a post-route or
+fitter report, that one is used first. The numbers update when the report file
+changes.
+
+| Stage | Vivado | Quartus |
+|---|---|---|
+| Per block | One report per IP from its out-of-context run (`<ip>_synth_1`), listed as **Per-IP OOC**; IPCraft builds; an attached build of one IP | IPCraft builds; an attached build of one IP |
+| Post-synthesis | A hierarchical report of `synth_1` | `<revision>.map.rpt` |
+| Post-placement, post-route | A hierarchical report of `impl_1` | |
+| Fitter | | `<revision>.fit.rpt` |
+
+Vivado writes only design totals in its run reports. For numbers per block,
+extract the report from the run's checkpoint (see [Extract the report from a
+checkpoint](#extract-the-report-from-a-checkpoint-vivado)), or write a
+hierarchical report from the run yourself, for example in a `tcl.post` script of
+the run or in your build script:
+
+```tcl
+report_utilization -hierarchical -file sys_utilization_hier.rpt
+```
+
+The Resources tab shows this line with the name of your design when no usable
+report is found.
+
+In the **Per block** stage, each block shows the numbers of its own build: for
+Vivado's **Per-IP OOC** source, the out-of-context synthesis of the IP. A hierarchy
+block shows the sum of the blocks inside, marked `Σ`; this sum is not the usage of
+the design, because the blocks are optimized together only in the top-level run,
+so no share of the device is shown for it. A block without a report of its own
+shows `no block report`. With Vivado this is also an IP whose out-of-context run
+was an IP cache hit, until you extract its report (see below).
+
+### Extract the report from a checkpoint (Vivado)
+
+When a Vivado run has no hierarchical report, the viewer can write one from the
+run's checkpoint, without running synthesis or implementation again. The
+checkpoints of `synth_1` and `impl_1` (the routed one, else the placed one) are
+listed in the **Report** list as `(checkpoint)`. Select one and click **Extract**.
+
+IPCraft then runs Vivado in batch mode with your configured Vivado (installation,
+version or Docker image, as for builds): it opens the checkpoint and writes a
+hierarchical and a flat utilization report. This takes about half a minute for a
+small design and a few minutes for a large one. A notification shows the progress
+and has a **Cancel** button; the command line and the Vivado output are in the
+**IPCraft Build** output.
+
+- The reports are written to the extension's storage, never into your project.
+  They are reused until the checkpoint changes, and opening a checkpoint does not
+  lock the project, so the Vivado GUI can stay open. After a new run, reopen the
+  diagram: the checkpoint is then offered for **Extract** again.
+- Extracting runs a tool, so it needs a trusted workspace. Reading reports does
+  not.
+- For the **Per-IP OOC** source, **Extract missing IPs** writes the reports of the
+  IPs whose out-of-context run was an IP cache hit, from their checkpoints.
+- An attached `.dcp` file can be extracted the same way.
+
+### Compare two stages
+
+To see what implementation changed, choose another report in **Compare with** in
+the Resources tab, for example **Post-synthesis** while **Post-route** is selected
+in **Report**. The Resources tab then shows the change next to each number, for
+example `514 -54` for a block that has 54 LUTs fewer after routing, and the line
+under the pickers names the report it is compared with. Details shows the
+total of both reports for the selected block and the change between them. The
+numbers on the blocks stay those of the report chosen in **Report**, and the
+table is still sorted by them.
+
+### Attach a report
+
+When the report is somewhere else, for example a download from a CI build such as
+a Jenkins job:
+
+- **Attach Report...** in the Resources tab, or the command **IPCraft: Attach
+  Resource Report**, opens a file dialog. Choose one or more `.rpt` files.
+- **Choose Folder...** takes a folder, for example the unpacked artifacts of a CI
+  build, and finds the reports in it.
+
+The kind of report is recognized from its content, so the file can have any name.
+A file outside the workspace is copied into the extension's storage, so cleaning
+up your Downloads folder does not lose it; the list shows it as *attached* with
+the date from its header. Select it and click **Remove** to delete the copy. A
+file inside the workspace is used where it is.
+
+A report can also be the build of one IP core on its own, for example the
+compile of the IP's Quartus project or a CI job that builds each IP. The viewer
+recognizes it when the top level of the report is the IP of a block in the
+diagram: the Platform Designer component of the block, the module of a Vivado
+module reference, or the name in the VLNV of a Vivado IP. Its numbers show on
+every block of that IP, the way the **IPCraft builds** do, and the list labels it
+with the IP, for example `Fitter, build of led_controller_avmm`. For Vivado this
+works with the flat report of the build. A Quartus `.map.rpt` and `.fit.rpt` both
+work.
+
+A report that cannot be used stays in the list, marked *not usable*, and says why
+when you select it: a Vivado report without `-hierarchical` has only the design
+total; a timing report is not a utilization report; a Quartus `.fit.summary` has
+only totals, so attach the `.fit.rpt`; a report that does not contain the design
+of the diagram is for another design. When the report is the build of something
+else, the message names its top level, for example "This report is a build of
+led_controller_avmm, not of the design led_avmm_system."
+
+When the design appears more than once in the report, for example a block design
+instantiated twice in your top level, choose the instance in **Design instance in
+the report**.
+
 ## Zoom
 
 - Scroll or use the zoom in and zoom out buttons to zoom, and drag the canvas to pan.

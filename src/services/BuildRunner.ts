@@ -18,7 +18,7 @@ export interface DockerOptions {
 
 export interface BuildRunOptions {
   cwd: string;
-  outputChannel: vscode.OutputChannel;
+  outputChannel: Pick<vscode.OutputChannel, 'appendLine'>;
   docker?: DockerOptions;
   /** Extra environment variables forwarded to the child process (local) or as
    *  `-e KEY=VALUE` flags (Docker). Merged on top of the inherited process env. */
@@ -28,6 +28,8 @@ export interface BuildRunOptions {
   extraMounts?: ExtraMountSpec[];
   /** Hard-kill timeout in milliseconds. Undefined = no timeout. */
   timeoutMs?: number;
+  /** Aborting kills the process; the result is then a failure. */
+  signal?: AbortSignal;
 }
 
 export interface BuildResult {
@@ -87,7 +89,7 @@ export function runProcess(
   args: string[],
   options: BuildRunOptions
 ): Promise<BuildResult> {
-  const { cwd, outputChannel, docker, env = {}, extraMounts = [], timeoutMs } = options;
+  const { cwd, outputChannel, docker, env = {}, extraMounts = [], timeoutMs, signal } = options;
 
   let spawnExe = executable;
   let spawnArgs = args;
@@ -107,7 +109,13 @@ export function runProcess(
     let proc: ReturnType<typeof spawn>;
     try {
       const spawnEnv = docker?.image ? undefined : { ...process.env, ...env };
-      proc = spawn(spawnExe, spawnArgs, { cwd: spawnCwd, env: spawnEnv, stdio: 'pipe' });
+      // Nothing writes to the child's stdin: a tool that falls back to an interactive prompt
+      // (Vivado when it fails to initialise) must see its end, not wait for it.
+      proc = spawn(spawnExe, spawnArgs, {
+        cwd: spawnCwd,
+        env: spawnEnv,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       outputChannel.appendLine(`[ERROR] Failed to start process: ${msg}`);
@@ -121,6 +129,16 @@ export function runProcess(
         outputChannel.appendLine(`\n[TIMEOUT] Process killed after ${timeoutMs}ms`);
         proc.kill();
       }, timeoutMs);
+    }
+
+    const onAbort = () => {
+      outputChannel.appendLine('\n[CANCELLED] Process killed');
+      proc.kill();
+    };
+    if (signal?.aborted) {
+      onAbort();
+    } else {
+      signal?.addEventListener('abort', onAbort, { once: true });
     }
 
     proc.stdout?.on('data', (chunk: Buffer) => {
@@ -141,6 +159,7 @@ export function runProcess(
 
     proc.on('error', (err) => {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       outputChannel.appendLine(`[ERROR] ${err.message}`);
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         if (docker?.image) {
@@ -159,6 +178,7 @@ export function runProcess(
 
     proc.on('close', (code) => {
       clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
       const exitCode = code ?? -1;
       outputChannel.appendLine(`\n[exit ${exitCode}]`);
       resolve({ success: exitCode === 0, exitCode });

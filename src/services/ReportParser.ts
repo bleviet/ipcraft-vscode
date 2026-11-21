@@ -1,6 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Logger } from '../utils/Logger';
+import { readVivadoFlatRow } from './resources/vivadoFlatTable';
+import { quartusOutputFilesDir } from './toolchains/buildPaths';
 
 const logger = new Logger('ReportParser');
 
@@ -79,12 +81,20 @@ export async function parseQuartusReports(
   buildDir: string,
   projectName: string
 ): Promise<BuildReports> {
-  const outputDir = path.join(buildDir, 'output_files');
+  const outputDir = quartusOutputFilesDir(buildDir);
   const result: BuildReports = { vendor: 'quartus', mode: 'compile', reportDir: outputDir };
 
   try {
     const text = await fs.readFile(path.join(outputDir, `${projectName}.sta.summary`), 'utf8');
-    result.timing = parseQuartusTiming(text);
+    let staRpt: string | undefined;
+    try {
+      staRpt = await fs.readFile(path.join(outputDir, `${projectName}.sta.rpt`), 'utf8');
+    } catch (err) {
+      logger.debug(
+        `${projectName}.sta.rpt not found or unreadable in ${outputDir}: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+    result.timing = parseQuartusTiming(text, staRpt);
   } catch (err) {
     logger.debug(
       `${projectName}.sta.summary not found or unreadable in ${outputDir}: ${err instanceof Error ? err.message : String(err)}`
@@ -131,34 +141,25 @@ function parseVivadoTiming(content: string): TimingResult {
 }
 
 function parseVivadoUtilization(content: string): UtilizationResult {
-  const result: UtilizationResult = {};
-
-  const parseRow = (pattern: RegExp): ResourceRow | undefined => {
-    const m = content.match(pattern);
-    if (!m) {
+  const parseRow = (labels: string[]): ResourceRow | undefined => {
+    const row = readVivadoFlatRow(content, labels);
+    if (!row) {
       return undefined;
     }
+    const total = row.available ?? 0;
     return {
-      used: parseInt(m[1].replace(/,/g, ''), 10),
-      total: parseInt(m[2].replace(/,/g, ''), 10),
-      pct: parseFloat(m[3]),
+      used: row.used,
+      total,
+      pct: row.utilPct ?? (total > 0 ? (row.used / total) * 100 : 0),
     };
   };
 
-  result.lut = parseRow(
-    /\|\s*(?:Slice LUTs?\*?|LUT as Logic)\s*\|\s*([\d,]+)\s*\|[^|]+\|\s*([\d,]+)\s*\|[^|]+\|\s*([\d.]+)\s*\|/
-  );
-  result.ff = parseRow(
-    /\|\s*(?:Slice Registers|Register as Flip Flop)\s*\|\s*([\d,]+)\s*\|[^|]+\|\s*([\d,]+)\s*\|[^|]+\|\s*([\d.]+)\s*\|/
-  );
-  result.bram = parseRow(
-    /\|\s*Block RAM Tile\s*\|\s*([\d,]+)\s*\|[^|]+\|\s*([\d,]+)\s*\|[^|]+\|\s*([\d.]+)\s*\|/
-  );
-  result.dsp = parseRow(
-    /\|\s*DSPs?\s*\|\s*([\d,]+)\s*\|[^|]+\|\s*([\d,]+)\s*\|[^|]+\|\s*([\d.]+)\s*\|/
-  );
-
-  return result;
+  return {
+    lut: parseRow(['Slice LUTs', 'Slice LUT', 'LUT as Logic']),
+    ff: parseRow(['Slice Registers', 'Register as Flip Flop']),
+    bram: parseRow(['Block RAM Tile']),
+    dsp: parseRow(['DSPs', 'DSP']),
+  };
 }
 
 function parseVivadoCdc(content: string): CdcResult {
@@ -170,60 +171,93 @@ function parseVivadoCdc(content: string): CdcResult {
 // Quartus parsers
 // ---------------------------------------------------------------------------
 
-function parseQuartusTiming(content: string): TimingResult {
-  if (/timing requirements not met/i.test(content)) {
-    return { met: false };
+function parseQuartusTiming(summary: string, staRpt?: string): TimingResult {
+  // Blocks in <name>.sta.summary:
+  //   Type  : Slow 1100mV 100C Model Setup 'clk'
+  //   Slack : 17.263
+  //   TNS   : 0.000
+  // Every Slack line counts toward `met`; the Type line only sorts Setup and Hold slacks.
+  let hasSlack = false;
+  let met = true;
+  for (const m of summary.matchAll(/^Slack\s*:\s*(-?[\d.]+)/gm)) {
+    hasSlack = true;
+    if (parseFloat(m[1]) < 0) {
+      met = false;
+    }
   }
 
-  // "; 156.25 ; 156.25 MHz ; clk ;"
-  const fmaxMatch = content.match(/;\s*([\d.]+)\s*MHz\s*;/);
-  if (fmaxMatch) {
-    return { fmax: parseFloat(fmaxMatch[1]), met: true };
+  if (!hasSlack) {
+    return { met: true };
   }
 
-  return { met: true };
+  const blockRe = /^Type\s*:\s*.*?Model\s+(.+?)\s+'[^']*'\s*\r?\nSlack\s*:\s*(-?[\d.]+)/gm;
+  let wns: number | undefined;
+  let whs: number | undefined;
+  for (const m of summary.matchAll(blockRe)) {
+    const slack = parseFloat(m[2]);
+    if (m[1] === 'Setup') {
+      wns = wns === undefined ? slack : Math.min(wns, slack);
+    } else if (m[1] === 'Hold') {
+      whs = whs === undefined ? slack : Math.min(whs, slack);
+    }
+  }
+
+  const result: TimingResult = { met };
+  if (wns !== undefined) {
+    result.wns = wns;
+  }
+  if (whs !== undefined) {
+    result.whs = whs;
+  }
+
+  const fmax = staRpt === undefined ? undefined : parseQuartusFmax(staRpt);
+  if (fmax !== undefined) {
+    result.fmax = fmax;
+  }
+  return result;
+}
+
+/** Minimum Restricted Fmax over every row of every "Fmax Summary" panel in <name>.sta.rpt. */
+function parseQuartusFmax(staRpt: string): number | undefined {
+  // ; 365.36 MHz ; 365.36 MHz      ; clk        ;      ;
+  const rowRe = /^;\s*[\d.]+ MHz\s*;\s*([\d.]+) MHz\s*;/gm;
+  let fmax: number | undefined;
+  for (const panel of staRpt.split(/^(?=\+-+\+\r?\n; .*Fmax Summary)/m)) {
+    if (!/^; .*Fmax Summary/m.test(panel)) {
+      continue;
+    }
+    for (const m of panel.matchAll(rowRe)) {
+      const v = parseFloat(m[1]);
+      fmax = fmax === undefined ? v : Math.min(fmax, v);
+    }
+  }
+  return fmax;
 }
 
 function parseQuartusUtilization(content: string): UtilizationResult {
   const result: UtilizationResult = {};
 
-  // ; Logic utilization (in LUTs) ; 1234 / 41910 ( 3 % ) ;
-  const lutM = content.match(
-    /Logic utilization.*?;\s*([\d,]+)\s*\/\s*([\d,]+)\s*\(\s*<?[\s]*([\d.]+)\s*%/i
-  );
-  if (lutM) {
-    result.lut = {
-      used: parseInt(lutM[1].replace(/,/g, ''), 10),
-      total: parseInt(lutM[2].replace(/,/g, ''), 10),
-      pct: parseFloat(lutM[3]) || 0,
-    };
-  }
+  const toInt = (s: string): number => parseInt(s.replace(/,/g, ''), 10);
+  const parseRatio = (key: string): ResourceRow | undefined => {
+    // Logic utilization (in ALMs) : 61 / 41,910 ( < 1 % )
+    const m = content.match(new RegExp(`^${key}\\s*:\\s*([\\d,]+)\\s*/\\s*([\\d,]+)`, 'm'));
+    if (!m) {
+      return undefined;
+    }
+    const used = toInt(m[1]);
+    const total = toInt(m[2]);
+    return { used, total, pct: total > 0 ? (used / total) * 100 : 0 };
+  };
 
-  // ; Total registers ; 2891 ;
-  const regM = content.match(/Total registers\s*;\s*([\d,]+)\s*;/i);
+  result.lut = parseRatio('Logic utilization \\(in ALMs\\)');
+
+  const regM = content.match(/^Total registers\s*:\s*([\d,]+)/m);
   if (regM) {
-    result.ff = { used: parseInt(regM[1].replace(/,/g, ''), 10), total: 0, pct: 0 };
+    result.ff = { used: toInt(regM[1]), total: 0, pct: 0 };
   }
 
-  // ; Total block memory bits ; 16384 / 5662720 ( < 1 % ) ;
-  const bramM = content.match(/Total block memory bits.*?;\s*([\d,]+)\s*\/\s*([\d,]+)/i);
-  if (bramM) {
-    const used = parseInt(bramM[1].replace(/,/g, ''), 10);
-    const total = parseInt(bramM[2].replace(/,/g, ''), 10);
-    result.bram = { used, total, pct: total > 0 ? Math.round((used / total) * 100) : 0 };
-  }
-
-  // ; Total DSP Blocks ; 0 / 112 ( 0 % ) ;
-  const dspM = content.match(
-    /Total DSP Blocks.*?;\s*([\d,]+)\s*\/\s*([\d,]+)\s*\(\s*<?[\s]*([\d.]+)\s*%/i
-  );
-  if (dspM) {
-    result.dsp = {
-      used: parseInt(dspM[1].replace(/,/g, ''), 10),
-      total: parseInt(dspM[2].replace(/,/g, ''), 10),
-      pct: parseFloat(dspM[3]) || 0,
-    };
-  }
+  result.bram = parseRatio('Total block memory bits');
+  result.dsp = parseRatio('Total DSP Blocks');
 
   return result;
 }

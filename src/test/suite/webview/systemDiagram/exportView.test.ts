@@ -76,6 +76,14 @@ describe('buildSystemExportView', () => {
     expect(buildSystemExportView({ ...base, marksOn: true })).toMatchObject({ marks: true });
   });
 
+  it('carries the resources view only while Resources is on', () => {
+    expect(buildSystemExportView(base)).not.toHaveProperty('resources');
+    expect(buildSystemExportView({ ...base, resources: undefined })).not.toHaveProperty(
+      'resources'
+    );
+    expect(buildSystemExportView({ ...base, resources: true }).resources).toBe(true);
+  });
+
   it('carries ignoreVersionOnly only with marks', () => {
     expect(
       buildSystemExportView({ ...base, marksOn: true, ignoreVersionOnly: true })

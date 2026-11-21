@@ -6,6 +6,8 @@ import type { CliMigrateArgs } from './migrate';
 import type { CliPackageArgs } from './package';
 import type { CliRenderArgs } from './render';
 import { parseRenderArgs } from './renderArgv';
+import type { CliResourcesArgs } from './resources';
+import { parseResourcesArgs } from './resourcesArgv';
 import type { CliVhdlLsArgs } from './vhdlLs';
 import type { CliVerifyArgs } from './verify';
 import type { HdlLanguage } from '../generator/types';
@@ -35,6 +37,12 @@ Usage:
                                           Report what changed between two revisions of a system
                                           design: a revision (or the working tree) against
                                           another revision, or two files. Markdown by default
+  ipcraft resources <design> <report>... [--capacity <file>] [--root <report path>] [options]
+                                          Report the resource usage of each block of a system
+                                          design (.bd, .tcl, .qsys) from a Vivado or Quartus
+                                          utilization report: one hierarchical Vivado report,
+                                          one Quartus .map.rpt or .fit.rpt, or the flat per-IP
+                                          Vivado reports. Markdown by default
   ipcraft vhdl-ls [--root <dir>] [--dry-run] [--force]
                                           Generate a root vhdl_ls.toml that maps every VHDL file
                                           under <dir> (default: current directory) to a library
@@ -46,8 +54,8 @@ Options:
   --lang <vhdl|systemverilog>        HDL language to generate (default: vhdl)
   --out <dir>                        [generate only] Output directory
                                       (default: alongside the .ip.yml)
-  --out <file>                       [diff only] Write the report to this file (default:
-                                      standard output)
+  --out <file>                       [diff, resources] Write the report to this file
+                                      (default: standard output)
   --pack <name>                      Scaffold pack to use (overrides scaffold_pack
                                       in the .ip.yml)
   --quartus-device <part>            Quartus device part (default: ${DEFAULT_QUARTUS_DEVICE})
@@ -91,10 +99,16 @@ Options:
                                       without those definitions
   --manifest <file.yml>              [render only] Render the images listed in the manifest;
                                       takes no input file and no other option
+  --resources <report>...            [render, system designs only] Draw the resource usage of
+                                      each block above it, from the same reports as the
+                                      resources command (put the design file first)
+  --capacity <file>                  [render --resources, resources] A flat Vivado utilization
+                                      report or a Quartus .fit.summary for the percentages of
+                                      the device
   --base <git ref>                   [diff only] Revision to compare the design file with
   --head <git ref>                   [diff, with --base] Compare with this revision instead
                                       of the working tree
-  --format <markdown|json>           [diff only] Report format (default: markdown)
+  --format <markdown|json>           [diff, resources] Report format (default: markdown)
   --ignore-version-only              [diff only] Leave out blocks whose only change is the
                                       version of their IP
   --fail-on <changes|new-findings>   [diff only] Exit with 1 on any change (changes) or on new
@@ -103,6 +117,9 @@ Options:
                                       revision with the changes marked (the extension picks
                                       the format); removed blocks are only counted
   --root <dir>                       [vhdl-ls only] Workspace root (default: current directory)
+  --root <report path>               [resources only] The design instance in the report when
+                                      it appears more than once (default: the first; the
+                                      others are named on standard error)
   --dry-run                          [vhdl-ls only] Print the vhdl_ls.toml instead of writing it
   --force                            [vhdl-ls only] Replace a vhdl_ls.toml that IPCraft did not
                                       write (the old file is saved to .ipcraft/backup/)
@@ -136,13 +153,17 @@ Examples:
   ipcraft diff old/system.qsys new/system.qsys --ignore-version-only
   ipcraft diff bd/system.bd --base origin/main --fail-on new-findings
   ipcraft diff bd/system.bd --base main --image docs/img/changes.png
+  ipcraft render bd/system.bd --out docs/img/usage.svg --resources impl/utilization_hier.rpt
+  ipcraft resources bd/system.bd impl/utilization_hier.rpt --capacity impl/utilization_flat.rpt
+  ipcraft resources bd/system.bd ip/*_utilization_synth.rpt --format json --out usage.json
   ipcraft vhdl-ls --root . --dry-run
 `;
 }
 
 export type ParsedArgv =
   | { kind: 'help' }
-  | { kind: 'error'; message: string }
+  /** `exitCode`: what `main` returns (default 1). */
+  | { kind: 'error'; message: string; exitCode?: number }
   | { kind: 'diff'; args: CliDiffArgs }
   | { kind: 'generate'; args: CliGenerateArgs }
   | { kind: 'verify'; args: CliVerifyArgs }
@@ -150,6 +171,7 @@ export type ParsedArgv =
   | { kind: 'package'; args: CliPackageArgs }
   | { kind: 'render'; args: CliRenderArgs }
   | { kind: 'renderManifest'; manifestPath: string }
+  | { kind: 'resources'; args: CliResourcesArgs }
   | { kind: 'vhdl-ls'; args: CliVhdlLsArgs };
 
 interface CommonOptions {
@@ -342,11 +364,12 @@ export function parseArgs(argv: string[]): ParsedArgv {
     command !== 'package' &&
     command !== 'render' &&
     command !== 'diff' &&
+    command !== 'resources' &&
     command !== 'vhdl-ls'
   ) {
     return {
       kind: 'error',
-      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate', 'package', 'render', 'diff' or 'vhdl-ls'.`,
+      message: `Unknown command '${command}'. Expected 'generate', 'verify', 'migrate', 'package', 'render', 'diff', 'resources' or 'vhdl-ls'.`,
     };
   }
   if (command === 'package') {
@@ -357,6 +380,9 @@ export function parseArgs(argv: string[]): ParsedArgv {
   }
   if (command === 'diff') {
     return parseDiffArgs(rest);
+  }
+  if (command === 'resources') {
+    return parseResourcesArgs(rest);
   }
   if (command === 'vhdl-ls') {
     return parseVhdlLsArgs(rest);

@@ -13,6 +13,7 @@ import type { NodeDomains } from '../clocks/domainView';
 import type { EdgeMarks } from '../clocks/edgeView';
 import type { PinMarks } from '../clocks/nodeView';
 import type { PinHoverTarget } from '../model';
+import type { NodeResources } from '../resources/resourceView';
 import type { NodeReview } from '../unconnectedPins';
 import type { NetBadge } from './netBadges';
 
@@ -51,6 +52,8 @@ export interface InstanceUiData {
   change?: NodeChange;
   /** Present only while the domain decorations are on (Clocks and resets on, review off). */
   domains?: NodeDomains;
+  /** Present only while Resources is on and the report says something about the block. */
+  resources?: NodeResources;
   /** Pin marks by pin name (domain colors, frequency labels, crossing ends). */
   pinMarks?: PinMarks;
   /** Nets of the selected clock or reset tree; badges on these nets are drawn selected. */

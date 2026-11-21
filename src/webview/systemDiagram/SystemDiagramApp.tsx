@@ -20,6 +20,7 @@ export function SystemDiagramApp() {
     startCompare,
     stopCompare,
     swapCompare,
+    resourceChannel,
   } = useSystemDiagramMessages();
   switch (state.status) {
     case 'loading':
@@ -44,6 +45,7 @@ export function SystemDiagramApp() {
           onStartCompare={startCompare}
           onStopCompare={stopCompare}
           onSwapCompare={swapCompare}
+          resourceChannel={resourceChannel}
         />
       );
   }

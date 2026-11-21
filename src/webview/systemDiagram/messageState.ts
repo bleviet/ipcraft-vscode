@@ -25,7 +25,7 @@ export type SystemDiagramState =
 /** The messages that change what the viewer shows; export messages leave the state alone. */
 export type DiagramContentMessage = Exclude<
   SystemDiagramToWebviewMessage,
-  { type: 'exportOptions' | 'openExport' }
+  { type: 'exportOptions' | 'openExport' | 'resources' }
 >;
 
 /**

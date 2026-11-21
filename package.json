@@ -385,6 +385,12 @@
         "icon": "$(git-compare)"
       },
       {
+        "command": "fpga-ip-core.attachResourceReport",
+        "title": "Attach Resource Report...",
+        "category": "IPCraft",
+        "icon": "$(graph)"
+      },
+      {
         "command": "fpga-ip-core.copyComponentInstance",
         "title": "Copy Component Instance",
         "category": "IPCraft",
@@ -775,6 +781,10 @@
         },
         {
           "command": "fpga-ip-core.compareSystemDesign",
+          "when": "activeCustomEditorId == 'ipcraft.systemDiagram'"
+        },
+        {
+          "command": "fpga-ip-core.attachResourceReport",
           "when": "activeCustomEditorId == 'ipcraft.systemDiagram'"
         },
         {

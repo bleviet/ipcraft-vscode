@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ResourceReport } from '../../domain/resourceUsage';
 import type { SystemGraph, SystemNet, SystemPin } from '../../domain/systemGraph';
 import { CapabilityPill } from './CapabilityPill';
 import type { ClockAnalysis } from './clocks/analyzeClocks';
@@ -29,6 +30,10 @@ interface DetailsPanelProps {
   focusedPin: FocusedPin | null;
   /** The comparison, when one is on, whether or not its marks are drawn. */
   comparison?: ComparisonDetails;
+  /** The resource report while Resources is on. */
+  resources?: ResourceReport;
+  /** A second report of the same design, shown next to `resources`. */
+  compareResources?: ResourceReport;
   onSelect: (selection: Selection) => void;
   onEnterHierarchy: (instancePath: string) => void;
   onReveal: (line: number, uri?: string) => void;
@@ -236,6 +241,8 @@ export function DetailsPanel({
   selectedItems,
   focusedPin,
   comparison,
+  resources,
+  compareResources,
   onSelect,
   onEnterHierarchy,
   onReveal,
@@ -259,6 +266,8 @@ export function DetailsPanel({
         instance={graph.instances[selection.id]}
         focusedPin={focusedPinOf(focusedPin, selection, selection.id)}
         comparison={comparison}
+        resources={resources}
+        compareResources={compareResources}
         onSelect={onSelect}
         onEnterHierarchy={onEnterHierarchy}
         onReveal={onReveal}

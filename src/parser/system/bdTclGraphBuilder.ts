@@ -36,6 +36,7 @@ export interface NewInstance {
   kind: SystemInstance['kind'];
   vlnv?: string;
   moduleRef?: string;
+  xciName?: string;
   pinsComplete?: true;
   line: number;
   procLine?: number;
@@ -131,6 +132,7 @@ export class SystemGraphBuilder {
       kind: spec.kind,
       ...(spec.vlnv !== undefined && { vlnv: spec.vlnv }),
       ...(spec.moduleRef !== undefined && { moduleRef: spec.moduleRef }),
+      ...(spec.xciName !== undefined && { xciName: spec.xciName }),
       ...(spec.pinsComplete && { pinsComplete: true as const }),
       parameters: {},
       pins,

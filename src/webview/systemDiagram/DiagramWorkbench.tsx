@@ -4,6 +4,7 @@ import type { SystemGraph } from '../../domain/systemGraph';
 import type { DiagramCompare, HighlightMap } from '../../shared/messages/systemDiagram';
 import type { DiagramProblem } from './messageState';
 import type { ImageExportChannel } from './hooks/useDiagramExport';
+import type { ResourceChannel } from './resources/useResourceChannel';
 import { WorkbenchLayout } from './WorkbenchLayout';
 
 interface DiagramWorkbenchProps {
@@ -14,6 +15,7 @@ interface DiagramWorkbenchProps {
   openDefinition: (instance: string) => void;
   onChangeHighlights?: (highlights: HighlightMap) => void;
   imageExport?: ImageExportChannel;
+  resourceChannel?: ResourceChannel;
   compare?: DiagramCompare;
   onStartCompare: () => void;
   onStopCompare: () => void;
@@ -28,6 +30,7 @@ export function DiagramWorkbench({
   openDefinition,
   onChangeHighlights,
   imageExport,
+  resourceChannel,
   compare,
   onStartCompare,
   onStopCompare,
@@ -43,6 +46,7 @@ export function DiagramWorkbench({
         openDefinition={openDefinition}
         onChangeHighlights={onChangeHighlights}
         imageExport={imageExport}
+        resourceChannel={resourceChannel}
         compare={compare}
         onStartCompare={onStartCompare}
         onStopCompare={onStopCompare}

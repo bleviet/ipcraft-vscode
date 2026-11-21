@@ -17,6 +17,8 @@ export interface PanelHandle {
   startWith(base: CompareBase): Promise<void>;
   /** Shows the panel in its editor group. */
   reveal(): void;
+  /** Turns resources on and asks for report files to attach. */
+  attachReport(): Promise<void>;
 }
 
 /** How long a request survives `openWith` having resolved while no panel has taken it yet. */

@@ -260,6 +260,7 @@ Available build targets:
 | `IPCraft: Open as System Diagram` (`fpga-ip-core.openSystemDiagram`) | Yes (system design files) | Yes (system design files) |
 | `IPCraft: Export Diagram as Image` (`fpga-ip-core.exportDiagramImage`) | Yes (IP core and system diagram editors) | |
 | `IPCraft: Compare System Design with...` (`fpga-ip-core.compareSystemDesign`) | Yes (system diagram editor) | |
+| `IPCraft: Attach Resource Report...` (`fpga-ip-core.attachResourceReport`) | Yes (system diagram editor) | |
 
 **Open as Text Editor** — Reopens the current `.ip.yml` or `.mm.yml` file in the default VS Code text editor.
 
@@ -268,6 +269,8 @@ Available build targets:
 **Preview in IPCraft** — Opens a `_hw.tcl`, `component.xml`, VHDL, Verilog, or SystemVerilog file as a read-only IP core preview, from which you can save an `.ip.yml`. The same as `Ctrl+Shift+V` (`Cmd+Shift+V`) on those files. Experimental.
 
 **Compare System Design with...** — Asks what to compare the open system diagram (the current side) with, as the base: another open design, HEAD, the merge base with the default branch, a commit that changed the file, a branch or tag, a typed revision, or another file, and lists the differences in the **Changes** tab of the bottom panel. The same as the **Compare** button in the toolbar. See [Viewing a System Design](../how-to/view-a-system-design.md#compare-with-another-revision).
+
+**Attach Resource Report...** — Turns on **Resources** in the open system diagram and opens a file dialog to attach a Vivado or Quartus utilization report, for example one downloaded from a CI build. The same as **Attach Report...** in the Resources tab. See [Viewing a System Design](../how-to/view-a-system-design.md#attach-a-report).
 
 **Export Diagram as Image** — Opens the export options of the active IP core editor or system diagram (the same popover as the camera button in the toolbar) to save the diagram as an SVG, PNG or JPG file. See [Viewing a System Design](../how-to/view-a-system-design.md#export-an-image).
 

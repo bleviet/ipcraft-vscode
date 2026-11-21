@@ -10,6 +10,7 @@ import type { RenderRoots } from '../../../services/render/imageEncoding';
 import { DEFAULT_EXPORT_OPTIONS } from '../../../shared/messages/imageExport';
 import { Logger } from '../../../utils/Logger';
 import { buildChangeMarks, type ChangeMarks } from '../../../webview/systemDiagram/changeMarks';
+import { vivadoReport } from '../webview/systemDiagram/resources/resourceReports';
 import { loadFixtureGraph } from '../webview/systemDiagram/fixtureGraph';
 import { zynqDiff, zynqGraph, zynqUnion } from '../webview/systemDiagram/compareFixtures';
 import { withUnion } from '../../../webview/systemDiagram/layout/unionGraph';
@@ -167,6 +168,49 @@ describe('ImageExportHost.exportSystem', () => {
     expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
       'Could not export the image: The design is not loaded.'
     );
+  });
+
+  describe('resources', () => {
+    const report = vivadoReport;
+    const requestOf = () =>
+      (renderSystemLevelImage as jest.Mock).mock.calls[0][1] as {
+        resources?: { report: unknown };
+      };
+
+    it('hands the report to the renderer when the view says Resources is on', async () => {
+      const { host } = setup();
+      await host.exportSystem(
+        document,
+        graph,
+        { options: DEFAULT_EXPORT_OPTIONS, view: { ...view, resources: true } },
+        undefined,
+        undefined,
+        report
+      );
+      expect(requestOf().resources).toEqual({ report });
+    });
+
+    it('draws no usage when the view does not say Resources is on, even with a report', async () => {
+      const { host } = setup();
+      await host.exportSystem(
+        document,
+        graph,
+        { options: DEFAULT_EXPORT_OPTIONS, view },
+        undefined,
+        undefined,
+        report
+      );
+      expect(requestOf()).not.toHaveProperty('resources');
+    });
+
+    it('draws no usage when Resources is on but there is no report', async () => {
+      const { host } = setup();
+      await host.exportSystem(document, graph, {
+        options: DEFAULT_EXPORT_OPTIONS,
+        view: { ...view, resources: true },
+      });
+      expect(requestOf()).not.toHaveProperty('resources');
+    });
   });
 
   describe('comparison marks', () => {

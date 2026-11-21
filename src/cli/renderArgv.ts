@@ -39,6 +39,7 @@ const VALUE_OPTIONS: ReadonlySet<string> = new Set([
   '--scale',
   '--quality',
   '--workspace',
+  '--capacity',
 ]);
 
 /** The integer `text` names within `[min, max]`, or undefined. */
@@ -73,7 +74,7 @@ function parseManifestArgs(rest: string[]): ParsedArgv {
   return { kind: 'renderManifest', manifestPath: rest[1] };
 }
 
-/** Parses `render` argv: `<design> --out <file.svg|png|jpg> [--level] [--expand] [--select] [--hops] [--highlight] [--clocks] [--theme] [--no-grid] [--no-legend] [--background] [--scale] [--quality] [--workspace <dir>|--no-workspace]`, or `--manifest <file.yml>`. */
+/** Parses `render` argv: `<design> --out <file.svg|png|jpg> [--level] [--expand] [--select] [--hops] [--highlight] [--clocks] [--theme] [--no-grid] [--no-legend] [--background] [--scale] [--quality] [--workspace <dir>|--no-workspace] [--resources <report>... [--capacity <file>]]`, or `--manifest <file.yml>`. */
 export function parseRenderArgs(rest: string[]): ParsedArgv {
   if (rest.includes('--manifest')) {
     return parseManifestArgs(rest);
@@ -91,6 +92,7 @@ export function parseRenderArgs(rest: string[]): ParsedArgv {
   let qualityGiven = false;
   let out: string | undefined;
   let noWorkspace = false;
+  const usage: { reports: string[]; capacity?: string } = { reports: [] };
   const systemOnly: string[] = [];
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
@@ -193,6 +195,21 @@ export function parseRenderArgs(rest: string[]): ParsedArgv {
         systemOnly.push(arg);
         noWorkspace = true;
         break;
+      case '--resources': {
+        systemOnly.push(arg);
+        const before = usage.reports.length;
+        while (rest[i + 1] !== undefined && !rest[i + 1].startsWith('--')) {
+          usage.reports.push(rest[++i]);
+        }
+        if (usage.reports.length === before) {
+          return { kind: 'error', message: `Missing value for ${arg}` };
+        }
+        break;
+      }
+      case '--capacity':
+        systemOnly.push(arg);
+        usage.capacity = value();
+        break;
       case '--no-grid':
         args.grid = false;
         break;
@@ -230,6 +247,11 @@ export function parseRenderArgs(rest: string[]): ParsedArgv {
       return { kind: 'error', message: '--workspace and --no-workspace cannot be combined' };
     }
     args.workspace = false;
+  }
+  if (usage.reports.length > 0) {
+    args.resources = usage;
+  } else if (usage.capacity !== undefined) {
+    return { kind: 'error', message: '--capacity needs --resources' };
   }
   if (args.hops !== undefined && args.select.length === 0) {
     return { kind: 'error', message: '--hops needs --select' };

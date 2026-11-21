@@ -11,12 +11,22 @@ import { ClocksTable } from './ClocksTable';
 import { shownLevels } from './expansion';
 import { FindingsTable } from './FindingsTable';
 import { ResetsTable } from './ResetsTable';
+import { ResourcesTable } from './resources/ResourcesTable';
+import { resourceRows } from './resources/resourceRows';
+import type { ResourceChannel } from './resources/useResourceChannel';
 import type { Selection } from './model';
 import { compileSearch, DEFAULT_SEARCH_OPTIONS } from './searchMatcher';
 import { UnconnectedPinsTable } from './UnconnectedPinsTable';
 import type { FocusedPin, UnconnectedPin } from './unconnectedPins';
 
-export type BottomTab = 'changes' | 'findings' | 'address' | 'clocks' | 'resets' | 'unconnected';
+export type BottomTab =
+  | 'changes'
+  | 'findings'
+  | 'address'
+  | 'clocks'
+  | 'resets'
+  | 'unconnected'
+  | 'resources';
 
 interface BottomPanelProps {
   graph: SystemGraph;
@@ -42,6 +52,8 @@ interface BottomPanelProps {
     onSelectPort: (name: string) => void;
     onSwapCompare: () => void;
   };
+  /** While Resources is on: the sources and numbers of the report, and the gestures that change them. */
+  resourceChannel?: ResourceChannel;
 }
 
 export function BottomPanel({
@@ -59,6 +71,7 @@ export function BottomPanel({
   onSelectNet,
   onReveal,
   changes,
+  resourceChannel,
 }: BottomPanelProps) {
   const rows = useMemo(
     () => (changes ? changeRows(changes.compare.diff, { ignoreVersionOnly: false }) : []),
@@ -67,6 +80,12 @@ export function BottomPanel({
   const findingList = useMemo(
     () => (changes ? findingRows(changes.compare.findings) : []),
     [changes?.compare.findings]
+  );
+  const report = resourceChannel?.resources?.report;
+  const comparedReport = resourceChannel?.resources?.compare?.report;
+  const resourceList = useMemo(
+    () => (report ? resourceRows(report, graph, comparedReport) : []),
+    [report, graph, comparedReport]
   );
   const view = useMemo(
     () => clocksInView(graph, clocks, shownLevels(graph, levelPath, expanded)),
@@ -79,6 +98,15 @@ export function BottomPanel({
     { id: 'clocks', label: 'Clocks', count: view.domains.length },
     { id: 'resets', label: 'Resets', count: view.resets.length },
     { id: 'unconnected', label: 'Unconnected', count: findings.length },
+    ...(resourceChannel
+      ? [
+          {
+            id: 'resources' as const,
+            label: 'Resources',
+            count: resourceList.filter((row) => row.kind === 'block').length,
+          },
+        ]
+      : []),
   ];
   // One filter box for the tab on show; each tab keeps its own text.
   const [filters, setFilters] = useState<Record<BottomTab, string>>({
@@ -88,6 +116,7 @@ export function BottomPanel({
     clocks: '',
     resets: '',
     unconnected: '',
+    resources: '',
   });
   const filter = useMemo(() => compileSearch(filters[tab], DEFAULT_SEARCH_OPTIONS), [filters, tab]);
   const setFilter = (text: string) => setFilters((previous) => ({ ...previous, [tab]: text }));
@@ -182,6 +211,15 @@ export function BottomPanel({
             focusedPin={focusedPin}
             onSelectNet={onSelectNet}
             onReveal={onReveal}
+          />
+        ) : tab === 'resources' && resourceChannel ? (
+          <ResourcesTable
+            resources={resourceChannel.resources}
+            rows={resourceList}
+            channel={resourceChannel}
+            filter={filter}
+            selection={selection}
+            onSelectInstance={onSelectInstance}
           />
         ) : (
           <UnconnectedPinsTable

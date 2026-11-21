@@ -21,6 +21,7 @@ import { ExportTargets } from './imageExport/ExportTargets';
 import { ImageExportHost } from './imageExport/ImageExportHost';
 import { DiagramPanels } from './systemDiagram/DiagramPanels';
 import { PanelCompare } from './systemDiagram/PanelCompare';
+import { PanelResources } from './systemDiagram/PanelResources';
 
 /** How long to wait for workspace enrichment before showing the parsed graph. */
 export const ENRICHMENT_GRACE_MS = 100;
@@ -61,6 +62,15 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     return active !== undefined;
   }
 
+  /** Opens the Attach Resource Report dialog of the active diagram panel; false when none is active. */
+  attachReportActive(): boolean {
+    const active = this.panels.active();
+    if (active) {
+      void active.attachReport();
+    }
+    return active !== undefined;
+  }
+
   resolveCustomTextEditor(
     document: vscode.TextDocument,
     webviewPanel: vscode.WebviewPanel,
@@ -95,6 +105,15 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       enricher: this.enricher,
       logError: (message, error) => this.logger.error(message, error),
       republish: () => republish(),
+    });
+    const resources = new PanelResources({ document, context: this.context, post });
+    // After `compare` took the swap request that waits for this document.
+    this.panels.add(webviewPanel, {
+      uri: document.uri.toString(),
+      pickBase: () => compare.pick(),
+      startWith: (base) => compare.startWith(base),
+      reveal: () => webviewPanel.reveal(webviewPanel.viewColumn),
+      attachReport: () => resources.attachReport(true),
     });
     /** Set when the panel is gone: nothing is published or stored after that. */
     let disposed = false;
@@ -134,6 +153,10 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
         ...(Object.keys(highlights).length > 0 && { highlights }),
         ...(changes && { compare: compare.describe(changes) }),
       });
+      // After the graph it was mapped from; a graph that is still being enriched is not mapped.
+      if (final) {
+        resources.onGraph(graph);
+      }
     };
 
     const postProblem = (message: NonNullable<typeof lastProblem>) => {
@@ -299,13 +322,23 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
         lastGraph,
         message,
         lastChanges?.diff,
-        lastChanges?.union
+        lastChanges?.union,
+        resources.currentReport()
       );
     });
 
     router.on('startCompare', () => compare.pick());
     router.on('stopCompare', () => compare.stop());
     router.on('swapCompare', () => compare.swap());
+
+    router.on('loadResources', () => resources.load());
+    router.on('selectResourceSource', (message) => resources.select(message.id));
+    router.on('attachResourceReport', () => resources.attachReport());
+    router.on('chooseResourceFolder', () => resources.chooseFolder());
+    router.on('removeResourceSource', (message) => resources.remove(message.id));
+    router.on('chooseResourceRoot', (message) => resources.chooseRoot(message.root));
+    router.on('extractResources', (message) => resources.extractResources(message.id));
+    router.on('compareResourceSource', (message) => resources.compareResourceSource(message.id));
 
     const documentChanges = vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.uri.toString() === document.uri.toString()) {
@@ -319,6 +352,8 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.onDidDispose(() => {
       disposed = true;
       compare.dispose();
+      resources.dispose();
+      this.panels.remove(webviewPanel);
       documentChanges.dispose();
       trustGranted.dispose();
       exportTarget.dispose();

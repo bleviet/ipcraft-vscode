@@ -70,7 +70,8 @@ const LAYOUT_OPTIONS = {
   'elk.algorithm': 'layered',
   'elk.direction': 'RIGHT',
   'elk.edgeRouting': 'ORTHOGONAL',
-  'elk.spacing.nodeNode': '28',
+  // Vertical gap between blocks of a layer: leaves room for the two-line resource strip above a block.
+  'elk.spacing.nodeNode': '36',
   'elk.layered.spacing.nodeNodeBetweenLayers': '80',
   'elk.layered.spacing.edgeNodeBetweenLayers': '24',
   'elk.spacing.edgeEdge': '12',

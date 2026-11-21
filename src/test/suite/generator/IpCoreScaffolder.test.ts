@@ -2204,18 +2204,23 @@ describe('IpCoreScaffolder', () => {
       expect(sdcContent).toMatch(/^create_clock -period 20\.000 -name clk/m);
       expect(sdcContent).not.toContain('50MHzcreate_clock');
 
-      // Second, related bug: quartus_project.tcl.j2 wrapped SDC_FILE in the
-      // same `[file join .. ...]` used for rtl_files, but the .sdc is
-      // written as a sibling of project.tcl in altera/ (rtl files live one
-      // level up in ../rtl/) -- the extra ".." made Quartus report
-      // "Synopsys Design Constraints File file not found", confirmed on a
-      // real Quartus 25.1std run.
+      // Second, related bug: IPCraft's Build runs the project Tcl with cwd
+      // altera/build/, so the QSF is created in build/ while the .sdc is
+      // written one level up in altera/. A bare `SDC_FILE sdc_core.sdc` made
+      // Quartus report "Synopsys Design Constraints File file not found" and
+      // constrain clk at the 1 GHz default; the path must climb out of build/.
       const projectTclContent = (fs.writeFile as unknown as jest.Mock).mock.calls.find((call) =>
         call[0].endsWith('_project.tcl')
       )?.[1];
       expect(projectTclContent).toBeDefined();
-      expect(projectTclContent).toContain('set_global_assignment -name SDC_FILE sdc_core.sdc');
-      expect(projectTclContent).not.toContain('SDC_FILE [file join');
+      expect(projectTclContent).toContain(
+        'set_global_assignment -name SDC_FILE [file join .. sdc_core.sdc]'
+      );
+      // Without this the reports land in altera/build/ instead of the
+      // altera/build/output_files/ that ReportParser reads.
+      expect(projectTclContent).toContain(
+        'set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files'
+      );
     } finally {
       await realFs.unlink(tmpPath).catch(() => {});
     }

@@ -94,6 +94,20 @@ Design Timing Summary
       expect(result.utilization!.dsp).toMatchObject({ used: 4, total: 220, pct: 1.82 });
     });
 
+    it('reads the device totals of a real Vivado utilization report', async () => {
+      await fs.copyFile(
+        path.join(__dirname, '../../fixtures/reports/vivado/spike/routed_flat.rpt'),
+        path.join(tempDir, 'utilization.rpt')
+      );
+
+      const result = await parseVivadoReports(tempDir, 'xpr');
+
+      expect(result.utilization!.lut).toEqual({ used: 841, total: 63400, pct: 1.33 });
+      expect(result.utilization!.ff).toMatchObject({ used: 1386, total: 126800 });
+      expect(result.utilization!.bram).toMatchObject({ used: 2, total: 135 });
+      expect(result.utilization!.dsp).toMatchObject({ used: 0, total: 240 });
+    });
+
     it('parses utilization with comma-separated large numbers', async () => {
       const utilRpt = `
 | Site Type       | Used   | Fixed | Available | Proh | Util% |
@@ -192,52 +206,70 @@ CDC Report Summary
       await fs.mkdir(outputDir, { recursive: true });
     });
 
-    it('parses timing summary with fmax', async () => {
-      const staSummary = `
-; Fitter Resource Usage Summary
-; Layer    ; 156.25 ; 156.25 MHz ; clk ;
-; Total    ; 156.25 ; 156.25 MHz ; clk ;
-`;
-      await fs.writeFile(path.join(outputDir, `${projectName}.sta.summary`), staSummary, 'utf8');
+    const fixtureRoot = path.join(__dirname, '../../fixtures/reports/quartus');
+
+    // Copies a real-tool fixture into output_files/, renaming <fixtureName>.* to <projectName>.*.
+    async function installFixture(
+      fixtureDir: string,
+      fixtureName: string,
+      extensions: string[]
+    ): Promise<void> {
+      for (const ext of extensions) {
+        await fs.copyFile(
+          path.join(fixtureRoot, fixtureDir, `${fixtureName}.${ext}`),
+          path.join(outputDir, `${projectName}.${ext}`)
+        );
+      }
+    }
+
+    it('parses real timing and utilization reports of a design that meets timing', async () => {
+      await installFixture('led_controller_avmm', 'led_controller_avmm', [
+        'sta.summary',
+        'sta.rpt',
+        'fit.summary',
+      ]);
 
       const result = await parseQuartusReports(tempDir, projectName);
 
       expect(result.vendor).toBe('quartus');
       expect(result.mode).toBe('compile');
-      expect(result.timing).toBeDefined();
-      expect(result.timing!.fmax).toBe(156.25);
-      expect(result.timing!.met).toBe(true);
+      expect(result.reportDir).toBe(outputDir);
+      expect(result.timing).toEqual({ met: true, wns: 16.997, whs: 0.121, fmax: 333.0 });
+
+      const util = result.utilization!;
+      expect(util.lut).toMatchObject({ used: 61, total: 41910 });
+      expect(util.lut!.pct).toBeCloseTo(0.1455, 4);
+      expect(util.ff).toEqual({ used: 45, total: 0, pct: 0 });
+      expect(util.bram).toEqual({ used: 0, total: 5662720, pct: 0 });
+      expect(util.dsp).toEqual({ used: 0, total: 112, pct: 0 });
     });
 
-    it('reports timing not met when requirements fail', async () => {
-      const staSummary = `
-Timing requirements not met
-; some other data ;
-`;
-      await fs.writeFile(path.join(outputDir, `${projectName}.sta.summary`), staSummary, 'utf8');
+    it('reports timing not met for a real unconstrained design', async () => {
+      await installFixture('unconstrained_system', 'spike', [
+        'sta.summary',
+        'sta.rpt',
+        'fit.summary',
+      ]);
 
       const result = await parseQuartusReports(tempDir, projectName);
 
-      expect(result.timing!.met).toBe(false);
+      expect(result.timing).toEqual({ met: false, wns: -3.453, whs: 0.103, fmax: 224.57 });
+
+      const util = result.utilization!;
+      expect(util.lut).toMatchObject({ used: 121, total: 32070 });
+      expect(util.ff).toEqual({ used: 246, total: 0, pct: 0 });
+      expect(util.bram).toMatchObject({ used: 65536, total: 4065280 });
+      expect(util.bram!.pct).toBeCloseTo(1.612, 3);
+      expect(util.dsp).toEqual({ used: 0, total: 87, pct: 0 });
     });
 
-    it('parses utilization from fit summary', async () => {
-      const fitSummary = `
-; Fitter Resource Usage Summary
-; Logic utilization (in LUTs) ; 1,234 / 41,910 ( 3 % ) ;
-; Total registers ; 2,891 ;
-; Total block memory bits ; 16,384 / 5,662,720 ( < 1 % ) ;
-; Total DSP Blocks ; 4 / 112 ( 4 % ) ;
-`;
-      await fs.writeFile(path.join(outputDir, `${projectName}.fit.summary`), fitSummary, 'utf8');
+    it('reports wns, whs and met but no fmax when sta.rpt is absent', async () => {
+      await installFixture('unconstrained_system', 'spike', ['sta.summary']);
 
       const result = await parseQuartusReports(tempDir, projectName);
 
-      expect(result.utilization).toBeDefined();
-      expect(result.utilization!.lut).toMatchObject({ used: 1234, total: 41910, pct: 3 });
-      expect(result.utilization!.ff).toMatchObject({ used: 2891 });
-      expect(result.utilization!.bram).toMatchObject({ used: 16384, total: 5662720 });
-      expect(result.utilization!.dsp).toMatchObject({ used: 4, total: 112, pct: 4 });
+      expect(result.timing).toEqual({ met: false, wns: -3.453, whs: 0.103 });
+      expect(result.timing!.fmax).toBeUndefined();
     });
 
     it('handles missing report files gracefully', async () => {
@@ -251,15 +283,60 @@ Timing requirements not met
     it('handles partial reports (only timing, no utilization)', async () => {
       await fs.writeFile(
         path.join(outputDir, `${projectName}.sta.summary`),
-        '; 200.00 ; 200.00 MHz ; sys_clk ;',
+        [
+          "Type  : Slow 1100mV 85C Model Setup 'sys_clk'",
+          'Slack : 2.500',
+          'TNS   : 0.000',
+          '',
+          "Type  : Slow 1100mV 85C Model Hold 'sys_clk'",
+          'Slack : 0.300',
+          'TNS   : 0.000',
+          '',
+        ].join('\n'),
         'utf8'
       );
 
       const result = await parseQuartusReports(tempDir, projectName);
 
-      expect(result.timing!.fmax).toBe(200);
-      expect(result.timing!.met).toBe(true);
+      expect(result.timing).toEqual({ met: true, wns: 2.5, whs: 0.3 });
       expect(result.utilization).toBeUndefined();
+    });
+
+    it('reports timing not met when only a minimum pulse width slack is negative', async () => {
+      await fs.writeFile(
+        path.join(outputDir, `${projectName}.sta.summary`),
+        [
+          "Type  : Slow 1100mV 85C Model Setup 'sys_clk'",
+          'Slack : 2.500',
+          'TNS   : 0.000',
+          '',
+          "Type  : Slow 1100mV 85C Model Hold 'sys_clk'",
+          'Slack : 0.300',
+          'TNS   : 0.000',
+          '',
+          "Type  : Slow 1100mV 85C Model Minimum Pulse Width 'sys_clk'",
+          'Slack : -0.100',
+          'TNS   : -0.100',
+          '',
+        ].join('\n'),
+        'utf8'
+      );
+
+      const result = await parseQuartusReports(tempDir, projectName);
+
+      expect(result.timing).toEqual({ met: false, wns: 2.5, whs: 0.3 });
+    });
+
+    it('counts a negative Slack line whose Type line has no Model', async () => {
+      await fs.writeFile(
+        path.join(outputDir, `${projectName}.sta.summary`),
+        ["Type  : Something Else 'sys_clk'", 'Slack : -0.500', 'TNS   : -0.500', ''].join('\n'),
+        'utf8'
+      );
+
+      const result = await parseQuartusReports(tempDir, projectName);
+
+      expect(result.timing).toEqual({ met: false });
     });
   });
 });

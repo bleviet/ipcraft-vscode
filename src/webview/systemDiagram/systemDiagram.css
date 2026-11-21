@@ -108,8 +108,9 @@ input:focus-visible {
 }
 
 .sd-node {
+  --sd-node-border-width: 1px;
   position: relative;
-  border: 1px solid var(--sd-node-line);
+  border: var(--sd-node-border-width) solid var(--sd-node-line);
   background: var(--sd-node-fill);
   border-radius: 4px;
   box-shadow: var(--sd-node-shadow);
@@ -330,8 +331,9 @@ input:focus-visible {
 
 /* Expanded hierarchy block: a frame around its inner level, below the blocks and wires inside it. */
 .sd-frame {
+  --sd-node-border-width: 2px;
   position: relative;
-  border: 2px solid var(--sd-node-line);
+  border: var(--sd-node-border-width) solid var(--sd-node-line);
   border-radius: 6px;
   background: color-mix(in srgb, var(--vscode-editorWidget-background) 35%, transparent);
   font-size: 11px;
@@ -1535,4 +1537,89 @@ input:focus-visible {
 .sd-changes .sd-mark {
   background: var(--vscode-editor-findMatchHighlightBackground, rgba(234, 92, 0, 0.33));
   font-weight: 600;
+}
+
+/* Resource usage (Resources toggle): drawing only, no layout. The usage of a block is a strip above
+   it, which may be wider than the block. It is two lines (the counts, then the shares), each a
+   block-level div, and grows upwards. It is placed from the padding box of the block, so it
+   steps over the border, and keeps a gap of STRIP_GAP (src/shared/render/resourceSvg.ts) above it. */
+.sd-node-usage {
+  position: absolute;
+  bottom: calc(100% + var(--sd-node-border-width) + 2px);
+  left: calc(-1 * var(--sd-node-border-width));
+  padding: 0 4px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 10px;
+  line-height: 14px;
+  white-space: nowrap;
+  color: var(--vscode-foreground);
+  background: color-mix(in srgb, var(--vscode-editor-background) 80%, transparent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.sd-node-usage[data-muted='true'] {
+  font-style: italic;
+  color: var(--vscode-descriptionForeground);
+}
+
+[data-far='true'] .sd-node-usage {
+  display: none;
+}
+
+.sd-node-share {
+  position: absolute;
+  left: 0;
+  min-width: 1px;
+  background: var(--vscode-charts-blue);
+  pointer-events: none;
+}
+
+.sd-res-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+.sd-res-notice {
+  padding: 2px 0 6px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.sd-res-notice[data-tone='warning'] {
+  color: var(--vscode-editorWarning-foreground);
+}
+
+.sd-res-sort {
+  padding: 0;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.sd-res-sort:hover {
+  color: var(--vscode-foreground);
+}
+
+th[aria-sort='ascending'] > .sd-res-sort::after {
+  content: ' \2191';
+}
+
+th[aria-sort='descending'] > .sd-res-sort::after {
+  content: ' \2193';
+}
+
+.sd-res-code {
+  display: block;
+  padding: 4px 8px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  white-space: pre-wrap;
+  user-select: text;
+  background: var(--vscode-textCodeBlock-background);
+  border-radius: 2px;
 }

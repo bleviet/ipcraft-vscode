@@ -20,6 +20,7 @@ import { isPaneDoubleClick } from './canvasTargets';
 import { PinHoverCard } from './PinHoverCard';
 import { usePinHover } from './hooks/usePinHover';
 import type { DiagramLayout } from './hooks/useElkLayout';
+import type { ResourceReport } from '../../domain/resourceUsage';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { HighlightColor, HighlightMap } from '../../shared/messages/systemDiagram';
 import type { InstanceNodeData } from './layout/diagramTypes';
@@ -57,6 +58,8 @@ interface DiagramCanvasProps {
   clocks: ClockContext;
   /** The marks of a comparison; null while Marks is off or without a comparison. */
   changes?: ChangeContext | null;
+  /** The report whose usage the block headers show; absent while Resources is off. */
+  resources?: ResourceReport | null;
   /** Opens the Changes tab (the legend's removed entry). */
   onOpenChanges?: () => void;
   focusedPin: FocusedPin | null;
@@ -116,6 +119,7 @@ export function DiagramCanvas({
   review,
   clocks,
   changes = null,
+  resources,
   onOpenChanges,
   focusedPin,
   matcher,
@@ -207,6 +211,7 @@ export function DiagramCanvas({
     review,
     clocks,
     changes,
+    resources,
     focusedPin,
     matcher,
     searchInside,

@@ -12,6 +12,7 @@ import { runProcess } from '../BuildRunner';
 import { findVivadoInInstallDir, getVivadoLauncher } from '../../utils/vivadoResolver';
 import { fileExists } from '../../utils/fsHelpers';
 import { writeSidecar } from './toolchainVersionDetector';
+import { VIVADO_OUTPUT_SUBDIR, vivadoBuildDir } from './buildPaths';
 import {
   resolveExecutionLauncher,
   type DockerConfig,
@@ -28,7 +29,7 @@ import type {
 export class VivadoToolchain implements SynthesisToolchain {
   readonly id = 'vivado';
   readonly displayName = 'Vivado (Xilinx/AMD)';
-  readonly outputSubdir = 'xilinx';
+  readonly outputSubdir = VIVADO_OUTPUT_SUBDIR;
   readonly contextKey = 'ipcraft.vivadoFound';
   readonly subTools: ReadonlyArray<SubToolDeclaration> = [];
 
@@ -219,7 +220,7 @@ export class VivadoToolchain implements SynthesisToolchain {
     const modes: BuildMode[] = [];
 
     if (await fileExists(path.join(xilinxDir, `${name}_run_ooc.tcl`))) {
-      const buildDir = path.join(xilinxDir, 'build', 'ooc');
+      const buildDir = vivadoBuildDir(ipDir, 'ooc');
       modes.push({
         label: 'Vivado OOC Synthesis',
         description: 'Out-of-context synthesis — reports in xilinx/build/ooc/',
@@ -255,7 +256,7 @@ export class VivadoToolchain implements SynthesisToolchain {
     }
 
     if (await fileExists(path.join(xilinxDir, `${name}_run_xpr.tcl`))) {
-      const buildDir = path.join(xilinxDir, 'build', 'xpr');
+      const buildDir = vivadoBuildDir(ipDir, 'xpr');
       modes.push({
         label: 'Vivado Full Implementation (XPR)',
         description: 'Synthesis + place + route — reports in xilinx/build/xpr/',

@@ -45,14 +45,7 @@ export class PanelCompare {
     this.panels = options.panels;
     this.republish = options.republish;
     this.compare = new SystemDesignCompare(options.enricher, options.logError);
-    const uri = this.document.uri.toString();
-    this.waiting = this.panels.take(uri);
-    this.panels.add(this.webviewPanel, {
-      uri,
-      pickBase: () => this.pick(),
-      startWith: (base) => this.startWith(base),
-      reveal: () => this.webviewPanel.reveal(this.webviewPanel.viewColumn),
-    });
+    this.waiting = this.panels.take(this.document.uri.toString());
   }
 
   /** The workspace-relative path of the document: the current side's label. */
@@ -156,7 +149,6 @@ export class PanelCompare {
   dispose(): void {
     this.disposed = true;
     this.waiting = undefined;
-    this.panels.remove(this.webviewPanel);
   }
 
   private applyBase(base: CompareBase): void {

@@ -67,6 +67,7 @@ import { DataInspectorRecipeEditorProvider } from './providers/DataInspectorReci
 import { SystemDiagramProvider } from './providers/SystemDiagramProvider';
 import { RenderAssets } from './services/render/renderResources';
 import { ExportTargets } from './providers/imageExport/ExportTargets';
+import { attachResourceReportCommand } from './commands/attachResourceReport';
 import { compareSystemDesignCommand } from './commands/compareSystemDesign';
 import { exportDiagramImageCommand } from './commands/exportDiagramImage';
 import { registerSystemDesignContextKey } from './services/systemDiagram/systemDesignContextKey';
@@ -261,6 +262,11 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     'fpga-ip-core.compareSystemDesign',
     compareSystemDesignCommand(() => systemDiagramProvider.compareActive())
+  );
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.attachResourceReport',
+    attachResourceReportCommand(() => systemDiagramProvider.attachReportActive())
   );
   safeRegisterCommand(context, 'fpga-ip-core.copyComponentInstance', copyComponentInstanceCommand);
   safeRegisterCommand(

@@ -11,7 +11,7 @@ import { cellCount, endpointKey, type netsByEndpoint } from '../model';
 import type { FrameNodeData, FramePinRow, PinSide } from './diagramTypes';
 import { portId } from './levelEdges';
 import { badgeLabels, badgeOfPort, clockResetNetsByEndpoint } from './netBadges';
-import { FRAME_MARGIN, framePadding, type TextMeasure } from './nodeSizing';
+import { FRAME_MARGIN, FRAME_TOP_MARGIN, framePadding, type TextMeasure } from './nodeSizing';
 import { HEADER_HEIGHT, PIN_ROW_HEIGHT, PORT_SIZE, pinRow, splitSides } from './pinRows';
 import { EDGE_MARGIN, LANE_STEP } from './wireRoutes';
 
@@ -93,7 +93,7 @@ export function compoundNode(
       ...baseOptions,
       'elk.portConstraints': 'FIXED_SIDE',
       'elk.spacing.portPort': String(PIN_ROW_HEIGHT),
-      'elk.padding': `[top=${HEADER_HEIGHT + FRAME_MARGIN},left=${padding.west + channel.west},bottom=${FRAME_MARGIN},right=${padding.east + channel.east}]`,
+      'elk.padding': `[top=${HEADER_HEIGHT + FRAME_TOP_MARGIN},left=${padding.west + channel.west},bottom=${FRAME_MARGIN},right=${padding.east + channel.east}]`,
       'elk.nodeSize.constraints': 'MINIMUM_SIZE',
       'elk.nodeSize.minimum': `(${minSize.width},${minSize.height})`,
     },

@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
+import type { ResourceReport } from '../../domain/resourceUsage';
 import type { SystemGraph } from '../../domain/systemGraph';
 import type { SystemGraphDiff, UnionAdditions } from '../../domain/systemGraphDiff';
 import type { NormalizedBusLibrary } from '../../shared/busContracts';
@@ -65,14 +66,16 @@ export class ImageExportHost {
    * included) and `diff` the comparison it was published with, whose marks the image draws when
    * the view says they are on the canvas, and whose `union` (what only the base has) it lays the
    * level out with when the canvas does, drawing the ghosts when the view says they are on the
-   * canvas too.
+   * canvas too. `report` is the usage the viewer maps onto the design; the image draws it only
+   * when the view says Resources is on.
    */
   async exportSystem(
     document: vscode.TextDocument,
     graph: SystemGraph | undefined,
     message: { options?: unknown; view?: unknown },
     diff?: SystemGraphDiff,
-    union?: UnionAdditions
+    union?: UnionAdditions,
+    report?: ResourceReport
   ): Promise<void> {
     const options = sanitizeExportOptions(message.options);
     const view = parseSystemExportView(message.view);
@@ -115,6 +118,7 @@ export class ImageExportHost {
           clocks: view.clocks,
           cropNodeIds: crop,
           ...(changes && { changes }),
+          ...(view.resources && report && { resources: { report } }),
           ...(layoutUnion && {
             union: layoutUnion,
             ...(!(changes && ghostUnion) && { ghostsHidden: true }),

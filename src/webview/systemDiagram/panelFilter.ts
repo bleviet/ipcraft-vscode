@@ -10,6 +10,8 @@ import { crossingKind, crossingProblem } from './clocks/crossingRows';
 import { formatHz } from './clocks/frequency';
 import { segmentHigh, segmentRangeText } from './model';
 import type { TextMatcher } from './searchMatcher';
+import { changeText, metricText, type ResourceRow } from './resources/resourceRows';
+import { formatPercent } from './resources/resourceView';
 import { findingRow, type UnconnectedPin } from './unconnectedPins';
 
 /** Shown in place of a table whose rows the filter all hides. */
@@ -97,4 +99,16 @@ export function changeTexts(row: ChangeRow): RowTexts {
 
 export function comparedFindingTexts(row: FindingRow): RowTexts {
   return [row.sign, row.kind, cellText(row.where), cellText(row.detail)];
+}
+
+/** The metric cells are matched as the table shows them: the counts with their shares of the device, then the changes. */
+export function resourceTexts(row: ResourceRow): RowTexts {
+  return [
+    row.name,
+    row.level,
+    row.kind === 'other' ? 'not a block of the diagram' : undefined,
+    ...row.values.map((_, index) => metricText(row, index)),
+    ...(row.changes ?? []).map((_, index) => changeText(row, index)),
+    row.share === undefined ? undefined : formatPercent(row.share),
+  ];
 }

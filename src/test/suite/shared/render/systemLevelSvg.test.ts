@@ -146,8 +146,8 @@ describe('renderSystemLevelSvg marks of a comparison', () => {
     // Taken from the renderer before the marks of a comparison were added. A deliberate change of
     // the unmarked output updates them: print the SVG, review it, then hash it with sha256.
     const GOLDEN = {
-      light: 'f396620155b6813594bb27165d09956dc5b665a599d4a7378462ed9a989a0717',
-      dark: 'cc484d45f4a69ca6039e07876b65663ca5bf013220c30dfbc5af846901e8dc5a',
+      light: 'bfbd73c4cd716735cb523a66365a0c2c8a3abdb213fc34cccc803e50c5d8ea89',
+      dark: 'c84ddca18719b1714510b8cb19caf0debdc4b30994bbc47b48d8da9f8e45e14d',
     } as const;
     const graph = zynqGraph('current');
     const laidOut = await runElkLayout(

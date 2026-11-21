@@ -31,6 +31,8 @@ import type { DiagramProblem } from './messageState';
 import { boundaryId, nodeSelection, type RevealZoom, type Selection } from './model';
 import { ProblemBanner } from './ProblemBanner';
 import { OutlineTree } from './OutlineTree';
+import type { ResourceChannel } from './resources/useResourceChannel';
+import { useResourceView } from './resources/useResourceView';
 import { ResizeHandle } from './ResizeHandle';
 import { findSeed, matchesInside } from './search';
 import { compileSearch, DEFAULT_SEARCH_OPTIONS } from './searchMatcher';
@@ -45,6 +47,8 @@ interface WorkbenchLayoutProps {
   openDefinition: (instance: string) => void;
   onChangeHighlights?: (highlights: HighlightMap) => void;
   imageExport?: ImageExportChannel;
+  /** The resource sources and numbers, and the gestures that ask for others; without it there is no Resources toggle. */
+  resourceChannel?: ResourceChannel;
   /** The comparison that is on, and the gestures that start and end one. */
   compare?: DiagramCompare;
   onStartCompare: () => void;
@@ -63,6 +67,7 @@ export function WorkbenchLayout({
   openDefinition,
   onChangeHighlights,
   imageExport,
+  resourceChannel,
   compare,
   onStartCompare,
   onStopCompare,
@@ -87,6 +92,8 @@ export function WorkbenchLayout({
   const [autoDetail, setAutoDetail] = useState(true);
   // The minimap is drawn, not laid out: no toggle moves a block.
   const [minimapOn, setMinimapOn] = useState(false);
+  // Resources only decorates the blocks and lists the numbers: no toggle moves a block.
+  const resources = useResourceView(resourceChannel);
   const [query, setQuery] = useState('');
   const [searchOptions, setSearchOptions] = useState(DEFAULT_SEARCH_OPTIONS);
   const matcher = useMemo(() => compileSearch(query, searchOptions), [query, searchOptions]);
@@ -152,6 +159,7 @@ export function WorkbenchLayout({
     ignoreVersionOnly: compareView.hidingVersionOnly,
     ghostsOn: toggles.ghostsShown,
     unionLayout: toggles.hasRemoved,
+    resources: resources.on ? true : undefined,
   });
 
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -179,7 +187,11 @@ export function WorkbenchLayout({
     [searching, search.matches]
   );
 
-  const { tab, setTab, openTab: openBottomTab } = useBottomTab(compare?.baseLabel, panels.bottom);
+  const {
+    tab,
+    setTab,
+    openTab: openBottomTab,
+  } = useBottomTab(compare?.baseLabel, panels.bottom, resources.on);
   const selectPort = (name: string) =>
     view.selectAndReveal({ kind: 'boundary', id: boundaryId('/', name) }, '/');
   // Zoom in to a readable size: on a large design the pin is unreadable at the fitted zoom.
@@ -272,6 +284,14 @@ export function WorkbenchLayout({
         }}
         onFit={fit}
         imageExport={exporter}
+        resources={
+          resourceChannel && {
+            on: resources.on,
+            chip: resources.chip,
+            onChange: resources.setOn,
+            onOpenTab: () => openBottomTab('resources'),
+          }
+        }
         compare={compareControlProps(compareView, {
           onStart: onStartCompare,
           onStop: onStopCompare,
@@ -316,6 +336,7 @@ export function WorkbenchLayout({
               review={reviewContext}
               clocks={clockContext}
               changes={compareView.changes}
+              resources={resources.report}
               onOpenChanges={() => openBottomTab('changes')}
               focusedPin={focusedPin}
               matcher={matcher}
@@ -354,6 +375,8 @@ export function WorkbenchLayout({
                   selectedItems={nav.selectedItems}
                   focusedPin={focusedPin}
                   comparison={compareView.details}
+                  resources={resources.report}
+                  compareResources={resources.compare}
                   onSelect={view.selectAndReveal}
                   onEnterHierarchy={nav.enterHierarchy}
                   onReveal={revealSource}
@@ -378,6 +401,7 @@ export function WorkbenchLayout({
                 selection={nav.selection}
                 focusedPin={focusedPin}
                 onSelectInstance={view.selectInstance}
+                resourceChannel={resources.on ? resourceChannel : undefined}
                 onSelectPin={selectFinding}
                 onSelectNet={selectNet}
                 onReveal={revealSource}

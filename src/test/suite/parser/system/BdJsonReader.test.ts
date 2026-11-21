@@ -362,3 +362,20 @@ describe('readBdJson: errors', () => {
     expect(() => readBdJson('null', 'a.bd')).toThrow(message);
   });
 });
+
+describe('readBdJson: xci_name', () => {
+  const spike = readBdJson(
+    fs.readFileSync(path.join(__dirname, '../../../fixtures/reports/vivado/spike/sys.bd'), 'utf8'),
+    'sys.bd'
+  );
+
+  it('keeps the xci_name of an IP cell', () => {
+    expect(spike.instances['/axi_gpio_0'].xciName).toBe('sys_axi_gpio_0_0');
+    expect(spike.instances['/hier_0/bram_0'].xciName).toBe('sys_bram_0_0');
+  });
+
+  it('has none for a hierarchy block or a cell without xci_name', () => {
+    expect(spike.instances['/hier_0'].xciName).toBeUndefined();
+    expect(Object.keys(spike.instances['/hier_0'])).not.toContain('xciName');
+  });
+});

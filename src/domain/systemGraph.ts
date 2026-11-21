@@ -71,6 +71,8 @@ export interface SystemInstance {
   vlnv?: string;
   /** kind `module` (`-reference`). */
   moduleRef?: string;
+  /** `.bd` only: the `xci_name` of an IP cell, which is the Vivado module name of the cell in a hierarchical utilization report. */
+  xciName?: string;
   /** qsys (kind `ip`, no `vlnv`): module `kind`, e.g. `altera_nios2_gen2`. */
   component?: string;
   /** qsys: module `version`. */

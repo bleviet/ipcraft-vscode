@@ -208,8 +208,8 @@ generated `altera/` directory is also a standalone, pin-less Quartus project
 timing and resource usage in isolation:
 
 ```bash
-cd altera
-quartus_sh -t led_controller_avmm_project.tcl
+mkdir -p altera/build && cd altera/build
+quartus_sh -t ../led_controller_avmm_project.tcl
 quartus_sh --flow compile led_controller_avmm
 ```
 

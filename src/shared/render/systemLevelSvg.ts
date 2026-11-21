@@ -9,7 +9,8 @@
  *   the selection outline (`selectedNodeIds`) and the Clocks and resets domain decorations
  *   (already merged into the layout by `applyClockDecor`, plus `domainLegend`) and the marks of a
  *   comparison (`changes`, merged into the nodes and wires here, as the canvas does, with the
- *   ghosts of what only the base has when the layout is the union's) are drawn;
+ *   ghosts of what only the base has when the layout is the union's) are drawn, and with `resources`
+ *   the strip of figures above each block (the image bounds grow to hold the strips);
  * - the signs of a comparison are drawn at weight 600: no 700 face is embedded, the canvas uses 700;
  * - the legend sits below the drawing instead of floating over the canvas corner;
  * - grid dots are 1.5 px across (the canvas draws 1 px) so they survive printing;
@@ -30,6 +31,7 @@ import { REMOVED_WIRE_DASH } from './changeSvg';
 import { layoutLegend, legendSvg } from './legendSvg';
 import type { Palette } from './palette';
 import { boundarySvg } from './pinSvg';
+import { blockStrip, stripBox, stripSvg, type ResourceRender } from './resourceSvg';
 import { attributes, element, num, SVG_TEXT_STYLE } from './svg';
 
 export interface SystemLevelOptions {
@@ -47,6 +49,8 @@ export interface SystemLevelOptions {
   domainLegend?: readonly DomainLegendEntry[] | null;
   /** The marks of a comparison on this layout (see `changeDecor`); absent: none are drawn. */
   changes?: ChangeDecor;
+  /** The usage of the blocks (Resources on): a strip above each block; absent: none. */
+  resources?: ResourceRender;
 }
 
 export interface SystemLevelLayout {
@@ -108,13 +112,18 @@ function edgeSvg(edge: DiagramFlowEdge, palette: Palette): string {
     : wire;
 }
 
-function nodeSvg(node: DiagramFlowNode, palette: Palette, selected: boolean): string {
+function nodeSvg(
+  node: DiagramFlowNode,
+  palette: Palette,
+  selected: boolean,
+  strip?: { lines: string[]; muted: boolean }
+): string {
   const inner =
-    node.type === 'instance'
+    (node.type === 'instance'
       ? instanceSvg(node.data, node.height, palette, selected)
       : node.type === 'frame'
         ? frameSvg(node.data, node, palette, selected)
-        : boundarySvg(node.data, palette, selected);
+        : boundarySvg(node.data, palette, selected)) + (strip ? stripSvg(strip, palette) : '');
   const attrs = attributes({
     'data-node': node.id,
     'data-kind': node.type,
@@ -141,7 +150,9 @@ function withChanges(layout: SystemLevelLayout, decor: ChangeDecor): SystemLevel
   };
 }
 
-function gridSvg(box: { x: number; y: number; width: number; height: number }, palette: Palette) {
+type Box = { x: number; y: number; width: number; height: number };
+
+function gridSvg(box: Box, palette: Palette) {
   const { color, opacity } = palette.gridDot;
   return [
     `<defs><pattern id="ipcraft-grid" width="${GRID_GAP}" height="${GRID_GAP}" patternUnits="userSpaceOnUse">`,
@@ -158,7 +169,7 @@ function gridSvg(box: { x: number; y: number; width: number; height: number }, p
 }
 
 /** The union of the boxes of the nodes named in `ids`, or null when none is in the layout. */
-function cropBounds(layout: SystemLevelLayout, ids: ReadonlySet<string>) {
+function cropBounds(layout: SystemLevelLayout, ids: ReadonlySet<string>): Box | null {
   const nodes = layout.nodes.filter((node) => ids.has(node.id));
   if (nodes.length === 0) {
     return null;
@@ -174,14 +185,41 @@ function cropBounds(layout: SystemLevelLayout, ids: ReadonlySet<string>) {
   };
 }
 
+/** `box` grown to hold `more`. */
+function grow(box: Box, more: readonly Box[]): Box {
+  const x = Math.min(box.x, ...more.map((item) => item.x));
+  const y = Math.min(box.y, ...more.map((item) => item.y));
+  return {
+    x,
+    y,
+    width: Math.max(box.x + box.width, ...more.map((item) => item.x + item.width)) - x,
+    height: Math.max(box.y + box.height, ...more.map((item) => item.y + item.height)) - y,
+  };
+}
+
 export function renderSystemLevelSvg(
   plainLayout: SystemLevelLayout,
   options: SystemLevelOptions
 ): string {
   const { palette } = options;
   const layout = options.changes ? withChanges(plainLayout, options.changes) : plainLayout;
-  const content = (options.cropNodeIds && cropBounds(layout, options.cropNodeIds)) ??
-    diagramBounds(layout) ?? { x: 0, y: 0, ...EMPTY_SIZE };
+  const cropped = options.cropNodeIds && cropBounds(layout, options.cropNodeIds);
+  const { resources } = options;
+  const usage = new Map(
+    layout.nodes.flatMap((node) => {
+      const strip = resources && blockStrip(node, resources);
+      return strip ? [[node.id, strip] as const] : [];
+    })
+  );
+  // The strips sit above the blocks, outside their boxes: the image holds them, or they are clipped.
+  const strips = layout.nodes.flatMap((node) => {
+    const strip = usage.get(node.id);
+    return strip && (!cropped || options.cropNodeIds?.has(node.id))
+      ? [stripBox(node, strip.lines)]
+      : [];
+  });
+  const base = cropped ?? diagramBounds(layout) ?? { x: 0, y: 0, ...EMPTY_SIZE };
+  const content = strips.length > 0 ? grow(base, strips) : base;
   const legend = options.legend
     ? layoutLegend(
         layout,
@@ -191,7 +229,7 @@ export function renderSystemLevelSvg(
       )
     : null;
   const drawNode = (node: DiagramFlowNode) =>
-    nodeSvg(node, palette, options.selectedNodeIds?.has(node.id) ?? false);
+    nodeSvg(node, palette, options.selectedNodeIds?.has(node.id) ?? false, usage.get(node.id));
   const width = Math.ceil(Math.max(content.width, legend?.width ?? 0) + 2 * MARGIN);
   const legendHeight = legend ? legend.height + LEGEND_GAP : 0;
   const height = Math.ceil(content.height + legendHeight + 2 * MARGIN);

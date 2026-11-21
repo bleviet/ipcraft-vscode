@@ -18,6 +18,8 @@ import { FONT_FILES } from '../../../../shared/render/fontFaces';
 import { paletteFor } from '../../../../shared/render/palette';
 import { plexTextMeasure } from '../../../../shared/render/textMetrics';
 import { buildChangeMarks, type ChangeMarks } from '../../../../webview/systemDiagram/changeMarks';
+import type { ResourceReport } from '../../../../domain/resourceUsage';
+import { vivadoGraph, vivadoReport } from '../../webview/systemDiagram/resources/resourceReports';
 import { zynqDiff, zynqGraph, zynqUnion } from '../../webview/systemDiagram/compareFixtures';
 import { nodeBounds } from '../../../../webview/systemDiagram/layout/diagramBounds';
 import { buildElkInput, toFlowElements } from '../../../../webview/systemDiagram/layout/elkLayout';
@@ -300,6 +302,31 @@ describe('renderSystemLevelImage', () => {
         roots
       )
     ).rejects.toThrow("'gone' is not a block or port of level '/'");
+  });
+});
+
+describe('renderSystemLevelImage with resources', () => {
+  const bd = vivadoGraph;
+  const request = { level: '/', expanded: [], selectedNodeIds: [], clocks: false } as const;
+
+  it('draws the strips only when asked, and leaves the plain image as it was', async () => {
+    const draw = async (resources?: { report: ResourceReport }) =>
+      text(
+        await renderSystemLevelImage(
+          bd,
+          { ...request, ...(resources && { resources }) },
+          look,
+          svg,
+          assets,
+          roots
+        )
+      );
+    const plain = await draw();
+    const strips = await draw({ report: vivadoReport });
+    expect(plain).not.toContain('154 LUT');
+    expect(strips).toContain('154 LUT · 168 FF · 0 BRAM · 0 DSP');
+    expect(strips).toContain('18.3 % design');
+    expect(viewBoxOf(strips)[1]).toBeLessThan(viewBoxOf(plain)[1]);
   });
 });
 
