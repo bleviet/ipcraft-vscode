@@ -12,6 +12,7 @@
 /*/altera/led_controller_avmm_project.tcl
 /*/altera/test.qsys
 /*/docs/led_controller_avmm_registers.md
+/*/docs/*_datasheet.md
 /*/rtl/led_controller_avmm.vhd
 /*/rtl/led_controller_avmm_avmm.vhd
 /*/rtl/led_controller_avmm_pkg.vhd

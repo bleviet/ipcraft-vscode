@@ -8,4 +8,4 @@ This is the project at the start of the episode. See the [checkpoint overview](.
 
 ## First step
 
-Open the `.ip.yml`, choose the `example-with-docs` scaffold pack, VHDL, and the Quartus target in the toolbar, and run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**.
+Open the `.ip.yml`, choose the `example-with-docs` scaffold pack, VHDL, and the Quartus target in the toolbar, and run **IPCraft: Scaffold Project (RTL + EDA packaging + Testbench)**. The pack is saved in the `.ip.yml`; the language and the target are only toolbar choices and are not stored in the file.

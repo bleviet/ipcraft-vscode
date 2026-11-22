@@ -13,6 +13,24 @@ jest.mock('../../../generator/IpCoreScaffolder', () => ({
   applyExecutableMode: jest.fn().mockResolvedValue(undefined),
 }));
 
+// Milliseconds a write of a file (by base name) is held back, to make the writes finish in a chosen order.
+const mockWriteDelays: Record<string, number> = {};
+
+jest.mock('fs/promises', () => {
+  const actual = jest.requireActual<typeof import('fs/promises')>('fs/promises');
+  return {
+    ...actual,
+    writeFile: async (...args: Parameters<typeof actual.writeFile>) => {
+      const delay =
+        mockWriteDelays[
+          jest.requireActual<typeof import('path')>('path').basename(String(args[0]))
+        ] ?? 0;
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return actual.writeFile(...args);
+    },
+  };
+});
+
 jest.mock('../../../generator/TemplateLoader', () => ({
   TemplateLoader: jest.fn(),
 }));
@@ -268,6 +286,31 @@ describe('runGenerator (issue #195)', () => {
       const yamlText = String(edit.replace.mock.calls[0][2]);
       expect(yamlText).toContain('new.vhd');
       expect(yamlText).not.toContain('.ipcraft');
+    });
+
+    it('records new files in fileSets in staged order, not in the order their writes finish', async () => {
+      stageContents({ 'rtl/a.vhd': 'a\n', 'rtl/b.vhd': 'b\n', 'rtl/c.vhd': 'c\n' });
+      jest.spyOn(StagingPanel, 'show').mockResolvedValue({
+        confirmed: true,
+        mergedPaths: [],
+        actions: {},
+      });
+      // The first file is the slowest to write, so the writes finish in reverse order.
+      Object.assign(mockWriteDelays, { 'a.vhd': 60, 'b.vhd': 30, 'c.vhd': 0 });
+
+      try {
+        await run(true);
+      } finally {
+        Object.keys(mockWriteDelays).forEach((name) => delete mockWriteDelays[name]);
+      }
+
+      const edit = (vscode.workspace.applyEdit as jest.Mock).mock.calls[0][0] as {
+        replace: jest.Mock;
+      };
+      const yamlText = String(edit.replace.mock.calls[0][2]);
+      const order = ['a.vhd', 'b.vhd', 'c.vhd'].map((name) => yamlText.indexOf(`rtl/${name}`));
+      expect(order.every((i) => i >= 0)).toBe(true);
+      expect(order).toEqual([...order].sort((x, y) => x - y));
     });
 
     it('seeds the baseline of unchanged files and writes overwritten content as baseline', async () => {
