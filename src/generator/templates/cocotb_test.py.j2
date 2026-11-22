@@ -1,5 +1,14 @@
 {% set reset_assert = 1 if reset_active_high else 0 %}
 {% set reset_deassert = 0 if reset_active_high else 1 %}
+{#- A word-addressed Avalon-MM address port reaches only 2^(port width + address_shift) bytes; the
+    unmapped and boundary reads must stay inside that, or the value does not fit the port. -#}
+{% set address_limit_bits = addr_width %}
+{% if bus_type == 'avmm' and (address_word_addressed | default(false)) and avmm_signals.address.width is defined %}
+{% set address_reach_bits = avmm_signals.address.width + (address_shift | default(0)) %}
+{% if address_reach_bits < addr_width %}
+{% set address_limit_bits = address_reach_bits %}
+{% endif %}
+{% endif %}
 {% if has_memory_mapped_slave %}
 import os
 import random
@@ -22,7 +31,7 @@ manifest = load_manifest(_MANIFEST_PATH)
 model = RegisterModel(manifest)
 _LANE_COUNT = manifest["bus"]["byteEnable"]["value"]["laneCount"]
 _FULL_BYTE_ENABLE = (1 << _LANE_COUNT) - 1
-_ADDRESS_LIMIT = 1 << {{ addr_width }}
+_ADDRESS_LIMIT = 1 << {{ address_limit_bits }}
 _RANDOM_SEED = 0x175
 
 
@@ -82,6 +91,10 @@ class AxiTransport:
 {% elif bus_type == 'avmm' %}
 class AvalonTransport:
     """Avalon-MM transport adapter for the shared semantic scoreboard."""
+{% if (address_shift | default(0)) > 0 %}
+
+    # The address port is word-addressed: it carries the byte offset >> {{ address_shift }}.
+{% endif %}
 
     def __init__(self, dut):
         self.dut = dut
@@ -103,7 +116,7 @@ class AvalonTransport:
         self.supports_byte_enable = self.byte_enable is not None
 
     async def write(self, addr, value, byte_enable=_FULL_BYTE_ENABLE):
-        self.address_signal.value = addr
+        self.address_signal.value = addr{{ (' >> ' ~ address_shift) if (address_shift | default(0)) > 0 else '' }}
         self.write_data_signal.value = value
         if self.byte_enable is not None:
             self.byte_enable.value = (
@@ -119,7 +132,7 @@ class AvalonTransport:
         self.write_signal.value = self.write_deasserted
 
     async def read(self, addr):
-        self.address_signal.value = addr
+        self.address_signal.value = addr{{ (' >> ' ~ address_shift) if (address_shift | default(0)) > 0 else '' }}
         self.read_signal.value = self.read_asserted
         await RisingEdge(self.dut.{{ clock_port }})
         if self.wait_request is not None:

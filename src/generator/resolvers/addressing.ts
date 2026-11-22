@@ -31,6 +31,46 @@ function deriveDataWidth(input: ResolverInput): number {
   return 32;
 }
 
+type PortRecord = Record<string, unknown>;
+
+/**
+ * True when an interface's `address` port is narrower than the register file's byte address
+ * (`addr_width`): it can only carry a word address (`portWidthOverrides.address`), with the
+ * byte-lane bits missing. The one rule behind the bus wrapper, the generated testbench and the
+ * Platform Designer `addressUnits`.
+ */
+function hasWordAddressPort(ports: readonly PortRecord[], addrWidth: number): boolean {
+  const width = Number(ports.find((port) => port.logical_name === 'address')?.width);
+  return Number.isFinite(width) && width < addrWidth;
+}
+
+export interface WordAddressing {
+  /** The primary slave's address port carries a word address. */
+  address_word_addressed: boolean;
+  /** log2 of the bytes per data word when word-addressed, else 0. */
+  address_shift: number;
+  /** The expanded interfaces, each flagged with `address_word_addressed` by the same rule. */
+  expanded_bus_interfaces: PortRecord[];
+}
+
+export function resolveWordAddressing(input: {
+  busPorts: readonly PortRecord[];
+  expandedBusInterfaces: readonly PortRecord[];
+  addrWidth: number;
+  regWidth: number;
+}): WordAddressing {
+  const { busPorts, expandedBusInterfaces, addrWidth, regWidth } = input;
+  const wordAddressed = hasWordAddressPort(busPorts, addrWidth);
+  return {
+    address_word_addressed: wordAddressed,
+    address_shift: wordAddressed ? Math.round(Math.log2(regWidth)) : 0,
+    expanded_bus_interfaces: expandedBusInterfaces.map((iface) => ({
+      ...iface,
+      address_word_addressed: hasWordAddressPort((iface.ports as PortRecord[]) ?? [], addrWidth),
+    })),
+  };
+}
+
 export const addressingResolver: ContextResolver = {
   name: 'addressing',
 

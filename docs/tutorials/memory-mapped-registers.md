@@ -80,10 +80,10 @@ Add `STATUS` at offset `0x04`:
 |---|---|---|---:|---|
 | `BUSY` | `0` | Read-only | `0` | Hardware is processing |
 | `ERROR` | `1` | Read-only | `0` | Hardware detected an error |
-| `IRQ_PENDING` | `2` | Read/write | `0` | Interrupt is waiting |
+| `IRQ_PENDING` | `2` | Read, write 1 to clear | `0` | Interrupt is waiting |
 
-Set `IRQ_PENDING` to write-one-to-clear behavior. Software clears it by writing
-a `1` to that bit. Writing `0` leaves it unchanged.
+Set `IRQ_PENDING` to `read-write-1-to-clear` access, so software can read the
+flag and clear it by writing a `1` to that bit. Writing `0` leaves it unchanged.
 
 ## Understand access types
 
@@ -101,7 +101,14 @@ Special behavior modifies what a write or hardware event does:
 ### Write one to clear
 
 Used for interrupt or error flags. Hardware sets the bit; software acknowledges
-it by writing `1`.
+it by writing `1`. There are two variants:
+
+- `read-write-1-to-clear`: software can read the bit, and writing `1` clears
+  it. Use it for sticky flags that software polls, such as interrupt status or
+  change flags.
+- `write-1-to-clear`: the same, but reads always return `0`. Use it when
+  software only acknowledges the event, for example when an interrupt line
+  already signals it.
 
 ```text
 current value  software write  next value
@@ -117,7 +124,8 @@ turns it back to `0` after the command has been observed.
 ### Change of state
 
 Used when hardware should record that an input changed. Software can then read
-or clear the recorded event.
+or clear the recorded event. Use `read-write-1-to-clear` for the flag when
+software reads it.
 
 Use special behavior only when it matches the hardware contract. A plain
 read/write field is easier to understand and test.

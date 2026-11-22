@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://ipcraft.dev/schemas/template_context/1.5.0",
+  "$id": "https://ipcraft.dev/schemas/template_context/1.6.0",
   "title": "TemplateContext",
   "description": "Versioned template context passed to all Nunjucks/Jinja2 templates during IP core generation. This is the public API for third-party scaffold packs.",
   "type": "object",
@@ -14,6 +14,8 @@
     "addr_width",
     "reg_width",
     "addr_map_size",
+    "address_word_addressed",
+    "address_shift",
     "registers",
     "sw_registers",
     "hw_registers",
@@ -47,7 +49,7 @@
   "properties": {
     "contract_version": {
       "type": "string",
-      "const": "1.5.0",
+      "const": "1.6.0",
       "description": "Semantic version of the template context contract."
     },
     "name": { "type": "string" },
@@ -61,6 +63,16 @@
       "type": "integer",
       "minimum": 1,
       "description": "Exclusive upper bound, in bytes, of the mapped register address space (one past the last register's byte offset)."
+    },
+
+    "address_word_addressed": {
+      "type": "boolean",
+      "description": "True when the primary memory-mapped slave's address port is narrower than addr_width, so it carries a word address (portWidthOverrides.address) and the bus wrapper must rebuild the byte address."
+    },
+    "address_shift": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "log2 of the bytes per data word when address_word_addressed, else 0. A byte offset shifted right by address_shift is the value the address port carries; the bus wrapper shifts it back."
     },
 
     "registers": { "type": "array", "items": { "$ref": "#/definitions/AnnotatedRegister" } },
@@ -746,7 +758,11 @@
         "conduitPorts": { "type": "array", "items": { "$ref": "#/definitions/ConduitPort" } },
         "busTypeVlnv": { "$ref": "#/definitions/VlnvDef" },
         "rawPortMaps": { "type": "array", "items": { "$ref": "#/definitions/RawPortMap" } },
-        "ports": { "type": "array", "items": { "$ref": "#/definitions/BusPort" } }
+        "ports": { "type": "array", "items": { "$ref": "#/definitions/BusPort" } },
+        "address_word_addressed": {
+          "type": "boolean",
+          "description": "Same rule as the top-level address_word_addressed, for this interface's own address port."
+        }
       }
     },
     "ElaboratePortWidth": {

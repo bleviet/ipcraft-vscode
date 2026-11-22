@@ -1,0 +1,29 @@
+- name: CSR_MAP
+  description: Two 64-bit registers
+  addressBlocks:
+    - name: CSR
+      offset: 0
+      usage: register
+      defaultRegWidth: 64
+      registers:
+        - name: VERSION
+          offset: 0
+          access: read-write
+          description: "IP version"
+          fields:
+            - name: MINOR
+              bits: "[7:0]"
+              access: read-only
+            - name: MAJOR
+              bits: "[15:8]"
+              access: read-only
+              resetValue: 1
+        - name: LED_PATTERN
+          offset: 8
+          description: "LED output pattern"
+          fields:
+            - name: PATTERN
+              bits: "[7:0]"
+              access: read-write
+              resetValue: 0
+              description: "Bit N drives LED[N]"
