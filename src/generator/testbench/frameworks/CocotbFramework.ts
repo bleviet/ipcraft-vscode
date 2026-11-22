@@ -14,6 +14,8 @@ interface AvalonSignalContext {
   asserted: 0 | 1;
   deasserted: 0 | 1;
   active_low: boolean;
+  /** Declared port width in bits; undefined when the port is not present. */
+  width?: number;
 }
 
 interface AvalonTransportContext {
@@ -50,6 +52,7 @@ function buildAvalonTransportContext(
       asserted: activeLow ? 0 : 1,
       deasserted: activeLow ? 1 : 0,
       active_low: activeLow,
+      width: typeof port?.width === 'number' ? port.width : undefined,
     };
   };
 

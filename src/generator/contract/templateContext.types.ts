@@ -11,7 +11,7 @@ export interface TemplateContext {
   /**
    * Semantic version of the template context contract.
    */
-  contract_version: '1.5.0';
+  contract_version: '1.6.0';
   name: string;
   entity_name: string;
   has_memory_mapped_slave: boolean;
@@ -22,6 +22,14 @@ export interface TemplateContext {
    * Exclusive upper bound, in bytes, of the mapped register address space (one past the last register's byte offset).
    */
   addr_map_size: number;
+  /**
+   * True when the primary memory-mapped slave's address port is narrower than addr_width, so it carries a word address (portWidthOverrides.address) and the bus wrapper must rebuild the byte address.
+   */
+  address_word_addressed: boolean;
+  /**
+   * log2 of the bytes per data word when address_word_addressed, else 0. A byte offset shifted right by address_shift is the value the address port carries; the bus wrapper shifts it back.
+   */
+  address_shift: number;
   registers: AnnotatedRegister[];
   sw_registers: Register[];
   hw_registers: Register[];
@@ -358,6 +366,10 @@ export interface ExpandedBusInterface {
   busTypeVlnv?: VlnvDef;
   rawPortMaps?: RawPortMap[];
   ports?: BusPort[];
+  /**
+   * Same rule as the top-level address_word_addressed, for this interface's own address port.
+   */
+  address_word_addressed?: boolean;
   [k: string]: unknown;
 }
 export interface ConduitPort {

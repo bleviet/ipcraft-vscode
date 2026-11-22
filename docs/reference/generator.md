@@ -131,6 +131,8 @@ Common template values:
 | `has_memory_mapped_slave` | Whether register-bus output is needed |
 | `has_endian_swap` | Whether top-level endian reflow logic is needed |
 | `registers` | Registers sorted by address |
+| `address_word_addressed` | Whether the Avalon-MM `address` port is word-addressed, that is narrower than `addr_width` (also set on each expanded bus interface) |
+| `address_shift` | `log2` of the bytes per data word when `address_word_addressed`, else 0; the wrapper shifts the port value left by it, and a testbench drives byte offset `>>` it |
 | `bus_ports`, `user_ports` | Physical interface and standalone ports |
 | `interrupt_ports` | Interrupt signals with resolved bus-interface and clock associations |
 | `endian_swap_ports`, `endian_swap_widths` | Ports and fixed widths used by endian reflow logic |
@@ -150,7 +152,10 @@ before publishing a pack.
 The versioned template-data schema is
 `src/generator/contract/template_context.schema.json`. Template variables use
 snake case by design; TypeScript and IPCraft schema properties use camel case.
-The current contract version is 1.5.0. Version 1.5.0 adds per-register
+The current contract version is 1.6.0. Version 1.6.0 adds
+`address_word_addressed` and `address_shift`, and flags each expanded bus
+interface with `address_word_addressed`. Packs pinned to `~1.5` are rejected by
+1.6.0 and must update their range. Version 1.5.0 adds per-register
 `write_fields`, `needs_write_branch` and `read_source`, and register `access`
 is derived from field accesses when a register has fields. Version 1.3.0 adds
 `display_items`, display labels and Tcl-safe renderings for parameter metadata

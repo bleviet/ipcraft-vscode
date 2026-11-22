@@ -31,7 +31,7 @@ import type { TemplateContext } from './contract';
 import { BUS_REGISTRY } from './buses/builtin';
 import { clockResetResolver } from './resolvers/clockReset';
 import { genericsResolver } from './resolvers/generics';
-import { addressingResolver } from './resolvers/addressing';
+import { addressingResolver, resolveWordAddressing } from './resolvers/addressing';
 import { busResolver } from './resolvers/bus';
 import { shadowRegistersResolver } from './resolvers/shadowRegisters';
 import type { ResolverInput } from './resolvers/types';
@@ -623,6 +623,13 @@ export class IpCoreScaffolder {
     const generics = genericsResolver.resolve(resolverInput);
     const addressing = addressingResolver.resolve(resolverInput);
 
+    const wordAddressing = resolveWordAddressing({
+      busPorts: (bus.bus_ports ?? []) as Record<string, unknown>[],
+      expandedBusInterfaces: (bus.expanded_bus_interfaces ?? []) as Record<string, unknown>[],
+      addrWidth: addressing.addr_width as number,
+      regWidth: addressing.reg_width as number,
+    });
+
     const memoryMaps = projectMemoryMapsForTemplate(
       resolvedMemoryMaps ?? (await resolveMemoryMaps(ipCore, inputPath)) ?? []
     );
@@ -637,6 +644,7 @@ export class IpCoreScaffolder {
       ...bus,
       ...generics,
       ...addressing,
+      ...wordAddressing,
       memory_maps: memoryMaps,
       memmap_relpath: `../${name}.mm.yml`,
       vendor: ipCore?.vlnv?.vendor,

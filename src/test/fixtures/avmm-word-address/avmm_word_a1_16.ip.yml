@@ -1,0 +1,41 @@
+apiVersion: '1.2'
+scaffold_pack: builtin-ipcraft
+vlnv:
+  vendor: ipcraft-test
+  library: fixtures
+  name: avmm_word_a1_16
+  version: 1.0.0
+description: >
+  Avalon-MM slave regression fixture (1-bit word address, a scalar std_logic port; 16-bit data).
+clocks:
+  - name: clk
+    frequency: 50MHz
+    associatedReset: reset
+resets:
+  - name: reset
+    polarity: activeHigh
+    logicalName: RESET
+    associatedClock: clk
+busInterfaces:
+  - name: S_AVMM
+    type: ipcraft:busif:avalon_mm:1.0
+    mode: slave
+    physicalPrefix: avs_
+    associatedClock: clk
+    associatedReset: reset
+    useOptionalPorts:
+      - read
+      - write
+      - writedata
+      - readdata
+      - address
+      - byteenable
+    portWidthOverrides:
+      address: 1
+      writedata: 16
+      readdata: 16
+      byteenable: 2
+    memoryMapRef: CSR_MAP
+memoryMaps:
+  - name: CSR_MAP
+    import: two_regs_16.mm.yml

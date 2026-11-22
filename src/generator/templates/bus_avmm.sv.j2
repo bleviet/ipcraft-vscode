@@ -70,9 +70,19 @@ module {{ entity_name }}_avmm
 {% set readdata_port      = (bus_ports | selectattr('logical_name', 'equalto', 'readdata')      | list) %}
 {% set readdatavalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'readdatavalid') | list) %}
 {% set waitrequest_port   = (bus_ports | selectattr('logical_name', 'equalto', 'waitrequest')   | list) %}
+{#- A narrower, WORD-addressed port (portWidthOverrides.address) cannot be sliced to
+    C_ADDR_WIDTH (out-of-range part-select yields X): widen the word address and shift it
+    left by address_shift (log2 of the bytes per word) to rebuild the byte address. -#}
+{% if address_port | length > 0 and address_word_addressed | default(false) %}
+{% set address_expr = "C_ADDR_WIDTH'(" ~ address_port[0].name ~ ")" ~ ((" << " ~ address_shift) if (address_shift | default(0)) > 0 else "") %}
+{% elif address_port | length > 0 %}
+{% set address_expr = address_port[0].name ~ "[C_ADDR_WIDTH-1:0]" %}
+{% else %}
+{% set address_expr = "'0" %}
+{% endif %}
 
   always_comb begin
-    address_int    = {{ address_port[0].name ~ "[C_ADDR_WIDTH-1:0]" if address_port | length > 0 else "'0" }};
+    address_int    = {{ address_expr }};
     read_int  = {{ read_port[0].name      if read_port      | length > 0 else "1'b0" }};
     write_int = {{ write_port[0].name     if write_port     | length > 0 else "1'b0" }};
     writedata_int  = {{ writedata_port[0].name if writedata_port | length > 0 else "'0" }};
