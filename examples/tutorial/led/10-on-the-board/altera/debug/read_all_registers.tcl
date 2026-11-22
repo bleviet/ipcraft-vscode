@@ -2,7 +2,7 @@
 # System Console CLI script: discover JTAG master, claim it, read all
 # led_controller_avmm registers, and print results with sentinel framing.
 #
-# Usage (inside a Quartus Docker image or a native Quartus install):
+# Usage (with a native Quartus install, or inside a Quartus Docker image):
 #   system-console --cli --script=debug_read_all.tcl
 #
 # Or from the Makefile:
@@ -43,7 +43,7 @@ foreach p $service_paths {
 }
 
 # ── 2. Open the first available master service ──────────────────────────────
-# Use the first path (phy_0/master = JTAG-to-Avalon-MM master, not nios2_0)
+# Use the first path (the JTAG-to-Avalon-MM master; the Nios V debug module is not a master service)
 set master_path [lindex $service_paths 0]
 open_service master $master_path
 

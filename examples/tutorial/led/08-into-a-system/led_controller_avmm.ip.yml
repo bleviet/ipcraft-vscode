@@ -3,35 +3,25 @@ vlnv:
   library: peripherals
   name: led_controller_avmm
   version: 1.0.0
-apiVersion: '1.0'
+apiVersion: '1.2'
 scaffold_pack: example-with-docs
-description: >
-  Avalon-MM peripheral for the DE10-Nano LED demo. Drives 8 board LEDs from a software-writable pattern register and exposes a free-running heartbeat status bit with a sticky change-of-state event.
+
+description: Avalon-MM peripheral for the DE10-Nano LED demo. Drives 8 board LEDs from a software-writable pattern register.
 targets:
   - quartus
-
 clocks:
   - name: clk
-    logicalName: CLK
-    direction: in
     frequency: 50MHz
-    description: System clock
     associatedReset: reset
-
 resets:
   - name: reset
-    logicalName: RESET
-    direction: in
     polarity: activeHigh
-    description: Synchronous reset
+    logicalName: RESET
     associatedClock: clk
-
 ports:
   - name: led
     direction: out
     width: 8
-    description: LED[7:0] output, driven by LED_PATTERN.PATTERN
-
 busInterfaces:
   - name: S_AVMM
     type: ipcraft:busif:avalon_mm:1.0
@@ -39,7 +29,6 @@ busInterfaces:
     physicalPrefix: avs_
     associatedClock: clk
     associatedReset: reset
-    memoryMapRef: LED_AVMM_CSR
     useOptionalPorts:
       - read
       - write
@@ -49,6 +38,8 @@ busInterfaces:
       - byteenable
     portWidthOverrides:
       address: 2
-
+    memoryMapRef: LED_AVMM_CSR
 memoryMaps:
-  import: led_controller_avmm.mm.yml
+  - name: LED_AVMM_CSR
+    import: led_controller_avmm.mm.yml
+

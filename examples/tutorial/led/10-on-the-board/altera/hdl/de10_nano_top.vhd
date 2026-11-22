@@ -42,7 +42,7 @@ begin
       por_o => power_on_reset
     );
 
-  -- Platform Designer system (IPCraft led_controller_avmm + Nios II CPU)
+  -- Platform Designer system (IPCraft led_controller_avmm + Nios V CPU)
   led_avmm_system_inst : led_avmm_system
     port map (
       clk_clk                        => fpga_clk1_50,

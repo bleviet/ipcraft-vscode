@@ -5,10 +5,17 @@ the LED controller project as that episode begins. Open the folder of the
 episode you want to follow and you have what it starts with, without doing the
 earlier episodes first.
 
-The last checkpoint matches the finished project in
-[`examples/led_avmm/`](../../led_avmm/), except that it has no `fileSets`
-(the example has them for its hand-written tests, which the series does not
-cover).
+The last checkpoint is functionally the finished project in
+[`examples/led_avmm/`](../../led_avmm/): it generates the same RTL, register
+package, register file, bus wrapper, and Platform Designer component, and its
+user-owned core is identical. Only descriptions differ, and it has no
+`fileSets` (the example has them for its hand-written tests, which the series
+does not cover).
+
+Each checkpoint is what the previous episode's editor saves, so 08 differs from
+07 only by the `EVENTS` register in the `.mm.yml`, the heartbeat in the core, and
+the Platform Designer system scripts in `altera/qsys/`; 09 and 10 add only their
+board files.
 
 | Episode | Folder | What is new in it |
 |---|---|---|
@@ -19,7 +26,7 @@ cover).
 | 6 | [`06-verify-in-simulation/`](06-verify-in-simulation/) | The user logic: `LED_PATTERN` drives the LEDs. |
 | 7 | [`07-grow-the-design/`](07-grow-the-design/) | The same files as episode 6. Episode 6 changes no files. |
 | 8 | [`08-into-a-system/`](08-into-a-system/) | The `EVENTS` register with its heartbeat, and the Platform Designer system scripts. |
-| 9 | [`09-build-with-quartus/`](09-build-with-quartus/) | The DE10-Nano top level, Quartus project and Makefile, and the Nios II software. |
+| 9 | [`09-build-with-quartus/`](09-build-with-quartus/) | The DE10-Nano top level, Quartus project and Makefile, and the Nios V software. |
 | 10 | [`10-on-the-board/`](10-on-the-board/) | The System Console debug scripts. |
 
 ## What a checkpoint holds

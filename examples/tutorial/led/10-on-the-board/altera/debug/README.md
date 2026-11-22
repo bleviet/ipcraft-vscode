@@ -18,11 +18,17 @@ the current architecture and usage reference.
 
 ## Quick start (from `quartus/`)
 
+The Makefile uses the local Quartus Prime 24.x or newer install when
+`quartus_sh` is on the `PATH` (or `QUARTUS_ROOTDIR` is set), and a Docker image
+otherwise. When Quartus runs in WSL2 and the USB-Blaster is shared with
+`usbipd-win`, add `USBIPD_BUSID=<id>` (from `usbipd.exe list`) to the targets
+that touch the cable; the bus ID is specific to your machine.
+
 ```bash
-# 1. Build the debug variant (adds JTAG-to-Avalon-MM master to the qsys system)
+# 1. Build the debug variant (adds JTAG-to-Avalon-MM master to the Nios V qsys system)
 make debug-build
 
-# 2. Program the FPGA
+# 2. Program the FPGA (volatile configuration; flash and HPS are untouched)
 make debug-program
 
 # 3. Read all registers via System Console Tcl
@@ -37,6 +43,10 @@ make debug-dump
 # 6. Poll EVENTS register (watch the heartbeat toggle)
 make debug-poll REG=EVENTS COUNT=20 INTERVAL=0.5
 ```
+
+`make debug-build` replaces the `.qsys` of the normal design. To build the
+normal design again afterwards, run `make clean` first; `make qsys` reuses an
+existing `.qsys`.
 
 ## Register map
 

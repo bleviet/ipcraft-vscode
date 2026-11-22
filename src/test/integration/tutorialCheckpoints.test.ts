@@ -8,16 +8,17 @@
  *   - the specs validate and generation succeeds without touching committed files,
  *   - the user-owned core compiles with the generated RTL (GHDL),
  *   - the board project only references files that exist,
- *   - the last checkpoint still matches examples/led_avmm/.
+ *   - the LED behaviour of each episode holds in simulation (cocotb + GHDL),
+ *   - the last checkpoint generates the same RTL and packaging as the
+ *     hardware-validated examples/led_avmm/.
  *
- * Skip the GHDL steps with SKIP_GHDL=1; they also fail loudly when GHDL is
- * missing (see tier.ts).
+ * Skip the GHDL steps with SKIP_GHDL=1 and the cocotb steps with SKIP_COCOTB=1;
+ * they also fail loudly when the tool is missing (see tier.ts).
  */
 
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
-import * as yaml from 'js-yaml';
 import { spawnSync } from 'child_process';
 import { IpCoreScaffolder, collectRtlAbsPaths } from '../../generator/IpCoreScaffolder';
 import { TemplateLoader } from '../../generator/TemplateLoader';
@@ -30,10 +31,23 @@ const REPO_ROOT = path.resolve(__dirname, '../../..');
 const CHECKPOINTS_DIR = path.join(REPO_ROOT, 'examples/tutorial/led');
 const EXAMPLE_DIR = path.join(REPO_ROOT, 'examples/led_avmm');
 const IP_FILE = 'led_controller_avmm.ip.yml';
-const MM_FILE = 'led_controller_avmm.mm.yml';
 const CORE_FILE = 'rtl/led_controller_avmm_core.vhd';
 const PROJECT_TCL = 'altera/quartus/de10_nano_project.tcl';
 const TOP_ENTITY = 'led_controller_avmm';
+
+const EPISODE_TB_DIR = path.join(REPO_ROOT, 'src/test/fixtures/tutorial-led');
+
+/**
+ * The testbench the generator writes for these checkpoints cannot pass yet, for two
+ * generator reasons (reported with the checkpoints):
+ *  - tb/led_controller_avmm_test.py drives byte offsets into the 2-bit, word-addressed
+ *    avs_address that the .ip.yml's portWidthOverrides asks for, so cocotb 2.x raises
+ *    "Int value (4) out of range for assignment of 2-bit signal";
+ *  - the bus wrapper pads the word address with (addr_width - 2) zero bits, which is
+ *    one bit short for the two-register map of 05-07 (LED_PATTERN lands at word 2).
+ * Set to false once the generator is fixed; the step then guards the tutorial.
+ */
+const GENERATED_TESTBENCH_BLOCKED = true;
 
 const resourceRoots = devResourceRoots(REPO_ROOT);
 
@@ -62,7 +76,29 @@ interface Generated {
 }
 
 const results = new Map<string, Generated>();
+/** Temp copy of examples/led_avmm/ after generation (reference for checkpoint 10). */
+let exampleDir = '';
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-tutorial-'));
+
+function cocotbAvailable(): boolean {
+  const result = spawnSync('python3', ['-c', 'import cocotb'], { encoding: 'utf8' });
+  return !result.error && result.status === 0;
+}
+
+/** Runs a cocotb Makefile with GHDL; throws with the tail of the output on failure. */
+function runCocotb(makeDir: string, args: string[], env: Record<string, string> = {}): void {
+  const run = spawnSync('make', ['-C', makeDir, 'SIM=ghdl', 'WAVES=0', ...args], {
+    encoding: 'utf8',
+    timeout: 150_000,
+    env: { ...process.env, ...env },
+  });
+  if (run.status !== 0) {
+    throw new Error(
+      `cocotb GHDL run failed in ${makeDir} (exit ${run.status})\n` +
+        `${run.error?.message ?? ''}${(run.stdout ?? '').slice(-3000)}${(run.stderr ?? '').slice(-1000)}`
+    );
+  }
+}
 
 /** Committed files, keyed by relative path; symlinks are compared by their target. */
 function listFiles(root: string, rel = ''): Map<string, Buffer | string> {
@@ -91,20 +127,22 @@ beforeAll(async () => {
   const loader = new TemplateLoader(logger, path.join(REPO_ROOT, 'src/generator/templates'));
   const scaffolder = new IpCoreScaffolder(logger, loader, resourceRoots);
 
+  const options = {
+    targets: ['quartus' as const],
+    includeRegs: true,
+    includeTestbench: true,
+    includeQuartusProject: true,
+    hdlLanguage: 'vhdl' as const,
+    scaffoldPack: 'example-with-docs',
+  };
+
   for (const name of generated) {
     const dir = path.join(tempRoot, name);
     fs.cpSync(path.join(CHECKPOINTS_DIR, name), dir, { recursive: true, verbatimSymlinks: true });
     const committed = listFiles(dir);
     const ipPath = path.join(dir, IP_FILE);
 
-    const result = await scaffolder.generateAll(ipPath, dir, {
-      targets: ['quartus'],
-      includeRegs: true,
-      includeTestbench: true,
-      includeQuartusProject: true,
-      hdlLanguage: 'vhdl',
-      scaffoldPack: 'example-with-docs',
-    });
+    const result = await scaffolder.generateAll(ipPath, dir, options);
 
     let rtlOrder: string[] = [];
     if (result.success) {
@@ -118,6 +156,22 @@ beforeAll(async () => {
       rtlOrder = absPaths.map((p) => path.relative(dir, p).replace(/\\/g, '/'));
     }
     results.set(name, { dir, success: result.success, error: result.error, rtlOrder, committed });
+  }
+
+  exampleDir = path.join(tempRoot, 'led_avmm');
+  fs.cpSync(EXAMPLE_DIR, exampleDir, {
+    recursive: true,
+    verbatimSymlinks: true,
+    // Quartus databases are build output, not part of the comparison.
+    filter: (src) => !/[\\/]altera[\\/]quartus[\\/](db|incremental_db|output_files)$/.test(src),
+  });
+  const exampleResult = await scaffolder.generateAll(
+    path.join(exampleDir, IP_FILE),
+    exampleDir,
+    options
+  );
+  if (!exampleResult.success) {
+    throw new Error(`Generating examples/led_avmm failed: ${exampleResult.error}`);
   }
 }, 300_000);
 
@@ -194,6 +248,58 @@ describe('tutorial checkpoints', () => {
     });
   });
 
+  (GENERATED_TESTBENCH_BLOCKED ? describe.skip : describe).each(compiled)(
+    '%s: generated testbench',
+    (name) => {
+      it('passes with cocotb and GHDL', () => {
+        if (guardTier1('ghdl', () => toolOnPath('ghdl')) || guardTier1('cocotb', cocotbAvailable)) {
+          return;
+        }
+        runCocotb(path.join(generatedFor(name).dir, 'tb'), []);
+      });
+    }
+  );
+
+  describe.each(compiled)('%s: simulation', (name) => {
+    it('reads VERSION, drives the LEDs from LED_PATTERN, and runs the heartbeat events', () => {
+      if (guardTier1('ghdl', () => toolOnPath('ghdl')) || guardTier1('cocotb', cocotbAvailable)) {
+        return;
+      }
+      const { dir, rtlOrder } = generatedFor(name);
+      const vhdl = rtlOrder.filter((f) => f.startsWith('rtl/') && f.endsWith('.vhd'));
+      expect(vhdl).toContain(CORE_FILE);
+
+      // The bus wrapper turns the word address on avs_address into a byte address by
+      // padding zero bits; the drive helper shifts byte offsets right by the same amount.
+      const wrapper = fs.readFileSync(path.join(dir, 'rtl/led_controller_avmm_avmm.vhd'), 'utf8');
+      const pad = /avs_address\s*&\s*"(0+)"/.exec(wrapper)?.[1].length ?? 0;
+
+      const simDir = fs.mkdtempSync(path.join(tempRoot, 'cocotb-'));
+      fs.copyFileSync(
+        path.join(EPISODE_TB_DIR, 'episode_test.py'),
+        path.join(simDir, 'episode_test.py')
+      );
+      fs.writeFileSync(
+        path.join(simDir, 'Makefile'),
+        [
+          'SIM ?= ghdl',
+          'TOPLEVEL_LANG = vhdl',
+          ...vhdl.map((f) => `VHDL_SOURCES += ${path.join(dir, f)}`),
+          `TOPLEVEL = ${TOP_ENTITY}`,
+          'COCOTB_TEST_MODULES = episode_test',
+          'export COCOTB_TEST_MODULES',
+          'EXTRA_ARGS += --std=08 -frelaxed',
+          'include $(shell cocotb-config --makefiles)/Makefile.sim',
+          '',
+        ].join('\n')
+      );
+      runCocotb(simDir, [], {
+        ADDR_SHIFT: String(pad),
+        HAS_EVENTS: episode(name) >= 8 ? '1' : '0',
+      });
+    });
+  });
+
   describe.each(boardProjects)('%s: board project', (name) => {
     it('references only files that exist after generation', () => {
       const { dir } = generatedFor(name);
@@ -217,17 +323,101 @@ describe('tutorial checkpoints', () => {
     });
   });
 
-  it('10: matches the finished example', () => {
-    const name = checkpoints.find((n) => episode(n) === 10) as string;
-    const dir = path.join(CHECKPOINTS_DIR, name);
-    for (const file of [MM_FILE, CORE_FILE]) {
-      expect(
-        fs.readFileSync(path.join(dir, file)).equals(fs.readFileSync(path.join(EXAMPLE_DIR, file)))
-      ).toBe(true);
-    }
+  describe('Nios V board files', () => {
+    const systemScripts = ['led_avmm_system.tcl', 'led_avmm_system_debug.tcl'];
+    const withSystem = checkpoints.filter((n) => episode(n) >= 8);
 
-    const parse = (p: string) => yaml.load(fs.readFileSync(p, 'utf8')) as Record<string, unknown>;
-    const { fileSets: _fileSets, ...example } = parse(path.join(EXAMPLE_DIR, IP_FILE));
-    expect(parse(path.join(dir, IP_FILE))).toEqual(example);
+    it.each(systemScripts)('%s is the same in every checkpoint from 08 on', (script) => {
+      const read = (n: string) =>
+        fs.readFileSync(path.join(CHECKPOINTS_DIR, n, 'altera/qsys', script), 'utf8');
+      for (const name of withSystem) {
+        expect(read(name)).toBe(read(withSystem[0]));
+      }
+    });
+
+    it.each(systemScripts)('%s builds a Nios V system', (script) => {
+      const text = fs.readFileSync(
+        path.join(CHECKPOINTS_DIR, withSystem[0], 'altera/qsys', script),
+        'utf8'
+      );
+      expect(text).toContain('intel_niosv_m');
+      expect(text).not.toMatch(/nios2/i);
+    });
+
+    it.each(systemScripts)('%s maps led_ctrl at 0x00010010 for every master', (script) => {
+      const text = fs.readFileSync(
+        path.join(CHECKPOINTS_DIR, withSystem[0], 'altera/qsys', script),
+        'utf8'
+      );
+      const connected = [...text.matchAll(/^add_connection\s+(\S+)\s+led_ctrl\.S_AVMM\b/gm)].map(
+        (m) => m[1]
+      );
+      const mapped = [
+        ...text.matchAll(
+          /^set_connection_parameter_value\s+(\S+)\/led_ctrl\.S_AVMM\s+baseAddress\s+\{(0x[0-9a-fA-F]+)\}/gm
+        ),
+      ].map((m) => [m[1], Number.parseInt(m[2], 16)]);
+
+      const masters =
+        script === 'led_avmm_system_debug.tcl'
+          ? ['jtag_debug_master.master', 'niosv.data_manager']
+          : ['niosv.data_manager'];
+      expect(connected.sort()).toEqual(masters);
+      expect(mapped.sort()).toEqual(masters.map((m) => [m, 0x00010010]));
+    });
+
+    it.each(withSystem)(
+      '%s: led_controller_avmm_hw.tcl is found by search path, not a link',
+      (name) => {
+        expect(
+          fs.existsSync(path.join(CHECKPOINTS_DIR, name, 'altera/qsys/led_controller_avmm_hw.tcl'))
+        ).toBe(false);
+      }
+    );
+
+    it.each(boardProjects)('%s: software targets the Nios V HAL', (name) => {
+      const platform = path.join(CHECKPOINTS_DIR, name, 'software/platform');
+      expect(fs.readdirSync(platform)).toEqual(['niosv']);
+      // bsp/ and build/ are build output (gitignored), not part of the checkpoint.
+      const sources = fs
+        .readdirSync(path.join(platform, 'niosv'))
+        .filter((f) => f !== 'bsp' && f !== 'build');
+      expect(sources.sort()).toEqual(['main.c', 'platform.c']);
+    });
+  });
+
+  describe('10: functional equivalence with the finished example', () => {
+    // The example spells its descriptions differently (longer text, folded scalars), so
+    // the one place a description reaches generated code is dropped before comparing:
+    // the entity header comment of the top level and the Platform Designer component
+    // DESCRIPTION. Everything else is compared byte for byte.
+    const dropDescriptions = (text: string): string =>
+      text
+        .replace(/^-- Description:[^\n]*\n(?:\n)?/m, '')
+        .replace(/^set_module_property DESCRIPTION "[^"]*"\n/m, '');
+
+    const generatedFiles = [
+      'rtl/led_controller_avmm.vhd',
+      'rtl/led_controller_avmm_avmm.vhd',
+      'rtl/led_controller_avmm_pkg.vhd',
+      'rtl/led_controller_avmm_regs.vhd',
+      CORE_FILE,
+      'altera/led_controller_avmm_hw.tcl',
+      'altera/led_controller_avmm.sdc',
+      'altera/led_controller_avmm_project.tcl',
+    ];
+
+    it.each(generatedFiles)('generates the same %s as examples/led_avmm', (file) => {
+      const name = checkpoints.find((n) => episode(n) === 10) as string;
+      const read = (root: string) =>
+        dropDescriptions(fs.readFileSync(path.join(root, file), 'utf8'));
+      expect(read(generatedFor(name).dir)).toBe(read(exampleDir));
+    });
+
+    it('has the same user-owned core', () => {
+      const name = checkpoints.find((n) => episode(n) === 10) as string;
+      const core = (root: string) => fs.readFileSync(path.join(root, CORE_FILE));
+      expect(core(path.join(CHECKPOINTS_DIR, name)).equals(core(EXAMPLE_DIR))).toBe(true);
+    });
   });
 });

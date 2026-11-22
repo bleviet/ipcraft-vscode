@@ -27,7 +27,7 @@ Requirements:
 Run inside Docker (adjust the image tag to whatever you built/tagged your
 Quartus Docker image as):
     docker run --rm --privileged -v /dev/bus/usb:/dev/bus/usb \
-      -v $(realpath ../../../../..):/work ipcraft-examples/quartus:23.1 \
+      -v $(realpath ../../../../..):/work ipcraft-examples/quartus:25.1 \
       python3 /work/tutorial/led/10-on-the-board/altera/debug/debug_console.py --base 0x00010010 dump
 """
 
