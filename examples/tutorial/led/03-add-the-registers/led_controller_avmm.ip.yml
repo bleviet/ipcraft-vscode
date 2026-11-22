@@ -1,0 +1,38 @@
+vlnv:
+  vendor: ipcraft-examples
+  library: peripherals
+  name: led_controller_avmm
+  version: 1.0.0
+apiVersion: '1.2'
+
+description: Avalon-MM peripheral for the DE10-Nano LED demo. Drives 8 board LEDs from a software-writable pattern register.
+clocks:
+  - name: clk
+    frequency: 50MHz
+    associatedReset: reset
+resets:
+  - name: reset
+    polarity: activeHigh
+    logicalName: RESET
+    associatedClock: clk
+ports:
+  - name: led
+    direction: out
+    width: 8
+busInterfaces:
+  - name: S_AVMM
+    type: ipcraft:busif:avalon_mm:1.0
+    mode: slave
+    physicalPrefix: avs_
+    associatedClock: clk
+    associatedReset: reset
+    useOptionalPorts:
+      - read
+      - write
+      - writedata
+      - readdata
+      - address
+      - byteenable
+    portWidthOverrides:
+      address: 2
+
