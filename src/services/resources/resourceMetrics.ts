@@ -7,6 +7,7 @@
 
 import type { ResourceMetric, ResourceStage, ResourceVendor } from '../../domain/resourceUsage';
 import { readVivadoFlatRow } from './vivadoFlatTable';
+import { VIVADO_ROW_LABELS, type VivadoPrimaryKey } from './vivadoRowLabels';
 
 /** Units available on the device, keyed by {@link ResourceMetric.key}. */
 export type CapacityTable = Partial<Record<string, number>>;
@@ -26,20 +27,19 @@ interface PrimarySpec {
   columns: Array<[name: string, weight: number]>;
 }
 
-/** The Vivado primaries; `row` is the label of the same figure in a flat report. */
-const VIVADO_PRIMARY: Array<PrimarySpec & { row: string }> = [
-  { key: 'lut', label: 'LUTs', row: 'Slice LUTs', columns: [['Total LUTs', 1]] },
-  { key: 'ff', label: 'FFs', row: 'Slice Registers', columns: [['FFs', 1]] },
+/** The Vivado primaries; `key` also names the figure's row labels in a flat report. */
+const VIVADO_PRIMARY: Array<PrimarySpec & { key: VivadoPrimaryKey }> = [
+  { key: 'lut', label: 'LUTs', columns: [['Total LUTs', 1]] },
+  { key: 'ff', label: 'FFs', columns: [['FFs', 1]] },
   {
     key: 'bram',
     label: 'BRAM',
-    row: 'Block RAM Tile',
     columns: [
       ['RAMB36', 1],
       ['RAMB18', 0.5],
     ],
   },
-  { key: 'dsp', label: 'DSPs', row: 'DSPs', columns: [['DSP Blocks', 1]] },
+  { key: 'dsp', label: 'DSPs', columns: [['DSP Blocks', 1]] },
 ];
 
 function quartusPrimary(stage: ResourceStage, columns: string[]): PrimarySpec[] {
@@ -79,8 +79,8 @@ export function vivadoFlatMetrics(capacity?: CapacityTable): ResourceMetric[] {
 /** Used units, aligned with {@link vivadoFlatMetrics}, and the capacity of a flat Vivado report. */
 export function readVivadoFlat(text: string): { used: number[]; capacity: CapacityTable } {
   const capacity: CapacityTable = {};
-  const used = VIVADO_PRIMARY.map(({ key, row }) => {
-    const found = readVivadoFlatRow(text, [row]);
+  const used = VIVADO_PRIMARY.map(({ key }) => {
+    const found = readVivadoFlatRow(text, VIVADO_ROW_LABELS[key]);
     if (found?.available !== undefined) {
       capacity[key] = found.available;
     }

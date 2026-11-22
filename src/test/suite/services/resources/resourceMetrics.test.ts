@@ -25,6 +25,22 @@ describe('buildMetricLayout', () => {
     expect(layout.project([0, 0, 0, 0, 0, 3, 5, 0])).toEqual([0, 0, 5.5, 0, 0, 0, 0]);
   });
 
+  it('reads the UltraScale+ hierarchy columns, with URAM as a plain column', () => {
+    const { columns, root } = parseVivadoHierarchy(vivadoFixture('zynqup_hier.rpt', 'ultrascale'));
+    const layout = buildMetricLayout('vivado', 'synth', columns);
+    expect(layout.metrics.map((m) => [m.key, m.primary])).toEqual([
+      ['lut', true],
+      ['ff', true],
+      ['bram', true],
+      ['dsp', true],
+      ['Logic LUTs', false],
+      ['LUTRAMs', false],
+      ['SRLs', false],
+      ['URAM', false],
+    ]);
+    expect(layout.project(root.total)).toEqual([8, 45, 0, 0, 8, 0, 0, 0]);
+  });
+
   it('projects self figures, with null for a metric built from an unknown column', () => {
     const layout = buildMetricLayout('vivado', 'synth', ['Total LUTs', 'RAMB36', 'RAMB18']);
     expect(layout.projectSelf([4, 1, 3])).toEqual([4, 2.5]);
@@ -95,6 +111,19 @@ describe('capacity', () => {
     const { used } = readVivadoFlat(vivadoFixture('ooc/sys_bram_0_0_utilization_synth.rpt'));
     expect(vivadoFlatMetrics().map((m) => m.key)).toEqual(['lut', 'ff', 'bram', 'dsp']);
     expect(used).toEqual([5, 6, 2, 0]);
+  });
+
+  it('reads UltraScale+ rows named CLB LUTs and CLB Registers, with their capacity', () => {
+    const { used, capacity } = readVivadoFlat(vivadoFixture('zynqup_flat.rpt', 'ultrascale'));
+    expect(used).toEqual([8, 45, 0, 0]);
+    expect(capacity).toEqual({ lut: 70560, ff: 141120, bram: 216, dsp: 360 });
+  });
+
+  it('reads Kintex UltraScale rows, whose LUT Util% cell is < 0.01', () => {
+    const { used, capacity } = readVivadoFlat(vivadoFixture('kintexus_flat.rpt', 'ultrascale'));
+    expect(used).toEqual([8, 45, 0, 0]);
+    expect(capacity.lut).toBe(145440);
+    expect(capacity.ff).toBe(290880);
   });
 
   it('reads Quartus capacity from a .fit.summary; registers have none', () => {

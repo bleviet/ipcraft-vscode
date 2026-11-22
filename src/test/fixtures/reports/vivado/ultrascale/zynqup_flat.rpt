@@ -1,0 +1,57 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2024.2 (lin64) Build 5239630 Fri Nov 08 22:34:34 MST 2024
+| Date         : Sun Nov 22 12:05:33 2026
+| Host         : build-host running 64-bit Linux
+| Command      : report_utilization -file zynqup_flat.rpt
+| Design       : led_controller_avmm
+| Device       : xczu3eg-sbva484-1-e
+| Speed File   : -1
+| Design State : Synthesized
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+1. CLB Logic
+------------
+
++-------------------------+------+-------+------------+-----------+-------+
+|        Site Type        | Used | Fixed | Prohibited | Available | Util% |
++-------------------------+------+-------+------------+-----------+-------+
+| CLB LUTs*               |    8 |     0 |          0 |     70560 |  0.01 |
+|   LUT as Logic          |    8 |     0 |          0 |     70560 |  0.01 |
+|   LUT as Memory         |    0 |     0 |          0 |     28800 |  0.00 |
+| CLB Registers           |   45 |     0 |          0 |    141120 |  0.03 |
+|   Register as Flip Flop |   45 |     0 |          0 |    141120 |  0.03 |
+|   Register as Latch     |    0 |     0 |          0 |    141120 |  0.00 |
+| CARRY8                  |    4 |     0 |          0 |      8820 |  0.05 |
+| F7 Muxes                |    0 |     0 |          0 |     35280 |  0.00 |
+| F8 Muxes                |    0 |     0 |          0 |     17640 |  0.00 |
+| F9 Muxes                |    0 |     0 |          0 |      8820 |  0.00 |
++-------------------------+------+-------+------------+-----------+-------+
+* Warning! The Final LUT count, after physical optimizations and full implementation, is typically lower. Run opt_design after synthesis, if not already completed, for a more realistic count.
+Warning! LUT value is adjusted to account for LUT combining.
+Warning! For any ECO changes, please run place_design if there are unplaced instances
+
+
+2. BLOCKRAM
+-----------
+
++----------------+------+-------+------------+-----------+-------+
+|    Site Type   | Used | Fixed | Prohibited | Available | Util% |
++----------------+------+-------+------------+-----------+-------+
+| Block RAM Tile |    0 |     0 |          0 |       216 |  0.00 |
+|   RAMB36/FIFO* |    0 |     0 |          0 |       216 |  0.00 |
+|   RAMB18       |    0 |     0 |          0 |       432 |  0.00 |
++----------------+------+-------+------------+-----------+-------+
+* Note: Each Block RAM Tile only has one FIFO logic available and therefore can accommodate only one FIFO36E2 or one FIFO18E2. However, if a FIFO18E2 occupies a Block RAM Tile, that tile can still accommodate a RAMB18E2
+
+
+3. ARITHMETIC
+-------------
+
++-----------+------+-------+------------+-----------+-------+
+| Site Type | Used | Fixed | Prohibited | Available | Util% |
++-----------+------+-------+------------+-----------+-------+
+| DSPs      |    0 |     0 |          0 |       360 |  0.00 |
++-----------+------+-------+------------+-----------+-------+

@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { Logger } from '../utils/Logger';
 import { readVivadoFlatRow } from './resources/vivadoFlatTable';
+import { VIVADO_ROW_LABELS } from './resources/vivadoRowLabels';
 import { quartusOutputFilesDir } from './toolchains/buildPaths';
 
 const logger = new Logger('ReportParser');
@@ -141,7 +142,7 @@ function parseVivadoTiming(content: string): TimingResult {
 }
 
 function parseVivadoUtilization(content: string): UtilizationResult {
-  const parseRow = (labels: string[]): ResourceRow | undefined => {
+  const parseRow = (labels: readonly string[]): ResourceRow | undefined => {
     const row = readVivadoFlatRow(content, labels);
     if (!row) {
       return undefined;
@@ -155,10 +156,10 @@ function parseVivadoUtilization(content: string): UtilizationResult {
   };
 
   return {
-    lut: parseRow(['Slice LUTs', 'Slice LUT', 'LUT as Logic']),
-    ff: parseRow(['Slice Registers', 'Register as Flip Flop']),
-    bram: parseRow(['Block RAM Tile']),
-    dsp: parseRow(['DSPs', 'DSP']),
+    lut: parseRow(VIVADO_ROW_LABELS.lut),
+    ff: parseRow(VIVADO_ROW_LABELS.ff),
+    bram: parseRow(VIVADO_ROW_LABELS.bram),
+    dsp: parseRow(VIVADO_ROW_LABELS.dsp),
   };
 }
 

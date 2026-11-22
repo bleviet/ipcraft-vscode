@@ -1,0 +1,31 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2024.2 (lin64) Build 5239630 Fri Nov 08 22:34:34 MST 2024
+| Date         : Sun Nov 22 12:05:33 2026
+| Host         : build-host running 64-bit Linux
+| Command      : report_utilization -hierarchical -file zynqup_hier.rpt
+| Design       : led_controller_avmm
+| Device       : xczu3eg-sbva484-1-e
+| Speed File   : -1
+| Design State : Synthesized
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++-------------------------+--------------------------+------------+------------+---------+------+-----+--------+--------+------+------------+
+|         Instance        |          Module          | Total LUTs | Logic LUTs | LUTRAMs | SRLs | FFs | RAMB36 | RAMB18 | URAM | DSP Blocks |
++-------------------------+--------------------------+------------+------------+---------+------+-----+--------+--------+------+------------+
+| led_controller_avmm     |                    (top) |          8 |          8 |       0 |    0 |  45 |      0 |      0 |    0 |          0 |
+|   (led_controller_avmm) |                    (top) |          0 |          0 |       0 |    0 |   0 |      0 |      0 |    0 |          0 |
+|   u_avmm                | led_controller_avmm_avmm |          7 |          7 |       0 |    0 |  19 |      0 |      0 |    0 |          0 |
+|     (u_avmm)            | led_controller_avmm_avmm |          0 |          0 |       0 |    0 |   0 |      0 |      0 |    0 |          0 |
+|     u_regs              | led_controller_avmm_regs |          7 |          7 |       0 |    0 |  19 |      0 |      0 |    0 |          0 |
+|   u_core                | led_controller_avmm_core |          1 |          1 |       0 |    0 |  26 |      0 |      0 |    0 |          0 |
++-------------------------+--------------------------+------------+------------+---------+------+-----+--------+--------+------+------------+

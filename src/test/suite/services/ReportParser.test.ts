@@ -108,6 +108,44 @@ Design Timing Summary
       expect(result.utilization!.dsp).toMatchObject({ used: 0, total: 240 });
     });
 
+    it.each([
+      ['zynqup_flat.rpt', 70560, 141120],
+      ['kintexus_flat.rpt', 145440, 290880],
+    ])(
+      'reads the CLB LUTs and CLB Registers rows of UltraScale report %s',
+      async (name, lut, ff) => {
+        await fs.copyFile(
+          path.join(__dirname, '../../fixtures/reports/vivado/ultrascale', name),
+          path.join(tempDir, 'utilization.rpt')
+        );
+
+        const result = await parseVivadoReports(tempDir, 'xpr');
+
+        expect(result.utilization!.lut).toMatchObject({ used: 8, total: lut });
+        expect(result.utilization!.ff).toMatchObject({ used: 45, total: ff });
+        expect(result.utilization!.bram).toMatchObject({ used: 0 });
+      }
+    );
+
+    it('counts the total CLB LUTs and registers of UltraScale, not the sub-rows', async () => {
+      const utilRpt = `
+| Site Type               | Used | Fixed | Prohibited | Available | Util% |
+|-------------------------|------|-------|------------|-----------|-------|
+| CLB LUTs*               |   20 |     0 |          0 |     70560 |  0.03 |
+|   LUT as Logic          |    8 |     0 |          0 |     70560 |  0.01 |
+|   LUT as Memory         |   12 |     0 |          0 |     28800 |  0.04 |
+| CLB Registers           |   50 |     0 |          0 |    141120 |  0.04 |
+|   Register as Flip Flop |   45 |     0 |          0 |    141120 |  0.03 |
+|   Register as Latch     |    5 |     0 |          0 |    141120 |  0.00 |
+`;
+      await fs.writeFile(path.join(tempDir, 'utilization.rpt'), utilRpt, 'utf8');
+
+      const result = await parseVivadoReports(tempDir, 'ooc');
+
+      expect(result.utilization!.lut).toMatchObject({ used: 20, total: 70560 });
+      expect(result.utilization!.ff).toMatchObject({ used: 50, total: 141120 });
+    });
+
     it('parses utilization with comma-separated large numbers', async () => {
       const utilRpt = `
 | Site Type       | Used   | Fixed | Available | Proh | Util% |

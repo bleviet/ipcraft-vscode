@@ -74,3 +74,36 @@ describe('parseVivadoHierarchy', () => {
     expect(parsed.root.children[0].total).toEqual([1000]);
   });
 });
+
+describe('parseVivadoHierarchy on an UltraScale+ report', () => {
+  const table = parseVivadoHierarchy(vivadoFixture('zynqup_hier.rpt', 'ultrascale'));
+  const lut = table.columns.indexOf('Total LUTs');
+  const ff = table.columns.indexOf('FFs');
+
+  it('reads the URAM column between RAMB18 and DSP Blocks', () => {
+    expect(table.columns).toEqual([
+      'Total LUTs',
+      'Logic LUTs',
+      'LUTRAMs',
+      'SRLs',
+      'FFs',
+      'RAMB36',
+      'RAMB18',
+      'URAM',
+      'DSP Blocks',
+    ]);
+  });
+
+  it('maps the blocks u_avmm, u_regs and u_core with their LUT and FF counts', () => {
+    expect(table.root).toMatchObject({ name: 'led_controller_avmm', module: '(top)' });
+    expect(table.root.total[lut]).toBe(8);
+    expect(table.root.total[ff]).toBe(45);
+    expect(table.root.children.map((c) => c.name)).toEqual(['u_avmm', 'u_core']);
+    const avmm = child(table.root, 'u_avmm');
+    const regs = child(avmm, 'u_regs');
+    const core = child(table.root, 'u_core');
+    expect([avmm.total[lut], avmm.total[ff]]).toEqual([7, 19]);
+    expect([regs.total[lut], regs.total[ff]]).toEqual([7, 19]);
+    expect([core.total[lut], core.total[ff]]).toEqual([1, 26]);
+  });
+});
