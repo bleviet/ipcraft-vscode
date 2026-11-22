@@ -4,11 +4,9 @@ vlnv:
   name: led_controller_avmm
   version: 1.0.0
 apiVersion: '1.2'
-scaffold_pack: example-with-docs
 
-description: Avalon-MM peripheral for the DE10-Nano LED demo. Drives 8 board LEDs from a software-writable pattern register.
-targets:
-  - quartus
+description: Avalon-MM peripheral for the DE10-Nano LED demo. Drives 8 board
+  LEDs from a software-writable pattern register.
 clocks:
   - name: clk
     frequency: 50MHz
@@ -42,4 +40,38 @@ busInterfaces:
 memoryMaps:
   - name: LED_AVMM_CSR
     import: led_controller_avmm.mm.yml
-
+scaffold_pack: example-with-docs
+fileSets:
+  - name: RTL_Sources
+    description: RTL Sources
+    files:
+      - path: rtl/led_controller_avmm_pkg.vhd
+        type: vhdl
+      - path: rtl/led_controller_avmm_regs.vhd
+        type: vhdl
+      - path: rtl/led_controller_avmm_core.vhd
+        type: vhdl
+      - path: rtl/led_controller_avmm_avmm.vhd
+        type: vhdl
+      - path: rtl/led_controller_avmm.vhd
+        type: vhdl
+  - name: Simulation_Resources
+    description: Simulation Files
+    files:
+      - path: tb/register_model.py
+        type: python
+      - path: tb/led_controller_avmm_test.py
+        type: python
+      - path: tb/conftest.py
+        type: python
+      - path: tb/test_led_controller_avmm_sim.py
+        type: python
+      - path: tb/Makefile
+        type: unknown
+  - name: Integration
+    description: Integration Files
+    files:
+      - path: altera/led_controller_avmm_hw.tcl
+        type: tcl
+      - path: altera/led_controller_avmm_project.tcl
+        type: tcl

@@ -4,7 +4,7 @@ This is the project at the start of the episode. See the [checkpoint overview](.
 
 ## What is here
 
-The same spec files as episode 4, with the scaffold pack and the Quartus target already set in the `.ip.yml`. The generated files are not committed.
+The same spec files as episode 4, with the `.ip.yml` as episode 4 saved it: the scaffold pack is set and a `fileSets` block lists the generated files. The language and the target are not stored in the file; pick them in the toolbar. The generated files are not committed.
 
 ## First step
 
