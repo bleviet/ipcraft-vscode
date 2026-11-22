@@ -351,6 +351,65 @@ describe('CocotbFramework — rtlSourceFiles-driven sources', () => {
     expect(testPy).not.toContain('addr >> 2');
   });
 
+  it('avmm cocotb test drives word addresses when the address port is word-addressed', () => {
+    // A word-addressed Avalon-MM port (portWidthOverrides.address narrower than the
+    // register file's byte address) carries byte offset >> address_shift. Driving the
+    // raw byte offset raises ValueError in cocotb 2.x ("Int value (4) out of range for
+    // 2-bit signal") or silently hits the wrong register on a wider port.
+    const ctx = makeCtx({
+      hasMmSlave: true,
+      templateContext: {
+        entity_name: 'test_core',
+        clock_port: 'clk',
+        reset_port: 'rst_n',
+        reset_active_high: false,
+        bus_type: 'avmm',
+        bus_prefix: 'avs',
+        address_shift: 2,
+        has_memory_mapped_slave: true,
+        memmap_relpath: '../test_core.mmap.yml',
+        ports: [],
+        parameters: [],
+      },
+    });
+    const testPy = framework.generate(ctx, new GhdlEngine())['tb/test_core_test.py'];
+    const driven = testPy.match(/self\.address_signal\.value = .*/g);
+    expect(driven).toEqual([
+      'self.address_signal.value = addr >> 2',
+      'self.address_signal.value = addr >> 2',
+    ]);
+  });
+
+  it('avmm cocotb test keeps boundary reads within the range a word-addressed port reaches', () => {
+    // A 1-bit address port with a 2-byte shift reaches 2^(1 + 1) = 4 bytes, less than the
+    // 8 bytes of addr_width 3; a boundary read above that does not fit the port.
+    const render = (wordAddressed: boolean) =>
+      framework.generate(
+        makeCtx({
+          hasMmSlave: true,
+          templateContext: {
+            entity_name: 'test_core',
+            clock_port: 'clk',
+            reset_port: 'rst_n',
+            reset_active_high: false,
+            bus_type: 'avmm',
+            bus_prefix: 'avs',
+            addr_width: 3,
+            address_word_addressed: wordAddressed,
+            address_shift: wordAddressed ? 1 : 0,
+            bus_ports: [{ logical_name: 'address', name: 'avs_address', width: 1 }],
+            has_memory_mapped_slave: true,
+            memmap_relpath: '../test_core.mmap.yml',
+            ports: [],
+            parameters: [],
+          },
+        }),
+        new GhdlEngine()
+      )['tb/test_core_test.py'];
+    expect(render(true)).toContain('_ADDRESS_LIMIT = 1 << 2\n');
+    expect(render(false)).toContain('_ADDRESS_LIMIT = 1 << 3\n');
+  });
+
   it('avmm transport read waits an extra cycle for a fixed-latency slave (regression)', () => {
     // register_file.vhdl.j2's read path is registered (readdata is driven
     // from a signal set inside a clocked process), so for a slave with no

@@ -6,6 +6,17 @@ attention when you update, for example because generated files change.
 Contributors: the technical changelog, with modules, issues and pull requests,
 is in [docs/contributing/changelog.md](docs/contributing/changelog.md).
 
+## [Unreleased]
+
+### Fixed
+
+- **Avalon-MM registers decode at the right address when the address port is narrower than the register map.** With `portWidthOverrides: { address: 2 }` (a word-addressed slave, as the Nios II needs), a two-register map placed the second register at word address 2 instead of 1, so software writing `base + 4` missed it. The old VHDL wrapper was right only when the port was exactly as many bits narrower than the register file's address as the byte lane is wide (2 bits for 32-bit data), so it depended on the number of registers. The SystemVerilog wrapper was wrong for every narrow port (the upper address bits were undefined). The generated wrapper now shifts the word address by the width of a data word for any register count and address width, in VHDL and SystemVerilog, including a 1-bit address port. Byte-addressed slaves are unchanged.
+- **The generated cocotb testbench of a word-addressed Avalon-MM slave drives word addresses.** It always used byte offsets, which cocotb 2.x rejects with `Int value (4) out of range for assignment of 2-bit signal`, and which would hit the wrong register on a wider port. Its reads past the last register also stay within the addresses the narrow port can carry.
+
+### Before you upgrade
+
+- Regenerate any IP core with a narrow `portWidthOverrides.address`, for example the `led_avmm` example: the wrapper's address logic and the testbench's addresses change. Every SystemVerilog wrapper and every generated testbench for such a core was wrong before.
+
 ## [1.6.2] - 2026-11-22
 
 ### New

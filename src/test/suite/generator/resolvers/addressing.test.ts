@@ -1,4 +1,7 @@
-import { addressingResolver } from '../../../../generator/resolvers/addressing';
+import {
+  addressingResolver,
+  resolveWordAddressing,
+} from '../../../../generator/resolvers/addressing';
 import { normalizeIpCoreData } from '../../../../generator/registerProcessor';
 import { BUS_REGISTRY } from '../../../../generator/buses/builtin';
 import type { ResolverInput } from '../../../../generator/resolvers/types';
@@ -80,5 +83,68 @@ describe('addressingResolver', () => {
   it('respects addrWidth override from IP core YAML', () => {
     const result = addressingResolver.resolve(makeInput({ addrWidth: 12 }));
     expect(result.addr_width).toBe(12);
+  });
+});
+
+describe('resolveWordAddressing', () => {
+  const port = (width: number) => [{ logical_name: 'address', width }];
+  const resolve = (busPorts: Record<string, unknown>[], addrWidth: number, regWidth: number) =>
+    resolveWordAddressing({ busPorts, expandedBusInterfaces: [], addrWidth, regWidth });
+
+  it('is word-addressed with the byte-lane shift when the port is narrower than addr_width', () => {
+    expect(resolve(port(2), 3, 4)).toMatchObject({
+      address_word_addressed: true,
+      address_shift: 2,
+    });
+    expect(resolve(port(1), 3, 4)).toMatchObject({
+      address_word_addressed: true,
+      address_shift: 2,
+    });
+    expect(resolve(port(2), 4, 4)).toMatchObject({
+      address_word_addressed: true,
+      address_shift: 2,
+    });
+    expect(resolve(port(5), 8, 8)).toMatchObject({
+      address_word_addressed: true,
+      address_shift: 3,
+    });
+  });
+
+  it('is byte-addressed (shift 0) for a full-width address port', () => {
+    expect(resolve(port(32), 3, 4)).toMatchObject({
+      address_word_addressed: false,
+      address_shift: 0,
+    });
+    expect(resolve(port(3), 3, 4)).toMatchObject({
+      address_word_addressed: false,
+      address_shift: 0,
+    });
+  });
+
+  it('is byte-addressed without an address port (AXI names its ports AWADDR/ARADDR)', () => {
+    expect(resolve([], 3, 4)).toMatchObject({ address_word_addressed: false, address_shift: 0 });
+    expect(resolve([{ logical_name: 'AWADDR', width: 2 }], 3, 4)).toMatchObject({
+      address_word_addressed: false,
+      address_shift: 0,
+    });
+  });
+
+  it('flags every expanded interface by its own address port', () => {
+    const result = resolveWordAddressing({
+      busPorts: port(32),
+      expandedBusInterfaces: [
+        { name: 'S_WORD', ports: port(2) },
+        { name: 'S_BYTE', ports: port(32) },
+        { name: 'S_NONE', ports: [] },
+      ],
+      addrWidth: 4,
+      regWidth: 4,
+    });
+    expect(result.expanded_bus_interfaces.map((i) => i.address_word_addressed)).toEqual([
+      true,
+      false,
+      false,
+    ]);
+    expect(result.expanded_bus_interfaces[0].name).toBe('S_WORD');
   });
 });

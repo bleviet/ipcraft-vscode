@@ -195,7 +195,7 @@ describe('validateShadowRegisters', () => {
     ]);
     const diags = validateShadowRegisters([reg]);
     expect(diags.length).toBeGreaterThan(0);
-    expect(diags[0].message).toMatch('write-1-to-clear');
+    expect(diags[0].message).toMatch('requires write-1-to-clear or read-write-1-to-clear access');
   });
 
   it('returns diagnostic for missing target field', () => {

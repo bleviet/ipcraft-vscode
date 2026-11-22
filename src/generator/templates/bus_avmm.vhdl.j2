@@ -77,15 +77,27 @@ begin
 {% set readdata_port      = (bus_ports | selectattr('logical_name', 'equalto', 'readdata')      | list) %}
 {% set readdatavalid_port = (bus_ports | selectattr('logical_name', 'equalto', 'readdatavalid') | list) %}
 {% set waitrequest_port   = (bus_ports | selectattr('logical_name', 'equalto', 'waitrequest')   | list) %}
-{% set addr_port_width = address_port[0].width if address_port | length > 0 else 0 %}
-{% set addr_pad = (addr_width | default(8)) - addr_port_width %}
 {#- portWidthOverrides.address may declare a narrower, WORD-addressed port
     (addressUnits WORDS in the Platform Designer hw.tcl -- Platform Designer's
     interconnect generator cannot build a translator between a BYTES custom
     Avalon-MM slave and altera_nios2_gen2's data_master). Slicing a port
     narrower than C_ADDR_WIDTH is an out-of-range VHDL slice; reconstruct the
-    byte address instead by zero-padding the word address's low bits. -#}
-  address_int   <= {{ (address_port[0].name ~ " & \"" ~ ("0" | repeat(addr_pad)) ~ "\"") if address_port | length > 0 and addr_pad > 0 else (address_port[0].name ~ "(C_ADDR_WIDTH-1 downto 0)" if address_port | length > 0 else "(others => '0')") }};
+    byte address instead: widen the word address to C_ADDR_WIDTH and shift it
+    left by address_shift (log2 of the bytes per word). A port declared
+    std_logic (a fixed 1-bit width) is a scalar, so it goes through an aggregate
+    to become an unsigned; any other port is a vector. -#}
+{% if address_port | length > 0 and address_word_addressed | default(false) %}
+{% set word_address = ("unsigned'(0 => " ~ address_port[0].name ~ ")") if address_port[0].type == "std_logic" else ("unsigned(" ~ address_port[0].name ~ ")") %}
+{% set address_expr = "std_logic_vector(resize(" ~ word_address ~ ", C_ADDR_WIDTH))" %}
+{% if (address_shift | default(0)) > 0 %}
+{% set address_expr = "std_logic_vector(shift_left(resize(" ~ word_address ~ ", C_ADDR_WIDTH), " ~ address_shift ~ "))" %}
+{% endif %}
+{% elif address_port | length > 0 %}
+{% set address_expr = address_port[0].name ~ "(C_ADDR_WIDTH-1 downto 0)" %}
+{% else %}
+{% set address_expr = "(others => '0')" %}
+{% endif %}
+  address_int   <= {{ address_expr }};
   read_int      <= {{ read_port[0].name      if read_port      | length > 0 else "'0'" }};
   write_int     <= {{ write_port[0].name     if write_port     | length > 0 else "'0'" }};
   writedata_int <= {{ writedata_port[0].name if writedata_port | length > 0 else "(others => '0')" }};
