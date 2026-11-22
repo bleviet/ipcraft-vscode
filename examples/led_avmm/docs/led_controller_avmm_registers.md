@@ -45,7 +45,7 @@ LED output pattern
 Live heartbeat level plus a sticky change-of-state flag (`monitorChangeOf`
 automation through the Avalon-MM wrapper).
 
-| Bits    | Field               | Access             | Reset | Description                                           |
-| ------- | ------------------- | ------------------ | ----- | ----------------------------------------------------- |
-| `[0:0]` | `HEARTBEAT_ACTIVE`  | `read-only`        | `0x0` | Toggles roughly once per second while clk runs        |
-| `[1:1]` | `HEARTBEAT_TOGGLED` | `write-1-to-clear` | `0x0` | Sticky flag, set on every HEARTBEAT_ACTIVE transition |
+| Bits    | Field               | Access                  | Reset | Description                                           |
+| ------- | ------------------- | ----------------------- | ----- | ----------------------------------------------------- |
+| `[0:0]` | `HEARTBEAT_ACTIVE`  | `read-only`             | `0x0` | Toggles roughly once per second while clk runs        |
+| `[1:1]` | `HEARTBEAT_TOGGLED` | `read-write-1-to-clear` | `0x0` | Sticky flag, set on every HEARTBEAT_ACTIVE transition |

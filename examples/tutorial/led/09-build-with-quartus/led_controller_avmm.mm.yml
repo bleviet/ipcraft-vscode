@@ -1,0 +1,44 @@
+- name: LED_AVMM_CSR
+  description: Description of this memory map
+  addressBlocks:
+    - name: CSR
+      offset: 0
+      usage: register
+      defaultRegWidth: 32
+      registers:
+        - name: VERSION
+          offset: 0
+          access: read-write
+          description: "IP version"
+          fields:
+            - name: MINOR
+              bits: "[7:0]"
+              access: read-only
+            - name: MAJOR
+              bits: "[15:8]"
+              access: read-only
+              resetValue: 1
+        - name: LED_PATTERN
+          offset: 4
+          description: "LED output pattern"
+          fields:
+            - name: PATTERN
+              bits: "[7:0]"
+              access: read-write
+              resetValue: 0
+              description: "Bit N drives LED[N]"
+        - name: EVENTS
+          offset: 8
+          description: "Heartbeat status and event flags"
+          fields:
+            - name: HEARTBEAT_ACTIVE
+              bits: "[0:0]"
+              access: read-only
+              resetValue: 0
+              description: "Heartbeat level, toggles about once per second"
+            - name: HEARTBEAT_TOGGLED
+              bits: "[1:1]"
+              access: read-write-1-to-clear
+              resetValue: 0
+              monitorChangeOf: HEARTBEAT_ACTIVE
+              description: "Set on every HEARTBEAT_ACTIVE change, write 1 to clear"

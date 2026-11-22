@@ -1824,6 +1824,7 @@
     "test:integration:parser-roundtrip": "jest --config config/jest.integration.js --testPathPatterns=parser-roundtrip",
     "test:integration:snapshots": "jest --config config/jest.integration.js --testPathPatterns=snapshots",
     "test:integration:roundtrip": "jest --config config/jest.integration.js --testPathPatterns=roundtrip",
+    "test:integration:tutorial": "jest --config config/jest.integration.js --testPathPatterns=tutorialCheckpoints",
     "fetch-fixtures": "node scripts/fetchFixtures.js",
     "test:realworld": "SKIP_FETCH=0 jest --config config/jest.integration.js --testPathPatterns=realworld",
     "test:realworld:offline": "SKIP_FETCH=1 jest --config config/jest.integration.js --testPathPatterns=realworld",

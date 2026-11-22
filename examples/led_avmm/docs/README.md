@@ -59,11 +59,11 @@ files.
 |--------|----------|--------|--------|
 | `0x00` | VERSION | read-only | `MINOR[7:0]` (reset 0), `MAJOR[15:8]` (reset 1) |
 | `0x04` | LED_PATTERN | read-write | `PATTERN[7:0]` -- bit N drives `LED[N]` |
-| `0x08` | EVENTS | read-write-1-to-clear | `HEARTBEAT_ACTIVE[0]` (read-only, toggles ~0.75 Hz), `HEARTBEAT_TOGGLED[1]` (write-1-to-clear, `monitorChangeOf: HEARTBEAT_ACTIVE`) |
+| `0x08` | EVENTS | read-write-1-to-clear | `HEARTBEAT_ACTIVE[0]` (read-only, toggles ~0.75 Hz), `HEARTBEAT_TOGGLED[1]` (read-write-1-to-clear: sticky, readable, cleared by writing 1; `monitorChangeOf: HEARTBEAT_ACTIVE`) |
 
 `HEARTBEAT_ACTIVE` is a free-running divider inside `_core.vhd`, driven
 purely in hardware -- a liveness signal, not a readback of what software
-wrote. `HEARTBEAT_TOGGLED`'s sticky-flag and write-1-to-clear logic is
+wrote. `HEARTBEAT_TOGGLED`'s sticky-flag and read-write-1-to-clear logic is
 generated entirely inside `_regs.vhd`; the core only drives the live level.
 
 ### Memory map (Nios II system)
@@ -340,7 +340,7 @@ architecture diagram and direct Python/Tcl usage.
   hand-written VHDL
 - IPCraft's layered generation: package, register file, bus wrapper, core
   stub, top entity
-- `write-1-to-clear` + `monitorChangeOf` (change-of-state) register semantics
+- `read-write-1-to-clear` + `monitorChangeOf` (change-of-state) register semantics
 - Protecting hand-written files from re-scaffold overwrite (`fileSets`,
   `managed: false`)
 - Platform Designer (Qsys) system integration of a generated custom component

@@ -1,0 +1,24 @@
+# Generator output. Checkpoints keep only what a person writes or is handed;
+# running IPCraft's Generate in a checkpoint recreates these files, and they are
+# not committed because they drift from the generator over time. The board
+# files are not listed. The user-owned core (rtl/led_controller_avmm_core.vhd)
+# is committed from 06 on; in 04 and 05 it is still the generated skeleton.
+/04-*/rtl/led_controller_avmm_core.vhd
+/05-*/rtl/led_controller_avmm_core.vhd
+/*/.vscode/settings.json
+/*/.ipcraft/baseline/
+/*/altera/led_controller_avmm.sdc
+/*/altera/led_controller_avmm_hw.tcl
+/*/altera/led_controller_avmm_project.tcl
+/*/altera/test.qsys
+/*/docs/led_controller_avmm_registers.md
+/*/rtl/led_controller_avmm.vhd
+/*/rtl/led_controller_avmm_avmm.vhd
+/*/rtl/led_controller_avmm_pkg.vhd
+/*/rtl/led_controller_avmm_regs.vhd
+/*/tb/conftest.py
+/*/tb/led_controller_avmm_test.py
+/*/tb/Makefile
+/*/tb/register_model.py
+/*/tb/test_led_controller_avmm_sim.py
+/*/tb/verification_manifest.json
