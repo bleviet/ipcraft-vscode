@@ -46,6 +46,6 @@
               description: Toggles roughly once per second while clk runs
             - name: HEARTBEAT_TOGGLED
               bits: '[1:1]'
-              access: write-1-to-clear
+              access: read-write-1-to-clear
               monitorChangeOf: HEARTBEAT_ACTIVE
               description: Sticky flag, set on every HEARTBEAT_ACTIVE transition
