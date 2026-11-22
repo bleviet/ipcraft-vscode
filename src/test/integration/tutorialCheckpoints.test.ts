@@ -37,18 +37,6 @@ const TOP_ENTITY = 'led_controller_avmm';
 
 const EPISODE_TB_DIR = path.join(REPO_ROOT, 'src/test/fixtures/tutorial-led');
 
-/**
- * The testbench the generator writes for these checkpoints cannot pass yet, for two
- * generator reasons (reported with the checkpoints):
- *  - tb/led_controller_avmm_test.py drives byte offsets into the 2-bit, word-addressed
- *    avs_address that the .ip.yml's portWidthOverrides asks for, so cocotb 2.x raises
- *    "Int value (4) out of range for assignment of 2-bit signal";
- *  - the bus wrapper pads the word address with (addr_width - 2) zero bits, which is
- *    one bit short for the two-register map of 05-07 (LED_PATTERN lands at word 2).
- * Set to false once the generator is fixed; the step then guards the tutorial.
- */
-const GENERATED_TESTBENCH_BLOCKED = true;
-
 const resourceRoots = devResourceRoots(REPO_ROOT);
 
 const checkpoints = fs
@@ -248,17 +236,14 @@ describe('tutorial checkpoints', () => {
     });
   });
 
-  (GENERATED_TESTBENCH_BLOCKED ? describe.skip : describe).each(compiled)(
-    '%s: generated testbench',
-    (name) => {
-      it('passes with cocotb and GHDL', () => {
-        if (guardTier1('ghdl', () => toolOnPath('ghdl')) || guardTier1('cocotb', cocotbAvailable)) {
-          return;
-        }
-        runCocotb(path.join(generatedFor(name).dir, 'tb'), []);
-      });
-    }
-  );
+  describe.each(compiled)('%s: generated testbench', (name) => {
+    it('passes with cocotb and GHDL', () => {
+      if (guardTier1('ghdl', () => toolOnPath('ghdl')) || guardTier1('cocotb', cocotbAvailable)) {
+        return;
+      }
+      runCocotb(path.join(generatedFor(name).dir, 'tb'), []);
+    });
+  });
 
   describe.each(compiled)('%s: simulation', (name) => {
     it('reads VERSION, drives the LEDs from LED_PATTERN, and runs the heartbeat events', () => {
@@ -269,10 +254,9 @@ describe('tutorial checkpoints', () => {
       const vhdl = rtlOrder.filter((f) => f.startsWith('rtl/') && f.endsWith('.vhd'));
       expect(vhdl).toContain(CORE_FILE);
 
-      // The bus wrapper turns the word address on avs_address into a byte address by
-      // padding zero bits; the drive helper shifts byte offsets right by the same amount.
-      const wrapper = fs.readFileSync(path.join(dir, 'rtl/led_controller_avmm_avmm.vhd'), 'utf8');
-      const pad = /avs_address\s*&\s*"(0+)"/.exec(wrapper)?.[1].length ?? 0;
+      // S_AVMM is word-addressed (portWidthOverrides address: 2, 32-bit data), so a register's
+      // byte offset goes on avs_address shifted right by 2, as a Platform Designer master does.
+      const WORD_ADDRESS_SHIFT = 2;
 
       const simDir = fs.mkdtempSync(path.join(tempRoot, 'cocotb-'));
       fs.copyFileSync(
@@ -294,7 +278,7 @@ describe('tutorial checkpoints', () => {
         ].join('\n')
       );
       runCocotb(simDir, [], {
-        ADDR_SHIFT: String(pad),
+        ADDR_SHIFT: String(WORD_ADDRESS_SHIFT),
         HAS_EVENTS: episode(name) >= 8 ? '1' : '0',
       });
     });
