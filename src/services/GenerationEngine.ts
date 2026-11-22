@@ -217,7 +217,7 @@ export async function runGenerator(
       content: f.status === 'new' ? f.content : contentForAction(f, actionOf(f)),
     }))
     .filter((w): w is { file: StagedFile; content: string } => w.content !== undefined);
-  const writtenRelPaths: string[] = [];
+  let writtenRelPaths: string[] = [];
   let writeError: string | undefined;
 
   if (filesToWrite.length > 0) {
@@ -225,14 +225,16 @@ export async function runGenerator(
       { location: vscode.ProgressLocation.Notification, title: progressTitle, cancellable: false },
       async () => {
         try {
-          await Promise.all(
+          // Promise.all keeps the order of filesToWrite, so fileSets list the files in the staged
+          // order whatever order the writes finish in.
+          writtenRelPaths = await Promise.all(
             filesToWrite.map(async ({ file: f, content }) => {
               await mkdir(path.dirname(f.diskPath), { recursive: true });
               await writeFile(f.diskPath, content, 'utf8');
-              writtenRelPaths.push(f.relativePath);
               if (executablePaths.has(f.relativePath)) {
                 await applyExecutableMode(f.diskPath, logger);
               }
+              return f.relativePath;
             })
           );
         } catch (err) {
