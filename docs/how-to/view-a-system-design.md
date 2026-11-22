@@ -367,6 +367,13 @@ To see how much of the device each block uses, turn on **Resources** in the
 toolbar. The viewer reads a utilization report that Vivado or Quartus wrote and
 shows its numbers on the blocks of the diagram. It does not run the tool.
 
+Reports of AMD 7-series and Zynq-7000 devices (Vivado 2019.1 and later), of AMD
+UltraScale and UltraScale+ devices, and of Intel devices with ALMs, such as
+Cyclone V, are read in full. The UltraScale and UltraScale+ support is tested
+with Vivado 2024.2 reports of Zynq UltraScale+ and Kintex UltraScale devices. On
+Intel devices with logic elements, such as MAX 10 and Cyclone IV, there is no
+logic count.
+
 While Resources is on:
 
 - A strip above each block shows four numbers: LUTs, FFs, BRAM tiles and DSPs for
