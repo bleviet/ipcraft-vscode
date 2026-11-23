@@ -29,11 +29,11 @@ jobs:
       SKIP_TELEMETRY_FILE: ${{ github.workspace }}/skip-telemetry.ndjson
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -51,7 +51,7 @@ jobs:
 
       - name: Upload skip telemetry
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: skip-telemetry-${{ github.run_id }}
           path: skip-telemetry.ndjson

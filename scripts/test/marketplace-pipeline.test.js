@@ -50,7 +50,7 @@ function assertFailFastPrologue(step, label) {
 }
 
 function assertArtifactConsumer(steps) {
-  assert.deepEqual(usesStep(steps, 'actions/download-artifact@v4').with, {
+  assert.deepEqual(usesStep(steps, 'actions/download-artifact@v7').with, {
     name: 'ipcraft-vscode-vsix',
     path: 'artifacts',
   });
@@ -66,10 +66,10 @@ function assertArtifactConsumer(steps) {
 
 function assertCommonSetup(steps) {
   assert.deepEqual(steps[0], {
-    uses: 'actions/checkout@v4',
+    uses: 'actions/checkout@v5',
     with: { submodules: 'recursive' },
   });
-  assert.deepEqual(usesStep(steps, 'actions/setup-node@v4').with, {
+  assert.deepEqual(usesStep(steps, 'actions/setup-node@v5').with, {
     'node-version': 20,
     cache: 'npm',
   });
@@ -124,10 +124,10 @@ describe('Marketplace release workflow', () => {
     const steps = verify.steps;
 
     assert.deepEqual(steps[0], {
-      uses: 'actions/checkout@v4',
+      uses: 'actions/checkout@v5',
       with: { submodules: 'recursive', 'fetch-depth': 0, 'fetch-tags': true },
     });
-    assert.deepEqual(usesStep(steps, 'actions/setup-node@v4').with, {
+    assert.deepEqual(usesStep(steps, 'actions/setup-node@v5').with, {
       'node-version': 20,
       cache: 'npm',
     });
@@ -171,7 +171,7 @@ describe('Marketplace release workflow', () => {
     );
     assert.match(packageStep.run, /echo "release-version=\$RELEASE_VERSION" >> "\$GITHUB_OUTPUT"/);
 
-    const artifactPublisher = usesStep(steps, 'actions/upload-artifact@v4');
+    const artifactPublisher = usesStep(steps, 'actions/upload-artifact@v6');
     assert.deepEqual(artifactPublisher.with, {
       name: 'ipcraft-vscode-vsix',
       path: 'artifacts/',
@@ -207,7 +207,7 @@ describe('Marketplace release workflow', () => {
 
     const steps = smoke.steps;
     const install = steps.find((step) => step.run === 'npm ci');
-    const download = usesStep(steps, 'actions/download-artifact@v4');
+    const download = usesStep(steps, 'actions/download-artifact@v7');
     const checksum = steps.find((step) => step.name === 'Verify release artifact checksum');
     const compatibility = steps.find((step) => step.run === 'npm run check:vscode-compatibility');
     const compile = steps.find((step) => step.run === 'npm run compile-tests');
@@ -228,7 +228,7 @@ describe('Marketplace release workflow', () => {
     assertCommonSetup(steps);
     assertArtifactConsumer(steps);
 
-    const login = usesStep(steps, 'azure/login@v2');
+    const login = usesStep(steps, 'azure/login@v3');
     assert.deepEqual(login.with, {
       'client-id': '${{ secrets.AZURE_CLIENT_ID }}',
       'tenant-id': '${{ secrets.AZURE_TENANT_ID }}',
@@ -242,7 +242,7 @@ describe('Marketplace release workflow', () => {
     assert.equal(publishStep.run, 'npx vsce publish --packagePath "$VSIX_PATH" --azure-credential');
     assertOrderedSteps(steps, [
       steps.find((step) => step.run === 'npm ci'),
-      usesStep(steps, 'actions/download-artifact@v4'),
+      usesStep(steps, 'actions/download-artifact@v7'),
       steps.find((step) => step.name === 'Verify release artifact checksum'),
       login,
       publishStep,
@@ -285,7 +285,7 @@ describe('Marketplace release workflow', () => {
         'marketplace-verification/ipcraft-vscode-${{ needs.verify.outputs.release-version }}.vsix',
     });
 
-    const diagnostics = usesStep(steps, 'actions/upload-artifact@v4');
+    const diagnostics = usesStep(steps, 'actions/upload-artifact@v6');
     assert.equal(diagnostics.if, 'always()');
     assert.deepEqual(diagnostics.with, {
       name: 'marketplace-release-diagnostics',

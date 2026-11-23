@@ -7,8 +7,8 @@ on:
         description: Deterministic register-traffic seed
         required: false
         default: '0x177'
-  schedule:
-    - cron: '17 3 * * 1'
+  # Manual only: no runner carries the `de10-nano` label while the board is
+  # unplugged, so a scheduled run would sit queued until GitHub cancels it.
 
 concurrency:
   group: de10-nano-hardware
@@ -21,11 +21,11 @@ jobs:
     timeout-minutes: 120
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           submodules: true
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
@@ -56,7 +56,7 @@ jobs:
 
       - name: Publish machine-readable hardware result
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: de10-nano-hardware-${{ github.run_id }}
           path: examples/regmap_conformance_avmm/altera/quartus/output_files/hardware-result.json
