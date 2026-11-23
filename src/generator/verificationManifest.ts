@@ -15,7 +15,7 @@ export interface VerificationField {
   name: string;
   bitOffset: number;
   bitWidth: number;
-  mask: number;
+  mask: bigint;
   access: string;
   resetValue: number;
   readable: boolean;
@@ -43,9 +43,9 @@ export interface VerificationRegister {
   name: string;
   offset: number;
   width: number;
-  resetValue: number;
-  readableMask: number;
-  writableMask: number;
+  resetValue: bigint;
+  readableMask: bigint;
+  writableMask: bigint;
   fields: VerificationField[];
   arrayDimensions: VerificationArrayDimension[];
   provenance: {
@@ -106,23 +106,22 @@ const WRITABLE_ACCESS = new Set([
   'read-write-self-clearing',
 ]);
 
-function widthMask(width: number): number {
-  if (width >= 32) {
-    return 0xffffffff;
-  }
-  return 2 ** width - 1;
+// Masks and reset values are bigint: a register (and a field) can be wider than
+// the 32 bits JavaScript bitwise operators keep, and 2^64-1 is not a safe number.
+function widthMask(width: number): bigint {
+  return (BigInt(1) << BigInt(width)) - BigInt(1);
 }
 
 function normalizeAccess(access: string | undefined): string {
   return (access ?? 'read-write').toLowerCase().replace(/_/g, '-');
 }
 
-function fieldMask(field: NormalizedField, registerWidth: number): number {
-  const availableWidth = Math.max(0, Math.min(field.width, registerWidth - field.offset));
+function fieldMask(field: NormalizedField, dataWidth: number): bigint {
+  const availableWidth = Math.max(0, Math.min(field.width, dataWidth - field.offset));
   if (availableWidth === 0) {
-    return 0;
+    return BigInt(0);
   }
-  return (widthMask(availableWidth) << field.offset) >>> 0;
+  return widthMask(availableWidth) << BigInt(field.offset);
 }
 
 function writeEffect(access: string): 'replace' | 'clearOnOne' | 'setOnOne' | 'none' {
@@ -135,7 +134,7 @@ function writeEffect(access: string): 'replace' | 'clearOnOne' | 'setOnOne' | 'n
   return WRITABLE_ACCESS.has(access) ? 'replace' : 'none';
 }
 
-function projectField(field: NormalizedField, registerWidth: number): VerificationField {
+function projectField(field: NormalizedField, dataWidth: number): VerificationField {
   const access = normalizeAccess(field.access);
   const effect = writeEffect(access);
   const hardwareSoftwarePriority =
@@ -149,7 +148,7 @@ function projectField(field: NormalizedField, registerWidth: number): Verificati
     name: field.name,
     bitOffset: field.offset,
     bitWidth: field.width,
-    mask: fieldMask(field, registerWidth),
+    mask: fieldMask(field, dataWidth),
     access,
     resetValue: field.resetValue,
     readable: READABLE_ACCESS.has(access),
@@ -169,15 +168,15 @@ function projectField(field: NormalizedField, registerWidth: number): Verificati
 function composeResetValue(
   reg: NormalizedRegister,
   fields: VerificationField[],
-  registerWidth: number
-): number {
+  dataWidth: number
+): bigint {
   if (fields.length === 0 || reg.resetValue !== 0) {
-    return (reg.resetValue & widthMask(registerWidth)) >>> 0;
+    return BigInt(reg.resetValue) & widthMask(dataWidth);
   }
   return fields.reduce((value, field) => {
-    const fieldValue = (field.resetValue << field.bitOffset) & field.mask;
-    return ((value & ~field.mask) | fieldValue) >>> 0;
-  }, 0);
+    const fieldValue = (BigInt(field.resetValue) << BigInt(field.bitOffset)) & field.mask;
+    return (value & ~field.mask) | fieldValue;
+  }, BigInt(0));
 }
 
 function projectLeafRegister(
@@ -185,12 +184,13 @@ function projectLeafRegister(
   offset: number,
   name: string,
   defaultWidth: number,
+  dataWidth: number,
   arrayDimensions: VerificationArrayDimension[]
 ): VerificationRegister {
   const registerWidth = reg.size > 0 ? reg.size : defaultWidth;
   const fields =
     reg.fields.length > 0
-      ? reg.fields.map((field) => projectField(field, registerWidth))
+      ? reg.fields.map((field) => projectField(field, dataWidth))
       : [
           projectField(
             {
@@ -203,25 +203,25 @@ function projectLeafRegister(
               resetValue: reg.resetValue,
               description: reg.description,
             },
-            registerWidth
+            dataWidth
           ),
         ];
   const readableMask = fields.reduce(
     (mask, field) => (field.readable ? mask | field.mask : mask),
-    0
+    BigInt(0)
   );
   const writableMask = fields.reduce(
     (mask, field) => (field.writable ? mask | field.mask : mask),
-    0
+    BigInt(0)
   );
 
   return {
     name,
     offset,
     width: registerWidth,
-    resetValue: composeResetValue(reg, fields, registerWidth),
-    readableMask: readableMask >>> 0,
-    writableMask: writableMask >>> 0,
+    resetValue: composeResetValue(reg, fields, dataWidth),
+    readableMask,
+    writableMask,
     fields,
     arrayDimensions,
     provenance: {
@@ -239,6 +239,7 @@ function expandRegister(
   baseOffset: number,
   prefix: string,
   defaultWidth: number,
+  dataWidth: number,
   dimensions: VerificationArrayDimension[],
   out: VerificationRegister[]
 ): void {
@@ -268,6 +269,7 @@ function expandRegister(
           currentOffset + index * stride,
           childPrefix,
           defaultWidth,
+          dataWidth,
           childDimensions,
           out
         );
@@ -292,7 +294,14 @@ function expandRegister(
       : dimensions;
     const name = isArray ? `${prefix}${reg.name}_${index}` : `${prefix}${reg.name}`;
     out.push(
-      projectLeafRegister(reg, currentOffset + index * stride, name, defaultWidth, arrayDimensions)
+      projectLeafRegister(
+        reg,
+        currentOffset + index * stride,
+        name,
+        defaultWidth,
+        dataWidth,
+        arrayDimensions
+      )
     );
   }
 }
@@ -305,7 +314,15 @@ export function buildVerificationManifest(
   for (const map of maps) {
     for (const block of map.addressBlocks) {
       for (const reg of block.registers) {
-        expandRegister(reg, block.baseAddress, '', block.defaultRegWidth, [], registers);
+        expandRegister(
+          reg,
+          block.baseAddress,
+          '',
+          block.defaultRegWidth,
+          binding.dataWidth,
+          [],
+          registers
+        );
       }
     }
   }
@@ -336,4 +353,21 @@ export function buildVerificationManifest(
     },
     registers: registers.sort((left, right) => left.offset - right.offset),
   };
+}
+
+const BIGINT_SENTINEL = '__ipcraft_bigint__';
+const BIGINT_SENTINEL_PATTERN = new RegExp(`"${BIGINT_SENTINEL}(-?\\d+)"`, 'g');
+
+/**
+ * Serialize the manifest as JSON, writing bigint masks and reset values as bare
+ * integer literals. The Python consumers parse them exactly; `JSON.rawJSON` is
+ * unavailable on the Node 16 runtime of VS Code 1.80.
+ */
+export function serializeVerificationManifest(manifest: VerificationManifest): string {
+  const json = JSON.stringify(
+    manifest,
+    (_key, value: unknown) => (typeof value === 'bigint' ? `${BIGINT_SENTINEL}${value}` : value),
+    2
+  );
+  return `${json.replace(BIGINT_SENTINEL_PATTERN, '$1')}\n`;
 }
