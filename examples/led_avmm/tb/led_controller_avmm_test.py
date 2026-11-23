@@ -115,13 +115,13 @@ async def test_heartbeat_event_w1c(dut):
     """EVENTS.HEARTBEAT_TOGGLED sets on a heartbeat transition and clears on W1C.
 
     Fast-forwards the free-running heartbeat divider (u_core.heartbeat_counter,
-    a 25-bit counter that takes 2**24 real cycles to flip its top bit) to just
-    before rollover instead of simulating all 2**24 cycles.
+    a 26-bit counter that takes 2**25 real cycles to flip its top bit) to just
+    before rollover instead of simulating all 2**25 cycles.
     """
     cocotb.start_soon(Clock(dut.clk, 10, unit="ns").start())
     await _reset_dut(dut)
 
-    dut.u_core.heartbeat_counter.value = (1 << 24) - 2
+    dut.u_core.heartbeat_counter.value = (1 << 25) - 2
     for _ in range(10):
         await RisingEdge(dut.clk)
 

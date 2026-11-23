@@ -217,11 +217,11 @@ Verified on a native Quartus 25.1std install (Cyclone V, `5CSEBA6U23I7`):
 
 | Metric | Result |
 |--------|--------|
-| Logic utilization | 77 ALMs / 41,910 (< 1%) |
-| Registers | 45 |
-| Worst-case setup slack | +16.99 ns (Slow 1100mV -40C) |
-| Worst-case hold slack | +0.12 ns (Fast 1100mV -40C) |
-| Worst-case pulse-width slack | +9.18 ns |
+| Logic utilization | 61 ALMs / 41,910 (< 1%) |
+| Registers | 46 |
+| Worst-case setup slack | +16.54 ns (Slow 1100mV -40C) |
+| Worst-case hold slack | +0.19 ns (Fast 1100mV -40C) |
+| Worst-case pulse-width slack | +9.15 ns |
 
 All four corner models (Slow/Fast x 100C/-40C) show positive slack -- timing
 met cleanly for a 3-register peripheral at 50 MHz, as expected.

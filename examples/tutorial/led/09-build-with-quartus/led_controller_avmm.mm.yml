@@ -25,7 +25,6 @@
             - name: PATTERN
               bits: "[7:0]"
               access: read-write
-              resetValue: 0
               description: "Bit N drives LED[N]"
         - name: EVENTS
           offset: 8
@@ -34,11 +33,9 @@
             - name: HEARTBEAT_ACTIVE
               bits: "[0:0]"
               access: read-only
-              resetValue: 0
-              description: "Heartbeat level, toggles about once per second"
+              description: "Heartbeat level, toggles every 0.67 s"
             - name: HEARTBEAT_TOGGLED
-              bits: "[1:1]"
+              bits: "[1]"
               access: read-write-1-to-clear
-              resetValue: 0
-              monitorChangeOf: HEARTBEAT_ACTIVE
               description: "Set on every HEARTBEAT_ACTIVE change, write 1 to clear"
+              monitorChangeOf: HEARTBEAT_ACTIVE
