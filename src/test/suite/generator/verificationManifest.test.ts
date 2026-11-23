@@ -1,10 +1,14 @@
 import {
   buildVerificationManifest,
+  serializeVerificationManifest,
   type VerificationManifest,
 } from '../../../generator/verificationManifest';
 import type { NormalizedMemoryMap } from '../../../domain/internal.types';
 import { parseMemoryMap } from '../../../domain/parse';
 import { resolveVersionRefsInMap } from '../../../shared/versioning/resolveVersionRefs';
+
+// The TS target (es6) has no bigint literals, so build them with BigInt().
+const big = (value: number | string): bigint => BigInt(value);
 
 function buildMap(): NormalizedMemoryMap {
   return {
@@ -161,9 +165,9 @@ describe('buildVerificationManifest', () => {
       name: 'MIXED',
       offset: 0x100,
       width: 32,
-      resetValue: 0x13412,
-      readableMask: 0x1ffff,
-      writableMask: 0x300ff,
+      resetValue: big('0x13412'),
+      readableMask: big('0x1ffff'),
+      writableMask: big('0x300ff'),
     });
     expect(mixed.fields.map((field) => [field.name, field.writeEffect])).toEqual([
       ['RW', 'replace'],
@@ -190,7 +194,7 @@ describe('buildVerificationManifest', () => {
         name: 'CHANNEL_0_CONFIG',
         offset: 0x124,
         width: 16,
-        resetValue: 0x55aa,
+        resetValue: big('0x55aa'),
         arrayDimensions: [
           { name: 'CHANNEL', index: 0, lowerBound: 0, upperBound: 1, stride: 0x10 },
         ],
@@ -244,7 +248,7 @@ describe('buildVerificationManifest', () => {
 
   it('preserves a whole-register reset when the register also declares fields', () => {
     expect(manifest.registers.find((reg) => reg.name === 'SCRATCH')).toMatchObject({
-      resetValue: 0xdeadbeef,
+      resetValue: big('0xdeadbeef'),
       provenance: { resetValue: 'spec' },
     });
   });
@@ -293,22 +297,125 @@ describe('buildVerificationManifest with resolved $version constants', () => {
       resetValue: 1,
     });
     expect(reg('IDENT')).toMatchObject({
-      resetValue: 0x01000001,
-      readableMask: 0xff000001,
-      writableMask: 0x1,
+      resetValue: big('0x01000001'),
+      readableMask: big('0xff000001'),
+      writableMask: big('0x1'),
     });
   });
 
   it('treats a register-level $version as a read-only register with the packed value', () => {
     expect(reg('VERSION')).toMatchObject({
-      resetValue: 0x010402,
-      readableMask: 0xffffffff,
-      writableMask: 0,
+      resetValue: big('0x010402'),
+      readableMask: big('0xffffffff'),
+      writableMask: big(0),
     });
     expect(reg('VERSION').fields[0]).toMatchObject({ writable: false, writeEffect: 'none' });
   });
 
   it('keeps a constant at its resolved value under a register-level reset word', () => {
-    expect(reg('LOCKED').resetValue).toBe(0xffffff04);
+    expect(reg('LOCKED').resetValue).toBe(big('0xffffff04'));
+  });
+});
+
+describe('buildVerificationManifest with fields wider than 32 bits', () => {
+  const wideMap = (): NormalizedMemoryMap =>
+    parseMemoryMap(`
+- name: WIDE
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0
+      defaultRegWidth: 64
+      registers:
+        - name: FULL
+          offset: 0
+          fields:
+            - { name: DATA, bits: "[63:0]", access: read-write }
+        - name: HIGH
+          offset: 8
+          fields:
+            - { name: UPPER, bits: "[63:32]", resetValue: 1, access: read-write }
+            - { name: LOW, bits: "[7:0]", access: read-only }
+`).map;
+
+  const manifest = buildVerificationManifest([wideMap()], {
+    busType: 'axil',
+    dataWidth: 64,
+    byteEnableSupported: true,
+  });
+  const reg = (name: string) => manifest.registers.find((r) => r.name === name)!;
+
+  it('keeps all 64 bits of a full-width field mask and the register masks', () => {
+    expect(reg('FULL').fields[0].mask).toBe(big('0xffffffffffffffff'));
+    expect(reg('FULL')).toMatchObject({
+      readableMask: big('0xffffffffffffffff'),
+      writableMask: big('0xffffffffffffffff'),
+    });
+  });
+
+  it('places an upper-half field mask above bit 31', () => {
+    expect(reg('HIGH').fields[0].mask).toBe(big('0xffffffff00000000'));
+    expect(reg('HIGH')).toMatchObject({
+      readableMask: big('0xffffffff000000ff'),
+      writableMask: big('0xffffffff00000000'),
+    });
+  });
+
+  it('composes a register reset value from a field reset above bit 31', () => {
+    expect(reg('HIGH').resetValue).toBe(big('0x100000000'));
+  });
+
+  it('clamps field masks to the bus data width, not the register size', () => {
+    const narrow = buildVerificationManifest([wideMap()], {
+      busType: 'axil',
+      dataWidth: 32,
+      byteEnableSupported: true,
+    });
+    const full = narrow.registers.find((r) => r.name === 'FULL')!;
+    expect(full.fields[0].mask).toBe(big('0xffffffff'));
+    expect(full.readableMask).toBe(big('0xffffffff'));
+    expect(narrow.registers.find((r) => r.name === 'HIGH')!.fields[0].mask).toBe(big(0));
+  });
+
+  it('keeps the register width reported from its size, whatever the bus width', () => {
+    expect(reg('FULL').width).toBe(32);
+  });
+});
+
+describe('serializeVerificationManifest', () => {
+  const build = (dataWidth: number, bits: string) =>
+    buildVerificationManifest(
+      [
+        parseMemoryMap(`
+- name: M
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0
+      defaultRegWidth: ${dataWidth}
+      registers:
+        - name: R
+          offset: 0
+          fields:
+            - { name: F, bits: "${bits}", resetValue: 5, access: read-write }
+`).map,
+      ],
+      { busType: 'axil', dataWidth, byteEnableSupported: true }
+    );
+
+  it('writes 64-bit masks as exact bare JSON integers', () => {
+    const text = serializeVerificationManifest(build(64, '[63:0]'));
+    expect(text).toContain('"mask": 18446744073709551615,');
+    expect(text).toContain('"writableMask": 18446744073709551615,');
+    expect(text.endsWith('}\n')).toBe(true);
+  });
+
+  it('leaves the text of a 32-bit manifest identical to plain JSON.stringify', () => {
+    const manifest = build(32, '[31:0]');
+    const plain = JSON.stringify(
+      manifest,
+      (_key, value: unknown) => (typeof value === 'bigint' ? Number(value) : value),
+      2
+    );
+    expect(serializeVerificationManifest(manifest)).toBe(`${plain}\n`);
+    expect(serializeVerificationManifest(manifest)).toContain('"mask": 4294967295,');
   });
 });

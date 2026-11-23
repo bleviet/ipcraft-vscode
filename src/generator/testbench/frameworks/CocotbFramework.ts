@@ -1,6 +1,9 @@
 import type { Engine } from '../Engine';
 import type { Framework, TestbenchContext } from '../Framework';
-import { buildVerificationManifest } from '../../verificationManifest';
+import {
+  buildVerificationManifest,
+  serializeVerificationManifest,
+} from '../../verificationManifest';
 
 const RTL_HDL_TYPES = new Set(['vhdl', 'systemverilog', 'verilog']);
 const SIM_PREFIXES = ['tb/', 'sim/', 'simulation/', 'testbench/', 'test/'];
@@ -135,7 +138,7 @@ export class CocotbFramework implements Framework {
         dataWidth: Number(templateContext.data_width ?? 32),
         byteEnableSupported,
       });
-      files['tb/verification_manifest.json'] = `${JSON.stringify(manifest, null, 2)}\n`;
+      files['tb/verification_manifest.json'] = serializeVerificationManifest(manifest);
       files['tb/register_model.py'] = templates.render('register_model.py.j2', templateContext);
     }
     files[`tb/${name}_test.py`] = templates.render('cocotb_test.py.j2', testCtx);

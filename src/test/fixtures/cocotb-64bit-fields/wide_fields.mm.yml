@@ -1,0 +1,42 @@
+- name: CSR_MAP
+  description: >
+    Fields wider than 32 bits in 64-bit registers (ipcraft-vscode#321): the
+    verification manifest must keep every mask and reset bit.
+  addressBlocks:
+    - name: CSR
+      offset: 0
+      usage: register
+      defaultRegWidth: 64
+      registers:
+        - name: WIDE_DATA
+          offset: 0
+          description: "One read-write field spanning all 64 bits"
+          fields:
+            - name: DATA
+              bits: "[63:0]"
+              access: read-write
+              resetValue: 0
+        - name: UPPER_HALF
+          offset: 8
+          description: "Read-write field in the upper word, read-only byte below"
+          fields:
+            - name: UPPER
+              bits: "[63:32]"
+              access: read-write
+              resetValue: 1
+            - name: ID
+              bits: "[7:0]"
+              access: read-only
+              resetValue: 0x5A
+        - name: CTRL
+          offset: 16
+          description: "Ordinary control register"
+          fields:
+            - name: ENABLE
+              bits: "[0:0]"
+              access: read-write
+              resetValue: 0
+            - name: MODE
+              bits: "[7:4]"
+              access: read-write
+              resetValue: 0
