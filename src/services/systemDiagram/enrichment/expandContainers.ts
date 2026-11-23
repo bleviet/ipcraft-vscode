@@ -13,7 +13,7 @@ import type { SystemDiagnostic, SystemGraph, SystemInstance } from '../../../dom
 import { readBdTcl } from '../../../parser/system/BdTclReader';
 import { BD_LINKS_FILE } from './bdLinks';
 import type { CmakeEntry } from './cmakeProjects';
-import type { EnrichmentIo, EnrichmentLog } from './enrichmentIo';
+import { SourceFailedError, type EnrichmentIo, type EnrichmentLog } from './enrichmentIo';
 import { bdTclEntryFromText, type BdTclEntry } from './fileEntries';
 import { graftSubsystem } from './graftSubsystem';
 import { rankBdTcl, type BdTclRanking, type RankedBdTcl } from './rankBdTcl';
@@ -78,7 +78,10 @@ async function projectEntries<R>(
     try {
       const location = sources.io.locate(file);
       entries.push(bdTclEntryFromText(await sources.io.readText(location.ref), location));
-    } catch {
+    } catch (error) {
+      if (error instanceof SourceFailedError) {
+        throw error;
+      }
       // Unreadable: skipped.
     }
   }
@@ -104,7 +107,10 @@ async function rankContainerTcl<R>(
     try {
       const location = sources.io.locate(links[bd]);
       link = bdTclEntryFromText(await sources.io.readText(location.ref), location);
-    } catch {
+    } catch (error) {
+      if (error instanceof SourceFailedError) {
+        throw error;
+      }
       unreadableLink = links[bd];
     }
   }
@@ -217,6 +223,9 @@ async function expandWithin<R>(
         },
       };
     } catch (error) {
+      if (error instanceof SourceFailedError) {
+        throw error;
+      }
       blackBoxes = true;
       log?.warn(`Could not read subsystem ${entry.displayName}: ${String(error)}`);
       note(

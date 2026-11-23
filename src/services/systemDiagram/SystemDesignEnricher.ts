@@ -33,8 +33,8 @@ import {
   type HdlEntry,
   type IpEntry,
 } from './enrichment/fileEntries';
-import { revisionIo, type ReadAt } from './enrichment/revisionIo';
 import type { RankedBdTcl } from './enrichment/rankBdTcl';
+import { revisionIo, type ReadAt } from './enrichment/revisionIo';
 import { SubsystemExpander } from './SubsystemExpander';
 import { WorkspaceFileIndex } from './WorkspaceFileIndex';
 
@@ -64,6 +64,7 @@ const locationOf = (uri: vscode.Uri) => ({
 
 export class SystemDesignEnricher {
   private readonly logger = new Logger('SystemDesignEnricher');
+  private linksChanges = 0;
   private readonly ipIndex = new WorkspaceFileIndex<IpEntry<vscode.Uri>>(
     IP_GLOB,
     IP_LIMIT,
@@ -144,20 +145,27 @@ export class SystemDesignEnricher {
   /**
    * Changes whenever what `enrich` reads may have changed: the definition files (the HDL and
    * `.qsys` files it reads are the files of their indexes, so the indexes cover their content
-   * too) and whether the workspace is trusted. An enrichment is current while this is unchanged.
-   * The HDL and `.qsys` contents are read from disk when `enrich` runs, but this changes only
-   * when the file watcher reports the save: an enrichment between the two can read the new
-   * content under the old revision, until the next change of the revision.
+   * too), the block design links files (through `linksChanged`) and whether the workspace is
+   * trusted. An enrichment is current while this is unchanged. The HDL and `.qsys` contents are
+   * read from disk when `enrich` runs, but this changes only when the file watcher reports the
+   * save: an enrichment between the two can read the new content under the old revision, until
+   * the next change of the revision.
    */
   get revision(): string {
     return [
       this.ipIndex.revision,
       this.hdlIndex.revision,
+      this.subsystems.revision,
       this.tclIndex.revision,
       this.cmakeIndex.revision,
-      this.subsystems.revision,
+      this.linksChanges,
       vscode.workspace.isTrusted,
     ].join('.');
+  }
+
+  /** Called when a block design links file changed: the next enrichment may link other Tcl files. */
+  linksChanged(): void {
+    this.linksChanges++;
   }
 
   /**

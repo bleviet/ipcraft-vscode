@@ -263,6 +263,24 @@ describe('SystemDesignEnricher', () => {
     expect(enricher.revision).not.toBe(afterHdl);
   });
 
+  it('changes its revision with a block design Tcl, a CMakeLists.txt or a links file', async () => {
+    const { fire } = setup({
+      '/ws/bd/child.tcl': 'create_bd_design child\n',
+      '/ws/CMakeLists.txt': 'project(p)\n',
+    });
+    const enricher = new SystemDesignEnricher();
+    await enricher.bdTclCandidates(DESIGN, 'child');
+    const built = enricher.revision;
+    await fire('**/*.tcl', 'change', '/ws/bd/child.tcl');
+    const afterTcl = enricher.revision;
+    expect(afterTcl).not.toBe(built);
+    await fire('**/CMakeLists.txt', 'change', '/ws/CMakeLists.txt');
+    const afterCmake = enricher.revision;
+    expect(afterCmake).not.toBe(afterTcl);
+    enricher.linksChanged();
+    expect(enricher.revision).not.toBe(afterCmake);
+  });
+
   it('changes its revision with the subsystem index and on dispose', () => {
     setup({});
     const enricher = new SystemDesignEnricher();

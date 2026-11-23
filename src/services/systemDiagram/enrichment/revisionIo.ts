@@ -5,8 +5,8 @@
  *
  * Only the files the design can match are read at the revision: `.ip.yml` files are matched
  * against the graph with the working tree's index, and only the matched ones are read (and
- * parsed) again. HDL and `.qsys` files are read when the pipeline asks for them, so only matched
- * ones cost a read.
+ * parsed) again. HDL, `.qsys` and container Tcl files are read when the pipeline asks for them,
+ * so only matched ones cost a read.
  *
  * Limits, all from matching with the working tree's index:
  * - a definition that exists only at the revision (it was deleted since), or whose VLNV or name
@@ -18,7 +18,9 @@
  *   rename similarity;
  * - an HDL file larger than 1 MiB at the revision is skipped, as the working-tree index skips it;
  * - an HDL file is matched by the entity or module names of its working-tree text, and its
- *   ports are then read from the text at the revision, where its first unit may differ.
+ *   ports are then read from the text at the revision, where its first unit may differ;
+ * - the Tcl script of a block design container is chosen with the working tree's links file,
+ *   CMake projects and Tcl index, and then read at the revision.
  *
  * Failures: a file that is not at the revision is normal (`readAt` returns undefined): an
  * `.ip.yml` is dropped, `readText` throws {@link FileAbsentError}. `readAt` rejecting means git
@@ -76,13 +78,13 @@ export function revisionIo<R>(io: EnrichmentIo<R>, readAt: ReadAt<R>): Enrichmen
       );
       return atRevision.filter((entry): entry is IpEntry<R> => entry !== undefined);
     },
-    listHdlFiles: async () => {
-      const entries = await io.listHdlFiles();
+    listHdlFilesNamed: async (names) => {
+      const entries = await io.listHdlFilesNamed(names);
       entries.forEach((entry) => hdlRefs.add(entry.ref));
       return entries;
     },
-    listHdlFilesNamed: async (names) => {
-      const entries = await io.listHdlFilesNamed(names);
+    listHdlFiles: async () => {
+      const entries = await io.listHdlFiles();
       entries.forEach((entry) => hdlRefs.add(entry.ref));
       return entries;
     },

@@ -54,6 +54,9 @@ jest.mock('../../../services/systemDiagram/SystemDesignEnricher', () => ({
     enrich = (graph: unknown, _file: string, readAt?: unknown) =>
       mockEnrich(graph, readAt) as Promise<unknown>;
     bdTclCandidates = (file: string, bd: string) => mockCandidates(file, bd) as Promise<unknown>;
+    linksChanged = () => {
+      mockEnrichRevision += 1;
+    };
     dispose = jest.fn();
   },
 }));

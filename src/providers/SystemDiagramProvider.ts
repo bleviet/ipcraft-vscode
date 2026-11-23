@@ -372,7 +372,10 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       void postGraph();
     });
     const linksWatcher = vscode.workspace.createFileSystemWatcher(`**/${BD_LINKS_FILE}`);
-    const linksChanged = () => void postGraph();
+    const linksChanged = () => {
+      this.enricher.linksChanged();
+      void postGraph();
+    };
     linksWatcher.onDidCreate(linksChanged);
     linksWatcher.onDidChange(linksChanged);
     linksWatcher.onDidDelete(linksChanged);
