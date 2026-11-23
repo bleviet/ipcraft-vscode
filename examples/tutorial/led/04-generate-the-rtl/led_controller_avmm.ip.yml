@@ -3,7 +3,7 @@ vlnv:
   library: peripherals
   name: led_controller_avmm
   version: 1.0.0
-apiVersion: '1.2'
+apiVersion: '1.3'
 
 description: Avalon-MM peripheral for the DE10-Nano LED demo. Drives 8 board LEDs from a software-writable pattern register.
 clocks:

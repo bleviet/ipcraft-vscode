@@ -10,9 +10,7 @@ theme:
   name: material
   logo: images/ipcraft-logo.svg
   favicon: images/ipcraft-logo.svg
-  font:
-    text: Manrope
-    code: IBM Plex Mono
+  font: false
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
