@@ -621,6 +621,6 @@ history.
   inline `$version` tokens.
 
 See the [specification schemas](../reference/specification-schemas.md) for the
-keys, the [generator reference](../reference/generator.md#command-line-package)
+keys, the [command-line reference](../reference/command-line.md#generate-and-verify)
 for the CLI options, and the [command reference](../reference/commands.md) for
 the commands.
