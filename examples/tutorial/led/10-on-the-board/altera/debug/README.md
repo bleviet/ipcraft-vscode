@@ -139,7 +139,7 @@ The Python `debug_console.py` is a 1:1 prototype of the proposed TypeScript
 |---------------------|---------------------------------------|
 | `SystemConsoleTransport.connect()` | `SystemConsoleTransport.connect(): Promise<void>` |
 | `SystemConsoleTransport.read32(offset)` | `SystemConsoleTransport.read32(addr): Promise<number>` |
-| `SystemConsoleTransport.write32(offset, val)` | `SystemConsoleTransport.write32(addr, val): Promise<void>` |
+| `SystemConsoleTransport.write32(offset, val)` | `SystemConsoleTransport.write32(addr, val): Promise<number>` (the read-back) |
 | `SystemConsoleTransport._exec_tcl(cmd)` | internal sentinel-framed exec |
 | `SystemConsoleTransport.close()` | `SystemConsoleTransport.dispose(): void` |
 | `RegisterMap` (from `.mm.yml`) | `src/domain/parse.ts` + `registerProcessor.ts` |

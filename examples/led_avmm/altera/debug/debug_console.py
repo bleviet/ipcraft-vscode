@@ -247,6 +247,23 @@ class RegisterMap(object):
             raise KeyError("Unknown register: %s. Available: %s" % (name, available))
         return self.registers[name]["offset"]
 
+    def write_check(self, name, value):
+        """Return (mask, expected): the bits a read right after a write can
+        verify, and their expected value. Read-write fields read back what was
+        written, a 1 written to a write-1-to-clear field reads back 0, and
+        read-only bits are not checked."""
+        fields = self.registers[name]["fields"]
+        if not fields:
+            return 0xFFFFFFFF, value
+        mask = expected = 0
+        for field in fields.values():
+            if field["access"] == "read-write":
+                mask |= field["mask"]
+                expected |= value & field["mask"]
+            elif field["access"] in ("write-1-to-clear", "read-write-1-to-clear"):
+                mask |= value & field["mask"]
+        return mask, expected
+
     def get_field_mask(self, reg_name, field_name):
         return self.registers[reg_name]["fields"][field_name]["mask"]
 
@@ -283,7 +300,7 @@ class SystemConsoleTransport(object):
     Each transaction:
       1. Generate a Tcl script with the command + @@END sentinel
       2. Pipe 'source /tmp/xxx.tcl' into system-console --cli
-      3. Parse stdout for @@VAL / @@WROTE / @@ERROR markers
+      3. Parse stdout for @@VAL / @@ERROR markers (a write also reads back)
       4. system-console exits when stdin reaches EOF
     """
 
@@ -346,7 +363,8 @@ class SystemConsoleTransport(object):
         raise ValueError("No @@VAL in response: %r" % response)
 
     def write32(self, offset, value):
-        """Write a 32-bit value to a register at the given byte offset."""
+        """Write a 32-bit value to a register at the given byte offset, and
+        return the value read back in the same System Console session."""
         addr = self.base_address + offset
         tcl = (
             'set mp {%s}\n'
@@ -356,11 +374,19 @@ class SystemConsoleTransport(object):
             '  return\n'
             '}\n'
             'master_write_32 $mp %d [list %d]\n'
+            'set _r [master_read_32 $mp %d 1]\n'
             'close_service master $mp\n'
-            'puts "@@WROTE"\n'
+            'puts "@@VAL $_r"\n'
             'puts "@@END"\n'
-        ) % (self.master_path, addr, value)
-        self._run_tcl(tcl)
+        ) % (self.master_path, addr, value, addr)
+        response = self._run_tcl(tcl)
+        for line in response.split("\n"):
+            line = line.strip()
+            if line.startswith("@@VAL "):
+                return int(line[6:].strip().strip("{}"), 0)
+            if line.startswith("@@ERROR"):
+                raise IOError(line)
+        raise ValueError("No @@VAL in response: %r" % response)
 
     def close(self):
         """Nothing to clean up — each transaction is a separate process."""
@@ -465,8 +491,9 @@ class RegisterDriver(object):
         return self.transport.read32(offset)
 
     def write(self, reg_name, value):
+        """Write a register and return the value read right after it."""
         offset = self.regmap.get_offset(reg_name)
-        self.transport.write32(offset, value)
+        return self.transport.write32(offset, value)
 
     def read_field(self, reg_name, field_name):
         raw = self.read(reg_name)
@@ -603,9 +630,12 @@ def main():
 
         elif args.command == "write":
             val = int(args.value, 0)
-            drv.write(args.register, val)
-            readback = drv.read(args.register)
-            status = "PASS" if readback == val else "FAIL"
+            readback = drv.write(args.register, val)
+            mask, expected = regmap.write_check(args.register, val)
+            if mask == 0:
+                status = "not checked: no writable bits written"
+            else:
+                status = "PASS" if readback & mask == expected else "FAIL"
             print("Wrote %s = 0x%08X, readback = 0x%08X [%s]" %
                   (args.register, val, readback, status))
 
