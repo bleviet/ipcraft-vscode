@@ -19,6 +19,11 @@ export interface ProjectedInspectorField extends InspectorField {
   sourceFieldId: string;
 }
 
+/** Width in characters of the Fields table name column: the longest name, at least the "Name" header. */
+export function fieldNameColumnChars(fields: readonly InspectorField[]): number {
+  return fields.reduce((longest, field) => Math.max(longest, field.name.length), 'Name'.length);
+}
+
 /** Copies a register layout into one source with IDs unique across the whole recipe. */
 export function copyFieldsForSource(
   fields: readonly InspectorField[],
