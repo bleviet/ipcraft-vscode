@@ -44,11 +44,12 @@ package {{ entity_name }}_pkg;
   // Register Field Structs and Conversion Functions
   ////////////////////////////////////////////////////////////////////////////
 {% for reg in registers %}
-{% if reg.fields | length %}
+{% set rec_fields = (reg.fields or []) | rejectattr('is_constant') %}
+{% if rec_fields | length %}
 
   // {{ reg.name }} register fields
   typedef struct packed {
-{% for field in reg.fields %}
+{% for field in rec_fields %}
 {% if field.width == 1 %}
     logic        {{ field.name | lower }};  // bit {{ field.offset }}
 {% else %}
@@ -61,7 +62,7 @@ package {{ entity_name }}_pkg;
   function automatic logic [C_DATA_WIDTH-1:0] pack_{{ reg.name | lower }}(input {{ reg.name | lower }}_t reg_in);
     logic [C_DATA_WIDTH-1:0] slv;
     slv = '0;
-{% for field in reg.fields %}
+{% for field in rec_fields %}
 {% if field.width == 1 %}
     slv[{{ field.offset }}] = reg_in.{{ field.name | lower }};
 {% else %}
@@ -74,7 +75,7 @@ package {{ entity_name }}_pkg;
   // Unpack a 32-bit bus word into {{ reg.name }} fields
   function automatic {{ reg.name | lower }}_t unpack_{{ reg.name | lower }}(input logic [C_DATA_WIDTH-1:0] slv);
     {{ reg.name | lower }}_t reg_out;
-{% for field in reg.fields %}
+{% for field in rec_fields %}
 {% if field.width == 1 %}
     reg_out.{{ field.name | lower }} = slv[{{ field.offset }}];
 {% else %}

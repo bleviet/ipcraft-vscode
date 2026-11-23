@@ -98,6 +98,12 @@ Deeper references: `docs/architecture/overview.md` (module map), `docs/architect
 2. **`rowId` is UI-only identity, never schema data.** `generateRowId()` assigns it; `serialize.ts` strips it (and `__kind`); `src/webview/utils/rowIdentity.ts` `reconcileRowIds` re-matches old row IDs to freshly parsed data so React table rows stay stable across reloads. Never persist `rowId` to disk or emit it in generated YAML.
 3. **Format-preserving writes go through `src/yamledit/`** (`applyPathEdits`, `applyPathDeletes`), built on `yaml` v2 `parseDocument` to keep comments and hex spellings intact.
 
+#### `$version` references (IP core versioning)
+
+- Normalized fields and registers keep `resetValue: number` (0 for a token) plus `versionRef`; `serialize.ts` writes the token back into `resetValue` and never emits `versionRef`.
+- Generation resolves tokens exactly once, with `resolveVersionRefsInMap` at the generator seam (`resolveIpCoreVersionRefs` in `registerProcessor.ts`); consumers read the resolved maps and never re-resolve.
+- Register-set hashing uses the pure SHA-256 in `src/shared/versioning/` (VS Code 1.80 / Node 16 has no WebCrypto); do not use `crypto.subtle` or Node `crypto` there.
+
 ### Revisioned sync protocol (V-3/V-4)
 
 `src/services/WebviewRouter.ts` (extension) and `src/webview/sync/revisionFilter.ts` (webview, pure functions) implement a paired FIFO protocol that prevents echo loops and stale renders:
@@ -176,7 +182,7 @@ When adding register- or block-level layout operations, extend `LayoutEngine.ts`
 
 - **Two YAML libraries, used deliberately:** `js-yaml` (v4) for read-only parse / simple dump; `yaml` (v2) for any modify-and-write-back path (preserves comments + hex literals). Never use `js-yaml` to write back.
 - **Strict camelCase, no dual-state fallbacks.** TypeScript/React/JSON-Schema properties, interfaces, and state are camelCase only (`allowedValues`, `uiGroup`, `dataType`). Never read or define snake_case in these domains, and never write fallback logic like `param.uiGroup ?? param.ui_group`. snake_case is reserved exclusively for variables inside Nunjucks template contexts; make sure none leaks into props, ASTs, or schemas.
-- **`__op` special operations:** `useYamlUpdateHandler` recognises paths starting with `['__op', ...]` as structured operations that bypass normal path-edit logic. `['__op', 'field-move']` is the only current case; it routes through `FieldOperationService.applyFieldOperation` then `reorderBitfieldLayout`. Add new `__op` variants in `useYamlUpdateHandler.ts` when an edit cannot be expressed as a single path/value write (e.g. a multi-field atomic update).
+- **`__op` special operations:** `useYamlUpdateHandler` recognises paths starting with `['__op', ...]` as structured operations that bypass normal path-edit logic. `['__op', 'field-move']` routes through `FieldOperationService.applyFieldOperation` then `reorderBitfieldLayout`; `['__op', 'register-edit']` applies several writes plus removed keys inside one register as one update (`RegisterEditOperation.ts`). Add new `__op` variants in `useYamlUpdateHandler.ts` when an edit cannot be expressed as a single path/value write (e.g. a multi-field atomic update).
 - **Logging:** extension side uses `new Logger('ComponentName')` (`src/utils/Logger.ts`), never `console.log` (the `no-console` ESLint rule enforces it). Webview may use `console.warn`/`console.error` for error paths.
 - **Styling:** Tailwind v3 utility classes in JSX; theme-aware colors via `var(--vscode-*)` (helpers in `src/webview/shared/colors.ts`). Extension webviews follow the VS Code theme, not a brand palette.
 - **`vscode` is mocked** via `__mocks__/vscode.ts` (both Jest configs map `^vscode$` to it); use or extend the mock's stubs, don't re-mock per file. `src/test/integration/setup.ts` shows how integration tests add a real-fs `workspace.fs`.

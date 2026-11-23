@@ -4,6 +4,7 @@ import { HtmlGenerator } from '../services/HtmlGenerator';
 import { WebviewRouter } from '../services/WebviewRouter';
 import { DocumentManager } from '../services/DocumentManager';
 import { YamlValidator } from '../services/YamlValidator';
+import { watchVersionContext } from '../services/versioning/watchVersionContext';
 import { createSharedProviderServices } from './providerServices';
 
 /**
@@ -44,6 +45,7 @@ export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider 
     // Set HTML content
     webviewPanel.webview.html = this.htmlGenerator.generateHtml(webviewPanel.webview);
 
+    let versionContextWatcher: vscode.Disposable | undefined;
     const router = new WebviewRouter({
       webviewPanel,
       document,
@@ -52,6 +54,10 @@ export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider 
         router.postUpdate({
           text: this.documentManager.getText(document),
           fileName: this.documentManager.getRelativePath(document.uri),
+        });
+        versionContextWatcher?.dispose();
+        versionContextWatcher = watchVersionContext(document, (versionContext) => {
+          router.postNotification({ type: 'versionContext', context: versionContext });
         });
       },
     });
@@ -66,6 +72,7 @@ export class MemoryMapEditorProvider implements vscode.CustomTextEditorProvider 
     // Clean up subscriptions when webview is disposed
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();
+      versionContextWatcher?.dispose();
       router.dispose();
       this.logger.debug('Webview panel disposed');
     });

@@ -11,8 +11,10 @@ interface DiagramWorkbenchProps {
   graph: SystemGraph;
   highlights?: HighlightMap;
   problem?: DiagramProblem;
+  busy?: string;
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
+  assignContainerTcl: (instance: string) => void;
   onChangeHighlights?: (highlights: HighlightMap) => void;
   imageExport?: ImageExportChannel;
   resourceChannel?: ResourceChannel;
@@ -26,8 +28,10 @@ export function DiagramWorkbench({
   graph,
   highlights,
   problem,
+  busy,
   revealSource,
   openDefinition,
+  assignContainerTcl,
   onChangeHighlights,
   imageExport,
   resourceChannel,
@@ -42,8 +46,10 @@ export function DiagramWorkbench({
         graph={graph}
         highlights={highlights}
         problem={problem}
+        busy={busy}
         revealSource={revealSource}
         openDefinition={openDefinition}
+        assignContainerTcl={assignContainerTcl}
         onChangeHighlights={onChangeHighlights}
         imageExport={imageExport}
         resourceChannel={resourceChannel}

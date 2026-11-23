@@ -5,6 +5,7 @@ import type { BusInterface, Clock, Interrupt, IpCore, Port, Reset } from '../../
 import type { YamlUpdateHandler } from '../../../../types/editor';
 import type { CanvasElement } from '../../../hooks/useCanvasSelection';
 import type { BatchUpdate } from '../../../hooks/useGroupPorts';
+import type { PacketFormats } from '../../../hooks/usePacketFormats';
 import { BodyPanel, SubcorePanel } from './body/BodyPanel';
 import { BusInterfaceMatrixPanel } from './buses/BusInterfaceMatrixPanel';
 import { BusPanel } from './buses/BusPanel';
@@ -17,6 +18,7 @@ interface InspectorPanelRouterProps {
   element: CanvasElement;
   ipCore: IpCore;
   imports?: { busLibrary?: NormalizedBusLibrary; memoryMaps?: unknown[] };
+  packetFormats?: PacketFormats;
   onUpdate: YamlUpdateHandler;
   batchUpdate?: BatchUpdate;
   issueFocusRequest?: IssueFocusRequest | null;
@@ -27,6 +29,7 @@ export const InspectorPanelRouter: React.FC<InspectorPanelRouterProps> = ({
   element,
   ipCore,
   imports,
+  packetFormats,
   onUpdate,
   batchUpdate,
   issueFocusRequest,
@@ -91,6 +94,7 @@ export const InspectorPanelRouter: React.FC<InspectorPanelRouterProps> = ({
           index={element.index}
           ipCore={ipCore}
           imports={imports}
+          packetFormats={packetFormats}
           onUpdate={onUpdate}
           batchUpdate={batchUpdate}
           issueFocusRequest={issueFocusRequest}

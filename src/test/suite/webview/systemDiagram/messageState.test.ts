@@ -65,4 +65,23 @@ describe('reduceDiagramMessage', () => {
       problem: { kind: 'error', message: 'boom' },
     });
   });
+
+  it('records busy over a shown graph and clears it with the next graph or problem', () => {
+    const shown = reduceDiagramMessage(loading, { type: 'graph', graph });
+    expect(reduceDiagramMessage(loading, { type: 'busy', message: 'x' })).toBe(loading);
+    const busy = reduceDiagramMessage(shown, { type: 'busy', message: 'Reloading' });
+    expect(busy).toEqual({ status: 'graph', graph, busy: 'Reloading' });
+    expect(reduceDiagramMessage(busy, { type: 'graph', graph })).toEqual({
+      status: 'graph',
+      graph,
+    });
+    expect(reduceDiagramMessage(busy, { type: 'error', message: 'boom' })).toEqual({
+      status: 'graph',
+      graph,
+      problem: { kind: 'error', message: 'boom' },
+    });
+    expect(
+      reduceDiagramMessage(busy, { type: 'notRecognized', fileName: 'a.tcl' })
+    ).not.toHaveProperty('busy');
+  });
 });

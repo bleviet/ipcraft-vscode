@@ -46,6 +46,7 @@ const TRUST_REQUIRED_COMMANDS = [
   'fpga-ip-core.openInQuartus',
   'fpga-ip-core.previewTemplateOutput',
   'fpga-ip-core.generateVhdlLsConfig',
+  'fpga-ip-core.startRegisterSetVersioning',
 ];
 
 const RESTRICTED_CONFIGURATIONS = [

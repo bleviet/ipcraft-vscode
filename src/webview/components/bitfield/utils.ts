@@ -3,6 +3,8 @@ import type { FieldModel } from '../BitFieldVisualizer';
 import type { ProSegment } from './types';
 import { BitVector } from '../../../dataInspector/BitVector';
 import { normalizeFieldRange } from '../../../dataInspector/fieldGeometry';
+import { formatResolvedHex } from '../../shared/utils/versionRefDisplay';
+import type { VersionRef } from '../../../shared/versioning/versionScheme';
 
 export function getFieldRange(field: FieldModel): { lo: number; hi: number } | null {
   return normalizeFieldRange(field);
@@ -48,11 +50,15 @@ export function parseRegisterValue(text: string, view: 'hex' | 'dec' = 'hex'): n
  * Result of parsing register-value bar text against a target width. `vector` is
  * non-null exactly when parsing succeeded; otherwise `error` distinguishes an
  * empty draft from malformed digits from a value that overflows the width, so
- * callers can surface a specific message instead of a generic one.
+ * callers can surface a specific message instead of a generic one. `token` and
+ * `pending` are only set by `parseRegisterValueDraft` (registerValueToken.ts):
+ * the draft is a whole `$version` reference, or a prefix of one still being typed.
  */
 export interface RegisterValueParse {
   vector: BitVector | null;
   error: 'malformed' | 'overflow' | null;
+  token?: VersionRef;
+  pending?: true;
 }
 
 /** Debug-mode value parser backed by the shared exact-width vector engine. */
@@ -343,4 +349,115 @@ export function applyRegisterBitVectorToFields(
       onFieldReset(fieldIndex, value <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(value) : value);
     }
   });
+}
+
+/**
+ * Uncovered bit ranges of `registerValue` that {@link applyRegisterBitVectorToFields}
+ * would drop. A register value has no storage of its own -- it is composed
+ * from, and written back into, the bit fields -- so a set bit outside every
+ * writable field range would vanish on commit. Only uncovered runs that
+ * actually carry a set bit are reported, so a value that merely leaves the
+ * gaps at zero is storable. The skip condition mirrors
+ * `applyRegisterBitVectorToFields` exactly, so a field it ignores does not
+ * count as covering its bits.
+ *
+ * @returns Maximal uncovered `[hi, lo]` runs, ascending by `lo`.
+ */
+export function findUnstorableBitRanges(
+  fields: FieldModel[],
+  registerValue: BitVector
+): Array<[number, number]> {
+  const covered = new Set<number>();
+  fields.forEach((field) => {
+    const range = getFieldRange(field);
+    if (!range || range.lo < 0 || range.hi >= registerValue.width) {
+      return;
+    }
+    for (let bit = range.lo; bit <= range.hi; bit++) {
+      covered.add(bit);
+    }
+  });
+
+  const ranges: Array<[number, number]> = [];
+  let runLo: number | null = null;
+  let runHasData = false;
+  for (let bit = 0; bit <= registerValue.width; bit++) {
+    const uncovered = bit < registerValue.width && !covered.has(bit);
+    if (uncovered) {
+      runLo ??= bit;
+      runHasData ||= registerValue.bit(bit) === 1;
+      continue;
+    }
+    if (runLo !== null) {
+      if (runHasData) {
+        ranges.push([bit - 1, runLo]);
+      }
+      runLo = null;
+      runHasData = false;
+    }
+  }
+  return ranges;
+}
+
+/** Renders `[hi, lo]` bit ranges MSB-first, e.g. `31:8, 3`. */
+export function formatBitRanges(ranges: Array<[number, number]>): string {
+  return [...ranges]
+    .sort((a, b) => b[1] - a[1])
+    .map(([hi, lo]) => (hi === lo ? String(lo) : `${hi}:${lo}`))
+    .join(', ');
+}
+
+/**
+ * Why `next` cannot replace `current` when fields holding a `$version` token are constants: their
+ * bits in `current` are the resolved version (0 when unresolved), so any difference in those bits
+ * is rejected. `applyRegisterBitVectorToFields` callers skip these fields, so nothing of the
+ * difference would be stored.
+ *
+ * @returns One message per changed token field, joined, or null when every token field is intact.
+ */
+export function describeConstantFieldMismatches(
+  fields: FieldModel[],
+  current: BitVector,
+  next: BitVector
+): string | null {
+  const messages: string[] = [];
+  fields.forEach((field) => {
+    const range = getFieldRange(field);
+    if (!field.versionRef || !range || range.lo < 0 || range.hi >= next.width) {
+      return;
+    }
+    const held = current.slice(range.hi, range.lo);
+    if (held.equals(next.slice(range.hi, range.lo))) {
+      return;
+    }
+    const hex = formatResolvedHex(Number(held.toBigInt() ?? 0), held.width);
+    messages.push(
+      `Bits ${formatBitRanges([[range.hi, range.lo]])} hold ${field.versionRef} (${hex})`
+    );
+  });
+  return messages.length > 0 ? messages.join('; ') : null;
+}
+
+/**
+ * Register value for a register without bit fields, taken from the register's
+ * own `resetValue`. With no fields there is nothing to compose the value from,
+ * so this key is the only storage -- the same source the generators read when
+ * `fields.length === 0`. Values are masked to the register width.
+ */
+export function registerResetToBitVector(
+  resetValue: number | bigint | null | undefined,
+  registerSize: number
+): BitVector {
+  try {
+    const raw =
+      resetValue === null || resetValue === undefined
+        ? BigInt(0)
+        : typeof resetValue === 'bigint'
+          ? resetValue
+          : BigInt(Math.max(0, Math.trunc(resetValue)));
+    const mask = (BigInt(1) << BigInt(registerSize)) - BigInt(1);
+    return BitVector.fromBigInt(raw & mask, registerSize);
+  } catch {
+    return BitVector.filled(registerSize, 0);
+  }
 }

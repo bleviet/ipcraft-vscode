@@ -4,6 +4,20 @@ function isNil(v: unknown): boolean {
   return v === null || v === undefined;
 }
 
+/**
+ * A `versionRef` token is written as the `resetValue` itself (never as its own key); otherwise a
+ * nil or 0 `resetValue` is dropped.
+ */
+function applyResetValue(out: Record<string, unknown>): void {
+  const versionRef = out.versionRef;
+  delete out.versionRef;
+  if (versionRef) {
+    out.resetValue = versionRef;
+  } else if (isNil(out.resetValue) || out.resetValue === 0) {
+    delete out.resetValue;
+  }
+}
+
 type SerializationHint = 'auto' | 'field' | 'register' | 'block' | 'opaque';
 
 function childHint(key: string): SerializationHint {
@@ -66,9 +80,7 @@ function serializeValueWithHint(
     delete out.width;
     delete out.bitRange;
 
-    if (isNil(out.resetValue) || out.resetValue === 0) {
-      delete out.resetValue;
-    }
+    applyResetValue(out);
     if (isNil(out.access)) {
       delete out.access;
     }
@@ -113,9 +125,7 @@ function serializeValueWithHint(
       delete out.size;
     }
 
-    if (isNil(out.resetValue) || out.resetValue === 0) {
-      delete out.resetValue;
-    }
+    applyResetValue(out);
     if (isNil(out.access)) {
       delete out.access;
     }

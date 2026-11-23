@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { SystemGraph, SystemNet, SystemPin } from '../../../../domain/systemGraph';
+import { containerDesigns } from '../../../../domain/bdContainer';
 import { readBdTcl } from '../../../../parser/system/BdTclReader';
 
 const FIXTURE = path.join(__dirname, '../../../fixtures/system-design/zynq_dma_system.tcl');
@@ -777,5 +778,71 @@ describe('readBdTcl: black box guards (#291)', () => {
       ].join('\n')
     );
     expect(g.instances['/ghost'].line).toBe(3);
+  });
+});
+
+describe('readBdTcl: block design containers', () => {
+  const read = (text: string): SystemGraph => readBdTcl(text, '/p/top.tcl');
+  const SCRIPT = [
+    'set base_partition [ create_bd_cell -type container -reference base_partition base_partition ]',
+    'set_property -dict [list \\',
+    '  CONFIG.ACTIVE_SIM_BD {base_partition.bd} \\',
+    '  CONFIG.ACTIVE_SYNTH_BD {base_partition.bd} \\',
+    '  CONFIG.ENABLE_DFX {false} \\',
+    '  CONFIG.LIST_SIM_BD {base_partition.bd} \\',
+    '  CONFIG.LIST_SYNTH_BD {base_partition.bd} \\',
+    '  CONFIG.LOCK_PROPAGATE {false} \\',
+    '] $base_partition',
+    'set rp_fmc [ create_bd_cell -type container -reference rm_fmc_tq_breakout rp_fmc ]',
+    'set_property -dict [list \\',
+    '  CONFIG.ACTIVE_SIM_BD {rm_fmc_tq_breakout.bd} \\',
+    '  CONFIG.ACTIVE_SYNTH_BD {rm_fmc_tq_breakout.bd} \\',
+    '  CONFIG.ENABLE_DFX {false} \\',
+    '  CONFIG.LIST_SIM_BD {rm_fmc_samtec_firefly.bd:rm_fmc_tq_breakout.bd} \\',
+    '  CONFIG.LIST_SYNTH_BD {rm_fmc_samtec_firefly.bd:rm_fmc_tq_breakout.bd} \\',
+    '  CONFIG.LOCK_PROPAGATE {false} \\',
+    '] $rp_fmc',
+    'connect_bd_net -net n [get_bd_pins base_partition/clk] [get_bd_pins rp_fmc/clk]',
+  ].join('\n');
+
+  it('reads a container as a black box with its block design and parameters', () => {
+    const g = read(SCRIPT);
+    expect(g.instances['/base_partition']).toMatchObject({
+      kind: 'blackbox',
+      container: { reference: 'base_partition' },
+    });
+    expect(g.instances['/base_partition'].parameters['CONFIG.ENABLE_DFX']).toBe('false');
+    expect(g.instances['/base_partition'].pins.map((p) => p.name)).toEqual(['clk']);
+    expect(g.diagnostics.some((d) => d.message.includes('Unknown cell type'))).toBe(false);
+  });
+
+  it('keeps containers out of the black box warning', () => {
+    expect(read(SCRIPT).diagnostics.some((d) => d.message.includes('black box'))).toBe(false);
+  });
+
+  it('gives the active and the other block designs, without .bd', () => {
+    const g = read(SCRIPT);
+    expect(containerDesigns(g.instances['/base_partition'])).toEqual({
+      active: 'base_partition',
+      alternatives: [],
+    });
+    expect(containerDesigns(g.instances['/rp_fmc'])).toEqual({
+      active: 'rm_fmc_tq_breakout',
+      alternatives: ['rm_fmc_samtec_firefly'],
+    });
+  });
+
+  it('falls back to the reference, and is undefined without a container', () => {
+    const g = read(
+      'create_bd_cell -type container -reference r c\ncreate_bd_cell -type ip -vlnv a:b:c:1 i'
+    );
+    expect(containerDesigns(g.instances['/c'])).toEqual({ active: 'r', alternatives: [] });
+    expect(containerDesigns(g.instances['/i'])).toBeUndefined();
+  });
+
+  it('still rejects a container without -reference', () => {
+    const g = read('create_bd_cell -type container c');
+    expect(g.instances['/c']).toBeUndefined();
+    expect(g.diagnostics.some((d) => d.message === 'Unknown cell type: container')).toBe(true);
   });
 });

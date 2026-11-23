@@ -13,6 +13,8 @@ import { RegisterEditor } from './register/RegisterEditor';
 import { MemoryMapEditor } from './memorymap/MemoryMapEditor';
 import { BlockEditor } from './memorymap/BlockEditor';
 import { RegisterArrayEditor } from './memorymap/RegisterArrayEditor';
+import { useMapVersionIssues } from '../hooks/useVersionRefIssuesContext';
+import { VersionIssueList } from '../shared/components/VersionIssueList';
 
 // ---------------------------------------------------------------------------
 // Public types (kept here so importers don't need to change)
@@ -74,7 +76,9 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
   let selectedObject = rawSelectedObject;
   let selectionMeta = rawSelectionMeta;
   let onUpdate = rawOnUpdate;
-
+  // The map's own register object whose `$version` diagnostics apply, when the displayed
+  // register is a copy (a flat-array element).
+  let issueSource: object | undefined;
   if (
     rawSelectedType === 'array' &&
     (rawSelectedObject as Record<string, unknown>)?.__element_index !== undefined
@@ -87,6 +91,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
       // element edits the array's own fields directly (no path remapping).
       selectedType = 'register';
       selectedObject = arr;
+      issueSource = arr.__element_source as object | undefined;
 
       if (arr.__element_base !== undefined) {
         selectionMeta = {
@@ -155,6 +160,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
   const reg = isRegister ? (selectedObject as RegisterDef) : null;
 
   const fields = useMemo(() => reg?.fields ?? [], [reg?.fields]);
+  const mapVersionIssues = useMapVersionIssues();
 
   // -----------------------------------------------------------------------
   // Render
@@ -176,6 +182,7 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
       <div ref={wrapperRef} className="h-full">
         <RegisterEditor
           register={reg}
+          issueSource={issueSource}
           fields={fields}
           selectionMeta={selectionMeta}
           registerLayout={registerLayout}
@@ -188,7 +195,11 @@ const DetailsPanel = React.forwardRef<DetailsPanelHandle, DetailsPanelProps>((pr
 
   if (selectedType === 'memoryMap') {
     return (
-      <div ref={wrapperRef} className="h-full">
+      <div
+        ref={wrapperRef}
+        className={`h-full${mapVersionIssues.length > 0 ? ' flex flex-col' : ''}`}
+      >
+        <VersionIssueList issues={mapVersionIssues} className="px-4 py-2 shrink-0" />
         <MemoryMapEditor
           memoryMap={selectedObject as Parameters<typeof MemoryMapEditor>[0]['memoryMap']}
           memoryMapLayout={memoryMapLayout}

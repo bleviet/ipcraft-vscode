@@ -76,6 +76,8 @@ export type SystemDiagramToWebviewMessage =
   | { type: 'graph'; graph: SystemGraph; highlights?: HighlightMap; compare?: DiagramCompare }
   | { type: 'notRecognized'; fileName: string }
   | { type: 'error'; message: string }
+  /** Work is running that ends with the next graph (or notRecognized/error) message. */
+  | { type: 'busy'; message: string }
   /** The options of the last export in this workspace. */
   | { type: 'exportOptions'; options: ExportImageOptions }
   /** The Export Diagram as Image command: open the export popover. */
@@ -91,6 +93,7 @@ export type SystemDiagramToExtensionMessage =
   | { type: 'ready' }
   | { type: 'revealSource'; line: number; uri?: string }
   | { type: 'openDefinition'; instance: string }
+  | { type: 'assignContainerTcl'; instance: string }
   | { type: 'setHighlights'; highlights: HighlightMap }
   | { type: 'exportImage'; options: ExportImageOptions; view: SystemExportView }
   /** Pick a revision or file to compare the open design with. */

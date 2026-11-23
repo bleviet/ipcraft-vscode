@@ -21,6 +21,14 @@ export type Name = string;
  */
 export type Version = string;
 /**
+ * How vlnv.version is structured. 'free' = any text. Numeric schemes = 2, 3 or 4 dot-separated components, each 0..255 (8 bit). Required for $version, $version.<component> references; $version.crc8 and $version.crc16 also work with 'free'.
+ */
+export type Versionscheme =
+  | 'free'
+  | 'major.minor'
+  | 'major.minor.patch'
+  | 'major.feature.minor.patch';
+/**
  * IP core description
  */
 export type Description = string | null;
@@ -355,7 +363,7 @@ export type AccessType1 =
 /**
  * Reset value for entire register
  */
-export type Resetvalue = number | null;
+export type Resetvalue = number | string | null;
 /**
  * Register description
  */
@@ -390,7 +398,7 @@ export type AccessType2 =
 /**
  * Reset/default value
  */
-export type Resetvalue1 = number | null;
+export type Resetvalue1 = number | string | null;
 /**
  * Field description
  */
@@ -592,9 +600,9 @@ export interface IpCore {
    */
   targets?: string[];
   /**
-   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Version 1.2 adds port field metadata (fields on ports and conduit ports, portFields on bus interfaces). Tools must not read a file that declares a newer version than they support.
+   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Version 1.2 adds port field metadata (fields on ports and conduit ports, portFields on bus interfaces). Version 1.3 adds vlnv.versionScheme, $version reset values and versionHistory in the memory maps of the core, and packetFormatRef on streaming bus interfaces; a core whose memory maps use $version or versionHistory must declare 1.3 or newer. Tools must not read a file that declares a newer version than they support.
    */
-  apiVersion?: '1.0' | '1.1' | '1.2';
+  apiVersion?: '1.0' | '1.1' | '1.2' | '1.3';
   /**
    * Path to a custom bus library directory relative to this file.
    */
@@ -609,6 +617,7 @@ export interface VLNV {
   library: Library;
   name: Name;
   version: Version;
+  versionScheme?: Versionscheme;
   [k: string]: unknown;
 }
 /**
@@ -735,6 +744,10 @@ export interface BusInterface {
   portFields?: {
     [k: string]: PortFieldDef[];
   };
+  /**
+   * Packet format of a streaming interface: '<*.pkt.yml path relative to this file>#<format name>'. Only for bus types whose contract declares interfaceKind 'streaming'. Applies to every instance of an array interface. Metadata only; generators ignore it. See packet_format_spec.md.
+   */
+  packetFormatRef?: string;
   /**
    * Per-port assertion polarity overrides keyed by canonical bus port name.
    */

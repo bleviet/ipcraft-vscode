@@ -8,9 +8,17 @@
 import { readdir, readFile, realpath, stat } from 'fs/promises';
 import * as path from 'path';
 import { pathToFileURL } from 'url';
+import {
+  BD_LINKS_FILE,
+  linksForDesign,
+  parseBdLinks,
+} from '../services/systemDiagram/enrichment/bdLinks';
+import { vivadoProjectDesigns } from '../services/systemDiagram/enrichment/cmakeProjects';
 import type { EnrichmentIo } from '../services/systemDiagram/enrichment/enrichmentIo';
 import {
   HDL_MAX_BYTES,
+  TCL_MAX_BYTES,
+  bdTclEntryFromText,
   hdlEntryFromText,
   ipEntryFromText,
   qsysEntry,
@@ -21,17 +29,25 @@ import { isIgnoredWorkspacePath } from '../services/systemDiagram/enrichment/wor
 const IP_PATTERN = /\.ip\.yml$/;
 const HDL_PATTERN = /\.(?:vhd|vhdl|v|sv)$/;
 const QSYS_PATTERN = /\.qsys$/;
+const TCL_PATTERN = /\.tcl$/;
+const CMAKE_NAME = 'CMakeLists.txt';
 /** The same limits as the viewer's `findFiles` calls. */
 export const IP_LIMIT = 2000;
 export const HDL_LIMIT = 5000;
 export const QSYS_LIMIT = 2000;
+export const TCL_LIMIT = 5000;
+export const CMAKE_LIMIT = 5000;
 
 export type Warn = (message: string) => void;
 
 interface FoundFiles {
   ip: string[];
   hdl: string[];
+  /** Every HDL file, without the limit: the files named after a module are read from it. */
+  hdlAll: string[];
   qsys: string[];
+  tcl: string[];
+  cmake: string[];
 }
 
 /**
@@ -40,7 +56,7 @@ interface FoundFiles {
  * entered; symbolic links are followed unless they close a loop; a broken link is skipped.
  */
 async function scanWorkspace(root: string, warn: Warn): Promise<FoundFiles> {
-  const found: FoundFiles = { ip: [], hdl: [], qsys: [] };
+  const found: Omit<FoundFiles, 'hdlAll'> = { ip: [], hdl: [], qsys: [], tcl: [], cmake: [] };
   const walk = async (relativeDir: string, ancestors: ReadonlySet<string>): Promise<void> => {
     const dir = path.join(root, relativeDir);
     let entries;
@@ -81,6 +97,10 @@ async function scanWorkspace(root: string, warn: Warn): Promise<FoundFiles> {
           found.hdl.push(relative);
         } else if (QSYS_PATTERN.test(entry.name)) {
           found.qsys.push(relative);
+        } else if (TCL_PATTERN.test(entry.name)) {
+          found.tcl.push(relative);
+        } else if (entry.name === CMAKE_NAME) {
+          found.cmake.push(relative);
         }
       }
     }
@@ -90,7 +110,10 @@ async function scanWorkspace(root: string, warn: Warn): Promise<FoundFiles> {
   return {
     ip: first(found.ip, IP_LIMIT),
     hdl: first(found.hdl, HDL_LIMIT),
+    hdlAll: found.hdl,
     qsys: first(found.qsys, QSYS_LIMIT),
+    tcl: first(found.tcl, TCL_LIMIT),
+    cmake: first(found.cmake, CMAKE_LIMIT),
   };
 }
 
@@ -135,6 +158,13 @@ export function createWorkspaceIo(
     return () => (cached ??= build());
   };
   const files = once(() => scanWorkspace(base, warn));
+  const readHdl = async (relative: string) => {
+    const location = locate(relative);
+    if ((await stat(location.file)).size > HDL_MAX_BYTES) {
+      return undefined;
+    }
+    return hdlEntryFromText(await readText(location.file), location);
+  };
   const skipped = (relative: string, error: unknown) =>
     warn(
       `Skipping unreadable file ${relative}: ${error instanceof Error ? error.message : String(error)}`
@@ -150,22 +180,60 @@ export function createWorkspaceIo(
         skipped
       )
     ),
-    listHdlFiles: once(async () =>
+    listHdlFilesNamed: async (names) => {
+      const wanted = new Set(names);
+      return readAll(
+        (await files()).hdlAll.filter((relative) =>
+          wanted.has(path.posix.basename(relative).replace(/\.[^.]*$/, ''))
+        ),
+        readHdl,
+        skipped
+      );
+    },
+    listHdlFiles: once(async () => readAll((await files()).hdl, readHdl, skipped)),
+    listQsysFiles: once(async () =>
+      (await files()).qsys.map((relative) => qsysEntry(locate(relative)))
+    ),
+    listBdTclFiles: once(async () =>
       readAll(
-        (await files()).hdl,
+        (await files()).tcl,
         async (relative) => {
           const location = locate(relative);
-          if ((await stat(location.file)).size > HDL_MAX_BYTES) {
+          if ((await stat(location.file)).size > TCL_MAX_BYTES) {
             return undefined;
           }
-          return hdlEntryFromText(await readText(location.file), location);
+          return bdTclEntryFromText(await readText(location.file), location);
         },
         skipped
       )
     ),
-    listQsysFiles: once(async () =>
-      (await files()).qsys.map((relative) => qsysEntry(locate(relative)))
+    listCmakeFiles: once(async () =>
+      readAll(
+        (await files()).cmake,
+        async (relative) => {
+          const file = locate(relative).file;
+          const projects = vivadoProjectDesigns(await readText(file), file);
+          return projects.length === 0 ? undefined : { file, projects };
+        },
+        skipped
+      )
     ),
+    locate: (file) => locate(path.relative(base, file)),
+    readBdLinks: async (designFile) => {
+      const file = path.join(base, BD_LINKS_FILE);
+      let text;
+      try {
+        text = await readText(file);
+      } catch {
+        return { links: {}, rejected: {} };
+      }
+      try {
+        return linksForDesign(parseBdLinks(text), base, designFile);
+      } catch (error) {
+        warn(`Ignoring ${file}: ${error instanceof Error ? error.message : String(error)}`);
+        return { links: {}, rejected: {} };
+      }
+    },
     readText,
   };
 }

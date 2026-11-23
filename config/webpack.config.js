@@ -149,6 +149,14 @@ const extensionConfig = {
           from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "bus_definition.schema.json"),
           to: "resources/schemas/bus_definition.schema.json",
         },
+        {
+          from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "packet_format.schema.json"),
+          to: "resources/schemas/packet_format.schema.json",
+        },
+        {
+          from: path.resolve(projectRoot, "ipcraft-spec", "schemas", "packet_map.schema.json"),
+          to: "resources/schemas/packet_map.schema.json",
+        },
       ],
     }),
   ],

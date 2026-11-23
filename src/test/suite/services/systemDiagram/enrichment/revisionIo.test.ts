@@ -26,8 +26,16 @@ function workingTree(files: Record<string, string>): EnrichmentIo<string> {
   const names = (pattern: RegExp) => Object.keys(files).filter((name) => pattern.test(name));
   return {
     listIpFiles: async () => names(/\.ip\.yml$/).map((n) => ipEntryFromText(files[n], location(n))),
+    listHdlFilesNamed: async (wanted) =>
+      names(/\.vhd$/)
+        .filter((n) => wanted.includes(n.replace(/^.*\/|\.vhd$/g, '')))
+        .map((n) => hdlEntryFromText(files[n], location(n))),
     listHdlFiles: async () => names(/\.vhd$/).map((n) => hdlEntryFromText(files[n], location(n))),
     listQsysFiles: async () => names(/\.qsys$/).map((n) => qsysEntry(location(n))),
+    listBdTclFiles: async () => [],
+    listCmakeFiles: async () => [],
+    locate: (file) => location(file),
+    readBdLinks: async () => ({ links: {}, rejected: {} }),
     readText: async (ref) => files[ref],
   };
 }

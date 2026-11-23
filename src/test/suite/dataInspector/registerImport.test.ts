@@ -243,4 +243,40 @@ busInterfaces:
 
     expect(layouts.map((layout) => layout.id)).toEqual(['s.ip.yml:port:o_status']);
   });
+
+  it('imports the layout of a memory map holding $version tokens (no owning core needed)', async () => {
+    const uri = { toString: () => 'file:///versioned.mm.yml' } as vscode.Uri;
+    jest
+      .mocked(vscode.workspace.findFiles)
+      .mockImplementation(async (pattern) => (pattern === '**/*.mm.yml' ? [uri] : []));
+    jest.mocked(vscode.workspace.fs.readFile).mockResolvedValue(
+      new Uint8Array(
+        Buffer.from(`
+name: VERSIONED_MAP
+addressBlocks:
+  - name: REGS
+    registers:
+      - name: IDENT
+        size: 32
+        fields:
+          - { name: MAJOR, bits: "[15:8]", resetValue: $version.major }
+          - { name: MINOR, bits: "[7:0]", resetValue: $version.minor }
+      - { name: VERSION, size: 32, resetValue: $version }
+`)
+      )
+    );
+    jest.mocked(vscode.workspace.asRelativePath).mockReturnValue('versioned.mm.yml');
+
+    const layouts = await new DataInspectorRegisterLayoutReader(roots).load();
+
+    expect(layouts.map((layout) => layout.provenance)).toEqual([
+      { sourceFile: 'versioned.mm.yml', registerName: 'IDENT' },
+      { sourceFile: 'versioned.mm.yml', registerName: 'VERSION' },
+    ]);
+    expect(layouts[0].fields.map((field) => [field.name, field.msb, field.lsb])).toEqual([
+      ['MAJOR', 15, 8],
+      ['MINOR', 7, 0],
+    ]);
+    expect(layouts[0].fields[0]).not.toHaveProperty('resetValue');
+  });
 });

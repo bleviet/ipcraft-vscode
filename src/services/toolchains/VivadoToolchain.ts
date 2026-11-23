@@ -11,6 +11,7 @@ import { parseVivadoReports } from '../ReportParser';
 import { runProcess } from '../BuildRunner';
 import { findVivadoInInstallDir, getVivadoLauncher } from '../../utils/vivadoResolver';
 import { fileExists } from '../../utils/fsHelpers';
+import { xguiVersionSuffix } from '../../generator/xguiFileName';
 import { writeSidecar } from './toolchainVersionDetector';
 import { VIVADO_OUTPUT_SUBDIR, vivadoBuildDir } from './buildPaths';
 import {
@@ -103,7 +104,7 @@ export class VivadoToolchain implements SynthesisToolchain {
     } = ctx;
     const files: Record<string, string> = {};
 
-    const versionStr = String(ipCoreData?.vlnv?.version ?? '1.0').replace(/\./g, '_');
+    const versionStr = xguiVersionSuffix(String(ipCoreData?.vlnv?.version ?? '1.0'));
     const xguiFile = `xgui/${name}_v${versionStr}.tcl`;
     const xguiContent = templates.render('amd_xgui.j2', templateContext);
     const xguiChecksum = crc32Hex(xguiContent);

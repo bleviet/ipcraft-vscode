@@ -6,6 +6,7 @@ import FieldNode from './FieldNode';
 import RegisterNode from './RegisterNode';
 import type { OutlineDragProps, OutlinePreviewMove } from './useOutlineDragReorder';
 import { computeReorderPreview } from '../../utils/reorderPreview';
+import { toArrayElementSelectionObject } from '../../utils/arrayElementSelection';
 import {
   OutlineSelection,
   RegisterArrayNode as RegisterArrayNodeModel,
@@ -225,11 +226,7 @@ const RegisterArrayNode = ({
                     onSelect({
                       id: elementId,
                       type: 'array',
-                      object: {
-                        ...arrayNode,
-                        __element_index: elementIndex,
-                        __element_base: elementBase,
-                      },
+                      object: toArrayElementSelectionObject(arrayNode, elementIndex, elementBase),
                       breadcrumbs: [
                         memoryMapName || 'Memory Map',
                         block.name,

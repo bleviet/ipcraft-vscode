@@ -41,6 +41,22 @@ Layout calculations belong in pure functions under
 `src/webview/algorithms/`. Components request an operation and render the
 result; they should not contain separate address or bit-position formulas.
 
+### Version references
+
+The Memory Map editor resolves `$version` references through the owning IP core.
+The host posts a `versionContext` notification (`watchVersionContext`), and
+`VersionContextProvider` exposes it through `useVersionContext`. The pieces are
+one line each:
+
+- `ResetCell` (`components/register/`) enters and shows a reference in a field's Reset column;
+- `RegisterValueBar` (`components/register/`) owns the register value bar, treating token fields as constants and accepting `$version` on a fieldless register;
+- `useVersionContext` supplies the scheme and version, defaulting to `none` outside a provider;
+- `useVersionRefIssues` and `useVersionRefIssuesContext` run `validateVersionRefs` once per map and hand each register its own issues by object identity;
+- `VersionIssueList` renders those issues, and `versionRefDisplay` formats the hints and errors.
+
+Their wiring in `src/webview/index.tsx` is one provider element each. The
+IP Core editor's `VersionFields` shows the version scheme selector.
+
 ## IP Core application
 
 The IP Core app uses a block-diagram canvas:

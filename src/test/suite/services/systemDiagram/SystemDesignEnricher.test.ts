@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { readQsys } from '../../../../parser/system/QsysReader';
 import { SubsystemExpander } from '../../../../services/systemDiagram/SubsystemExpander';
 import { SystemDesignEnricher } from '../../../../services/systemDiagram/SystemDesignEnricher';
+import { WATCH_BATCH_MS } from '../../../../services/systemDiagram/WorkspaceFileIndex';
 import { readFileSync } from 'fs';
 import * as path from 'path';
 import { bdGraph, IP_YML } from './enrichment/definitionFixtures';
@@ -44,6 +45,19 @@ function setup(files: Record<string, string>, sizes: Record<string, number> = {}
       const path = `${glob.base}/${glob.pattern}`;
       return Promise.resolve(excluded.has(path) || !(path in files) ? [] : [uri(path)]);
     }
+    // `**/{n1,n2}.{a,b}`: the files with one of the base names and extensions.
+    const named = /^\*\*\/\{(.+)\}\.\{(.+)\}$/.exec(glob);
+    if (named) {
+      const [names, exts] = [named[1].split(','), named[2].split(',')];
+      return Promise.resolve(
+        Object.keys(files)
+          .filter((file) => {
+            const [, base, ext] = /([^/]*)\.([^./]+)$/.exec(file) ?? [];
+            return names.includes(base) && exts.includes(ext);
+          })
+          .map(uri)
+      );
+    }
     // `**/*.{a,b}` or `**/*.ext`: keep the files with one of the extensions.
     const extensions = glob
       .replace(/^\*\*\/\*\./, '')
@@ -82,7 +96,7 @@ function setup(files: Record<string, string>, sizes: Record<string, number> = {}
     for (const handler of handlers[`${glob}:${kind}`]) {
       handler(uri(path));
     }
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await new Promise((resolve) => setTimeout(resolve, WATCH_BATCH_MS + 20));
   };
   return { workspace, handlers, watchers, fire, files, excluded };
 }
@@ -249,6 +263,24 @@ describe('SystemDesignEnricher', () => {
     expect(enricher.revision).not.toBe(afterHdl);
   });
 
+  it('changes its revision with a block design Tcl, a CMakeLists.txt or a links file', async () => {
+    const { fire } = setup({
+      '/ws/bd/child.tcl': 'create_bd_design child\n',
+      '/ws/CMakeLists.txt': 'project(p)\n',
+    });
+    const enricher = new SystemDesignEnricher();
+    await enricher.bdTclCandidates(DESIGN, 'child');
+    const built = enricher.revision;
+    await fire('**/*.tcl', 'change', '/ws/bd/child.tcl');
+    const afterTcl = enricher.revision;
+    expect(afterTcl).not.toBe(built);
+    await fire('**/CMakeLists.txt', 'change', '/ws/CMakeLists.txt');
+    const afterCmake = enricher.revision;
+    expect(afterCmake).not.toBe(afterTcl);
+    enricher.linksChanged();
+    expect(enricher.revision).not.toBe(afterCmake);
+  });
+
   it('changes its revision with the subsystem index and on dispose', () => {
     setup({});
     const enricher = new SystemDesignEnricher();
@@ -265,15 +297,16 @@ describe('SystemDesignEnricher', () => {
   });
 
   it('creates each watcher once, however often files change', async () => {
+    // Not named after the module: the HDL index is built.
     const { workspace, fire } = setup({
       '/ws/my_core.ip.yml': IP_YML,
-      '/ws/rtl/pulse_gen.vhd': PULSE_VHDL,
+      '/ws/rtl/gens.vhd': PULSE_VHDL,
     });
     const enricher = new SystemDesignEnricher();
     await enricher.enrich(bdGraph, DESIGN);
     for (let i = 0; i < 3; i += 1) {
       await fire(IP_GLOB, 'change', '/ws/my_core.ip.yml');
-      await fire(HDL_GLOB, 'change', '/ws/rtl/pulse_gen.vhd');
+      await fire(HDL_GLOB, 'change', '/ws/rtl/gens.vhd');
       await enricher.enrich(bdGraph, DESIGN);
     }
     const globs = (workspace.createFileSystemWatcher.mock.calls as string[][]).map((c) => c[0]);
@@ -312,17 +345,17 @@ describe('SystemDesignEnricher', () => {
     const hasDefinition = async () =>
       (await enricher.enrich(bdGraph, DESIGN)).instances['/pulse_0'].definition !== undefined;
     expect(await hasDefinition()).toBe(false);
-    files['/ws/rtl/pulse_gen.vhd'] = PULSE_VHDL;
-    await fire(HDL_GLOB, 'create', '/ws/rtl/pulse_gen.vhd');
+    files['/ws/rtl/gens.vhd'] = PULSE_VHDL;
+    await fire(HDL_GLOB, 'create', '/ws/rtl/gens.vhd');
     expect(await hasDefinition()).toBe(true);
-    files['/ws/rtl/pulse_gen.vhd'] = 'entity renamed is end;';
-    await fire(HDL_GLOB, 'change', '/ws/rtl/pulse_gen.vhd');
+    files['/ws/rtl/gens.vhd'] = 'entity renamed is end;';
+    await fire(HDL_GLOB, 'change', '/ws/rtl/gens.vhd');
     expect(await hasDefinition()).toBe(false);
-    files['/ws/rtl/pulse_gen.vhd'] = PULSE_VHDL;
-    await fire(HDL_GLOB, 'change', '/ws/rtl/pulse_gen.vhd');
+    files['/ws/rtl/gens.vhd'] = PULSE_VHDL;
+    await fire(HDL_GLOB, 'change', '/ws/rtl/gens.vhd');
     expect(await hasDefinition()).toBe(true);
-    delete files['/ws/rtl/pulse_gen.vhd'];
-    await fire(HDL_GLOB, 'delete', '/ws/rtl/pulse_gen.vhd');
+    delete files['/ws/rtl/gens.vhd'];
+    await fire(HDL_GLOB, 'delete', '/ws/rtl/gens.vhd');
     expect(await hasDefinition()).toBe(false);
   });
 

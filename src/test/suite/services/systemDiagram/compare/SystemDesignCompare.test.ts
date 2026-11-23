@@ -10,6 +10,7 @@ import { fixtureText as tclText } from '../../../webview/systemDiagram/fixtureGr
 import { readSystemDesign } from '../../../../../services/systemDiagram/readSystemDesign';
 import { ipEntryFromText } from '../../../../../services/systemDiagram/enrichment/fileEntries';
 import { enrichSystemGraph } from '../../../../../services/systemDiagram/enrichment/enrichSystemGraph';
+import type { EnrichmentIo } from '../../../../../services/systemDiagram/enrichment/enrichmentIo';
 import { revisionIo } from '../../../../../services/systemDiagram/enrichment/revisionIo';
 import { IP_YML } from '../enrichment/definitionFixtures';
 
@@ -491,10 +492,15 @@ describe('SystemDesignCompare', () => {
 
     it('compares as read, saying so, when the revision cannot be read, and logs it once', async () => {
       const failing = jest.fn().mockRejectedValue(new Error('Cannot read core at v1: offline'));
-      const workspace = {
+      const workspace: EnrichmentIo<string> = {
         listIpFiles: async () => [ipEntryFromText(IP_YML, location)],
+        listHdlFilesNamed: async () => [],
         listHdlFiles: async () => [],
         listQsysFiles: async () => [],
+        listBdTclFiles: async () => [],
+        listCmakeFiles: async () => [],
+        locate: () => location,
+        readBdLinks: async () => ({ links: {}, rejected: {} }),
         readText: async () => '',
       };
       const logError = jest.fn();
@@ -537,10 +543,15 @@ describe('SystemDesignCompare', () => {
     });
 
     it('shows a pin that is in only one of the definition at the revision and the workspace one', async () => {
-      const workspace = {
+      const workspace: EnrichmentIo<string> = {
         listIpFiles: async () => [ipEntryFromText(IP_YML, location)],
+        listHdlFilesNamed: async () => [],
         listHdlFiles: async () => [],
         listQsysFiles: async () => [],
+        listBdTclFiles: async () => [],
+        listCmakeFiles: async () => [],
+        locate: () => location,
+        readBdLinks: async () => ({ links: {}, rejected: {} }),
         readText: async () => '',
       };
       const { enricher, logError } = setup();

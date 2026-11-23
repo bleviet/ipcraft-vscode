@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
 import type { Selection } from './useSelection';
 import type { NormalizedMemoryMap } from '../../domain/internal.types';
+import { toArrayElementSelectionObject } from '../utils/arrayElementSelection';
 
 interface SelectionLifecycleOptions {
   memoryMap: NormalizedMemoryMap | null;
@@ -49,11 +50,11 @@ export function useSelectionLifecycle({
       const oldObj = selectionRef.current.object as Record<string, unknown> | null | undefined;
       const resolvedObject =
         selectionRef.current.type === 'array' && oldObj?.__element_index !== undefined
-          ? {
-              ...(resolved.object as Record<string, unknown>),
-              __element_index: oldObj.__element_index,
-              __element_base: oldObj.__element_base,
-            }
+          ? toArrayElementSelectionObject(
+              resolved.object as object,
+              oldObj.__element_index as number,
+              oldObj.__element_base as number
+            )
           : resolved.object;
       handleSelect(
         {

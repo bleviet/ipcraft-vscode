@@ -262,7 +262,7 @@ interface PortTooltipProps {
   ports: LayoutPort[];
 }
 
-const PortTooltip: React.FC<PortTooltipProps> = ({ portId, ports }) => {
+export const PortTooltip: React.FC<PortTooltipProps> = ({ portId, ports }) => {
   const port = ports.find((p) => p.id === portId);
   if (!port) {
     return null;

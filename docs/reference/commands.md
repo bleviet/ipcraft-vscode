@@ -288,6 +288,20 @@ Available build targets:
 
 ---
 
+### Register-set versioning
+
+| Command | Palette | Explorer |
+|---|:---:|:---:|
+| `IPCraft: Start Register-Set Versioning` | Yes | Yes |
+
+**Start Register-Set Versioning** — Records the IP core's `vlnv.version` and the current register layout as the initial `versionHistory` of every imported memory map that has none. Run it on an `.ip.yml` (its imported `.mm.yml` files are used) or on an `.mm.yml` (the IP core that imports it supplies the version; no owner or several owners is an error). Maps that already have a history are left alone. It versions the maps generation loads from each file (the first map for an array-entry import) and refuses a `vlnv.version` that is not valid for the core's version scheme. It applies one edit per file and saves it, except a file that already had unsaved changes, which is edited but not saved. Inline memory maps cannot hold a history and are skipped. The command needs a trusted workspace. See [Versioning Register Sets](../how-to/versioning-register-sets.md) for the full workflow.
+
+Once a map has a `versionHistory` or a `$version` reference, every generate command (Generate HDL, Scaffold Project, exports, Vivado/Quartus projects and the IP Core editor's Generate button) checks it first. Generation reads memory maps from disk, so a `.mm.yml` with unsaved changes that is versioned (in the editor or in the saved file) first asks to **Save and Continue** (dismissing cancels and writes nothing). Then the same `$version` checks generation runs are applied to the saved files: when they report an error, nothing more is prompted or recorded and generation fails with those errors. A versioned map with no history yet, or with an unchanged layout and a new IP core version, is recorded without a prompt. When the layout changed since the version it is compared against (the entry recorded for the current IP core version, or the latest entry when the current version is not recorded yet), a modal asks to **Adopt** the current layout as a new version (asking for a new IP core version when the current one is already recorded; the `.ip.yml` is then edited and saved, again asking first when it has unsaved changes) or, only when the current IP core version is already recorded in every changed map, to **Overwrite** the layout recorded for that version. Dismissing the dialog cancels generation and writes nothing. A `vlnv.version` that is not valid for the core's version scheme is never recorded. If an edit or save fails part-way, the error names the files that were changed and are still unsaved. The `ipcraft generate --register-set-policy` equivalent is described under [Generate and verify](command-line.md#generate-and-verify) in the command-line reference.
+
+The maps that are versioned are the ones generation loads: an array-entry import (`- import: regs.mm.yml`) versions the first map of the file, named as the entry overrides it; the `memoryMaps: { import: ... }` shortcut versions every map of a list file.
+
+---
+
 ### Help and settings
 
 | Command | Palette | Toolbar |

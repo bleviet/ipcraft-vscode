@@ -100,6 +100,48 @@ part of the YAML round trip: the files are read statically and never written.
 | Workspace enrichment from `.ip.yml` and HDL files | `src/services/systemDiagram/SystemDesignEnricher.ts` |
 | Webview (React Flow and elkjs layout) | `src/webview/systemDiagram/` |
 
+## Register-set versioning modules
+
+IP core versioning (version scheme, `$version` register references, and register-set
+history) is split by layer. User guide:
+[Versioning Register Sets](../how-to/versioning-register-sets.md).
+
+| Module | Layer | Responsibility |
+|--------|-------|----------------|
+| `src/shared/versioning/versionScheme.ts` | Pure | Scheme list, version validation and packing, `$version` token parsing and resolution |
+| `src/shared/versioning/sha256.ts`, `registerSetHash.ts` | Pure | Synchronous SHA-256 (VS Code 1.80 has no WebCrypto) and the `rs1-` hash of the driver-relevant layout |
+| `src/shared/versioning/versionHistory.ts`, `versionHistoryTypes.ts` | Pure | Release state, append and overwrite transforms, version-register stability check |
+| `src/shared/versioning/planRelease.ts` | Pure | Plans the `versionHistory` writes for the adopt and overwrite decisions |
+| `src/shared/versioning/validateVersionRefs.ts` | Pure | Reference diagnostics shared by the editor and the generator |
+| `src/shared/versioning/resolveVersionRefs.ts` | Pure | The single step that turns `$version` into numbers (`resolveVersionRefsInMap`) |
+| `src/shared/versioning/versionContext.ts` | Pure | `VersionContext` type and `resolveVersionRefInContext`, imported by both bundles |
+| `src/services/versioning/OwningIpCoreResolver.ts`, `watchVersionContext.ts` | Host | Find the `.ip.yml` that imports a `.mm.yml` and post its version to the Memory Map webview |
+| `src/services/versioning/RegisterSetReleaseService.ts`, `releaseFiles.ts`, `documentEdits.ts` | Host | The generate-time prompt and writes (`ensureRegisterSetsReleased`), shared file helpers |
+| `src/commands/StartRegisterSetVersioningCommand.ts` | Host | `IPCraft: Start Register-Set Versioning` |
+| `src/services/versioning/versionGate.ts` | Host | Whether the `$version` generation gate would block generation; asked by the release flows and the CLI before they prompt or write |
+| `src/cli/registerSetPolicy.ts` | CLI | `--register-set-policy` planning and writes without `vscode` |
+| `src/generator/validation/versionDiagnostics.ts` | Generator | The generation gate for `$version` errors and the vendor version warning |
+| `src/generator/versionContext.ts`, `xguiFileName.ts` | Generator | Core scheme and version for generation, version fields of the template context, safe XGUI file suffix |
+| `src/domain/memoryMapRoot.ts` | Domain | Root style and YAML path of each map in a `.mm.yml` |
+
+Webview modules for the Memory Map editor:
+
+| Module | Responsibility |
+|--------|----------------|
+| `src/webview/components/register/ResetCell.tsx` | Reset column cell: numbers, `$version` tokens, resolved hint |
+| `src/webview/components/register/RegisterValueBar.tsx` | Register value bar: composes token fields as constants, accepts `$version` on a fieldless register |
+| `src/webview/components/bitfield/registerValueToken.ts` | Pure draft parsing and decision for the `$version` text in the value bar |
+| `src/webview/hooks/useVersionContext.tsx` | Provider and hook for the owning core's `VersionContext` |
+| `src/webview/hooks/useVersionRefIssues.ts`, `useVersionRefIssuesContext.tsx` | Compute and distribute the `$version` diagnostics per register |
+| `src/webview/shared/components/VersionIssueList.tsx` | Compact error and warning list |
+| `src/webview/shared/utils/versionRefDisplay.ts` | Hint and error text for tokens |
+| `src/webview/ipcore/components/canvas/inspector/body/VersionFields.tsx` | Version scheme selector and Version field of the IP Core editor |
+
+Invariants: `parse.ts` keeps `resetValue: number` (0 for a token) plus `versionRef`;
+`serialize.ts` writes the token back into `resetValue`; generation resolves tokens
+once, in `resolveIpCoreVersionRefs` (`src/generator/registerProcessor.ts`), before any
+consumer reads the maps.
+
 ## Build and Packaging
 
 | Output | Location |

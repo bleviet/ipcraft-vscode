@@ -7,6 +7,8 @@ import {
   validateResetForField,
   fitResetToWidth,
   fitFieldResetToWidth,
+  formatResetDisplay,
+  resolveResetInput,
 } from '../../../webview/shared/utils/fieldValidation';
 
 // ---------------------------------------------------------------------------
@@ -206,5 +208,112 @@ describe('fitFieldResetToWidth', () => {
     expect('resetValue' in result).toBe(false);
     const nulled = { name: 'f', resetValue: null };
     expect(fitFieldResetToWidth(nulled, 3)).toBe(nulled);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatResetDisplay
+// ---------------------------------------------------------------------------
+
+describe('formatResetDisplay', () => {
+  it('formats the reset value as upper-case 0x hex', () => {
+    expect(formatResetDisplay({ resetValue: 255 })).toBe('0xFF');
+    expect(formatResetDisplay({ resetValue: 0 })).toBe('0x0');
+  });
+
+  it('falls back to 0x0 when there is no reset value', () => {
+    expect(formatResetDisplay({})).toBe('0x0');
+    expect(formatResetDisplay({ resetValue: null })).toBe('0x0');
+  });
+
+  it('shows the token for a field with a version reference', () => {
+    expect(formatResetDisplay({ resetValue: 0, versionRef: '$version.major' })).toBe(
+      '$version.major'
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveResetInput
+// ---------------------------------------------------------------------------
+
+describe('resolveResetInput', () => {
+  const byte = { bits: '[7:0]', width: 8 };
+  const normal = { debugMode: false, versionContext: { status: 'none' } as const };
+  const resolved = {
+    debugMode: false,
+    versionContext: {
+      status: 'resolved',
+      versionScheme: 'major.minor.patch',
+      version: '1.4.2',
+    } as const,
+  };
+
+  it('clears on empty text', () => {
+    expect(resolveResetInput('  ', byte, normal)).toEqual({ kind: 'clear' });
+  });
+
+  it('commits a number and a valid token', () => {
+    expect(resolveResetInput('0x10', byte, normal)).toEqual({ kind: 'commit', value: 16 });
+    expect(resolveResetInput(' $version.minor ', byte, normal)).toEqual({
+      kind: 'commit',
+      value: '$version.minor',
+    });
+  });
+
+  it.each(['A', 'FF', '1_0', '0x'])('rejects unparseable text %s as Invalid number', (text) => {
+    expect(resolveResetInput(text, byte, normal)).toEqual({
+      kind: 'error',
+      message: 'Invalid number',
+    });
+  });
+
+  it('rejects a number that does not fit', () => {
+    expect(resolveResetInput('256', byte, normal)).toEqual({
+      kind: 'error',
+      message: 'Reset too large for 8 bit(s)',
+    });
+  });
+
+  it('rejects an unknown token with the general message, or the scheme references when resolved', () => {
+    expect(resolveResetInput('$version.foo', byte, normal)).toEqual({
+      kind: 'error',
+      message:
+        'Unknown version reference. Use $version, $version.<component>, $version.crc8 or $version.crc16',
+    });
+    expect(resolveResetInput('$ver', byte, resolved)).toEqual({
+      kind: 'error',
+      message:
+        'Use $version, $version.major, $version.minor, $version.patch, $version.crc8 or $version.crc16',
+    });
+  });
+
+  it('refuses a valid token in Debug Mode but still accepts numbers', () => {
+    const debug = { ...normal, debugMode: true };
+    expect(resolveResetInput('$version', byte, debug)).toEqual({
+      kind: 'error',
+      message: 'Version references cannot be set in Debug Mode',
+    });
+    expect(resolveResetInput('5', byte, debug)).toEqual({ kind: 'commit', value: 5 });
+  });
+
+  it("treats the field's own token as unchanged, in and out of Debug Mode", () => {
+    const token = { ...byte, versionRef: '$version.minor' } as const;
+    expect(resolveResetInput(' $version.minor ', token, normal)).toEqual({ kind: 'unchanged' });
+    expect(resolveResetInput('$version.minor', token, { ...normal, debugMode: true })).toEqual({
+      kind: 'unchanged',
+    });
+  });
+
+  it('still refuses a different token in Debug Mode on a token field', () => {
+    const token = { ...byte, versionRef: '$version.minor' } as const;
+    expect(resolveResetInput('$version.major', token, { ...normal, debugMode: true })).toEqual({
+      kind: 'error',
+      message: 'Version references cannot be set in Debug Mode',
+    });
+    expect(resolveResetInput('$version.major', token, normal)).toEqual({
+      kind: 'commit',
+      value: '$version.major',
+    });
   });
 });

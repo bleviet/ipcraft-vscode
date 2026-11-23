@@ -19,6 +19,7 @@ export function useSystemDiagramMessages(): {
   state: SystemDiagramState;
   revealSource: (line: number, uri?: string) => void;
   openDefinition: (instance: string) => void;
+  assignContainerTcl: (instance: string) => void;
   setHighlights: (highlights: HighlightMap) => void;
   imageExport: ImageExportChannel;
   startCompare: () => void;
@@ -63,6 +64,10 @@ export function useSystemDiagramMessages(): {
     (instance: string) => post({ type: 'openDefinition', instance }),
     []
   );
+  const assignContainerTcl = useCallback(
+    (instance: string) => post({ type: 'assignContainerTcl', instance }),
+    []
+  );
   const setHighlights = useCallback((highlights: HighlightMap) => {
     setState((state) => (state.status === 'graph' ? { ...state, highlights } : state));
     post({ type: 'setHighlights', highlights });
@@ -84,6 +89,7 @@ export function useSystemDiagramMessages(): {
     state,
     revealSource,
     openDefinition,
+    assignContainerTcl,
     setHighlights,
     imageExport,
     startCompare,

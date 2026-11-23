@@ -15,6 +15,15 @@
 -- - Clean interface for hardware logic access
 --
 -- Connect to a bus wrapper (AXI-Lite, Avalon-MM, etc.) for host access.
+--
+-- Write path: the address is decoded into one write select per register
+-- (wr_sel). With G_REG_WRITE = true the selects are registered first, so the
+-- register write happens one cycle after wr_en and every register enable comes
+-- from a single select flip-flop (high clock rates). Data and strobes are NOT
+-- registered: the wrapper has to hold wr_addr, wr_data and wr_strb stable until
+-- the register write (AXI-Lite: they are latches that change only after the B
+-- handshake), and it has to account for the extra cycle (BVALID with the write).
+-- With G_REG_WRITE = false (default) the write is in the cycle of wr_en.
 --------------------------------------------------------------------------------
 
 library ieee;
@@ -24,6 +33,10 @@ use ieee.numeric_std.all;
 use work.{{ entity_name }}_pkg.all;
 
 entity {{ entity_name }}_regs is
+  generic (
+    -- true: register the write selects (write one cycle after wr_en; wr_addr, wr_data, wr_strb must stay stable until then)
+    G_REG_WRITE : boolean := false
+  );
   port (
     -- Clock and reset
     clk : in std_logic;
@@ -39,13 +52,13 @@ entity {{ entity_name }}_regs is
     rd_en   : in  std_logic;
     rd_addr : in  std_logic_vector(C_ADDR_WIDTH-1 downto 0);
     rd_data : out std_logic_vector(C_DATA_WIDTH-1 downto 0);
-    rd_valid: out std_logic{{ ";" if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 else "" }}
+    rd_valid: out std_logic{{ ";" if sw_registers | length > 0 or hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 else "" }}
 
     -- Register interface to core logic
 {% if sw_registers | length > 0 %}
-    regs_out : out t_regs_sw2hw{{ ";" if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 else "" }}  -- SW-writable registers (to core)
+    regs_out : out t_regs_sw2hw{{ ";" if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 else "" }}  -- SW-writable registers (to core)
 {% endif %}
-{% if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 %}
+{% if hw_registers | length > 0 or w1c_registers | length > 0 or sc_registers | length > 0 or cos_registers | length > 0 or mixed_registers | length > 0 %}
     regs_in  : in  t_regs_hw2sw   -- HW status registers + W1C event pulses + CoS values (from core)
 {% endif %}
   );
@@ -61,6 +74,19 @@ architecture rtl of {{ entity_name }}_regs is
   -- Read data pipeline
   signal rd_data_int  : std_logic_vector(C_DATA_WIDTH-1 downto 0);
   signal rd_valid_int : std_logic;
+
+  -- Write select: one bit per register (wr_sel_d decoded from wr_en / wr_addr,
+  -- wr_sel_q its register, wr_sel the one the write process uses)
+{% for reg in registers %}
+  constant C_WSEL_{{ reg.name | upper }} : natural := {{ loop.index0 }};
+{% endfor %}
+  constant C_NUM_WSEL : natural := {{ registers | length }};
+  signal wr_addr_idx : natural;
+  signal wr_sel_d    : std_logic_vector(C_NUM_WSEL-1 downto 0);
+  signal wr_sel_q    : std_logic_vector(C_NUM_WSEL-1 downto 0) := (others => '0');
+  signal wr_sel      : std_logic_vector(C_NUM_WSEL-1 downto 0);
+  signal wr_data_i   : std_logic_vector(C_DATA_WIDTH-1 downto 0);
+  signal wr_strb_i   : std_logic_vector((C_DATA_WIDTH/8)-1 downto 0);
 {% if cos_registers | length %}
 
   -- Shadow registers and CoS pulse signals for change-of-state detection
@@ -113,10 +139,40 @@ begin
 {% endif %}
 
   ----------------------------------------------------------------------------
+  -- Write select decode and optional register stage
+  ----------------------------------------------------------------------------
+  wr_addr_idx <= to_integer(unsigned(wr_addr(C_ADDR_WIDTH-1 downto 0)));
+
+{% for reg in registers %}
+  wr_sel_d(C_WSEL_{{ reg.name | upper }}) <= '1' when wr_en = '1' and wr_addr_idx = C_REG_{{ reg.name | upper }}_ADDR else '0';
+{% endfor %}
+
+  g_wr_reg : if G_REG_WRITE generate
+    p_wr_reg : process(clk)
+    begin
+      if rising_edge(clk) then
+        if rst = '1' then
+          wr_sel_q <= (others => '0');
+        else
+          wr_sel_q <= wr_sel_d;
+        end if;
+      end if;
+    end process;
+    wr_sel    <= wr_sel_q;
+    wr_data_i <= wr_data;       -- held stable by the wrapper until the register write
+    wr_strb_i <= wr_strb;
+  end generate;
+
+  g_wr_comb : if not G_REG_WRITE generate
+    wr_sel    <= wr_sel_d;
+    wr_data_i <= wr_data;
+    wr_strb_i <= wr_strb;
+  end generate;
+
+  ----------------------------------------------------------------------------
   -- Write Process
   ----------------------------------------------------------------------------
   p_write : process(clk)
-    variable v_addr_index : natural;
     variable v_wdata      : std_logic_vector(C_DATA_WIDTH-1 downto 0);
   begin
     if rising_edge(clk) then
@@ -142,8 +198,6 @@ begin
 {% endfor %}
 {% endif %}
       else
-        v_addr_index := to_integer(unsigned(wr_addr(C_ADDR_WIDTH-1 downto 0)));
-
 {% if cos_registers | length %}
         -- Shadow register updates (capture monitored field values every clock)
 {% for reg in cos_registers %}
@@ -162,16 +216,16 @@ begin
 {% if field.width == 1 %}
         if regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '1';
-        elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
-              and wr_strb({{ (field.offset / 8) | int }}) = '1' and wr_data({{ field.offset }}) = '1' then
+        elsif wr_sel(C_WSEL_{{ reg.name | upper }}) = '1'
+              and wr_strb_i({{ (field.offset / 8) | int }}) = '1' and wr_data_i({{ field.offset }}) = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '0';
         end if;
 {% else %}
         for i in 0 to {{ field.width - 1 }} loop
           if regs_in.{{ reg.name | lower }}_pulse.{{ field.name | lower }}_pulse(i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '1';
-          elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
-                and wr_strb(({{ field.offset }} + i) / 8) = '1' and wr_data({{ field.offset }} + i) = '1' then
+          elsif wr_sel(C_WSEL_{{ reg.name | upper }}) = '1'
+                and wr_strb_i(({{ field.offset }} + i) / 8) = '1' and wr_data_i({{ field.offset }} + i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '0';
           end if;
         end loop;
@@ -189,16 +243,16 @@ begin
 {% if field.width == 1 %}
         if regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '0';
-        elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
-              and wr_strb({{ (field.offset / 8) | int }}) = '1' and wr_data({{ field.offset }}) = '1' then
+        elsif wr_sel(C_WSEL_{{ reg.name | upper }}) = '1'
+              and wr_strb_i({{ (field.offset / 8) | int }}) = '1' and wr_data_i({{ field.offset }}) = '1' then
           regs.{{ reg.name | lower }}.{{ field.name | lower }} <= '1';
         end if;
 {% else %}
         for i in 0 to {{ field.width - 1 }} loop
           if regs_in.{{ reg.name | lower }}_clear.{{ field.name | lower }}_clear(i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '0';
-          elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
-                and wr_strb(({{ field.offset }} + i) / 8) = '1' and wr_data({{ field.offset }} + i) = '1' then
+          elsif wr_sel(C_WSEL_{{ reg.name | upper }}) = '1'
+                and wr_strb_i(({{ field.offset }} + i) / 8) = '1' and wr_data_i({{ field.offset }} + i) = '1' then
             regs.{{ reg.name | lower }}.{{ field.name | lower }}(i) <= '1';
           end if;
         end loop;
@@ -214,16 +268,16 @@ begin
 {% if cf.width == 1 %}
         if {{ reg.name | lower }}_{{ cf.name | lower }}_cos = '1' then
           regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= '1';
-        elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
-              and wr_strb({{ (cf.offset / 8) | int }}) = '1' and wr_data({{ cf.offset }}) = '1' then
+        elsif wr_sel(C_WSEL_{{ reg.name | upper }}) = '1'
+              and wr_strb_i({{ (cf.offset / 8) | int }}) = '1' and wr_data_i({{ cf.offset }}) = '1' then
           regs.{{ reg.name | lower }}.{{ cf.name | lower }} <= '0';
         end if;
 {% else %}
         for i in 0 to {{ cf.width - 1 }} loop
           if {{ reg.name | lower }}_{{ cf.name | lower }}_cos = '1' then
             regs.{{ reg.name | lower }}.{{ cf.name | lower }}(i) <= '1';
-          elsif wr_en = '1' and v_addr_index = C_REG_{{ reg.name | upper }}_ADDR
-                and wr_strb(({{ cf.offset }} + i) / 8) = '1' and wr_data({{ cf.offset }} + i) = '1' then
+          elsif wr_sel(C_WSEL_{{ reg.name | upper }}) = '1'
+                and wr_strb_i(({{ cf.offset }} + i) / 8) = '1' and wr_data_i({{ cf.offset }} + i) = '1' then
             regs.{{ reg.name | lower }}.{{ cf.name | lower }}(i) <= '0';
           end if;
         end loop;
@@ -232,30 +286,26 @@ begin
 {% endfor %}
 
 {% endif %}
-        if wr_en = '1' then
-          case v_addr_index is
+        -- plain read-write / write-only registers: one-hot write selects
 {% for reg in registers %}
 {% if reg.needs_write_branch %}
-          when C_REG_{{ reg.name | upper }}_ADDR =>
+          if wr_sel(C_WSEL_{{ reg.name | upper }}) = '1' then
 {% if reg.fields | length %}
 {% if reg.write_fields | length < reg.fields | length %}
-            v_wdata := apply_wstrb(to_slv(regs.{{ reg.name | lower }}), wr_data, wr_strb);
+            v_wdata := apply_wstrb(to_slv(regs.{{ reg.name | lower }}), wr_data_i, wr_strb_i);
 {% for field in reg.write_fields %}
             regs.{{ reg.name | lower }}.{{ field.name | lower }} <= to_{{ reg.name | lower }}(v_wdata).{{ field.name | lower }};
 {% endfor %}
 {% else %}
-            v_wdata := apply_wstrb(to_slv(regs.{{ reg.name | lower }}), wr_data, wr_strb);
+            v_wdata := apply_wstrb(to_slv(regs.{{ reg.name | lower }}), wr_data_i, wr_strb_i);
             regs.{{ reg.name | lower }} <= to_{{ reg.name | lower }}(v_wdata);
 {% endif %}
 {% else %}
-            regs.{{ reg.name | lower }} <= apply_wstrb(regs.{{ reg.name | lower }}, wr_data, wr_strb);
+            regs.{{ reg.name | lower }} <= apply_wstrb(regs.{{ reg.name | lower }}, wr_data_i, wr_strb_i);
 {% endif %}
+          end if;
 {% endif %}
 {% endfor %}
-          when others =>
-            null;
-          end case;
-        end if;
       end if;
     end if;
   end process;
@@ -296,6 +346,18 @@ begin
 {% else %}
             rd_data_int <= regs.{{ reg.name | lower }};
 {% endif %}
+{% elif reg.read_source == 'constant' %}
+{% set const_words = [] %}
+{% if reg.fields | length %}
+{% for field in reg.fields %}
+{% set _ = const_words.push(field.reset_value * 2 ** field.offset) %}
+{% endfor %}
+{% else %}
+{% set _ = const_words.push(reg.reset_value) %}
+{% endif %}
+          -- constant: resolved $version, not stored and not a hardware input
+          when C_REG_{{ reg.name | upper }}_ADDR =>
+            rd_data_int <= "{{ const_words | sum | bin(data_width) }}";
 {% endif %}
 {% endif %}
 {% endfor %}
@@ -303,7 +365,13 @@ begin
           when C_REG_{{ reg.name | upper }}_ADDR =>
             v_rd_data := (others => '0');
 {% for field in reg.fields %}
-{% if field.access in ['read-write-1-to-clear', 'read-write-self-clearing'] %}
+{% if field.is_constant %}
+{% if field.width == 1 %}
+            v_rd_data({{ field.offset }}) := '{{ field.reset_value | default(0) }}';  -- constant {{ field.version_ref }}
+{% else %}
+            v_rd_data({{ field.offset + field.width - 1 }} downto {{ field.offset }}) := "{{ field.reset_value | bin(field.width) }}";  -- constant {{ field.version_ref }}
+{% endif %}
+{% elif field.access in ['read-write-1-to-clear', 'read-write-self-clearing'] %}
 {% if field.width == 1 %}
             v_rd_data({{ field.offset }}) := regs.{{ reg.name | lower }}.{{ field.name | lower }};
 {% else %}

@@ -152,7 +152,15 @@ before publishing a pack.
 The versioned template-data schema is
 `src/generator/contract/template_context.schema.json`. Template variables use
 snake case by design; TypeScript and IPCraft schema properties use camel case.
-The current contract version is 1.6.0. Version 1.6.0 adds
+The current contract version is 1.8.0. Version 1.8.0 adds `extensions` on the registers and
+fields of `memory_maps`: the vendor extension keys (`x-...`) of the `.mm.yml` entry, verbatim,
+e.g. `reg.extensions['x-readSideEffect']`, `version_ref` on those registers and fields, and per map
+`versions`: each version of the map's `versionHistory` (oldest first) with `version`, `register_set`,
+`crc8`, `crc16` and the layout it shipped with as `address_blocks`, `$version` references resolved
+for that version. Version 1.7.0 adds `is_constant` and
+`version_ref` on fields, `is_constant` and `version_ref` on registers, the `constant` value of
+`read_source`, and the top-level `version_scheme`, `version_history` and
+`version_file_suffix` for `$version` register references. Version 1.6.0 adds
 `address_word_addressed` and `address_shift`, and flags each expanded bus
 interface with `address_word_addressed`. Packs pinned to `~1.5` are rejected by
 1.6.0 and must update their range. Version 1.5.0 adds per-register

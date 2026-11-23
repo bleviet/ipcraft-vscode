@@ -1,10 +1,15 @@
 import { main } from '../../../cli/index';
+import { runCliGenerate } from '../../../cli/generate';
 import { runCliMigrate } from '../../../cli/migrate';
 import { runCliRender } from '../../../cli/render';
 
 jest.mock('../../../services/ResourceRoots', () => ({ resolveResourceRoots: jest.fn(() => ({})) }));
 jest.mock('../../../cli/migrate', () => ({ runCliMigrate: jest.fn() }));
 jest.mock('../../../cli/render', () => ({ runCliRender: jest.fn() }));
+jest.mock('../../../cli/generate', () => ({
+  ...jest.requireActual<typeof import('../../../cli/generate')>('../../../cli/generate'),
+  runCliGenerate: jest.fn(),
+}));
 
 describe('ipcraft migrate output', () => {
   let log: jest.SpyInstance;
@@ -23,12 +28,12 @@ describe('ipcraft migrate output', () => {
         path: 'a.ip.yml',
         status: 'upgraded',
         fromVersion: '1.0',
-        toVersion: '1.2',
+        toVersion: '1.3',
         mutationCount: 3,
       },
     ]);
     expect(await main(['migrate', 'a.ip.yml'])).toBe(0);
-    expect(log).toHaveBeenCalledWith('Upgraded a.ip.yml (1.0 -> 1.2, 3 change(s))');
+    expect(log).toHaveBeenCalledWith('Upgraded a.ip.yml (1.0 -> 1.3, 3 change(s))');
   });
 
   it('reports a legacy-key-only conversion without a version change', async () => {
@@ -36,8 +41,8 @@ describe('ipcraft migrate output', () => {
       {
         path: 'a.ip.yml',
         status: 'upgraded',
-        fromVersion: '1.2',
-        toVersion: '1.2',
+        fromVersion: '1.3',
+        toVersion: '1.3',
         mutationCount: 2,
       },
     ]);
@@ -83,5 +88,35 @@ describe('ipcraft render output', () => {
     expect(await main(['render', 'a.tcl', '--out', 'a.txt'])).toBe(1);
     expect(error).toHaveBeenCalledWith(expect.stringContaining('the extension must be .svg'));
     expect(runCliRender).not.toHaveBeenCalled();
+  });
+});
+
+describe('ipcraft generate register-set output', () => {
+  let log: jest.SpyInstance;
+
+  beforeEach(() => {
+    log = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    log.mockRestore();
+  });
+
+  it('forwards --register-set-policy and prints what was recorded before the file list', async () => {
+    (runCliGenerate as jest.Mock).mockResolvedValue({
+      success: true,
+      outputDir: '/out',
+      files: ['rtl/a.vhd'],
+      registerSetsRecorded: ['CSR_MAP: recorded version 1.4.2'],
+    });
+    expect(await main(['generate', 'a.ip.yml', '--register-set-policy', 'adopt'])).toBe(0);
+    expect((runCliGenerate as jest.Mock).mock.calls[0][0]).toEqual(
+      expect.objectContaining({ registerSetPolicy: 'adopt' })
+    );
+    expect(log.mock.calls.map(([line]: [string]) => line)).toEqual([
+      'Register set: CSR_MAP: recorded version 1.4.2',
+      'Generated 1 file(s) into /out',
+      '  rtl/a.vhd',
+    ]);
   });
 });

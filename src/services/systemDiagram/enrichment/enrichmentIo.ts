@@ -1,7 +1,9 @@
 /** The I/O and logging the enrichment pipeline is given, so it runs in VS Code and on the CLI. */
 
 import type { SystemGraph } from '../../../domain/systemGraph';
-import type { HdlEntry, IpEntry, QsysEntry } from './fileEntries';
+import type { DesignLinks } from './bdLinks';
+import type { CmakeEntry } from './cmakeProjects';
+import type { BdTclEntry, FileLocation, HdlEntry, IpEntry, QsysEntry } from './fileEntries';
 
 export interface EnrichmentIo<R> {
   /**
@@ -9,10 +11,22 @@ export interface EnrichmentIo<R> {
    * `designFile` the design: an io may read only the files that can match them.
    */
   listIpFiles(graph: SystemGraph, designFile: string): Promise<IpEntry<R>[]>;
-  /** Called only when the graph has module instances. */
+  /**
+   * The HDL files whose base name without extension is one of `names`, without the
+   * index limit. Called first for module instances (see {@link hdlFileNames}).
+   */
+  listHdlFilesNamed(names: readonly string[]): Promise<HdlEntry<R>[]>;
+  /** Called only when a module reference is not defined in a file named after it. */
   listHdlFiles(): Promise<HdlEntry<R>[]>;
   /** Called only for Platform Designer designs. */
   listQsysFiles(): Promise<QsysEntry<R>[]>;
+  /** Called only for block designs with containers. */
+  listBdTclFiles(): Promise<BdTclEntry<R>[]>;
+  listCmakeFiles(): Promise<CmakeEntry[]>;
+  /** A workspace file by absolute path (Tcl files of a CMake project, link targets). */
+  locate(file: string): FileLocation<R>;
+  /** The user's links for `designFile` (see {@link DesignLinks}). Missing file: none. */
+  readBdLinks(designFile: string): Promise<DesignLinks>;
   readText(ref: R): Promise<string>;
 }
 

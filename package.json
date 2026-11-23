@@ -71,6 +71,16 @@
     }
   },
   "contributes": {
+    "yamlValidation": [
+      {
+        "fileMatch": "*.pkt.yml",
+        "url": "./dist/resources/schemas/packet_format.schema.json"
+      },
+      {
+        "fileMatch": "*.pktmap.yml",
+        "url": "./dist/resources/schemas/packet_map.schema.json"
+      }
+    ],
     "commands": [
       {
         "command": "fpga-ip-core.installCliInPath",
@@ -291,6 +301,12 @@
       {
         "command": "fpga-ip-core.upgradeIpCore",
         "title": "Migrate .ip.yml / .mm.yml to Latest Format",
+        "category": "IPCraft",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "fpga-ip-core.startRegisterSetVersioning",
+        "title": "Start Register-Set Versioning",
         "category": "IPCraft",
         "enablement": "isWorkspaceTrusted"
       },
@@ -768,6 +784,11 @@
           "command": "fpga-ip-core.packageIpCore",
           "when": "resourceFilename =~ /\\.ip\\.yml$/",
           "group": "ipcraft@9"
+        },
+        {
+          "command": "fpga-ip-core.startRegisterSetVersioning",
+          "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/",
+          "group": "ipcraft@10"
         }
       ],
       "commandPalette": [
@@ -849,6 +870,10 @@
         },
         {
           "command": "fpga-ip-core.upgradeIpCore",
+          "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/"
+        },
+        {
+          "command": "fpga-ip-core.startRegisterSetVersioning",
           "when": "resourceFilename =~ /\\.(ip|mm)\\.yml$/"
         },
         {
@@ -1864,8 +1889,8 @@
     "husky": "^8.0.3",
     "identity-obj-proxy": "^3.0.0",
     "ipcraft-spec": "file:./ipcraft-spec",
-    "jest": "^30.3.0",
-    "jest-environment-jsdom": "^30.4.1",
+    "jest": "^30.5.2",
+    "jest-environment-jsdom": "^30.5.2",
     "json-schema-to-typescript": "^13.0.0",
     "knip": "^6.29.0",
     "lint-staged": "^15.5.2",
@@ -1877,7 +1902,7 @@
     "prettier": "^3.7.4",
     "style-loader": "^4.0.0",
     "tailwindcss": "^3.4.19",
-    "ts-jest": "^29.4.6",
+    "ts-jest": "^29.4.14",
     "ts-loader": "^9.4.3",
     "typescript": "^5.1.3",
     "webpack": "^5.85.0",

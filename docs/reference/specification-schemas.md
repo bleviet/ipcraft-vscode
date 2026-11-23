@@ -43,7 +43,7 @@ Common top-level fields:
 
 | Field | Meaning |
 |---|---|
-| `apiVersion` | Specification format version |
+| `apiVersion` | Specification format version (`1.0`, `1.1`, `1.2`, or `1.3`; see [Version scheme](#version-scheme)) |
 | `vlnv` | Vendor, library, name, and version |
 | `description`, `author` | Human-readable ownership and purpose |
 | `clocks`, `resets`, `interrupts`, `ports` | Individual signals |
@@ -55,6 +55,40 @@ Common top-level fields:
 | `targets` | Vendor outputs such as `vivado` and `quartus` |
 | `scaffold_pack` | Saved scaffold-pack selection |
 | `fileSets` | Source files grouped by purpose |
+
+### Version scheme
+
+`vlnv.version` is text. The optional `vlnv.versionScheme` says how that text is
+structured, so a register can hold it as a number. See
+[Versioning Register Sets](../how-to/versioning-register-sets.md).
+
+```yaml
+apiVersion: "1.3"
+vlnv:
+  vendor: acme
+  library: ip
+  name: uart
+  version: 1.4.2
+  versionScheme: major.minor.patch
+```
+
+| `versionScheme` | `version` must be | Components |
+|---|---|---|
+| `free` (default when absent) | any non-empty text | none |
+| `major.minor` | two numbers | `major`, `minor` |
+| `major.minor.patch` | three numbers | `major`, `minor`, `patch` |
+| `major.feature.minor.patch` | four numbers | `major`, `feature`, `minor`, `patch` |
+
+Each number is a whole number from 0 to 255 without leading zeros. Quote a
+two-component version (`"1.10"`) so YAML does not read it as a decimal number.
+
+`apiVersion: "1.3"` is the format version that adds `versionScheme`, `$version`
+references and `versionHistory`. Generation refuses a memory map with `$version`
+references or a `versionHistory` when its `.ip.yml` declares an older format, so
+that an IPCraft that does not know them refuses the core instead of generating
+`0`. A file without `apiVersion` is `1.0`. IPCraft reads every version up to the
+latest it supports and refuses a newer one. `ipcraft migrate` and the first edit
+in the IP Core editor upgrade a file to `1.3`.
 
 Interrupts may optionally name the memory-mapped slave and clock domain that
 serve them:
@@ -141,7 +175,7 @@ A memory-map file contains a YAML list, even when it describes only one map:
 | `offset` | Byte offset from the block base |
 | `size` | Register width in bits |
 | `access` | Default access inherited by fields |
-| `resetValue` | Whole-register reset value |
+| `resetValue` | Whole-register reset value. A register without fields may use a `$version` reference instead of a number |
 | `fields` | Bit fields |
 | `count`, `stride` | Repetition count and distance for an array |
 | `registers` | Child registers in a repeated group |
@@ -157,9 +191,98 @@ uses the highest bit first: `"[7:4]"` covers four bits.
 | `bits` | Saved range such as `"[7:0]"` |
 | `offset`, `width` | Lowest bit and number of bits |
 | `access` | Read, write, or special write behavior |
-| `resetValue` | Reset value limited to the field width |
+| `resetValue` | Reset value limited to the field width, or a `$version` reference |
 | `enumeratedValues` | Names for known numeric values |
 | `monitorChangeOf` | Field whose changes set this event field |
+
+### Version references
+
+A `resetValue` can be a reference to the owning IP core's `vlnv.version`
+instead of a number. The reference stays in the file and is resolved when the
+generator runs, so the register always holds the current version.
+
+| Reference | Meaning |
+|---|---|
+| `$version` | The whole version packed into one value, major component first, 8 bits per component |
+| `$version.major` | The major component |
+| `$version.feature` | The feature component (`major.feature.minor.patch` only) |
+| `$version.minor` | The minor component |
+| `$version.patch` | The patch component (not in `major.minor`) |
+| `$version.crc8` | CRC-8/I-432-1 of the version bytes, 8 bits |
+| `$version.crc16` | CRC-16/IBM-3740 of the version bytes, 16 bits |
+
+The version bytes are the components, most significant first, one byte each; for
+a `free` version they are the UTF-8 bytes of the trimmed `vlnv.version`. The CRC
+references are the only ones a `free` version supports. See
+[Versioning Register Sets](../how-to/versioning-register-sets.md#check-the-version-register-with-a-crc).
+
+References are valid on bit fields and on registers without fields, in `.mm.yml`
+files and in inline memory maps of an `.ip.yml`. They need a numeric
+`versionScheme` (except the CRC references). A field with a component reference
+must be exactly 8 bits wide, a field with `$version` exactly `8 * n` bits, where
+`n` is the number of components, and a field with `$version.crc8` or
+`$version.crc16` exactly 8 or 16 bits. A register without fields must be at least as wide as its reference
+needs. A field or register with a reference is generated as a read-only
+constant.
+
+```yaml
+- name: VERSION
+  offset: 0x0
+  fields:
+    - name: MAJOR
+      bits: "[23:16]"
+      resetValue: $version.major
+    - name: MINOR
+      bits: "[15:8]"
+      resetValue: $version.minor
+    - name: PATCH
+      bits: "[7:0]"
+      resetValue: $version.patch
+```
+
+### Version history
+
+An optional `versionHistory` key on a memory map records the released register
+layouts. It is allowed in `.mm.yml` files only; an inline memory map in an
+`.ip.yml` rejects it.
+
+```yaml
+- name: CSR_MAP
+  addressBlocks:
+    - name: REGS
+      baseAddress: 0x0
+      range: 4K
+      registers:
+        - name: VERSION
+          offset: 0x0
+          resetValue: $version
+  versionHistory:
+    registerSets:
+      rs1-cfcf5f65555a5b01:
+        addressBlocks:
+          - name: REGS
+            baseAddress: 0x0
+            range: 4K
+            registers:
+              - name: VERSION
+                offset: 0x0
+                resetValue: $version
+    versions:
+      - version: 1.4.1
+        registerSet: rs1-cfcf5f65555a5b01
+        crc8: 109
+        crc16: 10057
+```
+
+| Field | Meaning |
+|---|---|
+| `registerSets` | Frozen copies of `addressBlocks`, keyed by `rs1-` followed by 16 lowercase hex digits |
+| `versions` | Released versions in release order. Each entry has a non-empty `version`, the `registerSet` key it used, and optionally the `crc8` (0 to 255) and `crc16` (0 to 65535) of that version, recorded when the entry was written |
+
+The key is the first 16 hex digits of a SHA-256 hash of the layout that a driver
+depends on. `rs1` names the version of that hash definition. Descriptions,
+comments, and formatting do not change the key. IPCraft writes the key and the
+snapshots; you rarely edit them by hand.
 
 ## Bus library
 

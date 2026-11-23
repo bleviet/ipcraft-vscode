@@ -62,6 +62,45 @@ ipcraft generate path/to/core.ip.yml --target quartus,vivado --lang vhdl --out g
 | `--vivado-part <part>` | Vivado part |
 | `--indent-style <spaces\|tab>` | Indentation style for generated HDL/TCL/XDC/SDC (default: `spaces`) |
 | `--indent-size <n>` | Spaces per indentation level when `--indent-style` is `spaces` (default: `2`) |
+| `--register-set-policy <adopt\|overwrite>` | `generate` only: record the IP core version in the `versionHistory` of versioned memory maps (see below) |
+
+Memory maps with a `versionHistory` or a `$version` reference are versioned.
+Without `--register-set-policy`, `generate` never writes and fails (no files are
+generated) when a versioned map is not up to date, naming the map and the
+recorded version it was compared against (the entry of the current
+`vlnv.version`, or the latest entry when that version is not recorded yet):
+
+```text
+CSR_MAP: register layout changed since version 1.4.1; re-run with --register-set-policy adopt|overwrite
+```
+
+The message offers `adopt|overwrite` when the current `vlnv.version` is recorded
+and only `adopt` otherwise. A map with no history, or with an unchanged layout
+and a version that is not recorded yet, also fails without the flag (`no version
+recorded yet` or `version 1.4.2 is not recorded yet`).
+
+`--register-set-policy adopt` appends the IP core version as a new entry;
+`overwrite` re-points the entry recorded for the current `vlnv.version` to the
+current layout (and drops layouts no entry references). `adopt` fails when the
+changed layout's core version is already recorded (bump `vlnv.version` or use
+`overwrite`); `overwrite` fails for a changed layout when that version is not
+recorded yet, because there is no entry to replace:
+
+```text
+CSR_MAP: version 1.4.2 is not recorded; use --register-set-policy adopt
+```
+
+A `vlnv.version` that is not valid for the core's `versionScheme` is never
+recorded: with a versioned map that is not up to date, `generate` and `verify`
+fail naming the version and the scheme. Each changed `.mm.yml` is written once,
+before generation, unless the `$version` checks report an error (then nothing is
+written and generation fails with the errors), and `generate` prints one `Register set:` line per recorded
+map with its summary. `verify` rejects the flag and never writes: a versioned
+map that is not up to date is a verification failure with the same messages. When
+the `$version` checks report an error, `generate` and `verify` fail with those
+errors instead, because they are checked first. See
+[Versioning Register Sets](../how-to/versioning-register-sets.md) for the
+workflow.
 
 Use `verify` to compare committed output with a fresh in-memory generation:
 
@@ -571,15 +610,16 @@ without `-hierarchical`).
 
 ## Upgrade files to the latest format
 
-An `.ip.yml` declares its file format version in `apiVersion` (`1.0`, `1.1`, or `1.2`);
+An `.ip.yml` declares its file format version in `apiVersion` (`1.0`, `1.1`, `1.2`, or `1.3`);
 a file without `apiVersion` is version 1.0. IPCraft reads every version up to
-its latest (1.2), refuses a file that declares a newer version with an error
+its latest (1.3), refuses a file that declares a newer version with an error
 asking you to upgrade IPCraft, and can upgrade older files. Version 1.1
 introduced bus interface contracts: legacy port names such as Avalon-MM
 `read_n` or `waitrequest_n` become one port plus an entry in
-`portPolarityOverrides`. Version 1.2 added port field metadata and changes no
-existing content. The IP Core editor applies this upgrade (and sets
-`apiVersion: '1.2'`) when you make the first edit to an older file; to upgrade
+`portPolarityOverrides`. Version 1.2 added port field metadata, and version 1.3
+the version scheme, `$version` references, `versionHistory` and
+`packetFormatRef`; neither changes existing content. The IP Core editor applies
+this upgrade (and sets `apiVersion: '1.3'`) when you make the first edit to an older file; to upgrade
 explicitly, run:
 
 ```bash

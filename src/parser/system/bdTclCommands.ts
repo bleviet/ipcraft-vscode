@@ -57,15 +57,21 @@ export function createCell(env: CommandEnv, words: readonly Word[]): string | un
   const vlnv = flagValue(env, opts, '-vlnv');
   const moduleRef = flagValue(env, opts, '-reference');
   const type = flagValue(env, opts, '-type') ?? (vlnv ? 'ip' : undefined);
-  if (type !== 'ip' && type !== 'hier' && type !== 'module') {
+  const container = type === 'container' && moduleRef !== undefined ? moduleRef : undefined;
+  if (type !== 'ip' && type !== 'hier' && type !== 'module' && type !== 'container') {
     env.builder.report('warning', `Unknown cell type: ${type ?? 'none'}`, env.line);
+    return undefined;
+  }
+  if (type === 'container' && container === undefined) {
+    env.builder.report('warning', `Unknown cell type: ${type}`, env.line);
     return undefined;
   }
   const site = type === 'hier' ? env.hierSite : undefined;
   return env.builder.addInstance({
     parent: env.current,
     name: env.argValue(nameWord),
-    kind: type,
+    kind: type === 'container' ? 'blackbox' : type,
+    ...(container !== undefined && { container: { reference: container } }),
     ...(type === 'ip' && vlnv !== undefined && { vlnv }),
     ...(type === 'module' && moduleRef !== undefined && { moduleRef }),
     line: site?.callLine ?? env.line,

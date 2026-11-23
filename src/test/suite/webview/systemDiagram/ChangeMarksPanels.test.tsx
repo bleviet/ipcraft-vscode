@@ -146,6 +146,7 @@ describe('Details of a marked block and port', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
   }
@@ -154,7 +155,7 @@ describe('Details of a marked block and port', () => {
     details({ kind: 'instance', id: '/sys_ps7' });
     const section = screen.getByRole('region', { name: 'Changes' });
     expect(
-      section.compareDocumentPosition(screen.getByRole('heading', { name: 'Parameters' }))
+      section.compareDocumentPosition(screen.getByRole('heading', { name: /^Parameters/ }))
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(within(section).getByRole('columnheader', { name: 'Change' })).toBeVisible();
     expect(within(section).getByRole('columnheader', { name: 'Base → Current' })).toBeVisible();
@@ -203,6 +204,7 @@ describe('Details of a marked block and port', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     const section = screen.getByRole('region', { name: 'Changes' });
@@ -222,6 +224,7 @@ describe('Details of a marked block and port', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     expect(screen.queryByRole('region', { name: 'Changes' })).toBeNull();
@@ -255,6 +258,7 @@ describe('Details of a block with an address segment change', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
   }

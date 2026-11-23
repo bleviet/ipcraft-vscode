@@ -26,6 +26,7 @@ import {
 import { parseVHDL, parseHwTcl, parseComponentXml } from './ImportCommands';
 import { viewBusDefinitions } from './BusDefinitionCommands';
 import { upgradeIpCore } from './UpgradeIpCoreCommand';
+import { startRegisterSetVersioning } from './StartRegisterSetVersioningCommand';
 
 export function registerGeneratorCommands(
   context: vscode.ExtensionContext,
@@ -164,6 +165,15 @@ export function registerGeneratorCommands(
     'fpga-ip-core.upgradeIpCore',
     async (uri?: vscode.Uri, uris?: vscode.Uri[]) => {
       await upgradeIpCore(resourceRoots, uri, uris);
+    },
+    { requiresWorkspaceTrust: true }
+  );
+
+  safeRegisterCommand(
+    context,
+    'fpga-ip-core.startRegisterSetVersioning',
+    async (uri?: vscode.Uri) => {
+      await startRegisterSetVersioning(uri);
     },
     { requiresWorkspaceTrust: true }
   );

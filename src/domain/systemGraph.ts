@@ -89,7 +89,20 @@ export interface SystemInstance {
   procLine?: number;
   /** Workspace file that defines the instance's pins (enrichment). `file` is the absolute path, `uri` the `Uri.toString()` used to open it. */
   definition?: { kind: 'ip.yml' | 'hdl'; file: string; uri: string; displayName: string };
+  /**
+   * Vivado block design container (`create_bd_cell -type container`). Shown as a
+   * black box until enrichment finds the Tcl script that generates its block
+   * design; then grafted as a hierarchy (`kind: 'hier'`) and `source` is set.
+   */
+  container?: {
+    /** `-reference`: the block design name. */
+    reference: string;
+    source?: SystemSourceRef & { evidence: BdTclEvidence };
+  };
 }
+
+/** How the Tcl script of a container's block design was found, strongest first. */
+export type BdTclEvidence = 'link' | 'cmake' | 'design_name' | 'file_name';
 
 /** A workspace file a level's contents were read from. */
 export interface SystemSourceRef {

@@ -7,6 +7,7 @@ import { StagingPanel } from '../../../providers/StagingPanel';
 import { WebviewStagingBridge } from '../../../providers/WebviewStagingBridge';
 import { runGenerator, formatGenerationFailure } from '../../../services/GenerationEngine';
 import type { ResourceRoots } from '../../../services/ResourceRoots';
+import { ensureRegisterSetsReleased } from '../../../services/versioning/RegisterSetReleaseService';
 
 jest.mock('../../../generator/IpCoreScaffolder', () => ({
   IpCoreScaffolder: jest.fn(),
@@ -33,6 +34,12 @@ jest.mock('fs/promises', () => {
 
 jest.mock('../../../generator/TemplateLoader', () => ({
   TemplateLoader: jest.fn(),
+}));
+
+// Register-set versioning opens its own documents; it has its own suite and the cases below
+// pin the generation snapshot (one openTextDocument call).
+jest.mock('../../../services/versioning/RegisterSetReleaseService', () => ({
+  ensureRegisterSetsReleased: jest.fn(),
 }));
 
 describe('runGenerator (issue #195)', () => {
@@ -94,6 +101,7 @@ describe('runGenerator (issue #195)', () => {
     (IpCoreScaffolder as jest.Mock).mockImplementation(() => ({ generateAll }));
 
     jest.spyOn(WebviewStagingBridge.getInstance(), 'showInWebview').mockResolvedValue(null);
+    (ensureRegisterSetsReleased as jest.Mock).mockResolvedValue({ proceed: true });
   });
 
   afterEach(() => {
@@ -169,6 +177,56 @@ describe('runGenerator (issue #195)', () => {
     expect(vscode.workspace.applyEdit).toHaveBeenCalledTimes(2);
     expect(saveDocument).not.toHaveBeenCalled();
     expect(fs.readFileSync(ipCorePath, 'utf8')).toBe(savedYaml);
+  });
+
+  describe('register-set versioning seam', () => {
+    const generate = (): ReturnType<typeof runGenerator> =>
+      runGenerator(
+        {} as ResourceRoots,
+        {} as vscode.ExtensionContext,
+        { fsPath: ipCorePath } as vscode.Uri,
+        tmpDir,
+        { targets: [], silent: true },
+        'Generating...'
+      );
+
+    it('releases the register sets before the document is read for generation', async () => {
+      jest.spyOn(StagingPanel, 'show').mockResolvedValue({
+        confirmed: true,
+        mergedPaths: [],
+        actions: {},
+      });
+      const order: string[] = [];
+      (ensureRegisterSetsReleased as jest.Mock).mockImplementation(async () => {
+        order.push('release');
+        return { proceed: true };
+      });
+      (vscode.workspace.openTextDocument as jest.Mock).mockImplementationOnce(async () => {
+        order.push('open');
+        return {
+          getText: () => editorYaml,
+          lineCount: 1,
+          lineAt: () => ({ lineNumber: 0, text: editorYaml }),
+          save: saveDocument,
+          uri: { fsPath: ipCorePath },
+        };
+      });
+
+      await generate();
+
+      expect(order).toEqual(['release', 'open']);
+      expect(ensureRegisterSetsReleased).toHaveBeenCalledWith({ fsPath: ipCorePath });
+    });
+
+    it('aborts without generating when the user cancels', async () => {
+      (ensureRegisterSetsReleased as jest.Mock).mockResolvedValue({ proceed: false });
+
+      await expect(generate()).resolves.toEqual({ success: false });
+
+      expect(generateAll).not.toHaveBeenCalled();
+      expect(vscode.workspace.openTextDocument).not.toHaveBeenCalled();
+      expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+    });
   });
 
   describe('formatGenerationFailure', () => {

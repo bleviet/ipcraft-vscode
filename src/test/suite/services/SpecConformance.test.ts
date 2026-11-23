@@ -23,6 +23,18 @@ const DATA_INSPECTOR_SCHEMA_PATH = path.join(
   'schemas',
   'data_inspector.schema.json'
 );
+const PACKET_FORMAT_SCHEMA_PATH = path.join(
+  REPO_ROOT,
+  'ipcraft-spec',
+  'schemas',
+  'packet_format.schema.json'
+);
+const PACKET_MAP_SCHEMA_PATH = path.join(
+  REPO_ROOT,
+  'ipcraft-spec',
+  'schemas',
+  'packet_map.schema.json'
+);
 const BUS_DEFINITION_SCHEMA_PATH = path.join(
   REPO_ROOT,
   'ipcraft-spec',
@@ -36,6 +48,8 @@ describe('Spec Conformance Tests', () => {
   let validateMemoryMap: ReturnType<Ajv['compile']>;
   let validateDataInspector: ReturnType<Ajv['compile']>;
   let validateBusDefinition: ReturnType<Ajv['compile']>;
+  let validatePacketFormat: ReturnType<Ajv['compile']>;
+  let validatePacketMap: ReturnType<Ajv['compile']>;
 
   beforeAll(() => {
     ajv = new Ajv({ strict: false, allowUnionTypes: true });
@@ -57,6 +71,11 @@ describe('Spec Conformance Tests', () => {
 
     const busDefinitionSchema = JSON.parse(fs.readFileSync(BUS_DEFINITION_SCHEMA_PATH, 'utf8'));
     validateBusDefinition = ajv.compile(busDefinitionSchema);
+
+    validatePacketFormat = ajv.compile(
+      JSON.parse(fs.readFileSync(PACKET_FORMAT_SCHEMA_PATH, 'utf8'))
+    );
+    validatePacketMap = ajv.compile(JSON.parse(fs.readFileSync(PACKET_MAP_SCHEMA_PATH, 'utf8')));
   });
 
   function getYamlFiles(dir: string): string[] {
@@ -100,7 +119,13 @@ describe('Spec Conformance Tests', () => {
     ...getYamlFiles(EXAMPLES_DIR),
     // Repository examples also hold tool configs, so only take IP core and memory map files.
     ...getYamlFiles(REPO_EXAMPLES_DIR).filter((f) => /\.(ip|mm)\.ya?ml$/.test(f)),
-  ].filter((f) => !f.includes('invalid-syntax'));
+  ].filter(
+    (f) =>
+      !f.includes('invalid-syntax') &&
+      // Conformance vectors are test data, and examples/packet_formats/invalid holds files that must fail.
+      !f.endsWith('.vectors.yml') &&
+      !f.includes(`${path.sep}packet_formats${path.sep}invalid${path.sep}`)
+  );
 
   for (const filePath of allYamlFiles) {
     const relativePath = path.relative(REPO_ROOT, filePath);
@@ -118,8 +143,17 @@ describe('Spec Conformance Tests', () => {
         relativePath.includes('-ipcore') ||
         (typeof doc === 'object' && !Array.isArray(doc) && 'vlnv' in doc);
       const isDataInspector = filePath.endsWith('.ipci.yml');
+      const isPacketFormat = filePath.endsWith('.pkt.yml');
+      const isPacketMap = filePath.endsWith('.pktmap.yml');
 
-      if (isDataInspector) {
+      if (isPacketFormat || isPacketMap) {
+        const validate = isPacketMap ? validatePacketMap : validatePacketFormat;
+        if (!validate(doc)) {
+          expect(
+            `Packet schema validation errors for ${relativePath}:\n${JSON.stringify(validate.errors, null, 2)}`
+          ).toBe('');
+        }
+      } else if (isDataInspector) {
         const valid = validateDataInspector(doc);
         if (!valid) {
           const errors = validateDataInspector.errors

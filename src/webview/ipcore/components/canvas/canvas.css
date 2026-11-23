@@ -1255,6 +1255,167 @@
   background: var(--vscode-toolbar-hoverBackground);
   opacity: 1;
 }
+.ci-section__action-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+/* Packet format: read-only beat lanes (one row per signal, MSB left) */
+.packet-lanes__beat {
+  margin-top: 8px;
+}
+.packet-lanes__lane {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+.packet-lanes__signal {
+  flex: 0 0 auto;
+  min-width: 88px;
+  font-family: var(--vscode-editor-font-family, monospace);
+  white-space: nowrap;
+}
+.packet-lanes__track {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 26px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-contrastBorder, var(--vscode-widget-border, var(--vscode-panel-border)));
+}
+.packet-lanes__segment {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  box-sizing: border-box;
+  display: flex;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 11px;
+  line-height: 24px;
+  padding: 0 4px 0 6px;
+  /* Drop the bit range before truncating the name (see @container packet-seg). */
+  container: packet-seg / inline-size;
+  color: var(--vscode-editor-foreground);
+  border: 1px solid var(--vscode-contrastBorder, var(--vscode-editor-background));
+  /* Light tint keeps the text readable; the opaque left edge carries the field color. */
+  background: color-mix(in srgb, var(--packet-seg-color) 28%, transparent);
+  box-shadow: inset 3px 0 var(--packet-seg-color);
+}
+.packet-lanes__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.packet-lanes__range {
+  flex: 0 0 auto;
+  white-space: pre;
+  opacity: 0.85;
+}
+@container packet-seg (max-width: 96px) {
+  .packet-lanes__range {
+    display: none;
+  }
+}
+.packet-lanes__segment:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -2px;
+  z-index: 1;
+}
+.packet-format__error {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--vscode-errorForeground);
+}
+
+/* Canvas + details: row 1 the IP symbol, row 2 the bus info box and its packet format (equal height). */
+.ip-canvas-layout {
+  width: 100%;
+  height: 100%;
+  container: ip-canvas-layout / size;
+}
+/* A container cannot query itself, so the flex box is the inner body. */
+.ip-canvas-layout__body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+.ip-canvas-layout__body > .ip-canvas-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+.ip-canvas-details {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex: 0 0 auto;
+  max-height: 50%;
+  padding: 8px 12px 12px;
+  box-sizing: border-box;
+  border-top: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
+}
+.ip-canvas-details > .ip-canvas-tooltip {
+  position: static;
+  flex: 0 0 220px;
+  box-sizing: border-box;
+  max-width: none;
+  overflow: auto;
+  pointer-events: auto;
+  box-shadow: none;
+}
+/* Canvas too short for a row below the symbol: details become a column to the left of it. */
+@container ip-canvas-layout (max-height: 560px) {
+  .ip-canvas-layout__body {
+    flex-direction: row-reverse;
+  }
+  .ip-canvas-details {
+    flex-direction: column;
+    flex-basis: clamp(260px, 40%, 480px);
+    max-height: none;
+    padding: 12px 8px 12px 12px;
+    border-top: none;
+    border-right: 1px solid var(--vscode-panel-border);
+  }
+  .ip-canvas-details > .ip-canvas-tooltip {
+    flex: 0 0 auto;
+  }
+}
+.packet-callout {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: auto;
+  padding: 8px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground));
+  background: var(--vscode-editorHoverWidget-background, var(--vscode-editorWidget-background));
+  border: 1px solid var(--vscode-focusBorder);
+  user-select: text;
+}
+.packet-callout:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 1px;
+}
+.packet-callout__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.packet-callout__title {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.packet-callout__open {
+  margin-left: auto;
+  flex-shrink: 0;
+}
 
 /* Fields */
 .ci-field {

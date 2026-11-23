@@ -139,6 +139,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
     return 1;
   }
   printWarnings(result.warnings);
+  for (const line of result.registerSetsRecorded ?? []) {
+    console.log(`Register set: ${line}`);
+  }
 
   console.log(`Generated ${result.files?.length ?? 0} file(s) into ${result.outputDir}`);
   for (const f of result.files ?? []) {

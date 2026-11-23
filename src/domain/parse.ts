@@ -20,9 +20,12 @@ import type {
   NormalizedRegister,
   NormalizedField,
   MemoryMapDoc,
-  MemoryMapRootStyle,
+  VendorExtensions,
 } from './internal.types';
+import { detectMemoryMapRoot } from './memoryMapRoot';
 import { reconcileRowIds, type TableRowWrapper } from '../webview/utils/rowIdentity';
+import { parseVersionRef, type VersionRef } from '../shared/versioning/versionScheme';
+import type { VersionHistory } from '../shared/versioning/versionHistoryTypes';
 
 function parseNumber(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) {
@@ -37,6 +40,16 @@ function parseNumber(value: unknown, fallback = 0): number {
     return Number.isFinite(n) ? n : fallback;
   }
   return fallback;
+}
+
+/**
+ * A valid `$version` token becomes `versionRef` with a 0 `resetValue`. An invalid token (e.g.
+ * `$version.foo`) keeps `parseNumber`'s fallback of 0: schema validation reports it, the domain
+ * layer does not reinterpret it.
+ */
+function parseResetValue(raw: unknown): { resetValue: number; versionRef?: VersionRef } {
+  const versionRef = parseVersionRef(raw);
+  return versionRef ? { resetValue: 0, versionRef } : { resetValue: parseNumber(raw, 0) };
 }
 
 function normalizePortPolarityOverrides(
@@ -66,6 +79,17 @@ function parseBits(bits: string): { offset: number; width: number } {
   return { offset: 0, width: 1 };
 }
 
+/** The `x-...` vendor extension keys of a raw register or field, copied verbatim. */
+export function pickVendorExtensions(raw: Record<string, unknown>): VendorExtensions {
+  const out: VendorExtensions = {};
+  for (const key of Object.keys(raw)) {
+    if (key.startsWith('x-')) {
+      out[key as `x-${string}`] = raw[key];
+    }
+  }
+  return out;
+}
+
 function normalizeField(raw: Record<string, unknown>): Omit<NormalizedField, 'rowId'> {
   let offset = parseNumber(raw.offset ?? raw.bitOffset, 0);
   let width = parseNumber(raw.width ?? raw.bitWidth, 1);
@@ -85,10 +109,11 @@ function normalizeField(raw: Record<string, unknown>): Omit<NormalizedField, 'ro
     offset,
     width,
     access: raw.access !== undefined ? String(raw.access) : undefined,
-    resetValue: parseNumber(raw.resetValue ?? raw.reset, 0),
+    ...parseResetValue(raw.resetValue ?? raw.reset),
     description: String(raw.description ?? ''),
     enumeratedValues: (raw.enumeratedValues ?? null) as Record<string, string> | null,
     monitorChangeOf: (raw.monitorChangeOf ?? null) as string | null,
+    ...pickVendorExtensions(raw),
   };
 }
 
@@ -113,9 +138,10 @@ function normalizeRegister(
     offset: parseNumber(raw.offset ?? raw.addressOffset, 0),
     size,
     access: raw.access !== undefined ? String(raw.access) : undefined,
-    resetValue: parseNumber(raw.resetValue, 0),
+    ...parseResetValue(raw.resetValue),
     description: String(raw.description ?? ''),
     fields: fields as NormalizedField[],
+    ...pickVendorExtensions(raw),
   };
 
   if (isArray) {
@@ -273,6 +299,9 @@ export function normalizeMemoryMap(
     name: String(rawMap.name ?? ''),
     description: String(rawMap.description ?? ''),
     addressBlocks: reconciledBlocks,
+    ...(rawMap.versionHistory !== undefined
+      ? { versionHistory: rawMap.versionHistory as VersionHistory }
+      : {}),
   };
 }
 
@@ -286,22 +315,8 @@ export function parseMemoryMap(text: string, prevMap?: NormalizedMemoryMap): Mem
     throw new Error('Parsed YAML is empty');
   }
 
-  // Determine root style
-  let rootStyle: MemoryMapRootStyle = 'standalone';
-  let rawMap: Record<string, unknown> = {};
-
-  if (Array.isArray(rootObj)) {
-    rootStyle = 'array';
-    rawMap = (rootObj[0] as Record<string, unknown>) ?? {};
-  } else if (rootObj && typeof rootObj === 'object') {
-    const rootRecord = rootObj;
-    if (Array.isArray(rootRecord.memoryMaps)) {
-      rootStyle = 'nested';
-      rawMap = (rootRecord.memoryMaps[0] as Record<string, unknown>) ?? {};
-    } else {
-      rawMap = rootRecord;
-    }
-  }
+  const { rootStyle, maps } = detectMemoryMapRoot(rootObj);
+  const rawMap = maps[0]?.raw ?? {};
 
   const map = normalizeMemoryMap(rawMap, prevMap);
 
@@ -368,6 +383,7 @@ export function normalizeIpCore(rootObj: Record<string, unknown>): IpCore {
           }
         : {}),
       ...(bus.memoryMapRef ? { memoryMapRef: String(bus.memoryMapRef) } : {}),
+      ...(bus.packetFormatRef ? { packetFormatRef: String(bus.packetFormatRef) } : {}),
       ports: Array.isArray(bus.ports) ? bus.ports : undefined,
       ...(bus.busTypeVlnv ? { busTypeVlnv: bus.busTypeVlnv } : {}),
       ...(bus.rawPortMaps ? { rawPortMaps: bus.rawPortMaps } : {}),

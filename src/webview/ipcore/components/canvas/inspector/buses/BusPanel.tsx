@@ -17,6 +17,9 @@ import { BusTypeField, MemoryMapField } from '../controls/BusTypeFields';
 import { BUS_ENDIANNESS_OPTS, BUS_MODE_OPTS, normalizeBusMode } from '../inspectorMetadata';
 import { ArraySection } from './ConduitFields';
 import { ConduitPanel } from './ConduitPanel';
+import { PacketFormatSection } from './PacketFormatSection';
+import type { PacketFormats } from '../../../../hooks/usePacketFormats';
+import { resolveBusInterface } from '../../../../../../shared/busContracts';
 import { BusContractFields } from './BusContractFields';
 
 const EMPTY_BUS_LIBRARY = normalizeBusLibrary([]);
@@ -29,6 +32,7 @@ export interface BusPanelProps {
   onUpdate: YamlUpdateHandler;
   batchUpdate?: BatchUpdate;
   issueFocusRequest?: IssueFocusRequest | null;
+  packetFormats?: PacketFormats;
 }
 
 /** Returns true if the bus interface is a custom (user-defined) interface that should
@@ -58,6 +62,7 @@ export const BusPanel: React.FC<BusPanelProps> = ({
   onUpdate,
   batchUpdate,
   issueFocusRequest,
+  packetFormats,
 }) => {
   const fallbackBatch: BatchUpdate = (mutations) => {
     mutations.forEach(([path, value]) => onUpdate(path, value));
@@ -206,6 +211,22 @@ export const BusPanel: React.FC<BusPanelProps> = ({
     onUpdate(['busInterfaces', index, 'memoryMapRef'], mapName);
   };
 
+  const contract = imports?.busLibrary
+    ? resolveBusInterface({
+        busInterface:
+          bus as unknown as import('../../../../../../domain/ipcore.types').BusInterface,
+        busIndex: index,
+        parameters: (ipCore.parameters ?? []) as unknown as Parameter[],
+        library: imports.busLibrary,
+      })
+    : undefined;
+  const streaming = contract?.match?.contract.interfaceKind === 'streaming';
+  const dataPort = Object.entries(contract?.portWidths ?? {}).find(([name]) =>
+    ['tdata', 'data'].includes(name.toLowerCase())
+  );
+  const dataWidth = typeof dataPort?.[1].value === 'number' ? dataPort[1].value : undefined;
+  const packetRef = bus.packetFormatRef ?? undefined;
+
   return (
     <>
       <Section title="Identity">
@@ -298,6 +319,25 @@ export const BusPanel: React.FC<BusPanelProps> = ({
           />
         )}
       </Section>
+      {streaming && packetFormats && (
+        <PacketFormatSection
+          currentRef={packetRef}
+          info={packetRef ? packetFormats.infos[packetRef] : undefined}
+          candidates={packetFormats.candidates}
+          dataWidth={dataWidth}
+          busTypeNames={
+            contract?.match
+              ? [
+                  contract.match.contract.key,
+                  contract.match.contract.canonicalVlnv.split(':').slice(-2, -1)[0] ?? '',
+                ]
+              : undefined
+          }
+          onRequestCandidates={packetFormats.requestCandidates}
+          onChange={(ref) => onUpdate(['busInterfaces', index, 'packetFormatRef'], ref)}
+          onOpen={packetFormats.openFile}
+        />
+      )}
       <ArraySection bus={bus} busIndex={index} onUpdate={onUpdate} />
       <BusContractFields
         busIndex={index}

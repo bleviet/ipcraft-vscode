@@ -116,3 +116,57 @@ export function visibleLayoutRect(
     height: container.height / unit,
   };
 }
+
+/** The layout point under `pointer` (pixels from the container's top-left corner); inverse of the mapping above. */
+export function layoutPointAt(
+  viewBox: { width: number; height: number },
+  container: { width: number; height: number },
+  pan: Point,
+  zoom: number,
+  pointer: Point
+): Point {
+  const unit = Math.min(container.width / viewBox.width, container.height / viewBox.height) * zoom;
+  return {
+    x: viewBox.width / 2 + (pointer.x - container.width / 2 - pan.x) / unit,
+    y: viewBox.height / 2 + (pointer.y - container.height / 2 - pan.y) / unit,
+  };
+}
+
+/** The pan that puts layout point `point` under `pointer` in a container of the given size (zoom unchanged). */
+export function panKeepingPoint(
+  viewBox: { width: number; height: number },
+  container: { width: number; height: number },
+  zoom: number,
+  point: Point,
+  pointer: Point
+): Point {
+  const unit = Math.min(container.width / viewBox.width, container.height / viewBox.height) * zoom;
+  return {
+    x: pointer.x - container.width / 2 - (point.x - viewBox.width / 2) * unit,
+    y: pointer.y - container.height / 2 - (point.y - viewBox.height / 2) * unit,
+  };
+}
+
+/**
+ * `pan` limited so the whole layout stays inside the container on every axis where it fits at this zoom. An axis
+ * where the layout is larger than the container (zoomed in) is left as it is.
+ */
+export function clampPanToFit(
+  viewBox: { width: number; height: number },
+  container: { width: number; height: number },
+  zoom: number,
+  pan: Point
+): Point {
+  const unit = Math.min(container.width / viewBox.width, container.height / viewBox.height) * zoom;
+  const clamp = (value: number, content: number, size: number) => {
+    if (content > size) {
+      return value;
+    }
+    const slack = (size - content) / 2;
+    return Math.min(slack, Math.max(-slack, value)) || 0; // no -0
+  };
+  return {
+    x: clamp(pan.x, viewBox.width * unit, container.width),
+    y: clamp(pan.y, viewBox.height * unit, container.height),
+  };
+}

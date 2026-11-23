@@ -11,13 +11,14 @@ import { validateVhdlIdentifier, validateUniqueName } from '../../shared/utils/v
 import {
   parseBitsInput,
   parseBitsWidth,
-  parseReset,
   validateBitsString,
-  validateResetForField,
   fitFieldResetToWidth,
+  formatResetDisplay,
 } from '../../shared/utils/fieldValidation';
 import type { EditKey, FieldEditorState } from '../../hooks/useFieldEditor';
 import type { FieldDef } from './FieldsTable';
+import ResetCell from './ResetCell';
+import type { VersionRefIssue } from '../../../shared/versioning/validateVersionRefs';
 import {
   EditableCell,
   CellInput,
@@ -42,6 +43,8 @@ interface FieldTableRowProps {
   registerSize: number;
   onUpdate: YamlUpdateHandler;
   fieldEditor: FieldEditorState;
+  /** `$version` diagnostics for this field, shown in its reset cell. */
+  issues?: readonly VersionRefIssue[];
   onRowClick: (index: number) => void;
   onCellClick: (
     index: number,
@@ -68,6 +71,7 @@ const FieldTableRow = ({
   registerSize,
   onUpdate,
   fieldEditor,
+  issues,
   onRowClick,
   onCellClick,
   onCellFocus,
@@ -110,17 +114,13 @@ const FieldTableRow = ({
 
   const bits = fieldToBitsString(field);
   const color = getFieldColor(field.name ?? `field${index}`);
-  const resetDisplay =
-    field.resetValue !== null && field.resetValue !== undefined
-      ? `0x${Number(field.resetValue).toString(16).toUpperCase()}`
-      : '';
 
   const previewRange = dragPreviewRanges[rowId];
   const bitsValue = previewRange
     ? `[${previewRange[0]}:${previewRange[1]}]`
     : (bitsDrafts[rowId] ?? bits);
   const bitsErr = bitsErrors[rowId] ?? null;
-  const resetValue = resetDrafts[rowId] ?? (resetDisplay || '0x0');
+  const resetValue = resetDrafts[rowId] ?? formatResetDisplay(field);
   const resetErr = resetErrors[rowId] ?? null;
 
   // Compute maxWidth for this specific field to prevent register overflow
@@ -626,54 +626,34 @@ const FieldTableRow = ({
           </div>
         </EditableCell>
 
-        <EditableCell
-          columnKey="reset"
+        <ResetCell
+          field={field}
+          index={index}
           isActive={activeCell.rowId === rowId && activeCell.key === 'reset'}
+          isEditing={editingKey === 'reset'}
+          value={resetValue}
+          error={resetErr}
+          issues={issues}
+          cancelEditRef={fieldEditor.cancelEditRef}
           onCellClick={onCellClick(index, 'reset')}
-          className="px-4 py-2 font-mono vscode-muted"
-        >
-          <div className="flex flex-col justify-center h-10">
-            <CellInput
-              editKey="reset"
-              className="w-full font-mono"
-              isEditing={editingKey === 'reset'}
-              value={resetValue}
-              onFocus={() => {
-                onCellFocus(index, 'reset')();
-                setEditingKey('reset');
-              }}
-              cancelEditRef={fieldEditor.cancelEditRef}
-              onInput={(value) => {
-                const raw = value ?? '';
-                setResetDrafts((prev: Record<string, string>) => ({
-                  ...prev,
-                  [rowId]: raw,
-                }));
-
-                const trimmed = raw.trim();
-                if (!trimmed) {
-                  setResetErrors((prev: Record<string, string | null>) => ({
-                    ...prev,
-                    [rowId]: null,
-                  }));
-                  onUpdate(['fields', index, 'resetValue'], null);
-                  return;
-                }
-
-                const parsed = parseReset(raw);
-                const err = validateResetForField(field, parsed);
-                setResetErrors((prev: Record<string, string | null>) => ({
-                  ...prev,
-                  [rowId]: err,
-                }));
-                if (!err && parsed !== null) {
-                  onUpdate(['fields', index, 'resetValue'], parsed);
-                }
-              }}
-            />
-            {resetErr ? <div className="text-xs vscode-error mt-1">{resetErr}</div> : null}
-          </div>
-        </EditableCell>
+          onFocus={() => {
+            onCellFocus(index, 'reset')();
+            setEditingKey('reset');
+          }}
+          onDraftChange={(raw) =>
+            setResetDrafts((prev: Record<string, string>) => ({
+              ...prev,
+              [rowId]: raw,
+            }))
+          }
+          onErrorChange={(err) =>
+            setResetErrors((prev: Record<string, string | null>) => ({
+              ...prev,
+              [rowId]: err,
+            }))
+          }
+          onUpdate={onUpdate}
+        />
 
         <EditableCell
           columnKey="description"

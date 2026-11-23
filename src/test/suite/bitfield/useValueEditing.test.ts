@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react';
 import { useValueEditing } from '../../../webview/components/bitfield/useValueEditing';
 import { BitVector } from '../../../dataInspector/BitVector';
 import { parseRegisterBitVector } from '../../../webview/components/bitfield/utils';
+import { parseRegisterValueDraft } from '../../../webview/components/bitfield/registerValueToken';
 
 /**
  * Unlike useEditableDraft, this hook only writes registerValue on commit
@@ -129,5 +130,58 @@ describe('useValueEditing', () => {
     act(() => result.current.setValueDraft(''));
     act(() => result.current.commitRegisterValueDraft());
     expect(result.current.valueError).toBe('Value is required');
+  });
+
+  describe('$version token', () => {
+    const tokenOptions = (applyRegisterToken: () => string | null) => ({
+      ...baseOptions,
+      parseRegisterValue: (text: string, view: 'hex' | 'dec') =>
+        parseRegisterValueDraft(text, view, 32),
+      applyRegisterToken,
+      registerValue: BitVector.fromBigInt(BigInt(0), 32),
+    });
+
+    it('shows no error while the draft is a prefix of $version or equal to it', () => {
+      const { result } = renderHook((props) => useValueEditing(props), {
+        initialProps: tokenOptions(() => null),
+      });
+      for (const text of ['$', '$ver', '$version']) {
+        expect(
+          result.current.validateRegisterValue(parseRegisterValueDraft(text, 'hex', 32))
+        ).toBeNull();
+      }
+      expect(result.current.validateRegisterValue(parseRegisterValueDraft('$x', 'hex', 32))).toBe(
+        'Invalid number'
+      );
+    });
+
+    it('applies a complete token once and keeps the handler error', () => {
+      const applyRegisterToken = jest.fn(() => 'Use $version.* on the bit fields');
+      const { result } = renderHook((props) => useValueEditing(props), {
+        initialProps: tokenOptions(applyRegisterToken),
+      });
+
+      act(() => result.current.setValueEditing(true));
+      act(() => result.current.setValueDraft('$version'));
+      act(() => result.current.commitRegisterValueDraft());
+
+      expect(applyRegisterToken).toHaveBeenCalledTimes(1);
+      expect(applyRegisterToken).toHaveBeenCalledWith('$version');
+      expect(result.current.valueError).toBe('Use $version.* on the bit fields');
+    });
+
+    it('reports an unfinished token as Invalid number on commit', () => {
+      const applyRegisterToken = jest.fn(() => null);
+      const { result } = renderHook((props) => useValueEditing(props), {
+        initialProps: tokenOptions(applyRegisterToken),
+      });
+
+      act(() => result.current.setValueEditing(true));
+      act(() => result.current.setValueDraft('$ver'));
+      act(() => result.current.commitRegisterValueDraft());
+
+      expect(applyRegisterToken).not.toHaveBeenCalled();
+      expect(result.current.valueError).toBe('Invalid number');
+    });
   });
 });

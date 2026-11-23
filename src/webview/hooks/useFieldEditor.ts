@@ -8,6 +8,8 @@ import { useFieldDrafts } from './useFieldDrafts';
 import { useTableEditorState } from './useTableEditorState';
 import { usePendingSelect, type PendingSelectTarget } from './usePendingSelect';
 import { reconcileRowIds, type TableRowWrapper } from '../utils/rowIdentity';
+import { formatResetDisplay } from '../shared/utils/fieldValidation';
+import { fieldsWriteUpdate } from '../services/RegisterEditOperation';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -67,12 +69,15 @@ function toRuntimeFields(fields: BitFieldRecord[]): BitFieldRuntimeDef[] {
  * @param registerSize  Register width in bits (e.g. 32).
  * @param onUpdate Callback to commit a YAML path + value change.
  * @param isActive When false the keyboard handler is not installed.
+ * @param registerHasVersionRef True while the register still carries its own `$version`
+ *   reference: an insert then removes it in the same update (it is invalid next to bit fields).
  */
 export function useFieldEditor(
   fields: BitFieldRecord[],
   registerSize: number,
   onUpdate: YamlUpdateHandler,
-  isActive = true
+  isActive = true,
+  registerHasVersionRef = false
 ) {
   const [insertError, setInsertError] = useState<string | null>(null);
 
@@ -133,10 +138,10 @@ export function useFieldEditor(
       }));
       setBitsErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
 
-      const rv = snapshotField.resetValue;
-      const resetDisplay =
-        rv !== null && rv !== undefined ? `0x${Number(rv).toString(16).toUpperCase()}` : '0x0';
-      setResetDrafts((prev: Record<string, string>) => ({ ...prev, [rowId]: resetDisplay }));
+      setResetDrafts((prev: Record<string, string>) => ({
+        ...prev,
+        [rowId]: formatResetDisplay(snapshotField),
+      }));
       setResetErrors((prev: Record<string, string | null>) => ({ ...prev, [rowId]: null }));
     },
     onInsertAfter: () => tryInsertField(true),
@@ -325,11 +330,11 @@ export function useFieldEditor(
       } else {
         pendingSelectRef.current = target;
       }
-      onUpdate(['fields'], result.items);
+      onUpdate(...fieldsWriteUpdate(result.items, registerHasVersionRef));
       clearAllDrafts();
       editorState.clearInsertBar();
     },
-    [planFieldInsert, editorState, onUpdate, clearAllDrafts]
+    [planFieldInsert, editorState, onUpdate, clearAllDrafts, registerHasVersionRef]
   );
 
   // Gap g lies between rows g-1 and g: gap 0 inserts before row 0, gap g>0 after row g-1.

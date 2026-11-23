@@ -390,6 +390,7 @@ describe('Details of a ghost', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     return onSelect;
@@ -456,6 +457,7 @@ describe('Details of a pin whose wire is only in the base', () => {
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
   }
@@ -531,6 +533,7 @@ describe('the undriven note of a block with a ghost sink pin', () => {
           onEnterHierarchy={jest.fn()}
           onReveal={jest.fn()}
           onOpenDefinition={jest.fn()}
+          onAssignContainerTcl={jest.fn()}
         />
       );
     const open = details(now);
@@ -629,6 +632,7 @@ describe('Details of a boundary port whose wire above is only in the base', () =
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     expect(screen.getByText(`Not connected in ${now.name}.`)).toBeVisible();
@@ -663,6 +667,7 @@ describe('Details of a net whose tree met a wire that is only in the base', () =
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     expect(screen.getByRole('button', { name: 'fir_compiler_0/S_AXIS_DATA' })).toBeVisible();
@@ -694,6 +699,7 @@ describe('Details of a net whose tree met a wire that is only in the base', () =
         onEnterHierarchy={jest.fn()}
         onReveal={jest.fn()}
         onOpenDefinition={jest.fn()}
+        onAssignContainerTcl={jest.fn()}
       />
     );
     expect(screen.getByRole('button', { name: 'axis_data_fifo_0/s_axis_aclk' })).toBeVisible();

@@ -38,6 +38,7 @@ export interface NewInstance {
   moduleRef?: string;
   xciName?: string;
   pinsComplete?: true;
+  container?: { reference: string };
   line: number;
   procLine?: number;
 }
@@ -134,6 +135,7 @@ export class SystemGraphBuilder {
       ...(spec.moduleRef !== undefined && { moduleRef: spec.moduleRef }),
       ...(spec.xciName !== undefined && { xciName: spec.xciName }),
       ...(spec.pinsComplete && { pinsComplete: true as const }),
+      ...(spec.container && { container: spec.container }),
       parameters: {},
       pins,
       line: spec.line,
@@ -186,7 +188,9 @@ export class SystemGraphBuilder {
         if (box.kind !== 'blackbox') {
           continue;
         }
-        lines.forEach((line) => this.noteBlackBox(ref.instance as string, line));
+        if (!box.container) {
+          lines.forEach((line) => this.noteBlackBox(ref.instance as string, line));
+        }
         if (!box.pins.some((p) => p.name === ref.pin)) {
           box.pins.push({
             name: ref.pin,

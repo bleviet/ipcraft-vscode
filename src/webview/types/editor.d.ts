@@ -7,6 +7,7 @@
  */
 
 import type { YamlPath } from '../services/YamlPathResolver';
+import type { VersionRef } from '../../shared/versioning/versionScheme';
 
 /** Re-export canonical YamlPath for convenience. */
 export type { YamlPath };
@@ -34,6 +35,8 @@ export interface BitFieldRecord {
   width?: number | null;
   access?: string | null;
   resetValue?: number | null;
+  /** `$version` token in place of a number (`resetValue` is 0 then). */
+  versionRef?: VersionRef | null;
   description?: string | null;
   [key: string]: unknown;
 }

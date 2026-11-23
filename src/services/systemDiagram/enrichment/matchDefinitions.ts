@@ -30,7 +30,7 @@ export interface DefinitionMatches<Ip extends IpFileKey, Hdl extends HdlFileKey>
 const dirSegments = (file: string) => file.split(/[\\/]/).slice(0, -1);
 
 /** Steps between the directories of two files in the directory tree. */
-function treeDistance(a: string, b: string): number {
+export function treeDistance(a: string, b: string): number {
   const left = dirSegments(a);
   const right = dirSegments(b);
   let shared = 0;

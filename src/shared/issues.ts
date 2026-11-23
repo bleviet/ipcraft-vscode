@@ -3,6 +3,7 @@ export type IssueSource =
   | 'protocol'
   | 'references'
   | 'portFields'
+  | 'packetFormat'
   | 'hdl'
   | 'hwTcl'
   | 'componentXml';

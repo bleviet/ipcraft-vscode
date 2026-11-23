@@ -9,25 +9,30 @@ import {
 import { FieldsTable } from './FieldsTable';
 import { useFieldEditor } from '../../hooks/useFieldEditor';
 import { useDebugMode } from '../../hooks/useDebugMode';
-import { useValueEditing } from '../bitfield/useValueEditing';
-import ValueBar from '../bitfield/ValueBar';
-import {
-  applyRegisterBitVectorToFields,
-  buildRegisterBitVector,
-  parseRegisterBitVector,
-} from '../bitfield/utils';
+import { useVersionContext } from '../../hooks/useVersionContext';
+import { useRegisterVersionIssues } from '../../hooks/useVersionRefIssuesContext';
+import { RegisterValueBar } from './RegisterValueBar';
 import type { RegisterDef } from '../../types/memoryMap';
 import { generateUniqueName } from '../../utils/naming';
 import { formatBitsRange } from '../../utils/BitFieldUtils';
 import { fitFieldResetToWidth } from '../../shared/utils/fieldValidation';
+import { fieldsWriteUpdate } from '../../services/RegisterEditOperation';
+import { VersionIssueList } from '../../shared/components/VersionIssueList';
+import { resolveVersionRefInContext } from '../../../shared/versioning/versionContext';
+import type { VersionRef } from '../../../shared/versioning/versionScheme';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export interface RegisterEditorProps {
-  /** The register to display and edit. */
-  register: RegisterDef;
+  /** The register to display and edit (a normalized register carries its `$version` token). */
+  register: RegisterDef & { versionRef?: VersionRef | null };
+  /**
+   * The map's own register object when `register` is a copy of it (an element of a flat register
+   * array); its `$version` diagnostics are shown instead of the copy's, which has none.
+   */
+  issueSource?: object;
   /** Normalised bit fields (with offset / width). */
   fields: BitFieldRecord[];
   registerLayout: 'stacked' | 'side-by-side';
@@ -72,6 +77,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
   (
     {
       register,
+      issueSource,
       fields,
       registerLayout,
       toggleRegisterLayout,
@@ -91,12 +97,23 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
     // `onUpdate`, so it can't accidentally end up in the .mm.yml file.
     // See https://github.com/bleviet/ipcraft-vscode/issues/39.
     const { debugMode } = useDebugMode();
+    const versionContext = useVersionContext();
+    const versionIssues = useRegisterVersionIssues(issueSource ?? register);
+    // A `$version` token stands for the owning core's version; unresolved reads as 0.
+    const resolveRef = useCallback(
+      (ref: VersionRef) => resolveVersionRefInContext(versionContext, ref) ?? 0,
+      [versionContext]
+    );
     const [debugOverrides, setDebugOverrides] = useState<Record<number, number | bigint | null>>(
       {}
     );
+    // Debug override for the register's own `resetValue` (the value storage of
+    // a register without bit fields), kept separate from the per-field map.
+    const [debugRegisterReset, setDebugRegisterReset] = useState<number | bigint | null>(null);
 
     useEffect(() => {
       setDebugOverrides({});
+      setDebugRegisterReset(null);
     }, [debugMode, register?.name]);
 
     const effectiveFields = useMemo(() => {
@@ -107,7 +124,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         const override = debugOverrides[i];
         return Object.prototype.hasOwnProperty.call(debugOverrides, i) &&
           typeof override !== 'bigint'
-          ? { ...f, resetValue: override }
+          ? { ...f, resetValue: override, versionRef: null }
           : f;
       });
     }, [fields, debugMode, debugOverrides]);
@@ -122,6 +139,9 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
               [seg1]: value as number | bigint | null,
             }));
           }
+          if (seg0 === 'resetValue' && path.length === 1) {
+            setDebugRegisterReset(value as number | bigint | null);
+          }
           return;
         }
         onUpdate(path, value);
@@ -129,7 +149,13 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
       [debugMode, onUpdate]
     );
 
-    const fieldEditor = useFieldEditor(effectiveFields, registerSize, debugAwareUpdate, true);
+    const fieldEditor = useFieldEditor(
+      effectiveFields,
+      registerSize,
+      debugAwareUpdate,
+      true,
+      Boolean(register?.versionRef)
+    );
 
     const {
       hoveredFieldIndex,
@@ -169,8 +195,17 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         // regardless of which branch below computes the rest of the field --
         // otherwise a >53-bit debug value silently reverts on every render.
         const debugValue = debugMode ? debugOverrides[fieldIndex] : undefined;
+        const overridden =
+          debugMode && Object.prototype.hasOwnProperty.call(debugOverrides, fieldIndex);
+        // A token field is a constant: its bits are the resolved version, unless Debug Mode
+        // overrides it locally (then it is a plain value until the override is cleared).
+        const versionRef = overridden ? null : f.versionRef;
         const resetValue =
-          typeof debugValue === 'bigint' ? debugValue : (f.resetValue ?? undefined);
+          typeof debugValue === 'bigint'
+            ? debugValue
+            : versionRef
+              ? resolveRef(versionRef)
+              : (f.resetValue ?? undefined);
         const mappedF = {
           ...f,
           name: f.name ?? undefined,
@@ -179,6 +214,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           width: f.width ?? undefined,
           access: f.access ?? undefined,
           resetValue,
+          versionRef,
           description: f.description ?? undefined,
         };
         if (
@@ -194,64 +230,30 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
         }
         return mappedF;
       });
-    }, [effectiveFields, debugMode, debugOverrides]);
+    }, [effectiveFields, debugMode, debugOverrides, resolveRef]);
 
     const handleUpdateFieldReset = useCallback(
       (fieldIndex: number, resetValue: number | bigint | null) => {
+        // A token field is a constant; only Debug Mode may override it (locally).
+        if (normalisedFields[fieldIndex]?.versionRef && !debugMode) {
+          return;
+        }
         debugAwareUpdate(['fields', fieldIndex, 'resetValue'], resetValue);
       },
-      [debugAwareUpdate]
+      [debugAwareUpdate, normalisedFields, debugMode]
     );
-
-    const registerValue = useMemo(
-      () => buildRegisterBitVector(normalisedFields, registerSize),
-      [normalisedFields, registerSize]
-    );
-
-    const applyRegisterValue = useCallback(
-      (value: import('../../../dataInspector/BitVector').BitVector) => {
-        let unsafeForYaml = false;
-        applyRegisterBitVectorToFields(normalisedFields, value, (_fieldIndex, fieldValue) => {
-          unsafeForYaml ||= typeof fieldValue === 'bigint';
-        });
-        if (!debugMode && unsafeForYaml) {
-          return "Values above JavaScript's safe integer limit require Debug Mode";
-        }
-        applyRegisterBitVectorToFields(normalisedFields, value, handleUpdateFieldReset);
-        return null;
-      },
-      [normalisedFields, handleUpdateFieldReset, debugMode]
-    );
-
-    const {
-      valueView,
-      setValueView,
-      valueDraft,
-      setValueDraft,
-      setValueEditing,
-      valueError,
-      setValueError,
-      validateRegisterValue,
-      commitRegisterValueDraft,
-    } = useValueEditing({
-      registerSize,
-      registerValue,
-      parseRegisterValue: (text, view) => parseRegisterBitVector(text, view, registerSize),
-      applyRegisterValue,
-    });
 
     const valueBar = (
-      <ValueBar
-        valueDraft={valueDraft}
-        valueError={valueError}
-        valueView={valueView}
-        setValueDraft={setValueDraft}
-        setValueEditing={setValueEditing}
-        setValueError={setValueError}
-        setValueView={setValueView}
-        parseRegisterValue={(text, view) => parseRegisterBitVector(text, view, registerSize)}
-        validateRegisterValue={validateRegisterValue}
-        commitRegisterValueDraft={commitRegisterValueDraft}
+      <RegisterValueBar
+        registerSize={registerSize}
+        register={register}
+        fields={normalisedFields}
+        debugMode={debugMode}
+        debugRegisterReset={debugRegisterReset}
+        resolveRef={resolveRef}
+        onUpdateRegisterReset={debugAwareUpdate}
+        onUpdateDocument={onUpdate}
+        onUpdateFieldReset={handleUpdateFieldReset}
       />
     );
 
@@ -351,7 +353,7 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           const bLo = b.offset ?? 0;
           return aLo - bLo;
         });
-        debugAwareUpdate(['fields'], newFields);
+        debugAwareUpdate(...fieldsWriteUpdate(newFields, Boolean(register?.versionRef)));
       },
       onDragPreview: (preview: { idx: number; range: [number, number] }[] | null) => {
         if (preview === null) {
@@ -396,13 +398,17 @@ export const RegisterEditor = React.forwardRef<RegisterEditorHandle, RegisterEdi
           />
         }
         table={
-          <FieldsTable
-            fields={effectiveFields}
-            registerSize={registerSize}
-            onUpdate={debugAwareUpdate}
-            fieldEditor={fieldEditor}
-            valueBar={valueBar}
-          />
+          <>
+            <VersionIssueList issues={versionIssues.register} className="px-4 py-2 shrink-0" />
+            <FieldsTable
+              fields={effectiveFields}
+              registerSize={registerSize}
+              onUpdate={debugAwareUpdate}
+              fieldEditor={fieldEditor}
+              fieldIssues={versionIssues.fields}
+              valueBar={valueBar}
+            />
+          </>
         }
         footer={embedded ? undefined : <KeyboardShortcutsButton context={footerContext} />}
         layout={registerLayout}

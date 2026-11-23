@@ -62,4 +62,6 @@ export type ExtensionToWebviewMessage =
   | IpCoreConsistencyResultMessage
   | IpCoreGenerateResultMessage
   | IpCoreExportOptionsMessage
-  | Extract<IpCoreHostMessage, { type: 'openExport' }>;
+  | Extract<IpCoreHostMessage, { type: 'openExport' }>
+  | Extract<IpCoreHostMessage, { type: 'packetFormatInfo' }>
+  | Extract<IpCoreHostMessage, { type: 'packetFormatCandidates' }>;

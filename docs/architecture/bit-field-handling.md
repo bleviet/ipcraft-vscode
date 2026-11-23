@@ -84,6 +84,11 @@ Field moves use the special path `['__op', 'field-move']`. The update handler
 passes that operation to `FieldOperationService`, which calls the layout
 engine and writes the complete result.
 
+`['__op', 'register-edit']` applies several writes inside one register, plus
+removed keys, as one update (`RegisterEditOperation.ts`). Gestures that create
+bit fields on a register that still carries a register-level `$version`
+reference use it to remove that reference in the same update.
+
 ## Editing the Bits cell
 
 The Bits cell accepts either a single bit such as `3` or a range such as

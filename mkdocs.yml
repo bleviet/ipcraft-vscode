@@ -76,6 +76,7 @@ nav:
       - Import existing designs: how-to/importing-an-existing-design.md
       - Generate:
           - Generating a project: how-to/generating-a-project.md
+          - Versioning register sets: how-to/versioning-register-sets.md
           - Scaffold packs: how-to/customizing-generated-files-with-scaffold-packs.md
           - "Tutorial: build and verify a scaffold pack": tutorials/build-and-verify-a-scaffold-pack.md
           - Running a cocotb simulation: how-to/run-cocotb-simulation.md

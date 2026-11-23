@@ -21,6 +21,8 @@ import { useDetailsNavigation } from './hooks/useDetailsNavigation';
 import { useYamlUpdateHandler } from './hooks/useYamlUpdateHandler';
 import { useLayoutToggle } from './hooks/useLayoutToggle';
 import { DebugModeProvider } from './hooks/useDebugMode';
+import { VersionContextProvider } from './hooks/useVersionContext';
+import { VersionRefIssuesProvider } from './hooks/useVersionRefIssuesContext';
 import { insertElement, deleteElement } from './algorithms/MutationService';
 import { recomputeRegisterLayout } from './algorithms/LayoutEngine';
 import type { LayoutMemoryMap, LayoutRegister } from './algorithms/LayoutEngine';
@@ -752,23 +754,25 @@ const App = () => {
         />
       </aside>
       <section className="flex-1 overflow-hidden min-w-0">
-        <DetailsPanel
-          ref={detailsRef}
-          selectedType={selectedType}
-          selectedObject={selectedObject}
-          selectionMeta={selectionMeta}
-          onUpdate={handleUpdateWithRepack}
-          onNavigateToRegister={navigateToRegister}
-          onNavigateToBlock={navigateToBlock}
-          registerLayout={registerLayout.layout}
-          toggleRegisterLayout={registerLayout.toggle}
-          blockLayout={blockLayout.layout}
-          toggleBlockLayout={blockLayout.toggle}
-          memoryMapLayout={memoryMapLayout.layout}
-          toggleMemoryMapLayout={memoryMapLayout.toggle}
-          arrayLayout={arrayLayout.layout}
-          toggleArrayLayout={arrayLayout.toggle}
-        />
+        <VersionRefIssuesProvider memoryMap={memoryMap}>
+          <DetailsPanel
+            ref={detailsRef}
+            selectedType={selectedType}
+            selectedObject={selectedObject}
+            selectionMeta={selectionMeta}
+            onUpdate={handleUpdateWithRepack}
+            onNavigateToRegister={navigateToRegister}
+            onNavigateToBlock={navigateToBlock}
+            registerLayout={registerLayout.layout}
+            toggleRegisterLayout={registerLayout.toggle}
+            blockLayout={blockLayout.layout}
+            toggleBlockLayout={blockLayout.toggle}
+            memoryMapLayout={memoryMapLayout.layout}
+            toggleMemoryMapLayout={memoryMapLayout.toggle}
+            arrayLayout={arrayLayout.layout}
+            toggleArrayLayout={arrayLayout.toggle}
+          />
+        </VersionRefIssuesProvider>
       </section>
     </main>
   );
@@ -842,7 +846,9 @@ if (rootElement) {
   root.render(
     <ErrorBoundary>
       <DebugModeProvider>
-        <App />
+        <VersionContextProvider>
+          <App />
+        </VersionContextProvider>
       </DebugModeProvider>
     </ErrorBoundary>
   );

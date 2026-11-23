@@ -10,6 +10,7 @@ import { useProtocolSuggestions } from './hooks/useProtocolSuggestions';
 import { useStagingSession } from './hooks/useStagingSession';
 import { useConsistencySession } from './hooks/useConsistencySession';
 import { useToolbarSettings } from './hooks/useToolbarSettings';
+import { usePacketFormats } from './hooks/usePacketFormats';
 import { useIssuesSession } from './hooks/useIssuesSession';
 import { useIpCoreExport } from './hooks/useIpCoreExport';
 import { IpCoreShell } from './components/IpCoreShell';
@@ -156,6 +157,7 @@ const IpCoreApp: React.FC = () => {
     showToast,
   });
 
+  const packetFormats = usePacketFormats();
   const validationErrors = getValidationErrors();
   const typedIpCore = ipCore as unknown as Parameters<typeof EditorPanel>[0]['ipCore'];
   const issues = useIssuesSession({
@@ -165,6 +167,7 @@ const IpCoreApp: React.FC = () => {
     validationErrors,
     consistencyIssues: consistency.consistencyResult?.issues,
     revealRequest: consistency.findingsRevealRequest,
+    packetFormatInfos: packetFormats.infos,
     onSelectElement: selection.select,
     onSelectSubPort: selection.selectSubPort,
   });
@@ -191,6 +194,8 @@ const IpCoreApp: React.FC = () => {
     onConformanceReport: issues.setHostReport,
     onExportOptions: imageExport.setOptions,
     onOpenExport: imageExport.requestOpen,
+    onPacketFormatInfo: packetFormats.handleInfo,
+    onPacketFormatCandidates: packetFormats.handleCandidates,
   });
 
   const vlnv = typedIpCore?.vlnv && typeof typedIpCore.vlnv === 'object' ? typedIpCore.vlnv : null;
@@ -271,6 +276,8 @@ const IpCoreApp: React.FC = () => {
         issueAnnotations: issues.annotations,
         issueFocusRequest: issues.focusRequest,
         visibleRectRef: imageExport.visibleRectRef,
+        packetFormatInfos: packetFormats.infos,
+        onOpenPacketFormat: packetFormats.openFile,
       }}
       rightPanel={
         <IpCoreRightPanel
@@ -279,6 +286,7 @@ const IpCoreApp: React.FC = () => {
           canvasSelected={selection.selected}
           ipCore={typedIpCore}
           imports={imports}
+          packetFormats={packetFormats}
           onUpdate={updateIpCore}
           batchUpdate={batchUpdateIpCore}
           onCloseInspector={selection.deselect}

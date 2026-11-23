@@ -24,6 +24,22 @@
 
 ---
 
+{% if (version_scheme and version_scheme != 'free') or version_history | length > 0 %}
+## Version
+
+**Version scheme:** `{{ version_scheme }}`
+
+{% if version_history | length > 0 %}
+| Version | Register set | CRC-8 | CRC-16 |
+|---------|--------------|-------|--------|
+{% for entry in version_history %}
+| `{{ entry.version }}` | `{{ entry.register_set }}` | {{ ('`0x' ~ ('%02X' | format(entry.crc8)) ~ '`') if entry.crc8 is not none else '—' }} | {{ ('`0x' ~ ('%04X' | format(entry.crc16)) ~ '`') if entry.crc16 is not none else '—' }} |
+{% endfor %}
+
+{% endif %}
+---
+
+{% endif %}
 {% if generics | length > 0 %}
 ## Parameters
 
@@ -132,8 +148,14 @@
 | Bits | Field | Access | Reset | Description |
 |------|-------|--------|-------|-------------|
 {% for field in reg.fields %}
+{% if field.is_constant %}
+| `[{{ field.offset + field.width - 1 }}:{{ field.offset }}]` | `{{ field.name }}` | `read-only (constant)` | `{{ field.version_ref }} (0x{{ ('%0' ~ ((field.width + 3) // 4) ~ 'X') | format(field.reset_value) }})` | {{ field.description if field.description else "—" }} |
+{% else %}
 | `[{{ field.offset + field.width - 1 }}:{{ field.offset }}]` | `{{ field.name }}` | `{{ field.access }}` | `0x{{ '%X' | format(field.reset_value) }}` | {{ field.description if field.description else "—" }} |
+{% endif %}
 {% endfor %}
+{% elif reg.is_constant %}
+Constant: `{{ reg.version_ref }} (0x{{ ('%0' ~ ((data_width + 3) // 4) ~ 'X') | format(reg.reset_value) }})`
 {% else %}
 *No fields defined.*
 {% endif %}

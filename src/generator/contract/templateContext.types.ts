@@ -11,7 +11,7 @@ export interface TemplateContext {
   /**
    * Semantic version of the template context contract.
    */
-  contract_version: '1.6.0';
+  contract_version: '1.8.0';
   name: string;
   entity_name: string;
   has_memory_mapped_slave: boolean;
@@ -91,6 +91,18 @@ export interface TemplateContext {
   vendor?: string;
   library?: string;
   version?: string;
+  /**
+   * The parsed vlnv.versionScheme of the core; `free` when absent.
+   */
+  version_scheme: 'free' | 'major.minor' | 'major.minor.patch' | 'major.feature.minor.patch';
+  /**
+   * Released versions and their register-set ids, in release order, from the first memory map that records a versionHistory; empty otherwise.
+   */
+  version_history: VersionHistoryEntry[];
+  /**
+   * The core version with every character outside [A-Za-z0-9_] replaced by `_`, for file names such as the Vivado XGUI script (`1.2.0` -> `1_2_0`).
+   */
+  version_file_suffix: string;
   author?: string;
   description: string;
   display_name: string;
@@ -101,6 +113,14 @@ export interface AnnotatedRegister {
   access: string;
   description: string;
   reset_value: number | null;
+  /**
+   * True for a register-level `$version` register, or when every field is constant.
+   */
+  is_constant: boolean;
+  /**
+   * The register-level `$version` token this register's reset value came from (e.g. `$version` or `$version.minor`), or null.
+   */
+  version_ref: string | null;
   fields: Field[];
   has_cos_fields: boolean;
   /**
@@ -116,9 +136,9 @@ export interface AnnotatedRegister {
    */
   needs_write_branch: boolean;
   /**
-   * Where the read process takes this register from: composed field by field (has_mixed_fields), hardware input record (regs_in), software storage record (regs), or not readable.
+   * Where the read process takes this register from: composed field by field (has_mixed_fields), hardware input record (regs_in), software storage record (regs), a literal of resolved constants (constant: register-level `$version`, or every field constant), or not readable.
    */
-  read_source: 'composed' | 'regs_in' | 'regs' | 'none';
+  read_source: 'composed' | 'regs_in' | 'regs' | 'constant' | 'none';
 }
 export interface Field {
   name: string;
@@ -128,6 +148,14 @@ export interface Field {
   reset_value: number | null;
   description: string;
   monitorChangeOf: string | null;
+  /**
+   * True for a `$version` field: a read-only literal in the register file (reset_value holds the resolved value), never stored and never a hardware input.
+   */
+  is_constant: boolean;
+  /**
+   * The `$version` token this field's reset value came from (e.g. `$version.major`), or null.
+   */
+  version_ref: string | null;
 }
 export interface Register {
   name: string;
@@ -135,6 +163,14 @@ export interface Register {
   access: string;
   description: string;
   reset_value: number | null;
+  /**
+   * True for a register-level `$version` register, or when every field is constant.
+   */
+  is_constant: boolean;
+  /**
+   * The register-level `$version` token this register's reset value came from (e.g. `$version` or `$version.minor`), or null.
+   */
+  version_ref: string | null;
   fields: Field[];
 }
 export interface W1CRegister {
@@ -143,6 +179,8 @@ export interface W1CRegister {
   access: string;
   description: string;
   reset_value: number | null;
+  is_constant: boolean;
+  version_ref: string | null;
   fields: W1CField[];
 }
 export interface W1CField {
@@ -153,6 +191,8 @@ export interface W1CField {
   reset_value: number | null;
   description: string;
   monitorChangeOf: string | null;
+  is_constant: boolean;
+  version_ref: string | null;
   is_cos: boolean;
 }
 export interface CosRegister {
@@ -161,6 +201,8 @@ export interface CosRegister {
   access: string;
   description: string;
   reset_value: number | null;
+  is_constant: boolean;
+  version_ref: string | null;
   fields: Field[];
   cos_fields: CosField[];
   val_fields: Field[];
@@ -173,6 +215,8 @@ export interface CosField {
   reset_value: number | null;
   description: string;
   monitorChangeOf: string | null;
+  is_constant: boolean;
+  version_ref: string | null;
   monitored_field: Field;
 }
 export interface MixedRegister {
@@ -181,9 +225,11 @@ export interface MixedRegister {
   access: string;
   description: string;
   reset_value: number | null;
+  is_constant: boolean;
+  version_ref: string | null;
   fields: Field[];
   /**
-   * Hardware-driven read-only fields sourced from regs_in.<reg>_val at read time instead of internal SW storage.
+   * Hardware-driven read-only fields sourced from regs_in.<reg>_val at read time instead of internal SW storage. Constant (`$version`) fields are never listed here.
    */
   val_fields: Field[];
 }
@@ -498,4 +544,16 @@ export interface BoundaryTransformPort {
   swap_kind?: 'lane' | 'bit';
   lane_width?: number | string;
   lane_kind?: 'byte' | 'symbol';
+}
+export interface VersionHistoryEntry {
+  version: string;
+  register_set: string;
+  /**
+   * CRC-8 of the version bytes recorded with the entry; null for entries written before CRCs were recorded.
+   */
+  crc8: number | null;
+  /**
+   * CRC-16 of the version bytes recorded with the entry; null for entries written before CRCs were recorded.
+   */
+  crc16: number | null;
 }

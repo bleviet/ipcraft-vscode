@@ -5,6 +5,8 @@ import { IpCoreScaffolder } from '../generator/IpCoreScaffolder';
 import type { ResourceRoots } from '../services/ResourceRoots';
 import type { GenerateOptions, HdlLanguage } from '../generator/types';
 import type { IndentStyle } from '../generator/reindent';
+import type { IpcraftIssue } from '../shared/issues';
+import { planRegisterSets, writeRegisterSets, type RegisterSetPolicy } from './registerSetPolicy';
 
 export const DEFAULT_QUARTUS_DEVICE = '5CSEBA6U23I7';
 export const DEFAULT_VIVADO_PART = 'xc7z020clg484-1';
@@ -20,6 +22,8 @@ export interface CliGenerateArgs {
   targetPart?: string;
   indentStyle?: IndentStyle;
   indentSize?: number;
+  /** Without it generation never writes `versionHistory`; see registerSetPolicy.ts. */
+  registerSetPolicy?: RegisterSetPolicy;
 }
 
 export interface CliGenerateResult {
@@ -30,6 +34,16 @@ export interface CliGenerateResult {
   /** Non-fatal generation warnings, e.g. a pack that looks like it ships its own testbench but
    *  never declared `generateFrameworkTestbench` (issue #156). */
   warnings?: string[];
+  /** One line per memory map whose `versionHistory` was written (`--register-set-policy`). */
+  registerSetsRecorded?: string[];
+}
+
+/** The failure text of a rejected generation: its error followed by each issue message. */
+export function formatGenerationError(result: {
+  error?: string;
+  issues?: readonly IpcraftIssue[];
+}): string {
+  return [result.error, ...(result.issues ?? []).map((issue) => issue.message)].join('\n');
 }
 
 /** Builds a fresh IpCoreScaffolder wired to resourceRoots — shared by `generate` and `verify`. */
@@ -92,6 +106,12 @@ export async function runCliGenerate(
   const resolvedIpYaml = path.resolve(args.ipYamlPath);
   const outputDir = path.resolve(args.outDir ?? path.dirname(resolvedIpYaml));
 
+  const registerSets = await planRegisterSets(resolvedIpYaml, args.registerSetPolicy);
+  if (registerSets.problems.length > 0) {
+    return { success: false, error: registerSets.problems.join('\n') };
+  }
+  await writeRegisterSets(registerSets);
+
   const result = await scaffolder.generateAll(
     resolvedIpYaml,
     outputDir,
@@ -100,7 +120,7 @@ export async function runCliGenerate(
   if (!result.success) {
     return {
       success: false,
-      error: [result.error, ...(result.issues ?? []).map((issue) => issue.message)].join('\n'),
+      error: formatGenerationError(result),
     };
   }
 
@@ -109,5 +129,6 @@ export async function runCliGenerate(
     outputDir,
     files: Object.keys(result.files ?? {}).sort(),
     warnings: result.warnings,
+    registerSetsRecorded: registerSets.recorded,
   };
 }

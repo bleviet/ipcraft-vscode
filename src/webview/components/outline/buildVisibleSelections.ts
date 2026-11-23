@@ -8,6 +8,7 @@ import {
   ROOT_ID,
 } from './outlineIds';
 import { BlockNode as BlockModel, OutlineSelection, isArrayNode } from './types';
+import { toArrayElementSelectionObject } from '../../utils/arrayElementSelection';
 
 interface BuildVisibleSelectionsOptions {
   memoryMap: NormalizedMemoryMap;
@@ -74,11 +75,7 @@ export function buildVisibleSelections({
           items.push({
             id: elementNodeId,
             type: 'array',
-            object: {
-              ...arr,
-              __element_index: elementIndex,
-              __element_base: elementBase,
-            },
+            object: toArrayElementSelectionObject(arr, elementIndex, elementBase),
             breadcrumbs: [memoryMapName, block.name, `${arr.name}[${elementIndex}]`],
             path: ['addressBlocks', blockIndex, 'registers', regIndex],
           });

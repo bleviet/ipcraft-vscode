@@ -299,6 +299,8 @@ export interface VlnvDef {
   library?: string;
   name?: string;
   version?: string;
+  /** Version scheme of `version` (IP core VLNV only); absent means free text. */
+  versionScheme?: string;
 }
 
 export interface BusInterfaceArrayDef {

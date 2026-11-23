@@ -4,6 +4,7 @@ import type { ConformanceReport, IpcraftIssue, IssueSource } from '../../../shar
 import type { IpCore } from '../../types/ipCore';
 import type { ValidationError } from './useIpCoreState';
 import type { NormalizedBusLibrary } from '../../../shared/busContracts';
+import { checkPacketFormatRefs, type PacketFormatRefInfo } from '../../../shared/packetFormat';
 import { checkPortFields } from '../utils/portFieldChecks';
 import {
   deduplicateAndOrderIssues,
@@ -41,6 +42,7 @@ export function useIssuesSession(options: {
   consistencyIssues?: readonly IpcraftIssue[];
   /** Counts requests to open the panel; each increase opens it once, like the toolbar badge. */
   revealRequest?: number;
+  packetFormatInfos?: Record<string, PacketFormatRefInfo>;
   onSelectElement: (id: string) => void;
   onSelectSubPort: (id: string) => void;
 }) {
@@ -51,6 +53,7 @@ export function useIssuesSession(options: {
     validationErrors,
     consistencyIssues = [],
     revealRequest = 0,
+    packetFormatInfos,
     onSelectElement,
     onSelectSubPort,
   } = options;
@@ -81,16 +84,37 @@ export function useIssuesSession(options: {
     [ipCore, busLibrary]
   );
 
+  const packetFormatIssues = useMemo(
+    () =>
+      ipCore
+        ? checkPacketFormatRefs(
+            ipCore as unknown as Parameters<typeof checkPacketFormatRefs>[0],
+            busLibrary,
+            (ref) => packetFormatInfos?.[ref]
+          )
+        : [],
+    [ipCore, busLibrary, packetFormatInfos]
+  );
+
   const issues = useMemo(
     () =>
       deduplicateAndOrderIssues([
         ...(protocolReport?.issues ?? []),
         ...referenceIssues(ipCore, validationErrors),
         ...portFieldIssues,
+        ...packetFormatIssues,
         ...consistencyIssues,
         ...(hostReport?.issues ?? []),
       ]),
-    [protocolReport, ipCore, validationErrors, portFieldIssues, consistencyIssues, hostReport]
+    [
+      protocolReport,
+      ipCore,
+      validationErrors,
+      portFieldIssues,
+      packetFormatIssues,
+      consistencyIssues,
+      hostReport,
+    ]
   );
 
   const focusIssue = useCallback(

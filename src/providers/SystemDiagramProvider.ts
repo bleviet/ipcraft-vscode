@@ -7,6 +7,7 @@ import type {
   CurrentSide,
 } from '../services/systemDiagram/compare/SystemDesignCompare';
 import type { SystemGraph } from '../domain/systemGraph';
+import { BD_LINKS_FILE } from '../services/systemDiagram/enrichment/bdLinks';
 import { WebviewRouter } from '../services/WebviewRouter';
 import type {
   SystemDiagramToExtensionMessage,
@@ -16,6 +17,7 @@ import { pruneHighlights } from '../webview/systemDiagram/highlights';
 import type { RenderAssets } from '../services/render/renderResources';
 import type { RenderRoots } from '../services/render/imageEncoding';
 import { Logger } from '../utils/Logger';
+import { assignContainerTcl } from './assignContainerTcl';
 import { settleWithin, STILL_PENDING } from './settleWithin';
 import { ExportTargets } from './imageExport/ExportTargets';
 import { ImageExportHost } from './imageExport/ImageExportHost';
@@ -25,6 +27,8 @@ import { PanelResources } from './systemDiagram/PanelResources';
 
 /** How long to wait for workspace enrichment before showing the parsed graph. */
 export const ENRICHMENT_GRACE_MS = 100;
+/** Typing re-reads the design once the edits pause this long: each read parses the whole file. */
+export const EDIT_DEBOUNCE_MS = 300;
 
 /** Read-only custom editor that draws a block design script as a system diagram. */
 export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
@@ -202,6 +206,7 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
             false,
             compare.diffRead(read)
           );
+          post({ type: 'busy', message: 'Resolving workspace definitions…' });
         }
         const graph = await enrichment;
         const sides = { read, enriched: graph, fellBack };
@@ -296,6 +301,19 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
       }
     });
 
+    router.on('assignContainerTcl', async (message) => {
+      const changed = await assignContainerTcl({
+        graph: lastGraph,
+        instancePath: message.instance,
+        openDesign: document.fileName,
+        candidates: (designFile, bd) => this.enricher.bdTclCandidates(designFile, bd),
+      });
+      if (changed) {
+        post({ type: 'busy', message: 'Reloading the design…' });
+        await postGraph();
+      }
+    });
+
     router.on('setHighlights', async (message) => {
       let highlights = pruneHighlights(lastGraph, message.highlights);
       if (!lastGraphFinal) {
@@ -340,20 +358,34 @@ export class SystemDiagramProvider implements vscode.CustomTextEditorProvider {
     router.on('extractResources', (message) => resources.extractResources(message.id));
     router.on('compareResourceSource', (message) => resources.compareResourceSource(message.id));
 
+    let editTimer: ReturnType<typeof setTimeout> | undefined;
     const documentChanges = vscode.workspace.onDidChangeTextDocument((event) => {
       if (event.document.uri.toString() === document.uri.toString()) {
-        void postGraph();
+        // A read still running is stale now, even before the debounced one starts.
+        sequence += 1;
+        clearTimeout(editTimer);
+        editTimer = setTimeout(() => void postGraph(), EDIT_DEBOUNCE_MS);
       }
     });
     // Granting trust lets the enricher read definitions it skipped before.
     const trustGranted = vscode.workspace.onDidGrantWorkspaceTrust(() => {
       void postGraph();
     });
+    const linksWatcher = vscode.workspace.createFileSystemWatcher(`**/${BD_LINKS_FILE}`);
+    const linksChanged = () => {
+      this.enricher.linksChanged();
+      void postGraph();
+    };
+    linksWatcher.onDidCreate(linksChanged);
+    linksWatcher.onDidChange(linksChanged);
+    linksWatcher.onDidDelete(linksChanged);
     webviewPanel.onDidDispose(() => {
       disposed = true;
       compare.dispose();
       resources.dispose();
       this.panels.remove(webviewPanel);
+      clearTimeout(editTimer);
+      linksWatcher.dispose();
       documentChanges.dispose();
       trustGranted.dispose();
       exportTarget.dispose();

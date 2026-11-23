@@ -12,6 +12,7 @@ import { CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 
 import { ResourceRoots } from '../services/ResourceRoots';
 import { requireWorkspaceTrust } from '../utils/workspaceTrust';
+import { ensureRegisterSetsReleased } from '../services/versioning/RegisterSetReleaseService';
 
 export interface GenerateOptionsMessage {
   vendorFiles?: 'none' | 'altera' | 'xilinx' | 'both';
@@ -81,6 +82,17 @@ export async function handleGenerateRequest({
   }
 
   const outputBaseDir = folderUris[0].fsPath;
+
+  // Register-set versioning may prompt and edit the core and its memory maps, so it runs before
+  // the core text is read for generation.
+  if (!(await ensureRegisterSetsReleased(document.uri)).proceed) {
+    void webview.postMessage({
+      type: 'generateResult',
+      success: false,
+      error: 'Generation cancelled: register-set versioning was not completed',
+    });
+    return;
+  }
   const sourceRevision = document.getText();
 
   const generator = new IpCoreScaffolder(

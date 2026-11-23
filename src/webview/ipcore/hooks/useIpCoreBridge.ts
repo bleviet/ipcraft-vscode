@@ -14,6 +14,7 @@ import type {
   IpCoreGenerateResultMessage,
 } from '../types/messages';
 import type { ConformanceReport } from '../../../shared/issues';
+import type { PacketFormatCandidate, PacketFormatRefInfo } from '../../../shared/packetFormat';
 import type { ExportImageOptions } from '../../../shared/messages/imageExport';
 
 interface UseIpCoreBridgeOptions {
@@ -26,6 +27,8 @@ interface UseIpCoreBridgeOptions {
   onConformanceReport?: (report: ConformanceReport, revision: string) => void;
   onExportOptions?: (options: ExportImageOptions) => void;
   onOpenExport?: () => void;
+  onPacketFormatInfo?: (infos: Record<string, PacketFormatRefInfo>) => void;
+  onPacketFormatCandidates?: (candidates: PacketFormatCandidate[]) => void;
 }
 
 /**
@@ -57,6 +60,8 @@ export function useIpCoreBridge({
   onConformanceReport,
   onExportOptions,
   onOpenExport,
+  onPacketFormatInfo,
+  onPacketFormatCandidates,
 }: UseIpCoreBridgeOptions): { sendUpdate: (yamlText: string) => void } {
   const revision = useRef(createRevisionState());
 
@@ -88,6 +93,10 @@ export function useIpCoreBridge({
   onExportOptionsRef.current = onExportOptions;
   const onOpenExportRef = useRef(onOpenExport);
   onOpenExportRef.current = onOpenExport;
+  const onPacketFormatInfoRef = useRef(onPacketFormatInfo);
+  onPacketFormatInfoRef.current = onPacketFormatInfo;
+  const onPacketFormatCandidatesRef = useRef(onPacketFormatCandidates);
+  onPacketFormatCandidatesRef.current = onPacketFormatCandidates;
 
   // Notify the extension that the webview is ready to receive the initial document.
   useEffect(() => {
@@ -171,6 +180,12 @@ export function useIpCoreBridge({
           break;
         case 'exportOptions':
           onExportOptionsRef.current?.(message.options);
+          break;
+        case 'packetFormatInfo':
+          onPacketFormatInfoRef.current?.(message.infos);
+          break;
+        case 'packetFormatCandidates':
+          onPacketFormatCandidatesRef.current?.(message.candidates);
           break;
         case 'openExport':
           onOpenExportRef.current?.();

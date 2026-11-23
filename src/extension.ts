@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Logger, LogLevel } from './utils/Logger';
 import { MemoryMapEditorProvider } from './providers/MemoryMapEditorProvider';
 import { registerRuntimeBusLibraryInvalidation } from './services/loadRuntimeBusLibrary';
+import { registerPacketFormatLanguage } from './providers/PacketFormatLanguage';
 import { IpCoreEditorProvider } from './providers/IpCoreEditorProvider';
 import { resolveResourceRoots, ResourceRoots } from './services/ResourceRoots';
 import { ReportsTreeProvider } from './providers/ReportsTreeProvider';
@@ -121,6 +122,7 @@ export function activate(context: vscode.ExtensionContext): void {
   }
 
   registerRuntimeBusLibraryInvalidation(context);
+  registerPacketFormatLanguage(context);
   const exportTargets = new ExportTargets();
   const renderAssets = new RenderAssets();
 

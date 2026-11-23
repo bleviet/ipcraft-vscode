@@ -12,6 +12,8 @@ interface ValueBarProps {
   parseRegisterValue: (text: string, view: 'hex' | 'dec') => RegisterValueParse;
   validateRegisterValue: (value: RegisterValueParse) => string | null;
   commitRegisterValueDraft: () => void;
+  /** Muted note shown next to the input, e.g. `= $version` for a register holding a token. */
+  hint?: string;
 }
 
 const ValueBar = ({
@@ -25,6 +27,7 @@ const ValueBar = ({
   parseRegisterValue,
   validateRegisterValue,
   commitRegisterValueDraft,
+  hint,
 }: ValueBarProps) => {
   const errorId = React.useId();
   return (
@@ -85,6 +88,7 @@ const ValueBar = ({
             }}
           />
         </div>
+        {hint ? <div className="text-xs vscode-muted mt-1">{hint}</div> : null}
         {valueError ? (
           <div id={errorId} className="text-xs vscode-error mt-1">
             {valueError}

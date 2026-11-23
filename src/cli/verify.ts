@@ -2,7 +2,8 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import type { ResourceRoots } from '../services/ResourceRoots';
 import { listAll } from '../services/toolchains/registry';
-import { buildCliScaffolder, buildGenerateOptions } from './generate';
+import { buildCliScaffolder, buildGenerateOptions, formatGenerationError } from './generate';
+import { planRegisterSets } from './registerSetPolicy';
 import type { CliGenerateArgs } from './generate';
 
 export interface CliVerifyArgs extends CliGenerateArgs {
@@ -82,13 +83,19 @@ export async function runCliVerify(
   const resolvedIpYaml = path.resolve(args.ipYamlPath);
   const generatedDir = path.resolve(args.generatedDir);
 
+  // Read-only: a versioned map that is not up to date is a verification failure.
+  const registerSets = await planRegisterSets(resolvedIpYaml);
+  if (registerSets.problems.length > 0) {
+    return { success: false, error: registerSets.problems.join('\n') };
+  }
+
   const result = await scaffolder.generateAll(resolvedIpYaml, generatedDir, {
     ...buildGenerateOptions(args),
     dryRun: true,
   });
 
   if (!result.success || !result.generatedContents) {
-    return { success: false, error: result.error };
+    return { success: false, error: formatGenerationError(result) };
   }
 
   const protectedPaths = new Set(result.protectedPaths ?? []);

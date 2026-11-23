@@ -81,11 +81,12 @@ describe('register-level access vs field accesses (ipcraft-vscode#238)', () => {
 
       const text = fs.readFileSync(regs, 'utf8');
       const writeProcess = text.slice(text.indexOf('p_write'), text.indexOf('p_read'));
-      expect(writeProcess).not.toMatch(/when C_REG_STATUS_A_ADDR =>/);
-      expect(writeProcess).not.toMatch(/when C_REG_EVENTS_C_ADDR =>/);
-      expect(writeProcess).not.toMatch(/when C_REG_STATUS_E_ADDR =>/);
+      // Plain writes are one-hot write selects: `if wr_sel(C_WSEL_<REG>) = '1' then`.
+      expect(writeProcess).not.toMatch(/if wr_sel\(C_WSEL_STATUS_A\) = '1' then/);
+      expect(writeProcess).not.toMatch(/if wr_sel\(C_WSEL_EVENTS_C\) = '1' then/);
+      expect(writeProcess).not.toMatch(/if wr_sel\(C_WSEL_STATUS_E\) = '1' then/);
       expect(text).toContain('rd_data_int <= to_slv(regs_in.status_a);');
-      expect(writeProcess).toMatch(/when C_REG_CTRL_D_ADDR =>/);
+      expect(writeProcess).toMatch(/if wr_sel\(C_WSEL_CTRL_D\) = '1' then/);
     });
   });
 

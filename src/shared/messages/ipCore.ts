@@ -31,6 +31,8 @@ export type IpCoreWebviewMessage =
   | { type: 'openScaffoldPacksWalkthrough' }
   | { type: 'openWalkthroughMenu' }
   | { type: 'openFile'; path: string }
+  /** Ask for the `*.pkt.yml` formats in the workspace (answered with `packetFormatCandidates`). */
+  | { type: 'findPacketFormats' }
   | { type: 'addSubcore' }
   | { type: 'editInIpPackager' }
   | { type: 'editInPlatformDesigner' }
@@ -69,6 +71,16 @@ export type IpCoreHostMessage =
       type: 'conformanceResult';
       sourceRevision: string;
       report: import('../issues').ConformanceReport;
+    }
+  /** Resolution of every `packetFormatRef` of the document `sourceRevision`. */
+  | {
+      type: 'packetFormatInfo';
+      sourceRevision: string;
+      infos: Record<string, import('../packetFormat').PacketFormatRefInfo>;
+    }
+  | {
+      type: 'packetFormatCandidates';
+      candidates: import('../packetFormat').PacketFormatCandidate[];
     }
   /** The options of the last export in this workspace. */
   | { type: 'exportOptions'; options: ExportImageOptions }

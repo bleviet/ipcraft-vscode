@@ -17,6 +17,7 @@ import { WebviewStagingBridge } from '../providers/WebviewStagingBridge';
 import { getGeneratedArtifactsEmitter } from './GeneratedArtifactsEmitter';
 import { CONFIG_KEY_IPCRAFT_GENERATE } from '../utils/configKeys';
 import type { IpcraftIssue } from '../shared/issues';
+import { ensureRegisterSetsReleased } from './versioning/RegisterSetReleaseService';
 
 const logger = new Logger('GenerationEngine');
 
@@ -130,6 +131,12 @@ export async function runGenerator(
   options: GenerateOptions & { updateYaml?: boolean; silent?: boolean },
   progressTitle: string
 ): Promise<GenerationRunResult> {
+  // Register-set versioning may prompt and edit the core and its memory maps, so it runs before
+  // the core text is read for generation.
+  const release = await ensureRegisterSetsReleased(ipCoreUri);
+  if (!release.proceed) {
+    return { success: false };
+  }
   const sourceDocument = await vscode.workspace.openTextDocument(ipCoreUri);
   const sourceText = sourceDocument.getText();
   const workspaceIndentation = readGenerationIndentation(

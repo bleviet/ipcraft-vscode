@@ -4,6 +4,7 @@
  * Covers: draft initialisation, initial selection state, validation triggers,
  * insert-field state update, and delete (moveSelectedField) clearing active cell.
  */
+import type React from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { useFieldEditor } from '../../../webview/hooks/useFieldEditor';
 import type { BitFieldRecord } from '../../../webview/types/editor';
@@ -385,5 +386,129 @@ describe('useFieldEditor — mouse insertion', () => {
 
     expect(onUpdate).not.toHaveBeenCalled();
     expect(result.current.insertError).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Insertion on a register that still carries its own `$version` reference
+// ---------------------------------------------------------------------------
+
+describe('useFieldEditor — insertion with a register-level reference', () => {
+  const pair = [makeField('B', 4, 4), makeField('C', 12, 1)];
+
+  /** The single `register-edit` update every insert gesture must produce. */
+  function expectRegisterEdit(onUpdate: jest.Mock, callIndex = 0) {
+    expect(onUpdate).toHaveBeenCalledTimes(callIndex + 1);
+    const [path, payload] = onUpdate.mock.calls[callIndex] as [
+      string[],
+      { edits: Array<{ path: string[]; value: BitFieldRecord[] }>; removeKeys: string[][] },
+    ];
+    expect(path).toEqual(['__op', 'register-edit']);
+    expect(payload.edits).toHaveLength(1);
+    expect(payload.edits[0].path).toEqual(['fields']);
+    expect(payload.removeKeys).toEqual([['resetValue']]);
+    return payload.edits[0].value;
+  }
+
+  it('insertField (the toolbar button) removes the reference in the same update', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor([], 32, onUpdate, true, true));
+    act(() => result.current.insertField());
+    const items = expectRegisterEdit(onUpdate);
+    expect(items).toHaveLength(1);
+  });
+
+  it('insertFieldAt (context menu, visualizer menu) removes the reference in the same update', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor(pair, 32, onUpdate, true, true));
+    act(() => result.current.insertFieldAt(0, true));
+    expect(expectRegisterEdit(onUpdate)).toHaveLength(3);
+  });
+
+  it('insertFieldAtGap (hover bar) removes the reference in the same update', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor(pair, 32, onUpdate, true, true));
+    act(() => result.current.insertFieldAtGap(1));
+    expect(expectRegisterEdit(onUpdate)).toHaveLength(3);
+  });
+
+  it('the keyboard insert (o) removes the reference in the same update', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor(pair, 32, onUpdate, true, true));
+    const container = document.createElement('div');
+    container.tabIndex = 0;
+    document.body.appendChild(container);
+    (result.current.focusRef as React.MutableRefObject<HTMLDivElement | null>).current = container;
+    act(() => result.current.setSelectedFieldIndex(0));
+    container.focus();
+    act(() => {
+      container.dispatchEvent(new KeyboardEvent('keydown', { key: 'o', bubbles: true }));
+    });
+    expectRegisterEdit(onUpdate);
+    container.remove();
+  });
+
+  it('writes a plain fields update when the register has no reference', () => {
+    const onUpdate = jest.fn();
+    const { result } = renderHook(() => useFieldEditor(pair, 32, onUpdate, true));
+    act(() => result.current.insertFieldAt(0, true));
+    expect(onUpdate).toHaveBeenCalledTimes(1);
+    expect(onUpdate.mock.calls[0][0]).toEqual(['fields']);
+  });
+
+  it('does not write anything when the insert is refused', () => {
+    const onUpdate = jest.fn();
+    const full = [makeField('ALL', 0, 32)];
+    const { result } = renderHook(() => useFieldEditor(full, 32, onUpdate, true, true));
+    act(() => result.current.insertFieldAt(0, true));
+    expect(onUpdate).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// $version token fields
+// ---------------------------------------------------------------------------
+
+describe('useFieldEditor — token reset display', () => {
+  const tokenField = (): BitFieldRecord => ({
+    ...makeField('MAJOR', 0, 8),
+    versionRef: '$version.major',
+  });
+
+  it('initialises the reset draft with the token', () => {
+    const fields = [tokenField()];
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
+    const rowId = result.current.wrappedFields[0].rowId;
+
+    act(() => result.current.ensureDraftsInitialized(rowId, 0));
+
+    expect(result.current.resetDrafts[rowId]).toBe('$version.major');
+  });
+
+  it('restores the token in the reset draft when an edit is cancelled with Escape', () => {
+    const fields = [tokenField()];
+    const { result } = renderHook(() => useFieldEditor(fields, 32, noop, true));
+    const rowId = result.current.wrappedFields[0].rowId;
+
+    const container = document.createElement('div');
+    const input = document.createElement('input');
+    container.appendChild(input);
+    document.body.appendChild(container);
+    (result.current.focusRef as React.MutableRefObject<HTMLDivElement | null>).current = container;
+
+    act(() => {
+      result.current.captureEditSnapshot();
+      result.current.setActiveCell({ rowId, key: 'reset' });
+      result.current.setResetDrafts({ [rowId]: '0x12' });
+      result.current.setResetErrors({ [rowId]: 'Invalid number' });
+    });
+    input.focus();
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    expect(result.current.resetDrafts[rowId]).toBe('$version.major');
+    expect(result.current.resetErrors[rowId]).toBeNull();
+    container.remove();
   });
 });

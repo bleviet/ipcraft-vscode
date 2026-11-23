@@ -8,6 +8,7 @@ import type { IpCore } from '../../types/ipCore';
 import type { YamlUpdateHandler } from '../../types/editor';
 import type { BatchUpdate } from '../hooks/useGroupPorts';
 import type { useIssuesSession } from '../hooks/useIssuesSession';
+import type { PacketFormats } from '../hooks/usePacketFormats';
 import { IssuesPanel } from './canvas/IssuesPanel';
 
 interface IpCoreRightPanelProps {
@@ -16,6 +17,7 @@ interface IpCoreRightPanelProps {
   canvasSelected: CanvasElement | null;
   ipCore: IpCore | null;
   imports?: { busLibrary?: NormalizedBusLibrary; memoryMaps?: unknown[] };
+  packetFormats?: PacketFormats;
   onUpdate: YamlUpdateHandler;
   batchUpdate: BatchUpdate;
   onCloseInspector: () => void;
@@ -35,6 +37,7 @@ export const IpCoreRightPanel: React.FC<IpCoreRightPanelProps> = ({
   canvasSelected,
   ipCore,
   imports,
+  packetFormats,
   onUpdate,
   batchUpdate,
   onCloseInspector,
@@ -77,6 +80,7 @@ export const IpCoreRightPanel: React.FC<IpCoreRightPanelProps> = ({
         selected={canvasSelected}
         ipCore={ipCore}
         imports={imports}
+        packetFormats={packetFormats}
         onUpdate={onUpdate}
         batchUpdate={batchUpdate}
         issueFocusRequest={issues.focusRequest}
