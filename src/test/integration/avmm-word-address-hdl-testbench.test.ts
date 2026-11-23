@@ -99,6 +99,16 @@ const CASES: readonly Case[] = [
   },
 ];
 
+/** 8-bit data makes the byte-enable port 1 bit wide: a scalar std_logic, not a vector. */
+const BYTE_ENABLE_1BIT_CASE: Case = {
+  name: 'avmm_byte_two_regs_8',
+  regCount: 2,
+  wordBytes: 1,
+  addrShift: 0,
+  vhdlAddress: 'avs_address(C_ADDR_WIDTH-1 downto 0)',
+  svAddress: 'avs_address[C_ADDR_WIDTH-1:0]',
+};
+
 async function generate(testCase: Case, hdlLanguage: Hdl): Promise<string> {
   const outputDir = path.join(OUTPUT_BASE, `${testCase.name}_${hdlLanguage}`);
   fs.rmSync(outputDir, { recursive: true, force: true });
@@ -166,6 +176,20 @@ describe('Avalon-MM wrapper address conversion (rendered text)', () => {
   });
 });
 
+describe('Avalon-MM wrapper byte-enable assignment (rendered text)', () => {
+  it('VHDL wraps a 1-bit byte-enable port in an aggregate', async () => {
+    const dir = await generate(BYTE_ENABLE_1BIT_CASE, 'vhdl');
+    const wrapper = fs.readFileSync(path.join(dir, 'rtl/avmm_byte_two_regs_8_avmm.vhd'), 'utf8');
+    expect(wrapper).toContain('  byteenable_int <= (0 => avs_byteenable);\n');
+  });
+
+  it('VHDL assigns a multi-bit byte-enable port directly', async () => {
+    const dir = await generate(CASES[0], 'vhdl');
+    const wrapper = fs.readFileSync(path.join(dir, `rtl/${CASES[0].name}_avmm.vhd`), 'utf8');
+    expect(wrapper).toContain('  byteenable_int <= avs_byteenable;\n');
+  });
+});
+
 describe.each([
   { hdl: 'vhdl' as const, sim: 'ghdl' as const, tool: 'ghdl' },
   { hdl: 'systemverilog' as const, sim: 'icarus' as const, tool: 'iverilog' },
@@ -194,6 +218,22 @@ describe.each([
     const result = runMake(tbDir, sim, [], {});
     if (result.status !== 0) {
       throw new Error(failure(`generated testbench failed for ${testCase.name}`, result));
+    }
+  });
+});
+
+describe.each([
+  { hdl: 'vhdl' as const, sim: 'ghdl' as const, tool: 'ghdl' },
+  { hdl: 'systemverilog' as const, sim: 'icarus' as const, tool: 'iverilog' },
+])('Avalon-MM 1-bit byte-enable simulation ($sim)', ({ hdl, sim, tool }) => {
+  it('generated cocotb testbench passes: avmm_byte_two_regs_8', async () => {
+    if (guardTier1(tool, () => toolOnPath(tool)) || guardTier1('cocotb', cocotbAvailable)) {
+      return;
+    }
+    const tbDir = path.join(await generate(BYTE_ENABLE_1BIT_CASE, hdl), 'tb');
+    const result = runMake(tbDir, sim, [], {});
+    if (result.status !== 0) {
+      throw new Error(failure('generated testbench failed for avmm_byte_two_regs_8', result));
     }
   });
 });

@@ -85,7 +85,8 @@ begin
     byte address instead: widen the word address to C_ADDR_WIDTH and shift it
     left by address_shift (log2 of the bytes per word). A port declared
     std_logic (a fixed 1-bit width) is a scalar, so it goes through an aggregate
-    to become an unsigned; any other port is a vector. -#}
+    to become an unsigned; any other port is a vector. The same scalar rule
+    applies to byteenable (1 bit wide for 8-bit data). -#}
 {% if address_port | length > 0 and address_word_addressed | default(false) %}
 {% set word_address = ("unsigned'(0 => " ~ address_port[0].name ~ ")") if address_port[0].type == "std_logic" else ("unsigned(" ~ address_port[0].name ~ ")") %}
 {% set address_expr = "std_logic_vector(resize(" ~ word_address ~ ", C_ADDR_WIDTH))" %}
@@ -102,7 +103,8 @@ begin
   write_int     <= {{ write_port[0].name     if write_port     | length > 0 else "'0'" }};
   writedata_int <= {{ writedata_port[0].name if writedata_port | length > 0 else "(others => '0')" }};
 {% if byteenable_port | length > 0 %}
-  byteenable_int <= {{ byteenable_port[0].name }};
+{% set byteenable_expr = ("(0 => " ~ byteenable_port[0].name ~ ")") if byteenable_port[0].type == "std_logic" else byteenable_port[0].name %}
+  byteenable_int <= {{ byteenable_expr }};
 {% else %}
   byteenable_int <= (others => '1');
 {% endif %}
