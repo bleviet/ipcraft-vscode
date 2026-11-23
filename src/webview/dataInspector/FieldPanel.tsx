@@ -5,7 +5,11 @@ import React, {
   type SetStateAction,
 } from 'react';
 import { BitVector } from '../../dataInspector/BitVector';
-import { decodeField, type InspectorField } from '../../dataInspector/fieldLayout';
+import {
+  decodeField,
+  fieldNameColumnChars,
+  type InspectorField,
+} from '../../dataInspector/fieldLayout';
 import {
   compareExpected,
   decodeEnum,
@@ -187,7 +191,13 @@ export function FieldPanel({
           {layoutError}
         </div>
       ))}
-      <div className="di-field-table" role="table">
+      <div
+        className="di-field-table"
+        role="table"
+        style={
+          { '--di-field-name-chars': fieldNameColumnChars(filteredFields) } as React.CSSProperties
+        }
+      >
         <div className="di-field-row is-head" role="row">
           <span>Name</span>
           <span>Bits</span>

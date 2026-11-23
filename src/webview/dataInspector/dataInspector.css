@@ -1048,7 +1048,9 @@ label {
 }
 .di-field-row {
   display: grid;
-  grid-template-columns: minmax(70px, 1fr) 58px minmax(66px, 0.8fr) minmax(92px, 1.2fr);
+  grid-template-columns:
+    minmax(70px, min(calc(var(--di-field-name-chars, 11) * 1ch + 6px), 50%))
+    58px minmax(66px, 0.8fr) minmax(92px, 1.2fr);
   width: 100%;
   padding: 6px;
   text-align: left;

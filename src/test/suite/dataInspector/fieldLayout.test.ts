@@ -2,6 +2,7 @@ import { parseLiteral } from '../../../dataInspector/parseLiteral';
 import {
   copyFieldsForSource,
   decodeField,
+  fieldNameColumnChars,
   InspectorField,
   projectFieldsToOutput,
   validateFieldLayout,
@@ -95,5 +96,13 @@ describe('inspector field layout', () => {
     expect(projectFieldsToOutput([sourceField], swapped)).toEqual([
       expect.objectContaining({ sourceFieldId: sourceField.id, msb: 7, lsb: 4 }),
     ]);
+  });
+
+  it('sizes the Fields name column to the longest name, never below the header', () => {
+    expect(fieldNameColumnChars([])).toBe(4);
+    expect(fieldNameColumnChars([field('A', 0, 0), field('EN', 1, 1)])).toBe(4);
+    expect(
+      fieldNameColumnChars([field('HEARTBEAT_ACTIVE', 1, 1), field('HEARTBEAT_TOGGLED', 0, 0)])
+    ).toBe(17);
   });
 });
