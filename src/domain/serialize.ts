@@ -5,6 +5,14 @@ function isNil(v: unknown): boolean {
 }
 
 /**
+ * True for a key/value the serializer omits as a schema default (`resetValue: 0`). A document
+ * that spells such a default explicitly keeps it across a structural rewrite.
+ */
+export function isOmittedDefault(key: string, value: unknown): boolean {
+  return key === 'resetValue' && value === 0;
+}
+
+/**
  * A `versionRef` token is written as the `resetValue` itself (never as its own key); otherwise a
  * nil or 0 `resetValue` is dropped.
  */
@@ -13,7 +21,7 @@ function applyResetValue(out: Record<string, unknown>): void {
   delete out.versionRef;
   if (versionRef) {
     out.resetValue = versionRef;
-  } else if (isNil(out.resetValue) || out.resetValue === 0) {
+  } else if (isNil(out.resetValue) || isOmittedDefault('resetValue', out.resetValue)) {
     delete out.resetValue;
   }
 }

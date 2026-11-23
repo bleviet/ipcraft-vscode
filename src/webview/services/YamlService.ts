@@ -4,7 +4,7 @@ import {
   applyPathEdits as sharedApplyPathEdits,
   type PathEdit as SharedPathEdit,
 } from '../../yamledit';
-import { serializeValue } from '../../domain/serialize';
+import { isOmittedDefault, serializeValue } from '../../domain/serialize';
 
 /** A single path-targeted edit for {@link YamlService.applyPathEdits}. */
 export interface PathEdit {
@@ -25,7 +25,9 @@ export class YamlService {
       path,
       value: YamlService.cleanForYaml(value),
     }));
-    return sharedApplyPathEdits(text, cleaned);
+    // serializeValue omits schema defaults; keep the ones the document spells out so an
+    // untouched element merged by name does not lose them.
+    return sharedApplyPathEdits(text, cleaned, { keepOmittedKey: isOmittedDefault });
   }
 
   /**

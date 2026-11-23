@@ -407,4 +407,84 @@ description: >-
       expect(out).toContain('First line\n  second line.');
     });
   });
+
+  describe('keepOmittedKey option (#327)', () => {
+    const text = `items:
+  - name: a
+    reset: 0
+    note: x
+  - name: b
+    reset: 5
+`;
+    const keepZeroReset = (key: string, current: unknown): boolean =>
+      key === 'reset' && current === 0;
+
+    it('without the option a key absent from the new value is deleted', () => {
+      const out = applyPathEdits(text, [
+        {
+          path: ['items'],
+          value: [
+            { name: 'a', note: 'x' },
+            { name: 'b', reset: 5 },
+          ],
+        },
+      ]);
+      expect(out).not.toContain('reset: 0');
+    });
+
+    it('keeps an absent key when the predicate accepts its current value', () => {
+      const out = applyPathEdits(
+        text,
+        [
+          {
+            path: ['items'],
+            value: [
+              { name: 'a', note: 'x' },
+              { name: 'b', reset: 5 },
+            ],
+          },
+        ],
+        { keepOmittedKey: keepZeroReset }
+      );
+      expect(out).toBe(text);
+    });
+
+    it('still deletes an absent key whose current value the predicate rejects', () => {
+      const out = applyPathEdits(
+        text,
+        [{ path: ['items'], value: [{ name: 'a', reset: 0, note: 'x' }, { name: 'b' }] }],
+        { keepOmittedKey: keepZeroReset }
+      );
+      expect(out).not.toContain('reset: 5');
+      expect(out).toContain('reset: 0');
+    });
+
+    it('writes a changed value even when the predicate would keep the old one', () => {
+      const out = applyPathEdits(
+        text,
+        [
+          {
+            path: ['items'],
+            value: [
+              { name: 'a', reset: 7, note: 'x' },
+              { name: 'b', reset: 5 },
+            ],
+          },
+        ],
+        { keepOmittedKey: keepZeroReset }
+      );
+      expect(out).toContain('reset: 7');
+    });
+
+    it('applies the predicate in nested mappings', () => {
+      const nested = 'a:\n  - name: n\n    inner:\n      reset: 0\n      v: 1\n';
+      const out = applyPathEdits(
+        nested,
+        [{ path: ['a'], value: [{ name: 'n', inner: { v: 2 } }] }],
+        { keepOmittedKey: keepZeroReset }
+      );
+      expect(out).toContain('reset: 0');
+      expect(out).toContain('v: 2');
+    });
+  });
 });

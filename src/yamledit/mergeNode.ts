@@ -10,13 +10,28 @@ function sameJson(a: unknown, b: unknown): boolean {
   return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 }
 
+export interface MergeOptions {
+  /**
+   * Called for a key present in the document mapping but absent from the new
+   * value. Returning true keeps the key (an explicit default the caller's
+   * serializer omits); otherwise it is deleted. Receives the key's current
+   * plain value.
+   */
+  keepOmittedKey?: (key: string, currentValue: unknown) => boolean;
+}
+
 /**
  * Merge a plain JS value into an existing document node, reusing existing
  * nodes wherever their content already matches. Reused nodes keep their
  * comments, scalar styles (hex spellings, quoting) and formatting; only
  * genuinely changed parts are re-created.
  */
-export function mergeNode(doc: Document, current: unknown, value: unknown): unknown {
+export function mergeNode(
+  doc: Document,
+  current: unknown,
+  value: unknown,
+  options?: MergeOptions
+): unknown {
   if (sameJson(toJS(current), value)) {
     return current;
   }
@@ -55,7 +70,7 @@ export function mergeNode(doc: Document, current: unknown, value: unknown): unkn
               (js as Record<string, unknown>).name === name
             ) {
               used.add(i);
-              return mergeNode(doc, current.items[i], v);
+              return mergeNode(doc, current.items[i], v, options);
             }
           }
         }
@@ -75,12 +90,15 @@ export function mergeNode(doc: Document, current: unknown, value: unknown): unkn
       }
       const curVal = current.get(k, true);
       if (!sameJson(toJS(curVal), v)) {
-        current.set(k, mergeNode(doc, curVal, v));
+        current.set(k, mergeNode(doc, curVal, v, options));
       }
     }
     for (const pair of [...current.items]) {
       const k = toJS(pair.key);
       if (typeof k === 'string' && !(k in obj && obj[k] !== undefined)) {
+        if (options?.keepOmittedKey?.(k, toJS(pair.value))) {
+          continue;
+        }
         current.delete(k);
       }
     }
