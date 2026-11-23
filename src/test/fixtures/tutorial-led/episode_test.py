@@ -73,7 +73,7 @@ async def test_heartbeat(dut):
     await setup(dut)
     ev = await read(dut, 8)
     assert ev == 0, f"after reset EVENTS={ev:#x}"
-    await force_counter(dut, (1 << 24) - 2)
+    await force_counter(dut, (1 << 25) - 2)
     for _ in range(8):
         await RisingEdge(dut.clk)
     ev = await read(dut, 8)
@@ -84,7 +84,7 @@ async def test_heartbeat(dut):
     await write(dut, 8, 0b01)         # W1C on read-only ACTIVE must do nothing
     ev = await read(dut, 8)
     assert ev == 0b01, f"W1C on ACTIVE changed it: {ev:#x}"
-    await force_counter(dut, (1 << 25) - 2)
+    await force_counter(dut, (1 << 26) - 2)
     for _ in range(8):
         await RisingEdge(dut.clk)
     ev = await read(dut, 8)

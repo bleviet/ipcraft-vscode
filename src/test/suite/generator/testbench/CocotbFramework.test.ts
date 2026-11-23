@@ -92,6 +92,44 @@ describe('CocotbFramework', () => {
     });
   });
 
+  it.each([
+    ['a memory-mapped slave', true, 'test_register_semantics'],
+    ['no memory-mapped slave', false, 'test_basic_smoke'],
+  ])(
+    'pytest wrapper only selects cocotb tests that exist (%s)',
+    (_label, hasMmSlave, expectedTest) => {
+      // A TESTCASE filter that matches no @cocotb.test() runs zero tests while
+      // pytest still reports PASSED, so every sim_runner("<name>") must name a
+      // test defined in the cocotb test file.
+      const files = framework.generate(
+        makeCtx({
+          hasMmSlave,
+          templateContext: {
+            entity_name: 'test_core',
+            clock_port: 'clk',
+            reset_port: 'rst_n',
+            reset_active_high: false,
+            bus_type: hasMmSlave ? 'axil' : 'none',
+            has_memory_mapped_slave: hasMmSlave,
+            addr_width: 32,
+            memmap_relpath: '../test_core.mmap.yml',
+            ports: [],
+            parameters: [],
+          },
+        }),
+        new GhdlEngine()
+      );
+      const cocotbTests = [
+        ...files['tb/test_core_test.py'].matchAll(/@cocotb\.test\(\)\s+async def (\w+)\(/g),
+      ].map((m) => m[1]);
+      const selected = [
+        ...files['tb/test_test_core_sim.py'].matchAll(/sim_runner\("(\w+)"\)/g),
+      ].map((m) => m[1]);
+      expect(selected).toEqual([expectedTest]);
+      expect(cocotbTests).toContain(expectedTest);
+    }
+  );
+
   it('emits dump.v for SV + Icarus and sets verilog Makefile', () => {
     const files = framework.generate(
       makeCtx({

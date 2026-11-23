@@ -32,11 +32,9 @@ architecture rtl of led_controller_avmm_core is
   ----------------------------------------------------------------------------
   -- Internal Signals
   ----------------------------------------------------------------------------
-  -- Free-running divider driving the heartbeat: toggling the top bit of a
-  -- 25-bit counter at 50 MHz gives a ~0.75 Hz square wave ("roughly once per
-  -- second", per the .mm.yml description). The register file computes
-  -- EVENTS.HEARTBEAT_TOGGLED from this level automatically (monitorChangeOf).
-  constant C_HEARTBEAT_DIV_BITS : natural := 25;
+  -- Heartbeat: the top bit of a 26-bit counter at 50 MHz toggles every 0.67 s.
+  -- The register file sets EVENTS.HEARTBEAT_TOGGLED on every change.
+  constant C_HEARTBEAT_DIV_BITS : natural := 26;
   signal heartbeat_counter : unsigned(C_HEARTBEAT_DIV_BITS-1 downto 0) := (others => '0');
 
 begin
@@ -56,8 +54,6 @@ begin
         heartbeat_counter <= (others => '0');
       else
         heartbeat_counter <= heartbeat_counter + 1;
-
-        regs_out.version <= C_REG_VERSION_RESET;
         regs_out.events_val.heartbeat_active <= heartbeat_counter(heartbeat_counter'high);
       end if;
     end if;
