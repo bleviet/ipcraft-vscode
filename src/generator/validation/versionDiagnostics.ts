@@ -5,7 +5,13 @@
  */
 import { normalizeMemoryMap } from '../../domain/parse';
 import type { NormalizedMemoryMap } from '../../domain/internal.types';
+import {
+  IP_CORE_FORMAT_VERSIONS,
+  readIpCoreFormatVersion,
+  type IpCoreFormatVersion,
+} from '../../shared/ipCoreFormat';
 import type { IpcraftIssue } from '../../shared/issues';
+import { isVersionedMap } from '../../shared/versioning/planRelease';
 import {
   blocksHaveVersionRef,
   validateVersionRefs,
@@ -16,6 +22,22 @@ import type { IpCoreData } from '../types';
 import { ipCoreVersionInfo } from '../versionContext';
 
 const NUMERIC_VERSION = /^\d+(\.\d+)*$/;
+
+/** First `.ip.yml` format with `$version` references and `versionHistory`. */
+const VERSIONING_FORMAT: IpCoreFormatVersion = '1.3';
+
+/**
+ * True when the core declares a format that has `$version` references. An IPCraft that reads only
+ * older formats would accept a core below it and generate 0 for every reference.
+ */
+function declaresVersioningFormat(ipCore: IpCoreData): boolean {
+  const read = readIpCoreFormatVersion(ipCore);
+  return (
+    read.ok &&
+    IP_CORE_FORMAT_VERSIONS.indexOf(read.version) >=
+      IP_CORE_FORMAT_VERSIONS.indexOf(VERSIONING_FORMAT)
+  );
+}
 
 const parseSnapshot = (blocks: unknown[]) =>
   normalizeMemoryMap({ addressBlocks: blocks }).addressBlocks;
@@ -36,8 +58,9 @@ function describePath(map: NormalizedMemoryMap, path: ReadonlyArray<string | num
 
 /**
  * Checks every `$version` reference of the (unresolved) memory maps against the core's scheme and
- * version. Errors must block generation; warnings are surfaced only. The core version itself is
- * checked here when a reference needs it: resolution leaves refs of an invalid version at 0.
+ * version, and that a core with versioned maps declares a format that has them. Errors must block
+ * generation; warnings are surfaced only. The core version itself is checked here when a reference
+ * needs it: resolution leaves refs of an invalid version at 0.
  */
 export function checkVersionRefsForGeneration(
   ipCore: IpCoreData,
@@ -54,7 +77,16 @@ export function checkVersionRefsForGeneration(
       message: `${describePath(map, issue.path)}: ${issue.message}`,
     });
 
+  const formatOk = declaresVersioningFormat(ipCore);
   for (const map of maps) {
+    if (!formatOk && isVersionedMap(map)) {
+      push(map, {
+        severity: 'error',
+        code: 'versionRef.formatVersion',
+        path: [],
+        message: `$version references and versionHistory need apiVersion '${VERSIONING_FORMAT}' in the owning .ip.yml, so that older IPCraft versions refuse it instead of generating 0; run "Migrate .ip.yml / .mm.yml to Latest Format" or ipcraft migrate on it`,
+      });
+    }
     const versionError = validateVersion(scheme, version);
     if (versionError !== null && blocksHaveVersionRef(map.addressBlocks)) {
       push(map, {

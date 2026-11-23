@@ -10,7 +10,7 @@ import { buildMapReleases } from '../../../services/versioning/releaseFiles';
 import { crc16, crc8 } from '../../../shared/versioning/versionCrc';
 
 const core = (version: string, memoryMaps = 'memoryMaps:\n  import: regs.mm.yml\n'): string =>
-  `vlnv:\n  vendor: acme\n  library: lib\n  name: core\n  version: ${version}\n  versionScheme: major.minor.patch\n${memoryMaps}`;
+  `apiVersion: '1.3'\nvlnv:\n  vendor: acme\n  library: lib\n  name: core\n  version: ${version}\n  versionScheme: major.minor.patch\n${memoryMaps}`;
 
 const MAP = `# register map
 name: CSR_MAP

@@ -73,7 +73,7 @@ const REGISTERS: Record<Design, string> = {
 };
 
 const IP_YAML = `
-apiVersion: '1.2'
+apiVersion: '1.3'
 vlnv: { vendor: ipcraft, library: test, name: ver_core, version: 1.4.2, versionScheme: major.minor.patch }
 scaffold_pack: builtin-ipcraft
 clocks:

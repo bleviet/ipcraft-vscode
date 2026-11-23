@@ -14,7 +14,7 @@ const MEMORY_MAP_SCHEMA_PATH = path.join(SCHEMAS_DIR, 'memory_map.schema.json');
 const HASH_A = 'rs1-3f9a0c41d2b7e6a5';
 const HASH_B = 'rs1-0123456789abcdef';
 
-describe('ip_core schema: versionScheme and apiVersion 1.2', () => {
+describe('ip_core schema: versionScheme and apiVersion 1.3', () => {
   const validator = new YamlValidator();
   const core = (vlnv: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({
     vlnv: { vendor: 'acme', library: 'ip', name: 'uart', version: '1.4.2', ...vlnv },
@@ -48,7 +48,7 @@ describe('ip_core schema: versionScheme and apiVersion 1.2', () => {
     expect(validate(core({}, { apiVersion: '1.4' })).valid).toBe(false);
   });
 
-  it('documents versionScheme and the 1.2 apiVersion', () => {
+  it('documents versionScheme and the 1.3 apiVersion', () => {
     const schema = JSON.parse(fs.readFileSync(IP_CORE_SCHEMA_PATH, 'utf8')) as {
       $defs: {
         VLNV: {
@@ -63,7 +63,7 @@ describe('ip_core schema: versionScheme and apiVersion 1.2', () => {
     expect(VLNV.required).not.toContain('versionScheme');
     expect(schema.properties.apiVersion.enum).toEqual(['1.0', '1.1', '1.2', '1.3']);
     expect(schema.properties.apiVersion.description).toMatch(
-      /Version 1\.2 adds [^.]*vlnv\.versionScheme/
+      /Version 1\.3 adds vlnv\.versionScheme, \$version reset values and versionHistory/
     );
   });
 });

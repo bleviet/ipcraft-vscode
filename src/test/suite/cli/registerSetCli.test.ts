@@ -51,7 +51,9 @@ describe('register-set policy through generate and verify', () => {
   const writeDesign = (versionRegister = 'resetValue: $version'): void => {
     const ip = fs
       .readFileSync(path.join(fixtures, 'sample-ipcore.yml'), 'utf8')
-      .replace('  version: 1.0.0\n', '  version: 1.0.0\n  versionScheme: major.minor.patch\n');
+      .replace('  version: 1.0.0\n', '  version: 1.0.0\n  versionScheme: major.minor.patch\n')
+      .replace(/^apiVersion: .*\n/m, '')
+      .replace(/^vlnv:/m, "apiVersion: '1.3'\nvlnv:");
     const mm = fs
       .readFileSync(path.join(fixtures, 'sample-memmap.yml'), 'utf8')
       .replace(

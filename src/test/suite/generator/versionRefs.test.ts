@@ -130,6 +130,8 @@ interface Design {
   /** Adds a user (register-bank) port pair to the core. */
   userPorts?: boolean;
   bus?: 'axil' | 'avmm';
+  /** `apiVersion` of the `.ip.yml`; defaults to '1.3', the first format with `$version`. */
+  apiVersion?: string;
 }
 
 const AVMM_INTERFACE = [
@@ -157,7 +159,7 @@ const AXIL_INTERFACE = [
 function ipYaml(design: Design): string {
   const scheme = design.scheme === undefined ? 'major.minor.patch' : design.scheme;
   return [
-    "apiVersion: '1.2'",
+    `apiVersion: '${design.apiVersion ?? '1.3'}'`,
     'vlnv:',
     '  vendor: acme',
     '  library: test',
@@ -276,6 +278,28 @@ describe('$version references in generation', () => {
   // -------------------------------------------------------------------------
 
   describe('generation gate', () => {
+    it('blocks $version references when the .ip.yml declares a format older than 1.3', async () => {
+      // An IPCraft that reads only up to 1.2 would accept such a core and generate 0 for every
+      // reference, so the core must declare 1.3 to make those versions refuse it.
+      const result = await generate({ registers: CASE_A, apiVersion: '1.2' });
+      expect(result.success).toBe(false);
+      expect(result.issues).toEqual([
+        expect.objectContaining({
+          code: 'versionRef.formatVersion',
+          severity: 'error',
+          message: expect.stringContaining(
+            "CSR_MAP: $version references and versionHistory need apiVersion '1.3'"
+          ),
+        }),
+      ]);
+    });
+
+    it('does not require 1.3 for a memory map without $version references or versionHistory', async () => {
+      const result = await generate({ registers: PLAIN_REGISTER, apiVersion: '1.2' });
+      expect(result.error).toBeUndefined();
+      expect(result.success).toBe(true);
+    });
+
     it('blocks a free-text scheme and lists each issue as <map>.<block>.<register>.<field>: <message>', async () => {
       const result = await generate({ registers: CASE_A, scheme: null });
       expect(result.success).toBe(false);

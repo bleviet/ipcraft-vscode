@@ -31,7 +31,7 @@ const IP = '/proj/core.ip.yml';
 const MM = '/proj/regs.mm.yml';
 
 const core = (version: string, memoryMaps = 'memoryMaps:\n  import: regs.mm.yml\n'): string =>
-  `# core\nvlnv:\n  vendor: acme\n  library: lib\n  name: core\n  version: ${version}\n  versionScheme: major.minor.patch\n${memoryMaps}`;
+  `# core\napiVersion: '1.3'\nvlnv:\n  vendor: acme\n  library: lib\n  name: core\n  version: ${version}\n  versionScheme: major.minor.patch\n${memoryMaps}`;
 
 const map = (extraRegister = ''): string => `# register map
 name: CSR_MAP

@@ -600,7 +600,7 @@ export interface IpCore {
    */
   targets?: string[];
   /**
-   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Version 1.2 adds port field metadata (fields on ports and conduit ports, portFields on bus interfaces) and vlnv.versionScheme. Version 1.3 adds packetFormatRef on streaming bus interfaces. Tools must not read a file that declares a newer version than they support.
+   * IPCraft file format version of this IP core file. A file without apiVersion uses version 1.0. Version 1.1 adds bus interface contracts: portPolarityOverrides, portNameOverrides, and interfaceProperties. Version 1.2 adds port field metadata (fields on ports and conduit ports, portFields on bus interfaces). Version 1.3 adds vlnv.versionScheme, $version reset values and versionHistory in the memory maps of the core, and packetFormatRef on streaming bus interfaces; a core whose memory maps use $version or versionHistory must declare 1.3 or newer. Tools must not read a file that declares a newer version than they support.
    */
   apiVersion?: '1.0' | '1.1' | '1.2' | '1.3';
   /**

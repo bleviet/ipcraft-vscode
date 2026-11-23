@@ -20,7 +20,7 @@ The examples use a core named `uart` at version `1.4.2` with the scheme
 `0x0`. The register has the fields `MAJOR`, `MINOR`, and `PATCH`.
 
 ```yaml
-apiVersion: "1.2"
+apiVersion: "1.3"
 vlnv:
   vendor: acme
   library: ip
@@ -607,18 +607,16 @@ history.
   may be rejected`. The Platform Designer `_hw.tcl` keeps the version text as it
   is. File names derived from the version, such as the Vivado XGUI script,
   replace every character other than letters, digits, and `_` with `_`.
-- `vlnv.versionScheme` and `apiVersion: "1.2"` are not linked: IPCraft does
-  not check one against the other. `ipcraft migrate` and the IP Core editor's
-  first edit (once the bus library is loaded) stamp `apiVersion: "1.2"` on every
-  `.ip.yml` that is behind the latest format, whether or not it sets
-  `versionScheme`. IPCraft 1.2.0 refuses such a file.
-- Do not use versioned memory maps with an IPCraft older than this release. An
-  older IPCraft does not stop you: it never schema-validates an imported
-  `.mm.yml` during generation, reads `$version.major` as `0`, and ignores
-  `versionHistory`. It silently generates the version field as an ordinary
-  register with a reset value of `0`. Only the `.ip.yml` side fails loudly:
-  IPCraft 1.2.0 refuses `apiVersion: "1.2"`, and its IP core schema rejects
-  inline `$version` tokens.
+- A versioned memory map (one with a `$version` reference or a
+  `versionHistory`) needs `apiVersion: "1.3"` in its `.ip.yml`. Generation fails
+  otherwise: `CSR_MAP: $version references and versionHistory need apiVersion
+  '1.3' in the owning .ip.yml, ...`. `ipcraft migrate` and the IP Core editor's
+  first edit (once the bus library is loaded) stamp `1.3`. The requirement
+  exists for older IPCraft versions: they never schema-validate an imported
+  `.mm.yml`, read `$version.major` as `0`, ignore `versionHistory`, and silently
+  generate the version field as an ordinary register with a reset value of `0`.
+  They do refuse an `.ip.yml` that declares `1.3`, so update IPCraft wherever
+  versioned cores are generated.
 
 See the [specification schemas](../reference/specification-schemas.md) for the
 keys, the [command-line reference](../reference/command-line.md#generate-and-verify)

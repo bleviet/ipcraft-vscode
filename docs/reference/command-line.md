@@ -610,15 +610,16 @@ without `-hierarchical`).
 
 ## Upgrade files to the latest format
 
-An `.ip.yml` declares its file format version in `apiVersion` (`1.0`, `1.1`, or `1.2`);
+An `.ip.yml` declares its file format version in `apiVersion` (`1.0`, `1.1`, `1.2`, or `1.3`);
 a file without `apiVersion` is version 1.0. IPCraft reads every version up to
-its latest (1.2), refuses a file that declares a newer version with an error
+its latest (1.3), refuses a file that declares a newer version with an error
 asking you to upgrade IPCraft, and can upgrade older files. Version 1.1
 introduced bus interface contracts: legacy port names such as Avalon-MM
 `read_n` or `waitrequest_n` become one port plus an entry in
-`portPolarityOverrides`. Version 1.2 added port field metadata and changes no
-existing content. The IP Core editor applies this upgrade (and sets
-`apiVersion: '1.2'`) when you make the first edit to an older file; to upgrade
+`portPolarityOverrides`. Version 1.2 added port field metadata, and version 1.3
+the version scheme, `$version` references, `versionHistory` and
+`packetFormatRef`; neither changes existing content. The IP Core editor applies
+this upgrade (and sets `apiVersion: '1.3'`) when you make the first edit to an older file; to upgrade
 explicitly, run:
 
 ```bash

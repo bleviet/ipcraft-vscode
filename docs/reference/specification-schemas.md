@@ -43,7 +43,7 @@ Common top-level fields:
 
 | Field | Meaning |
 |---|---|
-| `apiVersion` | Specification format version (`1.0`, `1.1`, or `1.2`; see [Version scheme](#version-scheme)) |
+| `apiVersion` | Specification format version (`1.0`, `1.1`, `1.2`, or `1.3`; see [Version scheme](#version-scheme)) |
 | `vlnv` | Vendor, library, name, and version |
 | `description`, `author` | Human-readable ownership and purpose |
 | `clocks`, `resets`, `interrupts`, `ports` | Individual signals |
@@ -63,7 +63,7 @@ structured, so a register can hold it as a number. See
 [Versioning Register Sets](../how-to/versioning-register-sets.md).
 
 ```yaml
-apiVersion: "1.2"
+apiVersion: "1.3"
 vlnv:
   vendor: acme
   library: ip
@@ -82,10 +82,13 @@ vlnv:
 Each number is a whole number from 0 to 255 without leading zeros. Quote a
 two-component version (`"1.10"`) so YAML does not read it as a decimal number.
 
-`apiVersion: "1.2"` is the format version that adds `versionScheme`. A file
-without `apiVersion` is `1.0`. IPCraft reads every version up to the latest it
-supports and refuses a newer one. `ipcraft migrate` and the first edit in the
-IP Core editor upgrade a file to `1.2`.
+`apiVersion: "1.3"` is the format version that adds `versionScheme`, `$version`
+references and `versionHistory`. Generation refuses a memory map with `$version`
+references or a `versionHistory` when its `.ip.yml` declares an older format, so
+that an IPCraft that does not know them refuses the core instead of generating
+`0`. A file without `apiVersion` is `1.0`. IPCraft reads every version up to the
+latest it supports and refuses a newer one. `ipcraft migrate` and the first edit
+in the IP Core editor upgrade a file to `1.3`.
 
 Interrupts may optionally name the memory-mapped slave and clock domain that
 serve them:
