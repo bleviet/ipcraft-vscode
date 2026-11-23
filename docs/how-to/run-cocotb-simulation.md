@@ -57,7 +57,7 @@ pytest -v tb/
 Run one test:
 
 ```bash
-pytest -v tb/ -k test_register_access
+pytest -v tb/ -k test_register_semantics
 ```
 
 You can also run the cocotb Makefile directly:

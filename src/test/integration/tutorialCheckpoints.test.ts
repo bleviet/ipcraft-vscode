@@ -9,10 +9,12 @@
  *   - the user-owned core compiles with the generated RTL (GHDL),
  *   - the board project only references files that exist,
  *   - the LED behaviour of each episode holds in simulation (cocotb + GHDL),
+ *   - the generated pytest wrapper really runs the generated cocotb test,
  *   - the last checkpoint generates the same RTL and packaging as the
  *     hardware-validated examples/led_avmm/.
  *
- * Skip the GHDL steps with SKIP_GHDL=1 and the cocotb steps with SKIP_COCOTB=1;
+ * Skip the GHDL steps with SKIP_GHDL=1, the cocotb steps with SKIP_COCOTB=1,
+ * and the pytest step with SKIP_PYTEST=1;
  * they also fail loudly when the tool is missing (see tier.ts).
  */
 
@@ -70,6 +72,11 @@ const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ipcraft-tutorial-'));
 
 function cocotbAvailable(): boolean {
   const result = spawnSync('python3', ['-c', 'import cocotb'], { encoding: 'utf8' });
+  return !result.error && result.status === 0;
+}
+
+function pytestAvailable(): boolean {
+  const result = spawnSync('python3', ['-c', 'import pytest'], { encoding: 'utf8' });
   return !result.error && result.status === 0;
 }
 
@@ -242,6 +249,34 @@ describe('tutorial checkpoints', () => {
         return;
       }
       runCocotb(path.join(generatedFor(name).dir, 'tb'), []);
+    });
+  });
+
+  // pytest wraps each cocotb test through a TESTCASE filter. A filter that
+  // matches nothing runs zero tests and still passes, so check results.xml.
+  describe(`${compiled[0]}: generated pytest wrapper`, () => {
+    it('runs the cocotb test under pytest', () => {
+      if (
+        guardTier1('ghdl', () => toolOnPath('ghdl')) ||
+        guardTier1('cocotb', cocotbAvailable) ||
+        guardTier1('pytest', pytestAvailable)
+      ) {
+        return;
+      }
+      const tbDir = path.join(generatedFor(compiled[0]).dir, 'tb');
+      const resultsXml = path.join(tbDir, 'results.xml');
+      fs.rmSync(resultsXml, { force: true });
+      const run = spawnSync('python3', ['-m', 'pytest', '-q', tbDir], {
+        encoding: 'utf8',
+        timeout: 150_000,
+        env: { ...process.env, SIM: 'ghdl', WAVES: '0' },
+      });
+      if (run.status !== 0) {
+        throw new Error(
+          `pytest failed (exit ${run.status}) ${run.error?.message ?? ''}\n${(run.stdout + run.stderr).slice(-4000)}`
+        );
+      }
+      expect(fs.readFileSync(resultsXml, 'utf8')).toContain('<testcase');
     });
   });
 
