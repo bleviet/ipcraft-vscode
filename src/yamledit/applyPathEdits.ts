@@ -1,7 +1,7 @@
 import { parseDocument, isScalar } from 'yaml';
 import { collectHexSpellings } from './restoreHexSpellings';
 import { serializeEdit } from './serializeEdit';
-import { mergeNode } from './mergeNode';
+import { mergeNode, type MergeOptions } from './mergeNode';
 
 export interface PathEdit {
   path: (string | number)[];
@@ -33,7 +33,7 @@ function parsePossibleHex(val: string): number | null {
  * Apply path-targeted edits to YAML text while preserving the formatting
  * and comments of everything that is not touched.
  */
-export function applyPathEdits(text: string, edits: PathEdit[]): string {
+export function applyPathEdits(text: string, edits: PathEdit[], options?: MergeOptions): string {
   const doc = parseDocument(text);
   if (doc.errors.length > 0) {
     console.warn('Cannot apply edit: YAML parse failed', doc.errors[0]?.message);
@@ -61,7 +61,7 @@ export function applyPathEdits(text: string, edits: PathEdit[]): string {
     if (sameJson(toJS(current), finalValue)) {
       continue;
     }
-    const merged = mergeNode(doc, current, finalValue);
+    const merged = mergeNode(doc, current, finalValue, options);
     if (forceHex && isScalar(merged)) {
       merged.format = 'HEX';
     }

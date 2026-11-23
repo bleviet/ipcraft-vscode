@@ -524,3 +524,86 @@ ${HISTORY}`;
     expectHistoryUntouched(out);
   });
 });
+
+describe('structural inserts keep untouched defaults (#327)', () => {
+  const tutorialFile = path.resolve(
+    __dirname,
+    '../../../../examples/tutorial/led/07-grow-the-design/led_controller_avmm.mm.yml'
+  );
+  const SOURCE = fs.readFileSync(tutorialFile, 'utf8');
+  const PATTERN_RESET = '              resetValue: 0\n';
+
+  /** Every line of `out` that is not a line of `src` (the lines the write added). */
+  const addedLines = (src: string, out: string): string[] => {
+    const before = src.split('\n');
+    return out.split('\n').filter((line) => !before.includes(line));
+  };
+
+  it('the source carries the explicit resetValue: 0 the test guards', () => {
+    expect(SOURCE).toContain(PATTERN_RESET);
+  });
+
+  it('inserting a register leaves LED_PATTERN.PATTERN resetValue: 0 and every other line intact', () => {
+    const out = uiAddRegister(SOURCE, 0);
+    expect(out).toContain(PATTERN_RESET);
+    expect(out.startsWith(SOURCE.trimEnd())).toBe(true);
+    expect(out.slice(SOURCE.trimEnd().length)).toMatch(/^\n {8}- name: reg1\n/);
+  });
+
+  it('inserting a register through the outline (raw) path keeps resetValue: 0', () => {
+    const out = uiAddRegisterOutline(SOURCE, 0);
+    expect(out).toContain(PATTERN_RESET);
+    expect(addedLines(SOURCE, out).join('\n')).not.toContain('resetValue');
+  });
+
+  it('inserting a bit field keeps a sibling field resetValue: 0', () => {
+    const rawTextRef = { current: SOURCE };
+    const selectionRef = {
+      current: {
+        id: 'block-0-reg-1',
+        type: 'register',
+        object: { name: 'LED_PATTERN' },
+        breadcrumbs: ['LED_AVMM_CSR', 'CSR', 'LED_PATTERN'],
+        path: ['addressBlocks', 0, 'registers', 1],
+      } as Selection | null,
+    };
+    const sendUpdate = jest.fn();
+    const { result } = renderHook(() =>
+      useYamlUpdateHandler({
+        selectionRef,
+        rawTextRef,
+        updateRawText: (t: string) => {
+          rawTextRef.current = t;
+        },
+        sendUpdate,
+      })
+    );
+    act(() => result.current(['__op', 'field-add'], { index: 0, position: 'after' }));
+    expect(sendUpdate).toHaveBeenCalledTimes(1);
+    const out = sendUpdate.mock.calls[0][0] as string;
+    expect(out).toContain(PATTERN_RESET);
+    expect(addedLines(SOURCE, out).join('\n')).not.toContain('resetValue');
+    expect(out).toMatch(/- name: NEW_FIELD/);
+  });
+
+  it('a reset edited from 0 to 5 is written', () => {
+    const out = YamlService.applyPathEdits(SOURCE, [
+      { path: [0, 'addressBlocks', 0, 'registers', 1, 'fields', 0, 'resetValue'], value: 5 },
+    ]);
+    expect(out).toContain('              resetValue: 5\n');
+  });
+
+  it('a field reset edited from 1 to 0 still drops the key', () => {
+    const regs = parseAndNormalize(SOURCE).addressBlocks[0].registers;
+    const fields = regs[0].fields.map((f) => (f.name === 'MAJOR' ? { ...f, resetValue: 0 } : f));
+    const out = YamlService.applyPathEdits(SOURCE, [
+      {
+        path: [0, 'addressBlocks', 0, 'registers', 0, 'fields'],
+        value: fields.map((f) => serializeValue(f as unknown as Record<string, unknown>)),
+      },
+    ]);
+    expect(out).not.toContain('resetValue: 1');
+    // PATTERN is in another register and keeps its explicit 0.
+    expect(out).toContain(PATTERN_RESET);
+  });
+});
